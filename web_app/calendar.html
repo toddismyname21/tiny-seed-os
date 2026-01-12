@@ -1272,9 +1272,9 @@
             setSyncStatus('syncing', 'Loading...');
 
             try {
-                // Try getPlantings first (matches APPS_SCRIPT_CODE.gs)
-                console.log('Fetching from API:', `${API_URL}?action=getPlantings`);
-                let response = await fetch(`${API_URL}?action=getPlantings`);
+                // Use getPlanningData (matches your existing Apps Script)
+                console.log('Fetching from API:', `${API_URL}?action=getPlanningData`);
+                let response = await fetch(`${API_URL}?action=getPlanningData`);
                 let data = await response.json();
 
                 console.log('API Response status:', data.success);
