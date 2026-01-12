@@ -1335,7 +1335,7 @@
                 const planTransplant = parseFlexibleDate(p.Plan_Transplant || p.plan_transplant);
                 const actTransplant = parseFlexibleDate(p.Act_Transplant || p.act_transplant);
                 const firstHarvest = parseFlexibleDate(p.First_Harvest || p.first_harvest);
-                const lastHarvest = parseFlexibleDate(p.Last_Harvest || p.last_harvest);
+                let lastHarvest = parseFlexibleDate(p.Last_Harvest || p.last_harvest);
 
                 // Determine field start date based on planting method
                 let fieldStartDate;
