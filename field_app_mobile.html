@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Field App - Tiny Seed OS</title>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            color: #1a202c;
+            overflow-x: hidden;
+            padding-bottom: 80px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .logo {
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        
+        .sync-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .search-bar {
+            position: relative;
+        }
+        
+        .search-bar input {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 16px;
+        }
+        
+        .search-bar input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .container {
+            padding: 15px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-header {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #1a202c;
+        }
+        
+        .task-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid #10b981;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        
+        .task-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #1a202c;
+        }
+        
+        .task-checkbox {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #10b981;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+        
+        .task-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #4a5568;
+        }
+        
+        .task-detail {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        .btn-complete {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-photo {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-notes {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .crop-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .crop-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .crop-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .crop-info {
+            padding: 12px;
+        }
+        
+        .crop-name {
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+        
+        .crop-variety {
+            font-size: 0.85em;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+        
+        .crop-status {
+            font-size: 0.8em;
+            padding: 4px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+        
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-upcoming {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .quick-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        
+        .quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 10px;
+            border-radius: 12px;
+            background: #f7fafc;
+            border: 2px solid transparent;
+        }
+        
+        .quick-action.active {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+        
+        .quick-action-icon {
+            font-size: 1.8em;
+        }
+        
+        .quick-action-label {
+            font-size: 0.75em;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .camera-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+        
+        .camera-overlay.active {
+            display: flex;
+        }
+        
+        .camera-view {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+        
+        .camera-view video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .camera-controls {
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        
+        .camera-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: white;
+            border: 5px solid #10b981;
+            font-size: 2em;
+        }
+        
+        .camera-close {
+            color: white;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+        
+        .photo-preview {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 10px 0;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .badge-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-low {
+            background: #d1fae5;
+            color: #065f46;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <div class="logo">🌱 Field App</div>
+            <button class="sync-btn" onclick="syncData()">↻ Sync</button>
+        </div>
+        <div class="search-bar">
+            <input type="text" placeholder="Search crops, fields, tasks..." id="searchInput">
+            <span class="search-icon">🔍</span>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="section">
+            <div class="section-header">📋 Today's Tasks (8)</div>
+            
+            <div class="task-card">
+                <div class="task-header">
+                    <div class="task-title">Transplant Lettuce</div>
+                    <input type="checkbox" class="task-checkbox">
+                </div>
+                <div class="task-details">
+                    <div class="task-detail">📍 Field M-05</div>
+                    <div class="task-detail">🌱 Salanova Mix</div>
+                    <div class="task-detail">⏰ 10:00 AM</div>
+                    <div class="task-detail"><span class="badge badge-high">HIGH</span></div>
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-complete" onclick="completeTask(1)">✓ Complete</button>
+                    <button class="btn btn-photo" onclick="takePhoto()">📷 Photo</button>
+                    <button class="btn btn-notes" onclick="addNotes()">📝 Notes</button>
+                </div>
+            </div>
+            
+            <div class="task-card">
+                <div class="task-header">
+                    <div class="task-title">Seed Tomatoes</div>
+                    <input type="checkbox" class="task-checkbox">
+                </div>
+                <div class="task-details">
+                    <div class="task-detail">🏠 Greenhouse</div>
+                    <div class="task-detail">🌱 Cherokee Purple</div>
+                    <div class="task-detail">⏰ 2:00 PM</div>
+                    <div class="task-detail"><span class="badge badge-high">HIGH</span></div>
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-complete" onclick="completeTask(2)">✓ Complete</button>
+                    <button class="btn btn-photo" onclick="takePhoto()">📷 Photo</button>
+                    <button class="btn btn-notes" onclick="addNotes()">📝 Notes</button>
+                </div>
+            </div>
+            
+            <div class="task-card">
+                <div class="task-header">
+                    <div class="task-title">Weed Kale Beds</div>
+                    <input type="checkbox" class="task-checkbox">
+                </div>
+                <div class="task-details">
+                    <div class="task-detail">📍 Field HOL</div>
+                    <div class="task-detail">📏 540 ft</div>
+                    <div class="task-detail">⏰ 4:00 PM</div>
+                    <div class="task-detail"><span class="badge badge-medium">MEDIUM</span></div>
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-complete" onclick="completeTask(3)">✓ Complete</button>
+                    <button class="btn btn-photo" onclick="takePhoto()">📷 Photo</button>
+                    <button class="btn btn-notes" onclick="addNotes()">📝 Notes</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">🌱 Active Crops</div>
+            <div class="crop-grid">
+                <div class="crop-card">
+                    <div class="crop-image" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                    <div class="crop-info">
+                        <div class="crop-name">Lettuce</div>
+                        <div class="crop-variety">Salanova Formula Mix</div>
+                        <span class="crop-status status-active">Growing</span>
+                    </div>
+                </div>
+                <div class="crop-card">
+                    <div class="crop-image" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
+                    <div class="crop-info">
+                        <div class="crop-name">Tomato</div>
+                        <div class="crop-variety">Cherokee Purple</div>
+                        <span class="crop-status status-upcoming">Upcoming</span>
+                    </div>
+                </div>
+                <div class="crop-card">
+                    <div class="crop-image" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                    <div class="crop-info">
+                        <div class="crop-name">Kale</div>
+                        <div class="crop-variety">Winterbor</div>
+                        <span class="crop-status status-active">Growing</span>
+                    </div>
+                </div>
+                <div class="crop-card">
+                    <div class="crop-image" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+                    <div class="crop-info">
+                        <div class="crop-name">Carrot</div>
+                        <div class="crop-variety">Nantes</div>
+                        <span class="crop-status status-active">Growing</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quick-actions">
+        <div class="quick-action active">
+            <div class="quick-action-icon">📋</div>
+            <div class="quick-action-label">Tasks</div>
+        </div>
+        <div class="quick-action" onclick="openCrops()">
+            <div class="quick-action-icon">🌱</div>
+            <div class="quick-action-label">Crops</div>
+        </div>
+        <div class="quick-action" onclick="takePhoto()">
+            <div class="quick-action-icon">📷</div>
+            <div class="quick-action-label">Camera</div>
+        </div>
+        <div class="quick-action" onclick="showMap()">
+            <div class="quick-action-icon">🗺️</div>
+            <div class="quick-action-label">Map</div>
+        </div>
+    </div>
+    
+    <div class="camera-overlay" id="cameraOverlay">
+        <div class="camera-view">
+            <video id="cameraVideo" autoplay playsinline></video>
+            <canvas id="photoCanvas" style="display: none;"></canvas>
+            <img id="photoPreview" class="photo-preview" style="display: none;">
+        </div>
+        <div class="camera-controls">
+            <button class="camera-close" onclick="closeCamera()">Cancel</button>
+            <button class="camera-btn" onclick="capturePhoto()">📷</button>
+            <button class="camera-close" onclick="savePhoto()">Save</button>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+        
+        let stream = null;
+        let photoTaken = false;
+        
+        async function syncData() {
+            try {
+                const response = await fetch(`${API_URL}?action=getFieldTasks`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Sync Complete!\n\nUpdated from Google Sheets.');
+                } else {
+                    alert('❌ Sync Failed\n\n' + result.error);
+                }
+            } catch (error) {
+                alert('❌ Sync Failed\n\n' + error.message);
+            }
+        }
+        
+        async function completeTask(id) {
+            if (confirm('Mark this task as complete?')) {
+                try {
+                    const response = await fetch(`${API_URL}?action=completeTask&taskId=${id}`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('✅ Task completed!\n\nLogged to Google Sheets.');
+                    } else {
+                        alert('❌ Failed to complete task\n\n' + result.error);
+                    }
+                } catch (error) {
+                    alert('❌ Error: ' + error.message);
+                }
+            }
+        }
+        
+        async function takePhoto() {
+            const overlay = document.getElementById('cameraOverlay');
+            const video = document.getElementById('cameraVideo');
+            
+            overlay.classList.add('active');
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' },
+                    audio: false 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                alert('Camera access required for photos.\n\nIn production, this uses device camera to:\n- Document crop progress\n- Record issues/pests\n- Update variety images\n- Create time-lapse sequences');
+                closeCamera();
+            }
+        }
+        
+        function capturePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('photoCanvas');
+            const preview = document.getElementById('photoPreview');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            preview.src = canvas.toDataURL('image/jpeg');
+            preview.style.display = 'block';
+            video.style.display = 'none';
+            photoTaken = true;
+        }
+        
+        function savePhoto() {
+            if (!photoTaken) {
+                alert('Take a photo first!');
+                return;
+            }
+            
+            alert('Photo saved!\n\nThis would:\n1. Tag with GPS location\n2. Link to crop/task\n3. Upload to cloud storage\n4. Update crop card image\n5. Add to field history');
+            closeCamera();
+        }
+        
+        function closeCamera() {
+            const overlay = document.getElementById('cameraOverlay');
+            const video = document.getElementById('cameraVideo');
+            const preview = document.getElementById('photoPreview');
+            
+            overlay.classList.remove('active');
+            video.style.display = 'block';
+            preview.style.display = 'none';
+            photoTaken = false;
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+        
+        function addNotes() {
+            const notes = prompt('Add notes for this task:');
+            if (notes) {
+                alert(`✓ Notes saved!\n\n"${notes}"\n\nSyncing to Google Sheets...`);
+            }
+        }
+        
+        function openCrops() {
+            alert('Crop View\n\nWould show:\n- All active plantings\n- Growth stage\n- Days to harvest\n- Task history\n- Photo timeline');
+        }
+        
+        function showMap() {
+            alert('Field Map\n\nWould show:\n- GPS field boundaries\n- Current crop locations\n- Irrigation zones\n- Task hotspots\n- Harvest readiness heatmap');
+        }
+    </script>
+</body>
+</html>

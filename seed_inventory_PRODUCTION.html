@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seed Inventory Management - Tiny Seed OS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+        
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-right: 2px solid #e2e8f0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .section-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: #2d3748;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #92400e;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #78350f;
+            margin-top: 4px;
+        }
+        
+        .alert-item {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .alert-crop {
+            font-weight: 700;
+            color: #991b1b;
+        }
+        
+        .alert-detail {
+            color: #7f1d1d;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .filter-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #4a5568;
+            font-size: 13px;
+        }
+        
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .main-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #d97706;
+            transform: translateY(-1px);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .inventory-grid {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .seed-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+        }
+        
+        .seed-card:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+        }
+        
+        .seed-card.low-stock {
+            border-left: 4px solid #ef4444;
+            background: #fef2f2;
+        }
+        
+        .seed-card.depleted {
+            border-left: 4px solid #991b1b;
+            background: #fee2e2;
+            opacity: 0.7;
+        }
+        
+        .seed-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .seed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+        
+        .seed-name {
+            font-weight: 700;
+            font-size: 18px;
+            color: #1a202c;
+        }
+        
+        .seed-variety {
+            font-size: 14px;
+            color: #718096;
+            margin-top: 2px;
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .badge-good {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-low {
+            background: #fed7aa;
+            color: #92400e;
+        }
+        
+        .badge-depleted {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        
+        .badge-organic {
+            background: #d1fae5;
+            color: #065f46;
+            margin-left: 8px;
+        }
+        
+        .seed-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .detail-item {
+            font-size: 13px;
+        }
+        
+        .detail-label {
+            color: #718096;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .detail-value {
+            font-weight: 600;
+            color: #2d3748;
+            margin-top: 2px;
+        }
+        
+        .seed-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+        }
+        
+        .quantity-display {
+            font-size: 32px;
+            font-weight: 700;
+            color: #f59e0b;
+            text-align: right;
+        }
+        
+        .quantity-label {
+            font-size: 11px;
+            color: #718096;
+            text-align: right;
+        }
+        
+        .progress-bar {
+            width: 150px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.3s;
+        }
+        
+        .progress-fill.low {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+        
+        .progress-fill.depleted {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #f59e0b;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+        
+        .calculator-section {
+            background: #fef3c7;
+            border: 2px solid #fde68a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .calculator-result {
+            font-size: 18px;
+            font-weight: 700;
+            color: #92400e;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌱 Seed Inventory Management</h1>
+        <div class="header-subtitle">Track seed packets, lots, germination rates & auto-deduct on planting</div>
+    </div>
+    
+    <div class="main-content">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="section-title">Inventory Stats</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalVarieties">0</div>
+                    <div class="stat-label">Seed Varieties</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalPackets">0</div>
+                    <div class="stat-label">Total Packets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="lowStockCount">0</div>
+                    <div class="stat-label">Low Stock Alerts</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="section-title">⚠️ Low Stock Alerts</div>
+                <div id="alertsList"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="section-title">Filters</div>
+                <div class="filter-group">
+                    <label>Search</label>
+                    <input type="text" id="searchFilter" placeholder="Search crops..." oninput="filterInventory()">
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="statusFilter" onchange="filterInventory()">
+                        <option value="all">All Seeds</option>
+                        <option value="good">In Stock</option>
+                        <option value="low">Low Stock</option>
+                        <option value="depleted">Depleted</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Organic Only</label>
+                    <select id="organicFilter" onchange="filterInventory()">
+                        <option value="all">All</option>
+                        <option value="yes">Organic Only</option>
+                        <option value="no">Non-Organic</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-panel">
+            <div class="controls">
+                <h2 style="font-size: 1.3em; color: #2d3748;">Seed Inventory</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="openAddSeed()">➕ Add New Seed</button>
+                    <button class="btn btn-primary" onclick="openSeedCalculator()">🧮 Seed Calculator</button>
+                </div>
+            </div>
+            
+            <div class="inventory-grid" id="inventoryGrid">
+                Loading inventory...
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Seed Modal -->
+    <div class="modal-overlay" id="addSeedModal">
+        <div class="modal">
+            <div class="modal-header">Add New Seed Packet</div>
+            <form onsubmit="addSeed(event)">
+                <div class="form-group">
+                    <label>Crop</label>
+                    <input type="text" id="newCrop" required>
+                </div>
+                <div class="form-group">
+                    <label>Variety</label>
+                    <input type="text" id="newVariety" required>
+                </div>
+                <div class="form-group">
+                    <label>Vendor</label>
+                    <input type="text" id="newVendor" required>
+                </div>
+                <div class="form-group">
+                    <label>Lot Number</label>
+                    <input type="text" id="newLotNumber" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantity (packets)</label>
+                    <input type="number" id="newQuantity" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Seeds Per Packet</label>
+                    <input type="number" id="newSeedsPerPacket" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Germination Rate (%)</label>
+                    <input type="number" id="newGermRate" min="0" max="100" value="95">
+                </div>
+                <div class="form-group">
+                    <label>Organic Certified</label>
+                    <select id="newOrganic">
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Low Stock Threshold</label>
+                    <input type="number" id="newThreshold" value="3" min="1">
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddSeed()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Seed</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Seed Calculator Modal -->
+    <div class="modal-overlay" id="calculatorModal">
+        <div class="modal">
+            <div class="modal-header">🧮 Seed Calculator</div>
+            <div class="form-group">
+                <label>Plants Needed</label>
+                <input type="number" id="calcPlantsNeeded" min="1" value="100" oninput="calculateSeeds()">
+            </div>
+            <div class="form-group">
+                <label>Germination Rate (%)</label>
+                <input type="number" id="calcGermRate" min="1" max="100" value="95" oninput="calculateSeeds()">
+            </div>
+            <div class="form-group">
+                <label>Safety Factor (%)</label>
+                <input type="number" id="calcSafetyFactor" min="0" max="100" value="10" oninput="calculateSeeds()">
+            </div>
+            <div class="calculator-section">
+                <div style="font-weight: 600; color: #92400e; margin-bottom: 8px;">Seeds to Plant:</div>
+                <div class="calculator-result" id="calcResult">---</div>
+                <div style="font-size: 12px; color: #78350f; margin-top: 8px;" id="calcBreakdown"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeCalculator()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+        
+        let seedInventory = [];
+        
+        async function init() {
+            await loadInventory();
+            renderInventory();
+            updateStats();
+        }
+        
+        async function loadInventory() {
+            try {
+                const response = await fetch(`${API_URL}?action=getSeedInventory`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    seedInventory = result.data;
+                } else {
+                    console.warn('Using demo data');
+                    useDemoData();
+                }
+            } catch (error) {
+                console.error('Error loading inventory:', error);
+                useDemoData();
+            }
+        }
+        
+        function useDemoData() {
+            seedInventory = [
+            {
+                id: 1,
+                crop: 'Lettuce',
+                variety: 'Salanova Formula Mix',
+                vendor: 'Johnny\'s Selected Seeds',
+                lotNumber: 'JSS-2025-L001',
+                quantity: 5,
+                seedsPerPacket: 1000,
+                germRate: 95,
+                organic: true,
+                threshold: 3,
+                used: 0
+            },
+            {
+                id: 2,
+                crop: 'Kale',
+                variety: 'Winterbor',
+                vendor: 'High Mowing Seeds',
+                lotNumber: 'HMS-2025-K002',
+                quantity: 8,
+                seedsPerPacket: 500,
+                germRate: 92,
+                organic: true,
+                threshold: 3,
+                used: 0
+            },
+            {
+                id: 3,
+                crop: 'Tomato',
+                variety: 'Cherokee Purple',
+                vendor: 'Baker Creek',
+                lotNumber: 'BC-2025-T003',
+                quantity: 2,
+                seedsPerPacket: 25,
+                germRate: 88,
+                organic: true,
+                threshold: 3,
+                used: 0
+            },
+            {
+                id: 4,
+                crop: 'Pepper',
+                variety: 'Jimmy Nardello',
+                vendor: 'Johnny\'s Selected Seeds',
+                lotNumber: 'JSS-2025-P004',
+                quantity: 1,
+                seedsPerPacket: 50,
+                germRate: 85,
+                organic: false,
+                threshold: 2,
+                used: 0
+            }
+        ];
+        }
+        
+        function init_old() {
+            renderInventory();
+            updateStats();
+        }
+        
+        function renderInventory(filtered = null) {
+            const seeds = filtered || seedInventory;
+            const grid = document.getElementById('inventoryGrid');
+            
+            if (seeds.length === 0) {
+                grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #a0aec0;">No seeds found</div>';
+                return;
+            }
+            
+            const html = seeds.map(seed => {
+                const status = getStatus(seed);
+                const percentRemaining = (seed.quantity / (seed.quantity + seed.used)) * 100 || 0;
+                const totalSeeds = seed.quantity * seed.seedsPerPacket;
+                
+                return `
+                    <div class="seed-card ${status === 'low' ? 'low-stock' : ''} ${status === 'depleted' ? 'depleted' : ''}">
+                        <div class="seed-info">
+                            <div class="seed-header">
+                                <div>
+                                    <div class="seed-name">${seed.crop}</div>
+                                    <div class="seed-variety">${seed.variety}</div>
+                                </div>
+                                <div>
+                                    <span class="status-badge badge-${status}">${status.toUpperCase()}</span>
+                                    ${seed.organic ? '<span class="status-badge badge-organic">ORGANIC</span>' : ''}
+                                </div>
+                            </div>
+                            <div class="seed-details">
+                                <div class="detail-item">
+                                    <div class="detail-label">Vendor</div>
+                                    <div class="detail-value">${seed.vendor}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Lot Number</div>
+                                    <div class="detail-value">${seed.lotNumber}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Germination Rate</div>
+                                    <div class="detail-value">${seed.germRate}%</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Total Seeds</div>
+                                    <div class="detail-value">${totalSeeds.toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="seed-actions">
+                            <div class="quantity-display">${seed.quantity}</div>
+                            <div class="quantity-label">packets remaining</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${status === 'low' ? 'low' : ''} ${status === 'depleted' ? 'depleted' : ''}" 
+                                     style="width: ${percentRemaining}%"></div>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary btn-small" onclick="useSeed(${seed.id})">📤 Use</button>
+                                <button class="btn btn-success btn-small" onclick="restock(${seed.id})">➕ Restock</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            grid.innerHTML = html;
+        }
+        
+        function getStatus(seed) {
+            if (seed.quantity === 0) return 'depleted';
+            if (seed.quantity <= seed.threshold) return 'low';
+            return 'good';
+        }
+        
+        function updateStats() {
+            const totalVarieties = seedInventory.length;
+            const totalPackets = seedInventory.reduce((sum, s) => sum + s.quantity, 0);
+            const lowStock = seedInventory.filter(s => getStatus(s) === 'low' || getStatus(s) === 'depleted');
+            
+            document.getElementById('totalVarieties').textContent = totalVarieties;
+            document.getElementById('totalPackets').textContent = totalPackets;
+            document.getElementById('lowStockCount').textContent = lowStock.length;
+            
+            // Alerts
+            const alertsList = document.getElementById('alertsList');
+            if (lowStock.length === 0) {
+                alertsList.innerHTML = '<div style="color: #10b981; font-size: 13px;">✓ All seeds in stock</div>';
+            } else {
+                const alertsHtml = lowStock.map(seed => `
+                    <div class="alert-item">
+                        <div class="alert-crop">${seed.crop} - ${seed.variety}</div>
+                        <div class="alert-detail">
+                            ${seed.quantity} packet${seed.quantity !== 1 ? 's' : ''} remaining 
+                            ${seed.quantity === 0 ? '(DEPLETED)' : `(LOW - reorder soon)`}
+                        </div>
+                    </div>
+                `).join('');
+                alertsList.innerHTML = alertsHtml;
+            }
+        }
+        
+        function filterInventory() {
+            const search = document.getElementById('searchFilter').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const organic = document.getElementById('organicFilter').value;
+            
+            let filtered = seedInventory.filter(seed => {
+                const searchMatch = !search || 
+                    seed.crop.toLowerCase().includes(search) || 
+                    seed.variety.toLowerCase().includes(search);
+                
+                const statusMatch = status === 'all' || getStatus(seed) === status;
+                
+                const organicMatch = organic === 'all' || 
+                    (organic === 'yes' && seed.organic) ||
+                    (organic === 'no' && !seed.organic);
+                
+                return searchMatch && statusMatch && organicMatch;
+            });
+            
+            renderInventory(filtered);
+        }
+        
+        function useSeed(id) {
+            const seed = seedInventory.find(s => s.id === id);
+            if (!seed) return;
+            
+            const amount = prompt(`How many packets of ${seed.crop} - ${seed.variety} to use?`, '1');
+            if (!amount) return;
+            
+            const num = parseInt(amount);
+            if (num > seed.quantity) {
+                alert('Not enough packets in stock!');
+                return;
+            }
+            
+            seed.quantity -= num;
+            seed.used += num;
+            
+            renderInventory();
+            updateStats();
+            alert(`✓ Used ${num} packet${num !== 1 ? 's' : ''} of ${seed.crop} - ${seed.variety}`);
+        }
+        
+        function restock(id) {
+            const seed = seedInventory.find(s => s.id === id);
+            if (!seed) return;
+            
+            const amount = prompt(`How many packets of ${seed.crop} - ${seed.variety} to add?`, '5');
+            if (!amount) return;
+            
+            seed.quantity += parseInt(amount);
+            
+            renderInventory();
+            updateStats();
+            alert(`✓ Added ${amount} packets to inventory`);
+        }
+        
+        function openAddSeed() {
+            document.getElementById('addSeedModal').classList.add('active');
+        }
+        
+        function closeAddSeed() {
+            document.getElementById('addSeedModal').classList.remove('active');
+        }
+        
+        function addSeed(event) {
+            event.preventDefault();
+            
+            const newSeed = {
+                id: seedInventory.length + 1,
+                crop: document.getElementById('newCrop').value,
+                variety: document.getElementById('newVariety').value,
+                vendor: document.getElementById('newVendor').value,
+                lotNumber: document.getElementById('newLotNumber').value,
+                quantity: parseInt(document.getElementById('newQuantity').value),
+                seedsPerPacket: parseInt(document.getElementById('newSeedsPerPacket').value),
+                germRate: parseInt(document.getElementById('newGermRate').value),
+                organic: document.getElementById('newOrganic').value === 'yes',
+                threshold: parseInt(document.getElementById('newThreshold').value),
+                used: 0
+            };
+            
+            seedInventory.push(newSeed);
+            
+            closeAddSeed();
+            renderInventory();
+            updateStats();
+            alert(`✓ Added ${newSeed.crop} - ${newSeed.variety} to inventory`);
+        }
+        
+        function openSeedCalculator() {
+            document.getElementById('calculatorModal').classList.add('active');
+            calculateSeeds();
+        }
+        
+        function closeCalculator() {
+            document.getElementById('calculatorModal').classList.remove('active');
+        }
+        
+        function calculateSeeds() {
+            const plantsNeeded = parseInt(document.getElementById('calcPlantsNeeded').value) || 0;
+            const germRate = parseInt(document.getElementById('calcGermRate').value) || 95;
+            const safetyFactor = parseInt(document.getElementById('calcSafetyFactor').value) || 10;
+            
+            const adjustedForGerm = Math.ceil(plantsNeeded / (germRate / 100));
+            const withSafety = Math.ceil(adjustedForGerm * (1 + safetyFactor / 100));
+            
+            document.getElementById('calcResult').textContent = `${withSafety} seeds`;
+            document.getElementById('calcBreakdown').textContent = 
+                `${plantsNeeded} plants needed → ${adjustedForGerm} seeds (${germRate}% germ) → ${withSafety} seeds (${safetyFactor}% safety)`;
+        }
+        
+        init();
+    </script>
+</body>
+</html>

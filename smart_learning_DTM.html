@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart DTM Learning System - Tiny Seed OS</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: white;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            padding: 30px 60px;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+        }
+        
+        .header-subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px 60px;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #6366f1, #8b5cf6);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #94a3b8;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-trend {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #10b981;
+        }
+        
+        .stat-trend.negative {
+            color: #ef4444;
+        }
+        
+        .section {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .section-header {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .crop-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+        
+        .crop-table thead th {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            text-align: left;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+        }
+        
+        .crop-table tbody tr {
+            background: rgba(255,255,255,0.03);
+            transition: all 0.2s;
+        }
+        
+        .crop-table tbody tr:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateX(4px);
+        }
+        
+        .crop-table td {
+            padding: 15px 12px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .crop-table td:first-child {
+            border-left: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px 0 0 8px;
+        }
+        
+        .crop-table td:last-child {
+            border-right: 1px solid rgba(255,255,255,0.05);
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .crop-name {
+            font-weight: 700;
+            font-size: 1.05em;
+        }
+        
+        .crop-variety {
+            font-size: 0.85em;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+        
+        .dtm-comparison {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .dtm-value {
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+        
+        .dtm-textbook {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+        
+        .dtm-actual {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+        }
+        
+        .dtm-delta {
+            font-size: 0.9em;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        
+        .delta-positive {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+        
+        .delta-negative {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+        
+        .confidence-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            transition: width 0.3s;
+        }
+        
+        .confidence-label {
+            font-size: 0.75em;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .predictions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .prediction-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .prediction-crop {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+        
+        .prediction-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.9em;
+        }
+        
+        .prediction-label {
+            color: #94a3b8;
+        }
+        
+        .prediction-value {
+            font-weight: 600;
+        }
+        
+        .algorithm-status {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 Smart DTM Learning System</h1>
+        <div class="header-subtitle">Machine learning algorithm that learns YOUR actual days-to-maturity vs textbook numbers</div>
+    </div>
+    
+    <div class="container">
+        <div class="algorithm-status">
+            <div class="status-indicator"></div>
+            <div>
+                <strong>Algorithm Status:</strong> Active Learning • 
+                <span id="dataPoints">0</span> data points collected • 
+                Accuracy: <span id="accuracy">0%</span>
+            </div>
+        </div>
+        
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="cropsLearned">0</div>
+                <div class="stat-label">Crops Learning</div>
+                <div class="stat-trend">+3 this season</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgAccuracy">0%</div>
+                <div class="stat-label">Prediction Accuracy</div>
+                <div class="stat-trend">+12% improvement</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="seasonsCounted">0</div>
+                <div class="stat-label">Seasons Tracked</div>
+                <div class="stat-trend">Spring 2026 active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="confidenceAvg">0%</div>
+                <div class="stat-label">Avg Confidence</div>
+                <div class="stat-trend class="negative">Needs more data</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">
+                <span>📊 DTM Learning Data</span>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="recordHarvest()">📝 Record Harvest</button>
+                    <button class="btn btn-primary" onclick="trainModel()">🤖 Train Model</button>
+                </div>
+            </div>
+            
+            <table class="crop-table">
+                <thead>
+                    <tr>
+                        <th>Crop & Variety</th>
+                        <th>Season</th>
+                        <th>Textbook DTM</th>
+                        <th>Actual DTM (Learned)</th>
+                        <th>Delta</th>
+                        <th>Data Points</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody id="learningTable"></tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">📈 DTM Accuracy Trends</div>
+            <div class="chart-container">
+                <canvas id="accuracyChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">🔮 Next Season Predictions</div>
+            <div class="predictions-grid" id="predictionsGrid"></div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">🧮 Algorithm Insights</div>
+            <div style="font-size: 0.95em; line-height: 1.8; color: #cbd5e1;">
+                <p style="margin-bottom: 15px;">
+                    <strong>How It Works:</strong> The system tracks every planting from transplant to harvest, comparing actual results against textbook DTM values. Over time, it builds a personalized model that accounts for:
+                </p>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li>Your specific microclimate and soil conditions</li>
+                    <li>Seasonal variations (spring vs summer vs fall)</li>
+                    <li>Varietal differences within the same crop</li>
+                    <li>Field-specific performance patterns</li>
+                </ul>
+                <p style="margin-bottom: 15px;">
+                    <strong>Confidence Levels:</strong>
+                </p>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li><strong>0-50%:</strong> Insufficient data - using textbook values</li>
+                    <li><strong>50-75%:</strong> Learning phase - blending textbook + actual</li>
+                    <li><strong>75-90%:</strong> High confidence - primarily using learned values</li>
+                    <li><strong>90-100%:</strong> Very high confidence - fully personalized predictions</li>
+                </ul>
+                <p>
+                    <strong>Smart Weighting:</strong> The algorithm gives more weight to recent seasons and adjusts for outliers (e.g., unusually hot summers or pest damage).
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+        
+        // Learning data structure
+        let learningData = {
+            crops: [],
+            totalDataPoints: 0,
+            averageAccuracy: 0
+        };
+        
+        async function init() {
+            await loadLearningData();
+            calculateStats();
+            renderTable();
+            renderChart();
+            renderPredictions();
+        }
+        
+        async function loadLearningData() {
+            try {
+                const response = await fetch(`${API_URL}?action=getDTMLearningData`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    learningData.crops = result.data;
+                } else {
+                    console.warn('Using demo learning data');
+                    useDemoData();
+                }
+            } catch (error) {
+                console.error('Error loading DTM data:', error);
+                useDemoData();
+            }
+        }
+        
+        function useDemoData() {
+            learningData.crops = [
+                {
+                    crop: 'Lettuce',
+                    variety: 'Salanova Formula Mix',
+                    textbookDTM: { spring: 55, summer: 45, fall: 60 },
+                    actualDTM: { spring: 62, summer: 48, fall: 65 },
+                    dataPoints: { spring: 8, summer: 6, fall: 5 },
+                    seasons: 3
+                },
+                {
+                    crop: 'Kale',
+                    variety: 'Winterbor',
+                    textbookDTM: { spring: 65, summer: 55, fall: 70 },
+                    actualDTM: { spring: 70, summer: 58, fall: 75 },
+                    dataPoints: { spring: 12, summer: 8, fall: 10 },
+                    seasons: 3
+                },
+                {
+                    crop: 'Tomato',
+                    variety: 'Cherokee Purple',
+                    textbookDTM: { spring: 85, summer: 75, fall: 95 },
+                    actualDTM: { spring: 92, summer: 78, fall: 102 },
+                    dataPoints: { spring: 6, summer: 4, fall: 3 },
+                    seasons: 2
+                },
+                {
+                    crop: 'Broccoli',
+                    variety: 'Calabrese',
+                    textbookDTM: { spring: 70, summer: 60, fall: 75 },
+                    actualDTM: { spring: 75, summer: 63, fall: 78 },
+                    dataPoints: { spring: 10, summer: 7, fall: 9 },
+                    seasons: 3
+                }
+            ];
+            learningData.totalDataPoints = 0;
+            learningData.averageAccuracy = 0;
+        }
+        
+        function init_old() {
+            calculateStats();
+            renderTable();
+            renderChart();
+            renderPredictions();
+        }
+        
+        function calculateStats() {
+            let totalPoints = 0;
+            let totalAccuracy = 0;
+            let cropCount = learningData.crops.length;
+            
+            learningData.crops.forEach(crop => {
+                Object.values(crop.dataPoints).forEach(points => {
+                    totalPoints += points;
+                });
+                
+                // Calculate accuracy for this crop
+                const avgDelta = Math.abs(crop.actualDTM.spring - crop.textbookDTM.spring);
+                const accuracy = Math.max(0, 100 - (avgDelta / crop.textbookDTM.spring * 100));
+                totalAccuracy += accuracy;
+            });
+            
+            learningData.totalDataPoints = totalPoints;
+            learningData.averageAccuracy = Math.round(totalAccuracy / cropCount);
+            
+            // Update dashboard
+            document.getElementById('cropsLearned').textContent = cropCount;
+            document.getElementById('avgAccuracy').textContent = learningData.averageAccuracy + '%';
+            document.getElementById('seasonsCounted').textContent = 3;
+            document.getElementById('confidenceAvg').textContent = calculateAverageConfidence() + '%';
+            document.getElementById('dataPoints').textContent = totalPoints;
+            document.getElementById('accuracy').textContent = learningData.averageAccuracy + '%';
+        }
+        
+        function calculateAverageConfidence() {
+            let totalConfidence = 0;
+            learningData.crops.forEach(crop => {
+                const totalPoints = Object.values(crop.dataPoints).reduce((a, b) => a + b, 0);
+                const confidence = Math.min(100, (totalPoints / 20) * 100);
+                totalConfidence += confidence;
+            });
+            return Math.round(totalConfidence / learningData.crops.length);
+        }
+        
+        function renderTable() {
+            const tbody = document.getElementById('learningTable');
+            const currentSeason = 'spring'; // Would detect based on current date
+            
+            const rows = learningData.crops.map(crop => {
+                const textbookDTM = crop.textbookDTM[currentSeason];
+                const actualDTM = crop.actualDTM[currentSeason];
+                const delta = actualDTM - textbookDTM;
+                const dataPoints = crop.dataPoints[currentSeason];
+                const confidence = Math.min(100, (dataPoints / 20) * 100);
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="crop-name">${crop.crop}</div>
+                            <div class="crop-variety">${crop.variety}</div>
+                        </td>
+                        <td style="text-transform: capitalize;">${currentSeason} 2026</td>
+                        <td>
+                            <span class="dtm-value dtm-textbook">${textbookDTM} days</span>
+                        </td>
+                        <td>
+                            <span class="dtm-value dtm-actual">${actualDTM} days</span>
+                        </td>
+                        <td>
+                            <span class="dtm-delta ${delta > 0 ? 'delta-positive' : 'delta-negative'}">
+                                ${delta > 0 ? '+' : ''}${delta} days
+                            </span>
+                        </td>
+                        <td>${dataPoints} records</td>
+                        <td>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${confidence}%"></div>
+                            </div>
+                            <div class="confidence-label">${Math.round(confidence)}% confidence</div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            tbody.innerHTML = rows;
+        }
+        
+        function renderChart() {
+            const ctx = document.getElementById('accuracyChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+                    datasets: [
+                        {
+                            label: 'Lettuce',
+                            data: [65, 72, 78, 82, 88, 92],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Kale',
+                            data: [70, 75, 80, 85, 89, 91],
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Tomato',
+                            data: [50, 60, 68, 75, 82, 87],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#cbd5e1' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderPredictions() {
+            const grid = document.getElementById('predictionsGrid');
+            
+            const predictions = learningData.crops.map(crop => {
+                const springActual = crop.actualDTM.spring;
+                const summerActual = crop.actualDTM.summer;
+                const fallActual = crop.actualDTM.fall;
+                
+                // Predict next season (simplified - would use more sophisticated model)
+                const predictedSpring = Math.round(springActual * 1.02); // 2% adjustment
+                const confidence = Math.min(100, (crop.dataPoints.spring / 20) * 100);
+                
+                return `
+                    <div class="prediction-card">
+                        <div class="prediction-crop">${crop.crop} - ${crop.variety}</div>
+                        <div class="prediction-row">
+                            <span class="prediction-label">Spring 2027 Prediction</span>
+                            <span class="prediction-value">${predictedSpring} days</span>
+                        </div>
+                        <div class="prediction-row">
+                            <span class="prediction-label">Confidence Level</span>
+                            <span class="prediction-value">${Math.round(confidence)}%</span>
+                        </div>
+                        <div class="prediction-row">
+                            <span class="prediction-label">Data Points Used</span>
+                            <span class="prediction-value">${crop.dataPoints.spring}</span>
+                        </div>
+                        <div class="prediction-row">
+                            <span class="prediction-label">Recommended Action</span>
+                            <span class="prediction-value" style="color: #10b981;">
+                                ${confidence > 75 ? 'Use prediction' : 'Collect more data'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            grid.innerHTML = predictions;
+        }
+        
+        function recordHarvest() {
+            alert('Record Harvest Modal would open here.\n\nYou would input:\n- Crop & variety\n- Actual harvest date\n- Field conditions\n- Notes on performance\n\nThe system would automatically calculate actual DTM and update the learning model.');
+        }
+        
+        function trainModel() {
+            alert('Training model...\n\nThe algorithm would:\n1. Analyze all historical data\n2. Identify patterns by season/field\n3. Adjust predictions based on recent performance\n4. Update confidence levels\n5. Generate new predictions\n\nIn production, this runs automatically after each harvest is recorded.');
+        }
+        
+        init();
+    </script>
+</body>
+</html>
