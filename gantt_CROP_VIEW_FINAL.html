@@ -1,0 +1,6202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed OS - Crop View Gantt</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 { font-size: 1.8em; }
+        
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+            background: rgba(255,255,255,0.1);
+            padding: 5px;
+            border-radius: 8px;
+        }
+        
+        .view-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .view-btn.active {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .view-btn:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .crop-filter {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .crop-filter select {
+            padding: 8px 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .crop-filter select option {
+            background: #2d3748;
+            color: white;
+        }
+        
+        .drag-preview {
+            background: rgba(255,255,255,0.15);
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 15px;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .drag-preview.active {
+            background: rgba(72, 187, 120, 0.3);
+            border: 2px solid rgba(72, 187, 120, 0.6);
+        }
+        
+        .preview-row {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .preview-label {
+            opacity: 0.8;
+            font-size: 13px;
+        }
+        
+        .preview-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .crop-section {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .crop-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 700;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .gantt {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        .timeline-header {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .timeline-label-space {
+            width: 250px;
+            flex-shrink: 0;
+        }
+        
+        .timeline-dates {
+            flex: 1;
+            display: flex;
+            min-width: 1200px;
+        }
+        
+        .date-marker {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #718096;
+            border-left: 1px solid #e2e8f0;
+            padding: 5px 2px;
+        }
+        
+        .variety-row {
+            display: flex;
+            margin-bottom: 12px;
+            align-items: stretch;
+        }
+        
+        .variety-label {
+            width: 250px;
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 14px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-right: 15px;
+        }
+        
+        .variety-name {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .variety-count {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 2px;
+        }
+        
+        .timeline {
+            flex: 1;
+            position: relative;
+            background: repeating-linear-gradient(90deg, #f7fafc, #f7fafc 50px, #edf2f7 50px, #edf2f7 100px);
+            border-radius: 4px;
+            min-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 5px 0;
+        }
+        
+        .stack-lane {
+            position: relative;
+            height: 42px;
+            width: 100%;
+        }
+        
+        .bar {
+            position: absolute;
+            height: 38px;
+            top: 2px;
+            border-radius: 6px;
+            padding: 0 12px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: grab;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            user-select: none;
+            white-space: nowrap;
+            transition: box-shadow 0.2s;
+        }
+        
+        .bar:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+            z-index: 50;
+        }
+        
+        .bar.dragging {
+            opacity: 0.7;
+            cursor: grabbing;
+            z-index: 1000;
+        }
+        
+        .bar-left {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .bar-date {
+            font-weight: 700;
+            font-size: 13px;
+        }
+        
+        .bar-location {
+            font-size: 10px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        
+        .bar-right {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-left: 10px;
+        }
+        
+        .succession-label {
+            background: rgba(255,255,255,0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <h1>🌱 Gantt Chart - Crop View</h1>
+            <div class="view-toggle">
+                <button class="view-btn" onclick="switchView('field')">Field View</button>
+                <button class="view-btn active" onclick="switchView('crop')">Crop View</button>
+            </div>
+        </div>
+        
+        <div class="crop-filter">
+            <label class="preview-label">Select Crop:</label>
+            <select id="cropSelect" onchange="renderCropView()">
+                <option value="">All Crops</option>
+            </select>
+            <span class="preview-label" id="successionInfo"></span>
+        </div>
+        
+        <div id="dragPreview" class="drag-preview">
+            <span class="preview-label">💡 Drag bars left/right to adjust succession timing • All plantings visible</span>
+        </div>
+    </div>
+    
+    <div class="container" id="container">Loading...</div>
+    
+    <script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+
+let planningData = [];
+
+async function loadPlanningData() {
+    try {
+        const response = await fetch(`${API_URL}?action=getPlanningData`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            planningData = result.data;
+        } else {
+            console.warn('Using demo data');
+            planningData = DEMO_planningData;
+        }
+    } catch (error) {
+        console.error('Error loading data:', error);
+        planningData = DEMO_planningData;
+    }
+}
+
+const DEMO_planningData = [
+  {
+    "id": "P2",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "M",
+    "bed": "Field M-09",
+    "method": "Transplant",
+    "ghSow": "2/15/2026",
+    "transplant": "3/22/2026",
+    "fieldSow": null,
+    "harvest": "5/13/2026",
+    "startDate": "3/22/2026"
+  },
+  {
+    "id": "P3",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "M",
+    "bed": "Field M-10",
+    "method": "Transplant",
+    "ghSow": "2/15/2026",
+    "transplant": "3/22/2026",
+    "fieldSow": null,
+    "harvest": "5/13/2026",
+    "startDate": "3/22/2026"
+  },
+  {
+    "id": "P4",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "M",
+    "bed": "Field M-11",
+    "method": "Transplant",
+    "ghSow": "2/15/2026",
+    "transplant": "3/22/2026",
+    "fieldSow": null,
+    "harvest": "5/13/2026",
+    "startDate": "3/22/2026"
+  },
+  {
+    "id": "P5",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "M",
+    "bed": "Field M-12",
+    "method": "Transplant",
+    "ghSow": "2/15/2026",
+    "transplant": "3/22/2026",
+    "fieldSow": null,
+    "harvest": "5/13/2026",
+    "startDate": "3/22/2026"
+  },
+  {
+    "id": "P6",
+    "crop": "Parsley",
+    "variety": "Peione",
+    "field": "JS1",
+    "bed": "Field JS1-09",
+    "method": "Transplant",
+    "ghSow": "2/15/2026",
+    "transplant": "3/29/2026",
+    "fieldSow": null,
+    "harvest": "6/10/2026",
+    "startDate": "3/29/2026"
+  },
+  {
+    "id": "P7",
+    "crop": "Fennel",
+    "variety": "Preludio",
+    "field": "IL",
+    "bed": "Field IL-09",
+    "method": "Transplant",
+    "ghSow": "2/19/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/23/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P8",
+    "crop": "Radicchio",
+    "variety": "Indigo",
+    "field": "IL",
+    "bed": "Field IL-10",
+    "method": "Transplant",
+    "ghSow": "2/19/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/23/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P9",
+    "crop": "Swiss Chard",
+    "variety": "Bright Lights",
+    "field": "IL",
+    "bed": "Field IL-11",
+    "method": "Transplant",
+    "ghSow": "2/19/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/27/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P10",
+    "crop": "Swiss Chard",
+    "variety": "Fordhook",
+    "field": "IL",
+    "bed": "Field IL-11",
+    "method": "Transplant",
+    "ghSow": "2/19/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/27/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P11",
+    "crop": "Broccoli",
+    "variety": "BC1611",
+    "field": "HOL",
+    "bed": "Field HOL-05",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/14/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P12",
+    "crop": "Broccoli",
+    "variety": "BC1611",
+    "field": "HOL",
+    "bed": "Field HOL-06",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/14/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P13",
+    "crop": "Broccoli",
+    "variety": "BC1611",
+    "field": "HOL",
+    "bed": "Field HOL-07",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/14/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P14",
+    "crop": "Broccoli",
+    "variety": "Belstar",
+    "field": "HOL",
+    "bed": "Field HOL-09",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/14/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P15",
+    "crop": "Broccoli",
+    "variety": "Gypsy",
+    "field": "HOL",
+    "bed": "Field HOL-09",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/14/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P16",
+    "crop": "Cabbage",
+    "variety": "Alcosa",
+    "field": "HOL",
+    "bed": "Field HOL-11",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/11/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P17",
+    "crop": "Cabbage",
+    "variety": "Caraflex",
+    "field": "HOL",
+    "bed": "Field HOL-10",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/11/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P18",
+    "crop": "Cabbage",
+    "variety": "Farao",
+    "field": "HOL",
+    "bed": "Field HOL-11",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/11/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P19",
+    "crop": "Cauliflower",
+    "variety": "Song TJS-65",
+    "field": "HOL",
+    "bed": "Field HOL-08",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/27/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P20",
+    "crop": "Collard Greens",
+    "variety": "Flash",
+    "field": "HOL",
+    "bed": "Field HOL-04",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/13/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P21",
+    "crop": "Fava Beans",
+    "variety": "Vroma ",
+    "field": "M",
+    "bed": "Field M-04",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "3/19/2026",
+    "fieldSow": null,
+    "harvest": "6/5/2026",
+    "startDate": "3/19/2026"
+  },
+  {
+    "id": "P22",
+    "crop": "Kale",
+    "variety": "Black Magic",
+    "field": "HOL",
+    "bed": "Field HOL-01",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/3/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P23",
+    "crop": "Kale",
+    "variety": "Black Magic",
+    "field": "HOL",
+    "bed": "Field HOL-02",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/3/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P24",
+    "crop": "Kale",
+    "variety": "Redbor",
+    "field": "HOL",
+    "bed": "Field HOL-04",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/3/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P25",
+    "crop": "Kale",
+    "variety": "Winterbor",
+    "field": "HOL",
+    "bed": "Field HOL-03",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/3/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P26",
+    "crop": "Kale",
+    "variety": "Winterbor",
+    "field": "HOL",
+    "bed": "Field HOL-04",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/3/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P27",
+    "crop": "Kohlrabi",
+    "variety": "Terek",
+    "field": "HOL",
+    "bed": "Field HOL-12",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/24/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P28",
+    "crop": "Napa Cabbage",
+    "variety": "Minuet",
+    "field": "HOL",
+    "bed": "Field HOL-12",
+    "method": "Transplant",
+    "ghSow": "2/26/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/11/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P31",
+    "crop": "Endive",
+    "variety": "Benefine",
+    "field": "IL",
+    "bed": "Field IL-08",
+    "method": "Transplant",
+    "ghSow": "3/1/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "6/3/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P34",
+    "crop": "Bok Choy",
+    "variety": "Joi Choi",
+    "field": "JL",
+    "bed": "Field JL-10",
+    "method": "Transplant",
+    "ghSow": "3/3/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/20/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P35",
+    "crop": "Lettuce",
+    "variety": "Gatsbi",
+    "field": "JL",
+    "bed": "Field JL-10",
+    "method": "Transplant",
+    "ghSow": "3/3/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/24/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P36",
+    "crop": "Lettuce",
+    "variety": "Gordini",
+    "field": "JL",
+    "bed": "Field JL-09",
+    "method": "Transplant",
+    "ghSow": "3/3/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/24/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P37",
+    "crop": "Lettuce",
+    "variety": "Purple Fusion",
+    "field": "JL",
+    "bed": "Field JL-09",
+    "method": "Transplant",
+    "ghSow": "3/3/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/24/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P38",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JL",
+    "bed": "Field JL-01",
+    "method": "Transplant",
+    "ghSow": "3/3/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/24/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P39",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JL",
+    "bed": "Field JL-02",
+    "method": "Transplant",
+    "ghSow": "3/3/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/24/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P40",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JL",
+    "bed": "Field JL-03",
+    "method": "Transplant",
+    "ghSow": "3/3/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/24/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P41",
+    "crop": "Lettuce",
+    "variety": "Sparx",
+    "field": "JL",
+    "bed": "Field JL-09",
+    "method": "Transplant",
+    "ghSow": "3/3/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/24/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P43",
+    "crop": "Fennel",
+    "variety": "Preludio",
+    "field": "IL",
+    "bed": "Field IL-07",
+    "method": "Transplant",
+    "ghSow": "3/10/2026",
+    "transplant": "4/21/2026",
+    "fieldSow": null,
+    "harvest": "7/12/2026",
+    "startDate": "4/21/2026"
+  },
+  {
+    "id": "P44",
+    "crop": "Tomato",
+    "variety": "Cherokee Purple",
+    "field": "JS10",
+    "bed": "Field JS10-06",
+    "method": "Transplant",
+    "ghSow": "3/11/2026",
+    "transplant": "5/6/2026",
+    "fieldSow": null,
+    "harvest": "7/15/2026",
+    "startDate": "5/6/2026"
+  },
+  {
+    "id": "P45",
+    "crop": "Tomato",
+    "variety": "Mountain Merit",
+    "field": "JS10",
+    "bed": "Field JS10-01",
+    "method": "Transplant",
+    "ghSow": "3/11/2026",
+    "transplant": "5/6/2026",
+    "fieldSow": null,
+    "harvest": "7/15/2026",
+    "startDate": "5/6/2026"
+  },
+  {
+    "id": "P46",
+    "crop": "Tomato",
+    "variety": "Pink Wonder",
+    "field": "JS10",
+    "bed": "Field JS10-05",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "5/7/2026",
+    "fieldSow": null,
+    "harvest": "6/26/2026",
+    "startDate": "5/7/2026"
+  },
+  {
+    "id": "P47",
+    "crop": "Lettuce",
+    "variety": "Cherokee",
+    "field": "JL",
+    "bed": "Field JL-09",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "4/2/2026",
+    "fieldSow": null,
+    "harvest": "5/22/2026",
+    "startDate": "4/2/2026"
+  },
+  {
+    "id": "P48",
+    "crop": "Tomato",
+    "variety": "Big Beef Plus",
+    "field": "JS10",
+    "bed": "Field JS10-04",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "5/7/2026",
+    "fieldSow": null,
+    "harvest": "7/18/2026",
+    "startDate": "5/7/2026"
+  },
+  {
+    "id": "P49",
+    "crop": "Tomato",
+    "variety": "Brandywine",
+    "field": "JS10",
+    "bed": "Field JS10-06",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "5/7/2026",
+    "fieldSow": null,
+    "harvest": "7/16/2026",
+    "startDate": "5/7/2026"
+  },
+  {
+    "id": "P50",
+    "crop": "Tomato",
+    "variety": "Firebird",
+    "field": "JS10",
+    "bed": "Field JS10-02",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "5/7/2026",
+    "fieldSow": null,
+    "harvest": "7/16/2026",
+    "startDate": "5/7/2026"
+  },
+  {
+    "id": "P51",
+    "crop": "Tomato",
+    "variety": "Green Zebra",
+    "field": "JS10",
+    "bed": "Field JS10-05",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "5/7/2026",
+    "fieldSow": null,
+    "harvest": "7/16/2026",
+    "startDate": "5/7/2026"
+  },
+  {
+    "id": "P52",
+    "crop": "Tomato",
+    "variety": "Kakao",
+    "field": "JS10",
+    "bed": "Field JS10-03",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "5/7/2026",
+    "fieldSow": null,
+    "harvest": "7/16/2026",
+    "startDate": "5/7/2026"
+  },
+  {
+    "id": "P53",
+    "crop": "Tomato",
+    "variety": "Marmalade Skies",
+    "field": "JS10",
+    "bed": "Field JS10-03",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "5/7/2026",
+    "fieldSow": null,
+    "harvest": "7/16/2026",
+    "startDate": "5/7/2026"
+  },
+  {
+    "id": "P54",
+    "crop": "Tomato",
+    "variety": "Striped German",
+    "field": "JS10",
+    "bed": "Field JS10-06",
+    "method": "Transplant",
+    "ghSow": "3/12/2026",
+    "transplant": "5/7/2026",
+    "fieldSow": null,
+    "harvest": "7/16/2026",
+    "startDate": "5/7/2026"
+  },
+  {
+    "id": "P55",
+    "crop": "Peppers",
+    "variety": "Carmen",
+    "field": "JS10",
+    "bed": "Field JS10-08",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P56",
+    "crop": "Peppers",
+    "variety": "Amaretto Bell",
+    "field": "JS10",
+    "bed": "Field JS10-10",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P57",
+    "crop": "Peppers",
+    "variety": "Cherry Bomb",
+    "field": "JS10",
+    "bed": "Field JS10-14",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P58",
+    "crop": "Peppers",
+    "variety": "Cornitos Mix",
+    "field": "JS10",
+    "bed": "Field JS10-09",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P59",
+    "crop": "Peppers",
+    "variety": "El Jefe Jalapeno",
+    "field": "JS10",
+    "bed": "Field JS10-13",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P60",
+    "crop": "Peppers",
+    "variety": "Espellete Paprika",
+    "field": "JS10",
+    "bed": "Field JS10-14",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P61",
+    "crop": "Peppers",
+    "variety": "Habanada",
+    "field": "JS10",
+    "bed": "Field JS10-12",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P62",
+    "crop": "Peppers",
+    "variety": "Jimmy Nardello",
+    "field": "JS10",
+    "bed": "Field JS10-07",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P63",
+    "crop": "Peppers",
+    "variety": "Mellow Star Shishito",
+    "field": "JS10",
+    "bed": "Field JS10-12",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P64",
+    "crop": "Peppers",
+    "variety": "Nebula Bell",
+    "field": "JS10",
+    "bed": "Field JS10-10",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P65",
+    "crop": "Peppers",
+    "variety": "Nova Bell",
+    "field": "JS10",
+    "bed": "Field JS10-11",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P66",
+    "crop": "Peppers",
+    "variety": "Round of Hungary",
+    "field": "JS10",
+    "bed": "Field JS10-11",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P67",
+    "crop": "Peppers",
+    "variety": "Sargento Poblano",
+    "field": "JS10",
+    "bed": "Field JS10-13",
+    "method": "Transplant",
+    "ghSow": "3/15/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/21/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P68",
+    "crop": "Lettuce",
+    "variety": "Adriana",
+    "field": "JL",
+    "bed": "Field JL-07",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "4/16/2026",
+    "fieldSow": null,
+    "harvest": "6/7/2026",
+    "startDate": "4/16/2026"
+  },
+  {
+    "id": "P69",
+    "crop": "Eggplant",
+    "variety": "Annina",
+    "field": "IL",
+    "bed": "Field IL-03",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "5/12/2026",
+    "fieldSow": null,
+    "harvest": "7/23/2026",
+    "startDate": "5/12/2026"
+  },
+  {
+    "id": "P70",
+    "crop": "Eggplant",
+    "variety": "Barbarella",
+    "field": "IL",
+    "bed": "Field IL-04",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "5/12/2026",
+    "fieldSow": null,
+    "harvest": "7/23/2026",
+    "startDate": "5/12/2026"
+  },
+  {
+    "id": "P71",
+    "crop": "Eggplant",
+    "variety": "Fairy Tale",
+    "field": "IL",
+    "bed": "Field IL-06",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "5/12/2026",
+    "fieldSow": null,
+    "harvest": "7/23/2026",
+    "startDate": "5/12/2026"
+  },
+  {
+    "id": "P72",
+    "crop": "Eggplant",
+    "variety": "Nigral",
+    "field": "IL",
+    "bed": "Field IL-02",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "5/12/2026",
+    "fieldSow": null,
+    "harvest": "7/23/2026",
+    "startDate": "5/12/2026"
+  },
+  {
+    "id": "P73",
+    "crop": "Eggplant",
+    "variety": "Violet Delite",
+    "field": "IL",
+    "bed": "Field IL-05",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "5/12/2026",
+    "fieldSow": null,
+    "harvest": "7/23/2026",
+    "startDate": "5/12/2026"
+  },
+  {
+    "id": "P74",
+    "crop": "Lettuce",
+    "variety": "Gatsbi",
+    "field": "JL",
+    "bed": "Field JL-07",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "4/16/2026",
+    "fieldSow": null,
+    "harvest": "6/7/2026",
+    "startDate": "4/16/2026"
+  },
+  {
+    "id": "P75",
+    "crop": "Lettuce",
+    "variety": "Muir",
+    "field": "JL",
+    "bed": "Field JL-07",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "4/16/2026",
+    "fieldSow": null,
+    "harvest": "6/7/2026",
+    "startDate": "4/16/2026"
+  },
+  {
+    "id": "P76",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JL",
+    "bed": "Field JL-04",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "4/16/2026",
+    "fieldSow": null,
+    "harvest": "6/7/2026",
+    "startDate": "4/16/2026"
+  },
+  {
+    "id": "P77",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JL",
+    "bed": "Field JL-05",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "4/16/2026",
+    "fieldSow": null,
+    "harvest": "6/7/2026",
+    "startDate": "4/16/2026"
+  },
+  {
+    "id": "P78",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JL",
+    "bed": "Field JL-06",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "4/16/2026",
+    "fieldSow": null,
+    "harvest": "6/7/2026",
+    "startDate": "4/16/2026"
+  },
+  {
+    "id": "P79",
+    "crop": "Tomatillos",
+    "variety": "Toma Verde",
+    "field": "IL",
+    "bed": "Field IL-01",
+    "method": "Transplant",
+    "ghSow": "3/17/2026",
+    "transplant": "5/12/2026",
+    "fieldSow": null,
+    "harvest": "7/26/2026",
+    "startDate": "5/12/2026"
+  },
+  {
+    "id": "P80",
+    "crop": "Lettuce",
+    "variety": "Sparx",
+    "field": "JL",
+    "bed": "Field JL-08",
+    "method": "Transplant",
+    "ghSow": "3/21/2026",
+    "transplant": "4/20/2026",
+    "fieldSow": null,
+    "harvest": "6/11/2026",
+    "startDate": "4/20/2026"
+  },
+  {
+    "id": "P81",
+    "crop": "Lettuce",
+    "variety": "Cherokee",
+    "field": "JL",
+    "bed": "Field JL-08",
+    "method": "Transplant",
+    "ghSow": "3/21/2026",
+    "transplant": "4/20/2026",
+    "fieldSow": null,
+    "harvest": "6/11/2026",
+    "startDate": "4/20/2026"
+  },
+  {
+    "id": "P82",
+    "crop": "Lettuce",
+    "variety": "Gordini",
+    "field": "JL",
+    "bed": "Field JL-08",
+    "method": "Transplant",
+    "ghSow": "3/21/2026",
+    "transplant": "4/20/2026",
+    "fieldSow": null,
+    "harvest": "6/11/2026",
+    "startDate": "4/20/2026"
+  },
+  {
+    "id": "P83",
+    "crop": "Lettuce",
+    "variety": "Purple Fusion",
+    "field": "JL",
+    "bed": "Field JL-08",
+    "method": "Transplant",
+    "ghSow": "3/21/2026",
+    "transplant": "4/20/2026",
+    "fieldSow": null,
+    "harvest": "6/11/2026",
+    "startDate": "4/20/2026"
+  },
+  {
+    "id": "P84",
+    "crop": "Bok Choy",
+    "variety": "Joi Choi",
+    "field": "JL",
+    "bed": "Field JL-07",
+    "method": "Transplant",
+    "ghSow": "3/27/2026",
+    "transplant": "4/26/2026",
+    "fieldSow": null,
+    "harvest": "6/13/2026",
+    "startDate": "4/26/2026"
+  },
+  {
+    "id": "P85",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JS4",
+    "bed": "Field JS4-01",
+    "method": "Transplant",
+    "ghSow": "4/14/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/10/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P86",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JS4",
+    "bed": "Field JS4-02",
+    "method": "Transplant",
+    "ghSow": "4/14/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/10/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P87",
+    "crop": "Lettuce",
+    "variety": "Salanova Formula Mix",
+    "field": "JS4",
+    "bed": "Field JS4-03",
+    "method": "Transplant",
+    "ghSow": "4/14/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/10/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P88",
+    "crop": "Cucumber",
+    "variety": "Corinto",
+    "field": "JS6",
+    "bed": "Field JS6-05",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/1/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P89",
+    "crop": "Cucumber",
+    "variety": "Corinto",
+    "field": "JS6",
+    "bed": "Field JS6-06",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/1/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P90",
+    "crop": "Cucumber",
+    "variety": "Excelsior",
+    "field": "JS6",
+    "bed": "Field JS6-07",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "7/1/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P91",
+    "crop": "Lettuce",
+    "variety": "Cherokee",
+    "field": "JS4",
+    "bed": "Field JS4-04",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/8/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P92",
+    "crop": "Lettuce",
+    "variety": "Gatsbi",
+    "field": "JS4",
+    "bed": "Field JS4-05",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/10/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P93",
+    "crop": "Lettuce",
+    "variety": "Gordini",
+    "field": "JS4",
+    "bed": "Field JS4-04",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/10/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P94",
+    "crop": "Lettuce",
+    "variety": "Muir",
+    "field": "JS4",
+    "bed": "Field JS4-05",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/8/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P95",
+    "crop": "Lettuce",
+    "variety": "Pint Size Iceberg",
+    "field": "JS4",
+    "bed": "Field JS4-05",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/10/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P96",
+    "crop": "Lettuce",
+    "variety": "Purple Fusion",
+    "field": "JS4",
+    "bed": "Field JS4-04",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/10/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P97",
+    "crop": "Lettuce",
+    "variety": "Sparx",
+    "field": "JS4",
+    "bed": "Field JS4-04",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/19/2026",
+    "fieldSow": null,
+    "harvest": "7/10/2026",
+    "startDate": "5/19/2026"
+  },
+  {
+    "id": "P98",
+    "crop": "Summer Squash",
+    "variety": "Dunja",
+    "field": "JS6",
+    "bed": "Field JS6-01",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "6/29/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P99",
+    "crop": "Summer Squash",
+    "variety": "Sophy",
+    "field": "JS6",
+    "bed": "Field JS6-02",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "6/29/2026",
+    "startDate": "5/10/2026"
+  },
+  {
+    "id": "P100",
+    "crop": "Summer Squash",
+    "variety": "Y-Star",
+    "field": "JS6",
+    "bed": "Field JS6-03",
+    "method": "Transplant",
+    "ghSow": "4/19/2026",
+    "transplant": "5/10/2026",
+    "fieldSow": null,
+    "harvest": "6/29/2026",
+    "startDate": "5/10/2026"
+  }
+];const CROP_DATABASE = {
+  "Achillea - Yarrow": [
+    {
+      "dtm_fall": 130,
+      "dtm_spring": 130,
+      "dtm_summer": 130,
+      "family": "Asteraceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Parker's Variety"
+    },
+    {
+      "dtm_fall": 130,
+      "dtm_spring": 130,
+      "dtm_summer": 130,
+      "family": "Asteraceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Summer Berries"
+    }
+  ],
+  "Ageratum": [
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 80,
+      "family": "Asteraceae",
+      "nursery_days": 49,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Blue Horizon"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 80,
+      "family": "Asteraceae",
+      "nursery_days": 49,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Red Top"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 80,
+      "family": "Asteraceae",
+      "nursery_days": 49,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Tall Blue Planet"
+    }
+  ],
+  "Agrostemma": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Caryophyllaceae",
+      "nursery_days": 35,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Ocean Pearls"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Caryophyllaceae",
+      "nursery_days": 35,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Purple Queen"
+    }
+  ],
+  "Amaranthus": [
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Amaranthaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Coral Fountain"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Amaranthaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Emerald Tassels"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Amaranthaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Hot Biscuits"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Amaranthaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Love-Lies-Bleeding"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Amaranthaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Mira"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Amaranthaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Velvet Curtains"
+    }
+  ],
+  "Ammi": [
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 65,
+      "family": "Apiaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Dara"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 65,
+      "family": "Apiaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Green Mist"
+    }
+  ],
+  "Ammobium": [
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 85,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Grandiflorum"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 85,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Grandiflorum"
+    }
+  ],
+  "Arugula": [
+    {
+      "dtm_fall": 35,
+      "dtm_spring": 35,
+      "dtm_summer": 28,
+      "family": "Brassicaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Bellezia"
+    }
+  ],
+  "Asters": [
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 110,
+      "family": "Asteraceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Azumi XL Blue"
+    },
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 110,
+      "family": "Asteraceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Azumi XL White"
+    },
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 110,
+      "family": "Asteraceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Tower Chamois"
+    }
+  ],
+  "Baby Spinach": [],
+  "Basil": [
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Lamiaceae",
+      "nursery_days": 28,
+      "spacing": 8.0,
+      "tray_size": 72,
+      "variety": "Genovese"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Lamiaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Thai"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Lamiaceae",
+      "nursery_days": 28,
+      "spacing": 8.0,
+      "tray_size": 72,
+      "variety": "Holy"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Lamiaceae",
+      "nursery_days": 28,
+      "spacing": 8.0,
+      "tray_size": 72,
+      "variety": "Genovese"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Lamiaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Prospera DMR"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Lamiaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Doron Prospera\u00ae Active DMR"
+    }
+  ],
+  "Beans": [
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "PV857"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "PV857"
+    }
+  ],
+  "Beets": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Amaranthaceae",
+      "nursery_days": 0,
+      "spacing": 3.0,
+      "tray_size": 72,
+      "variety": "Babybeat"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Amaranthaceae",
+      "nursery_days": 21,
+      "spacing": 6.0,
+      "tray_size": 264,
+      "variety": "Red Ace"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Amaranthaceae",
+      "nursery_days": 0,
+      "spacing": 2.0,
+      "tray_size": 72,
+      "variety": "Boldor"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Amaranthaceae",
+      "nursery_days": 0,
+      "spacing": 2.0,
+      "tray_size": 72,
+      "variety": "Red Ace"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Amaranthaceae",
+      "nursery_days": 0,
+      "spacing": 2.0,
+      "tray_size": 72,
+      "variety": "Formanova"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Amaranthaceae",
+      "nursery_days": 0,
+      "spacing": 2.0,
+      "tray_size": 72,
+      "variety": "Badger Flame"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Amaranthaceae",
+      "nursery_days": 0,
+      "spacing": 3.0,
+      "tray_size": 72,
+      "variety": "Chioggia, Boldor, Babybeat"
+    }
+  ],
+  "Bok Choy": [
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 45,
+      "family": "Brassicaceae",
+      "nursery_days": 30,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Joi Choi"
+    },
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 45,
+      "family": "Brassicaceae",
+      "nursery_days": 25,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Li Ren Choi"
+    }
+  ],
+  "Borage": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 50,
+      "family": "Boraginaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Common Blue"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 50,
+      "family": "Boraginaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Common"
+    }
+  ],
+  "Broccoli": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "Belstar"
+    },
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 45,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Di Cicco"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "Gypsy"
+    },
+    {
+      "dtm_fall": 78,
+      "dtm_spring": 78,
+      "dtm_summer": 72,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Ironman"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "BC1611"
+    },
+    {
+      "dtm_fall": 78,
+      "dtm_spring": 78,
+      "dtm_summer": 72,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Ironman"
+    }
+  ],
+  "Brussels Sprouts": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 110,
+      "family": "Brassicaceae",
+      "nursery_days": 42,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Nautic"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 110,
+      "family": "Brassicaceae",
+      "nursery_days": 42,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Silvia"
+    }
+  ],
+  "Bupleurum": [
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 80,
+      "family": "Apiaceae",
+      "nursery_days": 35,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Griffithii"
+    }
+  ],
+  "Cabbage": [
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "Alcosa"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 85,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Capture"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 105,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Deadon"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 65,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Farao"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Ruby Ball"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 110,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Tundra"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "VERZA MORETTA SANZENO"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "Famosa"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "Caraflex"
+    }
+  ],
+  "Calendula": [
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Flashback Mix"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Ivory Princess"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Zeolights"
+    }
+  ],
+  "Carrots": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 128,
+      "variety": "Bolero"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Rainbow Mix"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Yaya"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Yaya"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Kyoto Red"
+    }
+  ],
+  "Cauliflower": [
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Fioretto 70"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Murasaki Fioretto"
+    }
+  ],
+  "Celosia": [
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Amaranthaceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Pampas Plume"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Amaranthaceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Ruby Parfait"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Amaranthaceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Sunday Gold"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Amaranthaceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Cramer's Burgundy"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Amaranthaceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Hi-Z"
+    }
+  ],
+  "Celtuce": [
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 30,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Spring Tower"
+    }
+  ],
+  "Centaurea": [],
+  "Cerinthe": [
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Boraginaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Blue Shrimp"
+    }
+  ],
+  "Chervil": [],
+  "Chinese Lantern": [
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 100,
+      "family": "Solanaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Gigantea"
+    }
+  ],
+  "Chives": [
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 80,
+      "family": "Amaryllidaceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Common"
+    }
+  ],
+  "Cilantro": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Apiaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Cruiser"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Apiaceae",
+      "nursery_days": 28,
+      "spacing": 4.0,
+      "tray_size": 264,
+      "variety": "Cruiser"
+    }
+  ],
+  "Cippolini": [
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 3.0,
+      "tray_size": 128,
+      "variety": "Borettana"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 3.0,
+      "tray_size": 128,
+      "variety": "Borettana"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 3.0,
+      "tray_size": 128,
+      "variety": "Red Marble"
+    }
+  ],
+  "Clarkia": [
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Onagraceae",
+      "nursery_days": 28,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Mountain Rose"
+    }
+  ],
+  "Collard Greens": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Brassicaceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Champion"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 55,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Flash"
+    }
+  ],
+  "Corn": [],
+  "Cosmos": [
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Cupcakes White"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Double Click Bicolor"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Double Click Cranberry"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Sensation Mix"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Afternoon White"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Apricot Lemonade"
+    }
+  ],
+  "Craspedia": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Asteraceae",
+      "nursery_days": 56,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Drumstick"
+    }
+  ],
+  "Cress": [],
+  "Cucumber": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Picolino"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Excelsior"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Picolino"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Excelsior"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 50,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Corinto"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Diva"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Marketmore 76"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Salt and Pepper"
+    }
+  ],
+  "Cucumbers": [
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 50,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Corinto"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Diva"
+    }
+  ],
+  "Cynoglossum": [],
+  "Dahlia": [],
+  "Dandelions": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Clio"
+    }
+  ],
+  "Delphiniums": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Ranunculaceae",
+      "nursery_days": 70,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Magic Fountains"
+    },
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 110,
+      "family": "Ranunculaceae",
+      "nursery_days": 70,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Pacific Giant Mix"
+    }
+  ],
+  "Dianthus": [
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Caryophyllaceae",
+      "nursery_days": 42,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Amazon Neon"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Caryophyllaceae",
+      "nursery_days": 42,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Sweet Mix"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Caryophyllaceae",
+      "nursery_days": 42,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Amazon Rose Magic"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Caryophyllaceae",
+      "nursery_days": 42,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Sweet William Mix"
+    }
+  ],
+  "Didiscus": [
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 85,
+      "family": "Apiaceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Blue Lace"
+    }
+  ],
+  "Digitalis": [
+    {
+      "dtm_fall": 365,
+      "dtm_spring": 365,
+      "dtm_summer": 365,
+      "family": "Plantaginaceae",
+      "nursery_days": 70,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Camelot Mix"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plantaginaceae",
+      "nursery_days": 70,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Dalmatian Peach"
+    }
+  ],
+  "Dill": [
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 40,
+      "family": "Apiaceae",
+      "nursery_days": 0,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Hera"
+    },
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 40,
+      "family": "Apiaceae",
+      "nursery_days": 28,
+      "spacing": 4.0,
+      "tray_size": 264,
+      "variety": "Hera"
+    }
+  ],
+  "Echinacea": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Asteraceae",
+      "nursery_days": 70,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Cheyenne Spirit"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Asteraceae",
+      "nursery_days": 70,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Purple Coneflower"
+    }
+  ],
+  "Echinops": [
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 110,
+      "family": "Asteraceae",
+      "nursery_days": 70,
+      "spacing": 24.0,
+      "tray_size": 72,
+      "variety": "Ritro"
+    }
+  ],
+  "Eggplant": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Galia"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Nadia"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 50,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Orient Express"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Nigral"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Annina"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Barbarella"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Violet Delite"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 128,
+      "variety": "Fairy Tale"
+    }
+  ],
+  "Endive": [
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Asteraceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Curled"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Asteraceae",
+      "nursery_days": 32,
+      "spacing": 7.5,
+      "tray_size": 200,
+      "variety": "Benefine"
+    }
+  ],
+  "Eryngium": [
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 110,
+      "family": "Apiaceae",
+      "nursery_days": 70,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Blue Glitter"
+    }
+  ],
+  "Escarole": [
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Asteraceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Broad Leaf"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Asteraceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Elliance"
+    }
+  ],
+  "Eucalyptus": [
+    {
+      "dtm_fall": 150,
+      "dtm_spring": 150,
+      "dtm_summer": 150,
+      "family": "Myrtaceae",
+      "nursery_days": 84,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Silver Drop"
+    }
+  ],
+  "Fava Beans": [],
+  "Fennel": [
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Apiaceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Antares"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Apiaceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Finocchio"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Apiaceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Preludio"
+    }
+  ],
+  "Feverfew": [
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Asteraceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Magic Single"
+    }
+  ],
+  "Frisee": [
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Asteraceae",
+      "nursery_days": 28,
+      "spacing": 8.0,
+      "tray_size": 128,
+      "variety": "Benefine"
+    }
+  ],
+  "Garlic Chives": [
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 85,
+      "family": "Amaryllidaceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Common"
+    }
+  ],
+  "Gomphrena": [
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 80,
+      "family": "Amaranthaceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "QIS Mix"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 80,
+      "family": "Amaranthaceae",
+      "nursery_days": 35,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Sunset"
+    }
+  ],
+  "Ground Cherry": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Goldie"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Goldie"
+    }
+  ],
+  "Husk Cherry": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Aunt Molly's"
+    }
+  ],
+  "Kale": [
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 55,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Lacinato"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Red Russian"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 50,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "Winterbor"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 15.0,
+      "tray_size": 128,
+      "variety": "Black Magic"
+    }
+  ],
+  "Kohlrabi": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Brassicaceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Winner"
+    }
+  ],
+  "Larkspur": [],
+  "Lavender": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 110,
+      "family": "Lamiaceae",
+      "nursery_days": 84,
+      "spacing": 18.0,
+      "tray_size": 72,
+      "variety": "Munstead"
+    }
+  ],
+  "Leeks": [
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "King Richard"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Lancelot"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "King Richard"
+    },
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 120,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Bandit"
+    }
+  ],
+  "Lemon Balm": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Lamiaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Common"
+    }
+  ],
+  "Lettuce": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Salanova Green Butter"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Salanova Red Oakleaf"
+    },
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 50,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Salad Bowl"
+    },
+    {
+      "dtm_fall": 48,
+      "dtm_spring": 48,
+      "dtm_summer": 42,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Dragoon"
+    },
+    {
+      "dtm_fall": 52,
+      "dtm_spring": 52,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Muir"
+    },
+    {
+      "dtm_fall": 52,
+      "dtm_spring": 52,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Cherokee"
+    },
+    {
+      "dtm_fall": 48,
+      "dtm_spring": 48,
+      "dtm_summer": 42,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Dragoon"
+    },
+    {
+      "dtm_fall": 52,
+      "dtm_spring": 52,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Muir"
+    },
+    {
+      "dtm_fall": 52,
+      "dtm_spring": 52,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 21,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Cherokee"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 7.5,
+      "tray_size": 200,
+      "variety": "Salanova Formula Mix"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 10.0,
+      "tray_size": 200,
+      "variety": "Gatsbi"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Adriana"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Purple Fusion"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Sparx"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Gordini"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 7.5,
+      "tray_size": 128,
+      "variety": "Rosaine"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 45,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Pint Size Iceberg"
+    }
+  ],
+  "Lisianthus": [
+    {
+      "dtm_fall": 130,
+      "dtm_spring": 130,
+      "dtm_summer": 120,
+      "family": "Gentianaceae",
+      "nursery_days": 84,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "ABC Lavender"
+    },
+    {
+      "dtm_fall": 130,
+      "dtm_spring": 130,
+      "dtm_summer": 120,
+      "family": "Gentianaceae",
+      "nursery_days": 84,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Corelli White"
+    },
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 120,
+      "family": "Gentianaceae",
+      "nursery_days": 84,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Voyage Apricot"
+    },
+    {
+      "dtm_fall": 130,
+      "dtm_spring": 130,
+      "dtm_summer": 120,
+      "family": "Gentianaceae",
+      "nursery_days": 84,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "ABC Blue Rim"
+    },
+    {
+      "dtm_fall": 130,
+      "dtm_spring": 130,
+      "dtm_summer": 120,
+      "family": "Gentianaceae",
+      "nursery_days": 84,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Rosanne Brown"
+    }
+  ],
+  "Marigolds": [
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 28,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Giant Orange"
+    }
+  ],
+  "Melons": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Cucurbitaceae",
+      "nursery_days": 28,
+      "spacing": 24.0,
+      "tray_size": 50,
+      "variety": "Halona"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Cucurbitaceae",
+      "nursery_days": 28,
+      "spacing": 24.0,
+      "tray_size": 50,
+      "variety": "Halona"
+    }
+  ],
+  "Miner's Lettuce": [],
+  "Mint": [
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 90,
+      "family": "Lamiaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Spearmint"
+    }
+  ],
+  "Mizuna": [],
+  "Monarda": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Lamiaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 72,
+      "variety": "Lemon"
+    }
+  ],
+  "Mustard": [],
+  "Napa Cabbage": [
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Minuet"
+    }
+  ],
+  "Onion": [
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Patterson"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Patterson"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Red Wing"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Yankee"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Patterson"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Red Wing"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Yankee"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Red Long of Florence"
+    },
+    {
+      "dtm_fall": 115,
+      "dtm_spring": 115,
+      "dtm_summer": 110,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Rossa di Milano"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "New York Early"
+    },
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 120,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Wallawalla"
+    }
+  ],
+  "Onions": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Red Wing"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Yankee"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 110,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Red Wing"
+    }
+  ],
+  "Oregano": [
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 85,
+      "family": "Lamiaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Greek"
+    }
+  ],
+  "Orlaya": [
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Apiaceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "White Finch"
+    }
+  ],
+  "Parsley": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 42,
+      "spacing": 8.0,
+      "tray_size": 128,
+      "variety": "Curly"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 42,
+      "spacing": 8.0,
+      "tray_size": 128,
+      "variety": "Giant of Italy"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 42,
+      "spacing": 8.0,
+      "tray_size": 128,
+      "variety": "Krausa"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Apiaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Peione"
+    }
+  ],
+  "Parsnips": [],
+  "Peas": [
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "Fabaceae",
+      "nursery_days": 0,
+      "spacing": 2.0,
+      "tray_size": 0,
+      "variety": "Sugar Ann"
+    }
+  ],
+  "Peppers": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Early Jalapeno"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 85,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Habanero"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Alliance"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "King of the North"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Alliance"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Baron"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Escamillo"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Jimmy Nardello"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Baron"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Escamillo"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Jimmy Nardello"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Early Jalapeno"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 85,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Habanero"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Aji Rico"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Shishito"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Habanada"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Baron"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Escamillo"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Jimmy Nardello"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Aji Rico"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Shishito"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Habanada"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Alliance"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "King of the North"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Early Jalapeno"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 85,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Habanero"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Lunchbox Red"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Lunchbox Orange"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Lunchbox Yellow"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Glow"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Aura"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Lipstick"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Carmen"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Olympus"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Flavorburst"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "King Arthur"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Cornitos Mix"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Nebula Bell"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Amaretto Bell"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Nova Bell"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Round of Hungary"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Mellow Star Shishito"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Sargento Poblano"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "El Jefe Jalapeno"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Cherry Bomb"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 200,
+      "variety": "Espellete Paprika"
+    }
+  ],
+  "Petite Kale Mix": [
+    {
+      "dtm_fall": 35,
+      "dtm_spring": 35,
+      "dtm_summer": 28,
+      "family": "Brassicaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Petite Kale Mix (unicorn, red russian, toscano, kx-1)"
+    }
+  ],
+  "Phlox": [
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 60,
+      "family": "Polemoniaceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Cherry Caramel"
+    }
+  ],
+  "Poppy": [
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 80,
+      "family": "Papaveraceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Amazing Grey"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 80,
+      "family": "Papaveraceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Iceland"
+    }
+  ],
+  "Potato": [
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 72,
+      "variety": "Masquerade"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 72,
+      "variety": "Keuka Gold"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 72,
+      "variety": "Blue Gold"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 72,
+      "variety": "Adirondak Red"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 72,
+      "variety": "Adirondack Blue"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 72,
+      "variety": "Kennebec - Organic"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 72,
+      "variety": "Satina"
+    },
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 6.0,
+      "tray_size": 72,
+      "variety": "Lehigh"
+    }
+  ],
+  "Pumpkin": [
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 95,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "New England Pie"
+    },
+    {
+      "dtm_fall": 115,
+      "dtm_spring": 115,
+      "dtm_summer": 115,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 48.0,
+      "tray_size": 50,
+      "variety": "Howden"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 48.0,
+      "tray_size": 50,
+      "variety": "Cinderella"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 95,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 48.0,
+      "tray_size": 50,
+      "variety": "Jarrahdale"
+    },
+    {
+      "dtm_fall": 115,
+      "dtm_spring": 115,
+      "dtm_summer": 115,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 48.0,
+      "tray_size": 50,
+      "variety": "Howden"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 48.0,
+      "tray_size": 50,
+      "variety": "Cinderella"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 95,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 48.0,
+      "tray_size": 50,
+      "variety": "Jarrahdale"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 95,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "New England Pie"
+    }
+  ],
+  "Radicchio": [
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Bel Fiore"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Indigo"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Leonardo"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 85,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Fiero"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Palla Rossa"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Treviso"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 85,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Castelfranco"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 85,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Lusia"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Rosa del Veneto"
+    },
+    {
+      "dtm_fall": 40,
+      "dtm_spring": 40,
+      "dtm_summer": 35,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Biondissima"
+    },
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 120,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Grumolo"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 95,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Puntarelle"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Perseo"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Galatea"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Fenice"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Puntarelle"
+    },
+    {
+      "dtm_fall": 120,
+      "dtm_spring": 120,
+      "dtm_summer": 110,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Grumolo"
+    },
+    {
+      "dtm_fall": 90,
+      "dtm_spring": 90,
+      "dtm_summer": 85,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Castelfranco"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Sugarloaf"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 35,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Rosalba"
+    }
+  ],
+  "Radishes": [
+    {
+      "dtm_fall": 30,
+      "dtm_spring": 30,
+      "dtm_summer": 21,
+      "family": "Brassicaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "French Breakfast"
+    },
+    {
+      "dtm_fall": 30,
+      "dtm_spring": 30,
+      "dtm_summer": 21,
+      "family": "Brassicaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Sora"
+    }
+  ],
+  "Rosemary": [
+    {
+      "dtm_fall": 365,
+      "dtm_spring": 365,
+      "dtm_summer": 365,
+      "family": "Lamiaceae",
+      "nursery_days": 84,
+      "spacing": 18.0,
+      "tray_size": 72,
+      "variety": "Common"
+    },
+    {
+      "dtm_fall": 365,
+      "dtm_spring": 365,
+      "dtm_summer": 365,
+      "family": "Lamiaceae",
+      "nursery_days": 84,
+      "spacing": 18.0,
+      "tray_size": 72,
+      "variety": "Arp"
+    }
+  ],
+  "Rudbeckia": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Asteraceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Cherry Brandy"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Asteraceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Chim Chiminee"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Asteraceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Sahara"
+    }
+  ],
+  "Sage": [
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 85,
+      "family": "Lamiaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Berggarten"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 85,
+      "family": "Lamiaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Common"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 85,
+      "family": "Lamiaceae",
+      "nursery_days": 56,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Extrakta"
+    }
+  ],
+  "Scabiosa": [
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Caprifoliaceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Black Knight"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Caprifoliaceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Fama Blue"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 90,
+      "family": "Caprifoliaceae",
+      "nursery_days": 42,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Fama White"
+    }
+  ],
+  "Scallions": [
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Amaryllidaceae",
+      "nursery_days": 49,
+      "spacing": 6.0,
+      "tray_size": 264,
+      "variety": "Evergreen"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Amaryllidaceae",
+      "nursery_days": 56,
+      "spacing": 1.0,
+      "tray_size": 128,
+      "variety": "Parade"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Amaryllidaceae",
+      "nursery_days": 56,
+      "spacing": 1.0,
+      "tray_size": 128,
+      "variety": "Red Beard"
+    }
+  ],
+  "Shallot": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Conservor"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Conservor"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 95,
+      "family": "Amaryllidaceae",
+      "nursery_days": 60,
+      "spacing": 4.0,
+      "tray_size": 128,
+      "variety": "Zebrune"
+    }
+  ],
+  "Snapdragons": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plantaginaceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Chantilly Bronze"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plantaginaceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Madame Butterfly"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plantaginaceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Potomac Orange"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 100,
+      "family": "Plantaginaceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Potomac White"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plantaginaceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Costa Silver"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plantaginaceae",
+      "nursery_days": 56,
+      "spacing": 6.0,
+      "tray_size": 128,
+      "variety": "Potomac Lavender"
+    }
+  ],
+  "Something Fresh Mix": [
+    {
+      "dtm_fall": 30,
+      "dtm_spring": 30,
+      "dtm_summer": 25,
+      "family": "Mixed",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "red baron plus, koji, rosie, mizuna, miz america, tokyo bekana"
+    }
+  ],
+  "Spinach": [
+    {
+      "dtm_fall": 45,
+      "dtm_spring": 45,
+      "dtm_summer": 35,
+      "family": "Amaranthaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "Space"
+    },
+    {
+      "dtm_fall": 45,
+      "dtm_spring": 45,
+      "dtm_summer": 35,
+      "family": "Amaranthaceae",
+      "nursery_days": 0,
+      "spacing": 1.0,
+      "tray_size": 72,
+      "variety": "yuma or pawnie"
+    }
+  ],
+  "Squash": [
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Autumn Frost"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Autumn Frost"
+    }
+  ],
+  "Statice": [
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plumbaginaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "QIS Mix"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plumbaginaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Seeker Blue"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 100,
+      "family": "Plumbaginaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Sunset Mix"
+    },
+    {
+      "dtm_fall": 115,
+      "dtm_spring": 115,
+      "dtm_summer": 105,
+      "family": "Plumbaginaceae",
+      "nursery_days": 42,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "Seeker Blue"
+    }
+  ],
+  "Strawberry": [],
+  "Summer Squash": [
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 50,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Dunja"
+    },
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 50,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Sophy"
+    },
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 50,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "yellow fin"
+    },
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 50,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Y-Star"
+    },
+    {
+      "dtm_fall": 50,
+      "dtm_spring": 50,
+      "dtm_summer": 50,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Zephyr"
+    }
+  ],
+  "Sunflowers": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 55,
+      "family": "Asteraceae",
+      "nursery_days": 0,
+      "spacing": 6.0,
+      "tray_size": 0,
+      "variety": "ProCut Orange"
+    }
+  ],
+  "Swiss Chard": [
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 55,
+      "family": "Amaranthaceae",
+      "nursery_days": 42,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Bright Lights"
+    },
+    {
+      "dtm_fall": 55,
+      "dtm_spring": 55,
+      "dtm_summer": 55,
+      "family": "Amaranthaceae",
+      "nursery_days": 42,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Fordhook"
+    }
+  ],
+  "Thyme": [
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 95,
+      "family": "Lamiaceae",
+      "nursery_days": 84,
+      "spacing": 12.0,
+      "tray_size": 128,
+      "variety": "English"
+    }
+  ],
+  "Tomatillos": [
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Toma Verde"
+    }
+  ],
+  "Tomato": [
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Estiva"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Mountain Magic"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Damascus"
+    },
+    {
+      "dtm_fall": 78,
+      "dtm_spring": 78,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Skyway"
+    },
+    {
+      "dtm_fall": 78,
+      "dtm_spring": 78,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Skyway"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Damascus"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Estiva"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Mountain Magic"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Clementine"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Sungold"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "New Girl"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Big Dena"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Geranium Kiss"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Blue Beech"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "San Marzano"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Indigo Apple"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Black Krim"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Cherokee Purple"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Auria"
+    },
+    {
+      "dtm_fall": 78,
+      "dtm_spring": 78,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Skyway"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 70,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Damascus"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Estiva"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Mountain Magic"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Clementine"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Sungold"
+    },
+    {
+      "dtm_fall": 65,
+      "dtm_spring": 65,
+      "dtm_summer": 60,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "New Girl"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Big Dena"
+    },
+    {
+      "dtm_fall": 70,
+      "dtm_spring": 70,
+      "dtm_summer": 65,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Geranium Kiss"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Blue Beech"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "San Marzano"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Indigo Apple"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Black Krim"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Cherokee Purple"
+    },
+    {
+      "dtm_fall": 85,
+      "dtm_spring": 85,
+      "dtm_summer": 80,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Auria"
+    },
+    {
+      "dtm_fall": 75,
+      "dtm_spring": 75,
+      "dtm_summer": 75,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 18.0,
+      "tray_size": 50,
+      "variety": "Big Dena"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Marmalade Skies"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Kakao"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Big Beef Plus"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Pink Wonder"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Green Zebra"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Brandywine"
+    },
+    {
+      "dtm_fall": 72,
+      "dtm_spring": 72,
+      "dtm_summer": 68,
+      "family": "Solanaceae",
+      "nursery_days": 56,
+      "spacing": 24.0,
+      "tray_size": 128,
+      "variety": "Striped German"
+    }
+  ],
+  "Turnip": [
+    {
+      "dtm_fall": 60,
+      "dtm_spring": 60,
+      "dtm_summer": 60,
+      "family": "nan",
+      "nursery_days": 28,
+      "spacing": 2.0,
+      "tray_size": 72,
+      "variety": "Hakurei"
+    }
+  ],
+  "Watermelons": [
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 80,
+      "family": "Cucurbitaceae",
+      "nursery_days": 28,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Sugar Baby"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 80,
+      "family": "Cucurbitaceae",
+      "nursery_days": 22,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Mini Love"
+    }
+  ],
+  "Wild Arugula": [],
+  "Winter Squash": [
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Waltham Butternut"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Autumn Frost"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 95,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Delicata JS"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 95,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 24.0,
+      "tray_size": 50,
+      "variety": "Bush Delicata"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Red Kuri"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Thelma Sanders"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Black Futsu"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 110,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Tetsukabuto"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 24.0,
+      "tray_size": 50,
+      "variety": "Honeynut"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 95,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 24.0,
+      "tray_size": 50,
+      "variety": "Delicata JS"
+    },
+    {
+      "dtm_fall": 100,
+      "dtm_spring": 100,
+      "dtm_summer": 95,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 24.0,
+      "tray_size": 50,
+      "variety": "Bush Delicata"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Red Kuri"
+    },
+    {
+      "dtm_fall": 95,
+      "dtm_spring": 95,
+      "dtm_summer": 90,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Thelma Sanders"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 100,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Black Futsu"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 110,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 36.0,
+      "tray_size": 50,
+      "variety": "Tetsukabuto"
+    },
+    {
+      "dtm_fall": 110,
+      "dtm_spring": 110,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 24.0,
+      "tray_size": 50,
+      "variety": "Honeynut"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Winter Sweet"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Bonbon"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Sunshine"
+    },
+    {
+      "dtm_fall": 105,
+      "dtm_spring": 105,
+      "dtm_summer": 105,
+      "family": "Cucurbitaceae",
+      "nursery_days": 21,
+      "spacing": 12.0,
+      "tray_size": 50,
+      "variety": "Pinnacle"
+    }
+  ],
+  "Zinnias": [
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 80,
+      "family": "Asteraceae",
+      "nursery_days": 30,
+      "spacing": 10.0,
+      "tray_size": 128,
+      "variety": "Benary's Giant"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 28,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Benary's Giant Lime"
+    },
+    {
+      "dtm_fall": 80,
+      "dtm_spring": 80,
+      "dtm_summer": 75,
+      "family": "Asteraceae",
+      "nursery_days": 28,
+      "spacing": 9.0,
+      "tray_size": 128,
+      "variety": "Oklahoma Salmon"
+    }
+  ]
+};
+        let timelineData = {};
+        let varietyColors = {};
+        let currentView = 'crop';
+        let selectedCrop = '';
+        
+        const FAMILY_COLORS = {
+            'Brassicaceae': { h: 150, s: 50, l: 50 },
+            'Asteraceae': { h: 25, s: 75, l: 60 },
+            'Solanaceae': { h: 0, s: 70, l: 60 },
+            'Cucurbitaceae': { h: 45, s: 75, l: 60 },
+            'Apiaceae': { h: 270, s: 60, l: 65 },
+            'Amaryllidaceae': { h: 240, s: 65, l: 60 },
+            'Fabaceae': { h: 210, s: 65, l: 50 },
+            'Amaranthaceae': { h: 330, s: 60, l: 55 },
+            'Chenopodiaceae': { h: 180, s: 45, l: 50 },
+            'default': { h: 200, s: 15, l: 50 }
+        };
+        
+        function getVarietyColor(crop, variety, family) {
+            const key = `${crop}-${variety}`;
+            if (varietyColors[key]) return varietyColors[key];
+            
+            const baseColor = FAMILY_COLORS[family] || FAMILY_COLORS['default'];
+            let hash = 0;
+            for (let i = 0; i < variety.length; i++) {
+                hash = ((hash << 5) - hash) + variety.charCodeAt(i);
+                hash = hash & hash;
+            }
+            
+            const lightnessVariation = (Math.abs(hash) % 25) - 12;
+            const newLightness = Math.max(35, Math.min(75, baseColor.l + lightnessVariation));
+            const hueVariation = (Math.abs(hash >> 8) % 15) - 7;
+            const newHue = (baseColor.h + hueVariation + 360) % 360;
+            
+            const color1 = `hsl(${newHue}, ${baseColor.s}%, ${newLightness}%)`;
+            const color2 = `hsl(${newHue}, ${baseColor.s}%, ${Math.max(20, newLightness - 15)}%)`;
+            
+            varietyColors[key] = `linear-gradient(135deg, ${color1}, ${color2})`;
+            return varietyColors[key];
+        }
+        
+        function getCropFamily(cropName) {
+            if (CROP_DATABASE[cropName] && CROP_DATABASE[cropName][0]) {
+                return CROP_DATABASE[cropName][0].family;
+            }
+            return 'default';
+        }
+        
+        function getCropDetails(cropName, variety) {
+            if (CROP_DATABASE[cropName]) {
+                const v = CROP_DATABASE[cropName].find(v => v.variety === variety);
+                if (v) return v;
+                return CROP_DATABASE[cropName][0];
+            }
+            return { nursery_days: 28, dtm_spring: 60, dtm_summer: 60, dtm_fall: 60 };
+        }
+        
+        function getSeason(date) {
+            const month = date.getMonth();
+            if (month >= 2 && month <= 4) return 'spring';
+            if (month >= 5 && month <= 8) return 'summer';
+            return 'fall';
+        }
+        
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+        }
+        
+        function formatDateShort(dateStr) {
+            const d = new Date(dateStr);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${months[d.getMonth()]} ${d.getDate()}`;
+        }
+        
+        function plantingsOverlap(p1, p2) {
+            const start1 = new Date(p1.startDate);
+            const end1 = new Date(p1.harvest);
+            const start2 = new Date(p2.startDate);
+            const end2 = new Date(p2.harvest);
+            return start1 <= end2 && start2 <= end1;
+        }
+        
+        function assignToLanes(plantings) {
+            const lanes = [];
+            plantings.forEach(p => {
+                let assigned = false;
+                for (let i = 0; i < lanes.length; i++) {
+                    const hasOverlap = lanes[i].some(existing => plantingsOverlap(p, existing));
+                    if (!hasOverlap) {
+                        lanes[i].push(p);
+                        p.lane = i;
+                        assigned = true;
+                        break;
+                    }
+                }
+                if (!assigned) {
+                    p.lane = lanes.length;
+                    lanes.push([p]);
+                }
+            });
+            return lanes.length;
+        }
+        
+        function switchView(view) {
+            currentView = view;
+            if (view === 'field') {
+                window.location.href = 'gantt_FINAL.html';
+            } else {
+                renderCropView();
+            }
+        }
+        
+        async function init() {
+            await loadPlanningData();
+            
+            planningData.forEach(p => {
+                p.family = getCropFamily(p.crop);
+            });
+            
+            const crops = [...new Set(planningData.map(p => p.crop))].sort();
+            const select = document.getElementById('cropSelect');
+            crops.forEach(crop => {
+                const option = document.createElement('option');
+                option.value = crop;
+                option.textContent = crop;
+                select.appendChild(option);
+            });
+            
+            renderCropView();
+        }
+        
+        function renderCropView() {
+            selectedCrop = document.getElementById('cropSelect').value;
+            
+            let plantings = selectedCrop ? 
+                planningData.filter(p => p.crop === selectedCrop) : 
+                planningData;
+            
+            if (plantings.length === 0) {
+                document.getElementById('container').innerHTML = '<div style="text-align: center; padding: 40px; color: #a0aec0;">No plantings found</div>';
+                return;
+            }
+            
+            const byCrop = {};
+            plantings.forEach(p => {
+                if (!byCrop[p.crop]) byCrop[p.crop] = {};
+                if (!byCrop[p.crop][p.variety]) byCrop[p.crop][p.variety] = [];
+                byCrop[p.crop][p.variety].push(p);
+            });
+            
+            const dates = plantings.map(p => new Date(p.startDate));
+            const minDate = new Date(Math.min(...dates));
+            minDate.setDate(minDate.getDate() - 30);
+            const maxDate = new Date(Math.max(...dates));
+            maxDate.setDate(maxDate.getDate() + 120);
+            const rangeMs = maxDate - minDate;
+            
+            timelineData = { minDate, maxDate, rangeMs };
+            
+            const dateMarkers = [];
+            let current = new Date(minDate);
+            while (current <= maxDate) {
+                dateMarkers.push(formatDateShort(current));
+                current.setDate(current.getDate() + 14);
+            }
+            
+            let html = '';
+            Object.keys(byCrop).sort().forEach(crop => {
+                const varieties = Object.keys(byCrop[crop]).sort();
+                const totalPlantings = varieties.reduce((sum, v) => sum + byCrop[crop][v].length, 0);
+                
+                html += `
+                    <div class="crop-section">
+                        <div class="crop-header">
+                            <span>${crop}</span>
+                            <span>${varieties.length} varieties • ${totalPlantings} plantings</span>
+                        </div>
+                        <div class="gantt">
+                            <div class="timeline-header">
+                                <div class="timeline-label-space">Variety</div>
+                                <div class="timeline-dates">
+                                    ${dateMarkers.map(d => `<div class="date-marker">${d}</div>`).join('')}
+                                </div>
+                            </div>
+                `;
+                
+                varieties.forEach(variety => {
+                    const plantingsForVariety = byCrop[crop][variety];
+                    plantingsForVariety.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                    
+                    // Assign to lanes to prevent overlap
+                    const numLanes = assignToLanes(plantingsForVariety);
+                    
+                    // Calculate succession intervals
+                    let avgInterval = 'N/A';
+                    if (plantingsForVariety.length > 1) {
+                        const intervals = [];
+                        for (let i = 1; i < plantingsForVariety.length; i++) {
+                            const days = Math.round((new Date(plantingsForVariety[i].startDate) - new Date(plantingsForVariety[i-1].startDate)) / (1000 * 60 * 60 * 24));
+                            intervals.push(days);
+                        }
+                        avgInterval = Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length) + ' days';
+                    }
+                    
+                    // Build lanes
+                    let lanesHtml = '';
+                    for (let lane = 0; lane < numLanes; lane++) {
+                        const lanePlantings = plantingsForVariety.filter(p => p.lane === lane);
+                        const laneBars = lanePlantings.map((p, idx) => {
+                            const start = new Date(p.startDate);
+                            const end = new Date(p.harvest);
+                            const left = ((start - minDate) / rangeMs * 100);
+                            const width = ((end - start) / rangeMs * 100);
+                            const color = getVarietyColor(crop, variety, p.family);
+                            
+                            // Find succession number in the sorted list
+                            const successionNum = plantingsForVariety.indexOf(p) + 1;
+                            
+                            return `
+                                <div class="bar" 
+                                     data-id="${p.id}"
+                                     style="left: ${left}%; width: ${width}%; background: ${color};">
+                                    <div class="bar-left">
+                                        <div class="bar-date">${formatDateShort(p.startDate)}</div>
+                                        <div class="bar-location">${p.bed}</div>
+                                    </div>
+                                    <div class="bar-right">
+                                        <span class="succession-label">#${successionNum}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                        
+                        lanesHtml += `<div class="stack-lane">${laneBars}</div>`;
+                    }
+                    
+                    html += `
+                        <div class="variety-row">
+                            <div class="variety-label">
+                                <div class="variety-name">${variety}</div>
+                                <div class="variety-count">${plantingsForVariety.length} plantings • Avg: ${avgInterval}</div>
+                            </div>
+                            <div class="timeline">${lanesHtml}</div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+            });
+            
+            document.getElementById('container').innerHTML = html;
+            
+            if (selectedCrop) {
+                const cropPlantings = plantings.length;
+                document.getElementById('successionInfo').textContent = `${cropPlantings} total plantings`;
+            } else {
+                document.getElementById('successionInfo').textContent = '';
+            }
+            
+            setTimeout(() => attachDragHandlers(), 0);
+        }
+        
+        function attachDragHandlers() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                bar.addEventListener('mousedown', handleMouseDown);
+            });
+        }
+        
+        function handleMouseDown(e) {
+            e.preventDefault();
+            
+            const bar = e.currentTarget;
+            const plantingId = bar.dataset.id;
+            const planting = planningData.find(p => p.id === plantingId);
+            
+            if (!planting) return;
+            
+            bar.classList.add('dragging');
+            
+            const timeline = bar.closest('.timeline');
+            const timelineRect = timeline.getBoundingClientRect();
+            const startX = e.clientX;
+            const startLeft = parseFloat(bar.style.left);
+            
+            const cropDetails = getCropDetails(planting.crop, planting.variety);
+            
+            function handleMouseMove(e) {
+                const deltaX = e.clientX - startX;
+                const deltaPercent = (deltaX / timelineRect.width) * 100;
+                const newLeft = Math.max(0, Math.min(95, startLeft + deltaPercent));
+                
+                if (planting.method === 'Transplant') {
+                    const newTransplantMs = timelineData.minDate.getTime() + (newLeft / 100 * timelineData.rangeMs);
+                    const newTransplantDate = new Date(newTransplantMs);
+                    const newGhSowDate = new Date(newTransplantMs - (cropDetails.nursery_days * 24 * 60 * 60 * 1000));
+                    
+                    const season = getSeason(newTransplantDate);
+                    const dtm = season === 'spring' ? cropDetails.dtm_spring : 
+                               season === 'summer' ? cropDetails.dtm_summer : 
+                               cropDetails.dtm_fall;
+                    const newHarvestDate = new Date(newTransplantMs + (dtm * 24 * 60 * 60 * 1000));
+                    
+                    updatePreview(planting, newGhSowDate, newTransplantDate, null, newHarvestDate);
+                } else {
+                    const newFieldSowMs = timelineData.minDate.getTime() + (newLeft / 100 * timelineData.rangeMs);
+                    const newFieldSowDate = new Date(newFieldSowMs);
+                    
+                    const season = getSeason(newFieldSowDate);
+                    const dtm = season === 'spring' ? cropDetails.dtm_spring : 
+                               season === 'summer' ? cropDetails.dtm_summer : 
+                               cropDetails.dtm_fall;
+                    const newHarvestDate = new Date(newFieldSowMs + (dtm * 24 * 60 * 60 * 1000));
+                    
+                    updatePreview(planting, null, null, newFieldSowDate, newHarvestDate);
+                }
+                
+                bar.style.left = newLeft + '%';
+            }
+            
+            function handleMouseUp(e) {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                
+                bar.classList.remove('dragging');
+                
+                const finalLeft = parseFloat(bar.style.left);
+                
+                if (planting.method === 'Transplant') {
+                    const newTransplantMs = timelineData.minDate.getTime() + (finalLeft / 100 * timelineData.rangeMs);
+                    const newTransplantDate = new Date(newTransplantMs);
+                    const newGhSowDate = new Date(newTransplantMs - (cropDetails.nursery_days * 24 * 60 * 60 * 1000));
+                    
+                    const season = getSeason(newTransplantDate);
+                    const dtm = season === 'spring' ? cropDetails.dtm_spring : 
+                               season === 'summer' ? cropDetails.dtm_summer : 
+                               cropDetails.dtm_fall;
+                    const newHarvestDate = new Date(newTransplantMs + (dtm * 24 * 60 * 60 * 1000));
+                    
+                    planting.ghSow = newGhSowDate.toISOString().split('T')[0];
+                    planting.transplant = newTransplantDate.toISOString().split('T')[0];
+                    planting.startDate = planting.transplant;
+                    planting.harvest = newHarvestDate.toISOString().split('T')[0];
+                } else {
+                    const newFieldSowMs = timelineData.minDate.getTime() + (finalLeft / 100 * timelineData.rangeMs);
+                    const newFieldSowDate = new Date(newFieldSowMs);
+                    
+                    const season = getSeason(newFieldSowDate);
+                    const dtm = season === 'spring' ? cropDetails.dtm_spring : 
+                               season === 'summer' ? cropDetails.dtm_summer : 
+                               cropDetails.dtm_fall;
+                    const newHarvestDate = new Date(newFieldSowMs + (dtm * 24 * 60 * 60 * 1000));
+                    
+                    planting.fieldSow = newFieldSowDate.toISOString().split('T')[0];
+                    planting.startDate = planting.fieldSow;
+                    planting.harvest = newHarvestDate.toISOString().split('T')[0];
+                }
+                
+                showSuccess('✅ Succession spacing updated!');
+                renderCropView();
+            }
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        }
+        
+        function updatePreview(planting, ghSow, transplant, fieldSow, harvest) {
+            const preview = document.getElementById('dragPreview');
+            preview.classList.add('active');
+            
+            let html = `
+                <div class="preview-row">
+                    <div class="preview-item">
+                        <span class="preview-label">Crop:</span>
+                        <span class="preview-value">${planting.crop} - ${planting.variety}</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Bed:</span>
+                        <span class="preview-value">${planting.bed}</span>
+                    </div>
+                </div>
+                <div class="preview-row">
+            `;
+            
+            if (planting.method === 'Transplant') {
+                html += `
+                    <div class="preview-item">
+                        <span class="preview-label">🌱 GH Sow:</span>
+                        <span class="preview-value">${formatDate(ghSow)}</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">📅 Transplant:</span>
+                        <span class="preview-value">${formatDate(transplant)}</span>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="preview-item">
+                        <span class="preview-label">🌱 Field Sow:</span>
+                        <span class="preview-value">${formatDate(fieldSow)}</span>
+                    </div>
+                `;
+            }
+            
+            html += `
+                    <div class="preview-item">
+                        <span class="preview-label">🌾 Harvest:</span>
+                        <span class="preview-value">${formatDate(harvest)}</span>
+                    </div>
+                </div>
+            `;
+            
+            preview.innerHTML = html;
+        }
+        
+        function showSuccess(message) {
+            const preview = document.getElementById('dragPreview');
+            preview.classList.remove('active');
+            preview.innerHTML = `<span style="color: #48bb78;">${message}</span>`;
+            setTimeout(() => {
+                preview.innerHTML = '<span class="preview-label">💡 Drag bars left/right to adjust succession timing • All plantings visible</span>';
+            }, 3000);
+        }
+        
+        init();
+    </script>
+</body>
+</html>
