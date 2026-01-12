@@ -1602,15 +1602,9 @@
                 return true;
             });
 
-            // Recalculate timeline range
-            if (filteredPlantings.length > 0) {
-                const dates = filteredPlantings.flatMap(p => [new Date(p.seedDate), new Date(p.harvestDate)]);
-                timelineStart = new Date(Math.min(...dates));
-                timelineStart.setDate(1);
-                timelineEnd = new Date(Math.max(...dates));
-                timelineEnd.setMonth(timelineEnd.getMonth() + 1);
-                timelineEnd.setDate(0);
-            }
+            // Set fixed timeline for 2026 season (don't auto-calculate - prevents crashes with bad data)
+            timelineStart = new Date('2026-01-01');
+            timelineEnd = new Date('2026-12-31');
 
             updateStats();
             renderGantt();
