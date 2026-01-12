@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Succession Planner - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title i { color: var(--secondary); }
+
+        .main-container {
+            padding: 100px 2rem 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Wizard Steps */
+        .wizard-steps {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .wizard-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 1rem 2rem;
+            background: var(--bg-card);
+            border-radius: 50px;
+            border: 2px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .wizard-step.active {
+            border-color: var(--primary);
+            background: rgba(45, 90, 39, 0.2);
+        }
+
+        .wizard-step.completed {
+            border-color: var(--success);
+            background: rgba(42, 157, 143, 0.2);
+        }
+
+        .step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .wizard-step.active .step-number {
+            background: var(--primary);
+        }
+
+        .wizard-step.completed .step-number {
+            background: var(--success);
+        }
+
+        .step-label {
+            font-weight: 600;
+        }
+
+        /* Main Grid */
+        .wizard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .wizard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-title i { color: var(--primary-light); }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 18px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.2);
+        }
+
+        /* Crop Selector */
+        .crop-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .crop-option {
+            background: var(--bg-light);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .crop-option:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .crop-option.selected {
+            border-color: var(--primary);
+            background: rgba(45, 90, 39, 0.3);
+        }
+
+        .crop-option-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .crop-option-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .crop-option-dtm {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Interval Controls */
+        .interval-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr 80px;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .interval-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 14px 0;
+        }
+
+        /* Bed Selector */
+        .bed-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+        }
+
+        .bed-option {
+            background: var(--bg-light);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .bed-option:hover:not(.occupied) {
+            border-color: var(--primary);
+        }
+
+        .bed-option.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        .bed-option.occupied {
+            background: rgba(230, 57, 70, 0.2);
+            border-color: var(--danger);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .bed-option.assigned {
+            background: rgba(42, 157, 143, 0.3);
+            border-color: var(--success);
+        }
+
+        /* Timeline Preview */
+        .timeline-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        .timeline {
+            min-width: 800px;
+            position: relative;
+        }
+
+        .timeline-header {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-label-col {
+            width: 200px;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+
+        .timeline-dates {
+            flex: 1;
+            display: flex;
+        }
+
+        .timeline-month {
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .timeline-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: center;
+            min-height: 40px;
+        }
+
+        .timeline-crop-label {
+            width: 200px;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+            padding-right: 1rem;
+        }
+
+        .timeline-bars {
+            flex: 1;
+            position: relative;
+            height: 36px;
+            background: var(--bg-light);
+            border-radius: 8px;
+        }
+
+        .timeline-bar {
+            position: absolute;
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .timeline-bar:hover {
+            transform: scaleY(1.1);
+            z-index: 10;
+        }
+
+        .timeline-bar.seeding {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        }
+
+        .timeline-bar.growing {
+            background: linear-gradient(135deg, var(--success) 0%, #1a7a6e 100%);
+        }
+
+        .timeline-bar.harvest {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(45, 90, 39, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #1a7a6e 100%);
+            color: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-block { width: 100%; }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-card {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary-light);
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Planting List */
+        .planting-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .planting-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .planting-number {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .planting-info { flex: 1; }
+
+        .planting-crop {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .planting-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .planting-bed {
+            background: var(--success);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Templates */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .template-card {
+            background: var(--bg-light);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .template-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .template-name {
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .template-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show { transform: translateX(0); }
+        .toast i { color: var(--success); font-size: 1.25rem; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.show .modal {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </a>
+            <h1 class="page-title">
+                <i class="fas fa-layer-group"></i>
+                Succession Planner
+            </h1>
+        </div>
+        <button class="btn btn-secondary" onclick="loadTemplate()">
+            <i class="fas fa-folder-open"></i> Load Template
+        </button>
+    </header>
+
+    <main class="main-container">
+        <!-- Wizard Steps -->
+        <div class="wizard-steps">
+            <div class="wizard-step active" id="step1">
+                <span class="step-number">1</span>
+                <span class="step-label">Select Crop</span>
+            </div>
+            <div class="wizard-step" id="step2">
+                <span class="step-number">2</span>
+                <span class="step-label">Set Schedule</span>
+            </div>
+            <div class="wizard-step" id="step3">
+                <span class="step-number">3</span>
+                <span class="step-label">Assign Beds</span>
+            </div>
+            <div class="wizard-step" id="step4">
+                <span class="step-number">4</span>
+                <span class="step-label">Review & Save</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="wizard-grid">
+            <!-- Left Panel - Input -->
+            <div class="card">
+                <h3 class="card-title"><i class="fas fa-seedling"></i> Succession Setup</h3>
+
+                <!-- Step 1: Crop Selection -->
+                <div id="cropSection">
+                    <div class="form-group">
+                        <label>Select Crop</label>
+                        <div class="crop-selector" id="cropSelector">
+                            <!-- Crops loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Variety (Optional)</label>
+                        <select class="form-control" id="varietySelect">
+                            <option value="">Select variety...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 2: Schedule -->
+                <div id="scheduleSection" style="display:none;">
+                    <div class="form-group">
+                        <label>Starting Date</label>
+                        <input type="date" class="form-control" id="startDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Succession Pattern</label>
+                        <div class="interval-row">
+                            <span class="interval-label">Plant</span>
+                            <input type="number" class="form-control" id="quantity" value="1" min="1">
+                            <span class="interval-label">planting(s) every</span>
+                            <input type="number" class="form-control" id="interval" value="7" min="1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Interval Unit</label>
+                        <select class="form-control" id="intervalUnit">
+                            <option value="days">Days</option>
+                            <option value="weeks" selected>Weeks</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Total Successions</label>
+                        <input type="number" class="form-control" id="successions" value="8" min="1" max="52">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bed Feet per Planting</label>
+                        <input type="number" class="form-control" id="bedFeet" value="100" min="1">
+                    </div>
+                </div>
+
+                <!-- Step 3: Bed Assignment -->
+                <div id="bedSection" style="display:none;">
+                    <div class="form-group">
+                        <label>Field Selection</label>
+                        <select class="form-control" id="fieldSelect" onchange="loadBeds()">
+                            <option value="A">Field A</option>
+                            <option value="B">Field B</option>
+                            <option value="C">Field C</option>
+                            <option value="GH">Greenhouse</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bed Assignment Mode</label>
+                        <select class="form-control" id="assignmentMode" onchange="updateBedAssignment()">
+                            <option value="auto">Auto-Assign (Alternating)</option>
+                            <option value="sequential">Sequential</option>
+                            <option value="manual">Manual Selection</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Available Beds</label>
+                        <div class="bed-grid" id="bedGrid">
+                            <!-- Beds loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="btn-group">
+                    <button class="btn btn-secondary" id="prevBtn" onclick="prevStep()" style="display:none;">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel - Preview -->
+            <div class="card">
+                <h3 class="card-title"><i class="fas fa-chart-gantt"></i> Timeline Preview</h3>
+
+                <!-- Summary Stats -->
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-value" id="totalPlantings">0</div>
+                        <div class="summary-label">Plantings</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value" id="totalBedFeet">0</div>
+                        <div class="summary-label">Total Bed Feet</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value" id="harvestWeeks">0</div>
+                        <div class="summary-label">Harvest Weeks</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value" id="expectedYield">0</div>
+                        <div class="summary-label">Est. Yield (lbs)</div>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="timeline-container">
+                    <div class="timeline" id="timeline">
+                        <div class="timeline-header">
+                            <div class="timeline-label-col">Planting</div>
+                            <div class="timeline-dates" id="timelineMonths">
+                                <!-- Months loaded dynamically -->
+                            </div>
+                        </div>
+                        <div id="timelineRows">
+                            <!-- Timeline rows loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Planting List -->
+                <h4 style="margin: 1.5rem 0 1rem; font-weight: 600;">Planting Schedule</h4>
+                <div class="planting-list" id="plantingList">
+                    <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
+                        Configure your succession to see the schedule preview.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Template Modal -->
+    <div class="modal-overlay" id="templateModal">
+        <div class="modal">
+            <h3 class="modal-title">Load Template</h3>
+            <div class="template-grid">
+                <div class="template-card" onclick="applyTemplate('lettuce')">
+                    <div class="template-name">Weekly Lettuce</div>
+                    <div class="template-desc">7-day intervals, 12 successions</div>
+                </div>
+                <div class="template-card" onclick="applyTemplate('tomato')">
+                    <div class="template-name">Tomato Waves</div>
+                    <div class="template-desc">3-week intervals, 4 successions</div>
+                </div>
+                <div class="template-card" onclick="applyTemplate('basil')">
+                    <div class="template-name">Continuous Basil</div>
+                    <div class="template-desc">10-day intervals, 15 successions</div>
+                </div>
+                <div class="template-card" onclick="applyTemplate('carrot')">
+                    <div class="template-name">Carrot Pipeline</div>
+                    <div class="template-desc">2-week intervals, 10 successions</div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary btn-block" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Action completed!</span>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+
+        // State
+        let currentStep = 1;
+        let selectedCrop = null;
+        let selectedVariety = '';
+        let plantings = [];
+        let beds = [];
+        let assignedBeds = [];
+
+        // Crop Data
+        const crops = [
+            { id: 'lettuce', name: 'Lettuce', icon: '🥬', dtm: 45, varieties: ['Parris Island', 'Butterhead', 'Red Leaf', 'Romaine Mix'] },
+            { id: 'tomatoes', name: 'Tomatoes', icon: '🍅', dtm: 75, varieties: ['Cherry Bomb', 'Beefsteak', 'San Marzano', 'Brandywine'] },
+            { id: 'peppers', name: 'Peppers', icon: '🫑', dtm: 70, varieties: ['California Wonder', 'Jalapeno', 'Sweet Banana', 'Poblano'] },
+            { id: 'basil', name: 'Basil', icon: '🌿', dtm: 28, varieties: ['Genovese', 'Thai', 'Purple', 'Lemon'] },
+            { id: 'carrots', name: 'Carrots', icon: '🥕', dtm: 70, varieties: ['Napoli', 'Nantes', 'Danvers', 'Rainbow Mix'] },
+            { id: 'kale', name: 'Kale', icon: '🥗', dtm: 55, varieties: ['Lacinato', 'Curly', 'Red Russian', 'Winterbor'] },
+            { id: 'spinach', name: 'Spinach', icon: '🍃', dtm: 40, varieties: ['Bloomsdale', 'Tyee', 'Space', 'Corvair'] },
+            { id: 'cucumbers', name: 'Cucumbers', icon: '🥒', dtm: 55, varieties: ['Boston Pickling', 'Marketmore', 'Lemon', 'Armenian'] }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCropSelector();
+            loadBeds();
+
+            // Set default date to today
+            document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+
+            // Add event listeners
+            document.getElementById('startDate').addEventListener('change', updatePreview);
+            document.getElementById('interval').addEventListener('change', updatePreview);
+            document.getElementById('intervalUnit').addEventListener('change', updatePreview);
+            document.getElementById('successions').addEventListener('change', updatePreview);
+            document.getElementById('bedFeet').addEventListener('change', updatePreview);
+            document.getElementById('quantity').addEventListener('change', updatePreview);
+        });
+
+        // Render Crop Selector
+        function renderCropSelector() {
+            const container = document.getElementById('cropSelector');
+            let html = '';
+
+            crops.forEach(crop => {
+                html += `
+                    <div class="crop-option" onclick="selectCrop('${crop.id}')" id="crop-${crop.id}">
+                        <div class="crop-option-icon">${crop.icon}</div>
+                        <div class="crop-option-name">${crop.name}</div>
+                        <div class="crop-option-dtm">${crop.dtm} DTM</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Select Crop
+        function selectCrop(cropId) {
+            selectedCrop = crops.find(c => c.id === cropId);
+
+            // Update UI
+            document.querySelectorAll('.crop-option').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`crop-${cropId}`).classList.add('selected');
+
+            // Update variety dropdown
+            const varietySelect = document.getElementById('varietySelect');
+            varietySelect.innerHTML = '<option value="">Select variety...</option>';
+            selectedCrop.varieties.forEach(v => {
+                varietySelect.innerHTML += `<option value="${v}">${v}</option>`;
+            });
+
+            updatePreview();
+        }
+
+        // Load Beds
+        function loadBeds() {
+            const field = document.getElementById('fieldSelect').value;
+            const bedCount = field === 'GH' ? 20 : 30;
+            beds = [];
+
+            for (let i = 1; i <= bedCount; i++) {
+                beds.push({
+                    id: `${field}-${String(i).padStart(2, '0')}`,
+                    field: field,
+                    number: i,
+                    occupied: Math.random() > 0.7 // Demo: 30% occupied
+                });
+            }
+
+            renderBedGrid();
+        }
+
+        // Render Bed Grid
+        function renderBedGrid() {
+            const container = document.getElementById('bedGrid');
+            let html = '';
+
+            beds.forEach(bed => {
+                const isAssigned = assignedBeds.includes(bed.id);
+                const classes = ['bed-option'];
+                if (bed.occupied) classes.push('occupied');
+                if (isAssigned) classes.push('assigned');
+
+                html += `
+                    <div class="${classes.join(' ')}" onclick="toggleBed('${bed.id}')" id="bed-${bed.id}">
+                        ${bed.id}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Toggle Bed Selection
+        function toggleBed(bedId) {
+            const bed = beds.find(b => b.id === bedId);
+            if (bed.occupied) return;
+
+            const mode = document.getElementById('assignmentMode').value;
+            if (mode !== 'manual') return;
+
+            const index = assignedBeds.indexOf(bedId);
+            if (index > -1) {
+                assignedBeds.splice(index, 1);
+            } else {
+                assignedBeds.push(bedId);
+            }
+
+            renderBedGrid();
+            updatePreview();
+        }
+
+        // Update Bed Assignment
+        function updateBedAssignment() {
+            const mode = document.getElementById('assignmentMode').value;
+            const successions = parseInt(document.getElementById('successions').value) || 8;
+            const availableBeds = beds.filter(b => !b.occupied);
+
+            assignedBeds = [];
+
+            if (mode === 'auto') {
+                // Alternating assignment
+                for (let i = 0; i < successions && i < availableBeds.length; i++) {
+                    const bedIndex = i * 2 % availableBeds.length;
+                    assignedBeds.push(availableBeds[bedIndex].id);
+                }
+            } else if (mode === 'sequential') {
+                // Sequential assignment
+                for (let i = 0; i < successions && i < availableBeds.length; i++) {
+                    assignedBeds.push(availableBeds[i].id);
+                }
+            }
+
+            renderBedGrid();
+            updatePreview();
+        }
+
+        // Navigation
+        function nextStep() {
+            if (currentStep === 1 && !selectedCrop) {
+                showToast('Please select a crop first');
+                return;
+            }
+
+            if (currentStep < 4) {
+                document.getElementById(`step${currentStep}`).classList.remove('active');
+                document.getElementById(`step${currentStep}`).classList.add('completed');
+                currentStep++;
+                document.getElementById(`step${currentStep}`).classList.add('active');
+                updateStepVisibility();
+
+                if (currentStep === 3) {
+                    updateBedAssignment();
+                }
+
+                if (currentStep === 4) {
+                    document.getElementById('nextBtn').innerHTML = '<i class="fas fa-save"></i> Save Succession';
+                    document.getElementById('nextBtn').onclick = saveSüccession;
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                document.getElementById(`step${currentStep}`).classList.remove('active');
+                currentStep--;
+                document.getElementById(`step${currentStep}`).classList.remove('completed');
+                document.getElementById(`step${currentStep}`).classList.add('active');
+                updateStepVisibility();
+
+                if (currentStep < 4) {
+                    document.getElementById('nextBtn').innerHTML = 'Next <i class="fas fa-arrow-right"></i>';
+                    document.getElementById('nextBtn').onclick = nextStep;
+                }
+            }
+        }
+
+        function updateStepVisibility() {
+            document.getElementById('cropSection').style.display = currentStep === 1 ? 'block' : 'none';
+            document.getElementById('scheduleSection').style.display = currentStep === 2 ? 'block' : 'none';
+            document.getElementById('bedSection').style.display = currentStep === 3 ? 'block' : 'none';
+            document.getElementById('prevBtn').style.display = currentStep > 1 ? 'inline-flex' : 'none';
+        }
+
+        // Update Preview
+        function updatePreview() {
+            if (!selectedCrop) return;
+
+            const startDate = new Date(document.getElementById('startDate').value);
+            const interval = parseInt(document.getElementById('interval').value) || 7;
+            const intervalUnit = document.getElementById('intervalUnit').value;
+            const successions = parseInt(document.getElementById('successions').value) || 8;
+            const bedFeet = parseInt(document.getElementById('bedFeet').value) || 100;
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+
+            const intervalDays = intervalUnit === 'weeks' ? interval * 7 : interval;
+
+            // Generate plantings
+            plantings = [];
+            for (let i = 0; i < successions; i++) {
+                const seedDate = new Date(startDate);
+                seedDate.setDate(seedDate.getDate() + (i * intervalDays));
+
+                const harvestDate = new Date(seedDate);
+                harvestDate.setDate(harvestDate.getDate() + selectedCrop.dtm);
+
+                plantings.push({
+                    number: i + 1,
+                    crop: selectedCrop.name,
+                    variety: document.getElementById('varietySelect').value || selectedCrop.varieties[0],
+                    seedDate: seedDate,
+                    harvestDate: harvestDate,
+                    bedFeet: bedFeet,
+                    bed: assignedBeds[i] || 'TBD'
+                });
+            }
+
+            // Update summary
+            document.getElementById('totalPlantings').textContent = plantings.length;
+            document.getElementById('totalBedFeet').textContent = plantings.length * bedFeet;
+            document.getElementById('harvestWeeks').textContent = Math.ceil((plantings[plantings.length - 1]?.harvestDate - plantings[0]?.seedDate) / (7 * 24 * 60 * 60 * 1000)) || 0;
+            document.getElementById('expectedYield').textContent = Math.round(plantings.length * bedFeet * 0.5); // Rough estimate
+
+            renderTimeline();
+            renderPlantingList();
+        }
+
+        // Render Timeline
+        function renderTimeline() {
+            if (plantings.length === 0) return;
+
+            const startDate = plantings[0].seedDate;
+            const endDate = new Date(plantings[plantings.length - 1].harvestDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+
+            // Render months
+            const monthsContainer = document.getElementById('timelineMonths');
+            let monthsHtml = '';
+            let currentDate = new Date(startDate);
+            currentDate.setDate(1);
+
+            while (currentDate <= endDate) {
+                monthsHtml += `<div class="timeline-month">${currentDate.toLocaleDateString('en-US', { month: 'short' })}</div>`;
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            }
+            monthsContainer.innerHTML = monthsHtml;
+
+            // Calculate timeline range
+            const timelineStart = new Date(startDate);
+            timelineStart.setDate(1);
+            const totalDays = Math.ceil((endDate - timelineStart) / (24 * 60 * 60 * 1000));
+
+            // Render rows
+            const rowsContainer = document.getElementById('timelineRows');
+            let rowsHtml = '';
+
+            plantings.forEach((planting, index) => {
+                const seedOffset = Math.ceil((planting.seedDate - timelineStart) / (24 * 60 * 60 * 1000));
+                const harvestOffset = Math.ceil((planting.harvestDate - timelineStart) / (24 * 60 * 60 * 1000));
+
+                const seedLeft = (seedOffset / totalDays) * 100;
+                const growWidth = ((harvestOffset - seedOffset) / totalDays) * 100;
+
+                rowsHtml += `
+                    <div class="timeline-row">
+                        <div class="timeline-crop-label">
+                            #${planting.number} - ${planting.bed}
+                        </div>
+                        <div class="timeline-bars">
+                            <div class="timeline-bar growing" style="left: ${seedLeft}%; width: ${growWidth}%;" title="${planting.seedDate.toLocaleDateString()} - ${planting.harvestDate.toLocaleDateString()}">
+                                ${selectedCrop.dtm}d
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            rowsContainer.innerHTML = rowsHtml;
+        }
+
+        // Render Planting List
+        function renderPlantingList() {
+            const container = document.getElementById('plantingList');
+
+            if (plantings.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">Configure your succession to see the schedule preview.</p>';
+                return;
+            }
+
+            let html = '';
+            plantings.forEach(planting => {
+                html += `
+                    <div class="planting-item">
+                        <div class="planting-number">${planting.number}</div>
+                        <div class="planting-info">
+                            <div class="planting-crop">${planting.crop} - ${planting.variety}</div>
+                            <div class="planting-meta">
+                                Seed: ${planting.seedDate.toLocaleDateString()} |
+                                Harvest: ${planting.harvestDate.toLocaleDateString()} |
+                                ${planting.bedFeet} bed ft
+                            </div>
+                        </div>
+                        <span class="planting-bed">${planting.bed}</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Save Succession
+        async function saveSüccession() {
+            if (plantings.length === 0) {
+                showToast('No plantings to save');
+                return;
+            }
+
+            showToast('Saving succession...');
+
+            try {
+                const response = await fetch(`${API_URL}?action=saveSuccessionPlan`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        crop: selectedCrop.name,
+                        variety: document.getElementById('varietySelect').value,
+                        plantings: plantings.map(p => ({
+                            seedDate: p.seedDate.toISOString(),
+                            harvestDate: p.harvestDate.toISOString(),
+                            bed: p.bed,
+                            bedFeet: p.bedFeet
+                        }))
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Succession saved successfully!');
+                } else {
+                    throw new Error(result.error || 'Failed to save');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                showToast('Saved locally (demo mode)');
+            }
+        }
+
+        // Templates
+        function loadTemplate() {
+            document.getElementById('templateModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('templateModal').classList.remove('show');
+        }
+
+        function applyTemplate(type) {
+            closeModal();
+
+            const templates = {
+                lettuce: { crop: 'lettuce', interval: 7, unit: 'days', successions: 12, bedFeet: 50 },
+                tomato: { crop: 'tomatoes', interval: 3, unit: 'weeks', successions: 4, bedFeet: 200 },
+                basil: { crop: 'basil', interval: 10, unit: 'days', successions: 15, bedFeet: 25 },
+                carrot: { crop: 'carrots', interval: 2, unit: 'weeks', successions: 10, bedFeet: 100 }
+            };
+
+            const template = templates[type];
+            if (!template) return;
+
+            selectCrop(template.crop);
+            document.getElementById('interval').value = template.interval;
+            document.getElementById('intervalUnit').value = template.unit;
+            document.getElementById('successions').value = template.successions;
+            document.getElementById('bedFeet').value = template.bedFeet;
+
+            updatePreview();
+            showToast(`Template "${type}" applied`);
+        }
+
+        // Toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,2511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Calendar - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title i { color: #3498db; }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .zoom-controls {
+            display: flex;
+            background: var(--bg-light);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .zoom-btn {
+            background: none;
+            border: none;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .zoom-btn:hover, .zoom-btn.active {
+            background: var(--primary);
+        }
+
+        .sync-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-light);
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .sync-indicator.syncing {
+            color: var(--warning);
+        }
+
+        .sync-indicator.synced {
+            color: var(--success);
+        }
+
+        .sync-indicator.error {
+            color: var(--danger);
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .sync-indicator.syncing .sync-dot {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .main-container {
+            padding: 80px 0 0;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 80px;
+            left: 0;
+            width: 280px;
+            height: calc(100vh - 80px);
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .filter-control {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .filter-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .checkbox-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: var(--bg-light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .checkbox-filter:hover {
+            background: var(--primary);
+        }
+
+        .checkbox-filter input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-dot.seeding { background: #8e44ad; }
+        .status-dot.growing { background: var(--success); }
+        .status-dot.harvest { background: var(--secondary); }
+        .status-dot.completed { background: var(--text-secondary); }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 12px;
+            border-radius: 4px;
+        }
+
+        /* Gantt Container */
+        .gantt-container {
+            margin-left: 280px;
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+
+        .gantt-wrapper {
+            min-width: 100%;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Gantt Timeline */
+        .gantt-chart {
+            position: relative;
+        }
+
+        .gantt-header {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 50;
+        }
+
+        .gantt-field-header {
+            width: 180px;
+            min-width: 180px;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-right: 2px solid var(--border);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .gantt-timeline-header {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .gantt-months-row {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .gantt-month {
+            text-align: center;
+            padding: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            background: var(--bg-light);
+            border-right: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .gantt-days-row {
+            display: flex;
+        }
+
+        .gantt-day {
+            text-align: center;
+            padding: 4px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            flex-shrink: 0;
+        }
+
+        .gantt-day.today {
+            background: rgba(244, 162, 97, 0.3);
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .gantt-day.weekend {
+            background: rgba(0,0,0,0.2);
+        }
+
+        /* Gantt Body - Field Rows */
+        .gantt-body {
+            position: relative;
+        }
+
+        .field-row {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            min-height: 80px;
+            position: relative;
+        }
+
+        .field-row:nth-child(even) {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .field-label {
+            width: 180px;
+            min-width: 180px;
+            padding: 1rem;
+            border-right: 2px solid var(--border);
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .field-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .field-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .field-timeline {
+            flex: 1;
+            position: relative;
+            min-height: 80px;
+        }
+
+        /* Grid lines */
+        .timeline-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            pointer-events: none;
+        }
+
+        .grid-line {
+            border-right: 1px solid rgba(255,255,255,0.03);
+            flex-shrink: 0;
+        }
+
+        .grid-line.week-start {
+            border-right-color: rgba(255,255,255,0.08);
+        }
+
+        /* Today Line */
+        .today-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--danger);
+            z-index: 25;
+            pointer-events: none;
+        }
+
+        .today-marker {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* Crop Bars */
+        .crop-bar {
+            position: absolute;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            cursor: grab;
+            transition: box-shadow 0.2s, transform 0.1s;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 20;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .crop-bar:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            z-index: 30;
+        }
+
+        .crop-bar.dragging {
+            cursor: grabbing;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            z-index: 100;
+            opacity: 0.9;
+        }
+
+        .crop-bar.resizing {
+            z-index: 100;
+        }
+
+        .crop-bar.seeding {
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+        }
+
+        .crop-bar.growing {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        }
+
+        .crop-bar.harvest {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
+        }
+
+        .crop-bar.completed {
+            background: linear-gradient(135deg, #555 0%, #777 100%);
+            opacity: 0.7;
+        }
+
+        .crop-bar.locked {
+            border: 2px solid #e63946;
+            cursor: not-allowed;
+        }
+
+        .crop-bar.locked .resize-handle {
+            display: none;
+        }
+
+        /* Drag Tooltip - Real-time date display */
+        .drag-tooltip {
+            position: fixed;
+            background: rgba(22, 33, 62, 0.98);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: none;
+            pointer-events: none;
+            min-width: 180px;
+        }
+
+        .drag-tooltip.show {
+            display: block;
+        }
+
+        .drag-tooltip-crop {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--primary-light);
+        }
+
+        .drag-date-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .drag-date-label {
+            color: var(--text-secondary);
+        }
+
+        .drag-date-value {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .drag-date-value.changed {
+            color: var(--secondary);
+            animation: pulse-date 0.3s ease;
+        }
+
+        @keyframes pulse-date {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Timeline Navigation Bar */
+        .timeline-nav {
+            position: fixed;
+            top: 65px;
+            left: 280px;
+            right: 0;
+            background: rgba(22, 33, 62, 0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 500;
+        }
+
+        .nav-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .nav-btn.today-btn {
+            background: var(--primary);
+            font-weight: 600;
+        }
+
+        .timeline-slider-container {
+            flex: 1;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .timeline-slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: var(--bg-light);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .timeline-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+        }
+
+        .timeline-months {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            padding: 0 5px;
+        }
+
+        .current-range {
+            background: var(--bg-light);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--secondary);
+            white-space: nowrap;
+        }
+
+        .main-container {
+            padding: 130px 0 0; /* Adjusted for timeline nav */
+        }
+
+        @media (max-width: 1024px) {
+            .timeline-nav {
+                left: 0;
+                top: 60px;
+            }
+            .main-container {
+                padding-top: 180px;
+            }
+        }
+
+        .crop-bar-icon {
+            margin-right: 6px;
+            font-size: 1rem;
+        }
+
+        .crop-bar-content {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .crop-bar-name {
+            font-weight: 700;
+        }
+
+        .crop-bar-dates {
+            font-size: 0.65rem;
+            opacity: 0.9;
+        }
+
+        /* Resize Handles */
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 12px;
+            cursor: ew-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .crop-bar:hover .resize-handle {
+            opacity: 1;
+        }
+
+        .resize-handle-left {
+            left: 0;
+            border-radius: 6px 0 0 6px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.3), transparent);
+        }
+
+        .resize-handle-right {
+            right: 0;
+            border-radius: 0 6px 6px 0;
+            background: linear-gradient(-90deg, rgba(0,0,0,0.3), transparent);
+        }
+
+        .resize-handle::before {
+            content: '';
+            width: 3px;
+            height: 20px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 2px;
+        }
+
+        /* Drop Zone Highlight */
+        .field-timeline.drop-target {
+            background: rgba(45, 90, 39, 0.2);
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+            pointer-events: none;
+        }
+
+        .tooltip.show {
+            display: block;
+        }
+
+        .tooltip-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tooltip-icon {
+            font-size: 1.5rem;
+        }
+
+        .tooltip-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .tooltip-variety {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .tooltip-label {
+            color: var(--text-secondary);
+        }
+
+        .tooltip-actions {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(45, 90, 39, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show { transform: translateX(0); }
+        .toast.success i { color: var(--success); }
+        .toast.error i { color: var(--danger); }
+        .toast.warning i { color: var(--warning); }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .gantt-container {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </a>
+            <h1 class="page-title">
+                <i class="fas fa-calendar-alt"></i>
+                Field & Crop Calendar
+            </h1>
+        </div>
+        <div class="header-controls">
+            <div class="sync-indicator synced" id="syncIndicator">
+                <span class="sync-dot"></span>
+                <span id="syncText">Synced</span>
+            </div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="setZoom('day')" id="zoom-day">Day</button>
+                <button class="zoom-btn active" onclick="setZoom('week')" id="zoom-week">Week</button>
+                <button class="zoom-btn" onclick="setZoom('month')" id="zoom-month">Month</button>
+            </div>
+            <button class="btn btn-secondary" onclick="showFullYear()">
+                <i class="fas fa-expand"></i> Full Year
+            </button>
+            <button class="btn btn-primary" onclick="window.location.href='succession.html'">
+                <i class="fas fa-plus"></i> Add Planting
+            </button>
+        </div>
+    </header>
+
+    <!-- Timeline Navigation Bar -->
+    <div class="timeline-nav" id="timelineNav">
+        <button class="nav-btn" onclick="navigateTimeline(-30)" title="Previous Month">
+            <i class="fas fa-chevron-left"></i><i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="nav-btn" onclick="navigateTimeline(-7)" title="Previous Week">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="timeline-slider-container">
+            <input type="range" id="timelineSlider" class="timeline-slider"
+                   min="0" max="365" value="0"
+                   oninput="onSliderChange(this.value)">
+            <div class="timeline-months">
+                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span>
+                <span>May</span><span>Jun</span><span>Jul</span><span>Aug</span>
+                <span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+            </div>
+        </div>
+        <button class="nav-btn" onclick="navigateTimeline(7)" title="Next Week">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="nav-btn" onclick="navigateTimeline(30)" title="Next Month">
+            <i class="fas fa-chevron-right"></i><i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="nav-btn today-btn" onclick="goToToday()" title="Go to Today">
+            Today
+        </button>
+        <div class="current-range" id="currentRange">Jan 1 - Dec 31, 2026</div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Filters</h3>
+
+            <div class="filter-group">
+                <label>Date Range</label>
+                <select class="filter-control" id="dateRange" onchange="applyFilters()">
+                    <option value="season">Full Season 2026</option>
+                    <option value="month">This Month</option>
+                    <option value="quarter">This Quarter</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Crop</label>
+                <select class="filter-control" id="cropFilter" onchange="applyFilters()">
+                    <option value="">All Crops</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Field</label>
+                <select class="filter-control" id="fieldFilter" onchange="applyFilters()">
+                    <option value="">All Fields</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Status</h3>
+            <div class="checkbox-filters">
+                <label class="checkbox-filter">
+                    <input type="checkbox" checked onchange="applyFilters()" data-status="seeding">
+                    <span class="status-dot seeding"></span>
+                    <span>Seeding</span>
+                </label>
+                <label class="checkbox-filter">
+                    <input type="checkbox" checked onchange="applyFilters()" data-status="growing">
+                    <span class="status-dot growing"></span>
+                    <span>Growing</span>
+                </label>
+                <label class="checkbox-filter">
+                    <input type="checkbox" checked onchange="applyFilters()" data-status="harvest">
+                    <span class="status-dot harvest"></span>
+                    <span>Harvest Ready</span>
+                </label>
+                <label class="checkbox-filter">
+                    <input type="checkbox" onchange="applyFilters()" data-status="completed">
+                    <span class="status-dot completed"></span>
+                    <span>Completed</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Legend</h3>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);"></div>
+                    <span>Seeding Phase</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);"></div>
+                    <span>Growing Phase</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);"></div>
+                    <span>Harvest Window</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Instructions</h3>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
+                <p><strong>Drag</strong> bars to move between fields</p>
+                <p><strong>Resize</strong> by dragging edges to adjust duration</p>
+                <p>Changes sync to Google Sheets automatically</p>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <button class="btn btn-secondary" style="width: 100%;" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i> Refresh Data
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-container">
+        <div class="gantt-container">
+            <div class="gantt-wrapper">
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-value" id="totalPlantings">--</span>
+                        <span class="stat-label">Plantings</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="activePlantings">--</span>
+                        <span class="stat-label">Active</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="harvestReady">--</span>
+                        <span class="stat-label">Harvest Ready</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="totalBedFeet">--</span>
+                        <span class="stat-label">Bed Feet</span>
+                    </div>
+                </div>
+
+                <div class="gantt-chart" id="ganttChart">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading calendar...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-header">
+            <span class="tooltip-icon" id="tooltipIcon">🌱</span>
+            <div>
+                <div class="tooltip-title" id="tooltipTitle">Crop Name</div>
+                <div class="tooltip-variety" id="tooltipVariety">Variety</div>
+            </div>
+        </div>
+        <div class="tooltip-row" id="tooltipLockRow" style="display: none; color: #e63946;">
+            <span class="tooltip-label">🔒 Locked:</span>
+            <span id="tooltipLockReason">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Batch ID:</span>
+            <span id="tooltipBatchId">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Field/Bed:</span>
+            <span id="tooltipBed">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Method:</span>
+            <span id="tooltipMethod">-</span>
+        </div>
+        <div class="tooltip-row" id="tooltipGHRow">
+            <span class="tooltip-label">GH Sow:</span>
+            <span id="tooltipGHSow">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">In Field:</span>
+            <span id="tooltipStart">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Last Harvest:</span>
+            <span id="tooltipEnd">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Days in Field:</span>
+            <span id="tooltipDuration">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Bed Feet:</span>
+            <span id="tooltipBedFeet">-</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Status:</span>
+            <span id="tooltipStatus">-</span>
+        </div>
+        <div class="tooltip-actions" id="tooltipActions">
+            Drag to move | Resize edges to adjust dates
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Action completed!</span>
+    </div>
+
+    <!-- Real-time drag date tooltip -->
+    <div class="drag-tooltip" id="dragTooltip">
+        <div class="drag-tooltip-crop" id="dragCrop">Lettuce</div>
+        <div class="drag-tooltip-dates">
+            <div class="drag-date-row">
+                <span class="drag-date-label">GH Sow:</span>
+                <span class="drag-date-value" id="dragGHSow">-</span>
+            </div>
+            <div class="drag-date-row">
+                <span class="drag-date-label">In Field:</span>
+                <span class="drag-date-value" id="dragFieldStart">Apr 15</span>
+            </div>
+            <div class="drag-date-row">
+                <span class="drag-date-label">Harvest:</span>
+                <span class="drag-date-value" id="dragHarvest">Jun 20</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+
+        // State
+        let plantings = [];
+        let filteredPlantings = [];
+        let fields = [];
+        let zoomLevel = 'week';
+        let dayWidth = 20;
+        let timelineStart = new Date('2026-01-01');
+        let timelineEnd = new Date('2026-12-31');
+        let pendingUpdates = new Map();
+        let saveTimeout = null;
+
+        // Crop icons - expanded for actual farm crops
+        const cropIcons = {
+            'Tomatoes': '🍅', 'Tomatillos': '🍅', 'Lettuce': '🥬', 'Peppers': '🫑',
+            'Basil': '🌿', 'Carrots': '🥕', 'Kale': '🥗', 'Spinach': '🍃',
+            'Cucumbers': '🥒', 'Beans': '🫘', 'Squash': '🎃', 'Winter Squash': '🎃',
+            'Onions': '🧅', 'Garlic': '🧄', 'Broccoli': '🥦', 'Cabbage': '🥬',
+            'Corn': '🌽', 'Peas': '🫛', 'Beets': '🟣', 'Cauliflower': '🥦',
+            'Eggplant': '🍆', 'Fennel': '🌿', 'Radicchio': '🥬', 'Swiss Chard': '🥬',
+            'Bok Choy': '🥬', 'Collard Greens': '🥬', 'Kohlrabi': '🥬',
+            'Napa Cabbage': '🥬', 'Scallions': '🧅', 'Parsley': '🌿',
+            'Dandelions': '🌿', 'Endive': '🥬', 'Escarole': '🥬',
+            'Zucchini': '🥒', 'Summer Squash': '🥒', 'Melons': '🍈',
+            'Watermelon': '🍉', 'Potatoes': '🥔', 'Sweet Potatoes': '🍠',
+            'Turnips': '🟣', 'Radishes': '🟣', 'Rutabaga': '🟣'
+        };
+
+        // Crop colors from REF_CropProfiles (primary color per crop)
+        const cropColors = {
+            'Lettuce': '#2E8B57',
+            'Kale': '#006400',
+            'Basil': '#228B22',
+            'Broccoli': '#0C360C',
+            'Beets': '#820B55',
+            'Carrots': '#FF8C00',
+            'Eggplant': '#B22222',
+            'Tomatoes': '#DC143C',
+            'Tomatillos': '#FF6347',
+            'Peppers': '#E74C3C',
+            'Winter Squash': '#D35400',
+            'Fennel': '#F1C40F',
+            'Cabbage': '#1E4D2B',
+            'Cauliflower': '#2E8B57',
+            'Bok Choy': '#155815',
+            'Collard Greens': '#006400',
+            'Kohlrabi': '#2E8B57',
+            'Radicchio': '#7B241C',
+            'Swiss Chard': '#C71585',
+            'Scallions': '#D8BFD8',
+            'Parsley': '#1E8449',
+            'Spinach': '#1E8449',
+            'Cucumbers': '#E67E22',
+            'Beans': '#228B22',
+            'Onions': '#DDA0DD',
+            'Garlic': '#D8BFD8',
+            'Endive': '#9370DB',
+            'Escarole': '#9932CC',
+            'Napa Cabbage': '#1E4D2B',
+            'Dandelions': '#9370DB'
+        };
+
+        // Will be populated from API
+        let cropProfileColors = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCropProfiles(); // Load colors first
+            loadPlantings();
+        });
+
+        // Load crop profiles to get colors
+        async function loadCropProfiles() {
+            try {
+                const response = await fetch(`${API_URL}?action=getCropProfiles`);
+                const data = await response.json();
+
+                if (data.success && data.data && data.data.length > 0) {
+                    // Build color map from crop profiles
+                    data.data.forEach(profile => {
+                        const cropName = profile.Crop_Name || profile.crop_name || profile.Crop;
+                        const colorHex = profile.Color_Hex || profile.color_hex || profile.Color;
+                        if (cropName && colorHex && colorHex.startsWith('#')) {
+                            cropProfileColors[cropName] = colorHex;
+                        }
+                    });
+                    console.log('Loaded crop colors:', Object.keys(cropProfileColors).length);
+                }
+            } catch (error) {
+                console.log('Using default crop colors (API not available)');
+            }
+        }
+
+        // Load Plantings from API
+        async function loadPlantings() {
+            setSyncStatus('syncing', 'Loading...');
+
+            try {
+                // Try getPlantings first (matches APPS_SCRIPT_CODE.gs)
+                console.log('Fetching from API:', `${API_URL}?action=getPlantings`);
+                let response = await fetch(`${API_URL}?action=getPlantings`);
+                let data = await response.json();
+
+                console.log('API Response status:', data.success);
+                console.log('API Data count:', data.data ? data.data.length : 0);
+
+                if (data.success && data.data && data.data.length > 0) {
+                    console.log('Raw data sample (first row):', JSON.stringify(data.data[0], null, 2));
+                    console.log('Raw data headers:', Object.keys(data.data[0]).join(', '));
+
+                    const rawCount = data.data.length;
+                    plantings = normalizeData(data.data);
+                    console.log(`Normalized ${plantings.length} of ${rawCount} plantings`);
+
+                    if (plantings.length > 0) {
+                        console.log('First normalized planting:', JSON.stringify(plantings[0], null, 2));
+                        setSyncStatus('synced', `Live: ${plantings.length} plantings`);
+                        showToast(`Loaded ${plantings.length} plantings from Google Sheets`, 'success');
+                    } else {
+                        console.warn('All plantings filtered out - check date fields in your data');
+                        console.log('Sample raw dates from first row:', {
+                            Plan_GH_Sow: data.data[0].Plan_GH_Sow,
+                            Plan_Transplant: data.data[0].Plan_Transplant,
+                            Plan_Field_Sow: data.data[0].Plan_Field_Sow,
+                            Last_Harvest: data.data[0].Last_Harvest
+                        });
+                        plantings = getDemoPlantings();
+                        setSyncStatus('synced', 'Demo (no valid dates)');
+                    }
+                } else {
+                    console.log('No data from API:', data.error || 'Unknown reason');
+                    plantings = getDemoPlantings();
+                    setSyncStatus('synced', 'Demo Mode');
+                }
+            } catch (error) {
+                console.error('Error loading plantings:', error);
+                plantings = getDemoPlantings();
+                setSyncStatus('error', 'Offline - Demo');
+            }
+
+            extractFieldsAndCrops();
+            applyFilters();
+        }
+
+        function normalizeData(data) {
+            return data.map((p, index) => {
+                // Extract field and bed from Target_Bed_ID (e.g., "Field F3L-01" -> field="F3L", bed="01")
+                const targetBed = p.Target_Bed_ID || p.target_bed_id || p.Bed || p.bed || '';
+                const { field, bedNum } = extractFieldAndBed(targetBed);
+
+                // Determine planting method
+                const plantingMethod = p.Planting_Method || p.planting_method || 'Transplant';
+
+                // Parse ALL dates - store raw values for editing
+                const planGHSow = parseFlexibleDate(p.Plan_GH_Sow || p.plan_gh_sow);
+                const actGHSow = parseFlexibleDate(p.Act_GH_Sow || p.act_gh_sow);
+                const planFieldSow = parseFlexibleDate(p.Plan_Field_Sow || p.plan_field_sow);
+                const actFieldSow = parseFlexibleDate(p.Act_Field_Sow || p.act_field_sow);
+                const planTransplant = parseFlexibleDate(p.Plan_Transplant || p.plan_transplant);
+                const actTransplant = parseFlexibleDate(p.Act_Transplant || p.act_transplant);
+                const firstHarvest = parseFlexibleDate(p.First_Harvest || p.first_harvest);
+                const lastHarvest = parseFlexibleDate(p.Last_Harvest || p.last_harvest);
+
+                // Determine field start date based on planting method
+                let fieldStartDate;
+                if (plantingMethod === 'Direct Seed') {
+                    fieldStartDate = actFieldSow || planFieldSow;
+                } else {
+                    fieldStartDate = actTransplant || planTransplant;
+                }
+
+                // Get crop and variety
+                const crop = p.Crop || p.crop || 'Unknown';
+                const variety = p.Variety || p.variety || '';
+
+                // Estimate missing dates if possible instead of skipping
+                if (!fieldStartDate && !lastHarvest) {
+                    // Both dates missing - skip this entry
+                    console.log('Skipping planting - both dates missing:', p.Batch_ID);
+                    return null;
+                }
+
+                // If only field start is missing, estimate from harvest date minus typical DTM
+                if (!fieldStartDate && lastHarvest) {
+                    const estStart = new Date(lastHarvest);
+                    estStart.setDate(estStart.getDate() - 60); // Default 60 day crop
+                    fieldStartDate = estStart.toISOString().split('T')[0];
+                    console.log('Estimated field start for:', p.Batch_ID, fieldStartDate);
+                }
+
+                // If only harvest is missing, estimate from field start plus typical DTM
+                if (fieldStartDate && !lastHarvest) {
+                    const estEnd = new Date(fieldStartDate);
+                    estEnd.setDate(estEnd.getDate() + 60); // Default 60 day crop
+                    lastHarvest = estEnd.toISOString().split('T')[0];
+                    console.log('Estimated last harvest for:', p.Batch_ID, lastHarvest);
+                }
+
+                // Calculate days between key dates for proportional adjustments
+                const ghSowDate = actGHSow || planGHSow;
+                const daysGHToField = ghSowDate ? daysBetween(ghSowDate, fieldStartDate) : 0;
+                const daysFieldToHarvest = daysBetween(fieldStartDate, lastHarvest);
+
+                // Determine if locked (already sown in GH or field)
+                const isLocked = !!(actGHSow || actFieldSow || actTransplant);
+                const lockReason = actGHSow ? 'GH Sown' : actFieldSow ? 'Field Sown' : actTransplant ? 'Transplanted' : null;
+
+                return {
+                    id: p.Batch_ID || p.batch_id || p.ID || p.id || `planting-${index}`,
+                    crop: crop,
+                    variety: variety,
+                    plantingMethod: plantingMethod,
+
+                    // All dates stored for cascade updates
+                    planGHSow: ghSowDate,
+                    actGHSow: actGHSow,
+                    planFieldSow: planFieldSow,
+                    actFieldSow: actFieldSow,
+                    planTransplant: planTransplant,
+                    actTransplant: actTransplant,
+                    firstHarvest: firstHarvest,
+                    lastHarvest: lastHarvest,
+
+                    // Calculated field dates for Gantt display
+                    fieldStartDate: fieldStartDate,
+                    harvestDate: lastHarvest,
+                    seedDate: fieldStartDate, // Legacy compatibility
+
+                    // Day offsets for cascade calculations
+                    daysGHToField: daysGHToField,
+                    daysFieldToHarvest: daysFieldToHarvest,
+
+                    // Locking
+                    isLocked: isLocked,
+                    lockReason: lockReason,
+
+                    // Field info
+                    bed: targetBed,
+                    field: field,
+                    bedNum: bedNum,
+                    bedFeet: parseInt(p.Feet_Used || p.feet_used || p.BedFeet || p.bedFeet || 50),
+                    status: computeStatus(fieldStartDate, lastHarvest),
+                    dtm: daysFieldToHarvest > 0 ? daysFieldToHarvest : 60,
+                    trays: parseInt(p.Trays_Needed || p.trays_needed || 0),
+                    plants: parseInt(p.Plants_Needed || p.plants_needed || 0),
+                    rowIndex: p.rowIndex || index + 2
+                };
+            }).filter(p => p !== null);
+        }
+
+        // Parse dates in various formats: "5/15/2026 20:00:00", "2026-05-15", etc.
+        function parseFlexibleDate(dateVal) {
+            if (!dateVal) return null;
+
+            // Already a Date object
+            if (dateVal instanceof Date) {
+                return isNaN(dateVal.getTime()) ? null : dateVal.toISOString().split('T')[0];
+            }
+
+            const str = String(dateVal).trim();
+            if (!str) return null;
+
+            // Try M/D/YYYY format (Google Sheets format)
+            const mdyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (mdyMatch) {
+                const [_, month, day, year] = mdyMatch;
+                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+
+            // Try ISO format YYYY-MM-DD
+            const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (isoMatch) {
+                return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+            }
+
+            // Try to parse as Date
+            try {
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) {
+                    return d.toISOString().split('T')[0];
+                }
+            } catch (e) {}
+
+            return null;
+        }
+
+        function extractFieldAndBed(targetBed) {
+            if (!targetBed) return { field: 'Unknown', bedNum: '01' };
+
+            // Handle "Field F3L-01" format
+            const fieldMatch = targetBed.match(/Field\s+([A-Z0-9]+)-?(\d*)/i);
+            if (fieldMatch) {
+                return {
+                    field: fieldMatch[1].toUpperCase(),
+                    bedNum: fieldMatch[2] || '01'
+                };
+            }
+
+            // Handle "F3L-01" format (without "Field" prefix)
+            const simpleMatch = targetBed.match(/^([A-Z0-9]+)-(\d+)$/i);
+            if (simpleMatch) {
+                return {
+                    field: simpleMatch[1].toUpperCase(),
+                    bedNum: simpleMatch[2]
+                };
+            }
+
+            // Fallback
+            return { field: targetBed.substring(0, 3).toUpperCase(), bedNum: '01' };
+        }
+
+        function formatDateString(date) {
+            if (!date) return new Date().toISOString().split('T')[0];
+            if (typeof date === 'string' && date.includes('T')) {
+                return date.split('T')[0];
+            }
+            const d = new Date(date);
+            return d.toISOString().split('T')[0];
+        }
+
+        function computeStatus(seedDate, harvestDate) {
+            const today = new Date();
+            const seed = new Date(seedDate);
+            const harvest = new Date(harvestDate);
+            const harvestEnd = new Date(harvest);
+            harvestEnd.setDate(harvestEnd.getDate() + 14);
+
+            if (today < seed) return 'seeding';
+            if (today > harvestEnd) return 'completed';
+            if (today >= harvest) return 'harvest';
+            return 'growing';
+        }
+
+        function daysBetween(date1, date2) {
+            const d1 = new Date(date1);
+            const d2 = new Date(date2);
+            return Math.ceil((d2 - d1) / (24 * 60 * 60 * 1000));
+        }
+
+        function extractFieldsAndCrops() {
+            // Extract unique fields
+            const fieldSet = new Set(plantings.map(p => p.field));
+            fields = Array.from(fieldSet).sort();
+
+            // Populate crop filter
+            const cropSet = new Set(plantings.map(p => p.crop));
+            const cropFilter = document.getElementById('cropFilter');
+            cropFilter.innerHTML = '<option value="">All Crops</option>';
+            Array.from(cropSet).sort().forEach(crop => {
+                cropFilter.innerHTML += `<option value="${crop}">${crop}</option>`;
+            });
+
+            // Populate field filter
+            const fieldFilter = document.getElementById('fieldFilter');
+            fieldFilter.innerHTML = '<option value="">All Fields</option>';
+            fields.forEach(field => {
+                fieldFilter.innerHTML += `<option value="${field}">Field ${field}</option>`;
+            });
+        }
+
+        // Demo Data - matches actual farm data structure
+        function getDemoPlantings() {
+            const demoData = [];
+            const crops = [
+                { name: 'Lettuce', variety: 'Salanova Formula Mix', method: 'Transplant', dtm: 52 },
+                { name: 'Kale', variety: 'Black Magic', method: 'Transplant', dtm: 62 },
+                { name: 'Kale', variety: 'Winterbor', method: 'Transplant', dtm: 90 },
+                { name: 'Broccoli', variety: 'BC1611', method: 'Transplant', dtm: 43 },
+                { name: 'Basil', variety: 'Prospera DMR', method: 'Paperpot', dtm: 116 },
+                { name: 'Beets', variety: 'Formanova', method: 'Direct Seed', dtm: 52 },
+                { name: 'Carrots', variety: 'Bolero', method: 'Direct Seed', dtm: 73 },
+                { name: 'Eggplant', variety: 'Nigral', method: 'Transplant', dtm: 72 },
+                { name: 'Winter Squash', variety: 'Delicata JS', method: 'Transplant', dtm: 105 },
+                { name: 'Fennel', variety: 'Preludio', method: 'Transplant', dtm: 82 }
+            ];
+
+            const demoFields = ['F3L', 'HOL', 'IL', 'JL', 'JS1'];
+            let id = 1;
+
+            crops.forEach((crop, cropIndex) => {
+                const successions = crop.name === 'Lettuce' ? 5 :
+                                   crop.name === 'Carrots' ? 4 : 2;
+
+                for (let s = 0; s < successions; s++) {
+                    const transplantDate = new Date('2026-04-02');
+                    transplantDate.setDate(transplantDate.getDate() + (s * 21) + (cropIndex * 7));
+
+                    const harvestDate = new Date(transplantDate);
+                    harvestDate.setDate(harvestDate.getDate() + crop.dtm);
+
+                    const field = demoFields[cropIndex % demoFields.length];
+                    const bedNum = ((s % 12) + 1).toString().padStart(2, '0');
+
+                    demoData.push({
+                        id: `26-${crop.name.substring(0,3).toUpperCase()}-${String(id++).padStart(4, '0')}`,
+                        crop: crop.name,
+                        variety: crop.variety,
+                        plantingMethod: crop.method,
+                        fieldStartDate: transplantDate.toISOString().split('T')[0],
+                        harvestDate: harvestDate.toISOString().split('T')[0],
+                        seedDate: transplantDate.toISOString().split('T')[0],
+                        bed: `Field ${field}-${bedNum}`,
+                        field: field,
+                        bedNum: bedNum,
+                        bedFeet: 200 + Math.floor(Math.random() * 300),
+                        status: computeStatus(transplantDate, harvestDate),
+                        dtm: crop.dtm
+                    });
+                }
+            });
+
+            return demoData;
+        }
+
+        // Apply Filters
+        function applyFilters() {
+            const cropFilter = document.getElementById('cropFilter').value;
+            const fieldFilter = document.getElementById('fieldFilter').value;
+            const statusFilters = Array.from(document.querySelectorAll('.checkbox-filter input:checked'))
+                                      .map(cb => cb.dataset.status);
+
+            filteredPlantings = plantings.filter(p => {
+                if (cropFilter && p.crop !== cropFilter) return false;
+                if (fieldFilter && p.field !== fieldFilter) return false;
+                if (!statusFilters.includes(p.status)) return false;
+                return true;
+            });
+
+            // Recalculate timeline range
+            if (filteredPlantings.length > 0) {
+                const dates = filteredPlantings.flatMap(p => [new Date(p.seedDate), new Date(p.harvestDate)]);
+                timelineStart = new Date(Math.min(...dates));
+                timelineStart.setDate(1);
+                timelineEnd = new Date(Math.max(...dates));
+                timelineEnd.setMonth(timelineEnd.getMonth() + 1);
+                timelineEnd.setDate(0);
+            }
+
+            updateStats();
+            renderGantt();
+        }
+
+        function updateStats() {
+            document.getElementById('totalPlantings').textContent = filteredPlantings.length;
+            document.getElementById('activePlantings').textContent = filteredPlantings.filter(p => p.status === 'growing').length;
+            document.getElementById('harvestReady').textContent = filteredPlantings.filter(p => p.status === 'harvest').length;
+            document.getElementById('totalBedFeet').textContent = filteredPlantings.reduce((sum, p) => sum + (p.bedFeet || 0), 0);
+        }
+
+        // Set Zoom Level
+        function setZoom(level) {
+            zoomLevel = level;
+            dayWidth = level === 'day' ? 30 : level === 'week' ? 20 : 8;
+
+            document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`zoom-${level}`).classList.add('active');
+            renderGantt();
+            updateRangeDisplay();
+        }
+
+        // Timeline Navigation Functions
+        function navigateTimeline(days) {
+            timelineStart.setDate(timelineStart.getDate() + days);
+            timelineEnd.setDate(timelineEnd.getDate() + days);
+            updateSliderPosition();
+            renderGantt();
+            updateRangeDisplay();
+        }
+
+        function onSliderChange(value) {
+            const dayOfYear = parseInt(value);
+            const yearStart = new Date('2026-01-01');
+            timelineStart = new Date(yearStart);
+            timelineStart.setDate(timelineStart.getDate() + dayOfYear);
+
+            // Set end date based on view window
+            const viewDays = zoomLevel === 'day' ? 30 : zoomLevel === 'week' ? 90 : 180;
+            timelineEnd = new Date(timelineStart);
+            timelineEnd.setDate(timelineEnd.getDate() + viewDays);
+
+            renderGantt();
+            updateRangeDisplay();
+        }
+
+        function goToToday() {
+            const today = new Date();
+            // Set timeline to start 2 weeks before today
+            timelineStart = new Date(today);
+            timelineStart.setDate(timelineStart.getDate() - 14);
+
+            const viewDays = zoomLevel === 'day' ? 30 : zoomLevel === 'week' ? 90 : 180;
+            timelineEnd = new Date(timelineStart);
+            timelineEnd.setDate(timelineEnd.getDate() + viewDays);
+
+            updateSliderPosition();
+            renderGantt();
+            updateRangeDisplay();
+        }
+
+        function showFullYear() {
+            timelineStart = new Date('2026-01-01');
+            timelineEnd = new Date('2026-12-31');
+            setZoom('month'); // Best view for full year
+            document.getElementById('timelineSlider').value = 0;
+            updateRangeDisplay();
+        }
+
+        function updateSliderPosition() {
+            const yearStart = new Date('2026-01-01');
+            const dayOfYear = Math.floor((timelineStart - yearStart) / (24 * 60 * 60 * 1000));
+            document.getElementById('timelineSlider').value = Math.max(0, Math.min(365, dayOfYear));
+        }
+
+        function updateRangeDisplay() {
+            const options = { month: 'short', day: 'numeric' };
+            const startStr = timelineStart.toLocaleDateString('en-US', options);
+            const endStr = timelineEnd.toLocaleDateString('en-US', options);
+            document.getElementById('currentRange').textContent = `${startStr} - ${endStr}, 2026`;
+        }
+
+        // Render Gantt Chart
+        function renderGantt() {
+            const container = document.getElementById('ganttChart');
+
+            if (filteredPlantings.length === 0) {
+                container.innerHTML = `
+                    <div class="loading">
+                        <i class="fas fa-calendar-times" style="font-size: 3rem; margin-bottom: 1rem; color: var(--text-secondary);"></i>
+                        <p>No plantings match your filters</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get active fields
+            const activeFields = [...new Set(filteredPlantings.map(p => p.field))].sort();
+
+            // Calculate timeline
+            const totalDays = Math.ceil((timelineEnd - timelineStart) / (24 * 60 * 60 * 1000));
+            const timelineWidth = totalDays * dayWidth;
+
+            // Build header
+            let html = `
+                <div class="gantt-header">
+                    <div class="gantt-field-header">
+                        <i class="fas fa-map"></i> Fields
+                    </div>
+                    <div class="gantt-timeline-header" style="width: ${timelineWidth}px;">
+                        <div class="gantt-months-row">
+                            ${generateMonthHeaders(totalDays)}
+                        </div>
+                        <div class="gantt-days-row">
+                            ${generateDayHeaders(totalDays)}
+                        </div>
+                    </div>
+                </div>
+                <div class="gantt-body">
+            `;
+
+            // Render field rows
+            activeFields.forEach(field => {
+                const fieldPlantings = filteredPlantings.filter(p => p.field === field);
+                const stackedPlantings = calculateStacking(fieldPlantings);
+                const rowHeight = Math.max(80, (stackedPlantings.maxStack + 1) * 44);
+
+                html += `
+                    <div class="field-row" data-field="${field}" style="min-height: ${rowHeight}px;">
+                        <div class="field-label">
+                            <div class="field-name">Field ${field}</div>
+                            <div class="field-meta">${fieldPlantings.length} plantings</div>
+                        </div>
+                        <div class="field-timeline" data-field="${field}" style="width: ${timelineWidth}px; min-height: ${rowHeight}px;">
+                            <div class="timeline-grid">
+                                ${generateGridLines(totalDays)}
+                            </div>
+                            ${renderTodayLine(totalDays)}
+                            ${renderCropBars(stackedPlantings.plantings, field)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+
+            // Initialize drag and resize
+            initializeInteractions();
+        }
+
+        function generateMonthHeaders(totalDays) {
+            let html = '';
+            let currentDate = new Date(timelineStart);
+
+            while (currentDate <= timelineEnd) {
+                const monthStart = new Date(currentDate);
+                const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                const daysInView = Math.min(
+                    Math.ceil((monthEnd - monthStart) / (24 * 60 * 60 * 1000)) + 1,
+                    Math.ceil((timelineEnd - monthStart) / (24 * 60 * 60 * 1000)) + 1
+                );
+
+                const width = daysInView * dayWidth;
+                const label = currentDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+
+                html += `<div class="gantt-month" style="width: ${width}px;">${label}</div>`;
+
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                currentDate.setDate(1);
+            }
+
+            return html;
+        }
+
+        function generateDayHeaders(totalDays) {
+            let html = '';
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (let i = 0; i < totalDays; i++) {
+                const date = new Date(timelineStart);
+                date.setDate(date.getDate() + i);
+
+                const isToday = date.getTime() === today.getTime();
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                let label = '';
+                if (zoomLevel === 'day') {
+                    label = date.getDate();
+                } else if (zoomLevel === 'week') {
+                    if (date.getDay() === 1 || i === 0) {
+                        label = date.getDate();
+                    }
+                } else {
+                    if (date.getDate() === 1 || date.getDate() === 15) {
+                        label = date.getDate();
+                    }
+                }
+
+                const classes = ['gantt-day'];
+                if (isToday) classes.push('today');
+                if (isWeekend) classes.push('weekend');
+
+                html += `<div class="${classes.join(' ')}" style="width: ${dayWidth}px;">${label}</div>`;
+            }
+
+            return html;
+        }
+
+        function generateGridLines(totalDays) {
+            let html = '';
+            for (let i = 0; i < totalDays; i++) {
+                const date = new Date(timelineStart);
+                date.setDate(date.getDate() + i);
+                const isWeekStart = date.getDay() === 1;
+                html += `<div class="grid-line ${isWeekStart ? 'week-start' : ''}" style="width: ${dayWidth}px;"></div>`;
+            }
+            return html;
+        }
+
+        function renderTodayLine(totalDays) {
+            const today = new Date();
+            if (today < timelineStart || today > timelineEnd) return '';
+
+            const dayOffset = Math.ceil((today - timelineStart) / (24 * 60 * 60 * 1000));
+            const left = dayOffset * dayWidth;
+
+            return `
+                <div class="today-line" style="left: ${left}px;">
+                    <div class="today-marker">TODAY</div>
+                </div>
+            `;
+        }
+
+        function calculateStacking(fieldPlantings) {
+            // Sort by start date
+            const sorted = [...fieldPlantings].sort((a, b) => new Date(a.seedDate) - new Date(b.seedDate));
+
+            const stacks = [];
+            let maxStack = 0;
+
+            sorted.forEach(planting => {
+                const start = new Date(planting.seedDate);
+                const end = new Date(planting.harvestDate);
+
+                // Find the lowest stack level that doesn't overlap
+                let stackLevel = 0;
+                for (let i = 0; i < stacks.length; i++) {
+                    const lastEnd = stacks[i];
+                    if (start >= lastEnd) {
+                        stackLevel = i;
+                        break;
+                    }
+                    stackLevel = i + 1;
+                }
+
+                // Update the stack end date
+                stacks[stackLevel] = end;
+                planting.stackLevel = stackLevel;
+                maxStack = Math.max(maxStack, stackLevel);
+            });
+
+            return { plantings: sorted, maxStack };
+        }
+
+        function renderCropBars(fieldPlantings, field) {
+            let html = '';
+
+            fieldPlantings.forEach(planting => {
+                const startDate = new Date(planting.fieldStartDate || planting.seedDate);
+                const endDate = new Date(planting.harvestDate);
+
+                const startOffset = Math.max(0, (startDate - timelineStart) / (24 * 60 * 60 * 1000));
+                const duration = Math.ceil((endDate - startDate) / (24 * 60 * 60 * 1000));
+
+                const left = startOffset * dayWidth;
+                const width = Math.max(duration * dayWidth, 60);
+                const top = 8 + (planting.stackLevel * 44);
+
+                const icon = cropIcons[planting.crop] || '🌱';
+
+                // Build display text - show variety if bar is wide enough
+                const displayText = width > 120
+                    ? `${planting.crop} - ${planting.variety}`
+                    : planting.crop;
+
+                // Add locked class if already sown
+                const lockedClass = planting.isLocked ? 'locked' : '';
+                const lockIcon = planting.isLocked ? '🔒 ' : '';
+
+                // Get crop color - from API profiles, fallback to default colors
+                const cropColor = getCropColor(planting.crop);
+                const barStyle = cropColor
+                    ? `background: linear-gradient(135deg, ${cropColor} 0%, ${lightenColor(cropColor, 20)} 100%);`
+                    : '';
+
+                // Add opacity for completed status
+                const completedStyle = planting.status === 'completed' ? 'opacity: 0.6;' : '';
+
+                html += `
+                    <div class="crop-bar ${lockedClass}"
+                         id="bar-${planting.id}"
+                         data-id="${planting.id}"
+                         data-field="${field}"
+                         data-crop="${planting.crop}"
+                         data-locked="${planting.isLocked}"
+                         data-start="${planting.fieldStartDate || planting.seedDate}"
+                         data-end="${planting.harvestDate}"
+                         style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle}"
+                         onmouseenter="showTooltip(event, '${planting.id}')"
+                         onmouseleave="hideTooltip()">
+                        <div class="resize-handle resize-handle-left" data-edge="left"></div>
+                        <span class="crop-bar-icon">${lockIcon}${icon}</span>
+                        <div class="crop-bar-content">
+                            <div class="crop-bar-name">${displayText}</div>
+                            <div class="crop-bar-dates">${planting.variety ? planting.variety.substring(0, 15) : ''} ${planting.dtm}d</div>
+                        </div>
+                        <div class="resize-handle resize-handle-right" data-edge="right"></div>
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        // Get crop color from profiles or fallback
+        function getCropColor(cropName) {
+            // First check API-loaded colors
+            if (cropProfileColors[cropName]) {
+                return cropProfileColors[cropName];
+            }
+            // Then check default colors
+            if (cropColors[cropName]) {
+                return cropColors[cropName];
+            }
+            // Default fallback
+            return '#2d5a27';
+        }
+
+        // Lighten a hex color by a percentage
+        function lightenColor(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.min(255, (num >> 16) + amt);
+            const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+            const B = Math.min(255, (num & 0x0000FF) + amt);
+            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+        }
+
+        // Track current drag state for date display
+        let currentDragPlanting = null;
+
+        // Initialize Drag and Resize with interact.js
+        function initializeInteractions() {
+            interact('.crop-bar:not(.locked)')
+                .draggable({
+                    inertia: false,
+                    modifiers: [
+                        interact.modifiers.restrictRect({
+                            restriction: '.gantt-body',
+                            endOnly: true
+                        })
+                    ],
+                    autoScroll: true,
+                    listeners: {
+                        start(event) {
+                            // Double-check not locked
+                            if (event.target.dataset.locked === 'true') {
+                                showToast('This planting is locked (already sown)', 'error');
+                                return false;
+                            }
+                            event.target.classList.add('dragging');
+                            hideTooltip();
+
+                            // Setup drag tooltip
+                            const id = event.target.dataset.id;
+                            currentDragPlanting = plantings.find(p => p.id === id);
+                            if (currentDragPlanting) {
+                                showDragTooltip(event, currentDragPlanting);
+                            }
+                        },
+                        move(event) {
+                            const target = event.target;
+                            const x = (parseFloat(target.getAttribute('data-x')) || parseFloat(target.style.left)) + event.dx;
+                            const y = (parseFloat(target.getAttribute('data-y')) || parseFloat(target.style.top)) + event.dy;
+
+                            target.style.left = `${x}px`;
+                            target.style.top = `${y}px`;
+                            target.setAttribute('data-x', x);
+                            target.setAttribute('data-y', y);
+
+                            // Highlight drop target
+                            const dropTarget = getFieldAtPosition(event.clientY);
+                            document.querySelectorAll('.field-timeline').forEach(el => el.classList.remove('drop-target'));
+                            if (dropTarget) dropTarget.classList.add('drop-target');
+
+                            // Update real-time date display
+                            if (currentDragPlanting) {
+                                updateDragTooltip(event, x);
+                            }
+                        },
+                        end(event) {
+                            event.target.classList.remove('dragging');
+                            document.querySelectorAll('.field-timeline').forEach(el => el.classList.remove('drop-target'));
+                            hideDragTooltip();
+
+                            const target = event.target;
+                            const id = target.dataset.id;
+                            const newLeft = parseFloat(target.style.left);
+
+                            // Calculate new start date from position
+                            const daysFromStart = Math.round(newLeft / dayWidth);
+                            const newStartDate = new Date(timelineStart);
+                            newStartDate.setDate(newStartDate.getDate() + daysFromStart);
+
+                            // Check for field change
+                            const dropTarget = getFieldAtPosition(event.clientY);
+                            let newField = target.dataset.field;
+                            if (dropTarget) {
+                                newField = dropTarget.dataset.field;
+                            }
+
+                            // Update planting with date cascade
+                            updatePlantingDates(id, newStartDate, null, newField);
+                            currentDragPlanting = null;
+                        }
+                    }
+                })
+                .resizable({
+                    edges: { left: '.resize-handle-left', right: '.resize-handle-right' },
+                    listeners: {
+                        start(event) {
+                            if (event.target.dataset.locked === 'true') {
+                                showToast('This planting is locked (already sown)', 'error');
+                                return false;
+                            }
+                            event.target.classList.add('resizing');
+                            hideTooltip();
+
+                            // Setup drag tooltip for resize
+                            const id = event.target.dataset.id;
+                            currentDragPlanting = plantings.find(p => p.id === id);
+                            if (currentDragPlanting) {
+                                showDragTooltip(event, currentDragPlanting);
+                            }
+                        },
+                        move(event) {
+                            const target = event.target;
+                            let x = parseFloat(target.style.left) || 0;
+                            let width = event.rect.width;
+
+                            // Handle left edge resize
+                            if (event.edges.left) {
+                                x += event.deltaRect.left;
+                            }
+
+                            target.style.width = `${width}px`;
+                            target.style.left = `${x}px`;
+
+                            // Update real-time date display for resize
+                            if (currentDragPlanting) {
+                                updateResizeTooltip(event, x, width);
+                            }
+                        },
+                        end(event) {
+                            event.target.classList.remove('resizing');
+                            hideDragTooltip();
+
+                            const target = event.target;
+                            const id = target.dataset.id;
+                            const left = parseFloat(target.style.left);
+                            const width = parseFloat(target.style.width);
+
+                            // Calculate new dates
+                            const startDays = Math.round(left / dayWidth);
+                            const durationDays = Math.round(width / dayWidth);
+
+                            const newStartDate = new Date(timelineStart);
+                            newStartDate.setDate(newStartDate.getDate() + startDays);
+
+                            const newEndDate = new Date(newStartDate);
+                            newEndDate.setDate(newEndDate.getDate() + durationDays);
+
+                            updatePlantingDates(id, newStartDate, newEndDate, null);
+                            currentDragPlanting = null;
+                        }
+                    },
+                    modifiers: [
+                        interact.modifiers.restrictSize({
+                            min: { width: 40 }
+                        })
+                    ]
+                });
+
+            // Add click handler for locked bars
+            document.querySelectorAll('.crop-bar.locked').forEach(bar => {
+                bar.addEventListener('click', () => {
+                    showToast('Locked: Already sown. Confirm termination to unlock.', 'warning');
+                });
+            });
+        }
+
+        // Show drag tooltip with current planting info
+        function showDragTooltip(event, planting) {
+            const tooltip = document.getElementById('dragTooltip');
+            document.getElementById('dragCrop').textContent = `${planting.crop} - ${planting.variety}`;
+
+            // Show GH sow row only if applicable
+            const ghRow = document.getElementById('dragGHSow').parentElement;
+            if (planting.planGHSow && planting.plantingMethod !== 'Direct Seed') {
+                ghRow.style.display = 'flex';
+                document.getElementById('dragGHSow').textContent = formatShortDate(planting.planGHSow);
+            } else {
+                ghRow.style.display = 'none';
+            }
+
+            document.getElementById('dragFieldStart').textContent = formatShortDate(planting.fieldStartDate);
+            document.getElementById('dragHarvest').textContent = formatShortDate(planting.harvestDate);
+
+            tooltip.style.left = (event.clientX + 20) + 'px';
+            tooltip.style.top = (event.clientY - 80) + 'px';
+            tooltip.classList.add('show');
+        }
+
+        // Update drag tooltip with new calculated dates
+        function updateDragTooltip(event, newLeft) {
+            if (!currentDragPlanting) return;
+
+            const tooltip = document.getElementById('dragTooltip');
+            tooltip.style.left = (event.clientX + 20) + 'px';
+            tooltip.style.top = (event.clientY - 80) + 'px';
+
+            // Calculate new dates based on position
+            const daysFromStart = Math.round(newLeft / dayWidth);
+            const newFieldStart = new Date(timelineStart);
+            newFieldStart.setDate(newFieldStart.getDate() + daysFromStart);
+
+            // Calculate day shift
+            const oldFieldStart = new Date(currentDragPlanting.fieldStartDate);
+            const dayShift = Math.round((newFieldStart - oldFieldStart) / (24 * 60 * 60 * 1000));
+
+            // Calculate cascaded dates
+            let newGHSow = null;
+            if (currentDragPlanting.planGHSow) {
+                const oldGH = new Date(currentDragPlanting.planGHSow);
+                newGHSow = new Date(oldGH);
+                newGHSow.setDate(newGHSow.getDate() + dayShift);
+            }
+
+            const oldHarvest = new Date(currentDragPlanting.harvestDate);
+            const newHarvest = new Date(oldHarvest);
+            newHarvest.setDate(newHarvest.getDate() + dayShift);
+
+            // Update display with highlight for changed dates
+            const fieldEl = document.getElementById('dragFieldStart');
+            const harvestEl = document.getElementById('dragHarvest');
+            const ghEl = document.getElementById('dragGHSow');
+
+            fieldEl.textContent = formatShortDate(newFieldStart.toISOString().split('T')[0]);
+            harvestEl.textContent = formatShortDate(newHarvest.toISOString().split('T')[0]);
+
+            if (newGHSow) {
+                ghEl.textContent = formatShortDate(newGHSow.toISOString().split('T')[0]);
+            }
+
+            // Add changed class if dates are different
+            if (dayShift !== 0) {
+                fieldEl.classList.add('changed');
+                harvestEl.classList.add('changed');
+                if (newGHSow) ghEl.classList.add('changed');
+            } else {
+                fieldEl.classList.remove('changed');
+                harvestEl.classList.remove('changed');
+                ghEl.classList.remove('changed');
+            }
+        }
+
+        // Update tooltip for resize operations
+        function updateResizeTooltip(event, newLeft, newWidth) {
+            if (!currentDragPlanting) return;
+
+            const tooltip = document.getElementById('dragTooltip');
+            tooltip.style.left = (event.clientX + 20) + 'px';
+            tooltip.style.top = (event.clientY - 80) + 'px';
+
+            // Calculate new dates
+            const startDays = Math.round(newLeft / dayWidth);
+            const durationDays = Math.round(newWidth / dayWidth);
+
+            const newFieldStart = new Date(timelineStart);
+            newFieldStart.setDate(newFieldStart.getDate() + startDays);
+
+            const newHarvest = new Date(newFieldStart);
+            newHarvest.setDate(newHarvest.getDate() + durationDays);
+
+            // Calculate GH sow if start date changed
+            const oldFieldStart = new Date(currentDragPlanting.fieldStartDate);
+            const dayShift = Math.round((newFieldStart - oldFieldStart) / (24 * 60 * 60 * 1000));
+
+            let newGHSow = null;
+            if (currentDragPlanting.planGHSow) {
+                const oldGH = new Date(currentDragPlanting.planGHSow);
+                newGHSow = new Date(oldGH);
+                newGHSow.setDate(newGHSow.getDate() + dayShift);
+            }
+
+            // Update display
+            const fieldEl = document.getElementById('dragFieldStart');
+            const harvestEl = document.getElementById('dragHarvest');
+            const ghEl = document.getElementById('dragGHSow');
+
+            fieldEl.textContent = formatShortDate(newFieldStart.toISOString().split('T')[0]);
+            harvestEl.textContent = formatShortDate(newHarvest.toISOString().split('T')[0]);
+
+            if (newGHSow) {
+                ghEl.textContent = formatShortDate(newGHSow.toISOString().split('T')[0]);
+            }
+
+            // Highlight changes
+            fieldEl.classList.add('changed');
+            harvestEl.classList.add('changed');
+            if (newGHSow) ghEl.classList.add('changed');
+        }
+
+        function hideDragTooltip() {
+            document.getElementById('dragTooltip').classList.remove('show');
+        }
+
+        function formatShortDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function getFieldAtPosition(clientY) {
+            const fieldRows = document.querySelectorAll('.field-timeline');
+            for (const row of fieldRows) {
+                const rect = row.getBoundingClientRect();
+                if (clientY >= rect.top && clientY <= rect.bottom) {
+                    return row;
+                }
+            }
+            return null;
+        }
+
+        // Update Planting Dates
+        // CASCADE ALL DATES when field start changes
+        function updatePlantingDates(id, newFieldStartDate, newEndDate, newField) {
+            const planting = plantings.find(p => p.id === id);
+            if (!planting) return;
+
+            // Check if locked
+            if (planting.isLocked) {
+                showToast(`Cannot move: ${planting.lockReason}`, 'error');
+                applyFilters(); // Re-render to snap back
+                return;
+            }
+
+            const oldFieldStart = new Date(planting.fieldStartDate);
+            const oldHarvest = new Date(planting.harvestDate);
+
+            // Calculate shift in days
+            let dayShift = 0;
+            if (newFieldStartDate) {
+                dayShift = Math.round((newFieldStartDate - oldFieldStart) / (24 * 60 * 60 * 1000));
+            }
+
+            // --- CASCADE ALL DATES ---
+
+            // 1. Update GH Sow date (shift by same amount)
+            if (planting.planGHSow) {
+                const oldGHSow = new Date(planting.planGHSow);
+                oldGHSow.setDate(oldGHSow.getDate() + dayShift);
+                planting.planGHSow = oldGHSow.toISOString().split('T')[0];
+            }
+
+            // 2. Update field start date (transplant or field sow)
+            if (newFieldStartDate) {
+                const newStartStr = newFieldStartDate.toISOString().split('T')[0];
+                planting.fieldStartDate = newStartStr;
+                planting.seedDate = newStartStr; // Legacy
+
+                if (planting.plantingMethod === 'Direct Seed') {
+                    planting.planFieldSow = newStartStr;
+                } else {
+                    planting.planTransplant = newStartStr;
+                }
+            }
+
+            // 3. Update First Harvest (shift by same amount if exists)
+            if (planting.firstHarvest) {
+                const oldFirst = new Date(planting.firstHarvest);
+                oldFirst.setDate(oldFirst.getDate() + dayShift);
+                planting.firstHarvest = oldFirst.toISOString().split('T')[0];
+            }
+
+            // 4. Update Last Harvest
+            if (newEndDate) {
+                // User explicitly set new end date (resized)
+                planting.harvestDate = newEndDate.toISOString().split('T')[0];
+                planting.lastHarvest = planting.harvestDate;
+            } else {
+                // Maintain original duration (dragged)
+                const shiftedHarvest = new Date(oldHarvest);
+                shiftedHarvest.setDate(shiftedHarvest.getDate() + dayShift);
+                planting.harvestDate = shiftedHarvest.toISOString().split('T')[0];
+                planting.lastHarvest = planting.harvestDate;
+            }
+
+            // Update duration
+            planting.dtm = daysBetween(planting.fieldStartDate, planting.harvestDate);
+            planting.daysFieldToHarvest = planting.dtm;
+
+            // 5. Update field assignment
+            if (newField && newField !== planting.field) {
+                planting.field = newField;
+                // Update bed ID to match new field
+                const bedNum = planting.bedNum || planting.bed.match(/\d+$/)?.[0] || '01';
+                planting.bed = `Field ${newField}-${bedNum}`;
+            }
+
+            // Update status
+            planting.status = computeStatus(planting.fieldStartDate, planting.harvestDate);
+
+            // Queue for sync to Google Sheets
+            queueUpdate(planting);
+
+            // Re-render to fix stacking
+            applyFilters();
+
+            // Show confirmation with all dates
+            const ghSowInfo = planting.planGHSow ? `GH: ${formatDisplayDate(planting.planGHSow)} → ` : '';
+            showToast(`${planting.crop}: ${ghSowInfo}Field: ${formatDisplayDate(planting.fieldStartDate)} → Harvest: ${formatDisplayDate(planting.harvestDate)}`, 'success');
+        }
+
+        // Queue updates for batch saving
+        function queueUpdate(planting) {
+            pendingUpdates.set(planting.id, planting);
+
+            // Debounce save
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveToGoogleSheets, 1500);
+
+            setSyncStatus('syncing', 'Saving...');
+        }
+
+        // Save to Google Sheets - CASCADE ALL DATES
+        async function saveToGoogleSheets() {
+            if (pendingUpdates.size === 0) return;
+
+            const updates = Array.from(pendingUpdates.values());
+            pendingUpdates.clear();
+
+            try {
+                for (const planting of updates) {
+                    // Use correct column names from actual sheet structure
+                    // CASCADE: Update ALL related dates
+                    const updateData = {
+                        action: 'updatePlanting',
+                        id: planting.id,
+                        Batch_ID: planting.id,
+                        Target_Bed_ID: planting.bed,
+                        First_Harvest: planting.firstHarvest,
+                        Last_Harvest: planting.harvestDate || planting.lastHarvest
+                    };
+
+                    // Update GH Sow date if it exists
+                    if (planting.planGHSow) {
+                        updateData.Plan_GH_Sow = planting.planGHSow;
+                    }
+
+                    // Update correct field start date based on planting method
+                    if (planting.plantingMethod === 'Direct Seed') {
+                        updateData.Plan_Field_Sow = planting.planFieldSow || planting.fieldStartDate;
+                    } else {
+                        updateData.Plan_Transplant = planting.planTransplant || planting.fieldStartDate;
+                    }
+
+                    console.log('Saving planting update:', updateData);
+
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(updateData)
+                    });
+                    const result = await response.json();
+                    console.log('Save response:', result);
+
+                    if (!result.success) {
+                        console.error('Update failed:', result.error);
+                        showToast(`Update failed: ${result.error}`, 'error');
+                    } else {
+                        console.log('Updated fields:', result.updatedFields);
+                    }
+                }
+
+                setSyncStatus('synced', 'Saved');
+                console.log(`Saved ${updates.length} updates to Google Sheets`);
+                showToast(`Saved ${updates.length} change(s) to Google Sheets`, 'success');
+            } catch (error) {
+                console.error('Error saving to Google Sheets:', error);
+                setSyncStatus('error', 'Save Failed');
+                showToast('Failed to save changes', 'error');
+            }
+        }
+
+        // Sync Status Indicator
+        function setSyncStatus(status, text) {
+            const indicator = document.getElementById('syncIndicator');
+            const textEl = document.getElementById('syncText');
+
+            indicator.className = `sync-indicator ${status}`;
+            textEl.textContent = text;
+        }
+
+        // Tooltip
+        function showTooltip(event, id) {
+            const planting = plantings.find(p => p.id === id);
+            if (!planting) return;
+
+            const tooltip = document.getElementById('tooltip');
+            const icon = cropIcons[planting.crop] || '🌱';
+
+            document.getElementById('tooltipIcon').textContent = icon;
+            document.getElementById('tooltipTitle').textContent = planting.crop;
+            document.getElementById('tooltipVariety').textContent = planting.variety;
+            document.getElementById('tooltipBatchId').textContent = planting.id;
+            document.getElementById('tooltipBed').textContent = planting.bed;
+            document.getElementById('tooltipMethod').textContent = planting.plantingMethod || 'Transplant';
+
+            // GH Sow date (hide row if not applicable)
+            const ghRow = document.getElementById('tooltipGHRow');
+            if (planting.planGHSow && planting.plantingMethod !== 'Direct Seed') {
+                ghRow.style.display = 'flex';
+                document.getElementById('tooltipGHSow').textContent = formatDisplayDate(planting.planGHSow);
+            } else {
+                ghRow.style.display = 'none';
+            }
+
+            document.getElementById('tooltipStart').textContent = formatDisplayDate(planting.fieldStartDate || planting.seedDate);
+            document.getElementById('tooltipEnd').textContent = formatDisplayDate(planting.harvestDate);
+            document.getElementById('tooltipDuration').textContent = `${planting.dtm} days`;
+            document.getElementById('tooltipBedFeet').textContent = `${planting.bedFeet} ft`;
+            document.getElementById('tooltipStatus').textContent = planting.status.charAt(0).toUpperCase() + planting.status.slice(1);
+
+            // Lock status
+            const lockRow = document.getElementById('tooltipLockRow');
+            const actions = document.getElementById('tooltipActions');
+            if (planting.isLocked) {
+                lockRow.style.display = 'flex';
+                document.getElementById('tooltipLockReason').textContent = planting.lockReason;
+                actions.textContent = 'Locked - Confirm termination to edit';
+                actions.style.color = '#e63946';
+            } else {
+                lockRow.style.display = 'none';
+                actions.textContent = 'Drag to move | Resize edges to adjust dates';
+                actions.style.color = 'var(--text-secondary)';
+            }
+
+            tooltip.style.left = (event.pageX + 15) + 'px';
+            tooltip.style.top = (event.pageY + 15) + 'px';
+            tooltip.classList.add('show');
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('show');
+        }
+
+        function formatDisplayDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Refresh Data
+        async function refreshData() {
+            showToast('Refreshing data...', 'warning');
+            await loadPlantings();
+            showToast('Data refreshed', 'success');
+        }
+
+        // Toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('i');
+
+            toast.className = `toast ${type}`;
+            icon.className = type === 'success' ? 'fas fa-check-circle' :
+                            type === 'error' ? 'fas fa-exclamation-circle' :
+                            'fas fa-sync-alt';
+
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

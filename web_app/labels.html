@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greenhouse Labels - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title i { color: var(--primary-light); }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .main-container {
+            padding: 100px 2rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .panel-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .panel-title i { color: var(--primary-light); }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.2);
+        }
+
+        .date-range {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(45, 90, 39, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-block { width: 100%; }
+
+        /* Seedings List */
+        .seedings-list {
+            max-height: 350px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .seeding-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-light);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .seeding-item:hover {
+            border-color: var(--primary);
+        }
+
+        .seeding-item.selected {
+            background: rgba(45, 90, 39, 0.3);
+            border-color: var(--primary-light);
+        }
+
+        .seeding-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .seeding-info { flex: 1; }
+
+        .seeding-crop {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .seeding-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .seeding-badge {
+            background: var(--secondary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Selection Actions */
+        .selection-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .selection-actions .btn {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            flex: 1;
+        }
+
+        /* Preview Area */
+        .preview-area {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .preview-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: var(--bg-light);
+            padding: 10px 16px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Labels Container - Screen Preview */
+        .labels-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: 12px;
+            min-height: 200px;
+        }
+
+        /* Tray Lip Label Preview */
+        .tray-label {
+            background: white;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 54px;
+            min-width: 180px;
+            max-width: 280px;
+            font-family: 'Inter', Arial, sans-serif;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tray-label:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .tray-label.selected {
+            outline: 3px solid var(--primary);
+        }
+
+        .tray-label .label-checkbox {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .label-qr {
+            width: 46px;
+            height: 46px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+        }
+
+        .label-qr canvas {
+            width: 44px !important;
+            height: 44px !important;
+        }
+
+        .label-content {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .label-crop {
+            font-weight: 700;
+            font-size: 11px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .label-variety {
+            font-size: 9px;
+            color: #444;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .label-batch {
+            font-size: 8px;
+            font-family: monospace;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .label-date {
+            font-size: 8px;
+            color: #666;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            width: 100%;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary-light);
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show { transform: translateX(0); }
+        .toast i { color: var(--success); font-size: 1.25rem; }
+
+        /* Print Preview Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 2rem;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+            background: #e0e0e0;
+        }
+
+        .print-preview-page {
+            background: white;
+            padding: 0.25in;
+            margin: 0 auto 1rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            width: 8.5in;
+            min-height: 11in;
+        }
+
+        .print-labels-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.1in;
+        }
+
+        .print-label {
+            width: 2.5in;
+            height: 0.75in;
+            border: 1px solid #000;
+            border-radius: 2px;
+            padding: 0.05in;
+            display: flex;
+            align-items: center;
+            gap: 0.1in;
+            background: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .print-label-qr {
+            width: 0.6in;
+            height: 0.6in;
+            flex-shrink: 0;
+        }
+
+        .print-label-qr canvas {
+            width: 0.6in !important;
+            height: 0.6in !important;
+        }
+
+        .print-label-content {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .print-label-crop {
+            font-weight: bold;
+            font-size: 10pt;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .print-label-variety {
+            font-size: 8pt;
+            color: #333;
+        }
+
+        .print-label-batch {
+            font-size: 7pt;
+            font-family: monospace;
+            color: #666;
+        }
+
+        .print-label-date {
+            font-size: 7pt;
+            color: #666;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #ddd;
+        }
+
+        .modal-footer .btn {
+            min-width: 150px;
+        }
+
+        .print-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </a>
+            <h1 class="page-title">
+                <i class="fas fa-tag"></i>
+                Greenhouse Labels
+            </h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="selectAllLabels()">
+                <i class="fas fa-check-double"></i> Select All
+            </button>
+            <button class="btn btn-primary" onclick="openPrintPreview()">
+                <i class="fas fa-print"></i> Print Selected
+            </button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3 class="panel-title"><i class="fas fa-filter"></i> Filter Seedings</h3>
+
+                <div class="form-group">
+                    <label>Date Range</label>
+                    <div class="date-range">
+                        <input type="date" class="form-control" id="startDate">
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Crop Type</label>
+                    <select class="form-control" id="cropFilter">
+                        <option value="">All Crops</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="loadSeedings()">
+                    <i class="fas fa-search"></i> Load Seedings
+                </button>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title"><i class="fas fa-list"></i> Available Seedings</h3>
+
+                <div class="selection-actions">
+                    <button class="btn btn-secondary" onclick="selectAllSeedings()">
+                        <i class="fas fa-check-square"></i> All
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAllSeedings()">
+                        <i class="fas fa-square"></i> None
+                    </button>
+                </div>
+
+                <div class="seedings-list" id="seedingsList">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading seedings...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title"><i class="fas fa-cog"></i> Label Options</h3>
+
+                <div class="form-group">
+                    <label>Labels Per Tray</label>
+                    <select class="form-control" id="labelsPerTray">
+                        <option value="1">1 label per tray</option>
+                        <option value="2">2 labels per tray</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>QR Code Content</label>
+                    <select class="form-control" id="qrContent">
+                        <option value="seedlot">Seed Lot Number</option>
+                        <option value="batch">Batch ID</option>
+                        <option value="full">Full Details</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" onclick="generateLabels()">
+                <i class="fas fa-tag"></i> Generate Labels
+            </button>
+        </div>
+
+        <div class="preview-area">
+            <div class="preview-header">
+                <div>
+                    <h2 class="preview-title">Label Preview</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+                        Labels sized for tray lip (0.75" tall x 2.5" wide)
+                    </p>
+                </div>
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <div class="stat-number" id="selectedSeedingsCount">0</div>
+                        <div class="stat-label">Seedings</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalTraysCount">0</div>
+                        <div class="stat-label">Trays</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalLabelsCount">0</div>
+                        <div class="stat-label">Labels</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="labels-container" id="labelsContainer">
+                <div class="empty-state">
+                    <i class="fas fa-tag"></i>
+                    <h3>No Labels Generated</h3>
+                    <p>Select seedings from the list and click "Generate Labels"</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Print Preview Modal -->
+    <div class="modal-overlay" id="printModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-print"></i> Print Preview</h2>
+                <button class="modal-close" onclick="closePrintPreview()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="printPreviewBody">
+                <!-- Print preview content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <div class="print-info">
+                    <span id="printLabelCount">0</span> labels ready to print
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary" onclick="closePrintPreview()">
+                        Cancel
+                    </button>
+                    <button class="btn btn-primary" onclick="executePrint()">
+                        <i class="fas fa-print"></i> Print Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Action completed!</span>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+
+        let seedings = [];
+        let selectedSeedings = new Set();
+        let labels = [];
+        let selectedLabels = new Set();
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const sixtyDays = new Date(today);
+            sixtyDays.setDate(sixtyDays.getDate() + 60);
+
+            document.getElementById('startDate').value = today.toISOString().split('T')[0];
+            document.getElementById('endDate').value = sixtyDays.toISOString().split('T')[0];
+
+            loadSeedings();
+        });
+
+        // Load Seedings from API
+        async function loadSeedings() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            document.getElementById('seedingsList').innerHTML = `
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading seedings...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getGreenhouseSeedings&startDate=${startDate}&endDate=${endDate}`);
+                const data = await response.json();
+
+                if (data.success && data.data && data.data.length > 0) {
+                    seedings = data.data.map((s, index) => ({
+                        id: s.batchNumber || s.id || `seeding-${index}`,
+                        crop: s.crop || 'Unknown',
+                        variety: s.variety || '',
+                        seedDate: s.seedDate || '',
+                        transplantDate: s.transplantDate || '',
+                        trays: s.traysNeeded || s.trays || 1,
+                        cellsPerTray: s.cellsPerTray || 128,
+                        batchNumber: s.batchNumber || '',
+                        seedLot: s.seedLotNum || s.seedLot || s.batchNumber || '',
+                        nurseryDays: s.nurseryDays || 0
+                    }));
+                    showToast(`Loaded ${seedings.length} seedings`);
+                } else {
+                    seedings = [];
+                    showToast('No seedings found for date range');
+                }
+            } catch (error) {
+                console.error('Error loading seedings:', error);
+                seedings = [];
+                showToast('Error loading seedings');
+            }
+
+            updateCropFilter();
+            applyFiltersAndRender();
+        }
+
+        function updateCropFilter() {
+            const cropFilter = document.getElementById('cropFilter');
+            const uniqueCrops = [...new Set(seedings.map(s => s.crop))].sort();
+
+            cropFilter.innerHTML = '<option value="">All Crops</option>';
+            uniqueCrops.forEach(crop => {
+                cropFilter.innerHTML += `<option value="${crop}">${crop}</option>`;
+            });
+        }
+
+        function applyFiltersAndRender() {
+            const cropFilter = document.getElementById('cropFilter').value;
+            let filtered = seedings;
+            if (cropFilter) {
+                filtered = seedings.filter(s => s.crop === cropFilter);
+            }
+            renderSeedingsList(filtered);
+        }
+
+        function renderSeedingsList(seedingData) {
+            const container = document.getElementById('seedingsList');
+
+            if (seedingData.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 1.5rem;">
+                        <i class="fas fa-seedling" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 0.5rem;">No seedings found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            seedingData.forEach(seeding => {
+                const isSelected = selectedSeedings.has(seeding.id);
+                html += `
+                    <div class="seeding-item ${isSelected ? 'selected' : ''}" onclick="toggleSeeding('${seeding.id}')">
+                        <input type="checkbox" class="seeding-checkbox"
+                               ${isSelected ? 'checked' : ''}
+                               onclick="event.stopPropagation(); toggleSeeding('${seeding.id}')">
+                        <div class="seeding-info">
+                            <div class="seeding-crop">${seeding.crop}</div>
+                            <div class="seeding-meta">
+                                ${seeding.variety} | ${formatDate(seeding.seedDate)} | ${seeding.cellsPerTray} cells
+                            </div>
+                        </div>
+                        <span class="seeding-badge">${seeding.trays} trays</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            updateStats();
+        }
+
+        function toggleSeeding(id) {
+            if (selectedSeedings.has(id)) {
+                selectedSeedings.delete(id);
+            } else {
+                selectedSeedings.add(id);
+            }
+            applyFiltersAndRender();
+        }
+
+        function selectAllSeedings() {
+            const cropFilter = document.getElementById('cropFilter').value;
+            let filtered = seedings;
+            if (cropFilter) {
+                filtered = seedings.filter(s => s.crop === cropFilter);
+            }
+            filtered.forEach(s => selectedSeedings.add(s.id));
+            applyFiltersAndRender();
+            showToast(`Selected ${selectedSeedings.size} seedings`);
+        }
+
+        function clearAllSeedings() {
+            selectedSeedings.clear();
+            applyFiltersAndRender();
+            showToast('Cleared selection');
+        }
+
+        function updateStats() {
+            document.getElementById('selectedSeedingsCount').textContent = selectedSeedings.size;
+
+            let totalTrays = 0;
+            selectedSeedings.forEach(id => {
+                const seeding = seedings.find(s => s.id === id);
+                if (seeding) totalTrays += seeding.trays;
+            });
+            document.getElementById('totalTraysCount').textContent = totalTrays;
+        }
+
+        function generateLabels() {
+            if (selectedSeedings.size === 0) {
+                showToast('Please select at least one seeding');
+                return;
+            }
+
+            const labelsPerTray = parseInt(document.getElementById('labelsPerTray').value);
+            const qrContent = document.getElementById('qrContent').value;
+
+            labels = [];
+            selectedLabels.clear();
+            let totalTrays = 0;
+
+            selectedSeedings.forEach(id => {
+                const seeding = seedings.find(s => s.id === id);
+                if (seeding) {
+                    for (let trayNum = 1; trayNum <= seeding.trays; trayNum++) {
+                        for (let labelNum = 1; labelNum <= labelsPerTray; labelNum++) {
+                            const labelId = `${seeding.id}-T${trayNum}-L${labelNum}`;
+                            labels.push({
+                                ...seeding,
+                                labelId: labelId,
+                                trayNumber: trayNum,
+                                labelNumber: labelNum,
+                                qrContent: qrContent
+                            });
+                            selectedLabels.add(labelId);
+                        }
+                    }
+                    totalTrays += seeding.trays;
+                }
+            });
+
+            document.getElementById('totalLabelsCount').textContent = labels.length;
+            renderLabels();
+            showToast(`Generated ${labels.length} labels for ${totalTrays} trays`);
+        }
+
+        function renderLabels() {
+            const container = document.getElementById('labelsContainer');
+
+            if (labels.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tag"></i>
+                        <h3>No Labels Generated</h3>
+                        <p>Select seedings from the list and click "Generate Labels"</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            labels.forEach((label, index) => {
+                const isSelected = selectedLabels.has(label.labelId);
+                let qrData = getQRData(label);
+
+                html += `
+                    <div class="tray-label ${isSelected ? 'selected' : ''}"
+                         id="label-${index}"
+                         onclick="toggleLabel('${label.labelId}', ${index})">
+                        <input type="checkbox" class="label-checkbox"
+                               ${isSelected ? 'checked' : ''}
+                               onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
+                        <div class="label-qr" id="qr-${index}"></div>
+                        <div class="label-content">
+                            <div class="label-crop">${label.crop}</div>
+                            <div class="label-variety">${label.variety}</div>
+                            <div class="label-batch">${label.batchNumber} T${label.trayNumber}</div>
+                            <div class="label-date">${formatDate(label.seedDate)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Generate QR codes
+            labels.forEach((label, index) => {
+                generateQRCode(`qr-${index}`, getQRData(label), 44);
+            });
+        }
+
+        function getQRData(label) {
+            switch(label.qrContent) {
+                case 'seedlot':
+                    return label.seedLot || label.batchNumber;
+                case 'batch':
+                    return label.batchNumber || label.id;
+                case 'full':
+                    return JSON.stringify({
+                        batch: label.batchNumber,
+                        crop: label.crop,
+                        variety: label.variety,
+                        seedDate: label.seedDate,
+                        tray: label.trayNumber
+                    });
+                default:
+                    return label.batchNumber;
+            }
+        }
+
+        function generateQRCode(containerId, data, size) {
+            const container = document.getElementById(containerId);
+            if (container && data) {
+                QRCode.toCanvas(document.createElement('canvas'), data, {
+                    width: size,
+                    margin: 0,
+                    errorCorrectionLevel: 'M'
+                }, function(error, canvas) {
+                    if (!error) {
+                        container.innerHTML = '';
+                        container.appendChild(canvas);
+                    }
+                });
+            }
+        }
+
+        function toggleLabel(labelId, index) {
+            const labelEl = document.getElementById(`label-${index}`);
+            if (selectedLabels.has(labelId)) {
+                selectedLabels.delete(labelId);
+                labelEl.classList.remove('selected');
+            } else {
+                selectedLabels.add(labelId);
+                labelEl.classList.add('selected');
+            }
+            labelEl.querySelector('.label-checkbox').checked = selectedLabels.has(labelId);
+        }
+
+        function selectAllLabels() {
+            if (labels.length === 0) {
+                showToast('Generate labels first');
+                return;
+            }
+
+            const allSelected = labels.every(l => selectedLabels.has(l.labelId));
+
+            if (allSelected) {
+                selectedLabels.clear();
+                document.querySelectorAll('.tray-label').forEach(el => {
+                    el.classList.remove('selected');
+                    el.querySelector('.label-checkbox').checked = false;
+                });
+                showToast('Deselected all labels');
+            } else {
+                labels.forEach(l => selectedLabels.add(l.labelId));
+                document.querySelectorAll('.tray-label').forEach(el => {
+                    el.classList.add('selected');
+                    el.querySelector('.label-checkbox').checked = true;
+                });
+                showToast('Selected all labels');
+            }
+        }
+
+        // Print Preview Functions
+        function openPrintPreview() {
+            if (selectedLabels.size === 0) {
+                showToast('Please select labels to print');
+                return;
+            }
+
+            const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
+            document.getElementById('printLabelCount').textContent = labelsToprint.length;
+
+            // Build print preview
+            let previewHtml = '<div class="print-preview-page"><div class="print-labels-grid">';
+
+            labelsToprint.forEach((label, index) => {
+                previewHtml += `
+                    <div class="print-label">
+                        <div class="print-label-qr" id="print-qr-${index}"></div>
+                        <div class="print-label-content">
+                            <div class="print-label-crop">${label.crop}</div>
+                            <div class="print-label-variety">${label.variety}</div>
+                            <div class="print-label-batch">${label.batchNumber} T${label.trayNumber}</div>
+                            <div class="print-label-date">${formatDate(label.seedDate)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            previewHtml += '</div></div>';
+            document.getElementById('printPreviewBody').innerHTML = previewHtml;
+
+            // Generate QR codes for print preview
+            labelsToprint.forEach((label, index) => {
+                const container = document.getElementById(`print-qr-${index}`);
+                if (container) {
+                    QRCode.toCanvas(document.createElement('canvas'), getQRData(label), {
+                        width: 58,
+                        margin: 0,
+                        errorCorrectionLevel: 'M'
+                    }, function(error, canvas) {
+                        if (!error) {
+                            container.innerHTML = '';
+                            container.appendChild(canvas);
+                        }
+                    });
+                }
+            });
+
+            document.getElementById('printModal').classList.add('show');
+        }
+
+        function closePrintPreview() {
+            document.getElementById('printModal').classList.remove('show');
+        }
+
+        function executePrint() {
+            const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
+
+            // Open a new window for printing
+            const printWindow = window.open('', '_blank', 'width=850,height=1100');
+
+            let printContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Greenhouse Labels - Print</title>
+                    <style>
+                        @page {
+                            size: letter;
+                            margin: 0.25in;
+                        }
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 0;
+                            padding: 0.25in;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        .labels-grid {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 0.1in;
+                        }
+                        .label {
+                            width: 2.5in;
+                            height: 0.75in;
+                            border: 1px solid #000;
+                            border-radius: 2px;
+                            padding: 0.05in;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.1in;
+                            page-break-inside: avoid;
+                            box-sizing: border-box;
+                        }
+                        .label-qr {
+                            width: 0.6in;
+                            height: 0.6in;
+                            flex-shrink: 0;
+                        }
+                        .label-qr canvas {
+                            width: 0.6in !important;
+                            height: 0.6in !important;
+                        }
+                        .label-content {
+                            flex: 1;
+                            overflow: hidden;
+                        }
+                        .label-crop {
+                            font-weight: bold;
+                            font-size: 10pt;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                        .label-variety {
+                            font-size: 8pt;
+                            color: #333;
+                        }
+                        .label-batch {
+                            font-size: 7pt;
+                            font-family: monospace;
+                            color: #555;
+                        }
+                        .label-date {
+                            font-size: 7pt;
+                            color: #555;
+                        }
+                        @media print {
+                            body { padding: 0; }
+                        }
+                    </style>
+                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+                </head>
+                <body>
+                    <div class="labels-grid">
+            `;
+
+            labelsToprint.forEach((label, index) => {
+                printContent += `
+                    <div class="label">
+                        <div class="label-qr" id="qr-${index}"></div>
+                        <div class="label-content">
+                            <div class="label-crop">${label.crop}</div>
+                            <div class="label-variety">${label.variety}</div>
+                            <div class="label-batch">${label.batchNumber} T${label.trayNumber}</div>
+                            <div class="label-date">${formatDate(label.seedDate)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            printContent += `
+                    </div>
+                    <script>
+                        const labelsData = ${JSON.stringify(labelsToprint.map(l => ({
+                            index: labelsToprint.indexOf(l),
+                            qrData: getQRData(l)
+                        })))};
+
+                        window.onload = function() {
+                            labelsData.forEach(item => {
+                                const container = document.getElementById('qr-' + item.index);
+                                if (container && item.qrData) {
+                                    QRCode.toCanvas(document.createElement('canvas'), item.qrData, {
+                                        width: 58,
+                                        margin: 0,
+                                        errorCorrectionLevel: 'M'
+                                    }, function(error, canvas) {
+                                        if (!error) {
+                                            container.appendChild(canvas);
+                                        }
+                                    });
+                                }
+                            });
+
+                            // Auto-print after QR codes are generated
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+
+            closePrintPreview();
+            showToast(`Printing ${labelsToprint.length} labels...`);
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'TBD';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        document.getElementById('cropFilter').addEventListener('change', applyFiltersAndRender);
+    </script>
+</body>
+</html>
