@@ -40,6 +40,7 @@
             backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             padding: 1rem 2rem;
+            padding-left: 300px; /* Account for sidebar width (280px) + some padding */
             position: fixed;
             top: 0;
             left: 0;
@@ -101,11 +102,13 @@
         .zoom-btn {
             background: none;
             border: none;
-            padding: 10px 15px;
+            padding: 8px 12px;
             color: var(--text-primary);
             cursor: pointer;
             transition: all 0.3s;
             font-weight: 500;
+            font-size: 0.85rem;
+            white-space: nowrap;
         }
 
         .zoom-btn:hover, .zoom-btn.active {
@@ -265,61 +268,150 @@
             border-radius: 4px;
         }
 
-        /* Gantt Container - scrollable with sticky headers */
+        /* Gantt Container - Main layout wrapper */
         .gantt-container {
             margin-left: 280px;
             padding: 1.5rem;
+            padding-top: 0.5rem;
             position: relative;
+            height: calc(100vh - 80px);
+            display: flex;
+            flex-direction: column;
         }
 
         .gantt-wrapper {
-            min-width: 100%;
+            flex: 1;
             background: var(--bg-card);
             border-radius: 16px;
             border: 1px solid var(--border);
-            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
         }
 
-        /* Scrollable viewport for the gantt chart */
+        /* THE SCROLL CONTAINER - This is where sticky magic happens */
         .gantt-scroll-container {
+            flex: 1;
             overflow: auto;
-            max-height: calc(100vh - 320px);
             position: relative;
+            min-height: 0;
+        }
+
+        /* Inner content wrapper for proper sticky behavior */
+        .gantt-content {
+            display: inline-block;
+            min-width: 100%;
         }
 
         .gantt-body {
             position: relative;
         }
 
-        /* Sticky Y-axis labels (field/crop names) - sticks when scrolling horizontally */
-        .field-label {
-            position: sticky !important;
-            left: 0 !important;
-            z-index: 20 !important;
-            background: var(--bg-card) !important;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+        /* Gap indicator styles for empty field space */
+        .field-gap {
+            position: absolute;
+            height: calc(100% - 16px);
+            top: 8px;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 8px,
+                rgba(46, 204, 113, 0.08) 8px,
+                rgba(46, 204, 113, 0.08) 16px
+            );
+            border: 1px dashed rgba(46, 204, 113, 0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 1;
         }
 
-        .field-row:nth-child(even) .field-label {
-            background: rgba(30, 30, 30, 0.95) !important;
+        .field-gap:hover {
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 8px,
+                rgba(46, 204, 113, 0.2) 8px,
+                rgba(46, 204, 113, 0.2) 16px
+            );
+            border-color: rgba(46, 204, 113, 0.6);
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.2);
         }
 
-        /* Sticky X-axis header (dates) - sticks when scrolling vertically */
-        .gantt-header {
-            position: sticky !important;
-            top: 0 !important;
-            z-index: 30 !important;
-            background: var(--bg-card) !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        .field-gap::after {
+            content: '+';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            color: rgba(46, 204, 113, 0.4);
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s;
         }
 
-        /* Corner cell - sticks in both directions */
-        .gantt-field-header {
-            position: sticky !important;
-            left: 0 !important;
-            z-index: 40 !important;
-            background: var(--bg-light) !important;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        .field-gap:hover::after {
+            opacity: 1;
+        }
+
+        /* Gap tooltip */
+        .gap-tooltip {
+            position: fixed;
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            min-width: 200px;
+        }
+
+        .gap-tooltip.visible {
+            opacity: 1;
+        }
+
+        .gap-tooltip-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .gap-tooltip-title {
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .gap-tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .gap-tooltip-label {
+            color: var(--text-secondary);
+        }
+
+        .gap-tooltip-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .gap-tooltip-hint {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
         }
 
         /* Edit Modal Styles */
@@ -504,15 +596,17 @@
             position: relative;
         }
 
+        /* STICKY DATE HEADER - Sticks to top when scrolling vertically */
         .gantt-header {
             display: flex;
             border-bottom: 2px solid var(--border);
             position: sticky;
             top: 0;
             background: var(--bg-card);
-            z-index: 50;
+            z-index: 100;
         }
 
+        /* CORNER CELL - Sticks both left AND top */
         .gantt-field-header {
             width: 180px;
             min-width: 180px;
@@ -523,13 +617,15 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            position: sticky;
+            left: 0;
+            z-index: 110;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.4);
         }
 
         .gantt-timeline-header {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
         .gantt-months-row {
@@ -571,10 +667,6 @@
         }
 
         /* Gantt Body - Field Rows */
-        .gantt-body {
-            position: relative;
-        }
-
         .field-row {
             display: flex;
             border-bottom: 1px solid var(--border);
@@ -586,6 +678,7 @@
             background: rgba(0, 0, 0, 0.1);
         }
 
+        /* STICKY FIELD LABEL - Sticks to left when scrolling horizontally */
         .field-label {
             width: 180px;
             min-width: 180px;
@@ -597,7 +690,12 @@
             justify-content: center;
             position: sticky;
             left: 0;
-            z-index: 10;
+            z-index: 50;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
+
+        .field-row:nth-child(even) .field-label {
+            background: #1a1a2e;
         }
 
         .field-name {
@@ -612,7 +710,6 @@
         }
 
         .field-timeline {
-            flex: 1;
             position: relative;
             min-height: 80px;
         }
@@ -1092,6 +1189,15 @@
 
         /* Mobile */
         @media (max-width: 1024px) {
+            .header {
+                padding-left: 1rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .header-controls {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
             .sidebar {
                 transform: translateX(-100%);
                 transition: transform 0.3s;
@@ -1101,6 +1207,13 @@
             }
             .gantt-container {
                 margin-left: 0;
+            }
+        }
+
+        /* Larger screens - ensure header controls don't get cut off */
+        @media (min-width: 1600px) {
+            .header-controls {
+                gap: 1.5rem;
             }
         }
     </style>
@@ -1361,6 +1474,29 @@
                     <i class="fas fa-save"></i> Save Changes
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Gap Analysis Tooltip -->
+    <div class="gap-tooltip" id="gapTooltip">
+        <div class="gap-tooltip-header">
+            <span style="font-size: 1.2rem;">📅</span>
+            <span class="gap-tooltip-title">Open Field Space</span>
+        </div>
+        <div class="gap-tooltip-row">
+            <span class="gap-tooltip-label">Duration:</span>
+            <span class="gap-tooltip-value" id="gapDuration">--</span>
+        </div>
+        <div class="gap-tooltip-row">
+            <span class="gap-tooltip-label">Date Range:</span>
+            <span class="gap-tooltip-value" id="gapDateRange">--</span>
+        </div>
+        <div class="gap-tooltip-row">
+            <span class="gap-tooltip-label">Field:</span>
+            <span class="gap-tooltip-value" id="gapField">--</span>
+        </div>
+        <div class="gap-tooltip-hint">
+            <i class="fas fa-lightbulb"></i> Click to add a planting here
         </div>
     </div>
 
@@ -1974,7 +2110,7 @@
         function showFullYear() {
             timelineStart = new Date('2026-01-01');
             timelineEnd = new Date('2026-12-31');
-            setZoom('month'); // Best view for full year
+            setZoom('year'); // Full year view at smallest zoom
             document.getElementById('timelineSlider').value = 0;
             updateRangeDisplay();
         }
@@ -2082,6 +2218,7 @@
                             <div class="timeline-grid">
                                 ${generateGridLines(totalDays)}
                             </div>
+                            ${renderGaps(groupPlantings, getGroupName(group))}
                             ${renderTodayLine(totalDays)}
                             ${renderCropBars(stackedPlantings.plantings, group)}
                         </div>
@@ -2270,6 +2407,138 @@
             });
 
             return html;
+        }
+
+        // Render gaps (empty spaces) between plantings
+        function renderGaps(fieldPlantings, groupName) {
+            let html = '';
+
+            // Sort plantings by field start date
+            const sorted = [...fieldPlantings].sort((a, b) => {
+                const aStart = new Date(a.fieldStartDate || a.seedDate);
+                const bStart = new Date(b.fieldStartDate || b.seedDate);
+                return aStart - bStart;
+            });
+
+            // Find gaps
+            const gaps = [];
+            const seasonStart = new Date(timelineStart);
+            const seasonEnd = new Date(timelineEnd);
+
+            // Check for gap at the beginning of timeline
+            if (sorted.length > 0) {
+                const firstPlanting = sorted[0];
+                const firstStart = new Date(firstPlanting.fieldStartDate || firstPlanting.seedDate);
+                if (firstStart > seasonStart) {
+                    gaps.push({
+                        start: seasonStart,
+                        end: firstStart,
+                        type: 'before'
+                    });
+                }
+            } else {
+                // No plantings - entire timeline is a gap
+                gaps.push({
+                    start: seasonStart,
+                    end: seasonEnd,
+                    type: 'empty'
+                });
+            }
+
+            // Check for gaps between plantings
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const current = sorted[i];
+                const next = sorted[i + 1];
+                const currentEnd = new Date(current.harvestDate);
+                const nextStart = new Date(next.fieldStartDate || next.seedDate);
+
+                // If there's a gap of at least 7 days
+                const gapDays = Math.floor((nextStart - currentEnd) / (24 * 60 * 60 * 1000));
+                if (gapDays >= 7) {
+                    gaps.push({
+                        start: currentEnd,
+                        end: nextStart,
+                        type: 'between'
+                    });
+                }
+            }
+
+            // Check for gap at the end of timeline
+            if (sorted.length > 0) {
+                const lastPlanting = sorted[sorted.length - 1];
+                const lastEnd = new Date(lastPlanting.harvestDate);
+                if (lastEnd < seasonEnd) {
+                    const gapDays = Math.floor((seasonEnd - lastEnd) / (24 * 60 * 60 * 1000));
+                    if (gapDays >= 7) {
+                        gaps.push({
+                            start: lastEnd,
+                            end: seasonEnd,
+                            type: 'after'
+                        });
+                    }
+                }
+            }
+
+            // Render gap indicators
+            gaps.forEach((gap, index) => {
+                const startOffset = Math.max(0, (gap.start - timelineStart) / (24 * 60 * 60 * 1000));
+                const gapDuration = Math.ceil((gap.end - gap.start) / (24 * 60 * 60 * 1000));
+
+                // Only show gaps that are visible in the timeline
+                if (startOffset >= 0 && gapDuration > 0) {
+                    const left = startOffset * dayWidth;
+                    const width = gapDuration * dayWidth;
+
+                    // Format dates for data attributes
+                    const startStr = gap.start.toISOString().split('T')[0];
+                    const endStr = gap.end.toISOString().split('T')[0];
+
+                    html += `
+                        <div class="field-gap"
+                             data-group="${groupName}"
+                             data-start="${startStr}"
+                             data-end="${endStr}"
+                             data-days="${gapDuration}"
+                             style="left: ${left}px; width: ${width}px;"
+                             onmouseenter="showGapTooltip(event, '${groupName}', '${startStr}', '${endStr}', ${gapDuration})"
+                             onmousemove="moveGapTooltip(event)"
+                             onmouseleave="hideGapTooltip()">
+                        </div>
+                    `;
+                }
+            });
+
+            return html;
+        }
+
+        // Gap tooltip functions
+        function showGapTooltip(event, groupName, startDate, endDate, days) {
+            const tooltip = document.getElementById('gapTooltip');
+
+            // Format dates nicely
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            document.getElementById('gapDuration').textContent = `${days} days`;
+            document.getElementById('gapDateRange').textContent = `${startStr} - ${endStr}`;
+            document.getElementById('gapField').textContent = groupName;
+
+            // Position tooltip
+            tooltip.style.left = (event.clientX + 15) + 'px';
+            tooltip.style.top = (event.clientY + 15) + 'px';
+            tooltip.classList.add('visible');
+        }
+
+        function moveGapTooltip(event) {
+            const tooltip = document.getElementById('gapTooltip');
+            tooltip.style.left = (event.clientX + 15) + 'px';
+            tooltip.style.top = (event.clientY + 15) + 'px';
+        }
+
+        function hideGapTooltip() {
+            document.getElementById('gapTooltip').classList.remove('visible');
         }
 
         // Get crop color from profiles or fallback
