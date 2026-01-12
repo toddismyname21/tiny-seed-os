@@ -265,12 +265,13 @@
             border-radius: 4px;
         }
 
-        /* Gantt Container */
+        /* Gantt Container - scrollable with sticky headers */
         .gantt-container {
             margin-left: 280px;
             padding: 1.5rem;
             overflow: auto;
             height: calc(100vh - 140px);
+            position: relative;
         }
 
         .gantt-wrapper {
@@ -279,11 +280,36 @@
             border-radius: 16px;
             border: 1px solid var(--border);
             overflow: visible;
+            position: relative;
         }
 
         .gantt-body {
             max-height: none;
             overflow: visible;
+            position: relative;
+        }
+
+        /* Sticky Y-axis labels (field/crop names) */
+        .field-label {
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 20 !important;
+            background: var(--bg-card) !important;
+        }
+
+        /* Sticky X-axis header (dates) */
+        .gantt-header {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 30 !important;
+            background: var(--bg-card) !important;
+        }
+
+        .gantt-field-header {
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 40 !important;
+            background: var(--bg-light) !important;
         }
 
         /* Stats Bar */
@@ -937,6 +963,11 @@
                 <span id="syncText">Synced</span>
             </div>
             <div class="zoom-controls">
+                <button class="zoom-btn active" onclick="setViewMode('field')" id="view-field">By Field</button>
+                <button class="zoom-btn" onclick="setViewMode('crop')" id="view-crop">By Crop</button>
+                <button class="zoom-btn" onclick="setViewMode('variety')" id="view-variety">By Variety</button>
+            </div>
+            <div class="zoom-controls">
                 <button class="zoom-btn" onclick="setZoom('day')" id="zoom-day">Day</button>
                 <button class="zoom-btn active" onclick="setZoom('week')" id="zoom-week">Week</button>
                 <button class="zoom-btn" onclick="setZoom('month')" id="zoom-month">Month</button>
@@ -1186,6 +1217,7 @@
         let filteredPlantings = [];
         let fields = [];
         let zoomLevel = 'week';
+        let viewMode = 'field'; // 'field', 'crop', or 'variety'
         let dayWidth = 20;
         let timelineStart = new Date('2026-01-01');
         let timelineEnd = new Date('2026-12-31');
@@ -1628,10 +1660,29 @@
             zoomLevel = level;
             dayWidth = level === 'day' ? 30 : level === 'week' ? 20 : 8;
 
-            document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#zoom-day, #zoom-week, #zoom-month').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`zoom-${level}`).classList.add('active');
             renderGantt();
             updateRangeDisplay();
+        }
+
+        // Set View Mode (field, crop, variety)
+        function setViewMode(mode) {
+            viewMode = mode;
+
+            // Update button states
+            document.querySelectorAll('#view-field, #view-crop, #view-variety').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`view-${mode}`).classList.add('active');
+
+            // Update page title
+            const titles = {
+                'field': 'Field & Crop Calendar',
+                'crop': 'Crop Calendar',
+                'variety': 'Variety Calendar'
+            };
+            document.querySelector('.page-title').innerHTML = `<i class="fas fa-calendar-alt"></i> ${titles[mode]}`;
+
+            renderGantt();
         }
 
         // Timeline Navigation Functions
@@ -1708,8 +1759,32 @@
                 return;
             }
 
-            // Get active fields
-            const activeFields = [...new Set(filteredPlantings.map(p => p.field))].sort();
+            // Get grouping based on view mode
+            let groups, headerIcon, headerLabel, getGroupName, getGroupMeta;
+
+            if (viewMode === 'crop') {
+                groups = [...new Set(filteredPlantings.map(p => p.crop))].filter(c => c).sort();
+                headerIcon = 'fa-seedling';
+                headerLabel = 'Crops';
+                getGroupName = (group) => group;
+                getGroupMeta = (plantings) => `${plantings.length} plantings`;
+            } else if (viewMode === 'variety') {
+                groups = [...new Set(filteredPlantings.map(p => `${p.crop}|${p.variety || 'Unknown'}`))].filter(v => v).sort();
+                headerIcon = 'fa-leaf';
+                headerLabel = 'Varieties';
+                getGroupName = (group) => {
+                    const [crop, variety] = group.split('|');
+                    return `${crop} - ${variety}`;
+                };
+                getGroupMeta = (plantings) => `${plantings.length} successions`;
+            } else {
+                // Default: field view
+                groups = [...new Set(filteredPlantings.map(p => p.field))].sort();
+                headerIcon = 'fa-map';
+                headerLabel = 'Fields';
+                getGroupName = (group) => `Field ${group}`;
+                getGroupMeta = (plantings) => `${plantings.length} plantings`;
+            }
 
             // Calculate timeline
             const totalDays = Math.ceil((timelineEnd - timelineStart) / (24 * 60 * 60 * 1000));
@@ -1719,7 +1794,7 @@
             let html = `
                 <div class="gantt-header">
                     <div class="gantt-field-header">
-                        <i class="fas fa-map"></i> Fields
+                        <i class="fas ${headerIcon}"></i> ${headerLabel}
                     </div>
                     <div class="gantt-timeline-header" style="width: ${timelineWidth}px;">
                         <div class="gantt-months-row">
@@ -1733,24 +1808,34 @@
                 <div class="gantt-body">
             `;
 
-            // Render field rows
-            activeFields.forEach(field => {
-                const fieldPlantings = filteredPlantings.filter(p => p.field === field);
-                const stackedPlantings = calculateStacking(fieldPlantings);
+            // Render rows based on view mode
+            groups.forEach(group => {
+                let groupPlantings;
+
+                if (viewMode === 'crop') {
+                    groupPlantings = filteredPlantings.filter(p => p.crop === group);
+                } else if (viewMode === 'variety') {
+                    const [crop, variety] = group.split('|');
+                    groupPlantings = filteredPlantings.filter(p => p.crop === crop && (p.variety || 'Unknown') === variety);
+                } else {
+                    groupPlantings = filteredPlantings.filter(p => p.field === group);
+                }
+
+                const stackedPlantings = calculateStacking(groupPlantings);
                 const rowHeight = Math.max(80, (stackedPlantings.maxStack + 1) * 44);
 
                 html += `
-                    <div class="field-row" data-field="${field}" style="min-height: ${rowHeight}px;">
+                    <div class="field-row" data-group="${group}" style="min-height: ${rowHeight}px;">
                         <div class="field-label">
-                            <div class="field-name">Field ${field}</div>
-                            <div class="field-meta">${fieldPlantings.length} plantings</div>
+                            <div class="field-name">${getGroupName(group)}</div>
+                            <div class="field-meta">${getGroupMeta(groupPlantings)}</div>
                         </div>
-                        <div class="field-timeline" data-field="${field}" style="width: ${timelineWidth}px; min-height: ${rowHeight}px;">
+                        <div class="field-timeline" data-group="${group}" style="width: ${timelineWidth}px; min-height: ${rowHeight}px;">
                             <div class="timeline-grid">
                                 ${generateGridLines(totalDays)}
                             </div>
                             ${renderTodayLine(totalDays)}
-                            ${renderCropBars(stackedPlantings.plantings, field)}
+                            ${renderCropBars(stackedPlantings.plantings, group)}
                         </div>
                     </div>
                 `;
