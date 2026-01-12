@@ -269,8 +269,6 @@
         .gantt-container {
             margin-left: 280px;
             padding: 1.5rem;
-            overflow: auto;
-            height: calc(100vh - 140px);
             position: relative;
         }
 
@@ -279,37 +277,199 @@
             background: var(--bg-card);
             border-radius: 16px;
             border: 1px solid var(--border);
-            overflow: visible;
+            position: relative;
+        }
+
+        /* Scrollable viewport for the gantt chart */
+        .gantt-scroll-container {
+            overflow: auto;
+            max-height: calc(100vh - 320px);
             position: relative;
         }
 
         .gantt-body {
-            max-height: none;
-            overflow: visible;
             position: relative;
         }
 
-        /* Sticky Y-axis labels (field/crop names) */
+        /* Sticky Y-axis labels (field/crop names) - sticks when scrolling horizontally */
         .field-label {
             position: sticky !important;
             left: 0 !important;
             z-index: 20 !important;
             background: var(--bg-card) !important;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.3);
         }
 
-        /* Sticky X-axis header (dates) */
+        .field-row:nth-child(even) .field-label {
+            background: rgba(30, 30, 30, 0.95) !important;
+        }
+
+        /* Sticky X-axis header (dates) - sticks when scrolling vertically */
         .gantt-header {
             position: sticky !important;
             top: 0 !important;
             z-index: 30 !important;
             background: var(--bg-card) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
+        /* Corner cell - sticks in both directions */
         .gantt-field-header {
             position: sticky !important;
             left: 0 !important;
             z-index: 40 !important;
             background: var(--bg-light) !important;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        }
+
+        /* Edit Modal Styles */
+        .edit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .edit-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .edit-modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .edit-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-light);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .edit-modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .edit-modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+
+        .edit-modal-close:hover {
+            color: var(--danger);
+        }
+
+        .edit-modal-body {
+            padding: 1.5rem;
+        }
+
+        .edit-form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .edit-form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .edit-form-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .edit-form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+        }
+
+        .edit-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .edit-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            background: var(--bg-light);
+            border-radius: 0 0 16px 16px;
+        }
+
+        .edit-btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .edit-btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .edit-btn-cancel:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .edit-btn-save {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+
+        .edit-btn-save:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .edit-btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* Stats Bar */
@@ -971,6 +1131,8 @@
                 <button class="zoom-btn" onclick="setZoom('day')" id="zoom-day">Day</button>
                 <button class="zoom-btn active" onclick="setZoom('week')" id="zoom-week">Week</button>
                 <button class="zoom-btn" onclick="setZoom('month')" id="zoom-month">Month</button>
+                <button class="zoom-btn" onclick="setZoom('quarter')" id="zoom-quarter">Quarter</button>
+                <button class="zoom-btn" onclick="setZoom('year')" id="zoom-year">Full Year</button>
             </div>
             <button class="btn btn-secondary" onclick="showFullYear()">
                 <i class="fas fa-expand"></i> Full Year
@@ -1130,6 +1292,77 @@
             </div>
         </div>
     </main>
+
+    <!-- Edit Planting Modal -->
+    <div class="edit-modal-overlay" id="editModal">
+        <div class="edit-modal">
+            <div class="edit-modal-header">
+                <div class="edit-modal-title">
+                    <span id="editModalIcon">🌱</span>
+                    <span>Edit Planting</span>
+                </div>
+                <button class="edit-modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <input type="hidden" id="editBatchId">
+
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-form-label">Crop</label>
+                        <input type="text" class="edit-form-input" id="editCrop" placeholder="e.g., Tomato">
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-form-label">Variety</label>
+                        <input type="text" class="edit-form-input" id="editVariety" placeholder="e.g., Roma">
+                    </div>
+                </div>
+
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-form-label">Field</label>
+                        <input type="text" class="edit-form-input" id="editField" placeholder="e.g., A1">
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-form-label">Bed Feet</label>
+                        <input type="number" class="edit-form-input" id="editBedFeet" placeholder="e.g., 100">
+                    </div>
+                </div>
+
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-form-label">GH Sow Date</label>
+                        <input type="date" class="edit-form-input" id="editGHSow">
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-form-label">Transplant Date</label>
+                        <input type="date" class="edit-form-input" id="editTransplant">
+                    </div>
+                </div>
+
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-form-label">First Harvest</label>
+                        <input type="date" class="edit-form-input" id="editFirstHarvest">
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-form-label">Last Harvest</label>
+                        <input type="date" class="edit-form-input" id="editLastHarvest">
+                    </div>
+                </div>
+
+                <div class="edit-form-group">
+                    <label class="edit-form-label">Notes</label>
+                    <textarea class="edit-form-input" id="editNotes" rows="3" placeholder="Any notes about this planting..."></textarea>
+                </div>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-btn edit-btn-cancel" onclick="closeEditModal()">Cancel</button>
+                <button class="edit-btn edit-btn-save" id="editSaveBtn" onclick="saveEditModal()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div class="tooltip" id="tooltip">
         <div class="tooltip-header">
@@ -1658,10 +1891,19 @@
         // Set Zoom Level
         function setZoom(level) {
             zoomLevel = level;
-            dayWidth = level === 'day' ? 30 : level === 'week' ? 20 : 8;
+            // dayWidth values: day=30, week=20, month=8, quarter=4, year=2
+            const widths = { day: 30, week: 20, month: 8, quarter: 4, year: 2 };
+            dayWidth = widths[level] || 20;
 
-            document.querySelectorAll('#zoom-day, #zoom-week, #zoom-month').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#zoom-day, #zoom-week, #zoom-month, #zoom-quarter, #zoom-year').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`zoom-${level}`).classList.add('active');
+
+            // For quarter and year views, show full timeline
+            if (level === 'quarter' || level === 'year') {
+                timelineStart = new Date('2026-01-01');
+                timelineEnd = new Date('2026-12-31');
+            }
+
             renderGantt();
             updateRangeDisplay();
         }
@@ -1700,10 +1942,15 @@
             timelineStart = new Date(yearStart);
             timelineStart.setDate(timelineStart.getDate() + dayOfYear);
 
-            // Set end date based on view window
-            const viewDays = zoomLevel === 'day' ? 30 : zoomLevel === 'week' ? 90 : 180;
+            // Set end date based on view window (quarter and year show full year)
+            const viewDaysMap = { day: 30, week: 90, month: 180, quarter: 365, year: 365 };
+            const viewDays = viewDaysMap[zoomLevel] || 90;
             timelineEnd = new Date(timelineStart);
             timelineEnd.setDate(timelineEnd.getDate() + viewDays);
+
+            // Cap at end of year
+            const yearEnd = new Date('2026-12-31');
+            if (timelineEnd > yearEnd) timelineEnd = yearEnd;
 
             renderGantt();
             updateRangeDisplay();
@@ -1790,22 +2037,23 @@
             const totalDays = Math.ceil((timelineEnd - timelineStart) / (24 * 60 * 60 * 1000));
             const timelineWidth = totalDays * dayWidth;
 
-            // Build header
+            // Build header with scroll container for sticky headers
             let html = `
-                <div class="gantt-header">
-                    <div class="gantt-field-header">
-                        <i class="fas ${headerIcon}"></i> ${headerLabel}
-                    </div>
-                    <div class="gantt-timeline-header" style="width: ${timelineWidth}px;">
-                        <div class="gantt-months-row">
-                            ${generateMonthHeaders(totalDays)}
+                <div class="gantt-scroll-container">
+                    <div class="gantt-header">
+                        <div class="gantt-field-header">
+                            <i class="fas ${headerIcon}"></i> ${headerLabel}
                         </div>
-                        <div class="gantt-days-row">
-                            ${generateDayHeaders(totalDays)}
+                        <div class="gantt-timeline-header" style="width: ${timelineWidth}px;">
+                            <div class="gantt-months-row">
+                                ${generateMonthHeaders(totalDays)}
+                            </div>
+                            <div class="gantt-days-row">
+                                ${generateDayHeaders(totalDays)}
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="gantt-body">
+                    <div class="gantt-body">
             `;
 
             // Render rows based on view mode
@@ -1841,7 +2089,7 @@
                 `;
             });
 
-            html += '</div>';
+            html += '</div></div>'; // Close gantt-body and gantt-scroll-container
             container.innerHTML = html;
 
             // Initialize drag and resize
@@ -2006,7 +2254,8 @@
                          data-locked="${planting.isLocked}"
                          data-start="${planting.fieldStartDate || planting.seedDate}"
                          data-end="${planting.harvestDate}"
-                         style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle}"
+                         style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle} cursor: pointer;"
+                         onclick="openEditModal('${planting.id}')"
                          onmouseenter="showTooltip(event, '${planting.id}')"
                          onmouseleave="hideTooltip()">
                         <div class="resize-handle resize-handle-left" data-edge="left"></div>
@@ -2526,6 +2775,127 @@
             indicator.className = `sync-indicator ${status}`;
             textEl.textContent = text;
         }
+
+        // Edit Modal Functions
+        let currentEditingPlanting = null;
+
+        function openEditModal(id) {
+            const planting = plantings.find(p => p.id === id);
+            if (!planting) return;
+
+            currentEditingPlanting = planting;
+
+            // Populate form fields
+            document.getElementById('editBatchId').value = planting.id;
+            document.getElementById('editCrop').value = planting.crop || '';
+            document.getElementById('editVariety').value = planting.variety || '';
+            document.getElementById('editField').value = planting.field || '';
+            document.getElementById('editBedFeet').value = planting.bedFeet || '';
+            document.getElementById('editNotes').value = planting.notes || '';
+
+            // Format dates for date inputs (YYYY-MM-DD)
+            const formatForInput = (dateStr) => {
+                if (!dateStr) return '';
+                try {
+                    const date = new Date(dateStr);
+                    if (isNaN(date.getTime())) return '';
+                    return date.toISOString().split('T')[0];
+                } catch (e) {
+                    return '';
+                }
+            };
+
+            document.getElementById('editGHSow').value = formatForInput(planting.planGHSow || planting.seedDate);
+            document.getElementById('editTransplant').value = formatForInput(planting.planTransplant || planting.fieldStartDate);
+            document.getElementById('editFirstHarvest').value = formatForInput(planting.firstHarvest);
+            document.getElementById('editLastHarvest').value = formatForInput(planting.harvestDate || planting.lastHarvest);
+
+            // Update modal icon
+            const icon = cropIcons[planting.crop] || '🌱';
+            document.getElementById('editModalIcon').textContent = icon;
+
+            // Show modal
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            currentEditingPlanting = null;
+        }
+
+        async function saveEditModal() {
+            if (!currentEditingPlanting) return;
+
+            const saveBtn = document.getElementById('editSaveBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const updateData = {
+                    action: 'updatePlanting',
+                    id: document.getElementById('editBatchId').value,
+                    Crop: document.getElementById('editCrop').value,
+                    Variety: document.getElementById('editVariety').value,
+                    Field: document.getElementById('editField').value,
+                    Bed_Feet: document.getElementById('editBedFeet').value,
+                    Notes: document.getElementById('editNotes').value
+                };
+
+                // Add dates with proper formatting
+                const ghSow = document.getElementById('editGHSow').value;
+                const transplant = document.getElementById('editTransplant').value;
+                const firstHarvest = document.getElementById('editFirstHarvest').value;
+                const lastHarvest = document.getElementById('editLastHarvest').value;
+
+                if (ghSow) updateData.Plan_GH_Sow = formatDateForSheet(ghSow);
+                if (transplant) updateData.Plan_Transplant = formatDateForSheet(transplant);
+                if (firstHarvest) updateData.First_Harvest = formatDateForSheet(firstHarvest);
+                if (lastHarvest) updateData.Last_Harvest = formatDateForSheet(lastHarvest);
+
+                const response = await fetch(`${API_URL}?action=updatePlanting`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update local data
+                    currentEditingPlanting.crop = updateData.Crop;
+                    currentEditingPlanting.variety = updateData.Variety;
+                    currentEditingPlanting.field = updateData.Field;
+                    currentEditingPlanting.bedFeet = parseInt(updateData.Bed_Feet) || 0;
+                    currentEditingPlanting.notes = updateData.Notes;
+                    if (ghSow) currentEditingPlanting.planGHSow = ghSow;
+                    if (transplant) currentEditingPlanting.planTransplant = transplant;
+                    if (firstHarvest) currentEditingPlanting.firstHarvest = firstHarvest;
+                    if (lastHarvest) currentEditingPlanting.harvestDate = lastHarvest;
+
+                    closeEditModal();
+                    applyFilters();
+                    showToast('Planting updated successfully!', 'success');
+                } else {
+                    showToast('Failed to update: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error saving planting:', error);
+                showToast('Error saving planting: ' + error.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            }
+        }
+
+        // Close modal on overlay click
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeEditModal();
+        });
 
         // Tooltip
         function showTooltip(event, id) {
