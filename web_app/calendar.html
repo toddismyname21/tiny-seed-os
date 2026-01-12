@@ -269,7 +269,8 @@
         .gantt-container {
             margin-left: 280px;
             padding: 1.5rem;
-            overflow-x: auto;
+            overflow: auto;
+            height: calc(100vh - 140px);
         }
 
         .gantt-wrapper {
@@ -277,7 +278,12 @@
             background: var(--bg-card);
             border-radius: 16px;
             border: 1px solid var(--border);
-            overflow: hidden;
+            overflow: visible;
+        }
+
+        .gantt-body {
+            max-height: none;
+            overflow: visible;
         }
 
         /* Stats Bar */
@@ -2241,6 +2247,21 @@
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
+        // Format date for Google Sheets (M/D/YYYY format)
+        function formatDateForSheet(dateStr) {
+            if (!dateStr) return '';
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return dateStr; // Return as-is if invalid
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const year = date.getFullYear();
+                return `${month}/${day}/${year}`;
+            } catch (e) {
+                return dateStr; // Return as-is if error
+            }
+        }
+
         function getFieldAtPosition(clientY) {
             const fieldRows = document.querySelectorAll('.field-timeline');
             for (const row of fieldRows) {
@@ -2363,26 +2384,26 @@
             try {
                 for (const planting of updates) {
                     // Use correct column names from actual sheet structure
-                    // CASCADE: Update ALL related dates
+                    // CASCADE: Update ALL related dates - auto-format to M/D/YYYY for Google Sheets
                     const updateData = {
                         action: 'updatePlanting',
                         id: planting.id,
                         Batch_ID: planting.id,
                         Target_Bed_ID: planting.bed,
-                        First_Harvest: planting.firstHarvest,
-                        Last_Harvest: planting.harvestDate || planting.lastHarvest
+                        First_Harvest: formatDateForSheet(planting.firstHarvest),
+                        Last_Harvest: formatDateForSheet(planting.harvestDate || planting.lastHarvest)
                     };
 
                     // Update GH Sow date if it exists
                     if (planting.planGHSow) {
-                        updateData.Plan_GH_Sow = planting.planGHSow;
+                        updateData.Plan_GH_Sow = formatDateForSheet(planting.planGHSow);
                     }
 
                     // Update correct field start date based on planting method
                     if (planting.plantingMethod === 'Direct Seed') {
-                        updateData.Plan_Field_Sow = planting.planFieldSow || planting.fieldStartDate;
+                        updateData.Plan_Field_Sow = formatDateForSheet(planting.planFieldSow || planting.fieldStartDate);
                     } else {
-                        updateData.Plan_Transplant = planting.planTransplant || planting.fieldStartDate;
+                        updateData.Plan_Transplant = formatDateForSheet(planting.planTransplant || planting.fieldStartDate);
                     }
 
                     console.log('Saving planting update:', updateData);
