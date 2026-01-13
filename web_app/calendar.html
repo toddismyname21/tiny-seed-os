@@ -291,21 +291,92 @@
             min-height: 0;
         }
 
-        /* The gantt-chart div needs to flex and allow scrolling */
+        /* The gantt-chart uses CSS Grid for sticky headers */
         .gantt-chart {
             flex: 1;
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            grid-template-rows: auto 1fr;
             min-height: 0;
             overflow: hidden;
         }
 
-        /* THE SCROLL CONTAINER - This is where all scrolling happens */
-        .gantt-scroll-container {
-            flex: 1;
+        /* Corner cell - top left, always visible */
+        .gantt-corner {
+            grid-row: 1;
+            grid-column: 1;
+            background: var(--bg-light);
+            border-right: 2px solid var(--border);
+            border-bottom: 2px solid var(--border);
+            padding: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 30;
+        }
+
+        /* Header row - scrolls horizontally only */
+        .gantt-header-scroll {
+            grid-row: 1;
+            grid-column: 2;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            border-bottom: 2px solid var(--border);
+            background: var(--bg-card);
+            z-index: 20;
+        }
+
+        .gantt-header-inner {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Labels column - scrolls vertically only */
+        .gantt-labels-scroll {
+            grid-row: 2;
+            grid-column: 1;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            border-right: 2px solid var(--border);
+            background: var(--bg-card);
+            z-index: 20;
+        }
+
+        /* Main content - scrolls both ways */
+        .gantt-content-scroll {
+            grid-row: 2;
+            grid-column: 2;
             overflow: auto;
             position: relative;
-            min-height: 0;
+        }
+
+        .gantt-content-inner {
+            position: relative;
+        }
+
+        /* Field label in the labels column */
+        .gantt-label {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: var(--bg-card);
+        }
+
+        .gantt-label:nth-child(even) {
+            background: #1a1a2e;
+        }
+
+        /* Timeline row in the content area */
+        .gantt-row {
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .gantt-row:nth-child(even) {
+            background: rgba(0, 0, 0, 0.1);
         }
 
         .gantt-body {
@@ -2146,14 +2217,14 @@
             // Get grouping based on view mode
             let groups, headerIcon, headerLabel, getGroupName, getGroupMeta;
 
-            if (viewMode === 'bed') {
-                // Group by Field + Bed (e.g., "A|1" for Field A Bed 1)
+            if (viewMode === 'bed' || viewMode === 'field') {
+                // Both views group by Field + Bed (e.g., "A|1" for Field A Bed 1)
                 groups = [...new Set(filteredPlantings.map(p => {
                     const bed = p.bed || p.Bed || p.bedNumber || '1';
                     return `${p.field}|${bed}`;
                 }))].filter(b => b).sort();
-                headerIcon = 'fa-th';
-                headerLabel = 'Beds';
+                headerIcon = viewMode === 'field' ? 'fa-map' : 'fa-th';
+                headerLabel = viewMode === 'field' ? 'Fields & Beds' : 'Beds';
                 getGroupName = (group) => {
                     const [field, bed] = group.split('|');
                     return `Field ${field} - Bed ${bed}`;
@@ -2187,30 +2258,17 @@
             const totalDays = Math.ceil((timelineEnd - timelineStart) / (24 * 60 * 60 * 1000));
             const timelineWidth = totalDays * dayWidth;
 
-            // Build header with scroll container for sticky headers
-            let html = `
-                <div class="gantt-scroll-container">
-                    <div class="gantt-header">
-                        <div class="gantt-field-header">
-                            <i class="fas ${headerIcon}"></i> ${headerLabel}
-                        </div>
-                        <div class="gantt-timeline-header" style="width: ${timelineWidth}px;">
-                            <div class="gantt-months-row">
-                                ${generateMonthHeaders(totalDays)}
-                            </div>
-                            <div class="gantt-days-row">
-                                ${generateDayHeaders(totalDays)}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="gantt-body">
-            `;
+            // Build labels HTML and rows HTML separately
+            let labelsHtml = '';
+            let rowsHtml = '';
+            const rowHeights = [];
 
             // Render rows based on view mode
-            groups.forEach(group => {
+            groups.forEach((group, index) => {
                 let groupPlantings;
 
-                if (viewMode === 'bed') {
+                if (viewMode === 'bed' || viewMode === 'field') {
+                    // Both field and bed view show individual beds
                     const [field, bed] = group.split('|');
                     groupPlantings = filteredPlantings.filter(p => {
                         const pBed = p.bed || p.Bed || p.bedNumber || '1';
@@ -2226,31 +2284,83 @@
                 }
 
                 const stackedPlantings = calculateStacking(groupPlantings);
-                const rowHeight = Math.max(80, (stackedPlantings.maxStack + 1) * 44);
+                const rowHeight = Math.max(60, (stackedPlantings.maxStack + 1) * 44);
+                rowHeights.push(rowHeight);
 
-                html += `
-                    <div class="field-row" data-group="${group}" style="min-height: ${rowHeight}px;">
-                        <div class="field-label">
-                            <div class="field-name">${getGroupName(group)}</div>
-                            <div class="field-meta">${getGroupMeta(groupPlantings)}</div>
+                // Label for left column
+                labelsHtml += `
+                    <div class="gantt-label" style="height: ${rowHeight}px;">
+                        <div class="field-name">${getGroupName(group)}</div>
+                        <div class="field-meta">${getGroupMeta(groupPlantings)}</div>
+                    </div>
+                `;
+
+                // Content row
+                rowsHtml += `
+                    <div class="gantt-row" data-group="${group}" style="height: ${rowHeight}px; width: ${timelineWidth}px;">
+                        <div class="timeline-grid">
+                            ${generateGridLines(totalDays)}
                         </div>
-                        <div class="field-timeline" data-group="${group}" style="width: ${timelineWidth}px; min-height: ${rowHeight}px;">
-                            <div class="timeline-grid">
-                                ${generateGridLines(totalDays)}
-                            </div>
-                            ${renderGaps(groupPlantings, getGroupName(group))}
-                            ${renderTodayLine(totalDays)}
-                            ${renderCropBars(stackedPlantings.plantings, group)}
-                        </div>
+                        ${renderGaps(groupPlantings, getGroupName(group))}
+                        ${renderTodayLine(totalDays)}
+                        ${renderCropBars(stackedPlantings.plantings, group)}
                     </div>
                 `;
             });
 
-            html += '</div></div>'; // Close gantt-body and gantt-scroll-container
-            container.innerHTML = html;
+            // Build the grid structure
+            container.innerHTML = `
+                <!-- Corner cell -->
+                <div class="gantt-corner">
+                    <i class="fas ${headerIcon}"></i> ${headerLabel}
+                </div>
+
+                <!-- Header row (date headers) -->
+                <div class="gantt-header-scroll" id="headerScroll">
+                    <div class="gantt-header-inner" style="width: ${timelineWidth}px;">
+                        <div class="gantt-months-row">
+                            ${generateMonthHeaders(totalDays)}
+                        </div>
+                        <div class="gantt-days-row">
+                            ${generateDayHeaders(totalDays)}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Labels column (field/bed names) -->
+                <div class="gantt-labels-scroll" id="labelsScroll">
+                    ${labelsHtml}
+                </div>
+
+                <!-- Main content area -->
+                <div class="gantt-content-scroll" id="contentScroll">
+                    <div class="gantt-content-inner" style="width: ${timelineWidth}px;">
+                        ${rowsHtml}
+                    </div>
+                </div>
+            `;
+
+            // Set up synchronized scrolling
+            setupScrollSync();
 
             // Initialize drag and resize
             initializeInteractions();
+        }
+
+        // Synchronized scrolling for sticky headers
+        function setupScrollSync() {
+            const contentScroll = document.getElementById('contentScroll');
+            const headerScroll = document.getElementById('headerScroll');
+            const labelsScroll = document.getElementById('labelsScroll');
+
+            if (!contentScroll || !headerScroll || !labelsScroll) return;
+
+            contentScroll.addEventListener('scroll', function() {
+                // Sync horizontal scroll with header
+                headerScroll.scrollLeft = contentScroll.scrollLeft;
+                // Sync vertical scroll with labels
+                labelsScroll.scrollTop = contentScroll.scrollTop;
+            });
         }
 
         function generateMonthHeaders(totalDays) {
@@ -3039,9 +3149,11 @@
 
                     console.log('Saving planting update:', updateData);
 
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(updateData)
+                    // Use GET with URL parameters to avoid CORS preflight issues
+                    const params = new URLSearchParams(updateData);
+                    const response = await fetch(`${API_URL}?${params.toString()}`, {
+                        method: 'GET',
+                        redirect: 'follow'
                     });
                     const result = await response.json();
                     console.log('Save response:', result);
@@ -3149,10 +3261,11 @@
                 if (firstHarvest) updateData.First_Harvest = formatDateForSheet(firstHarvest);
                 if (lastHarvest) updateData.Last_Harvest = formatDateForSheet(lastHarvest);
 
-                const response = await fetch(`${API_URL}?action=updatePlanting`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
+                // Use GET with URL parameters to avoid CORS preflight issues
+                const params = new URLSearchParams(updateData);
+                const response = await fetch(`${API_URL}?${params.toString()}`, {
+                    method: 'GET',
+                    redirect: 'follow'
                 });
 
                 const result = await response.json();
