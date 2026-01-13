@@ -6285,18 +6285,14 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    console.log('Amendment task created:', result);
                 } else {
-                    console.log('Task saved locally (API not configured)');
                 }
             } catch (error) {
-                console.log('Task saved locally (API not available):', taskData);
             }
         }
 
         async function checkInventoryAndCreateOrderTasks(recommendations, areaInAcres) {
             // For now, log the inventory check - will connect to actual inventory later
-            console.log('Checking inventory for:', recommendations.map(r => ({
                 material: r.material,
                 needed: r.amount * areaInAcres
             })));
@@ -6947,7 +6943,6 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    console.log(`Synced ${result.count} compliance records to Google Sheets`);
                     // Mark records as synced in localStorage
                     records.forEach(r => {
                         const idx = complianceRecords.findIndex(cr => cr.id === r.id);

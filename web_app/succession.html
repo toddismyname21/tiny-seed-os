@@ -1030,17 +1030,13 @@
                 const response = await fetch(`${API_URL}?action=getCropProfiles`);
                 const data = await response.json();
 
-                console.log('API Response:', data);
 
                 if (data.success && data.data && data.data.length > 0) {
                     // Normalize column names from API data
                     cropProfiles = data.data.map(profile => normalizeProfile(profile));
-                    console.log(`Loaded ${cropProfiles.length} crop profiles from API`);
-                    console.log('Sample profile:', cropProfiles[0]);
                     populateCropDropdown();
                 } else {
                     console.warn('No crop profiles from API, using defaults');
-                    console.log('API data was:', data);
                     loadDefaultProfiles();
                 }
             } catch (error) {
@@ -1126,7 +1122,6 @@
                     loadDefaultBeds();
                 }
             } catch (error) {
-                console.log('Could not load beds, using defaults:', error);
                 loadDefaultBeds();
             }
         }
@@ -1220,7 +1215,6 @@
                 }
             });
 
-            console.log(`Category '${currentCategory}' has ${filteredCrops.length} crops (total: ${cropProfiles.length})`);
 
             // Get unique crop names, filtering out empty values
             const uniqueCrops = [...new Set(filteredCrops.map(p => p.Crop).filter(c => c))].sort();

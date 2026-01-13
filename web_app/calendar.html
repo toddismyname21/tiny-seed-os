@@ -1954,10 +1954,8 @@
                             cropProfileColors[cropName] = colorHex;
                         }
                     });
-                    console.log('Loaded crop colors:', Object.keys(cropProfileColors).length);
                 }
             } catch (error) {
-                console.log('Using default crop colors (API not available)');
             }
         }
 
@@ -1967,28 +1965,20 @@
 
             try {
                 // Use getPlanningData (matches your existing Apps Script)
-                console.log('Fetching from API:', `${API_URL}?action=getPlanningData`);
                 let response = await fetch(`${API_URL}?action=getPlanningData`);
                 let data = await response.json();
 
-                console.log('API Response status:', data.success);
-                console.log('API Data count:', data.data ? data.data.length : 0);
 
                 if (data.success && data.data && data.data.length > 0) {
-                    console.log('Raw data sample (first row):', JSON.stringify(data.data[0], null, 2));
-                    console.log('Raw data headers:', Object.keys(data.data[0]).join(', '));
 
                     const rawCount = data.data.length;
                     plantings = normalizeData(data.data);
-                    console.log(`Normalized ${plantings.length} of ${rawCount} plantings`);
 
                     if (plantings.length > 0) {
-                        console.log('First normalized planting:', JSON.stringify(plantings[0], null, 2));
                         setSyncStatus('synced', `Live: ${plantings.length} plantings`);
                         showToast(`Loaded ${plantings.length} plantings from Google Sheets`, 'success');
                     } else {
                         console.warn('All plantings filtered out - check date fields in your data');
-                        console.log('Sample raw dates from first row:', {
                             Plan_GH_Sow: data.data[0].Plan_GH_Sow,
                             Plan_Transplant: data.data[0].Plan_Transplant,
                             Plan_Field_Sow: data.data[0].Plan_Field_Sow,
@@ -1998,7 +1988,6 @@
                         setSyncStatus('synced', 'Demo (no valid dates)');
                     }
                 } else {
-                    console.log('No data from API:', data.error || 'Unknown reason');
                     plantings = getDemoPlantings();
                     setSyncStatus('synced', 'Demo Mode');
                 }
@@ -2046,7 +2035,6 @@
                 // Estimate missing dates if possible instead of skipping
                 if (!fieldStartDate && !lastHarvest) {
                     // Both dates missing - skip this entry
-                    console.log('Skipping planting - both dates missing:', p.Batch_ID);
                     return null;
                 }
 
@@ -2055,7 +2043,6 @@
                     const estStart = new Date(lastHarvest);
                     estStart.setDate(estStart.getDate() - 60); // Default 60 day crop
                     fieldStartDate = estStart.toISOString().split('T')[0];
-                    console.log('Estimated field start for:', p.Batch_ID, fieldStartDate);
                 }
 
                 // If only harvest is missing, estimate from field start plus typical DTM
@@ -2063,7 +2050,6 @@
                     const estEnd = new Date(fieldStartDate);
                     estEnd.setDate(estEnd.getDate() + 60); // Default 60 day crop
                     lastHarvest = estEnd.toISOString().split('T')[0];
-                    console.log('Estimated last harvest for:', p.Batch_ID, lastHarvest);
                 }
 
                 // Calculate days between key dates for proportional adjustments
@@ -2227,7 +2213,6 @@
                     });
                 }
             });
-            console.log(`Generated ${allBeds.length} beds across ${fields.length} fields`);
 
             // Populate crop filter
             const cropSet = new Set(plantings.map(p => p.crop));
@@ -3502,12 +3487,6 @@
                     // Construct proper Target_Bed_ID format
                     const bedNum = planting.bedNum || (planting.bed ? planting.bed.match(/\d+$/)?.[0] : null) || '01';
                     const properBedId = planting.field ? `Field ${planting.field}-${bedNum}` : planting.bed;
-                    console.log('=== DRAG SAVE ===');
-                    console.log('planting.field:', JSON.stringify(planting.field));
-                    console.log('planting.bed:', JSON.stringify(planting.bed));
-                    console.log('planting.bedNum:', JSON.stringify(planting.bedNum));
-                    console.log('bedNum:', JSON.stringify(bedNum));
-                    console.log('properBedId:', JSON.stringify(properBedId));
 
                     // Use correct column names from actual sheet structure
                     // CASCADE: Update ALL related dates - auto-format to M/D/YYYY for Google Sheets
@@ -3532,7 +3511,6 @@
                         updateData.Plan_Transplant = formatDateForSheet(planting.planTransplant || planting.fieldStartDate);
                     }
 
-                    console.log('Saving planting update:', updateData);
 
                     // Use GET with URL parameters to avoid CORS preflight issues
                     const params = new URLSearchParams(updateData);
@@ -3541,18 +3519,15 @@
                         redirect: 'follow'
                     });
                     const result = await response.json();
-                    console.log('Save response:', result);
 
                     if (!result.success) {
                         console.error('Update failed:', result.error);
                         showToast(`Update failed: ${result.error}`, 'error');
                     } else {
-                        console.log('Updated fields:', result.updatedFields);
                     }
                 }
 
                 setSyncStatus('synced', 'Saved');
-                console.log(`Saved ${saveCount} updates to Google Sheets`);
                 showToast(`Saved ${saveCount} change(s) to Google Sheets`, 'success');
                 updatePendingDisplay();
 
@@ -3709,10 +3684,6 @@
                 const fieldVal = document.getElementById('editField').value;
                 const bedNum = document.getElementById('editBed').value;
                 const targetBedId = fieldVal ? `Field ${fieldVal}-${bedNum || '01'}` : '';
-                console.log('=== EDIT MODAL SAVE ===');
-                console.log('fieldVal:', JSON.stringify(fieldVal));
-                console.log('bedNum:', JSON.stringify(bedNum));
-                console.log('targetBedId:', JSON.stringify(targetBedId));
 
                 const updateData = {
                     action: 'updatePlanting',

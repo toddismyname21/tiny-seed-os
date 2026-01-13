@@ -849,7 +849,6 @@
 
             try {
                 const url = `${API_URL}?action=getGreenhouseSowingTasks&startDate=${startDate}&endDate=${endDate}&category=${currentCategory}`;
-                console.log('Fetching:', url);
                 const response = await fetch(url, {
                     method: 'GET',
                     redirect: 'follow',
@@ -858,7 +857,6 @@
                     }
                 });
                 const data = await response.json();
-                console.log('API Response:', data);
 
                 if (data.success && data.tasks) {
                     tasks = data.tasks || [];
@@ -869,7 +867,6 @@
                     document.getElementById('saveBtn').disabled = tasks.length === 0;
                     showToast(`Loaded ${tasks.length} tasks`, 'success');
                 } else {
-                    console.log('No tasks in response, loading demo. Response was:', data);
                     loadDemoData();
                 }
             } catch (error) {
@@ -1107,7 +1104,6 @@
                 try {
                     await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${batchId}&completed=${completed}`);
                 } catch (e) {
-                    console.log('Could not sync completion status');
                 }
             }
         }
