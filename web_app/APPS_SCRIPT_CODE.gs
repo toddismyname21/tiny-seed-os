@@ -90,6 +90,8 @@ function handleAction(action, params) {
         return getCropProfiles();
       case 'getCropProfile':
         return getCropProfile(params.cropName);
+      case 'updateCropProfile':
+        return updateCropProfile(params);
 
       // Beds
       case 'getBeds':
@@ -139,8 +141,10 @@ function handleAction(action, params) {
           error: `Unknown action: ${action}`,
           availableActions: [
             'testConnection', 'getPlantings', 'getSeedings', 'savePlanting',
-            'getCropProfiles', 'getBeds', 'getTasks', 'generateTasks',
-            'logHarvest', 'getInventory', 'getWeather', 'getDashboardStats'
+            'getCropProfiles', 'getCropProfile', 'updateCropProfile',
+            'getBeds', 'getTasks', 'generateTasks', 'logHarvest',
+            'getInventory', 'getWeather', 'getDashboardStats',
+            'getGreenhouseSowingTasks', 'updateTaskCompletion'
           ]
         };
     }
@@ -418,6 +422,106 @@ function getCropProfile(cropName) {
   return {
     success: !!profile,
     data: profile || null
+  };
+}
+
+/**
+ * Updates a crop profile in REF_CropProfiles
+ * Used by Quick Plant Wizard when user modifies grow settings
+ */
+function updateCropProfile(params) {
+  const ss = SpreadsheetApp.openById(CONFIG.PRODUCTION_SHEET_ID);
+  const sheet = ss.getSheetByName(CONFIG.TABS.CROP_PROFILES);
+
+  if (!sheet) {
+    return {
+      success: false,
+      error: 'REF_CropProfiles sheet not found'
+    };
+  }
+
+  const cropName = params.cropName;
+  const variety = params.variety || '';
+
+  if (!cropName) {
+    return {
+      success: false,
+      error: 'cropName is required'
+    };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  // Find column indices for updatable fields
+  const colIndices = {
+    Crop: headers.indexOf('Crop'),
+    Variety: headers.indexOf('Variety'),
+    DTM: headers.indexOf('DTM'),
+    Spacing: headers.indexOf('Spacing'),
+    Rows_Per_Bed: headers.indexOf('Rows_Per_Bed'),
+    Tray_Cell_Count: headers.indexOf('Tray_Cell_Count'),
+    Nursery_Days: headers.indexOf('Nursery_Days'),
+    Planting_Method: headers.indexOf('Planting_Method')
+  };
+
+  // Find the row matching crop (and variety if provided)
+  let targetRow = -1;
+  for (let i = 1; i < data.length; i++) {
+    const rowCrop = data[i][colIndices.Crop];
+    const rowVariety = colIndices.Variety >= 0 ? data[i][colIndices.Variety] : '';
+
+    if (rowCrop === cropName) {
+      // If variety specified, must match. Otherwise, take first crop match
+      if (variety && rowVariety === variety) {
+        targetRow = i + 1; // +1 for 1-indexed sheet rows
+        break;
+      } else if (!variety) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (targetRow === -1) {
+    return {
+      success: false,
+      error: `Crop profile not found for: ${cropName}${variety ? ' - ' + variety : ''}`
+    };
+  }
+
+  // Update only provided fields
+  const updates = [];
+
+  if (params.dtm !== undefined && colIndices.DTM >= 0) {
+    sheet.getRange(targetRow, colIndices.DTM + 1).setValue(params.dtm);
+    updates.push('DTM');
+  }
+  if (params.spacing !== undefined && colIndices.Spacing >= 0) {
+    sheet.getRange(targetRow, colIndices.Spacing + 1).setValue(params.spacing);
+    updates.push('Spacing');
+  }
+  if (params.rowsPerBed !== undefined && colIndices.Rows_Per_Bed >= 0) {
+    sheet.getRange(targetRow, colIndices.Rows_Per_Bed + 1).setValue(params.rowsPerBed);
+    updates.push('Rows_Per_Bed');
+  }
+  if (params.trayCellCount !== undefined && colIndices.Tray_Cell_Count >= 0) {
+    sheet.getRange(targetRow, colIndices.Tray_Cell_Count + 1).setValue(params.trayCellCount);
+    updates.push('Tray_Cell_Count');
+  }
+  if (params.nurseryDays !== undefined && colIndices.Nursery_Days >= 0) {
+    sheet.getRange(targetRow, colIndices.Nursery_Days + 1).setValue(params.nurseryDays);
+    updates.push('Nursery_Days');
+  }
+  if (params.plantingMethod !== undefined && colIndices.Planting_Method >= 0) {
+    sheet.getRange(targetRow, colIndices.Planting_Method + 1).setValue(params.plantingMethod);
+    updates.push('Planting_Method');
+  }
+
+  return {
+    success: true,
+    message: `Updated ${cropName} profile`,
+    updatedFields: updates
   };
 }
 
