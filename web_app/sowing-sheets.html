@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greenhouse Sowing Sheets - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title i { color: var(--primary-light); }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .sync-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-light);
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .sync-indicator.connected { color: var(--success); }
+        .sync-indicator.syncing { color: var(--warning); }
+        .sync-indicator.error { color: var(--danger); }
+
+        .main-container {
+            padding: 100px 2rem 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .panel-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .panel-title i { color: var(--primary-light); }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.2);
+        }
+
+        .date-range {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Radio Buttons */
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--bg-light);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .radio-option:hover {
+            border-color: var(--primary);
+        }
+
+        .radio-option.selected {
+            background: rgba(45, 90, 39, 0.3);
+            border-color: var(--primary-light);
+        }
+
+        .radio-option input[type="radio"] {
+            accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(45, 90, 39, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-print {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
+            color: white;
+        }
+
+        .btn-print:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(244, 162, 97, 0.3);
+        }
+
+        .btn-block { width: 100%; }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Preview Area */
+        .preview-area {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            min-height: 600px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .preview-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .preview-title i { color: var(--primary-light); }
+
+        /* Sheet Preview */
+        .sheet-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            color: #1a1a1a;
+            min-height: 500px;
+        }
+
+        .sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .sheet-logo {
+            width: 100px;
+            height: auto;
+        }
+
+        .sheet-title-block {
+            text-align: right;
+        }
+
+        .sheet-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .sheet-subtitle {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .summary-box-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        .summary-item:last-child { border-bottom: none; }
+
+        .summary-total {
+            font-weight: 700;
+            background: #e8f5e9;
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        /* Task Table */
+        .task-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .task-table th {
+            background: var(--primary);
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .task-table th:first-child {
+            border-radius: 6px 0 0 0;
+            width: 40px;
+            text-align: center;
+        }
+
+        .task-table th:last-child {
+            border-radius: 0 6px 0 0;
+        }
+
+        .task-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            vertical-align: middle;
+        }
+
+        .task-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .task-table tr:hover {
+            background: #e8f5e9;
+        }
+
+        .task-table tr.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+
+        .task-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .date-group-header {
+            background: #e8f5e9 !important;
+            font-weight: 700;
+        }
+
+        .date-group-header td {
+            padding: 10px;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+
+        /* Germination Notes */
+        .germ-notes {
+            background: #fff8e1;
+            border: 1px solid #ffcc80;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .germ-notes-title {
+            font-weight: 700;
+            color: #e65100;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .germ-note-item {
+            font-size: 0.85rem;
+            padding: 6px 0;
+            border-bottom: 1px solid #ffe0b2;
+        }
+
+        .germ-note-item:last-child { border-bottom: none; }
+
+        .germ-crop {
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .loading i {
+            font-size: 2rem;
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 2000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+
+        /* Category Badges */
+        .category-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .category-badge.veg { background: #c8e6c9; color: #2e7d32; }
+        .category-badge.herb { background: #b2dfdb; color: #00695c; }
+        .category-badge.floral { background: #f8bbd9; color: #ad1457; }
+
+        /* Print Checkbox (for print view) */
+        .print-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #333;
+            border-radius: 3px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </a>
+            <h1 class="page-title">
+                <i class="fas fa-seedling"></i>
+                Greenhouse Sowing Sheets
+            </h1>
+        </div>
+        <div class="header-actions">
+            <div class="sync-indicator connected" id="syncIndicator">
+                <i class="fas fa-circle"></i>
+                <span>Connected</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <!-- Date Range -->
+            <div class="panel-section">
+                <h3 class="panel-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Date Range
+                </h3>
+                <div class="date-range">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" class="form-control" id="startDate">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 0.5rem;">
+                    <button class="btn btn-secondary" style="flex:1; padding: 8px;" onclick="setThisWeek()">This Week</button>
+                    <button class="btn btn-secondary" style="flex:1; padding: 8px;" onclick="setNextWeek()">Next Week</button>
+                </div>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="panel-section">
+                <h3 class="panel-title">
+                    <i class="fas fa-filter"></i>
+                    Category
+                </h3>
+                <div class="radio-group">
+                    <label class="radio-option selected" onclick="selectCategory(this, 'all')">
+                        <input type="radio" name="category" value="all" checked>
+                        <span>All Crops</span>
+                    </label>
+                    <label class="radio-option" onclick="selectCategory(this, 'veg-herb')">
+                        <input type="radio" name="category" value="veg-herb">
+                        <span>Vegetables & Herbs</span>
+                    </label>
+                    <label class="radio-option" onclick="selectCategory(this, 'floral')">
+                        <input type="radio" name="category" value="floral">
+                        <span>Florals</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Sort Order -->
+            <div class="panel-section">
+                <h3 class="panel-title">
+                    <i class="fas fa-sort"></i>
+                    Sort By
+                </h3>
+                <div class="radio-group">
+                    <label class="radio-option selected" onclick="selectSort(this, 'date')">
+                        <input type="radio" name="sortBy" value="date" checked>
+                        <span>Date</span>
+                    </label>
+                    <label class="radio-option" onclick="selectSort(this, 'crop')">
+                        <input type="radio" name="sortBy" value="crop">
+                        <span>Crop</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Load Button -->
+            <div class="panel-section">
+                <button class="btn btn-primary btn-block" onclick="loadTasks()">
+                    <i class="fas fa-download"></i>
+                    Load Tasks
+                </button>
+            </div>
+
+            <!-- Statistics -->
+            <div class="panel-section">
+                <h3 class="panel-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Summary
+                </h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalTasks">0</div>
+                        <div class="stat-label">Tasks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalTrays">0</div>
+                        <div class="stat-label">Trays</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalSeeds">0</div>
+                        <div class="stat-label">Seeds</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statCompleted">0</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Print Button -->
+            <div class="panel-section">
+                <button class="btn btn-print btn-block" onclick="printSheet()" id="printBtn" disabled>
+                    <i class="fas fa-print"></i>
+                    Print Task Sheet
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview Area -->
+        <div class="preview-area">
+            <div class="preview-header">
+                <h2 class="preview-title">
+                    <i class="fas fa-file-alt"></i>
+                    Task Sheet Preview
+                </h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="saveProgress()" id="saveBtn" disabled>
+                        <i class="fas fa-save"></i>
+                        Save Progress
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sheet Content -->
+            <div class="sheet-container" id="sheetContainer">
+                <div class="empty-state">
+                    <i class="fas fa-seedling"></i>
+                    <h3>No Tasks Loaded</h3>
+                    <p>Select a date range and click "Load Tasks" to generate a sowing sheet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Success</span>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+
+        // Farm Logo (base64 or URL)
+        const FARM_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgODAiPjx0ZXh0IHg9IjEwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMmQ1YTI3Ij5UaW55IFNlZWQgRmFybTwvdGV4dD48L3N2Zz4=';
+
+        // State
+        let tasks = [];
+        let summary = {};
+        let currentCategory = 'all';
+        let currentSort = 'date';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setThisWeek();
+        });
+
+        // Date Range Helpers
+        function setThisWeek() {
+            const today = new Date();
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - today.getDay() + 1);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            document.getElementById('startDate').value = formatDateForInput(monday);
+            document.getElementById('endDate').value = formatDateForInput(sunday);
+        }
+
+        function setNextWeek() {
+            const today = new Date();
+            const nextMonday = new Date(today);
+            nextMonday.setDate(today.getDate() - today.getDay() + 8);
+            const nextSunday = new Date(nextMonday);
+            nextSunday.setDate(nextMonday.getDate() + 6);
+
+            document.getElementById('startDate').value = formatDateForInput(nextMonday);
+            document.getElementById('endDate').value = formatDateForInput(nextSunday);
+        }
+
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDateDisplay(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+
+        function formatDateShort(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+        }
+
+        // Category Selection
+        function selectCategory(element, value) {
+            document.querySelectorAll('.radio-group .radio-option').forEach(opt => {
+                if (opt.parentElement === element.parentElement) {
+                    opt.classList.remove('selected');
+                }
+            });
+            element.classList.add('selected');
+            element.querySelector('input').checked = true;
+            currentCategory = value;
+        }
+
+        // Sort Selection
+        function selectSort(element, value) {
+            document.querySelectorAll('[name="sortBy"]').forEach(radio => {
+                radio.closest('.radio-option').classList.remove('selected');
+            });
+            element.classList.add('selected');
+            element.querySelector('input').checked = true;
+            currentSort = value;
+            if (tasks.length > 0) {
+                renderSheet();
+            }
+        }
+
+        // Load Tasks from API
+        async function loadTasks() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!startDate || !endDate) {
+                showToast('Please select a date range', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const url = `${API_URL}?action=getGreenhouseSowingTasks&startDate=${startDate}&endDate=${endDate}&category=${currentCategory}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    tasks = data.data.tasks || [];
+                    summary = data.data.summary || {};
+                    renderSheet();
+                    updateStats();
+                    document.getElementById('printBtn').disabled = tasks.length === 0;
+                    document.getElementById('saveBtn').disabled = tasks.length === 0;
+                    showToast(`Loaded ${tasks.length} tasks`, 'success');
+                } else {
+                    // Load demo data for testing
+                    loadDemoData();
+                }
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+                loadDemoData();
+            }
+        }
+
+        // Demo Data
+        function loadDemoData() {
+            const startDate = document.getElementById('startDate').value;
+            tasks = [
+                { batchId: '26-LET-001', crop: 'Lettuce', variety: 'Salanova Formula Mix', category: 'Veg', ghSowDate: startDate, trays: 4, cellsPerTray: 128, seedsNeeded: 538, bed: 'M-09', germTemp: '65-70F', germInstructions: 'Surface sow, light required for germination', completed: false },
+                { batchId: '26-TOM-001', crop: 'Tomato', variety: 'Cherokee Purple', category: 'Veg', ghSowDate: startDate, trays: 2, cellsPerTray: 72, seedsNeeded: 151, bed: 'A-12', germTemp: '80-85F', germInstructions: 'Bottom heat recommended, cover until emergence', completed: false },
+                { batchId: '26-BAS-001', crop: 'Basil', variety: 'Genovese', category: 'Herb', ghSowDate: startDate, trays: 3, cellsPerTray: 72, seedsNeeded: 227, bed: 'GH-01', germTemp: '75-80F', germInstructions: 'Surface sow, needs light and warmth', completed: true },
+                { batchId: '26-PEP-001', crop: 'Pepper', variety: 'Jimmy Nardello', category: 'Veg', ghSowDate: startDate, trays: 2, cellsPerTray: 50, seedsNeeded: 105, bed: 'A-08', germTemp: '80-85F', germInstructions: 'Bottom heat essential, slow germination (10-14 days)', completed: false },
+                { batchId: '26-ZIN-001', crop: 'Zinnia', variety: 'Benary Giant Mix', category: 'Floral', ghSowDate: startDate, trays: 3, cellsPerTray: 72, seedsNeeded: 227, bed: 'F-01', germTemp: '70-75F', germInstructions: 'Cover seeds, germinates in 5-7 days', completed: false },
+                { batchId: '26-KAL-001', crop: 'Kale', variety: 'Lacinato', category: 'Veg', ghSowDate: startDate, trays: 2, cellsPerTray: 128, seedsNeeded: 269, bed: 'M-15', germTemp: '65-75F', germInstructions: 'Germinates best in cool conditions', completed: false }
+            ];
+
+            summary = {
+                totalTrays: 16,
+                traysBySize: { '128': 6, '72': 8, '50': 2 },
+                seedsNeeded: [
+                    { crop: 'Lettuce', variety: 'Salanova Formula Mix', seeds: 538 },
+                    { crop: 'Kale', variety: 'Lacinato', seeds: 269 },
+                    { crop: 'Basil', variety: 'Genovese', seeds: 227 },
+                    { crop: 'Zinnia', variety: 'Benary Giant Mix', seeds: 227 },
+                    { crop: 'Tomato', variety: 'Cherokee Purple', seeds: 151 },
+                    { crop: 'Pepper', variety: 'Jimmy Nardello', seeds: 105 }
+                ],
+                uniqueCrops: 6
+            };
+
+            renderSheet();
+            updateStats();
+            document.getElementById('printBtn').disabled = false;
+            document.getElementById('saveBtn').disabled = false;
+            showToast('Loaded demo data (API not connected)', 'warning');
+        }
+
+        // Update Statistics
+        function updateStats() {
+            document.getElementById('statTotalTasks').textContent = tasks.length;
+            document.getElementById('statTotalTrays').textContent = summary.totalTrays || tasks.reduce((sum, t) => sum + t.trays, 0);
+            document.getElementById('statTotalSeeds').textContent = (summary.seedsNeeded || []).reduce((sum, s) => sum + s.seeds, 0).toLocaleString();
+            document.getElementById('statCompleted').textContent = tasks.filter(t => t.completed).length;
+        }
+
+        // Show Loading State
+        function showLoading() {
+            document.getElementById('sheetContainer').innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p style="margin-top: 1rem; color: #666;">Loading tasks...</p>
+                </div>
+            `;
+        }
+
+        // Render Sheet
+        function renderSheet() {
+            if (tasks.length === 0) {
+                document.getElementById('sheetContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <h3>No Tasks Found</h3>
+                        <p>No greenhouse sowing tasks found for the selected date range.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort tasks
+            let sortedTasks = [...tasks];
+            if (currentSort === 'date') {
+                sortedTasks.sort((a, b) => new Date(a.ghSowDate) - new Date(b.ghSowDate) || a.crop.localeCompare(b.crop));
+            } else {
+                sortedTasks.sort((a, b) => a.crop.localeCompare(b.crop) || new Date(a.ghSowDate) - new Date(b.ghSowDate));
+            }
+
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            let html = `
+                <div class="sheet-header">
+                    <img src="${FARM_LOGO}" alt="Tiny Seed Farm" class="sheet-logo">
+                    <div class="sheet-title-block">
+                        <div class="sheet-title">GREENHOUSE SOWING TASKS</div>
+                        <div class="sheet-subtitle">${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}</div>
+                    </div>
+                </div>
+
+                <div class="summary-section">
+                    <div class="summary-box">
+                        <div class="summary-box-title">Tray Counts</div>
+                        ${Object.entries(summary.traysBySize || {}).map(([size, count]) => `
+                            <div class="summary-item">
+                                <span>${size}-cell trays</span>
+                                <span>${count}</span>
+                            </div>
+                        `).join('')}
+                        <div class="summary-item summary-total">
+                            <span>TOTAL TRAYS</span>
+                            <span>${summary.totalTrays || 0}</span>
+                        </div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="summary-box-title">Seeds Needed</div>
+                        ${(summary.seedsNeeded || []).slice(0, 6).map(s => `
+                            <div class="summary-item">
+                                <span>${s.crop} (${s.variety.substring(0, 15)}${s.variety.length > 15 ? '...' : ''})</span>
+                                <span>${s.seeds.toLocaleString()}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <table class="task-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-check"></i></th>
+                            <th>Date</th>
+                            <th>Crop</th>
+                            <th>Variety</th>
+                            <th>Trays</th>
+                            <th>Cells</th>
+                            <th>Bed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            // Group by date or render flat
+            if (currentSort === 'date') {
+                let currentDate = '';
+                sortedTasks.forEach(task => {
+                    if (task.ghSowDate !== currentDate) {
+                        currentDate = task.ghSowDate;
+                        html += `
+                            <tr class="date-group-header">
+                                <td colspan="7"><i class="fas fa-calendar-day"></i> ${formatDateDisplay(currentDate)}</td>
+                            </tr>
+                        `;
+                    }
+                    html += renderTaskRow(task);
+                });
+            } else {
+                let currentCrop = '';
+                sortedTasks.forEach(task => {
+                    if (task.crop !== currentCrop) {
+                        currentCrop = task.crop;
+                        html += `
+                            <tr class="date-group-header">
+                                <td colspan="7"><i class="fas fa-leaf"></i> ${currentCrop}</td>
+                            </tr>
+                        `;
+                    }
+                    html += renderTaskRow(task);
+                });
+            }
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            // Germination Notes
+            const uniqueGermNotes = [...new Map(tasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
+            if (uniqueGermNotes.length > 0) {
+                html += `
+                    <div class="germ-notes">
+                        <div class="germ-notes-title">
+                            <i class="fas fa-temperature-high"></i>
+                            Germination Notes
+                        </div>
+                        ${uniqueGermNotes.map(t => `
+                            <div class="germ-note-item">
+                                <span class="germ-crop">${t.crop}:</span> ${t.germTemp ? `${t.germTemp} - ` : ''}${t.germInstructions}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            document.getElementById('sheetContainer').innerHTML = html;
+        }
+
+        function renderTaskRow(task) {
+            const categoryClass = task.category === 'Floral' ? 'floral' : (task.category === 'Herb' ? 'herb' : 'veg');
+            return `
+                <tr class="${task.completed ? 'completed' : ''}" data-batch-id="${task.batchId}">
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${task.batchId}', this.checked)">
+                    </td>
+                    <td>${formatDateShort(task.ghSowDate)}</td>
+                    <td>
+                        ${task.crop}
+                        <span class="category-badge ${categoryClass}">${task.category || 'Veg'}</span>
+                    </td>
+                    <td>${task.variety}</td>
+                    <td><strong>${task.trays}</strong></td>
+                    <td>${task.cellsPerTray}</td>
+                    <td>${task.bed || '-'}</td>
+                </tr>
+            `;
+        }
+
+        // Toggle Task Completion
+        async function toggleTask(batchId, completed) {
+            const task = tasks.find(t => t.batchId === batchId);
+            if (task) {
+                task.completed = completed;
+
+                // Update row styling
+                const row = document.querySelector(`tr[data-batch-id="${batchId}"]`);
+                if (row) {
+                    row.classList.toggle('completed', completed);
+                }
+
+                // Update stats
+                updateStats();
+
+                // Try to sync with API
+                try {
+                    await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${batchId}&completed=${completed}`);
+                } catch (e) {
+                    console.log('Could not sync completion status');
+                }
+            }
+        }
+
+        // Save Progress
+        async function saveProgress() {
+            showToast('Saving progress...', 'warning');
+
+            try {
+                for (const task of tasks) {
+                    if (task.completed) {
+                        await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${task.batchId}&completed=true`);
+                    }
+                }
+                showToast('Progress saved!', 'success');
+            } catch (error) {
+                showToast('Could not save - check connection', 'error');
+            }
+        }
+
+        // Print Sheet
+        function printSheet() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            // Sort tasks for print
+            let sortedTasks = [...tasks];
+            if (currentSort === 'date') {
+                sortedTasks.sort((a, b) => new Date(a.ghSowDate) - new Date(b.ghSowDate) || a.crop.localeCompare(b.crop));
+            } else {
+                sortedTasks.sort((a, b) => a.crop.localeCompare(b.crop));
+            }
+
+            const printWindow = window.open('', '_blank', 'width=850,height=1100');
+
+            let taskRows = '';
+            if (currentSort === 'date') {
+                let currentDate = '';
+                sortedTasks.forEach(task => {
+                    if (task.ghSowDate !== currentDate) {
+                        currentDate = task.ghSowDate;
+                        taskRows += `
+                            <tr class="date-group">
+                                <td colspan="7" style="background: #e8f5e9; font-weight: 700; color: #2d5a27;">
+                                    ${formatDateDisplay(currentDate)}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    taskRows += printTaskRow(task);
+                });
+            } else {
+                let currentCrop = '';
+                sortedTasks.forEach(task => {
+                    if (task.crop !== currentCrop) {
+                        currentCrop = task.crop;
+                        taskRows += `
+                            <tr class="date-group">
+                                <td colspan="7" style="background: #e8f5e9; font-weight: 700; color: #2d5a27;">
+                                    ${currentCrop}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    taskRows += printTaskRow(task);
+                });
+            }
+
+            // Germination notes
+            const uniqueGermNotes = [...new Map(tasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
+            let germNotesHTML = '';
+            if (uniqueGermNotes.length > 0) {
+                germNotesHTML = `
+                    <div style="background: #fff8e1; border: 1px solid #ffcc80; border-radius: 6px; padding: 12px; margin-top: 20px;">
+                        <div style="font-weight: 700; color: #e65100; margin-bottom: 8px;">GERMINATION NOTES</div>
+                        ${uniqueGermNotes.map(t => `
+                            <div style="font-size: 10pt; padding: 4px 0; border-bottom: 1px solid #ffe0b2;">
+                                <strong>${t.crop}:</strong> ${t.germTemp ? `${t.germTemp} - ` : ''}${t.germInstructions}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            const printContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Greenhouse Sowing Tasks - ${formatDateDisplay(startDate)}</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+                    <style>
+                        @page {
+                            size: letter portrait;
+                            margin: 0.5in;
+                        }
+
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+                        body {
+                            font-family: 'Inter', Arial, sans-serif;
+                            font-size: 11pt;
+                            line-height: 1.4;
+                            color: #1a1a1a;
+                            background: #ffffff;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+
+                        .header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-bottom: 3px solid #2d5a27;
+                            padding-bottom: 12px;
+                            margin-bottom: 20px;
+                        }
+
+                        .logo { width: 120px; height: auto; }
+
+                        .title-block { text-align: right; }
+
+                        .title {
+                            font-size: 18pt;
+                            font-weight: 700;
+                            color: #2d5a27;
+                        }
+
+                        .subtitle {
+                            font-size: 10pt;
+                            color: #666;
+                            margin-top: 4px;
+                        }
+
+                        .summary-grid {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 16px;
+                            margin-bottom: 20px;
+                        }
+
+                        .summary-box {
+                            border: 1px solid #ddd;
+                            border-radius: 6px;
+                            padding: 12px;
+                            background: #f8f9fa;
+                        }
+
+                        .summary-title {
+                            font-weight: 700;
+                            font-size: 9pt;
+                            color: #2d5a27;
+                            margin-bottom: 8px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+
+                        .summary-row {
+                            display: flex;
+                            justify-content: space-between;
+                            padding: 4px 0;
+                            font-size: 10pt;
+                            border-bottom: 1px solid #eee;
+                        }
+
+                        .summary-row:last-child { border-bottom: none; }
+
+                        .summary-total {
+                            font-weight: 700;
+                            background: #e8f5e9;
+                            padding: 6px;
+                            border-radius: 4px;
+                            margin-top: 6px;
+                        }
+
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 10pt;
+                        }
+
+                        th {
+                            background: #2d5a27;
+                            color: white;
+                            padding: 10px 8px;
+                            text-align: left;
+                            font-weight: 600;
+                        }
+
+                        th:first-child { border-radius: 4px 0 0 0; width: 35px; }
+                        th:last-child { border-radius: 0 4px 0 0; }
+
+                        td {
+                            padding: 8px;
+                            border-bottom: 1px solid #e0e0e0;
+                        }
+
+                        tr:nth-child(even) { background: #f9f9f9; }
+
+                        .checkbox {
+                            width: 16px;
+                            height: 16px;
+                            border: 2px solid #333;
+                            border-radius: 3px;
+                            display: inline-block;
+                        }
+
+                        .footer {
+                            margin-top: 30px;
+                            padding-top: 10px;
+                            border-top: 1px solid #ddd;
+                            font-size: 9pt;
+                            color: #666;
+                            text-align: center;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <img src="${FARM_LOGO}" alt="Tiny Seed Farm" class="logo">
+                        <div class="title-block">
+                            <div class="title">GREENHOUSE SOWING TASKS</div>
+                            <div class="subtitle">${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}</div>
+                            <div class="subtitle">Printed: ${new Date().toLocaleDateString()}</div>
+                        </div>
+                    </div>
+
+                    <div class="summary-grid">
+                        <div class="summary-box">
+                            <div class="summary-title">Tray Counts</div>
+                            ${Object.entries(summary.traysBySize || {}).map(([size, count]) => `
+                                <div class="summary-row">
+                                    <span>${size}-cell trays</span>
+                                    <span>${count}</span>
+                                </div>
+                            `).join('')}
+                            <div class="summary-row summary-total">
+                                <span>TOTAL TRAYS</span>
+                                <span>${summary.totalTrays || 0}</span>
+                            </div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-title">Seeds Needed</div>
+                            ${(summary.seedsNeeded || []).slice(0, 6).map(s => `
+                                <div class="summary-row">
+                                    <span>${s.crop}</span>
+                                    <span>${s.seeds.toLocaleString()}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="text-align: center;">Done</th>
+                                <th>Date</th>
+                                <th>Crop</th>
+                                <th>Variety</th>
+                                <th>Trays</th>
+                                <th>Cells</th>
+                                <th>Destination</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${taskRows}
+                        </tbody>
+                    </table>
+
+                    ${germNotesHTML}
+
+                    <div class="footer">
+                        Generated by Tiny Seed OS | ${tasks.length} tasks | ${summary.totalTrays || 0} trays total
+                    </div>
+
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() { window.print(); }, 300);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+        }
+
+        function printTaskRow(task) {
+            return `
+                <tr>
+                    <td style="text-align: center;"><div class="checkbox"></div></td>
+                    <td>${formatDateShort(task.ghSowDate)}</td>
+                    <td>${task.crop}</td>
+                    <td>${task.variety}</td>
+                    <td style="font-weight: 600;">${task.trays}</td>
+                    <td>${task.cellsPerTray}</td>
+                    <td>${task.bed || '-'}</td>
+                </tr>
+            `;
+        }
+
+        // Toast Notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('i');
+
+            toast.className = `toast ${type}`;
+            icon.className = type === 'success' ? 'fas fa-check-circle' :
+                            type === 'error' ? 'fas fa-exclamation-circle' :
+                            'fas fa-info-circle';
+
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

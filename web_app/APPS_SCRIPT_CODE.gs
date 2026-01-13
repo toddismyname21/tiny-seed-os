@@ -127,6 +127,12 @@ function handleAction(action, params) {
       case 'getDashboardStats':
         return getDashboardStats();
 
+      // Sowing Task Sheets
+      case 'getGreenhouseSowingTasks':
+        return getGreenhouseSowingTasks(params);
+      case 'updateTaskCompletion':
+        return updateTaskCompletion(params);
+
       default:
         return {
           success: false,
@@ -858,6 +864,220 @@ function formatDate(date) {
   if (!date) return '';
   const d = new Date(date);
   return d.toISOString().split('T')[0];
+}
+
+// ========================================
+// SOWING TASK SHEETS
+// ========================================
+
+function getGreenhouseSowingTasks(params) {
+  const ss = SpreadsheetApp.openById(CONFIG.PRODUCTION_SHEET_ID);
+  const planningSheet = ss.getSheetByName(CONFIG.TABS.PLANNING);
+
+  if (!planningSheet) {
+    return { success: false, error: 'Planning sheet not found' };
+  }
+
+  // Get planning data
+  const planningData = planningSheet.getDataRange().getValues();
+  const headers = planningData[0];
+
+  // Find column indices
+  const cols = {
+    batchId: headers.indexOf('Batch_ID'),
+    crop: headers.indexOf('Crop'),
+    variety: headers.indexOf('Variety'),
+    ghSow: headers.indexOf('Plan_GH_Sow') >= 0 ? headers.indexOf('Plan_GH_Sow') : headers.indexOf('ghSow'),
+    transplant: headers.indexOf('Plan_Transplant') >= 0 ? headers.indexOf('Plan_Transplant') : headers.indexOf('transplant'),
+    trays: headers.indexOf('Trays'),
+    cellsPerTray: headers.indexOf('CellsPerTray') >= 0 ? headers.indexOf('CellsPerTray') : headers.indexOf('Cells_Per_Tray'),
+    bed: headers.indexOf('Bed') >= 0 ? headers.indexOf('Bed') : headers.indexOf('Field'),
+    category: headers.indexOf('Category'),
+    completed: headers.indexOf('SowingComplete'),
+    completedBy: headers.indexOf('CompletedBy'),
+    completedAt: headers.indexOf('CompletedAt')
+  };
+
+  // Parse date range
+  const startDate = params.startDate ? new Date(params.startDate) : new Date();
+  const endDate = params.endDate ? new Date(params.endDate) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const categoryFilter = params.category || 'all';
+
+  // Try to get crop profiles for germination info
+  let profileMap = {};
+  try {
+    const profilesSheet = ss.getSheetByName(CONFIG.TABS.CROP_PROFILES);
+    if (profilesSheet) {
+      const profilesData = profilesSheet.getDataRange().getValues();
+      const profileHeaders = profilesData[0];
+      const cropNameCol = profileHeaders.indexOf('Crop_Name') >= 0 ? profileHeaders.indexOf('Crop_Name') : profileHeaders.indexOf('Crop');
+      const categoryCol = profileHeaders.indexOf('Primary_Category') >= 0 ? profileHeaders.indexOf('Primary_Category') : profileHeaders.indexOf('Category');
+      const germTempCol = profileHeaders.indexOf('Germ_Temp_F');
+      const germInstrCol = profileHeaders.indexOf('Germination_Instructions');
+      const cellCountCol = profileHeaders.indexOf('Tray_Cell_Count');
+
+      for (let i = 1; i < profilesData.length; i++) {
+        const row = profilesData[i];
+        const cropName = row[cropNameCol];
+        if (cropName) {
+          profileMap[cropName] = {
+            category: row[categoryCol] || 'Veg',
+            germTemp: germTempCol >= 0 ? row[germTempCol] : '',
+            germInstructions: germInstrCol >= 0 ? row[germInstrCol] : '',
+            defaultCells: cellCountCol >= 0 ? row[cellCountCol] : 128
+          };
+        }
+      }
+    }
+  } catch (e) {
+    // Continue without profiles
+  }
+
+  // Process tasks
+  const tasks = [];
+  const traysBySize = {};
+  const seedsByVariety = {};
+
+  for (let i = 1; i < planningData.length; i++) {
+    const row = planningData[i];
+
+    // Get GH sow date
+    const ghSowRaw = cols.ghSow >= 0 ? row[cols.ghSow] : null;
+    if (!ghSowRaw) continue;
+
+    const ghSowDate = new Date(ghSowRaw);
+    if (isNaN(ghSowDate.getTime())) continue;
+
+    // Date filter
+    if (ghSowDate < startDate || ghSowDate > endDate) continue;
+
+    const crop = cols.crop >= 0 ? row[cols.crop] : '';
+    const profile = profileMap[crop] || {};
+    const category = (cols.category >= 0 && row[cols.category]) ? row[cols.category] : (profile.category || 'Veg');
+
+    // Category filter
+    if (categoryFilter !== 'all') {
+      if (categoryFilter === 'veg-herb' && category === 'Floral') continue;
+      if (categoryFilter === 'floral' && category !== 'Floral') continue;
+    }
+
+    const variety = cols.variety >= 0 ? row[cols.variety] : '';
+    const trays = cols.trays >= 0 ? (parseInt(row[cols.trays]) || 1) : 1;
+    const cellsPerTray = cols.cellsPerTray >= 0 ? (parseInt(row[cols.cellsPerTray]) || profile.defaultCells || 128) : 128;
+    const totalCells = trays * cellsPerTray;
+    const seedsNeeded = Math.ceil(totalCells * 1.05); // 5% buffer
+
+    tasks.push({
+      batchId: cols.batchId >= 0 ? row[cols.batchId] : `ROW-${i}`,
+      crop: crop,
+      variety: variety,
+      category: category,
+      ghSowDate: formatDate(ghSowDate),
+      transplantDate: cols.transplant >= 0 ? formatDate(row[cols.transplant]) : '',
+      trays: trays,
+      cellsPerTray: cellsPerTray,
+      totalCells: totalCells,
+      seedsNeeded: seedsNeeded,
+      bed: cols.bed >= 0 ? row[cols.bed] : '',
+      germTemp: profile.germTemp || '',
+      germInstructions: profile.germInstructions || '',
+      completed: cols.completed >= 0 ? (row[cols.completed] === true || row[cols.completed] === 'TRUE') : false,
+      completedBy: cols.completedBy >= 0 ? row[cols.completedBy] : null,
+      completedAt: cols.completedAt >= 0 ? row[cols.completedAt] : null
+    });
+
+    // Aggregate statistics
+    const sizeKey = String(cellsPerTray);
+    traysBySize[sizeKey] = (traysBySize[sizeKey] || 0) + trays;
+
+    const varietyKey = `${crop}|${variety}`;
+    seedsByVariety[varietyKey] = (seedsByVariety[varietyKey] || 0) + seedsNeeded;
+  }
+
+  // Sort tasks by date, then crop
+  tasks.sort((a, b) => {
+    const dateCompare = new Date(a.ghSowDate) - new Date(b.ghSowDate);
+    if (dateCompare !== 0) return dateCompare;
+    return a.crop.localeCompare(b.crop);
+  });
+
+  // Format seeds needed summary
+  const seedsNeeded = Object.entries(seedsByVariety).map(([key, seeds]) => {
+    const [crop, variety] = key.split('|');
+    return { crop, variety, seeds };
+  }).sort((a, b) => b.seeds - a.seeds);
+
+  // Calculate total trays
+  const totalTrays = Object.values(traysBySize).reduce((a, b) => a + b, 0);
+
+  return {
+    success: true,
+    data: {
+      tasks: tasks,
+      summary: {
+        totalTrays: totalTrays,
+        traysBySize: traysBySize,
+        seedsNeeded: seedsNeeded,
+        uniqueCrops: new Set(tasks.map(t => t.crop)).size,
+        dateRange: {
+          start: formatDate(startDate),
+          end: formatDate(endDate)
+        }
+      }
+    },
+    timestamp: new Date().toISOString()
+  };
+}
+
+function updateTaskCompletion(params) {
+  const ss = SpreadsheetApp.openById(CONFIG.PRODUCTION_SHEET_ID);
+  const sheet = ss.getSheetByName(CONFIG.TABS.PLANNING);
+
+  if (!sheet) {
+    return { success: false, error: 'Planning sheet not found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const batchIdCol = headers.indexOf('Batch_ID');
+  let completedCol = headers.indexOf('SowingComplete');
+  let completedByCol = headers.indexOf('CompletedBy');
+  let completedAtCol = headers.indexOf('CompletedAt');
+
+  // If columns don't exist, we can't update (but still return success)
+  if (batchIdCol < 0) {
+    return { success: false, error: 'Batch_ID column not found' };
+  }
+
+  const searchId = params.batchId || params.id;
+  const completed = params.completed === 'true' || params.completed === true;
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][batchIdCol] === searchId) {
+      // Update completion status if column exists
+      if (completedCol >= 0) {
+        sheet.getRange(i + 1, completedCol + 1).setValue(completed);
+      }
+      if (completedByCol >= 0 && params.completedBy) {
+        sheet.getRange(i + 1, completedByCol + 1).setValue(params.completedBy);
+      }
+      if (completedAtCol >= 0) {
+        sheet.getRange(i + 1, completedAtCol + 1).setValue(completed ? new Date().toISOString() : '');
+      }
+
+      return {
+        success: true,
+        message: `Task ${searchId} marked as ${completed ? 'complete' : 'incomplete'}`
+      };
+    }
+  }
+
+  return {
+    success: false,
+    error: 'Task not found',
+    searchId: searchId
+  };
 }
 
 // ========================================
