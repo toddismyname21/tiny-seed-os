@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soil Test Tracker - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #7c3aed;
+        }
+
+        .btn-primary:hover {
+            background: #f1f5f9;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 0.75rem;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: #7c3aed;
+            background: #f5f3ff;
+        }
+
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            cursor: pointer;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: #7c3aed;
+        }
+
+        .tab.active {
+            color: #7c3aed;
+            background: #f5f3ff;
+            border-bottom: 2px solid #7c3aed;
+            margin-bottom: -2px;
+        }
+
+        /* Soil Test Cards */
+        .tests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .test-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .test-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .test-card-header {
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            color: white;
+            padding: 1rem 1.25rem;
+        }
+
+        .test-card-header h3 {
+            font-size: 1.125rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .test-card-header .date {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .test-card-body {
+            padding: 1.25rem;
+        }
+
+        .test-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .test-stat {
+            text-align: center;
+        }
+
+        .test-stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .test-stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        /* Base Saturation Bar */
+        .base-sat-bar {
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .base-sat-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.625rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .base-sat-ca { background: #3b82f6; }
+        .base-sat-mg { background: #10b981; }
+        .base-sat-k { background: #f59e0b; }
+        .base-sat-na { background: #ef4444; }
+        .base-sat-h { background: #6b7280; }
+
+        /* Detail Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 1rem;
+            max-width: 900px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.25rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        /* Data Entry Form */
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .form-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7c3aed;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
+        }
+
+        .form-group label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .form-group input, .form-group select {
+            padding: 0.625rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        /* Ideal Ranges Table */
+        .ranges-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .ranges-table th, .ranges-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .ranges-table th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-low { background: #ef4444; }
+        .status-optimal { background: #10b981; }
+        .status-high { background: #f59e0b; }
+
+        /* Compare View */
+        .compare-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .compare-column {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .compare-header {
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #7c3aed;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #1e293b;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            z-index: 1001;
+        }
+
+        .toast.success { background: #10b981; }
+        .toast.error { background: #ef4444; }
+        .toast.show { display: block; }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Parsing Preview */
+        .parse-preview {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .parse-preview h4 {
+            margin-bottom: 1rem;
+            color: #7c3aed;
+        }
+
+        .parse-sample {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .parse-sample h5 {
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>
+            <span>🧪</span>
+            Soil Test Tracker
+        </h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="showManualEntry()">+ Manual Entry</button>
+            <button class="btn btn-primary" onclick="window.location.href='index.html'">Dashboard</button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="upload-zone" id="uploadZone">
+                <input type="file" id="pdfInput" accept=".pdf" />
+                <div class="upload-icon">📄</div>
+                <p class="upload-text">Drop Logan Labs PDF here or click to upload</p>
+                <p class="upload-hint">We'll automatically extract the soil test data</p>
+            </div>
+            <div id="parsePreview" style="display: none;"></div>
+        </section>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" data-tab="current" onclick="switchTab('current')">Current Tests</div>
+            <div class="tab" data-tab="archived" onclick="switchTab('archived')">Archived</div>
+            <div class="tab" data-tab="compare" onclick="switchTab('compare')">Compare</div>
+            <div class="tab" data-tab="amendments" onclick="switchTab('amendments')">Amendment Calculator</div>
+        </div>
+
+        <!-- Tests Grid -->
+        <div id="testsContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading soil tests...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Soil Test Details</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Manual Entry Modal -->
+    <div class="modal-overlay" id="entryModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Add Soil Test</h2>
+                <button class="modal-close" onclick="closeEntryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="soilTestForm" onsubmit="saveSoilTest(event)">
+                    <!-- Basic Info -->
+                    <div class="form-section">
+                        <h3>Sample Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Sample Location / Field</label>
+                                <input type="text" id="sampleLocation" required placeholder="e.g., KRET-O or Field 3">
+                            </div>
+                            <div class="form-group">
+                                <label>Test Date</label>
+                                <input type="date" id="testDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Lab Number</label>
+                                <input type="text" id="labNumber" placeholder="e.g., 77">
+                            </div>
+                            <div class="form-group">
+                                <label>Sample Depth (inches)</label>
+                                <input type="number" id="sampleDepth" value="6" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Basic Soil Properties -->
+                    <div class="form-section">
+                        <h3>Basic Properties</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>pH</label>
+                                <input type="number" id="ph" step="0.1" min="0" max="14" required>
+                            </div>
+                            <div class="form-group">
+                                <label>CEC / TEC (M.E.)</label>
+                                <input type="number" id="cec" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Organic Matter (%)</label>
+                                <input type="number" id="organicMatter" step="0.01" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anions -->
+                    <div class="form-section">
+                        <h3>Anions</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Sulfur (ppm)</label>
+                                <input type="number" id="sulfur" step="0.1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Phosphorus P2O5 (lbs/acre)</label>
+                                <input type="number" id="phosphorus" step="1" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exchangeable Cations -->
+                    <div class="form-section">
+                        <h3>Exchangeable Cations (lbs/acre)</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Calcium - Desired</label>
+                                <input type="number" id="caDesired" step="1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Calcium - Found</label>
+                                <input type="number" id="caFound" step="1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Magnesium - Desired</label>
+                                <input type="number" id="mgDesired" step="1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Magnesium - Found</label>
+                                <input type="number" id="mgFound" step="1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Potassium - Desired</label>
+                                <input type="number" id="kDesired" step="1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Potassium - Found</label>
+                                <input type="number" id="kFound" step="1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Sodium (lbs/acre)</label>
+                                <input type="number" id="sodium" step="1" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Base Saturation -->
+                    <div class="form-section">
+                        <h3>Base Saturation (%)</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Calcium % (ideal 60-70%)</label>
+                                <input type="number" id="caPct" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Magnesium % (ideal 10-20%)</label>
+                                <input type="number" id="mgPct" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Potassium % (ideal 2-5%)</label>
+                                <input type="number" id="kPct" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Sodium % (ideal 0.5-3%)</label>
+                                <input type="number" id="naPct" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Other Bases %</label>
+                                <input type="number" id="otherPct" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Hydrogen % (ideal 10-15%)</label>
+                                <input type="number" id="hPct" step="0.01" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trace Elements -->
+                    <div class="form-section">
+                        <h3>Trace Elements (ppm)</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Boron</label>
+                                <input type="number" id="boron" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Iron</label>
+                                <input type="number" id="iron" step="0.1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Manganese</label>
+                                <input type="number" id="manganese" step="0.1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Copper</label>
+                                <input type="number" id="copper" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Zinc</label>
+                                <input type="number" id="zinc" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Aluminum</label>
+                                <input type="number" id="aluminum" step="1" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                        <button type="button" class="btn btn-secondary" onclick="closeEntryModal()" style="color: #64748b;">Cancel</button>
+                        <button type="submit" class="btn btn-success">Save Soil Test</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Configuration
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwWCWjMYWZP_k0ULfp1ouLWUkaaI7MYKWxQc7xVp2TLHVbCxJq_kqb-OdMOLSWYjTwzSg/exec';
+
+        // Set PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // State
+        let soilTests = [];
+        let currentTab = 'current';
+        let selectedForCompare = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSoilTests();
+            setupUploadZone();
+            document.getElementById('testDate').valueAsDate = new Date();
+        });
+
+        // Upload Zone Setup
+        function setupUploadZone() {
+            const zone = document.getElementById('uploadZone');
+            const input = document.getElementById('pdfInput');
+
+            zone.addEventListener('click', () => input.click());
+
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'application/pdf') {
+                    parsePDF(file);
+                }
+            });
+
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    parsePDF(file);
+                }
+            });
+        }
+
+        // Parse Logan Labs PDF
+        async function parsePDF(file) {
+            showToast('Parsing PDF...', 'info');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const page = await pdf.getPage(1);
+                const textContent = await page.getTextContent();
+
+                // Extract all text items with positions
+                const items = textContent.items.map(item => ({
+                    text: item.str.trim(),
+                    x: Math.round(item.transform[4]),
+                    y: Math.round(item.transform[5])
+                })).filter(item => item.text);
+
+                // Parse Logan Labs format
+                const samples = parseLoganLabsFormat(items);
+
+                if (samples.length > 0) {
+                    showParsePreview(samples);
+                    showToast(`Found ${samples.length} sample(s) in PDF`, 'success');
+                } else {
+                    showToast('Could not parse PDF. Try manual entry.', 'error');
+                }
+            } catch (error) {
+                console.error('PDF parsing error:', error);
+                showToast('Error parsing PDF. Try manual entry.', 'error');
+            }
+        }
+
+        function parseLoganLabsFormat(items) {
+            const samples = [];
+
+            // Group items by approximate Y position (rows)
+            const rows = {};
+            items.forEach(item => {
+                const rowKey = Math.round(item.y / 10) * 10;
+                if (!rows[rowKey]) rows[rowKey] = [];
+                rows[rowKey].push(item);
+            });
+
+            // Sort rows by Y (top to bottom)
+            const sortedRows = Object.entries(rows)
+                .sort((a, b) => b[0] - a[0])
+                .map(([y, items]) => items.sort((a, b) => a.x - b.x));
+
+            // Find sample location row and extract column positions
+            let sampleLocations = [];
+            let columnXPositions = [];
+
+            for (const row of sortedRows) {
+                const rowText = row.map(r => r.text).join(' ');
+                if (rowText.includes('Sample Location') || rowText.includes('KRET') || rowText.includes('Field')) {
+                    // This row has sample locations
+                    sampleLocations = row.filter(r =>
+                        r.text !== 'Sample Location' &&
+                        r.text.length > 0 &&
+                        !r.text.includes('Sample')
+                    );
+                    columnXPositions = sampleLocations.map(s => s.x);
+                    break;
+                }
+            }
+
+            // If no clear sample locations found, try to detect column structure
+            if (sampleLocations.length === 0) {
+                // Look for patterns like KRET-O, Field 1, etc.
+                for (const row of sortedRows) {
+                    for (const item of row) {
+                        if (item.text.match(/^[A-Z]{2,}-[A-Z0-9]+$/) ||
+                            item.text.match(/^Field\s*\d+$/i)) {
+                            sampleLocations.push(item);
+                            columnXPositions.push(item.x);
+                        }
+                    }
+                    if (sampleLocations.length > 0) break;
+                }
+            }
+
+            // Extract date
+            let testDate = new Date().toISOString().split('T')[0];
+            for (const row of sortedRows) {
+                const rowText = row.map(r => r.text).join(' ');
+                const dateMatch = rowText.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+                if (dateMatch) {
+                    const parts = dateMatch[1].split('/');
+                    testDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    break;
+                }
+            }
+
+            // Helper to find value by label
+            function findValue(label, colIndex) {
+                for (const row of sortedRows) {
+                    const rowText = row.map(r => r.text.toLowerCase()).join(' ');
+                    if (rowText.includes(label.toLowerCase())) {
+                        // Find numeric values in this row that match column position
+                        const values = row.filter(r => !isNaN(parseFloat(r.text.replace(/,/g, ''))));
+                        if (values.length > colIndex) {
+                            // Sort by x position and get the right column
+                            values.sort((a, b) => a.x - b.x);
+                            if (values[colIndex]) {
+                                return parseFloat(values[colIndex].text.replace(/,/g, ''));
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
+            // Helper to find values near a label
+            function findValuesInRow(labelPatterns, colIndex) {
+                for (const row of sortedRows) {
+                    const rowText = row.map(r => r.text.toLowerCase()).join(' ');
+                    const matches = labelPatterns.some(p => rowText.includes(p.toLowerCase()));
+                    if (matches) {
+                        const values = row.filter(r => {
+                            const num = parseFloat(r.text.replace(/,/g, ''));
+                            return !isNaN(num);
+                        }).sort((a, b) => a.x - b.x);
+
+                        if (values.length > colIndex) {
+                            return parseFloat(values[colIndex].text.replace(/,/g, ''));
+                        }
+                    }
+                }
+                return null;
+            }
+
+            // Create sample objects
+            sampleLocations.forEach((loc, idx) => {
+                const sample = {
+                    sampleLocation: loc.text,
+                    testDate: testDate,
+                    labNumber: findValuesInRow(['Lab Number'], idx),
+                    sampleDepth: findValuesInRow(['Sample Depth', 'Depth'], idx) || 6,
+                    ph: findValuesInRow(['pH of Soil', 'pH'], idx),
+                    cec: findValuesInRow(['Total Exchange Capacity', 'TEC', 'M.E.', 'M. E.'], idx),
+                    organicMatter: findValuesInRow(['Organic Matter'], idx),
+                    sulfur: findValuesInRow(['SULFUR', 'Sulfur'], idx),
+                    phosphorus: findValuesInRow(['Phosphorous', 'Phosphorus', 'P2O5'], idx),
+                    caDesired: null,
+                    caFound: null,
+                    mgDesired: null,
+                    mgFound: null,
+                    kDesired: null,
+                    kFound: null,
+                    sodium: findValuesInRow(['SODIUM', 'Sodium'], idx),
+                    caPct: findValuesInRow(['Calcium (60', 'Calcium%', '60 to 70'], idx),
+                    mgPct: findValuesInRow(['Magnesium (10', 'Magnesium%', '10 to 20'], idx),
+                    kPct: findValuesInRow(['Potassium (2', 'Potassium%', '2 to 5'], idx),
+                    naPct: findValuesInRow(['Sodium (.5', 'Sodium%', '.5 to 3'], idx),
+                    otherPct: findValuesInRow(['Other Bases'], idx),
+                    hPct: findValuesInRow(['Exchangable Hydrogen', 'Hydrogen', '10 to 15'], idx),
+                    boron: findValuesInRow(['Boron'], idx),
+                    iron: findValuesInRow(['Iron'], idx),
+                    manganese: findValuesInRow(['Manganese'], idx),
+                    copper: findValuesInRow(['Copper'], idx),
+                    zinc: findValuesInRow(['Zinc'], idx),
+                    aluminum: findValuesInRow(['Aluminum'], idx)
+                };
+
+                // Try to extract Ca/Mg/K desired/found values
+                // These are trickier due to multi-row layout
+                let caRows = [];
+                let mgRows = [];
+                let kRows = [];
+                let inCa = false, inMg = false, inK = false;
+
+                for (const row of sortedRows) {
+                    const rowText = row.map(r => r.text).join(' ').toUpperCase();
+                    if (rowText.includes('CALCIUM')) inCa = true;
+                    if (rowText.includes('MAGNESIUM')) { inCa = false; inMg = true; }
+                    if (rowText.includes('POTASSIUM')) { inMg = false; inK = true; }
+                    if (rowText.includes('SODIUM') && !rowText.includes('%')) { inK = false; }
+
+                    const hasDesired = rowText.includes('DESIRED');
+                    const hasFound = rowText.includes('VALUE FOUND') || rowText.includes('FOUND');
+
+                    if (hasDesired || hasFound) {
+                        const values = row.filter(r => !isNaN(parseFloat(r.text.replace(/,/g, ''))))
+                            .sort((a, b) => a.x - b.x);
+
+                        if (values.length > idx) {
+                            const val = parseFloat(values[idx].text.replace(/,/g, ''));
+                            if (inCa) {
+                                if (hasDesired) sample.caDesired = val;
+                                if (hasFound) sample.caFound = val;
+                            } else if (inMg) {
+                                if (hasDesired) sample.mgDesired = val;
+                                if (hasFound) sample.mgFound = val;
+                            } else if (inK) {
+                                if (hasDesired) sample.kDesired = val;
+                                if (hasFound) sample.kFound = val;
+                            }
+                        }
+                    }
+                }
+
+                samples.push(sample);
+            });
+
+            return samples;
+        }
+
+        function showParsePreview(samples) {
+            const preview = document.getElementById('parsePreview');
+
+            let html = `
+                <div class="parse-preview">
+                    <h4>Parsed ${samples.length} Sample(s) from PDF</h4>
+            `;
+
+            samples.forEach((sample, idx) => {
+                html += `
+                    <div class="parse-sample">
+                        <h5>${sample.sampleLocation} - ${sample.testDate}</h5>
+                        <div class="form-grid" style="font-size: 0.875rem;">
+                            <div><strong>pH:</strong> ${sample.ph || 'N/A'}</div>
+                            <div><strong>CEC:</strong> ${sample.cec || 'N/A'}</div>
+                            <div><strong>OM%:</strong> ${sample.organicMatter || 'N/A'}</div>
+                            <div><strong>Ca%:</strong> ${sample.caPct || 'N/A'}</div>
+                            <div><strong>Mg%:</strong> ${sample.mgPct || 'N/A'}</div>
+                            <div><strong>K%:</strong> ${sample.kPct || 'N/A'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-success" onclick="saveAllParsedSamples()">Save All Samples</button>
+                        <button class="btn btn-secondary" onclick="editParsedSample(0)" style="color: #64748b;">Edit Before Saving</button>
+                        <button class="btn btn-secondary" onclick="cancelParse()" style="color: #64748b;">Cancel</button>
+                    </div>
+                </div>
+            `;
+
+            preview.innerHTML = html;
+            preview.style.display = 'block';
+
+            // Store parsed samples for saving
+            window.parsedSamples = samples;
+        }
+
+        function cancelParse() {
+            document.getElementById('parsePreview').style.display = 'none';
+            document.getElementById('pdfInput').value = '';
+            window.parsedSamples = null;
+        }
+
+        async function saveAllParsedSamples() {
+            if (!window.parsedSamples || window.parsedSamples.length === 0) return;
+
+            showToast('Saving samples...', 'info');
+
+            for (const sample of window.parsedSamples) {
+                await saveSoilTestData(sample);
+            }
+
+            cancelParse();
+            loadSoilTests();
+            showToast(`Saved ${window.parsedSamples.length} soil test(s)`, 'success');
+        }
+
+        function editParsedSample(idx) {
+            if (!window.parsedSamples || !window.parsedSamples[idx]) return;
+
+            const sample = window.parsedSamples[idx];
+
+            // Populate form with parsed data
+            document.getElementById('sampleLocation').value = sample.sampleLocation || '';
+            document.getElementById('testDate').value = sample.testDate || '';
+            document.getElementById('labNumber').value = sample.labNumber || '';
+            document.getElementById('sampleDepth').value = sample.sampleDepth || 6;
+            document.getElementById('ph').value = sample.ph || '';
+            document.getElementById('cec').value = sample.cec || '';
+            document.getElementById('organicMatter').value = sample.organicMatter || '';
+            document.getElementById('sulfur').value = sample.sulfur || '';
+            document.getElementById('phosphorus').value = sample.phosphorus || '';
+            document.getElementById('caDesired').value = sample.caDesired || '';
+            document.getElementById('caFound').value = sample.caFound || '';
+            document.getElementById('mgDesired').value = sample.mgDesired || '';
+            document.getElementById('mgFound').value = sample.mgFound || '';
+            document.getElementById('kDesired').value = sample.kDesired || '';
+            document.getElementById('kFound').value = sample.kFound || '';
+            document.getElementById('sodium').value = sample.sodium || '';
+            document.getElementById('caPct').value = sample.caPct || '';
+            document.getElementById('mgPct').value = sample.mgPct || '';
+            document.getElementById('kPct').value = sample.kPct || '';
+            document.getElementById('naPct').value = sample.naPct || '';
+            document.getElementById('otherPct').value = sample.otherPct || '';
+            document.getElementById('hPct').value = sample.hPct || '';
+            document.getElementById('boron').value = sample.boron || '';
+            document.getElementById('iron').value = sample.iron || '';
+            document.getElementById('manganese').value = sample.manganese || '';
+            document.getElementById('copper').value = sample.copper || '';
+            document.getElementById('zinc').value = sample.zinc || '';
+            document.getElementById('aluminum').value = sample.aluminum || '';
+
+            cancelParse();
+            showManualEntry();
+        }
+
+        // Load Soil Tests
+        async function loadSoilTests() {
+            const container = document.getElementById('testsContainer');
+
+            try {
+                const response = await fetch(`${API_URL}?action=getSoilTests`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    soilTests = data.data;
+                } else {
+                    // Use demo data if API not configured
+                    soilTests = getDemoData();
+                }
+
+                renderTests();
+            } catch (error) {
+                console.error('Error loading soil tests:', error);
+                soilTests = getDemoData();
+                renderTests();
+            }
+        }
+
+        function getDemoData() {
+            return [
+                {
+                    id: 1,
+                    sampleLocation: 'KRET-O',
+                    testDate: '2023-03-15',
+                    labNumber: 77,
+                    sampleDepth: 6,
+                    ph: 7.4,
+                    cec: 12.42,
+                    organicMatter: 4.59,
+                    sulfur: 14,
+                    phosphorus: 2063,
+                    caDesired: 3377,
+                    caFound: 4184,
+                    mgDesired: 357,
+                    mgFound: 217,
+                    kDesired: 387,
+                    kFound: 360,
+                    sodium: 45,
+                    caPct: 84.24,
+                    mgPct: 7.28,
+                    kPct: 3.72,
+                    naPct: 0.79,
+                    otherPct: 4.00,
+                    hPct: 0.00,
+                    boron: 0.66,
+                    iron: 181,
+                    manganese: 110,
+                    copper: 4.95,
+                    zinc: 12.85,
+                    aluminum: 600,
+                    isArchived: false
+                },
+                {
+                    id: 2,
+                    sampleLocation: 'KRET-F3M',
+                    testDate: '2023-03-15',
+                    labNumber: 78,
+                    sampleDepth: 6,
+                    ph: 6.8,
+                    cec: 7.27,
+                    organicMatter: 3.81,
+                    sulfur: 11,
+                    phosphorus: 294,
+                    caDesired: 1978,
+                    caFound: 2248,
+                    mgDesired: 209,
+                    mgFound: 155,
+                    kDesired: 226,
+                    kFound: 278,
+                    sodium: 46,
+                    caPct: 77.27,
+                    mgPct: 8.88,
+                    kPct: 4.90,
+                    naPct: 1.36,
+                    otherPct: 4.60,
+                    hPct: 3.00,
+                    boron: 0.65,
+                    iron: 131,
+                    manganese: 59,
+                    copper: 3.99,
+                    zinc: 3.62,
+                    aluminum: 679,
+                    isArchived: false
+                }
+            ];
+        }
+
+        function renderTests() {
+            const container = document.getElementById('testsContainer');
+
+            let filteredTests = soilTests;
+            if (currentTab === 'current') {
+                filteredTests = soilTests.filter(t => !t.isArchived);
+            } else if (currentTab === 'archived') {
+                filteredTests = soilTests.filter(t => t.isArchived);
+            } else if (currentTab === 'compare') {
+                renderCompareView();
+                return;
+            } else if (currentTab === 'amendments') {
+                renderAmendmentCalculator();
+                return;
+            }
+
+            if (filteredTests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🧪</div>
+                        <h3>No soil tests found</h3>
+                        <p>Upload a Logan Labs PDF or add tests manually</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="tests-grid">
+                    ${filteredTests.map(test => renderTestCard(test)).join('')}
+                </div>
+            `;
+        }
+
+        function renderTestCard(test) {
+            const caStatus = getBaseSatStatus(test.caPct, 60, 70);
+            const mgStatus = getBaseSatStatus(test.mgPct, 10, 20);
+            const kStatus = getBaseSatStatus(test.kPct, 2, 5);
+
+            return `
+                <div class="test-card" onclick="showTestDetail(${test.id})">
+                    <div class="test-card-header">
+                        <h3>${test.sampleLocation}</h3>
+                        <div class="date">${formatDate(test.testDate)}</div>
+                    </div>
+                    <div class="test-card-body">
+                        <div class="test-stats">
+                            <div class="test-stat">
+                                <div class="test-stat-value">${test.ph}</div>
+                                <div class="test-stat-label">pH</div>
+                            </div>
+                            <div class="test-stat">
+                                <div class="test-stat-value">${test.cec}</div>
+                                <div class="test-stat-label">CEC</div>
+                            </div>
+                            <div class="test-stat">
+                                <div class="test-stat-value">${test.organicMatter}%</div>
+                                <div class="test-stat-label">OM</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Base Saturation</div>
+                        <div class="base-sat-bar">
+                            <div class="base-sat-segment base-sat-ca" style="width: ${test.caPct}%" title="Ca: ${test.caPct}%">Ca</div>
+                            <div class="base-sat-segment base-sat-mg" style="width: ${test.mgPct}%" title="Mg: ${test.mgPct}%">Mg</div>
+                            <div class="base-sat-segment base-sat-k" style="width: ${test.kPct}%" title="K: ${test.kPct}%">K</div>
+                            <div class="base-sat-segment base-sat-na" style="width: ${test.naPct}%" title="Na: ${test.naPct}%"></div>
+                            <div class="base-sat-segment base-sat-h" style="width: ${test.hPct || 0}%" title="H: ${test.hPct || 0}%"></div>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.75rem;">
+                            <span><span class="status-indicator status-${caStatus}"></span>Ca ${test.caPct}%</span>
+                            <span><span class="status-indicator status-${mgStatus}"></span>Mg ${test.mgPct}%</span>
+                            <span><span class="status-indicator status-${kStatus}"></span>K ${test.kPct}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getBaseSatStatus(value, min, max) {
+            if (value < min) return 'low';
+            if (value > max) return 'high';
+            return 'optimal';
+        }
+
+        function showTestDetail(testId) {
+            const test = soilTests.find(t => t.id === testId);
+            if (!test) return;
+
+            document.getElementById('modalTitle').textContent = `${test.sampleLocation} - ${formatDate(test.testDate)}`;
+
+            const caDeficit = (test.caDesired && test.caFound) ? test.caFound - test.caDesired : null;
+            const mgDeficit = (test.mgDesired && test.mgFound) ? test.mgFound - test.mgDesired : null;
+            const kDeficit = (test.kDesired && test.kFound) ? test.kFound - test.kDesired : null;
+
+            document.getElementById('modalBody').innerHTML = `
+                <div class="form-section">
+                    <h3>Basic Properties</h3>
+                    <table class="ranges-table">
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                            <th>Ideal Range</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr>
+                            <td>pH</td>
+                            <td>${test.ph}</td>
+                            <td>6.2 - 7.0</td>
+                            <td><span class="status-indicator status-${test.ph >= 6.2 && test.ph <= 7.0 ? 'optimal' : (test.ph < 6.2 ? 'low' : 'high')}"></span>${test.ph >= 6.2 && test.ph <= 7.0 ? 'Optimal' : (test.ph < 6.2 ? 'Low' : 'High')}</td>
+                        </tr>
+                        <tr>
+                            <td>CEC (M.E.)</td>
+                            <td>${test.cec}</td>
+                            <td>10 - 25</td>
+                            <td><span class="status-indicator status-${test.cec >= 10 && test.cec <= 25 ? 'optimal' : (test.cec < 10 ? 'low' : 'high')}"></span>${test.cec >= 10 ? 'Good' : 'Low'}</td>
+                        </tr>
+                        <tr>
+                            <td>Organic Matter</td>
+                            <td>${test.organicMatter}%</td>
+                            <td>3% - 6%</td>
+                            <td><span class="status-indicator status-${test.organicMatter >= 3 && test.organicMatter <= 6 ? 'optimal' : (test.organicMatter < 3 ? 'low' : 'high')}"></span>${test.organicMatter >= 3 ? 'Good' : 'Low'}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="form-section">
+                    <h3>Base Saturation (Albrecht Method)</h3>
+                    <table class="ranges-table">
+                        <tr>
+                            <th>Element</th>
+                            <th>Your %</th>
+                            <th>Ideal Range</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr>
+                            <td>Calcium</td>
+                            <td>${test.caPct}%</td>
+                            <td>60% - 70%</td>
+                            <td><span class="status-indicator status-${getBaseSatStatus(test.caPct, 60, 70)}"></span>${getBaseSatLabel(test.caPct, 60, 70)}</td>
+                        </tr>
+                        <tr>
+                            <td>Magnesium</td>
+                            <td>${test.mgPct}%</td>
+                            <td>10% - 20%</td>
+                            <td><span class="status-indicator status-${getBaseSatStatus(test.mgPct, 10, 20)}"></span>${getBaseSatLabel(test.mgPct, 10, 20)}</td>
+                        </tr>
+                        <tr>
+                            <td>Potassium</td>
+                            <td>${test.kPct}%</td>
+                            <td>2% - 5%</td>
+                            <td><span class="status-indicator status-${getBaseSatStatus(test.kPct, 2, 5)}"></span>${getBaseSatLabel(test.kPct, 2, 5)}</td>
+                        </tr>
+                        <tr>
+                            <td>Sodium</td>
+                            <td>${test.naPct}%</td>
+                            <td>0.5% - 3%</td>
+                            <td><span class="status-indicator status-${getBaseSatStatus(test.naPct, 0.5, 3)}"></span>${getBaseSatLabel(test.naPct, 0.5, 3)}</td>
+                        </tr>
+                        <tr>
+                            <td>Hydrogen</td>
+                            <td>${test.hPct || 0}%</td>
+                            <td>10% - 15%</td>
+                            <td><span class="status-indicator status-${getBaseSatStatus(test.hPct || 0, 10, 15)}"></span>${getBaseSatLabel(test.hPct || 0, 10, 15)}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="form-section">
+                    <h3>Exchangeable Cations (lbs/acre)</h3>
+                    <table class="ranges-table">
+                        <tr>
+                            <th>Element</th>
+                            <th>Desired</th>
+                            <th>Found</th>
+                            <th>Deficit/Surplus</th>
+                        </tr>
+                        <tr>
+                            <td>Calcium</td>
+                            <td>${test.caDesired || 'N/A'}</td>
+                            <td>${test.caFound || 'N/A'}</td>
+                            <td style="color: ${caDeficit > 0 ? '#10b981' : '#ef4444'}">${caDeficit !== null ? (caDeficit > 0 ? '+' : '') + caDeficit : 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Magnesium</td>
+                            <td>${test.mgDesired || 'N/A'}</td>
+                            <td>${test.mgFound || 'N/A'}</td>
+                            <td style="color: ${mgDeficit > 0 ? '#10b981' : '#ef4444'}">${mgDeficit !== null ? (mgDeficit > 0 ? '+' : '') + mgDeficit : 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Potassium</td>
+                            <td>${test.kDesired || 'N/A'}</td>
+                            <td>${test.kFound || 'N/A'}</td>
+                            <td style="color: ${kDeficit > 0 ? '#10b981' : '#ef4444'}">${kDeficit !== null ? (kDeficit > 0 ? '+' : '') + kDeficit : 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Sodium</td>
+                            <td>-</td>
+                            <td>${test.sodium || 'N/A'}</td>
+                            <td>-</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="form-section">
+                    <h3>Anions</h3>
+                    <table class="ranges-table">
+                        <tr>
+                            <th>Element</th>
+                            <th>Value</th>
+                            <th>Ideal Range</th>
+                        </tr>
+                        <tr>
+                            <td>Sulfur (ppm)</td>
+                            <td>${test.sulfur}</td>
+                            <td>20 - 50 ppm</td>
+                        </tr>
+                        <tr>
+                            <td>Phosphorus P2O5 (lbs/acre)</td>
+                            <td>${test.phosphorus}</td>
+                            <td>200 - 400 lbs/acre</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="form-section">
+                    <h3>Trace Elements (ppm)</h3>
+                    <table class="ranges-table">
+                        <tr>
+                            <th>Element</th>
+                            <th>Value</th>
+                            <th>Ideal Range</th>
+                        </tr>
+                        <tr><td>Boron</td><td>${test.boron}</td><td>1.0 - 2.0</td></tr>
+                        <tr><td>Iron</td><td>${test.iron}</td><td>50 - 200</td></tr>
+                        <tr><td>Manganese</td><td>${test.manganese}</td><td>40 - 100</td></tr>
+                        <tr><td>Copper</td><td>${test.copper}</td><td>2 - 5</td></tr>
+                        <tr><td>Zinc</td><td>${test.zinc}</td><td>4 - 20</td></tr>
+                        <tr><td>Aluminum</td><td>${test.aluminum}</td><td>&lt; 800</td></tr>
+                    </table>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button class="btn btn-secondary" onclick="archiveTest(${test.id})" style="color: #64748b;">
+                        ${test.isArchived ? 'Restore' : 'Archive'}
+                    </button>
+                    <button class="btn btn-secondary" onclick="addToCompare(${test.id})" style="color: #7c3aed;">
+                        Add to Compare
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function getBaseSatLabel(value, min, max) {
+            if (value < min) return 'Low';
+            if (value > max) return 'High';
+            return 'Optimal';
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        // Compare View
+        function renderCompareView() {
+            const container = document.getElementById('testsContainer');
+
+            if (soilTests.length < 2) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>Need at least 2 tests to compare</h3>
+                        <p>Add more soil tests to use the comparison feature</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group by location for comparison
+            const locations = [...new Set(soilTests.map(t => t.sampleLocation))];
+
+            container.innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-weight: 500; margin-right: 1rem;">Select tests to compare:</label>
+                    <select id="compare1" onchange="updateCompare()" style="padding: 0.5rem; margin-right: 0.5rem;">
+                        ${soilTests.map(t => `<option value="${t.id}">${t.sampleLocation} - ${formatDate(t.testDate)}</option>`).join('')}
+                    </select>
+                    <select id="compare2" onchange="updateCompare()" style="padding: 0.5rem;">
+                        ${soilTests.map((t, i) => `<option value="${t.id}" ${i === 1 ? 'selected' : ''}>${t.sampleLocation} - ${formatDate(t.testDate)}</option>`).join('')}
+                    </select>
+                </div>
+                <div id="compareResults"></div>
+            `;
+
+            updateCompare();
+        }
+
+        function updateCompare() {
+            const id1 = parseInt(document.getElementById('compare1').value);
+            const id2 = parseInt(document.getElementById('compare2').value);
+
+            const test1 = soilTests.find(t => t.id === id1);
+            const test2 = soilTests.find(t => t.id === id2);
+
+            if (!test1 || !test2) return;
+
+            const resultsDiv = document.getElementById('compareResults');
+
+            const metrics = [
+                { key: 'ph', label: 'pH', ideal: '6.2 - 7.0' },
+                { key: 'cec', label: 'CEC', ideal: '10 - 25' },
+                { key: 'organicMatter', label: 'Organic Matter %', ideal: '3 - 6' },
+                { key: 'caPct', label: 'Calcium %', ideal: '60 - 70' },
+                { key: 'mgPct', label: 'Magnesium %', ideal: '10 - 20' },
+                { key: 'kPct', label: 'Potassium %', ideal: '2 - 5' },
+                { key: 'sulfur', label: 'Sulfur (ppm)', ideal: '20 - 50' },
+                { key: 'phosphorus', label: 'Phosphorus (lbs/ac)', ideal: '200 - 400' },
+                { key: 'boron', label: 'Boron (ppm)', ideal: '1 - 2' },
+                { key: 'iron', label: 'Iron (ppm)', ideal: '50 - 200' },
+                { key: 'manganese', label: 'Manganese (ppm)', ideal: '40 - 100' },
+                { key: 'zinc', label: 'Zinc (ppm)', ideal: '4 - 20' }
+            ];
+
+            resultsDiv.innerHTML = `
+                <table class="ranges-table" style="background: white; border-radius: 0.5rem;">
+                    <tr>
+                        <th>Metric</th>
+                        <th>${test1.sampleLocation}<br><small>${formatDate(test1.testDate)}</small></th>
+                        <th>${test2.sampleLocation}<br><small>${formatDate(test2.testDate)}</small></th>
+                        <th>Difference</th>
+                        <th>Ideal Range</th>
+                    </tr>
+                    ${metrics.map(m => {
+                        const v1 = test1[m.key] || 0;
+                        const v2 = test2[m.key] || 0;
+                        const diff = (v2 - v1).toFixed(2);
+                        const diffColor = diff > 0 ? '#10b981' : (diff < 0 ? '#ef4444' : '#64748b');
+                        return `
+                            <tr>
+                                <td><strong>${m.label}</strong></td>
+                                <td>${v1}</td>
+                                <td>${v2}</td>
+                                <td style="color: ${diffColor}">${diff > 0 ? '+' : ''}${diff}</td>
+                                <td>${m.ideal}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </table>
+            `;
+        }
+
+        function addToCompare(testId) {
+            closeModal();
+            switchTab('compare');
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            renderTests();
+        }
+
+        // Manual Entry
+        function showManualEntry() {
+            document.getElementById('entryModal').classList.add('active');
+        }
+
+        function closeEntryModal() {
+            document.getElementById('entryModal').classList.remove('active');
+        }
+
+        async function saveSoilTest(event) {
+            event.preventDefault();
+
+            const formData = {
+                sampleLocation: document.getElementById('sampleLocation').value,
+                testDate: document.getElementById('testDate').value,
+                labNumber: document.getElementById('labNumber').value,
+                sampleDepth: parseFloat(document.getElementById('sampleDepth').value) || 6,
+                ph: parseFloat(document.getElementById('ph').value),
+                cec: parseFloat(document.getElementById('cec').value),
+                organicMatter: parseFloat(document.getElementById('organicMatter').value),
+                sulfur: parseFloat(document.getElementById('sulfur').value),
+                phosphorus: parseFloat(document.getElementById('phosphorus').value),
+                caDesired: parseFloat(document.getElementById('caDesired').value),
+                caFound: parseFloat(document.getElementById('caFound').value),
+                mgDesired: parseFloat(document.getElementById('mgDesired').value),
+                mgFound: parseFloat(document.getElementById('mgFound').value),
+                kDesired: parseFloat(document.getElementById('kDesired').value),
+                kFound: parseFloat(document.getElementById('kFound').value),
+                sodium: parseFloat(document.getElementById('sodium').value),
+                caPct: parseFloat(document.getElementById('caPct').value),
+                mgPct: parseFloat(document.getElementById('mgPct').value),
+                kPct: parseFloat(document.getElementById('kPct').value),
+                naPct: parseFloat(document.getElementById('naPct').value),
+                otherPct: parseFloat(document.getElementById('otherPct').value),
+                hPct: parseFloat(document.getElementById('hPct').value),
+                boron: parseFloat(document.getElementById('boron').value),
+                iron: parseFloat(document.getElementById('iron').value),
+                manganese: parseFloat(document.getElementById('manganese').value),
+                copper: parseFloat(document.getElementById('copper').value),
+                zinc: parseFloat(document.getElementById('zinc').value),
+                aluminum: parseFloat(document.getElementById('aluminum').value)
+            };
+
+            await saveSoilTestData(formData);
+            closeEntryModal();
+            loadSoilTests();
+
+            // Reset form
+            document.getElementById('soilTestForm').reset();
+            document.getElementById('testDate').valueAsDate = new Date();
+        }
+
+        async function saveSoilTestData(data) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveSoilTest',
+                        data: data
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Soil test saved!', 'success');
+                } else {
+                    throw new Error(result.error || 'Save failed');
+                }
+            } catch (error) {
+                console.error('Error saving soil test:', error);
+                // Add to local data for demo
+                const newTest = {
+                    id: Date.now(),
+                    ...data,
+                    isArchived: false
+                };
+                soilTests.push(newTest);
+                showToast('Saved locally (API not configured)', 'success');
+            }
+        }
+
+        async function archiveTest(testId) {
+            const test = soilTests.find(t => t.id === testId);
+            if (test) {
+                test.isArchived = !test.isArchived;
+                closeModal();
+                renderTests();
+                showToast(test.isArchived ? 'Test archived' : 'Test restored', 'success');
+            }
+        }
+
+        // ============================================
+        // AMENDMENT CALCULATOR (Steve Solomon / Albrecht Method)
+        // ============================================
+
+        // Potassium target lookup table by TCEC
+        const K_TARGETS = {
+            3: 190, 4: 210, 5: 225, 6: 240, 7: 255, 8: 270, 9: 290, 10: 310,
+            11: 320, 12: 335, 13: 350, 14: 365, 15: 380, 16: 390, 17: 400, 18: 410,
+            19: 420, 20: 435, 21: 443, 22: 451, 23: 459, 24: 463, 25: 475, 26: 481,
+            27: 487, 28: 493, 29: 500, 30: 507, 31: 511, 32: 515, 33: 519, 34: 523,
+            35: 527, 36: 531, 37: 535, 38: 539, 39: 543
+        };
+
+        // Amendment materials with their nutrient content
+        const AMENDMENTS = {
+            agLime: { name: 'Agricultural Lime', Ca: 0.36, Mg: 0.02 },
+            dolomite: { name: 'Dolomitic Lime', Ca: 0.22, Mg: 0.13 },
+            gypsum: { name: 'Gypsum', Ca: 0.205, S: 0.17 },
+            potassiumSulfate: { name: 'Potassium Sulfate (0-0-50)', K: 0.42, S: 0.17 },
+            magnesiumSulfate: { name: 'Epsom Salt', Mg: 0.10, S: 0.13 },
+            borax: { name: 'Borax', B: 0.10 },
+            ironSulfate: { name: 'Iron Sulfate', Fe: 0.30, S: 0.18 },
+            manganeseSulfate: { name: 'Manganese Sulfate', Mn: 0.32, S: 0.19 },
+            copperSulfate: { name: 'Copper Sulfate', Cu: 0.25, S: 0.125 },
+            zincSulfate: { name: 'Zinc Sulfate', Zn: 0.35, S: 0.17 },
+            featherMeal: { name: 'Feather Meal (12-0-0)', N: 0.12 },
+            bloodMeal: { name: 'Blood Meal (13-0-0)', N: 0.13 },
+            boneMeal: { name: 'Bone Meal (3-13-0)', P: 0.13, Ca: 0.12 },
+            rockPhosphate: { name: 'Soft Rock Phosphate', P: 0.088, Ca: 0.20 },
+            kMag: { name: 'K-Mag/Langbeinite', K: 0.22, Mg: 0.11, S: 0.182 },
+            kelp: { name: 'Kelp Meal', N: 0.01, K: 0.025, S: 0.02, trace: true }
+        };
+
+        // Application limits (lbs/acre)
+        const APP_LIMITS = {
+            agLime: 8000,
+            agSulfur: 100,
+            P: 175,
+            K: 200,
+            Mg: null, // 10% of target
+            B: 4,
+            Cu: 4,
+            Zn: 14
+        };
+
+        function getKTarget(tcec) {
+            const roundedTCEC = Math.round(Math.max(3, Math.min(39, tcec)));
+            return K_TARGETS[roundedTCEC] || 310;
+        }
+
+        function calculateTargets(test) {
+            const tcec = test.cec || 10;
+            const ph = test.ph || 6.5;
+
+            // Target calculations based on Albrecht/Solomon method
+            const targets = {
+                calcium: Math.round(tcec * 400 * 0.68),      // 68% base saturation
+                magnesium: Math.round(tcec * 240 * 0.12),    // 12% base saturation
+                potassium: getKTarget(tcec),
+                phosphorus: getKTarget(tcec),                 // P = K target
+                sulfur: ph < 7 ? (tcec < 10 ? 45 : 70) : Math.min(tcec * 240 * 0.12 / 2, 432),
+                boron: tcec < 10 ? 2 : 4,
+                iron: tcec < 10 ? 100 : 150,
+                manganese: tcec < 10 ? 55 : 100,
+                copper: tcec < 10 ? 6 : 10,
+                zinc: Math.round(getKTarget(tcec) / 10),
+                nitrogen: 100 // Base recommendation
+            };
+
+            return targets;
+        }
+
+        function calculateDeficits(test, targets) {
+            // Convert ppm to lbs/acre (1 ppm = 2 lbs/acre at 6" depth)
+            const ppmToLbs = 2;
+
+            const deficits = {
+                calcium: Math.max(0, targets.calcium - (test.caFound || 0)),
+                magnesium: Math.max(0, targets.magnesium - (test.mgFound || 0)),
+                potassium: Math.max(0, targets.potassium - (test.kFound || 0)),
+                phosphorus: Math.max(0, targets.phosphorus - (test.phosphorus || 0)),
+                sulfur: Math.max(0, targets.sulfur - ((test.sulfur || 0) * ppmToLbs)),
+                boron: Math.max(0, targets.boron - ((test.boron || 0) * ppmToLbs)),
+                iron: Math.max(0, targets.iron - ((test.iron || 0) * ppmToLbs)),
+                manganese: Math.max(0, targets.manganese - ((test.manganese || 0) * ppmToLbs)),
+                copper: Math.max(0, targets.copper - ((test.copper || 0) * ppmToLbs)),
+                zinc: Math.max(0, targets.zinc - ((test.zinc || 0) * ppmToLbs)),
+                nitrogen: targets.nitrogen
+            };
+
+            return deficits;
+        }
+
+        function calculateAmendments(test, deficits) {
+            const recommendations = [];
+            const ph = test.ph || 6.5;
+            const tcec = test.cec || 10;
+
+            // Calcium - use lime if Ca% < 60%, gypsum if need Ca but not pH change
+            if (deficits.calcium > 0) {
+                const caPct = test.caPct || 60;
+                if (caPct < 60 && ph < 7.0) {
+                    // Use ag lime to raise Ca and pH
+                    const limeNeeded = Math.min(deficits.calcium / AMENDMENTS.agLime.Ca, APP_LIMITS.agLime);
+                    recommendations.push({
+                        material: 'Agricultural Lime',
+                        amount: Math.round(limeNeeded),
+                        unit: 'lbs/acre',
+                        provides: `${Math.round(limeNeeded * AMENDMENTS.agLime.Ca)} lbs Ca`,
+                        notes: 'Apply in fall if possible. Raises pH.'
+                    });
+                } else {
+                    // Use gypsum - doesn't change pH
+                    const gypsumNeeded = deficits.calcium / AMENDMENTS.gypsum.Ca;
+                    recommendations.push({
+                        material: 'Gypsum',
+                        amount: Math.round(gypsumNeeded),
+                        unit: 'lbs/acre',
+                        provides: `${Math.round(gypsumNeeded * AMENDMENTS.gypsum.Ca)} lbs Ca, ${Math.round(gypsumNeeded * AMENDMENTS.gypsum.S)} lbs S`,
+                        notes: 'Neutral pH. Also provides sulfur.'
+                    });
+                }
+            }
+
+            // Magnesium
+            if (deficits.magnesium > 0) {
+                const mgLimit = Math.round(tcec * 240 * 0.12 * 0.1); // 10% of target max
+                const mgToApply = Math.min(deficits.magnesium, mgLimit);
+                const epsom = mgToApply / AMENDMENTS.magnesiumSulfate.Mg;
+                recommendations.push({
+                    material: 'Epsom Salt (Magnesium Sulfate)',
+                    amount: Math.round(epsom),
+                    unit: 'lbs/acre',
+                    provides: `${Math.round(epsom * AMENDMENTS.magnesiumSulfate.Mg)} lbs Mg, ${Math.round(epsom * AMENDMENTS.magnesiumSulfate.S)} lbs S`,
+                    notes: 'Apply no more than 10% of target per year.'
+                });
+            }
+
+            // Potassium
+            if (deficits.potassium > 0) {
+                const kToApply = Math.min(deficits.potassium, APP_LIMITS.K);
+                const kSulf = kToApply / AMENDMENTS.potassiumSulfate.K;
+                recommendations.push({
+                    material: 'Potassium Sulfate (0-0-50)',
+                    amount: Math.round(kSulf),
+                    unit: 'lbs/acre',
+                    provides: `${Math.round(kSulf * AMENDMENTS.potassiumSulfate.K)} lbs K, ${Math.round(kSulf * AMENDMENTS.potassiumSulfate.S)} lbs S`,
+                    notes: 'Reduce if applying compost (contains K).'
+                });
+            }
+
+            // Phosphorus
+            if (deficits.phosphorus > 0) {
+                const pToApply = Math.min(deficits.phosphorus, APP_LIMITS.P);
+                if (ph > 7.4) {
+                    // Rock phosphate ineffective at high pH - use bone meal or MAP
+                    const bone = pToApply / AMENDMENTS.boneMeal.P;
+                    recommendations.push({
+                        material: 'Bone Meal (steamed)',
+                        amount: Math.round(bone),
+                        unit: 'lbs/acre',
+                        provides: `${Math.round(bone * AMENDMENTS.boneMeal.P)} lbs P`,
+                        notes: 'Mix with compost for best results at high pH.'
+                    });
+                } else {
+                    const rock = pToApply / AMENDMENTS.rockPhosphate.P;
+                    recommendations.push({
+                        material: 'Soft Rock Phosphate (Calphos)',
+                        amount: Math.round(rock),
+                        unit: 'lbs/acre',
+                        provides: `${Math.round(rock * AMENDMENTS.rockPhosphate.P)} lbs P, ${Math.round(rock * AMENDMENTS.rockPhosphate.Ca)} lbs Ca`,
+                        notes: 'Mix well into soil. Phosphorus is immobile.'
+                    });
+                }
+            }
+
+            // Boron
+            if (deficits.boron > 0) {
+                const bToApply = Math.min(deficits.boron, APP_LIMITS.B);
+                const borax = bToApply / AMENDMENTS.borax.B;
+                recommendations.push({
+                    material: 'Borax',
+                    amount: Math.round(borax * 10) / 10,
+                    unit: 'lbs/acre',
+                    provides: `${Math.round(bToApply * 10) / 10} lbs B`,
+                    notes: 'Do not exceed 4 lbs B/acre. Toxic in excess.'
+                });
+            }
+
+            // Iron
+            if (deficits.iron > 0) {
+                const feSulf = deficits.iron / AMENDMENTS.ironSulfate.Fe;
+                recommendations.push({
+                    material: 'Iron Sulfate',
+                    amount: Math.round(feSulf),
+                    unit: 'lbs/acre',
+                    provides: `${Math.round(feSulf * AMENDMENTS.ironSulfate.Fe)} lbs Fe, ${Math.round(feSulf * AMENDMENTS.ironSulfate.S)} lbs S`,
+                    notes: ''
+                });
+            }
+
+            // Manganese (skip if pH < 5.7 - toxicity risk)
+            if (deficits.manganese > 0 && ph >= 5.7) {
+                const mnSulf = deficits.manganese / AMENDMENTS.manganeseSulfate.Mn;
+                recommendations.push({
+                    material: 'Manganese Sulfate',
+                    amount: Math.round(mnSulf),
+                    unit: 'lbs/acre',
+                    provides: `${Math.round(mnSulf * AMENDMENTS.manganeseSulfate.Mn)} lbs Mn, ${Math.round(mnSulf * AMENDMENTS.manganeseSulfate.S)} lbs S`,
+                    notes: ''
+                });
+            }
+
+            // Copper
+            if (deficits.copper > 0) {
+                const cuToApply = Math.min(deficits.copper, APP_LIMITS.Cu);
+                const cuSulf = cuToApply / AMENDMENTS.copperSulfate.Cu;
+                recommendations.push({
+                    material: 'Copper Sulfate',
+                    amount: Math.round(cuSulf),
+                    unit: 'lbs/acre',
+                    provides: `${Math.round(cuSulf * AMENDMENTS.copperSulfate.Cu)} lbs Cu, ${Math.round(cuSulf * AMENDMENTS.copperSulfate.S)} lbs S`,
+                    notes: 'Handle carefully. Apply separate from other minerals.'
+                });
+            }
+
+            // Zinc
+            if (deficits.zinc > 0) {
+                const znToApply = Math.min(deficits.zinc, APP_LIMITS.Zn);
+                const znSulf = znToApply / AMENDMENTS.zincSulfate.Zn;
+                recommendations.push({
+                    material: 'Zinc Sulfate',
+                    amount: Math.round(znSulf),
+                    unit: 'lbs/acre',
+                    provides: `${Math.round(znSulf * AMENDMENTS.zincSulfate.Zn)} lbs Zn, ${Math.round(znSulf * AMENDMENTS.zincSulfate.S)} lbs S`,
+                    notes: 'Mix well into soil. Zinc is immobile.'
+                });
+            }
+
+            // Nitrogen
+            recommendations.push({
+                material: 'Feather Meal (12-0-0)',
+                amount: Math.round(deficits.nitrogen / AMENDMENTS.featherMeal.N),
+                unit: 'lbs/acre',
+                provides: `${deficits.nitrogen} lbs N (slow release)`,
+                notes: 'Very slow release. Good for season-long feeding.'
+            });
+
+            // Trace minerals
+            recommendations.push({
+                material: 'Kelp Meal or Azomite',
+                amount: 100,
+                unit: 'lbs/acre',
+                provides: 'Trace minerals, growth stimulants',
+                notes: 'Apply first year, reduce in subsequent years.'
+            });
+
+            return recommendations;
+        }
+
+        function renderAmendmentCalculator() {
+            const container = document.getElementById('testsContainer');
+            const currentTests = soilTests.filter(t => !t.isArchived);
+
+            if (currentTests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🧮</div>
+                        <h3>No soil tests available</h3>
+                        <p>Upload a soil test to calculate amendment recommendations</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="background: white; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="margin-bottom: 1rem;">Amendment Calculator (Albrecht / Steve Solomon Method)</h3>
+                    <p style="color: #64748b; margin-bottom: 1rem;">
+                        Select a soil test to calculate amendment recommendations based on base cation saturation ratios (BCSR).
+                    </p>
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <label style="font-weight: 500;">Select Soil Test:</label>
+                        <select id="amendmentTestSelect" onchange="updateAmendmentCalc()" style="padding: 0.5rem 1rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                            ${currentTests.map(t => `<option value="${t.id}">${t.sampleLocation} - ${formatDate(t.testDate)}</option>`).join('')}
+                        </select>
+                        <label style="font-weight: 500; margin-left: 1rem;">Area Size:</label>
+                        <input type="number" id="areaSize" value="1" min="0.01" step="0.01" style="padding: 0.5rem; width: 80px; border-radius: 0.375rem; border: 1px solid #e2e8f0;" onchange="updateAmendmentCalc()">
+                        <select id="areaUnit" onchange="updateAmendmentCalc()" style="padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                            <option value="acre">acres</option>
+                            <option value="sqft">sq ft</option>
+                            <option value="bed">100ft beds</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="amendmentResults"></div>
+            `;
+
+            updateAmendmentCalc();
+        }
+
+        function updateAmendmentCalc() {
+            const testId = parseInt(document.getElementById('amendmentTestSelect').value);
+            const areaSize = parseFloat(document.getElementById('areaSize').value) || 1;
+            const areaUnit = document.getElementById('areaUnit').value;
+
+            const test = soilTests.find(t => t.id === testId);
+            if (!test) return;
+
+            // Convert area to acres
+            let areaInAcres = areaSize;
+            if (areaUnit === 'sqft') {
+                areaInAcres = areaSize / 43560;
+            } else if (areaUnit === 'bed') {
+                areaInAcres = (areaSize * 100 * 4) / 43560; // Assume 4ft wide beds
+            }
+
+            const targets = calculateTargets(test);
+            const deficits = calculateDeficits(test, targets);
+            const recommendations = calculateAmendments(test, deficits);
+
+            const resultsDiv = document.getElementById('amendmentResults');
+
+            resultsDiv.innerHTML = `
+                <!-- Soil Summary -->
+                <div style="background: white; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h4 style="color: #7c3aed; margin-bottom: 1rem;">Soil Test Summary: ${test.sampleLocation}</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+                        <div><strong>pH:</strong> ${test.ph}</div>
+                        <div><strong>CEC:</strong> ${test.cec}</div>
+                        <div><strong>OM%:</strong> ${test.organicMatter}%</div>
+                        <div><strong>Ca%:</strong> ${test.caPct}% <small>(ideal 60-70%)</small></div>
+                        <div><strong>Mg%:</strong> ${test.mgPct}% <small>(ideal 10-20%)</small></div>
+                        <div><strong>K%:</strong> ${test.kPct}% <small>(ideal 2-5%)</small></div>
+                    </div>
+                </div>
+
+                <!-- Targets & Deficits -->
+                <div style="background: white; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h4 style="color: #7c3aed; margin-bottom: 1rem;">Calculated Targets & Deficits (lbs/acre)</h4>
+                    <table class="ranges-table">
+                        <tr>
+                            <th>Element</th>
+                            <th>Target</th>
+                            <th>Current</th>
+                            <th>Deficit</th>
+                        </tr>
+                        <tr>
+                            <td>Calcium</td>
+                            <td>${targets.calcium}</td>
+                            <td>${test.caFound || 'N/A'}</td>
+                            <td style="color: ${deficits.calcium > 0 ? '#ef4444' : '#10b981'}">${deficits.calcium}</td>
+                        </tr>
+                        <tr>
+                            <td>Magnesium</td>
+                            <td>${targets.magnesium}</td>
+                            <td>${test.mgFound || 'N/A'}</td>
+                            <td style="color: ${deficits.magnesium > 0 ? '#ef4444' : '#10b981'}">${deficits.magnesium}</td>
+                        </tr>
+                        <tr>
+                            <td>Potassium</td>
+                            <td>${targets.potassium}</td>
+                            <td>${test.kFound || 'N/A'}</td>
+                            <td style="color: ${deficits.potassium > 0 ? '#ef4444' : '#10b981'}">${deficits.potassium}</td>
+                        </tr>
+                        <tr>
+                            <td>Phosphorus</td>
+                            <td>${targets.phosphorus}</td>
+                            <td>${test.phosphorus || 'N/A'}</td>
+                            <td style="color: ${deficits.phosphorus > 0 ? '#ef4444' : '#10b981'}">${deficits.phosphorus}</td>
+                        </tr>
+                        <tr>
+                            <td>Sulfur</td>
+                            <td>${targets.sulfur}</td>
+                            <td>${test.sulfur ? test.sulfur * 2 : 'N/A'}</td>
+                            <td style="color: ${deficits.sulfur > 0 ? '#ef4444' : '#10b981'}">${Math.round(deficits.sulfur)}</td>
+                        </tr>
+                        <tr>
+                            <td>Boron</td>
+                            <td>${targets.boron}</td>
+                            <td>${test.boron ? (test.boron * 2).toFixed(1) : 'N/A'}</td>
+                            <td style="color: ${deficits.boron > 0 ? '#ef4444' : '#10b981'}">${deficits.boron.toFixed(1)}</td>
+                        </tr>
+                        <tr>
+                            <td>Copper</td>
+                            <td>${targets.copper}</td>
+                            <td>${test.copper ? (test.copper * 2).toFixed(1) : 'N/A'}</td>
+                            <td style="color: ${deficits.copper > 0 ? '#ef4444' : '#10b981'}">${deficits.copper.toFixed(1)}</td>
+                        </tr>
+                        <tr>
+                            <td>Zinc</td>
+                            <td>${targets.zinc}</td>
+                            <td>${test.zinc ? (test.zinc * 2).toFixed(1) : 'N/A'}</td>
+                            <td style="color: ${deficits.zinc > 0 ? '#ef4444' : '#10b981'}">${deficits.zinc.toFixed(1)}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Recommendations -->
+                <div style="background: white; border-radius: 1rem; padding: 1.5rem;">
+                    <h4 style="color: #7c3aed; margin-bottom: 1rem;">Amendment Recommendations for ${areaSize} ${areaUnit === 'acre' ? 'acre(s)' : areaUnit === 'sqft' ? 'sq ft' : '100ft bed(s)'}</h4>
+                    <table class="ranges-table">
+                        <tr>
+                            <th>Material</th>
+                            <th>Amount (per acre)</th>
+                            <th>Your Area</th>
+                            <th>Provides</th>
+                            <th>Notes</th>
+                        </tr>
+                        ${recommendations.map(r => {
+                            const yourAmount = r.amount * areaInAcres;
+                            let displayAmount;
+                            if (yourAmount < 1) {
+                                displayAmount = (yourAmount * 16).toFixed(1) + ' oz';
+                            } else {
+                                displayAmount = yourAmount.toFixed(1) + ' lbs';
+                            }
+                            return `
+                                <tr>
+                                    <td><strong>${r.material}</strong></td>
+                                    <td>${r.amount} ${r.unit}</td>
+                                    <td style="color: #7c3aed; font-weight: 600;">${displayAmount}</td>
+                                    <td>${r.provides}</td>
+                                    <td style="font-size: 0.75rem; color: #64748b;">${r.notes}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </table>
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: #f0fdf4; border-radius: 0.5rem; border-left: 4px solid #10b981;">
+                        <strong>Application Tips:</strong>
+                        <ul style="margin-top: 0.5rem; margin-left: 1.25rem; color: #166534;">
+                            <li>Mix all minerals together before applying</li>
+                            <li>Dig into top 6 inches of soil</li>
+                            <li>Apply lime in fall if possible; other amendments in spring</li>
+                            <li>Phosphorus and zinc are immobile - mix well</li>
+                            <li>Retest soil same season next year</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Utilities
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>
