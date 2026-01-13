@@ -852,9 +852,9 @@
                 const response = await fetch(url);
                 const data = await response.json();
 
-                if (data.success && data.data) {
-                    tasks = data.data.tasks || [];
-                    summary = data.data.summary || {};
+                if (data.success && data.tasks) {
+                    tasks = data.tasks || [];
+                    summary = data.summary || {};
                     renderSheet();
                     updateStats();
                     document.getElementById('printBtn').disabled = tasks.length === 0;
