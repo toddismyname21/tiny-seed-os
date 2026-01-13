@@ -692,12 +692,14 @@
                     <select id="cropSelect" onchange="onCropChange()">
                         <option value="">Select a crop...</option>
                     </select>
+                    <input type="text" id="newCropInput" placeholder="Enter new crop name..." style="display: none; margin-top: 8px;" onchange="onNewCropInput()">
                 </div>
                 <div class="form-group">
                     <label>Variety</label>
                     <select id="varietySelect" onchange="onVarietyChange()">
                         <option value="">Select a variety...</option>
                     </select>
+                    <input type="text" id="newVarietyInput" placeholder="Enter new variety name..." style="display: none; margin-top: 8px;" onchange="onNewVarietyInput()">
                 </div>
             </div>
         </section>
@@ -968,6 +970,8 @@
         let selectedVariety = null;
         let originalSettings = null;
         let savedPlantingsThisSession = 0;
+        let isNewCrop = false;
+        let isNewVariety = false;
 
         // Crop icons
         const cropIcons = {
@@ -1160,13 +1164,45 @@
                     cropSelect.appendChild(option);
                 });
             }
+
+            // Add "New Crop" option at the end
+            const addNewOption = document.createElement('option');
+            addNewOption.value = '__add_new__';
+            addNewOption.textContent = '+ Add New Crop...';
+            addNewOption.style.fontStyle = 'italic';
+            cropSelect.appendChild(addNewOption);
+
+            // Hide the new crop input
+            document.getElementById('newCropInput').style.display = 'none';
         }
 
         function onCropChange() {
-            const cropName = document.getElementById('cropSelect').value;
+            const cropSelect = document.getElementById('cropSelect');
+            const cropName = cropSelect.value;
+            const newCropInput = document.getElementById('newCropInput');
+            const newVarietyInput = document.getElementById('newVarietyInput');
+
+            // Handle "Add New Crop" selection
+            if (cropName === '__add_new__') {
+                newCropInput.style.display = 'block';
+                newCropInput.focus();
+                newVarietyInput.style.display = 'block';
+                document.getElementById('varietySelect').innerHTML = '<option value="">Enter variety below...</option>';
+                selectedCrop = null;
+                isNewCrop = true;
+                // Set default grow settings for new crop
+                clearGrowSettings();
+                return;
+            }
+
+            newCropInput.style.display = 'none';
+            newCropInput.value = '';
+            isNewCrop = false;
+
             if (!cropName) {
                 selectedCrop = null;
                 document.getElementById('varietySelect').innerHTML = '<option value="">Select a variety...</option>';
+                newVarietyInput.style.display = 'none';
                 return;
             }
 
@@ -1191,6 +1227,17 @@
                 varietySelect.appendChild(option);
             });
 
+            // Add "New Variety" option
+            const addNewVarietyOption = document.createElement('option');
+            addNewVarietyOption.value = '__add_new__';
+            addNewVarietyOption.textContent = '+ Add New Variety...';
+            addNewVarietyOption.style.fontStyle = 'italic';
+            varietySelect.appendChild(addNewVarietyOption);
+
+            // Hide new variety input
+            newVarietyInput.style.display = 'none';
+            newVarietyInput.value = '';
+
             // Auto-select first variety
             if (varieties.length > 0) {
                 varietySelect.value = varieties[0];
@@ -1200,6 +1247,25 @@
 
         function onVarietyChange() {
             const variety = document.getElementById('varietySelect').value;
+            const newVarietyInput = document.getElementById('newVarietyInput');
+
+            // Handle "Add New Variety" selection
+            if (variety === '__add_new__') {
+                newVarietyInput.style.display = 'block';
+                newVarietyInput.focus();
+                isNewVariety = true;
+                selectedVariety = null;
+                // Keep parent crop's settings as defaults for new variety
+                if (selectedCrop) {
+                    populateGrowSettings(selectedCrop);
+                }
+                updateSummary();
+                return;
+            }
+
+            newVarietyInput.style.display = 'none';
+            newVarietyInput.value = '';
+            isNewVariety = false;
             selectedVariety = variety;
 
             if (selectedCrop) {
@@ -1213,6 +1279,37 @@
                 populateGrowSettings(profile);
                 updateSummary();
             }
+        }
+
+        // Handle new crop name input
+        function onNewCropInput() {
+            const newCropName = document.getElementById('newCropInput').value.trim();
+            if (newCropName) {
+                selectedCrop = { Crop: newCropName, Primary_Category: currentCategory === 'veg' ? 'Veg' : 'Floral' };
+                updateSummary();
+            }
+        }
+
+        // Handle new variety name input
+        function onNewVarietyInput() {
+            const newVarietyName = document.getElementById('newVarietyInput').value.trim();
+            if (newVarietyName) {
+                selectedVariety = newVarietyName;
+                updateSummary();
+            }
+        }
+
+        // Clear grow settings to defaults for new crop
+        function clearGrowSettings() {
+            document.getElementById('methodSelect').value = 'Transplant';
+            document.getElementById('traySizeSelect').value = 128;
+            document.getElementById('rowsInput').value = 4;
+            document.getElementById('spacingInput').value = 8;
+            document.getElementById('nurseryDaysInput').value = 28;
+            document.getElementById('dtmInput').value = 45;
+            originalSettings = null;
+            document.getElementById('settingsWarning').classList.remove('visible');
+            document.getElementById('autoLoadBadge').style.display = 'none';
         }
 
         // ========================================
@@ -1553,11 +1650,28 @@
         // SAVE PLANTING
         // ========================================
         async function savePlanting() {
-            const cropName = document.getElementById('cropSelect').value;
-            const variety = document.getElementById('varietySelect').value;
+            // Get crop name - either from select or from new crop input
+            let cropName = document.getElementById('cropSelect').value;
+            if (isNewCrop || cropName === '__add_new__') {
+                cropName = document.getElementById('newCropInput').value.trim();
+                if (!cropName) {
+                    showToast('Please enter a crop name', 'error');
+                    return;
+                }
+            }
 
-            if (!cropName) {
-                showToast('Please select a crop', 'error');
+            // Get variety - either from select or from new variety input
+            let variety = document.getElementById('varietySelect').value;
+            if (isNewVariety || variety === '__add_new__') {
+                variety = document.getElementById('newVarietyInput').value.trim();
+                if (!variety) {
+                    showToast('Please enter a variety name', 'error');
+                    return;
+                }
+            }
+
+            if (!cropName || cropName === '__add_new__') {
+                showToast('Please select or enter a crop', 'error');
                 return;
             }
 
@@ -1629,6 +1743,33 @@
             }
 
             try {
+                // If new crop or new variety, create the profile first
+                if (isNewCrop || isNewVariety) {
+                    const profileParams = new URLSearchParams({
+                        action: 'createCropProfile',
+                        cropName: cropName,
+                        variety: variety || '',
+                        category: currentCategory === 'veg' ? 'Veg' : 'Floral',
+                        dtm: settings.dtm,
+                        spacing: settings.spacing,
+                        rowsPerBed: settings.rows,
+                        trayCellCount: settings.traySize,
+                        nurseryDays: settings.nurseryDays,
+                        plantingMethod: settings.method
+                    });
+
+                    const profileResponse = await fetch(`${API_URL}?${profileParams.toString()}`);
+                    const profileData = await profileResponse.json();
+
+                    if (profileData.success) {
+                        showToast(`Created profile for ${cropName}${variety ? ' - ' + variety : ''}`, 'success');
+                        // Add to local profiles list
+                        cropProfiles.push(profileData.profile);
+                    } else {
+                        console.warn('Could not create profile:', profileData.error);
+                    }
+                }
+
                 // Save each planting
                 for (const planting of plantings) {
                     const params = new URLSearchParams({
@@ -1646,6 +1787,10 @@
 
                 hideLoading();
                 savedPlantingsThisSession += plantings.length;
+
+                // Reset new crop/variety flags
+                isNewCrop = false;
+                isNewVariety = false;
 
                 showToast(`Saved ${plantings.length} planting(s) to production plan!`, 'success');
 

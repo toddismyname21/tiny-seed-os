@@ -92,6 +92,8 @@ function handleAction(action, params) {
         return getCropProfile(params.cropName);
       case 'updateCropProfile':
         return updateCropProfile(params);
+      case 'createCropProfile':
+        return createCropProfile(params);
 
       // Beds
       case 'getBeds':
@@ -522,6 +524,69 @@ function updateCropProfile(params) {
     success: true,
     message: `Updated ${cropName} profile`,
     updatedFields: updates
+  };
+}
+
+/**
+ * Creates a new crop profile in REF_CropProfiles
+ * Used by Quick Plant Wizard when adding new crops or varieties
+ */
+function createCropProfile(params) {
+  const ss = SpreadsheetApp.openById(CONFIG.PRODUCTION_SHEET_ID);
+  const sheet = ss.getSheetByName(CONFIG.TABS.CROP_PROFILES);
+
+  if (!sheet) {
+    return {
+      success: false,
+      error: 'REF_CropProfiles sheet not found'
+    };
+  }
+
+  const cropName = params.cropName;
+  const variety = params.variety || '';
+
+  if (!cropName) {
+    return {
+      success: false,
+      error: 'cropName is required'
+    };
+  }
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  // Build the new row data based on headers
+  const newRow = headers.map(header => {
+    switch (header) {
+      case 'Crop': return cropName;
+      case 'Variety': return variety;
+      case 'Primary_Category': return params.category || 'Veg';
+      case 'DTM': return params.dtm || 45;
+      case 'Spacing': return params.spacing || 8;
+      case 'Rows_Per_Bed': return params.rowsPerBed || 4;
+      case 'Tray_Cell_Count': return params.trayCellCount || 128;
+      case 'Nursery_Days': return params.nurseryDays || 28;
+      case 'Planting_Method': return params.plantingMethod || 'Transplant';
+      default: return '';
+    }
+  });
+
+  // Append the new row
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    message: `Created profile for ${cropName}${variety ? ' - ' + variety : ''}`,
+    profile: {
+      Crop: cropName,
+      Variety: variety,
+      Primary_Category: params.category || 'Veg',
+      DTM: params.dtm || 45,
+      Spacing: params.spacing || 8,
+      Rows_Per_Bed: params.rowsPerBed || 4,
+      Tray_Cell_Count: params.trayCellCount || 128,
+      Nursery_Days: params.nurseryDays || 28,
+      Planting_Method: params.plantingMethod || 'Transplant'
+    }
   };
 }
 
