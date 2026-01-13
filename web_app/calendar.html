@@ -3264,7 +3264,7 @@
             document.getElementById('editCrop').value = planting.crop || '';
             document.getElementById('editVariety').value = planting.variety || '';
             document.getElementById('editField').value = planting.field || '';
-            document.getElementById('editBed').value = planting.bed || planting.Bed || planting.bedNumber || '';
+            document.getElementById('editBed').value = planting.bedNum || '';
             document.getElementById('editBedFeet').value = planting.bedFeet || '';
             document.getElementById('editDTM').value = planting.dtm || planting.DTM || planting.daysToMaturity || '';
             document.getElementById('editHarvestWindow').value = planting.harvestWindow || '';
@@ -3380,16 +3380,18 @@
                 const isTransplant = document.getElementById('methodTransplant').checked;
                 const plantingMethod = isTransplant ? 'Transplant' : 'Direct Seed';
 
+                // Construct Target_Bed_ID from field and bed number
+                const fieldVal = document.getElementById('editField').value;
+                const bedNum = document.getElementById('editBed').value;
+                const targetBedId = fieldVal ? `Field ${fieldVal}-${bedNum || '01'}` : '';
+
                 const updateData = {
                     action: 'updatePlanting',
                     id: document.getElementById('editBatchId').value,
                     Crop: document.getElementById('editCrop').value,
                     Variety: document.getElementById('editVariety').value,
-                    Field: document.getElementById('editField').value,
-                    Bed: document.getElementById('editBed').value,
-                    Bed_Feet: document.getElementById('editBedFeet').value,
-                    DTM: document.getElementById('editDTM').value,
-                    Harvest_Window: document.getElementById('editHarvestWindow').value,
+                    Target_Bed_ID: targetBedId,
+                    Feet_Used: document.getElementById('editBedFeet').value,
                     Planting_Method: plantingMethod,
                     Notes: document.getElementById('editNotes').value
                 };
@@ -3426,11 +3428,10 @@
                     // Update local data
                     currentEditingPlanting.crop = updateData.Crop;
                     currentEditingPlanting.variety = updateData.Variety;
-                    currentEditingPlanting.field = updateData.Field;
-                    currentEditingPlanting.bed = updateData.Bed;
-                    currentEditingPlanting.bedFeet = parseInt(updateData.Bed_Feet) || 0;
-                    currentEditingPlanting.dtm = parseInt(updateData.DTM) || 0;
-                    currentEditingPlanting.harvestWindow = parseInt(updateData.Harvest_Window) || 0;
+                    currentEditingPlanting.field = fieldVal;
+                    currentEditingPlanting.bedNum = bedNum;
+                    currentEditingPlanting.bed = targetBedId;
+                    currentEditingPlanting.bedFeet = parseInt(updateData.Feet_Used) || 0;
                     currentEditingPlanting.plantingMethod = plantingMethod;
                     currentEditingPlanting.notes = updateData.Notes;
 
