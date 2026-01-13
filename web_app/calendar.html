@@ -2755,7 +2755,7 @@
                          data-start="${planting.fieldStartDate || planting.seedDate}"
                          data-end="${planting.harvestDate}"
                          style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle} cursor: pointer;"
-                         onclick="openEditModal('${planting.id}')"
+                         ondblclick="openEditModal('${planting.id}')"
                          onmouseenter="showTooltip(event, '${planting.id}')"
                          onmouseleave="hideTooltip()">
                         <div class="resize-handle resize-handle-left" data-edge="left"></div>
