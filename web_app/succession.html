@@ -717,7 +717,7 @@
             <div class="form-row four-col">
                 <div class="form-group">
                     <label>Method</label>
-                    <select id="methodSelect" onchange="onSettingsChange()">
+                    <select id="methodSelect" onchange="onMethodChange()">
                         <option value="Transplant">Transplant</option>
                         <option value="Direct Seed">Direct Seed</option>
                         <option value="Paperpot">Paperpot</option>
@@ -725,12 +725,21 @@
                 </div>
                 <div class="form-group">
                     <label>Tray Size</label>
-                    <select id="traySizeSelect" onchange="onSettingsChange()">
-                        <option value="128">128-cell</option>
-                        <option value="72">72-cell</option>
+                    <select id="traySizeSelect" onchange="onTraySizeChange()">
                         <option value="50">50-cell</option>
-                        <option value="32">32-cell</option>
-                        <option value="200">200-cell (Paperpot)</option>
+                        <option value="72">72-cell</option>
+                        <option value="98">98-cell</option>
+                        <option value="128" selected>128-cell</option>
+                        <option value="200">200-cell</option>
+                        <option value="264">264-cell (Paperpot)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="paperpotSpacingGroup" style="display: none;">
+                    <label>Paperpot Spacing</label>
+                    <select id="paperpotSpacingSelect" onchange="onSettingsChange()">
+                        <option value="2">2" spacing</option>
+                        <option value="4" selected>4" spacing</option>
+                        <option value="6">6" spacing</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -849,14 +858,14 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Bed Assignment</label>
-                    <select id="bedSelect">
-                        <option value="Unassigned">Unassigned</option>
+                    <select id="bedSelect" onchange="onBedChange()">
+                        <option value="Unassigned">Unassigned (Plan Later)</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Total Bed Feet</label>
+                    <label>Total Bed Feet <span style="font-size: 0.75rem; color: var(--text-secondary);">(override)</span></label>
                     <div class="input-suffix">
-                        <input type="number" id="bedFeetInput" value="100" min="1" max="10000" onchange="calculateQuantities()">
+                        <input type="number" id="bedFeetInput" value="100" min="1" max="10000" onchange="calculateQuantities(); updateSummary();">
                         <span>ft</span>
                     </div>
                 </div>
@@ -965,6 +974,7 @@
         // STATE
         // ========================================
         let cropProfiles = [];
+        let bedData = new Map(); // Store bed ID -> length mapping
         let currentCategory = 'veg';
         let selectedCrop = null;
         let selectedVariety = null;
@@ -1077,33 +1087,102 @@
                 const data = await response.json();
 
                 const bedSelect = document.getElementById('bedSelect');
-                bedSelect.innerHTML = '<option value="Unassigned">Unassigned</option>';
+                bedSelect.innerHTML = '<option value="Unassigned">Unassigned (Plan Later)</option>';
+                bedData.clear();
 
                 if (data.success && data.data) {
+                    // Group beds by field for better organization
+                    const bedsByField = {};
                     data.data.forEach(bed => {
-                        const option = document.createElement('option');
-                        option.value = bed.Target_Bed_ID || bed.Bed_ID || bed.id;
-                        option.textContent = bed.Target_Bed_ID || bed.Bed_ID || bed.id;
-                        bedSelect.appendChild(option);
+                        const bedId = bed['Bed ID'] || bed.Target_Bed_ID || bed.Bed_ID || bed.id;
+                        const length = parseInt(bed.Length) || parseInt(bed.length) || 100;
+                        const parentField = bed['Parent Field'] || bed.Parent_Field || bedId.split('-')[0];
+
+                        // Store bed length in map
+                        bedData.set(bedId, length);
+
+                        if (!bedsByField[parentField]) {
+                            bedsByField[parentField] = [];
+                        }
+                        bedsByField[parentField].push({ id: bedId, length: length });
                     });
+
+                    // Add beds grouped by field
+                    Object.keys(bedsByField).sort().forEach(field => {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = `Field ${field}`;
+
+                        bedsByField[field].forEach(bed => {
+                            const option = document.createElement('option');
+                            option.value = bed.id;
+                            option.textContent = `${bed.id} (${bed.length} ft)`;
+                            option.dataset.length = bed.length;
+                            optgroup.appendChild(option);
+                        });
+
+                        bedSelect.appendChild(optgroup);
+                    });
+                } else {
+                    loadDefaultBeds();
                 }
             } catch (error) {
-                console.log('Could not load beds, using defaults');
+                console.log('Could not load beds, using defaults:', error);
                 loadDefaultBeds();
             }
         }
 
         function loadDefaultBeds() {
             const bedSelect = document.getElementById('bedSelect');
-            const fields = ['F3L', 'IL', 'JS1', 'M'];
-            fields.forEach(field => {
-                for (let i = 1; i <= 12; i++) {
+            // Field configurations with bed counts and lengths
+            const fieldConfig = {
+                'F3L': { beds: 12, length: 300 },
+                'F7M': { beds: 10, length: 250 },
+                'F11M': { beds: 10, length: 250 },
+                'HOL': { beds: 12, length: 300 },
+                'IL': { beds: 12, length: 300 },
+                'JL': { beds: 12, length: 300 },
+                'JS1': { beds: 12, length: 300 },
+                'M': { beds: 12, length: 300 }
+            };
+
+            Object.keys(fieldConfig).sort().forEach(field => {
+                const config = fieldConfig[field];
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = `Field ${field}`;
+
+                for (let i = 1; i <= config.beds; i++) {
+                    const bedId = `${field}-${String(i).padStart(2, '0')}`;
+                    bedData.set(bedId, config.length);
+
                     const option = document.createElement('option');
-                    option.value = `Field ${field}-${String(i).padStart(2, '0')}`;
-                    option.textContent = `Field ${field}-${String(i).padStart(2, '0')}`;
-                    bedSelect.appendChild(option);
+                    option.value = bedId;
+                    option.textContent = `${bedId} (${config.length} ft)`;
+                    option.dataset.length = config.length;
+                    optgroup.appendChild(option);
                 }
+
+                bedSelect.appendChild(optgroup);
             });
+        }
+
+        function onBedChange() {
+            const bedSelect = document.getElementById('bedSelect');
+            const bedFeetInput = document.getElementById('bedFeetInput');
+            const selectedBed = bedSelect.value;
+
+            if (selectedBed === 'Unassigned') {
+                // Keep current value or set default for unassigned
+                if (!bedFeetInput.value || bedFeetInput.value === '0') {
+                    bedFeetInput.value = 100;
+                }
+            } else {
+                // Auto-populate with bed length
+                const length = bedData.get(selectedBed) || 100;
+                bedFeetInput.value = length;
+            }
+
+            calculateQuantities();
+            updateSummary();
         }
 
         // ========================================
@@ -1214,8 +1293,8 @@
             const varietySelect = document.getElementById('varietySelect');
             varietySelect.innerHTML = '<option value="">Select a variety...</option>';
 
-            // Get unique varieties for this crop
-            const varieties = [...new Set(cropData.map(p => p.Variety).filter(v => v))];
+            // Get unique varieties for this crop (check both Variety and Variety_Default column names)
+            const varieties = [...new Set(cropData.map(p => p.Variety || p.Variety_Default).filter(v => v))];
             if (varieties.length === 0) {
                 varieties.push('Standard');
             }
@@ -1269,10 +1348,10 @@
             selectedVariety = variety;
 
             if (selectedCrop) {
-                // Try to find variety-specific profile
+                // Try to find variety-specific profile (check both Variety and Variety_Default)
                 const cropName = document.getElementById('cropSelect').value;
                 const varietyProfile = cropProfiles.find(p =>
-                    (p.Crop || p.Crop_Name) === cropName && p.Variety === variety
+                    (p.Crop || p.Crop_Name) === cropName && (p.Variety === variety || p.Variety_Default === variety)
                 );
 
                 const profile = varietyProfile || selectedCrop;
@@ -1316,17 +1395,32 @@
         // GROW SETTINGS
         // ========================================
         function populateGrowSettings(profile) {
-            document.getElementById('methodSelect').value = profile.Planting_Method || 'Transplant';
-            document.getElementById('traySizeSelect').value = profile.Tray_Cell_Count || 128;
+            const method = profile.Planting_Method || 'Transplant';
+            const traySize = profile.Tray_Cell_Count || 128;
+
+            document.getElementById('methodSelect').value = method;
+            document.getElementById('traySizeSelect').value = traySize;
             document.getElementById('rowsInput').value = profile.Rows_Per_Bed || 4;
             document.getElementById('spacingInput').value = profile.Spacing || 8;
             document.getElementById('nurseryDaysInput').value = profile.Nursery_Days || 28;
             document.getElementById('dtmInput').value = profile.DTM || 45;
 
+            // Show/hide Paperpot spacing based on method or tray size
+            const paperpotSpacingGroup = document.getElementById('paperpotSpacingGroup');
+            if (method === 'Paperpot' || traySize === 264) {
+                paperpotSpacingGroup.style.display = 'block';
+                // Set default paperpot spacing if available in profile
+                if (profile.Paperpot_Spacing) {
+                    document.getElementById('paperpotSpacingSelect').value = profile.Paperpot_Spacing;
+                }
+            } else {
+                paperpotSpacingGroup.style.display = 'none';
+            }
+
             // Store original settings for comparison
             originalSettings = {
-                method: profile.Planting_Method || 'Transplant',
-                traySize: profile.Tray_Cell_Count || 128,
+                method: method,
+                traySize: traySize,
                 rows: profile.Rows_Per_Bed || 4,
                 spacing: profile.Spacing || 8,
                 nurseryDays: profile.Nursery_Days || 28,
@@ -1346,6 +1440,52 @@
             onSettingsChange();
             calculateQuantities();
             onDateChange();
+        }
+
+        function onMethodChange() {
+            const methodSelect = document.getElementById('methodSelect');
+            const traySizeSelect = document.getElementById('traySizeSelect');
+            const paperpotSpacingGroup = document.getElementById('paperpotSpacingGroup');
+
+            // When Paperpot method is selected, default to 264-cell and show spacing
+            if (methodSelect.value === 'Paperpot') {
+                traySizeSelect.value = '264';
+                paperpotSpacingGroup.style.display = 'block';
+            } else {
+                paperpotSpacingGroup.style.display = 'none';
+                // If switching away from Paperpot and still on 264, switch to 128
+                if (traySizeSelect.value === '264') {
+                    traySizeSelect.value = '128';
+                }
+            }
+
+            calculateQuantities();
+            onSettingsChange();
+            onDateChange();
+            updateSummary();
+        }
+
+        function onTraySizeChange() {
+            const traySizeSelect = document.getElementById('traySizeSelect');
+            const paperpotSpacingGroup = document.getElementById('paperpotSpacingGroup');
+            const methodSelect = document.getElementById('methodSelect');
+            const traySize = parseInt(traySizeSelect.value);
+
+            // Show Paperpot spacing selector when 264-cell is selected
+            if (traySize === 264) {
+                paperpotSpacingGroup.style.display = 'block';
+                // Auto-select Paperpot method if not already
+                if (methodSelect.value !== 'Paperpot') {
+                    methodSelect.value = 'Paperpot';
+                }
+            } else {
+                paperpotSpacingGroup.style.display = 'none';
+            }
+
+            // Recalculate quantities and trigger settings change
+            calculateQuantities();
+            onSettingsChange();
+            updateSummary();
         }
 
         function onSettingsChange() {
@@ -1374,9 +1514,12 @@
         }
 
         function getCurrentSettings() {
+            const method = document.getElementById('methodSelect').value;
+            const traySize = parseInt(document.getElementById('traySizeSelect').value);
             return {
-                method: document.getElementById('methodSelect').value,
-                traySize: parseInt(document.getElementById('traySizeSelect').value),
+                method: method,
+                traySize: traySize,
+                paperpotSpacing: method === 'Paperpot' ? parseInt(document.getElementById('paperpotSpacingSelect').value) : null,
                 rows: parseInt(document.getElementById('rowsInput').value),
                 spacing: parseInt(document.getElementById('spacingInput').value),
                 nurseryDays: parseInt(document.getElementById('nurseryDaysInput').value),
@@ -1579,8 +1722,11 @@
                 : `GH: ${ghSowDate} → Transplant: ${transplantDate} → Harvest: ${harvestDate}`;
             document.getElementById('summarySchedule').textContent = scheduleText;
 
-            document.getElementById('summaryLocation').textContent = bed;
-            document.getElementById('summaryQuantity').textContent = `${plantsNeeded} plants / ${traysNeeded} trays`;
+            document.getElementById('summaryLocation').textContent = bed === 'Unassigned' ? 'Unassigned (Plan Later)' : bed;
+
+            const traySize = document.getElementById('traySizeSelect').value;
+            const trayLabel = traySize === '264' ? '264-cell Paperpot' : `${traySize}-cell`;
+            document.getElementById('summaryQuantity').textContent = `${plantsNeeded} plants / ${traysNeeded} trays (${trayLabel})`;
         }
 
         // ========================================
@@ -1734,6 +1880,8 @@
                     Feet_Used: bedFeet,
                     Plants_Needed: parseInt(document.getElementById('plantsNeeded').textContent.replace(/,/g, '')),
                     Trays_Needed: parseInt(document.getElementById('traysNeeded').textContent),
+                    Tray_Cell_Count: settings.traySize,
+                    Paperpot_Spacing: settings.paperpotSpacing || '',
                     Plan_GH_Sow: planGHSow || '',
                     Plan_Field_Sow: planFieldSow || '',
                     Plan_Transplant: planTransplant || '',

@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greenhouse View - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title i { color: var(--success); }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(45, 90, 39, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .main-container {
+            padding: 100px 2rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-card .icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .stat-card .label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .stat-card.success .icon { color: var(--success); }
+        .stat-card.warning .icon { color: var(--warning); }
+        .stat-card.primary .icon { color: var(--primary-light); }
+        .stat-card.accent .icon { color: var(--secondary); }
+
+        /* Sections */
+        .section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-header i {
+            color: var(--secondary);
+            font-size: 1.25rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .section-header .badge {
+            background: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        /* Tray Inventory Grid */
+        .tray-inventory {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .tray-type {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .tray-type .size {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .tray-type .count {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--success);
+            margin: 0.5rem 0;
+        }
+
+        .tray-type .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .tray-type.paperpot {
+            border-color: var(--secondary);
+        }
+
+        .tray-type.paperpot .size {
+            color: var(--secondary);
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .data-table .crop-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-table .crop-icon {
+            font-size: 1.25rem;
+        }
+
+        .data-table .crop-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .data-table .crop-name {
+            font-weight: 600;
+        }
+
+        .data-table .crop-variety {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-badge.seedling { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .status-badge.ready { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+        .status-badge.upcoming { background: rgba(45, 90, 39, 0.2); color: var(--primary-light); }
+        .status-badge.overdue { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+
+        .days-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .days-display .days {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .days-display .label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .days-display.soon .days { color: var(--warning); }
+        .days-display.ready .days { color: var(--success); }
+        .days-display.overdue .days { color: var(--danger); }
+
+        /* Upcoming Section */
+        .upcoming-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .upcoming-card {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+        }
+
+        .upcoming-card .date-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .upcoming-card .date {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .upcoming-card .count {
+            background: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .upcoming-card .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .upcoming-card .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upcoming-card .task-crop {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upcoming-card .task-trays {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+        }
+
+        .loading i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 1.2rem;
+            }
+
+            .main-container {
+                padding: 90px 1rem 1rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 10px 8px;
+                font-size: 0.85rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Dashboard</span>
+            </a>
+            <h1 class="page-title">
+                <i class="fas fa-seedling"></i>
+                Greenhouse View
+            </h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+            <a href="succession.html" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                New Planting
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card success">
+                <div class="icon"><i class="fas fa-seedling"></i></div>
+                <div class="value" id="totalTrays">--</div>
+                <div class="label">Total Trays in GH</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="icon"><i class="fas fa-truck-loading"></i></div>
+                <div class="value" id="readyToTransplant">--</div>
+                <div class="label">Ready to Transplant</div>
+            </div>
+            <div class="stat-card primary">
+                <div class="icon"><i class="fas fa-calendar-plus"></i></div>
+                <div class="value" id="upcomingSowings">--</div>
+                <div class="label">Sowings This Week</div>
+            </div>
+            <div class="stat-card accent">
+                <div class="icon"><i class="fas fa-leaf"></i></div>
+                <div class="value" id="uniqueCrops">--</div>
+                <div class="label">Crop Varieties</div>
+            </div>
+        </div>
+
+        <!-- Tray Inventory by Size -->
+        <section class="section">
+            <div class="section-header">
+                <div class="section-header-left">
+                    <i class="fas fa-th"></i>
+                    <h2>Tray Inventory by Size</h2>
+                </div>
+            </div>
+            <div class="tray-inventory" id="trayInventory">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <span>Loading tray data...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Current Trays in Greenhouse -->
+        <section class="section">
+            <div class="section-header">
+                <div class="section-header-left">
+                    <i class="fas fa-seedling"></i>
+                    <h2>Current Trays in Greenhouse</h2>
+                </div>
+                <span class="badge" id="currentCount">0 batches</span>
+            </div>
+            <div id="currentTraysContainer">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <span>Loading greenhouse data...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upcoming Transplants -->
+        <section class="section">
+            <div class="section-header">
+                <div class="section-header-left">
+                    <i class="fas fa-calendar-check"></i>
+                    <h2>Upcoming Transplants (Next 14 Days)</h2>
+                </div>
+            </div>
+            <div id="upcomingTransplantsContainer">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <span>Loading transplant schedule...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upcoming Sowings -->
+        <section class="section">
+            <div class="section-header">
+                <div class="section-header-left">
+                    <i class="fas fa-hand-holding-seedling"></i>
+                    <h2>Upcoming Sowings (Next 7 Days)</h2>
+                </div>
+            </div>
+            <div id="upcomingSowingsContainer">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <span>Loading sowing schedule...</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // ========================================
+        // CONFIGURATION
+        // ========================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+
+        // Crop icons for display
+        const cropIcons = {
+            'lettuce': '🥬', 'tomato': '🍅', 'pepper': '🫑', 'carrot': '🥕',
+            'kale': '🥗', 'spinach': '🥬', 'basil': '🌿', 'cilantro': '🌿',
+            'cucumber': '🥒', 'squash': '🎃', 'zucchini': '🥒', 'bean': '🫘',
+            'pea': '🫛', 'onion': '🧅', 'garlic': '🧄', 'beet': '🍠',
+            'radish': '🔴', 'turnip': '🔵', 'cabbage': '🥬', 'broccoli': '🥦',
+            'cauliflower': '🥦', 'eggplant': '🍆', 'corn': '🌽', 'potato': '🥔',
+            'zinnia': '🌸', 'sunflower': '🌻', 'dahlia': '🌺', 'cosmos': '🌼',
+            'marigold': '🌼', 'snapdragon': '🌷', 'celosia': '🌺', 'aster': '🌸'
+        };
+
+        // ========================================
+        // INITIALIZATION
+        // ========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadGreenhouseData();
+        });
+
+        async function refreshData() {
+            await loadGreenhouseData();
+        }
+
+        // ========================================
+        // DATA LOADING
+        // ========================================
+        async function loadGreenhouseData() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPlanningData`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    processGreenhouseData(data.data);
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading greenhouse data:', error);
+                showEmptyState();
+            }
+        }
+
+        function processGreenhouseData(plantings) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Filter for greenhouse-relevant plantings (transplant or paperpot method)
+            const ghPlantings = plantings.filter(p => {
+                const method = (p.Planting_Method || p.Method || '').toLowerCase();
+                return method.includes('transplant') || method.includes('paperpot');
+            });
+
+            // Categorize plantings
+            const currentInGH = []; // Sown but not transplanted
+            const upcomingTransplants = []; // Transplant date in next 14 days
+            const upcomingSowings = []; // GH Sow date in next 7 days
+            const traysBySize = {};
+
+            ghPlantings.forEach(p => {
+                const ghSowDate = parseDate(p.Plan_GH_Sow || p.GH_Sow_Date);
+                const actGhSowDate = parseDate(p.Act_GH_Sow);
+                const transplantDate = parseDate(p.Plan_Transplant || p.Transplant_Date);
+                const actTransplantDate = parseDate(p.Act_Transplant);
+                const trays = parseInt(p.Trays_Needed || p.Trays) || 0;
+                const traySize = parseInt(p.Tray_Cell_Count) || 128;
+
+                // Currently in greenhouse: has been sown (Act_GH_Sow) but not transplanted (no Act_Transplant)
+                if (actGhSowDate && !actTransplantDate) {
+                    const daysInGH = Math.floor((today - actGhSowDate) / (1000 * 60 * 60 * 24));
+                    const nurseryDays = parseInt(p.Nursery_Days) || 28;
+                    const daysUntilTransplant = transplantDate ? Math.floor((transplantDate - today) / (1000 * 60 * 60 * 24)) : (nurseryDays - daysInGH);
+
+                    currentInGH.push({
+                        ...p,
+                        daysInGH: daysInGH,
+                        daysUntilTransplant: daysUntilTransplant,
+                        transplantDate: transplantDate,
+                        trays: trays,
+                        traySize: traySize
+                    });
+
+                    // Count trays by size
+                    const sizeKey = traySize.toString();
+                    traysBySize[sizeKey] = (traysBySize[sizeKey] || 0) + trays;
+                }
+
+                // Upcoming transplants: planned transplant in next 14 days (and in GH or sow date has passed)
+                if (transplantDate && !actTransplantDate) {
+                    const daysUntil = Math.floor((transplantDate - today) / (1000 * 60 * 60 * 24));
+                    if (daysUntil >= -3 && daysUntil <= 14) {
+                        // Only show if already sown or should have been sown
+                        if (actGhSowDate || (ghSowDate && ghSowDate <= today)) {
+                            upcomingTransplants.push({
+                                ...p,
+                                daysUntilTransplant: daysUntil,
+                                transplantDate: transplantDate,
+                                trays: trays
+                            });
+                        }
+                    }
+                }
+
+                // Upcoming sowings: GH sow date in next 7 days (and not yet sown)
+                if (ghSowDate && !actGhSowDate) {
+                    const daysUntil = Math.floor((ghSowDate - today) / (1000 * 60 * 60 * 24));
+                    if (daysUntil >= 0 && daysUntil <= 7) {
+                        upcomingSowings.push({
+                            ...p,
+                            daysUntilSow: daysUntil,
+                            sowDate: ghSowDate,
+                            trays: trays,
+                            traySize: traySize
+                        });
+                    }
+                }
+            });
+
+            // Update stats
+            const totalTrays = Object.values(traysBySize).reduce((a, b) => a + b, 0);
+            const readyCount = currentInGH.filter(p => p.daysUntilTransplant <= 3).length;
+            const uniqueCrops = new Set(currentInGH.map(p => `${p.Crop}-${p.Variety}`)).size;
+
+            document.getElementById('totalTrays').textContent = totalTrays;
+            document.getElementById('readyToTransplant').textContent = readyCount;
+            document.getElementById('upcomingSowings').textContent = upcomingSowings.length;
+            document.getElementById('uniqueCrops').textContent = uniqueCrops;
+
+            // Render sections
+            renderTrayInventory(traysBySize);
+            renderCurrentTrays(currentInGH);
+            renderUpcomingTransplants(upcomingTransplants);
+            renderUpcomingSowings(upcomingSowings);
+        }
+
+        // ========================================
+        // RENDERING
+        // ========================================
+        function renderTrayInventory(traysBySize) {
+            const container = document.getElementById('trayInventory');
+
+            // Standard tray sizes to show (even if 0)
+            const standardSizes = ['50', '72', '98', '128', '200', '264'];
+
+            if (Object.keys(traysBySize).length === 0) {
+                // Show all sizes with 0 count
+                standardSizes.forEach(size => traysBySize[size] = 0);
+            }
+
+            // Add any non-standard sizes that exist
+            Object.keys(traysBySize).forEach(size => {
+                if (!standardSizes.includes(size)) {
+                    standardSizes.push(size);
+                }
+            });
+
+            container.innerHTML = standardSizes.map(size => {
+                const count = traysBySize[size] || 0;
+                const isPaperpot = size === '264';
+                return `
+                    <div class="tray-type ${isPaperpot ? 'paperpot' : ''}">
+                        <div class="size">${size}-cell</div>
+                        <div class="count">${count}</div>
+                        <div class="label">${isPaperpot ? 'Paperpot Trays' : 'Trays'}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderCurrentTrays(trays) {
+            const container = document.getElementById('currentTraysContainer');
+            document.getElementById('currentCount').textContent = `${trays.length} batches`;
+
+            if (trays.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-seedling"></i>
+                        <p>No trays currently in greenhouse</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Trays appear here after marking them as sown</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by days until transplant (most urgent first)
+            trays.sort((a, b) => a.daysUntilTransplant - b.daysUntilTransplant);
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Crop</th>
+                            <th>Batch ID</th>
+                            <th>Trays</th>
+                            <th>Days in GH</th>
+                            <th>Transplant</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${trays.map(t => {
+                            const cropKey = (t.Crop || '').toLowerCase();
+                            const icon = cropIcons[cropKey] || '🌱';
+                            const statusClass = t.daysUntilTransplant <= 0 ? 'ready' :
+                                               t.daysUntilTransplant <= 3 ? 'soon' : '';
+                            const statusBadge = t.daysUntilTransplant <= 0 ? 'ready' :
+                                               t.daysUntilTransplant <= 3 ? 'upcoming' : 'seedling';
+                            const statusText = t.daysUntilTransplant <= 0 ? 'Ready!' :
+                                              t.daysUntilTransplant <= 3 ? 'Soon' : 'Growing';
+
+                            return `
+                                <tr>
+                                    <td>
+                                        <div class="crop-cell">
+                                            <span class="crop-icon">${icon}</span>
+                                            <div class="crop-info">
+                                                <span class="crop-name">${t.Crop || 'Unknown'}</span>
+                                                <span class="crop-variety">${t.Variety || ''}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>${t.Batch_ID || '--'}</td>
+                                    <td>${t.trays} × ${t.traySize}-cell</td>
+                                    <td>
+                                        <div class="days-display">
+                                            <span class="days">${t.daysInGH}</span>
+                                            <span class="label">days</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="days-display ${statusClass}">
+                                            <span class="days">${t.daysUntilTransplant <= 0 ? 'Now' : t.daysUntilTransplant}</span>
+                                            <span class="label">${t.daysUntilTransplant <= 0 ? '' : 'days'}</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status-badge ${statusBadge}">${statusText}</span></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderUpcomingTransplants(transplants) {
+            const container = document.getElementById('upcomingTransplantsContainer');
+
+            if (transplants.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-check"></i>
+                        <p>No transplants scheduled in the next 14 days</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group by transplant date
+            const byDate = {};
+            transplants.forEach(t => {
+                const dateKey = formatDate(t.transplantDate);
+                if (!byDate[dateKey]) {
+                    byDate[dateKey] = [];
+                }
+                byDate[dateKey].push(t);
+            });
+
+            // Sort dates
+            const sortedDates = Object.keys(byDate).sort((a, b) => new Date(a) - new Date(b));
+
+            container.innerHTML = `
+                <div class="upcoming-grid">
+                    ${sortedDates.map(date => {
+                        const items = byDate[date];
+                        const totalTrays = items.reduce((sum, i) => sum + i.trays, 0);
+                        const daysUntil = items[0].daysUntilTransplant;
+                        const isOverdue = daysUntil < 0;
+                        const isToday = daysUntil === 0;
+
+                        return `
+                            <div class="upcoming-card">
+                                <div class="date-header">
+                                    <span class="date">
+                                        ${isToday ? 'TODAY' : isOverdue ? `${Math.abs(daysUntil)} days overdue` : formatDateDisplay(date)}
+                                    </span>
+                                    <span class="count">${totalTrays} trays</span>
+                                </div>
+                                <div class="task-list">
+                                    ${items.map(item => {
+                                        const cropKey = (item.Crop || '').toLowerCase();
+                                        const icon = cropIcons[cropKey] || '🌱';
+                                        return `
+                                            <div class="task-item">
+                                                <div class="task-crop">
+                                                    <span>${icon}</span>
+                                                    <span>${item.Crop}${item.Variety ? ' - ' + item.Variety : ''}</span>
+                                                </div>
+                                                <span class="task-trays">${item.trays} trays</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderUpcomingSowings(sowings) {
+            const container = document.getElementById('upcomingSowingsContainer');
+
+            if (sowings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-hand-holding-seedling"></i>
+                        <p>No sowings scheduled in the next 7 days</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group by sow date
+            const byDate = {};
+            sowings.forEach(s => {
+                const dateKey = formatDate(s.sowDate);
+                if (!byDate[dateKey]) {
+                    byDate[dateKey] = [];
+                }
+                byDate[dateKey].push(s);
+            });
+
+            // Sort dates
+            const sortedDates = Object.keys(byDate).sort((a, b) => new Date(a) - new Date(b));
+
+            container.innerHTML = `
+                <div class="upcoming-grid">
+                    ${sortedDates.map(date => {
+                        const items = byDate[date];
+                        const totalTrays = items.reduce((sum, i) => sum + i.trays, 0);
+                        const isToday = items[0].daysUntilSow === 0;
+
+                        return `
+                            <div class="upcoming-card">
+                                <div class="date-header">
+                                    <span class="date">${isToday ? 'TODAY' : formatDateDisplay(date)}</span>
+                                    <span class="count">${totalTrays} trays</span>
+                                </div>
+                                <div class="task-list">
+                                    ${items.map(item => {
+                                        const cropKey = (item.Crop || '').toLowerCase();
+                                        const icon = cropIcons[cropKey] || '🌱';
+                                        return `
+                                            <div class="task-item">
+                                                <div class="task-crop">
+                                                    <span>${icon}</span>
+                                                    <span>${item.Crop}${item.Variety ? ' - ' + item.Variety : ''}</span>
+                                                </div>
+                                                <span class="task-trays">${item.trays} × ${item.traySize}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // ========================================
+        // UTILITIES
+        // ========================================
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            if (dateStr instanceof Date) return dateStr;
+            const d = new Date(dateStr);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function formatDate(date) {
+            if (!date) return '';
+            const d = date instanceof Date ? date : new Date(date);
+            return d.toISOString().split('T')[0];
+        }
+
+        function formatDateDisplay(dateStr) {
+            const d = new Date(dateStr);
+            const options = { weekday: 'short', month: 'short', day: 'numeric' };
+            return d.toLocaleDateString('en-US', options);
+        }
+
+        function showEmptyState() {
+            document.getElementById('totalTrays').textContent = '0';
+            document.getElementById('readyToTransplant').textContent = '0';
+            document.getElementById('upcomingSowings').textContent = '0';
+            document.getElementById('uniqueCrops').textContent = '0';
+
+            document.getElementById('trayInventory').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-database"></i>
+                    <p>Could not load greenhouse data</p>
+                </div>
+            `;
+
+            document.getElementById('currentTraysContainer').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-seedling"></i>
+                    <p>No data available</p>
+                </div>
+            `;
+
+            document.getElementById('upcomingTransplantsContainer').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calendar-check"></i>
+                    <p>No data available</p>
+                </div>
+            `;
+
+            document.getElementById('upcomingSowingsContainer').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-hand-holding-seedling"></i>
+                    <p>No data available</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
