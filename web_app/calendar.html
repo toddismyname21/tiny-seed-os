@@ -3192,6 +3192,12 @@
                     // Construct proper Target_Bed_ID format
                     const bedNum = planting.bedNum || (planting.bed ? planting.bed.match(/\d+$/)?.[0] : null) || '01';
                     const properBedId = planting.field ? `Field ${planting.field}-${bedNum}` : planting.bed;
+                    console.log('=== DRAG SAVE ===');
+                    console.log('planting.field:', JSON.stringify(planting.field));
+                    console.log('planting.bed:', JSON.stringify(planting.bed));
+                    console.log('planting.bedNum:', JSON.stringify(planting.bedNum));
+                    console.log('bedNum:', JSON.stringify(bedNum));
+                    console.log('properBedId:', JSON.stringify(properBedId));
 
                     // Use correct column names from actual sheet structure
                     // CASCADE: Update ALL related dates - auto-format to M/D/YYYY for Google Sheets
@@ -3388,6 +3394,10 @@
                 const fieldVal = document.getElementById('editField').value;
                 const bedNum = document.getElementById('editBed').value;
                 const targetBedId = fieldVal ? `Field ${fieldVal}-${bedNum || '01'}` : '';
+                console.log('=== EDIT MODAL SAVE ===');
+                console.log('fieldVal:', JSON.stringify(fieldVal));
+                console.log('bedNum:', JSON.stringify(bedNum));
+                console.log('targetBedId:', JSON.stringify(targetBedId));
 
                 const updateData = {
                     action: 'updatePlanting',
