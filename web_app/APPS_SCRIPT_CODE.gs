@@ -882,16 +882,26 @@ function getGreenhouseSowingTasks(params) {
   const planningData = planningSheet.getDataRange().getValues();
   const headers = planningData[0];
 
-  // Find column indices
+  // Find column indices - matching actual PLANNING_2026 columns
   const cols = {
+    status: headers.indexOf('STATUS'),
     batchId: headers.indexOf('Batch_ID'),
     crop: headers.indexOf('Crop'),
     variety: headers.indexOf('Variety'),
-    ghSow: headers.indexOf('Plan_GH_Sow') >= 0 ? headers.indexOf('Plan_GH_Sow') : headers.indexOf('ghSow'),
-    transplant: headers.indexOf('Plan_Transplant') >= 0 ? headers.indexOf('Plan_Transplant') : headers.indexOf('transplant'),
-    trays: headers.indexOf('Trays'),
-    cellsPerTray: headers.indexOf('CellsPerTray') >= 0 ? headers.indexOf('CellsPerTray') : headers.indexOf('Cells_Per_Tray'),
-    bed: headers.indexOf('Bed') >= 0 ? headers.indexOf('Bed') : headers.indexOf('Field'),
+    plantingMethod: headers.indexOf('Planting_Method'),
+    ghSow: headers.indexOf('Plan_GH_Sow'),
+    actGhSow: headers.indexOf('Act_GH_Sow'),
+    fieldSow: headers.indexOf('Plan_Field_Sow'),
+    actFieldSow: headers.indexOf('Act_Field_Sow'),
+    transplant: headers.indexOf('Plan_Transplant'),
+    actTransplant: headers.indexOf('Act_Transplant'),
+    trays: headers.indexOf('Trays_Needed'),
+    plantsNeeded: headers.indexOf('Plants_Needed'),
+    bed: headers.indexOf('Target_Bed_ID'),
+    feetUsed: headers.indexOf('Feet_Used'),
+    firstHarvest: headers.indexOf('First_Harvest'),
+    lastHarvest: headers.indexOf('Last_Harvest'),
+    notes: headers.indexOf('Notes'),
     category: headers.indexOf('Category'),
     completed: headers.indexOf('SowingComplete'),
     completedBy: headers.indexOf('CompletedBy'),
@@ -941,15 +951,27 @@ function getGreenhouseSowingTasks(params) {
   for (let i = 1; i < planningData.length; i++) {
     const row = planningData[i];
 
-    // Get GH sow date
-    const ghSowRaw = cols.ghSow >= 0 ? row[cols.ghSow] : null;
-    if (!ghSowRaw) continue;
+    // Get planting method to determine which date column to use
+    const plantingMethod = cols.plantingMethod >= 0 ? row[cols.plantingMethod] : 'Transplant';
+    const isDirectSeed = plantingMethod === 'Direct Seed';
 
-    const ghSowDate = new Date(ghSowRaw);
-    if (isNaN(ghSowDate.getTime())) continue;
+    // Get the appropriate sow date based on method
+    let sowDateRaw;
+    if (isDirectSeed) {
+      // For direct seed, use Plan_Field_Sow
+      sowDateRaw = cols.fieldSow >= 0 ? row[cols.fieldSow] : null;
+    } else {
+      // For transplant, use Plan_GH_Sow
+      sowDateRaw = cols.ghSow >= 0 ? row[cols.ghSow] : null;
+    }
+
+    if (!sowDateRaw) continue;
+
+    const sowDate = new Date(sowDateRaw);
+    if (isNaN(sowDate.getTime())) continue;
 
     // Date filter
-    if (ghSowDate < startDate || ghSowDate > endDate) continue;
+    if (sowDate < startDate || sowDate > endDate) continue;
 
     const crop = cols.crop >= 0 ? row[cols.crop] : '';
     const profile = profileMap[crop] || {};
@@ -962,33 +984,48 @@ function getGreenhouseSowingTasks(params) {
     }
 
     const variety = cols.variety >= 0 ? row[cols.variety] : '';
-    const trays = cols.trays >= 0 ? (parseInt(row[cols.trays]) || 1) : 1;
-    const cellsPerTray = cols.cellsPerTray >= 0 ? (parseInt(row[cols.cellsPerTray]) || profile.defaultCells || 128) : 128;
-    const totalCells = trays * cellsPerTray;
-    const seedsNeeded = Math.ceil(totalCells * 1.05); // 5% buffer
+    const trays = cols.trays >= 0 ? (parseInt(row[cols.trays]) || 0) : 0;
+    const plantsNeeded = cols.plantsNeeded >= 0 ? (parseInt(row[cols.plantsNeeded]) || 0) : 0;
+    const feetUsed = cols.feetUsed >= 0 ? (parseInt(row[cols.feetUsed]) || 0) : 0;
+
+    // Calculate seeds needed - use plants needed or trays * 128
+    const cellsPerTray = profile.defaultCells || 128;
+    const seedsNeeded = plantsNeeded > 0 ? Math.ceil(plantsNeeded * 1.05) : Math.ceil(trays * cellsPerTray * 1.05);
+
+    // Check if already completed (has actual sow date filled in)
+    const isCompleted = isDirectSeed
+      ? (cols.actFieldSow >= 0 && row[cols.actFieldSow])
+      : (cols.actGhSow >= 0 && row[cols.actGhSow]);
 
     tasks.push({
       batchId: cols.batchId >= 0 ? row[cols.batchId] : `ROW-${i}`,
       crop: crop,
       variety: variety,
       category: category,
-      ghSowDate: formatDate(ghSowDate),
+      plantingMethod: plantingMethod,
+      sowDate: formatDate(sowDate),
+      ghSowDate: isDirectSeed ? '' : formatDate(sowDate),
+      fieldSowDate: isDirectSeed ? formatDate(sowDate) : '',
       transplantDate: cols.transplant >= 0 ? formatDate(row[cols.transplant]) : '',
       trays: trays,
       cellsPerTray: cellsPerTray,
-      totalCells: totalCells,
+      plantsNeeded: plantsNeeded,
+      feetUsed: feetUsed,
       seedsNeeded: seedsNeeded,
       bed: cols.bed >= 0 ? row[cols.bed] : '',
       germTemp: profile.germTemp || '',
       germInstructions: profile.germInstructions || '',
-      completed: cols.completed >= 0 ? (row[cols.completed] === true || row[cols.completed] === 'TRUE') : false,
+      notes: cols.notes >= 0 ? row[cols.notes] : '',
+      completed: isCompleted || (cols.completed >= 0 ? (row[cols.completed] === true || row[cols.completed] === 'TRUE') : false),
       completedBy: cols.completedBy >= 0 ? row[cols.completedBy] : null,
       completedAt: cols.completedAt >= 0 ? row[cols.completedAt] : null
     });
 
-    // Aggregate statistics
-    const sizeKey = String(cellsPerTray);
-    traysBySize[sizeKey] = (traysBySize[sizeKey] || 0) + trays;
+    // Aggregate statistics - only count trays for transplants
+    if (!isDirectSeed && trays > 0) {
+      const sizeKey = String(cellsPerTray);
+      traysBySize[sizeKey] = (traysBySize[sizeKey] || 0) + trays;
+    }
 
     const varietyKey = `${crop}|${variety}`;
     seedsByVariety[varietyKey] = (seedsByVariety[varietyKey] || 0) + seedsNeeded;
@@ -996,7 +1033,7 @@ function getGreenhouseSowingTasks(params) {
 
   // Sort tasks by date, then crop
   tasks.sort((a, b) => {
-    const dateCompare = new Date(a.ghSowDate) - new Date(b.ghSowDate);
+    const dateCompare = new Date(a.sowDate) - new Date(b.sowDate);
     if (dateCompare !== 0) return dateCompare;
     return a.crop.localeCompare(b.crop);
   });
@@ -1040,35 +1077,57 @@ function updateTaskCompletion(params) {
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
 
+  // Find column indices - matching actual PLANNING_2026 columns
   const batchIdCol = headers.indexOf('Batch_ID');
-  let completedCol = headers.indexOf('SowingComplete');
-  let completedByCol = headers.indexOf('CompletedBy');
-  let completedAtCol = headers.indexOf('CompletedAt');
+  const plantingMethodCol = headers.indexOf('Planting_Method');
+  const actGhSowCol = headers.indexOf('Act_GH_Sow');
+  const actFieldSowCol = headers.indexOf('Act_Field_Sow');
+  const statusCol = headers.indexOf('STATUS');
 
-  // If columns don't exist, we can't update (but still return success)
   if (batchIdCol < 0) {
     return { success: false, error: 'Batch_ID column not found' };
   }
 
   const searchId = params.batchId || params.id;
   const completed = params.completed === 'true' || params.completed === true;
+  const today = new Date();
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][batchIdCol] === searchId) {
-      // Update completion status if column exists
-      if (completedCol >= 0) {
-        sheet.getRange(i + 1, completedCol + 1).setValue(completed);
-      }
-      if (completedByCol >= 0 && params.completedBy) {
-        sheet.getRange(i + 1, completedByCol + 1).setValue(params.completedBy);
-      }
-      if (completedAtCol >= 0) {
-        sheet.getRange(i + 1, completedAtCol + 1).setValue(completed ? new Date().toISOString() : '');
+      // Determine if this is direct seed or transplant
+      const plantingMethod = plantingMethodCol >= 0 ? data[i][plantingMethodCol] : 'Transplant';
+      const isDirectSeed = plantingMethod === 'Direct Seed';
+
+      if (completed) {
+        // Mark as sown by setting the actual sow date to today
+        if (isDirectSeed && actFieldSowCol >= 0) {
+          sheet.getRange(i + 1, actFieldSowCol + 1).setValue(today);
+        } else if (!isDirectSeed && actGhSowCol >= 0) {
+          sheet.getRange(i + 1, actGhSowCol + 1).setValue(today);
+        }
+
+        // Update status to "Sown" or "In Progress"
+        if (statusCol >= 0) {
+          sheet.getRange(i + 1, statusCol + 1).setValue(isDirectSeed ? 'Sown' : 'In GH');
+        }
+      } else {
+        // Unchecking - clear the actual sow date
+        if (isDirectSeed && actFieldSowCol >= 0) {
+          sheet.getRange(i + 1, actFieldSowCol + 1).setValue('');
+        } else if (!isDirectSeed && actGhSowCol >= 0) {
+          sheet.getRange(i + 1, actGhSowCol + 1).setValue('');
+        }
+
+        // Reset status to Planned
+        if (statusCol >= 0) {
+          sheet.getRange(i + 1, statusCol + 1).setValue('Planned');
+        }
       }
 
       return {
         success: true,
-        message: `Task ${searchId} marked as ${completed ? 'complete' : 'incomplete'}`
+        message: `Task ${searchId} marked as ${completed ? 'sown' : 'not sown'}`,
+        actualDate: completed ? formatDate(today) : null
       };
     }
   }

@@ -934,12 +934,12 @@
                 return;
             }
 
-            // Sort tasks
+            // Sort tasks - use sowDate which handles both GH sow and Field sow
             let sortedTasks = [...tasks];
             if (currentSort === 'date') {
-                sortedTasks.sort((a, b) => new Date(a.ghSowDate) - new Date(b.ghSowDate) || a.crop.localeCompare(b.crop));
+                sortedTasks.sort((a, b) => new Date(a.sowDate || a.ghSowDate) - new Date(b.sowDate || b.ghSowDate) || a.crop.localeCompare(b.crop));
             } else {
-                sortedTasks.sort((a, b) => a.crop.localeCompare(b.crop) || new Date(a.ghSowDate) - new Date(b.ghSowDate));
+                sortedTasks.sort((a, b) => a.crop.localeCompare(b.crop) || new Date(a.sowDate || a.ghSowDate) - new Date(b.sowDate || b.ghSowDate));
             }
 
             const startDate = document.getElementById('startDate').value;
@@ -998,8 +998,9 @@
             if (currentSort === 'date') {
                 let currentDate = '';
                 sortedTasks.forEach(task => {
-                    if (task.ghSowDate !== currentDate) {
-                        currentDate = task.ghSowDate;
+                    const taskDate = task.sowDate || task.ghSowDate;
+                    if (taskDate !== currentDate) {
+                        currentDate = taskDate;
                         html += `
                             <tr class="date-group-header">
                                 <td colspan="7"><i class="fas fa-calendar-day"></i> ${formatDateDisplay(currentDate)}</td>
@@ -1051,19 +1052,29 @@
 
         function renderTaskRow(task) {
             const categoryClass = task.category === 'Floral' ? 'floral' : (task.category === 'Herb' ? 'herb' : 'veg');
+            const isDirectSeed = task.plantingMethod === 'Direct Seed';
+            const methodIcon = isDirectSeed ? '🌾' : '🌱';
+            const methodLabel = isDirectSeed ? 'DS' : 'TP';
+            const taskDate = task.sowDate || task.ghSowDate || task.fieldSowDate;
+
+            // For direct seed, show feet/plants instead of trays
+            const quantityDisplay = isDirectSeed
+                ? `${task.feetUsed || task.plantsNeeded || '-'} ft`
+                : `${task.trays || 0}`;
+
             return `
                 <tr class="${task.completed ? 'completed' : ''}" data-batch-id="${task.batchId}">
                     <td style="text-align: center;">
                         <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${task.batchId}', this.checked)">
                     </td>
-                    <td>${formatDateShort(task.ghSowDate)}</td>
+                    <td>${formatDateShort(taskDate)}</td>
                     <td>
                         ${task.crop}
-                        <span class="category-badge ${categoryClass}">${task.category || 'Veg'}</span>
+                        <span class="category-badge ${categoryClass}" title="${task.plantingMethod || 'Transplant'}">${methodLabel}</span>
                     </td>
                     <td>${task.variety}</td>
-                    <td><strong>${task.trays}</strong></td>
-                    <td>${task.cellsPerTray}</td>
+                    <td><strong>${quantityDisplay}</strong></td>
+                    <td>${isDirectSeed ? '-' : task.cellsPerTray}</td>
                     <td>${task.bed || '-'}</td>
                 </tr>
             `;
