@@ -1867,8 +1867,18 @@
 
         // All available beds (even if empty) - will be populated from API or defaults
         let allBeds = [];
-        const DEFAULT_FIELDS = ['F3L', 'HOL', 'IL', 'JL', 'JS1', 'M'];
-        const BEDS_PER_FIELD = 12;
+        // Field configurations: { fieldCode: numberOfBeds }
+        const FIELD_CONFIG = {
+            'F3L': 12,
+            'F7M': 10,   // 250 ft beds
+            'F11M': 10,  // 250 ft beds
+            'HOL': 12,
+            'IL': 12,
+            'JL': 12,
+            'JS1': 12,
+            'M': 12
+        };
+        const DEFAULT_FIELDS = Object.keys(FIELD_CONFIG);
 
         // Crop icons - expanded for actual farm crops
         const cropIcons = {
@@ -2203,10 +2213,11 @@
             DEFAULT_FIELDS.forEach(f => fieldSet.add(f));
             fields = Array.from(fieldSet).filter(f => f).sort();
 
-            // Generate all beds for all fields
+            // Generate all beds for all fields (using per-field bed count)
             allBeds = [];
             fields.forEach(field => {
-                for (let i = 1; i <= BEDS_PER_FIELD; i++) {
+                const bedCount = FIELD_CONFIG[field] || 12; // Default to 12 if not configured
+                for (let i = 1; i <= bedCount; i++) {
                     const bedNum = String(i).padStart(2, '0');
                     allBeds.push({
                         field: field,
