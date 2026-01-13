@@ -1016,18 +1016,40 @@
                 const response = await fetch(`${API_URL}?action=getCropProfiles`);
                 const data = await response.json();
 
-                if (data.success && data.data) {
-                    cropProfiles = data.data;
-                    console.log(`Loaded ${cropProfiles.length} crop profiles`);
+                console.log('API Response:', data);
+
+                if (data.success && data.data && data.data.length > 0) {
+                    // Normalize column names from API data
+                    cropProfiles = data.data.map(profile => normalizeProfile(profile));
+                    console.log(`Loaded ${cropProfiles.length} crop profiles from API`);
+                    console.log('Sample profile:', cropProfiles[0]);
                     populateCropDropdown();
                 } else {
                     console.warn('No crop profiles from API, using defaults');
+                    console.log('API data was:', data);
                     loadDefaultProfiles();
                 }
             } catch (error) {
                 console.error('Error loading crop profiles:', error);
                 loadDefaultProfiles();
             }
+        }
+
+        // Normalize profile data to handle different column naming conventions
+        function normalizeProfile(profile) {
+            return {
+                Crop: profile.Crop || profile.Crop_Name || profile.crop || '',
+                Variety: profile.Variety || profile.variety || '',
+                Primary_Category: profile.Primary_Category || profile.Category || profile.category || profile.Type || 'Veg',
+                DTM: parseInt(profile.DTM || profile.dtm || profile.Days_To_Maturity || 0) || 0,
+                Spacing: parseInt(profile.Spacing || profile.spacing || profile.In_Row_Spacing || 0) || 0,
+                Rows_Per_Bed: parseInt(profile.Rows_Per_Bed || profile.rows_per_bed || profile.Rows || 0) || 4,
+                Tray_Cell_Count: parseInt(profile.Tray_Cell_Count || profile.tray_cell_count || profile.Cell_Count || 0) || 128,
+                Nursery_Days: parseInt(profile.Nursery_Days || profile.nursery_days || profile.GH_Days || 0) || 0,
+                Planting_Method: profile.Planting_Method || profile.planting_method || profile.Method || 'Transplant',
+                // Keep original profile for reference
+                _original: profile
+            };
         }
 
         function loadDefaultProfiles() {
@@ -1095,17 +1117,30 @@
             const cropSelect = document.getElementById('cropSelect');
             cropSelect.innerHTML = '<option value="">Select a crop...</option>';
 
+            // More flexible category matching
             const filteredCrops = cropProfiles.filter(profile => {
-                const cat = (profile.Primary_Category || profile.Category || 'Veg').toLowerCase();
+                const cat = (profile.Primary_Category || '').toLowerCase().trim();
+
                 if (currentCategory === 'veg') {
-                    return cat === 'veg' || cat === 'herb' || cat === 'vegetable';
+                    // Include veg, vegetable, herb, herbs, greens, root, and anything NOT floral
+                    return cat === 'veg' || cat === 'vegetable' || cat === 'vegetables' ||
+                           cat === 'herb' || cat === 'herbs' ||
+                           cat === 'greens' || cat === 'root' || cat === 'roots' ||
+                           cat === 'leafy' || cat === 'brassica' || cat === 'allium' ||
+                           cat === '' || // Empty category defaults to veg
+                           (!cat.includes('floral') && !cat.includes('flower') && !cat.includes('cut'));
                 } else {
-                    return cat === 'floral' || cat === 'flower';
+                    // Florals
+                    return cat === 'floral' || cat === 'florals' ||
+                           cat === 'flower' || cat === 'flowers' ||
+                           cat === 'cut' || cat === 'cut flower' || cat === 'cut flowers';
                 }
             });
 
-            // Get unique crop names
-            const uniqueCrops = [...new Set(filteredCrops.map(p => p.Crop || p.Crop_Name))].sort();
+            console.log(`Category '${currentCategory}' has ${filteredCrops.length} crops (total: ${cropProfiles.length})`);
+
+            // Get unique crop names, filtering out empty values
+            const uniqueCrops = [...new Set(filteredCrops.map(p => p.Crop).filter(c => c))].sort();
 
             uniqueCrops.forEach(crop => {
                 const option = document.createElement('option');
@@ -1113,6 +1148,18 @@
                 option.textContent = crop;
                 cropSelect.appendChild(option);
             });
+
+            // If no crops found, show all as fallback
+            if (uniqueCrops.length === 0 && cropProfiles.length > 0) {
+                console.warn('No crops matched category filter, showing all crops');
+                const allCrops = [...new Set(cropProfiles.map(p => p.Crop).filter(c => c))].sort();
+                allCrops.forEach(crop => {
+                    const option = document.createElement('option');
+                    option.value = crop;
+                    option.textContent = crop;
+                    cropSelect.appendChild(option);
+                });
+            }
         }
 
         function onCropChange() {
