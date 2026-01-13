@@ -137,6 +137,10 @@
             color: var(--danger);
         }
 
+        .sync-indicator.pending {
+            color: var(--secondary);
+        }
+
         .sync-dot {
             width: 8px;
             height: 8px;
@@ -151,6 +155,58 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
+        }
+
+        .submit-changes-btn {
+            display: none;
+            padding: 10px 20px;
+            background: var(--secondary);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .submit-changes-btn.visible {
+            display: flex;
+        }
+
+        .submit-changes-btn:hover {
+            background: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .submit-changes-btn .badge {
+            background: var(--bg-dark);
+            color: var(--secondary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        .discard-btn {
+            display: none;
+            padding: 8px 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .discard-btn.visible {
+            display: flex;
+        }
+
+        .discard-btn:hover {
+            color: var(--danger);
+            border-color: var(--danger);
         }
 
         .main-container {
@@ -1305,6 +1361,14 @@
                 <span class="sync-dot"></span>
                 <span id="syncText">Synced</span>
             </div>
+            <button class="submit-changes-btn" id="submitChangesBtn" onclick="saveToGoogleSheets()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                Submit Changes
+                <span class="badge" id="pendingCount">0</span>
+            </button>
+            <button class="discard-btn" id="discardBtn" onclick="discardChanges()">
+                <i class="fas fa-times"></i> Discard
+            </button>
             <div class="zoom-controls">
                 <button class="zoom-btn active" onclick="setViewMode('field')" id="view-field">By Field</button>
                 <button class="zoom-btn" onclick="setViewMode('bed')" id="view-bed">By Bed</button>
@@ -3173,11 +3237,39 @@
         function queueUpdate(planting) {
             pendingUpdates.set(planting.id, planting);
 
-            // Debounce save
-            if (saveTimeout) clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(saveToGoogleSheets, 1500);
+            // Update pending count display and show submit button
+            updatePendingDisplay();
+        }
 
-            setSyncStatus('syncing', 'Saving...');
+        // Update the pending changes display
+        function updatePendingDisplay() {
+            const count = pendingUpdates.size;
+            const submitBtn = document.getElementById('submitChangesBtn');
+            const discardBtn = document.getElementById('discardBtn');
+            const pendingCountEl = document.getElementById('pendingCount');
+
+            if (count > 0) {
+                submitBtn.classList.add('visible');
+                discardBtn.classList.add('visible');
+                pendingCountEl.textContent = count;
+                setSyncStatus('pending', `${count} pending`);
+            } else {
+                submitBtn.classList.remove('visible');
+                discardBtn.classList.remove('visible');
+                setSyncStatus('synced', 'Synced');
+            }
+        }
+
+        // Discard all pending changes and reload
+        function discardChanges() {
+            if (pendingUpdates.size === 0) return;
+
+            if (confirm(`Discard ${pendingUpdates.size} pending change(s)? This will reload the calendar.`)) {
+                pendingUpdates.clear();
+                updatePendingDisplay();
+                loadPlantings(); // Reload from server
+                showToast('Changes discarded', 'info');
+            }
         }
 
         // Save to Google Sheets - CASCADE ALL DATES
@@ -3185,7 +3277,13 @@
             if (pendingUpdates.size === 0) return;
 
             const updates = Array.from(pendingUpdates.values());
+            const saveCount = updates.length;
             pendingUpdates.clear();
+
+            // Show saving status
+            setSyncStatus('syncing', `Saving ${saveCount}...`);
+            document.getElementById('submitChangesBtn').classList.remove('visible');
+            document.getElementById('discardBtn').classList.remove('visible');
 
             try {
                 for (const planting of updates) {
@@ -3242,12 +3340,14 @@
                 }
 
                 setSyncStatus('synced', 'Saved');
-                console.log(`Saved ${updates.length} updates to Google Sheets`);
-                showToast(`Saved ${updates.length} change(s) to Google Sheets`, 'success');
+                console.log(`Saved ${saveCount} updates to Google Sheets`);
+                showToast(`Saved ${saveCount} change(s) to Google Sheets`, 'success');
+                updatePendingDisplay();
             } catch (error) {
                 console.error('Error saving to Google Sheets:', error);
                 setSyncStatus('error', 'Save Failed');
                 showToast('Failed to save changes', 'error');
+                updatePendingDisplay();
             }
         }
 
