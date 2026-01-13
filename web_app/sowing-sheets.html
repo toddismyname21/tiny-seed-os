@@ -849,8 +849,10 @@
 
             try {
                 const url = `${API_URL}?action=getGreenhouseSowingTasks&startDate=${startDate}&endDate=${endDate}&category=${currentCategory}`;
+                console.log('Fetching:', url);
                 const response = await fetch(url);
                 const data = await response.json();
+                console.log('API Response:', data);
 
                 if (data.success && data.tasks) {
                     tasks = data.tasks || [];
@@ -861,11 +863,11 @@
                     document.getElementById('saveBtn').disabled = tasks.length === 0;
                     showToast(`Loaded ${tasks.length} tasks`, 'success');
                 } else {
-                    // Load demo data for testing
+                    console.log('No tasks in response, loading demo. Response was:', data);
                     loadDemoData();
                 }
             } catch (error) {
-                console.error('Error loading tasks:', error);
+                console.error('Fetch error:', error);
                 loadDemoData();
             }
         }
