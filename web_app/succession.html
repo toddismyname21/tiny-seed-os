@@ -1053,10 +1053,10 @@
         function normalizeProfile(profile) {
             return {
                 Crop: profile.Crop || profile.Crop_Name || profile.crop || '',
-                Variety: profile.Variety || profile.variety || '',
+                Variety: profile.Variety || profile.Variety_Default || profile.variety || '',
                 Primary_Category: profile.Primary_Category || profile.Category || profile.category || profile.Type || 'Veg',
                 DTM: parseInt(profile.DTM || profile.dtm || profile.Days_To_Maturity || 0) || 0,
-                Spacing: parseInt(profile.Spacing || profile.spacing || profile.In_Row_Spacing || 0) || 0,
+                Spacing: parseInt(profile.Spacing || profile.spacing || profile.In_Row_Spacing_In || profile.In_Row_Spacing || 0) || 0,
                 Rows_Per_Bed: parseInt(profile.Rows_Per_Bed || profile.rows_per_bed || profile.Rows || 0) || 4,
                 Tray_Cell_Count: parseInt(profile.Tray_Cell_Count || profile.tray_cell_count || profile.Cell_Count || 0) || 128,
                 Nursery_Days: parseInt(profile.Nursery_Days || profile.nursery_days || profile.GH_Days || 0) || 0,
