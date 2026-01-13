@@ -919,6 +919,69 @@
             opacity: 0.9;
         }
 
+        /* Ghost element showing original position */
+        .crop-bar-ghost {
+            position: absolute;
+            opacity: 0.3;
+            pointer-events: none;
+            border: 2px dashed rgba(255,255,255,0.5);
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 5px,
+                rgba(255,255,255,0.1) 5px,
+                rgba(255,255,255,0.1) 10px
+            );
+            z-index: 5;
+        }
+
+        .crop-bar-ghost::after {
+            content: 'Original';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Moved indicator on actual bar */
+        .crop-bar.moved {
+            box-shadow: 0 0 0 2px var(--secondary), 0 4px 12px rgba(244, 162, 97, 0.4);
+        }
+
+        .crop-bar.moved::before {
+            content: '⟲';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--secondary);
+            color: var(--bg-dark);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        /* Empty bed row styling */
+        .gantt-row.empty-bed {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .gantt-label.empty-bed {
+            opacity: 0.5;
+        }
+
+        .gantt-label.empty-bed .field-meta {
+            font-style: italic;
+        }
+
         .crop-bar.resizing {
             z-index: 100;
         }
@@ -1173,6 +1236,11 @@
         /* Drop Zone Highlight */
         .field-timeline.drop-target {
             background: rgba(45, 90, 39, 0.2);
+        }
+
+        .gantt-row.drop-target {
+            background: rgba(45, 90, 39, 0.3) !important;
+            box-shadow: inset 0 0 0 2px var(--primary);
         }
 
         /* Tooltip */
@@ -1793,6 +1861,15 @@
         let pendingUpdates = new Map();
         let saveTimeout = null;
 
+        // Ghost tracking for moved plantings (shows original position until submitted)
+        let originalPositions = new Map(); // id -> { field, bed, fieldStartDate, left, top, rowGroup }
+        let ghostElements = new Map(); // id -> ghost DOM element
+
+        // All available beds (even if empty) - will be populated from API or defaults
+        let allBeds = [];
+        const DEFAULT_FIELDS = ['F3L', 'HOL', 'IL', 'JL', 'JS1', 'M'];
+        const BEDS_PER_FIELD = 12;
+
         // Crop icons - expanded for actual farm crops
         const cropIcons = {
             'Tomatoes': '🍅', 'Tomatillos': '🍅', 'Lettuce': '🥬', 'Peppers': '🫑',
@@ -2121,9 +2198,25 @@
         }
 
         function extractFieldsAndCrops() {
-            // Extract unique fields
+            // Extract unique fields from plantings AND include all default fields
             const fieldSet = new Set(plantings.map(p => p.field));
-            fields = Array.from(fieldSet).sort();
+            DEFAULT_FIELDS.forEach(f => fieldSet.add(f));
+            fields = Array.from(fieldSet).filter(f => f).sort();
+
+            // Generate all beds for all fields
+            allBeds = [];
+            fields.forEach(field => {
+                for (let i = 1; i <= BEDS_PER_FIELD; i++) {
+                    const bedNum = String(i).padStart(2, '0');
+                    allBeds.push({
+                        field: field,
+                        bed: `Field ${field}-${bedNum}`,
+                        bedNum: bedNum,
+                        group: `${field}|Field ${field}-${bedNum}`
+                    });
+                }
+            });
+            console.log(`Generated ${allBeds.length} beds across ${fields.length} fields`);
 
             // Populate crop filter
             const cropSet = new Set(plantings.map(p => p.crop));
@@ -2347,18 +2440,23 @@
             let groups, headerIcon, headerLabel, getGroupName, getGroupMeta;
 
             if (viewMode === 'bed' || viewMode === 'field') {
-                // Both views group by Field + Bed (e.g., "A|1" for Field A Bed 1)
-                groups = [...new Set(filteredPlantings.map(p => {
-                    const bed = p.bed || p.Bed || p.bedNumber || '1';
-                    return `${p.field}|${bed}`;
-                }))].filter(b => b).sort();
+                // Show ALL beds from allBeds array, not just beds with plantings
+                // Filter by field if field filter is active
+                const fieldFilter = document.getElementById('fieldFilter').value;
+                const bedsToShow = fieldFilter
+                    ? allBeds.filter(b => b.field === fieldFilter)
+                    : allBeds;
+
+                groups = bedsToShow.map(b => b.group);
                 headerIcon = viewMode === 'field' ? 'fa-map' : 'fa-th';
                 headerLabel = viewMode === 'field' ? 'Fields & Beds' : 'Beds';
                 getGroupName = (group) => {
                     const [field, bed] = group.split('|');
-                    return `Field ${field} - Bed ${bed}`;
+                    // Handle both "Field F3L-01" and just "01" formats
+                    const bedDisplay = bed.includes('Field') ? bed.replace('Field ', '') : `${field}-${bed}`;
+                    return bedDisplay;
                 };
-                getGroupMeta = (plantings) => `${plantings.length} plantings`;
+                getGroupMeta = (plantings) => plantings.length > 0 ? `${plantings.length} plantings` : 'Empty';
             } else if (viewMode === 'crop') {
                 groups = [...new Set(filteredPlantings.map(p => p.crop))].filter(c => c).sort();
                 headerIcon = 'fa-seedling';
@@ -2395,14 +2493,17 @@
             // Render rows based on view mode
             groups.forEach((group, index) => {
                 let groupPlantings;
+                let isEmpty = false;
 
                 if (viewMode === 'bed' || viewMode === 'field') {
                     // Both field and bed view show individual beds
                     const [field, bed] = group.split('|');
                     groupPlantings = filteredPlantings.filter(p => {
                         const pBed = p.bed || p.Bed || p.bedNumber || '1';
-                        return p.field === field && pBed === bed;
+                        // Handle "Field F3L-01" format from allBeds
+                        return p.field === field && (pBed === bed || `Field ${p.field}-${pBed.toString().padStart(2,'0')}` === bed);
                     });
+                    isEmpty = groupPlantings.length === 0;
                 } else if (viewMode === 'crop') {
                     groupPlantings = filteredPlantings.filter(p => p.crop === group);
                 } else if (viewMode === 'variety') {
@@ -2413,24 +2514,27 @@
                 }
 
                 const stackedPlantings = calculateStacking(groupPlantings);
-                const rowHeight = Math.max(60, (stackedPlantings.maxStack + 1) * 44);
+                const rowHeight = Math.max(50, (stackedPlantings.maxStack + 1) * 44);
                 rowHeights.push(rowHeight);
+
+                const emptyClass = isEmpty ? ' empty-bed' : '';
 
                 // Label for left column
                 labelsHtml += `
-                    <div class="gantt-label" style="height: ${rowHeight}px;">
+                    <div class="gantt-label${emptyClass}" style="height: ${rowHeight}px;">
                         <div class="field-name">${getGroupName(group)}</div>
                         <div class="field-meta">${getGroupMeta(groupPlantings)}</div>
                     </div>
                 `;
 
-                // Content row
+                // Content row - store field and bed info for drop targeting
+                const [rowField, rowBed] = group.split('|');
                 rowsHtml += `
-                    <div class="gantt-row" data-group="${group}" style="height: ${rowHeight}px; width: ${timelineWidth}px;">
+                    <div class="gantt-row${emptyClass}" data-group="${group}" data-field="${rowField}" data-bed="${rowBed}" style="height: ${rowHeight}px; width: ${timelineWidth}px;">
                         <div class="timeline-grid">
                             ${generateGridLines(totalDays)}
                         </div>
-                        ${renderGaps(groupPlantings, getGroupName(group))}
+                        ${isEmpty ? '' : renderGaps(groupPlantings, getGroupName(group))}
                         ${renderTodayLine(totalDays)}
                         ${renderCropBars(stackedPlantings.plantings, group)}
                     </div>
@@ -2860,6 +2964,12 @@
                             // Setup drag tooltip
                             const id = event.target.dataset.id;
                             currentDragPlanting = plantings.find(p => p.id === id);
+
+                            // Create ghost at original position (only if not already moved)
+                            if (!originalPositions.has(id)) {
+                                createGhost(id, event.target);
+                            }
+
                             if (currentDragPlanting) {
                                 showDragTooltip(event, currentDragPlanting);
                             }
@@ -2874,9 +2984,9 @@
                             target.setAttribute('data-x', x);
                             target.setAttribute('data-y', y);
 
-                            // Highlight drop target
-                            const dropTarget = getFieldAtPosition(event.clientY);
-                            document.querySelectorAll('.field-timeline').forEach(el => el.classList.remove('drop-target'));
+                            // Highlight drop target row
+                            const dropTarget = getRowAtPosition(event.clientY);
+                            document.querySelectorAll('.gantt-row').forEach(el => el.classList.remove('drop-target'));
                             if (dropTarget) dropTarget.classList.add('drop-target');
 
                             // Update real-time date display
@@ -2886,7 +2996,7 @@
                         },
                         end(event) {
                             event.target.classList.remove('dragging');
-                            document.querySelectorAll('.field-timeline').forEach(el => el.classList.remove('drop-target'));
+                            document.querySelectorAll('.gantt-row').forEach(el => el.classList.remove('drop-target'));
                             hideDragTooltip();
 
                             const target = event.target;
@@ -2898,15 +3008,31 @@
                             const newStartDate = new Date(timelineStart);
                             newStartDate.setDate(newStartDate.getDate() + daysFromStart);
 
-                            // Check for field change
-                            const dropTarget = getFieldAtPosition(event.clientY);
+                            // Check for row change (field + bed)
+                            const dropTargetRow = getRowAtPosition(event.clientY);
                             let newField = target.dataset.field;
-                            if (dropTarget) {
-                                newField = dropTarget.dataset.field;
+                            let newBed = null;
+
+                            if (dropTargetRow) {
+                                newField = dropTargetRow.dataset.field;
+                                newBed = dropTargetRow.dataset.bed; // e.g., "Field F3L-01"
+
+                                // If dropping to a different row, move the element to that row
+                                const currentRow = target.closest('.gantt-row');
+                                if (currentRow && currentRow !== dropTargetRow) {
+                                    // Move the bar element to the new row
+                                    dropTargetRow.appendChild(target);
+                                    // Reset Y position since we moved to new row
+                                    target.style.top = '4px';
+                                    target.setAttribute('data-y', '4');
+                                }
                             }
 
-                            // Update planting with date cascade
-                            updatePlantingDates(id, newStartDate, null, newField);
+                            // Mark as moved
+                            target.classList.add('moved');
+
+                            // Update planting with date cascade (no re-render!)
+                            updatePlantingDates(id, newStartDate, null, newField, newBed);
                             currentDragPlanting = null;
                         }
                     }
@@ -3143,16 +3269,82 @@
             return null;
         }
 
+        // Get the gantt row at a Y position (for drop targeting)
+        function getRowAtPosition(clientY) {
+            const rows = document.querySelectorAll('.gantt-row');
+            for (const row of rows) {
+                const rect = row.getBoundingClientRect();
+                if (clientY >= rect.top && clientY <= rect.bottom) {
+                    return row;
+                }
+            }
+            return null;
+        }
+
+        // Create a ghost element at the original position of a dragged planting
+        function createGhost(plantingId, element) {
+            // Don't create duplicate ghosts
+            if (ghostElements.has(plantingId)) return;
+
+            const rect = element.getBoundingClientRect();
+            const parentRect = element.parentElement.getBoundingClientRect();
+
+            // Store original position info
+            const planting = plantings.find(p => p.id === plantingId);
+            if (!planting) return;
+
+            originalPositions.set(plantingId, {
+                field: planting.field,
+                bed: planting.bed,
+                fieldStartDate: planting.fieldStartDate,
+                left: parseFloat(element.style.left),
+                top: parseFloat(element.style.top) || 0,
+                rowGroup: element.closest('.gantt-row')?.dataset.group
+            });
+
+            // Create ghost element
+            const ghost = document.createElement('div');
+            ghost.className = 'crop-bar-ghost';
+            ghost.style.cssText = `
+                left: ${element.style.left};
+                top: ${element.style.top || '0px'};
+                width: ${element.style.width};
+                height: ${element.offsetHeight}px;
+                background-color: ${element.style.backgroundColor};
+            `;
+            ghost.dataset.ghostFor = plantingId;
+
+            // Insert ghost into the same parent
+            element.parentElement.appendChild(ghost);
+            ghostElements.set(plantingId, ghost);
+        }
+
+        // Clear all ghost elements (called on submit or discard)
+        function clearAllGhosts() {
+            ghostElements.forEach((ghost, id) => {
+                ghost.remove();
+            });
+            ghostElements.clear();
+            originalPositions.clear();
+
+            // Remove 'moved' class from all bars
+            document.querySelectorAll('.crop-bar.moved').forEach(bar => {
+                bar.classList.remove('moved');
+            });
+        }
+
         // Update Planting Dates
         // CASCADE ALL DATES when field start changes
-        function updatePlantingDates(id, newFieldStartDate, newEndDate, newField) {
+        function updatePlantingDates(id, newFieldStartDate, newEndDate, newField, newBed = null) {
             const planting = plantings.find(p => p.id === id);
             if (!planting) return;
 
             // Check if locked
             if (planting.isLocked) {
                 showToast(`Cannot move: ${planting.lockReason}`, 'error');
-                applyFilters(); // Re-render to snap back
+                // Snap back by re-rendering just this element would be complex,
+                // for locked items we do need to re-render to restore position
+                applyFilters();
                 return;
             }
 
@@ -3211,10 +3403,17 @@
             planting.dtm = daysBetween(planting.fieldStartDate, planting.harvestDate);
             planting.daysFieldToHarvest = planting.dtm;
 
-            // 5. Update field assignment
-            if (newField && newField !== planting.field) {
+            // 5. Update field and bed assignment
+            if (newBed) {
+                // Full bed was provided (e.g., "Field F3L-01")
+                planting.bed = newBed;
                 planting.field = newField;
-                // Update bed ID to match new field
+                // Extract bed number
+                const bedNumMatch = newBed.match(/(\d+)$/);
+                planting.bedNum = bedNumMatch ? bedNumMatch[1] : '01';
+            } else if (newField && newField !== planting.field) {
+                // Only field changed, preserve bed number
+                planting.field = newField;
                 const bedNum = planting.bedNum || planting.bed.match(/\d+$/)?.[0] || '01';
                 planting.bed = `Field ${newField}-${bedNum}`;
             }
@@ -3225,12 +3424,13 @@
             // Queue for sync to Google Sheets
             queueUpdate(planting);
 
-            // Re-render to fix stacking
-            applyFilters();
+            // NO re-render - bar is already visually positioned correctly!
+            // applyFilters(); // REMOVED - prevents scroll reset
 
             // Show confirmation with all dates
             const ghSowInfo = planting.planGHSow ? `GH: ${formatDisplayDate(planting.planGHSow)} → ` : '';
-            showToast(`${planting.crop}: ${ghSowInfo}Field: ${formatDisplayDate(planting.fieldStartDate)} → Harvest: ${formatDisplayDate(planting.harvestDate)}`, 'success');
+            const bedInfo = planting.bed ? ` | ${planting.bed}` : '';
+            showToast(`${planting.crop}: ${ghSowInfo}Field: ${formatDisplayDate(planting.fieldStartDate)} → Harvest: ${formatDisplayDate(planting.harvestDate)}${bedInfo}`, 'success');
         }
 
         // Queue updates for batch saving
@@ -3262,12 +3462,13 @@
 
         // Discard all pending changes and reload
         function discardChanges() {
-            if (pendingUpdates.size === 0) return;
+            if (pendingUpdates.size === 0 && ghostElements.size === 0) return;
 
             if (confirm(`Discard ${pendingUpdates.size} pending change(s)? This will reload the calendar.`)) {
                 pendingUpdates.clear();
+                clearAllGhosts(); // Clear ghost elements
                 updatePendingDisplay();
-                loadPlantings(); // Reload from server
+                loadPlantings(); // Reload from server to restore original positions
                 showToast('Changes discarded', 'info');
             }
         }
@@ -3343,6 +3544,9 @@
                 console.log(`Saved ${saveCount} updates to Google Sheets`);
                 showToast(`Saved ${saveCount} change(s) to Google Sheets`, 'success');
                 updatePendingDisplay();
+
+                // Clear all ghosts - changes are now committed
+                clearAllGhosts();
             } catch (error) {
                 console.error('Error saving to Google Sheets:', error);
                 setSyncStatus('error', 'Save Failed');
