@@ -277,6 +277,7 @@
             height: calc(100vh - 80px);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .gantt-wrapper {
@@ -290,18 +291,21 @@
             min-height: 0;
         }
 
-        /* THE SCROLL CONTAINER - This is where sticky magic happens */
+        /* The gantt-chart div needs to flex and allow scrolling */
+        .gantt-chart {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* THE SCROLL CONTAINER - This is where all scrolling happens */
         .gantt-scroll-container {
             flex: 1;
             overflow: auto;
             position: relative;
             min-height: 0;
-        }
-
-        /* Inner content wrapper for proper sticky behavior */
-        .gantt-content {
-            display: inline-block;
-            min-width: 100%;
         }
 
         .gantt-body {
@@ -589,11 +593,6 @@
         .stat-label {
             font-size: 0.8rem;
             color: var(--text-secondary);
-        }
-
-        /* Gantt Timeline */
-        .gantt-chart {
-            position: relative;
         }
 
         /* STICKY DATE HEADER - Sticks to top when scrolling vertically */
@@ -1237,6 +1236,7 @@
             </div>
             <div class="zoom-controls">
                 <button class="zoom-btn active" onclick="setViewMode('field')" id="view-field">By Field</button>
+                <button class="zoom-btn" onclick="setViewMode('bed')" id="view-bed">By Bed</button>
                 <button class="zoom-btn" onclick="setViewMode('crop')" id="view-crop">By Crop</button>
                 <button class="zoom-btn" onclick="setViewMode('variety')" id="view-variety">By Variety</button>
             </div>
@@ -2049,16 +2049,17 @@
             viewMode = mode;
 
             // Update button states
-            document.querySelectorAll('#view-field, #view-crop, #view-variety').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#view-field, #view-bed, #view-crop, #view-variety').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`view-${mode}`).classList.add('active');
 
             // Update page title
             const titles = {
-                'field': 'Field & Crop Calendar',
+                'field': 'Field Calendar',
+                'bed': 'Bed Calendar',
                 'crop': 'Crop Calendar',
                 'variety': 'Variety Calendar'
             };
-            document.querySelector('.page-title').innerHTML = `<i class="fas fa-calendar-alt"></i> ${titles[mode]}`;
+            document.querySelector('.page-title').innerHTML = `<i class="fas fa-calendar-alt"></i> ${titles[mode] || 'Calendar'}`;
 
             renderGantt();
         }
@@ -2145,7 +2146,20 @@
             // Get grouping based on view mode
             let groups, headerIcon, headerLabel, getGroupName, getGroupMeta;
 
-            if (viewMode === 'crop') {
+            if (viewMode === 'bed') {
+                // Group by Field + Bed (e.g., "A|1" for Field A Bed 1)
+                groups = [...new Set(filteredPlantings.map(p => {
+                    const bed = p.bed || p.Bed || p.bedNumber || '1';
+                    return `${p.field}|${bed}`;
+                }))].filter(b => b).sort();
+                headerIcon = 'fa-th';
+                headerLabel = 'Beds';
+                getGroupName = (group) => {
+                    const [field, bed] = group.split('|');
+                    return `Field ${field} - Bed ${bed}`;
+                };
+                getGroupMeta = (plantings) => `${plantings.length} plantings`;
+            } else if (viewMode === 'crop') {
                 groups = [...new Set(filteredPlantings.map(p => p.crop))].filter(c => c).sort();
                 headerIcon = 'fa-seedling';
                 headerLabel = 'Crops';
@@ -2196,7 +2210,13 @@
             groups.forEach(group => {
                 let groupPlantings;
 
-                if (viewMode === 'crop') {
+                if (viewMode === 'bed') {
+                    const [field, bed] = group.split('|');
+                    groupPlantings = filteredPlantings.filter(p => {
+                        const pBed = p.bed || p.Bed || p.bedNumber || '1';
+                        return p.field === field && pBed === bed;
+                    });
+                } else if (viewMode === 'crop') {
                     groupPlantings = filteredPlantings.filter(p => p.crop === group);
                 } else if (viewMode === 'variety') {
                     const [crop, variety] = group.split('|');
@@ -2413,6 +2433,9 @@
         function renderGaps(fieldPlantings, groupName) {
             let html = '';
 
+            // Escape group name for use in HTML/JS
+            const safeGroupName = (groupName || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
             // Sort plantings by field start date
             const sorted = [...fieldPlantings].sort((a, b) => {
                 const aStart = new Date(a.fieldStartDate || a.seedDate);
@@ -2430,49 +2453,54 @@
                 const firstPlanting = sorted[0];
                 const firstStart = new Date(firstPlanting.fieldStartDate || firstPlanting.seedDate);
                 if (firstStart > seasonStart) {
-                    gaps.push({
-                        start: seasonStart,
-                        end: firstStart,
-                        type: 'before'
-                    });
+                    const gapDays = Math.floor((firstStart - seasonStart) / (24 * 60 * 60 * 1000));
+                    if (gapDays >= 7) {
+                        gaps.push({
+                            start: new Date(seasonStart),
+                            end: new Date(firstStart),
+                            type: 'before'
+                        });
+                    }
                 }
             } else {
                 // No plantings - entire timeline is a gap
                 gaps.push({
-                    start: seasonStart,
-                    end: seasonEnd,
+                    start: new Date(seasonStart),
+                    end: new Date(seasonEnd),
                     type: 'empty'
                 });
             }
 
-            // Check for gaps between plantings
+            // Check for gaps between plantings (non-overlapping)
             for (let i = 0; i < sorted.length - 1; i++) {
                 const current = sorted[i];
                 const next = sorted[i + 1];
-                const currentEnd = new Date(current.harvestDate);
+                const currentEnd = new Date(current.harvestDate || current.lastHarvest || current.fieldStartDate);
                 const nextStart = new Date(next.fieldStartDate || next.seedDate);
 
                 // If there's a gap of at least 7 days
-                const gapDays = Math.floor((nextStart - currentEnd) / (24 * 60 * 60 * 1000));
-                if (gapDays >= 7) {
-                    gaps.push({
-                        start: currentEnd,
-                        end: nextStart,
-                        type: 'between'
-                    });
+                if (!isNaN(currentEnd.getTime()) && !isNaN(nextStart.getTime())) {
+                    const gapDays = Math.floor((nextStart - currentEnd) / (24 * 60 * 60 * 1000));
+                    if (gapDays >= 7) {
+                        gaps.push({
+                            start: new Date(currentEnd),
+                            end: new Date(nextStart),
+                            type: 'between'
+                        });
+                    }
                 }
             }
 
             // Check for gap at the end of timeline
             if (sorted.length > 0) {
                 const lastPlanting = sorted[sorted.length - 1];
-                const lastEnd = new Date(lastPlanting.harvestDate);
-                if (lastEnd < seasonEnd) {
+                const lastEnd = new Date(lastPlanting.harvestDate || lastPlanting.lastHarvest || lastPlanting.fieldStartDate);
+                if (!isNaN(lastEnd.getTime()) && lastEnd < seasonEnd) {
                     const gapDays = Math.floor((seasonEnd - lastEnd) / (24 * 60 * 60 * 1000));
                     if (gapDays >= 7) {
                         gaps.push({
-                            start: lastEnd,
-                            end: seasonEnd,
+                            start: new Date(lastEnd),
+                            end: new Date(seasonEnd),
                             type: 'after'
                         });
                     }
@@ -2484,10 +2512,10 @@
                 const startOffset = Math.max(0, (gap.start - timelineStart) / (24 * 60 * 60 * 1000));
                 const gapDuration = Math.ceil((gap.end - gap.start) / (24 * 60 * 60 * 1000));
 
-                // Only show gaps that are visible in the timeline
+                // Only show gaps that are visible in the timeline and have width
                 if (startOffset >= 0 && gapDuration > 0) {
                     const left = startOffset * dayWidth;
-                    const width = gapDuration * dayWidth;
+                    const width = Math.max(gapDuration * dayWidth, 20); // Minimum 20px width for clickability
 
                     // Format dates for data attributes
                     const startStr = gap.start.toISOString().split('T')[0];
@@ -2495,12 +2523,12 @@
 
                     html += `
                         <div class="field-gap"
-                             data-group="${groupName}"
+                             data-group="${safeGroupName}"
                              data-start="${startStr}"
                              data-end="${endStr}"
                              data-days="${gapDuration}"
                              style="left: ${left}px; width: ${width}px;"
-                             onmouseenter="showGapTooltip(event, '${groupName}', '${startStr}', '${endStr}', ${gapDuration})"
+                             onmouseenter="showGapTooltip(event, '${safeGroupName}', '${startStr}', '${endStr}', ${gapDuration})"
                              onmousemove="moveGapTooltip(event)"
                              onmouseleave="hideGapTooltip()">
                         </div>
