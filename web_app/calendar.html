@@ -3189,13 +3189,17 @@
 
             try {
                 for (const planting of updates) {
+                    // Construct proper Target_Bed_ID format
+                    const bedNum = planting.bedNum || (planting.bed ? planting.bed.match(/\d+$/)?.[0] : null) || '01';
+                    const properBedId = planting.field ? `Field ${planting.field}-${bedNum}` : planting.bed;
+
                     // Use correct column names from actual sheet structure
                     // CASCADE: Update ALL related dates - auto-format to M/D/YYYY for Google Sheets
                     const updateData = {
                         action: 'updatePlanting',
                         id: planting.id,
                         Batch_ID: planting.id,
-                        Target_Bed_ID: planting.bed,
+                        Target_Bed_ID: properBedId,
                         First_Harvest: formatDateForSheet(planting.firstHarvest),
                         Last_Harvest: formatDateForSheet(planting.harvestDate || planting.lastHarvest)
                     };
