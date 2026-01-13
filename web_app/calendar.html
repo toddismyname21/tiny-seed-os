@@ -1479,64 +1479,129 @@
 
     <!-- Edit Planting Modal -->
     <div class="edit-modal-overlay" id="editModal">
-        <div class="edit-modal">
+        <div class="edit-modal" style="max-width: 700px;">
             <div class="edit-modal-header">
                 <div class="edit-modal-title">
-                    <span id="editModalIcon">🌱</span>
-                    <span>Edit Planting</span>
+                    <span id="editModalIcon" style="font-size: 1.5rem;">🌱</span>
+                    <div>
+                        <div style="font-size: 1.1rem;" id="editModalCropName">Edit Planting</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: normal;" id="editModalBatchId">Batch ID: --</div>
+                    </div>
                 </div>
                 <button class="edit-modal-close" onclick="closeEditModal()">&times;</button>
             </div>
             <div class="edit-modal-body">
                 <input type="hidden" id="editBatchId">
 
-                <div class="edit-form-row">
-                    <div class="edit-form-group">
+                <!-- Current Info Banner -->
+                <div style="background: var(--bg-light); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; border-left: 4px solid var(--primary);">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">CURRENT SCHEDULE</div>
+                    <div id="editCurrentSchedule" style="font-size: 0.9rem; line-height: 1.6;">Loading...</div>
+                </div>
+
+                <!-- Planting Method Toggle -->
+                <div class="edit-form-group">
+                    <label class="edit-form-label">Planting Method</label>
+                    <div style="display: flex; gap: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; background: var(--bg-light); border-radius: 8px; border: 2px solid transparent; transition: all 0.2s;" id="methodTransplantLabel">
+                            <input type="radio" name="plantingMethod" value="Transplant" id="methodTransplant" onchange="updateMethodFields()">
+                            <span>🌱 Transplant</span>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">(Start in GH)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; background: var(--bg-light); border-radius: 8px; border: 2px solid transparent; transition: all 0.2s;" id="methodDirectLabel">
+                            <input type="radio" name="plantingMethod" value="Direct Seed" id="methodDirect" onchange="updateMethodFields()">
+                            <span>🌾 Direct Seed</span>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">(Sow in field)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Crop & Variety -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                    <div class="edit-form-group" style="margin-bottom: 0;">
                         <label class="edit-form-label">Crop</label>
-                        <input type="text" class="edit-form-input" id="editCrop" placeholder="e.g., Tomato">
+                        <input type="text" class="edit-form-input" id="editCrop">
                     </div>
-                    <div class="edit-form-group">
+                    <div class="edit-form-group" style="margin-bottom: 0;">
                         <label class="edit-form-label">Variety</label>
-                        <input type="text" class="edit-form-input" id="editVariety" placeholder="e.g., Roma">
+                        <input type="text" class="edit-form-input" id="editVariety">
                     </div>
                 </div>
 
-                <div class="edit-form-row">
-                    <div class="edit-form-group">
+                <!-- Location -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                    <div class="edit-form-group" style="margin-bottom: 0;">
                         <label class="edit-form-label">Field</label>
-                        <input type="text" class="edit-form-input" id="editField" placeholder="e.g., A1">
+                        <input type="text" class="edit-form-input" id="editField">
                     </div>
-                    <div class="edit-form-group">
+                    <div class="edit-form-group" style="margin-bottom: 0;">
+                        <label class="edit-form-label">Bed</label>
+                        <input type="text" class="edit-form-input" id="editBed" placeholder="e.g., 1">
+                    </div>
+                    <div class="edit-form-group" style="margin-bottom: 0;">
                         <label class="edit-form-label">Bed Feet</label>
-                        <input type="number" class="edit-form-input" id="editBedFeet" placeholder="e.g., 100">
+                        <input type="number" class="edit-form-input" id="editBedFeet">
                     </div>
                 </div>
 
-                <div class="edit-form-row">
-                    <div class="edit-form-group">
-                        <label class="edit-form-label">GH Sow Date</label>
-                        <input type="date" class="edit-form-input" id="editGHSow">
+                <!-- Dates Section -->
+                <div style="background: var(--bg-light); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+                    <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-calendar-alt" style="color: var(--primary);"></i>
+                        Schedule Dates
                     </div>
-                    <div class="edit-form-group">
-                        <label class="edit-form-label">Transplant Date</label>
-                        <input type="date" class="edit-form-input" id="editTransplant">
+
+                    <!-- Transplant dates (shown when Transplant selected) -->
+                    <div id="transplantDates">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div class="edit-form-group" style="margin-bottom: 0;">
+                                <label class="edit-form-label">🏠 GH Sow Date</label>
+                                <input type="date" class="edit-form-input" id="editGHSow">
+                            </div>
+                            <div class="edit-form-group" style="margin-bottom: 0;">
+                                <label class="edit-form-label">🌿 Transplant to Field</label>
+                                <input type="date" class="edit-form-input" id="editTransplant">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Seed dates (shown when Direct Seed selected) -->
+                    <div id="directSeedDates" style="display: none;">
+                        <div class="edit-form-group" style="margin-bottom: 1rem;">
+                            <label class="edit-form-label">🌾 Field Sow Date</label>
+                            <input type="date" class="edit-form-input" id="editFieldSow">
+                        </div>
+                    </div>
+
+                    <!-- Harvest dates (always shown) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="edit-form-group" style="margin-bottom: 0;">
+                            <label class="edit-form-label">🥬 First Harvest</label>
+                            <input type="date" class="edit-form-input" id="editFirstHarvest">
+                        </div>
+                        <div class="edit-form-group" style="margin-bottom: 0;">
+                            <label class="edit-form-label">🏁 Last Harvest</label>
+                            <input type="date" class="edit-form-input" id="editLastHarvest">
+                        </div>
                     </div>
                 </div>
 
-                <div class="edit-form-row">
-                    <div class="edit-form-group">
-                        <label class="edit-form-label">First Harvest</label>
-                        <input type="date" class="edit-form-input" id="editFirstHarvest">
+                <!-- Days to Maturity (info only) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                    <div class="edit-form-group" style="margin-bottom: 0;">
+                        <label class="edit-form-label">Days to Maturity</label>
+                        <input type="number" class="edit-form-input" id="editDTM" placeholder="e.g., 65">
                     </div>
-                    <div class="edit-form-group">
-                        <label class="edit-form-label">Last Harvest</label>
-                        <input type="date" class="edit-form-input" id="editLastHarvest">
+                    <div class="edit-form-group" style="margin-bottom: 0;">
+                        <label class="edit-form-label">Harvest Window (days)</label>
+                        <input type="number" class="edit-form-input" id="editHarvestWindow" placeholder="e.g., 21">
                     </div>
                 </div>
 
+                <!-- Notes -->
                 <div class="edit-form-group">
                     <label class="edit-form-label">Notes</label>
-                    <textarea class="edit-form-input" id="editNotes" rows="3" placeholder="Any notes about this planting..."></textarea>
+                    <textarea class="edit-form-input" id="editNotes" rows="2" placeholder="Any notes about this planting..."></textarea>
                 </div>
             </div>
             <div class="edit-modal-footer">
@@ -3199,7 +3264,10 @@
             document.getElementById('editCrop').value = planting.crop || '';
             document.getElementById('editVariety').value = planting.variety || '';
             document.getElementById('editField').value = planting.field || '';
+            document.getElementById('editBed').value = planting.bed || planting.Bed || planting.bedNumber || '';
             document.getElementById('editBedFeet').value = planting.bedFeet || '';
+            document.getElementById('editDTM').value = planting.dtm || planting.DTM || planting.daysToMaturity || '';
+            document.getElementById('editHarvestWindow').value = planting.harvestWindow || '';
             document.getElementById('editNotes').value = planting.notes || '';
 
             // Format dates for date inputs (YYYY-MM-DD)
@@ -3214,17 +3282,86 @@
                 }
             };
 
+            const formatDisplay = (dateStr) => {
+                if (!dateStr) return '--';
+                try {
+                    const date = new Date(dateStr);
+                    if (isNaN(date.getTime())) return '--';
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                } catch (e) {
+                    return '--';
+                }
+            };
+
+            // Determine planting method
+            const method = planting.method || planting.plantingMethod ||
+                          (planting.planGHSow || planting.seedDate ? 'Transplant' : 'Direct Seed');
+
+            if (method === 'Direct Seed') {
+                document.getElementById('methodDirect').checked = true;
+            } else {
+                document.getElementById('methodTransplant').checked = true;
+            }
+            updateMethodFields();
+
+            // Populate dates
             document.getElementById('editGHSow').value = formatForInput(planting.planGHSow || planting.seedDate);
             document.getElementById('editTransplant').value = formatForInput(planting.planTransplant || planting.fieldStartDate);
+            document.getElementById('editFieldSow').value = formatForInput(planting.fieldSow || planting.planTransplant || planting.fieldStartDate);
             document.getElementById('editFirstHarvest').value = formatForInput(planting.firstHarvest);
             document.getElementById('editLastHarvest').value = formatForInput(planting.harvestDate || planting.lastHarvest);
 
-            // Update modal icon
+            // Update modal header info
             const icon = cropIcons[planting.crop] || '🌱';
             document.getElementById('editModalIcon').textContent = icon;
+            document.getElementById('editModalCropName').textContent = `${planting.crop || 'Unknown Crop'} - ${planting.variety || 'Unknown Variety'}`;
+            document.getElementById('editModalBatchId').textContent = `Batch ID: ${planting.id}`;
+
+            // Build current schedule display
+            let scheduleHTML = '';
+            const ghSow = planting.planGHSow || planting.seedDate;
+            const transplant = planting.planTransplant || planting.fieldStartDate;
+            const firstHarvest = planting.firstHarvest;
+            const lastHarvest = planting.harvestDate || planting.lastHarvest;
+
+            if (method === 'Transplant' || ghSow) {
+                scheduleHTML += `<div style="display: flex; gap: 2rem; flex-wrap: wrap;">`;
+                scheduleHTML += `<span><strong>GH Sow:</strong> ${formatDisplay(ghSow)}</span>`;
+                scheduleHTML += `<span><strong>Transplant:</strong> ${formatDisplay(transplant)}</span>`;
+                scheduleHTML += `<span><strong>First Harvest:</strong> ${formatDisplay(firstHarvest)}</span>`;
+                scheduleHTML += `<span><strong>Last Harvest:</strong> ${formatDisplay(lastHarvest)}</span>`;
+                scheduleHTML += `</div>`;
+            } else {
+                scheduleHTML += `<div style="display: flex; gap: 2rem; flex-wrap: wrap;">`;
+                scheduleHTML += `<span><strong>Field Sow:</strong> ${formatDisplay(transplant)}</span>`;
+                scheduleHTML += `<span><strong>First Harvest:</strong> ${formatDisplay(firstHarvest)}</span>`;
+                scheduleHTML += `<span><strong>Last Harvest:</strong> ${formatDisplay(lastHarvest)}</span>`;
+                scheduleHTML += `</div>`;
+            }
+            scheduleHTML += `<div style="margin-top: 0.5rem; color: var(--text-secondary);"><strong>Location:</strong> Field ${planting.field || '--'}${planting.bed ? ` / Bed ${planting.bed}` : ''} | <strong>Bed Feet:</strong> ${planting.bedFeet || '--'}</div>`;
+
+            document.getElementById('editCurrentSchedule').innerHTML = scheduleHTML;
 
             // Show modal
             document.getElementById('editModal').classList.add('active');
+        }
+
+        function updateMethodFields() {
+            const isTransplant = document.getElementById('methodTransplant').checked;
+            const transplantDates = document.getElementById('transplantDates');
+            const directSeedDates = document.getElementById('directSeedDates');
+
+            if (isTransplant) {
+                transplantDates.style.display = 'block';
+                directSeedDates.style.display = 'none';
+                document.getElementById('methodTransplantLabel').style.border = '2px solid var(--primary)';
+                document.getElementById('methodDirectLabel').style.border = '2px solid transparent';
+            } else {
+                transplantDates.style.display = 'none';
+                directSeedDates.style.display = 'block';
+                document.getElementById('methodDirectLabel').style.border = '2px solid var(--primary)';
+                document.getElementById('methodTransplantLabel').style.border = '2px solid transparent';
+            }
         }
 
         function closeEditModal() {
@@ -3240,24 +3377,39 @@
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
             try {
+                const isTransplant = document.getElementById('methodTransplant').checked;
+                const plantingMethod = isTransplant ? 'Transplant' : 'Direct Seed';
+
                 const updateData = {
                     action: 'updatePlanting',
                     id: document.getElementById('editBatchId').value,
                     Crop: document.getElementById('editCrop').value,
                     Variety: document.getElementById('editVariety').value,
                     Field: document.getElementById('editField').value,
+                    Bed: document.getElementById('editBed').value,
                     Bed_Feet: document.getElementById('editBedFeet').value,
+                    DTM: document.getElementById('editDTM').value,
+                    Harvest_Window: document.getElementById('editHarvestWindow').value,
+                    Planting_Method: plantingMethod,
                     Notes: document.getElementById('editNotes').value
                 };
 
-                // Add dates with proper formatting
-                const ghSow = document.getElementById('editGHSow').value;
-                const transplant = document.getElementById('editTransplant').value;
+                // Add dates with proper formatting based on planting method
                 const firstHarvest = document.getElementById('editFirstHarvest').value;
                 const lastHarvest = document.getElementById('editLastHarvest').value;
 
-                if (ghSow) updateData.Plan_GH_Sow = formatDateForSheet(ghSow);
-                if (transplant) updateData.Plan_Transplant = formatDateForSheet(transplant);
+                if (isTransplant) {
+                    const ghSow = document.getElementById('editGHSow').value;
+                    const transplant = document.getElementById('editTransplant').value;
+                    if (ghSow) updateData.Plan_GH_Sow = formatDateForSheet(ghSow);
+                    if (transplant) updateData.Plan_Transplant = formatDateForSheet(transplant);
+                } else {
+                    const fieldSow = document.getElementById('editFieldSow').value;
+                    if (fieldSow) updateData.Plan_Transplant = formatDateForSheet(fieldSow);
+                    // Clear GH Sow for direct seed
+                    updateData.Plan_GH_Sow = '';
+                }
+
                 if (firstHarvest) updateData.First_Harvest = formatDateForSheet(firstHarvest);
                 if (lastHarvest) updateData.Last_Harvest = formatDateForSheet(lastHarvest);
 
@@ -3275,10 +3427,30 @@
                     currentEditingPlanting.crop = updateData.Crop;
                     currentEditingPlanting.variety = updateData.Variety;
                     currentEditingPlanting.field = updateData.Field;
+                    currentEditingPlanting.bed = updateData.Bed;
                     currentEditingPlanting.bedFeet = parseInt(updateData.Bed_Feet) || 0;
+                    currentEditingPlanting.dtm = parseInt(updateData.DTM) || 0;
+                    currentEditingPlanting.harvestWindow = parseInt(updateData.Harvest_Window) || 0;
+                    currentEditingPlanting.plantingMethod = plantingMethod;
                     currentEditingPlanting.notes = updateData.Notes;
-                    if (ghSow) currentEditingPlanting.planGHSow = ghSow;
-                    if (transplant) currentEditingPlanting.planTransplant = transplant;
+
+                    if (isTransplant) {
+                        const ghSow = document.getElementById('editGHSow').value;
+                        const transplant = document.getElementById('editTransplant').value;
+                        if (ghSow) currentEditingPlanting.planGHSow = ghSow;
+                        if (transplant) {
+                            currentEditingPlanting.planTransplant = transplant;
+                            currentEditingPlanting.fieldStartDate = transplant;
+                        }
+                    } else {
+                        const fieldSow = document.getElementById('editFieldSow').value;
+                        if (fieldSow) {
+                            currentEditingPlanting.planTransplant = fieldSow;
+                            currentEditingPlanting.fieldStartDate = fieldSow;
+                        }
+                        currentEditingPlanting.planGHSow = null;
+                    }
+
                     if (firstHarvest) currentEditingPlanting.firstHarvest = firstHarvest;
                     if (lastHarvest) currentEditingPlanting.harvestDate = lastHarvest;
 
