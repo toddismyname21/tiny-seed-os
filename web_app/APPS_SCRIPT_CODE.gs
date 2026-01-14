@@ -30,7 +30,10 @@ const CONFIG = {
     DAILY_TASKS: 'DAILY_TASKS_GENERATED',
     BEDS: 'BEDS',
     WEATHER: 'WEATHER_LOG',
-    INVENTORY: 'INVENTORY'
+    INVENTORY: 'INVENTORY',
+    ORGANIC_COMPLIANCE: 'ORGANIC_COMPLIANCE',
+    SOIL_TESTS: 'SOIL_TESTS',
+    FIELD_ZONES: 'FIELD_ZONES'
   }
 };
 
@@ -136,6 +139,20 @@ function handleAction(action, params) {
         return getGreenhouseSowingTasks(params);
       case 'updateTaskCompletion':
         return updateTaskCompletion(params);
+
+      // Organic Compliance Records
+      case 'saveComplianceRecord':
+        return saveComplianceRecord(params);
+      case 'syncComplianceRecords':
+        return syncComplianceRecords(params);
+      case 'getComplianceRecords':
+        return getComplianceRecords(params);
+
+      // Soil Tests
+      case 'saveSoilTest':
+        return saveSoilTest(params);
+      case 'getSoilTests':
+        return getSoilTests(params);
 
       default:
         return {
@@ -1305,6 +1322,301 @@ function updateTaskCompletion(params) {
     success: false,
     error: 'Task not found',
     searchId: searchId
+  };
+}
+
+// ========================================
+// ORGANIC COMPLIANCE RECORDS
+// ========================================
+
+function getOrCreateComplianceSheet() {
+  const ss = SpreadsheetApp.openById(CONFIG.PRODUCTION_SHEET_ID);
+  let sheet = ss.getSheetByName(CONFIG.TABS.ORGANIC_COMPLIANCE);
+
+  if (!sheet) {
+    // Create the sheet with headers
+    sheet = ss.insertSheet(CONFIG.TABS.ORGANIC_COMPLIANCE);
+    sheet.appendRow([
+      'Record_ID',
+      'Application_Date',
+      'Field',
+      'Material',
+      'Rate',
+      'Amount_Applied',
+      'OMRI_Status',
+      'Crop',
+      'Manufacturer',
+      'Notes',
+      'Synced_At',
+      'Source'
+    ]);
+
+    // Format header row
+    sheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#f3f4f6');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+function saveComplianceRecord(params) {
+  const sheet = getOrCreateComplianceSheet();
+  const record = params.record || params;
+
+  const newRow = [
+    record.id || Date.now().toString(),
+    record.applicationDate || '',
+    record.field || '',
+    record.material || '',
+    record.rate || '',
+    record.amount || '',
+    record.omriStatus || 'pending',
+    record.crop || '',
+    record.manufacturer || '',
+    record.notes || '',
+    new Date().toISOString(),
+    record.source || 'manual'
+  ];
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    message: 'Compliance record saved to Google Sheets',
+    recordId: newRow[0]
+  };
+}
+
+function syncComplianceRecords(params) {
+  const sheet = getOrCreateComplianceSheet();
+  const records = params.records || [];
+
+  if (records.length === 0) {
+    return { success: true, message: 'No records to sync', count: 0 };
+  }
+
+  // Get existing record IDs to avoid duplicates
+  const data = sheet.getDataRange().getValues();
+  const existingIds = new Set(data.slice(1).map(row => row[0].toString()));
+
+  let addedCount = 0;
+
+  records.forEach(record => {
+    // Skip if record already exists
+    if (existingIds.has(record.id?.toString())) {
+      return;
+    }
+
+    const newRow = [
+      record.id || Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      record.applicationDate || '',
+      record.field || '',
+      record.material || '',
+      record.rate || '',
+      record.amount || '',
+      record.omriStatus || 'pending',
+      record.crop || '',
+      record.manufacturer || '',
+      record.notes || '',
+      new Date().toISOString(),
+      record.source || 'sync'
+    ];
+
+    sheet.appendRow(newRow);
+    addedCount++;
+  });
+
+  return {
+    success: true,
+    message: `Synced ${addedCount} new compliance records to Google Sheets`,
+    count: addedCount,
+    totalRecords: records.length,
+    skipped: records.length - addedCount
+  };
+}
+
+function getComplianceRecords(params) {
+  const ss = SpreadsheetApp.openById(CONFIG.PRODUCTION_SHEET_ID);
+  const sheet = ss.getSheetByName(CONFIG.TABS.ORGANIC_COMPLIANCE);
+
+  if (!sheet) {
+    return { success: true, data: [], count: 0 };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const records = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue;
+
+    records.push({
+      id: row[0],
+      applicationDate: row[1],
+      field: row[2],
+      material: row[3],
+      rate: row[4],
+      amount: row[5],
+      omriStatus: row[6],
+      crop: row[7],
+      manufacturer: row[8],
+      notes: row[9],
+      syncedAt: row[10],
+      source: row[11]
+    });
+  }
+
+  // Filter by year if provided
+  let filtered = records;
+  if (params.year) {
+    filtered = records.filter(r => {
+      const date = new Date(r.applicationDate);
+      return date.getFullYear() === parseInt(params.year);
+    });
+  }
+
+  return {
+    success: true,
+    data: filtered,
+    count: filtered.length
+  };
+}
+
+// ========================================
+// SOIL TESTS
+// ========================================
+
+function getOrCreateSoilTestSheet() {
+  const ss = SpreadsheetApp.openById(CONFIG.PRODUCTION_SHEET_ID);
+  let sheet = ss.getSheetByName(CONFIG.TABS.SOIL_TESTS);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.TABS.SOIL_TESTS);
+    sheet.appendRow([
+      'Test_ID',
+      'Test_Date',
+      'Sample_Location',
+      'Lab_Name',
+      'pH',
+      'CEC',
+      'Organic_Matter',
+      'Ca_Pct',
+      'Mg_Pct',
+      'K_Pct',
+      'Ca_Found',
+      'Mg_Found',
+      'K_Found',
+      'Phosphorus',
+      'Sulfur',
+      'Boron',
+      'Iron',
+      'Manganese',
+      'Copper',
+      'Zinc',
+      'Field_Zone',
+      'Notes',
+      'Synced_At'
+    ]);
+
+    sheet.getRange(1, 1, 1, 23).setFontWeight('bold').setBackground('#f3f4f6');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+function saveSoilTest(params) {
+  const sheet = getOrCreateSoilTestSheet();
+  const test = params.test || params;
+
+  const newRow = [
+    test.id || Date.now().toString(),
+    test.testDate || '',
+    test.sampleLocation || '',
+    test.labName || '',
+    test.ph || '',
+    test.cec || '',
+    test.organicMatter || '',
+    test.caPct || '',
+    test.mgPct || '',
+    test.kPct || '',
+    test.caFound || '',
+    test.mgFound || '',
+    test.kFound || '',
+    test.phosphorus || '',
+    test.sulfur || '',
+    test.boron || '',
+    test.iron || '',
+    test.manganese || '',
+    test.copper || '',
+    test.zinc || '',
+    test.fieldZone || '',
+    test.notes || '',
+    new Date().toISOString()
+  ];
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    message: 'Soil test saved to Google Sheets',
+    testId: newRow[0]
+  };
+}
+
+function getSoilTests(params) {
+  const ss = SpreadsheetApp.openById(CONFIG.PRODUCTION_SHEET_ID);
+  const sheet = ss.getSheetByName(CONFIG.TABS.SOIL_TESTS);
+
+  if (!sheet) {
+    return { success: true, data: [], count: 0 };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const tests = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue;
+
+    tests.push({
+      id: row[0],
+      testDate: row[1],
+      sampleLocation: row[2],
+      labName: row[3],
+      ph: row[4],
+      cec: row[5],
+      organicMatter: row[6],
+      caPct: row[7],
+      mgPct: row[8],
+      kPct: row[9],
+      caFound: row[10],
+      mgFound: row[11],
+      kFound: row[12],
+      phosphorus: row[13],
+      sulfur: row[14],
+      boron: row[15],
+      iron: row[16],
+      manganese: row[17],
+      copper: row[18],
+      zinc: row[19],
+      fieldZone: row[20],
+      notes: row[21],
+      syncedAt: row[22]
+    });
+  }
+
+  // Filter by field zone if provided
+  let filtered = tests;
+  if (params.fieldZone) {
+    filtered = tests.filter(t => t.fieldZone === params.fieldZone);
+  }
+
+  return {
+    success: true,
+    data: filtered,
+    count: filtered.length
   };
 }
 

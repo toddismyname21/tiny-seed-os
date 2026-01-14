@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Greenhouse Sowing Sheets - Tiny Seed OS</title>
+    <title>Task Sheets - Tiny Seed OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -602,8 +602,8 @@
                 <span>Back</span>
             </a>
             <h1 class="page-title">
-                <i class="fas fa-seedling"></i>
-                Greenhouse Sowing Sheets
+                <i class="fas fa-clipboard-list"></i>
+                Printable Task Sheets
             </h1>
         </div>
         <div class="header-actions">
@@ -618,6 +618,31 @@
     <div class="main-container">
         <!-- Control Panel -->
         <div class="control-panel">
+            <!-- Task Type -->
+            <div class="panel-section">
+                <h3 class="panel-title">
+                    <i class="fas fa-tasks"></i>
+                    Task Type
+                </h3>
+                <div class="radio-group">
+                    <label class="radio-option selected" onclick="selectTaskType(this, 'ghSow')">
+                        <input type="radio" name="taskType" value="ghSow" checked>
+                        <i class="fas fa-seedling" style="color: #4a7c43;"></i>
+                        <span>Greenhouse Sowing</span>
+                    </label>
+                    <label class="radio-option" onclick="selectTaskType(this, 'transplant')">
+                        <input type="radio" name="taskType" value="transplant">
+                        <i class="fas fa-exchange-alt" style="color: #2a9d8f;"></i>
+                        <span>Transplanting</span>
+                    </label>
+                    <label class="radio-option" onclick="selectTaskType(this, 'directSeed')">
+                        <input type="radio" name="taskType" value="directSeed">
+                        <i class="fas fa-tractor" style="color: #e9c46a;"></i>
+                        <span>Direct Seeding</span>
+                    </label>
+                </div>
+            </div>
+
             <!-- Date Range -->
             <div class="panel-section">
                 <h3 class="panel-title">
@@ -767,6 +792,37 @@
         let summary = {};
         let currentCategory = 'all';
         let currentSort = 'date';
+        let currentTaskType = 'ghSow';
+
+        // Task Type Configuration
+        const taskTypeConfig = {
+            ghSow: {
+                title: 'GREENHOUSE SOWING TASKS',
+                icon: 'fa-seedling',
+                dateField: 'sowDate',  // API returns 'sowDate' for all task types
+                apiAction: 'getGreenhouseSowingTasks',
+                columns: ['Date', 'Crop', 'Variety', 'Trays', 'Cells', 'Bed']
+            },
+            transplant: {
+                title: 'TRANSPLANTING TASKS',
+                icon: 'fa-exchange-alt',
+                dateField: 'sowDate',  // Will need transplant-specific API
+                apiAction: 'getTransplantTasks',
+                columns: ['Date', 'Crop', 'Variety', 'Plants', 'Location', 'From']
+            },
+            directSeed: {
+                title: 'DIRECT SEEDING TASKS',
+                icon: 'fa-tractor',
+                dateField: 'sowDate',  // API uses 'sowDate' for direct seed too
+                apiAction: 'getDirectSeedTasks',
+                columns: ['Date', 'Crop', 'Variety', 'Feet', 'Seeds', 'Location']
+            }
+        };
+
+        // Helper to get date from task (handles multiple field names)
+        function getTaskDate(task) {
+            return task.sowDate || task.ghSowDate || task.transplantDate || task.fieldSowDate || '';
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -801,12 +857,16 @@
         }
 
         function formatDateDisplay(dateStr) {
+            if (!dateStr) return '--';
             const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return '--';
             return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         }
 
         function formatDateShort(dateStr) {
+            if (!dateStr) return '--';
             const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return '--';
             return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
         }
 
@@ -835,6 +895,29 @@
             }
         }
 
+        // Task Type Selection
+        function selectTaskType(element, value) {
+            document.querySelectorAll('[name="taskType"]').forEach(radio => {
+                radio.closest('.radio-option').classList.remove('selected');
+            });
+            element.classList.add('selected');
+            element.querySelector('input').checked = true;
+            currentTaskType = value;
+            // Clear current tasks when switching types
+            tasks = [];
+            summary = {};
+            document.getElementById('sheetContainer').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas ${taskTypeConfig[value].icon}"></i>
+                    <h3>No Tasks Loaded</h3>
+                    <p>Select a date range and click "Load Tasks" to generate a ${taskTypeConfig[value].title.toLowerCase().replace(' tasks', '')} sheet.</p>
+                </div>
+            `;
+            document.getElementById('printBtn').disabled = true;
+            document.getElementById('saveBtn').disabled = true;
+            updateStats();
+        }
+
         // Load Tasks from API
         async function loadTasks() {
             const startDate = document.getElementById('startDate').value;
@@ -847,8 +930,10 @@
 
             showLoading();
 
+            const config = taskTypeConfig[currentTaskType];
+
             try {
-                const url = `${API_URL}?action=getGreenhouseSowingTasks&startDate=${startDate}&endDate=${endDate}&category=${currentCategory}`;
+                const url = `${API_URL}?action=${config.apiAction}&startDate=${startDate}&endDate=${endDate}&category=${currentCategory}`;
                 const response = await fetch(url, {
                     method: 'GET',
                     redirect: 'follow',
@@ -865,7 +950,7 @@
                     updateStats();
                     document.getElementById('printBtn').disabled = tasks.length === 0;
                     document.getElementById('saveBtn').disabled = tasks.length === 0;
-                    showToast(`Loaded ${tasks.length} tasks`, 'success');
+                    showToast(`Loaded ${tasks.length} ${currentTaskType === 'ghSow' ? 'sowing' : currentTaskType === 'transplant' ? 'transplant' : 'direct seed'} tasks`, 'success');
                 } else {
                     loadDemoData();
                 }
@@ -878,28 +963,57 @@
         // Demo Data
         function loadDemoData() {
             const startDate = document.getElementById('startDate').value;
-            tasks = [
-                { batchId: '26-LET-001', crop: 'Lettuce', variety: 'Salanova Formula Mix', category: 'Veg', ghSowDate: startDate, trays: 4, cellsPerTray: 128, seedsNeeded: 538, bed: 'M-09', germTemp: '65-70F', germInstructions: 'Surface sow, light required for germination', completed: false },
-                { batchId: '26-TOM-001', crop: 'Tomato', variety: 'Cherokee Purple', category: 'Veg', ghSowDate: startDate, trays: 2, cellsPerTray: 72, seedsNeeded: 151, bed: 'A-12', germTemp: '80-85F', germInstructions: 'Bottom heat recommended, cover until emergence', completed: false },
-                { batchId: '26-BAS-001', crop: 'Basil', variety: 'Genovese', category: 'Herb', ghSowDate: startDate, trays: 3, cellsPerTray: 72, seedsNeeded: 227, bed: 'GH-01', germTemp: '75-80F', germInstructions: 'Surface sow, needs light and warmth', completed: true },
-                { batchId: '26-PEP-001', crop: 'Pepper', variety: 'Jimmy Nardello', category: 'Veg', ghSowDate: startDate, trays: 2, cellsPerTray: 50, seedsNeeded: 105, bed: 'A-08', germTemp: '80-85F', germInstructions: 'Bottom heat essential, slow germination (10-14 days)', completed: false },
-                { batchId: '26-ZIN-001', crop: 'Zinnia', variety: 'Benary Giant Mix', category: 'Floral', ghSowDate: startDate, trays: 3, cellsPerTray: 72, seedsNeeded: 227, bed: 'F-01', germTemp: '70-75F', germInstructions: 'Cover seeds, germinates in 5-7 days', completed: false },
-                { batchId: '26-KAL-001', crop: 'Kale', variety: 'Lacinato', category: 'Veg', ghSowDate: startDate, trays: 2, cellsPerTray: 128, seedsNeeded: 269, bed: 'M-15', germTemp: '65-75F', germInstructions: 'Germinates best in cool conditions', completed: false }
-            ];
+            const nextDay = new Date(startDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            const nextDayStr = nextDay.toISOString().split('T')[0];
 
-            summary = {
-                totalTrays: 16,
-                traysBySize: { '128': 6, '72': 8, '50': 2 },
-                seedsNeeded: [
-                    { crop: 'Lettuce', variety: 'Salanova Formula Mix', seeds: 538 },
-                    { crop: 'Kale', variety: 'Lacinato', seeds: 269 },
-                    { crop: 'Basil', variety: 'Genovese', seeds: 227 },
-                    { crop: 'Zinnia', variety: 'Benary Giant Mix', seeds: 227 },
-                    { crop: 'Tomato', variety: 'Cherokee Purple', seeds: 151 },
-                    { crop: 'Pepper', variety: 'Jimmy Nardello', seeds: 105 }
-                ],
-                uniqueCrops: 6
-            };
+            if (currentTaskType === 'ghSow') {
+                tasks = [
+                    { batchId: '26-LET-001', crop: 'Lettuce', variety: 'Salanova Formula Mix', category: 'Veg', sowDate: startDate, trays: 4, cellsPerTray: 128, seedsNeeded: 538, bed: 'M-09', germTemp: '65-70F', germInstructions: 'Surface sow, light required for germination', completed: false },
+                    { batchId: '26-TOM-001', crop: 'Tomato', variety: 'Cherokee Purple', category: 'Veg', sowDate: startDate, trays: 2, cellsPerTray: 72, seedsNeeded: 151, bed: 'A-12', germTemp: '80-85F', germInstructions: 'Bottom heat recommended, cover until emergence', completed: false },
+                    { batchId: '26-BAS-001', crop: 'Basil', variety: 'Genovese', category: 'Herb', sowDate: nextDayStr, trays: 3, cellsPerTray: 72, seedsNeeded: 227, bed: 'GH-01', germTemp: '75-80F', germInstructions: 'Surface sow, needs light and warmth', completed: false },
+                    { batchId: '26-PEP-001', crop: 'Pepper', variety: 'Jimmy Nardello', category: 'Veg', sowDate: nextDayStr, trays: 2, cellsPerTray: 50, seedsNeeded: 105, bed: 'A-08', germTemp: '80-85F', germInstructions: 'Bottom heat essential, slow germination', completed: false },
+                    { batchId: '26-ZIN-001', crop: 'Zinnia', variety: 'Benary Giant Mix', category: 'Floral', sowDate: startDate, trays: 3, cellsPerTray: 72, seedsNeeded: 227, bed: 'F-01', germTemp: '70-75F', germInstructions: 'Cover seeds, germinates in 5-7 days', completed: false }
+                ];
+                summary = {
+                    totalTrays: 14,
+                    traysBySize: { '128': 4, '72': 8, '50': 2 },
+                    seedsNeeded: [
+                        { crop: 'Lettuce', variety: 'Salanova Formula Mix', seeds: 538 },
+                        { crop: 'Basil', variety: 'Genovese', seeds: 227 },
+                        { crop: 'Zinnia', variety: 'Benary Giant Mix', seeds: 227 },
+                        { crop: 'Tomato', variety: 'Cherokee Purple', seeds: 151 },
+                        { crop: 'Pepper', variety: 'Jimmy Nardello', seeds: 105 }
+                    ],
+                    uniqueCrops: 5
+                };
+            } else if (currentTaskType === 'transplant') {
+                tasks = [
+                    { batchId: '26-LET-002', crop: 'Lettuce', variety: 'Salanova Red', category: 'Veg', sowDate: startDate, plants: 256, location: 'F2L-03', fromTray: 'GH Bench 1', completed: false },
+                    { batchId: '26-KAL-001', crop: 'Kale', variety: 'Lacinato', category: 'Veg', sowDate: startDate, plants: 150, location: 'F3L-01', fromTray: 'GH Bench 2', completed: false },
+                    { batchId: '26-TOM-002', crop: 'Tomato', variety: 'Sungold', category: 'Veg', sowDate: nextDayStr, plants: 72, location: 'HT-A1', fromTray: 'GH Bench 3', completed: false },
+                    { batchId: '26-PEP-002', crop: 'Pepper', variety: 'Padron', category: 'Veg', sowDate: nextDayStr, plants: 48, location: 'HT-A2', fromTray: 'GH Bench 3', completed: false },
+                    { batchId: '26-BAS-002', crop: 'Basil', variety: 'Italian Large Leaf', category: 'Herb', sowDate: startDate, plants: 200, location: 'F1L-05', fromTray: 'GH Bench 1', completed: false }
+                ];
+                summary = {
+                    totalPlants: 726,
+                    byLocation: { 'Field': 606, 'High Tunnel': 120 },
+                    uniqueCrops: 5
+                };
+            } else if (currentTaskType === 'directSeed') {
+                tasks = [
+                    { batchId: '26-CAR-001', crop: 'Carrots', variety: 'Napoli', category: 'Veg', sowDate: startDate, feet: 200, seedsNeeded: 2400, location: 'F1L-01', completed: false },
+                    { batchId: '26-BET-001', crop: 'Beets', variety: 'Detroit Dark Red', category: 'Veg', sowDate: startDate, feet: 100, seedsNeeded: 800, location: 'F1L-02', completed: false },
+                    { batchId: '26-RAD-001', crop: 'Radish', variety: 'French Breakfast', category: 'Veg', sowDate: nextDayStr, feet: 50, seedsNeeded: 600, location: 'F2L-04', completed: false },
+                    { batchId: '26-ARU-001', crop: 'Arugula', variety: 'Astro', category: 'Veg', sowDate: nextDayStr, feet: 75, seedsNeeded: 1500, location: 'F2L-05', completed: false },
+                    { batchId: '26-SPN-001', crop: 'Spinach', variety: 'Space', category: 'Veg', sowDate: startDate, feet: 150, seedsNeeded: 1800, location: 'F1L-03', completed: false }
+                ];
+                summary = {
+                    totalFeet: 575,
+                    totalSeeds: 7100,
+                    uniqueCrops: 5
+                };
+            }
 
             renderSheet();
             updateStats();
@@ -928,23 +1042,26 @@
 
         // Render Sheet
         function renderSheet() {
+            const config = taskTypeConfig[currentTaskType];
+
             if (tasks.length === 0) {
                 document.getElementById('sheetContainer').innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-calendar-times"></i>
                         <h3>No Tasks Found</h3>
-                        <p>No greenhouse sowing tasks found for the selected date range.</p>
+                        <p>No ${config.title.toLowerCase()} found for the selected date range.</p>
                     </div>
                 `;
                 return;
             }
 
-            // Sort tasks - use sowDate which handles both GH sow and Field sow
+            // Sort tasks by appropriate date field
             let sortedTasks = [...tasks];
+            const dateField = config.dateField;
             if (currentSort === 'date') {
-                sortedTasks.sort((a, b) => new Date(a.sowDate || a.ghSowDate) - new Date(b.sowDate || b.ghSowDate) || a.crop.localeCompare(b.crop));
+                sortedTasks.sort((a, b) => new Date(a[dateField]) - new Date(b[dateField]) || a.crop.localeCompare(b.crop));
             } else {
-                sortedTasks.sort((a, b) => a.crop.localeCompare(b.crop) || new Date(a.sowDate || a.ghSowDate) - new Date(b.sowDate || b.ghSowDate));
+                sortedTasks.sort((a, b) => a.crop.localeCompare(b.crop) || new Date(a[dateField]) - new Date(b[dateField]));
             }
 
             const startDate = document.getElementById('startDate').value;
@@ -954,61 +1071,33 @@
                 <div class="sheet-header">
                     <img src="${FARM_LOGO}" alt="Tiny Seed Farm" class="sheet-logo">
                     <div class="sheet-title-block">
-                        <div class="sheet-title">GREENHOUSE SOWING TASKS</div>
+                        <div class="sheet-title">${config.title}</div>
                         <div class="sheet-subtitle">${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}</div>
                     </div>
                 </div>
 
-                <div class="summary-section">
-                    <div class="summary-box">
-                        <div class="summary-box-title">Tray Counts</div>
-                        ${Object.entries(summary.traysBySize || {}).map(([size, count]) => `
-                            <div class="summary-item">
-                                <span>${size}-cell trays</span>
-                                <span>${count}</span>
-                            </div>
-                        `).join('')}
-                        <div class="summary-item summary-total">
-                            <span>TOTAL TRAYS</span>
-                            <span>${summary.totalTrays || 0}</span>
-                        </div>
-                    </div>
-                    <div class="summary-box">
-                        <div class="summary-box-title">Seeds Needed</div>
-                        ${(summary.seedsNeeded || []).slice(0, 6).map(s => `
-                            <div class="summary-item">
-                                <span>${s.crop} (${s.variety.substring(0, 15)}${s.variety.length > 15 ? '...' : ''})</span>
-                                <span>${s.seeds.toLocaleString()}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
+                ${renderSummarySection()}
 
                 <table class="task-table">
                     <thead>
                         <tr>
                             <th><i class="fas fa-check"></i></th>
-                            <th>Date</th>
-                            <th>Crop</th>
-                            <th>Variety</th>
-                            <th>Trays</th>
-                            <th>Cells</th>
-                            <th>Bed</th>
+                            ${config.columns.map(col => `<th>${col}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
             `;
 
-            // Group by date or render flat
+            // Group by date or crop
             if (currentSort === 'date') {
                 let currentDate = '';
                 sortedTasks.forEach(task => {
-                    const taskDate = task.sowDate || task.ghSowDate;
+                    const taskDate = task[dateField];
                     if (taskDate !== currentDate) {
                         currentDate = taskDate;
                         html += `
                             <tr class="date-group-header">
-                                <td colspan="7"><i class="fas fa-calendar-day"></i> ${formatDateDisplay(currentDate)}</td>
+                                <td colspan="${config.columns.length + 1}"><i class="fas fa-calendar-day"></i> ${formatDateDisplay(currentDate)}</td>
                             </tr>
                         `;
                     }
@@ -1021,7 +1110,7 @@
                         currentCrop = task.crop;
                         html += `
                             <tr class="date-group-header">
-                                <td colspan="7"><i class="fas fa-leaf"></i> ${currentCrop}</td>
+                                <td colspan="${config.columns.length + 1}"><i class="fas fa-leaf"></i> ${currentCrop}</td>
                             </tr>
                         `;
                     }
@@ -1034,53 +1123,168 @@
                 </table>
             `;
 
-            // Germination Notes
-            const uniqueGermNotes = [...new Map(tasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
-            if (uniqueGermNotes.length > 0) {
-                html += `
-                    <div class="germ-notes">
-                        <div class="germ-notes-title">
-                            <i class="fas fa-temperature-high"></i>
-                            Germination Notes
-                        </div>
-                        ${uniqueGermNotes.map(t => `
-                            <div class="germ-note-item">
-                                <span class="germ-crop">${t.crop}:</span> ${t.germTemp ? `${t.germTemp} - ` : ''}${t.germInstructions}
+            // Germination Notes (only for GH Sowing)
+            if (currentTaskType === 'ghSow') {
+                const uniqueGermNotes = [...new Map(tasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
+                if (uniqueGermNotes.length > 0) {
+                    html += `
+                        <div class="germ-notes">
+                            <div class="germ-notes-title">
+                                <i class="fas fa-temperature-high"></i>
+                                Germination Notes
                             </div>
-                        `).join('')}
-                    </div>
-                `;
+                            ${uniqueGermNotes.map(t => `
+                                <div class="germ-note-item">
+                                    <span class="germ-crop">${t.crop}:</span> ${t.germTemp ? `${t.germTemp} - ` : ''}${t.germInstructions}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
             }
 
             document.getElementById('sheetContainer').innerHTML = html;
         }
 
+        // Render Summary Section based on task type
+        function renderSummarySection() {
+            if (currentTaskType === 'ghSow') {
+                return `
+                    <div class="summary-section">
+                        <div class="summary-box">
+                            <div class="summary-box-title">Tray Counts</div>
+                            ${Object.entries(summary.traysBySize || {}).map(([size, count]) => `
+                                <div class="summary-item">
+                                    <span>${size}-cell trays</span>
+                                    <span>${count}</span>
+                                </div>
+                            `).join('')}
+                            <div class="summary-item summary-total">
+                                <span>TOTAL TRAYS</span>
+                                <span>${summary.totalTrays || 0}</span>
+                            </div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-box-title">Seeds Needed</div>
+                            ${(summary.seedsNeeded || []).slice(0, 6).map(s => `
+                                <div class="summary-item">
+                                    <span>${s.crop} (${s.variety.substring(0, 15)}${s.variety.length > 15 ? '...' : ''})</span>
+                                    <span>${s.seeds.toLocaleString()}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if (currentTaskType === 'transplant') {
+                return `
+                    <div class="summary-section">
+                        <div class="summary-box">
+                            <div class="summary-box-title">Plants by Location</div>
+                            ${Object.entries(summary.byLocation || {}).map(([loc, count]) => `
+                                <div class="summary-item">
+                                    <span>${loc}</span>
+                                    <span>${count.toLocaleString()}</span>
+                                </div>
+                            `).join('')}
+                            <div class="summary-item summary-total">
+                                <span>TOTAL PLANTS</span>
+                                <span>${summary.totalPlants || tasks.reduce((sum, t) => sum + (t.plants || 0), 0)}</span>
+                            </div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-box-title">Task Overview</div>
+                            <div class="summary-item">
+                                <span>Total Tasks</span>
+                                <span>${tasks.length}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Unique Crops</span>
+                                <span>${summary.uniqueCrops || [...new Set(tasks.map(t => t.crop))].length}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Completed</span>
+                                <span>${tasks.filter(t => t.completed).length}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (currentTaskType === 'directSeed') {
+                return `
+                    <div class="summary-section">
+                        <div class="summary-box">
+                            <div class="summary-box-title">Bed Feet Summary</div>
+                            <div class="summary-item summary-total">
+                                <span>TOTAL BED FEET</span>
+                                <span>${summary.totalFeet || tasks.reduce((sum, t) => sum + (t.feet || 0), 0)}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Total Seeds</span>
+                                <span>${(summary.totalSeeds || tasks.reduce((sum, t) => sum + (t.seedsNeeded || 0), 0)).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-box-title">Task Overview</div>
+                            <div class="summary-item">
+                                <span>Total Tasks</span>
+                                <span>${tasks.length}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Unique Crops</span>
+                                <span>${summary.uniqueCrops || [...new Set(tasks.map(t => t.crop))].length}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Completed</span>
+                                <span>${tasks.filter(t => t.completed).length}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            return '';
+        }
+
         function renderTaskRow(task) {
             const categoryClass = task.category === 'Floral' ? 'floral' : (task.category === 'Herb' ? 'herb' : 'veg');
-            const isDirectSeed = task.plantingMethod === 'Direct Seed';
-            const methodIcon = isDirectSeed ? '🌾' : '🌱';
-            const methodLabel = isDirectSeed ? 'DS' : 'TP';
-            const taskDate = task.sowDate || task.ghSowDate || task.fieldSowDate;
+            const config = taskTypeConfig[currentTaskType];
+            const taskDate = task[config.dateField];
 
-            // For direct seed, show feet/plants instead of trays
-            const quantityDisplay = isDirectSeed
-                ? `${task.feetUsed || task.plantsNeeded || '-'} ft`
-                : `${task.trays || 0}`;
+            let rowContent = '';
+
+            if (currentTaskType === 'ghSow') {
+                rowContent = `
+                    <td>${formatDateShort(taskDate)}</td>
+                    <td>${task.crop} <span class="category-badge ${categoryClass}">GH</span></td>
+                    <td>${task.variety}</td>
+                    <td><strong>${task.trays || 0}</strong></td>
+                    <td>${task.cellsPerTray || '-'}</td>
+                    <td>${task.bed || '-'}</td>
+                `;
+            } else if (currentTaskType === 'transplant') {
+                rowContent = `
+                    <td>${formatDateShort(taskDate)}</td>
+                    <td>${task.crop} <span class="category-badge ${categoryClass}">TP</span></td>
+                    <td>${task.variety}</td>
+                    <td><strong>${task.plants || 0}</strong></td>
+                    <td>${task.location || '-'}</td>
+                    <td>${task.fromTray || '-'}</td>
+                `;
+            } else if (currentTaskType === 'directSeed') {
+                rowContent = `
+                    <td>${formatDateShort(taskDate)}</td>
+                    <td>${task.crop} <span class="category-badge ${categoryClass}">DS</span></td>
+                    <td>${task.variety}</td>
+                    <td><strong>${task.feet || 0} ft</strong></td>
+                    <td>${(task.seedsNeeded || 0).toLocaleString()}</td>
+                    <td>${task.location || '-'}</td>
+                `;
+            }
 
             return `
                 <tr class="${task.completed ? 'completed' : ''}" data-batch-id="${task.batchId}">
                     <td style="text-align: center;">
                         <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${task.batchId}', this.checked)">
                     </td>
-                    <td>${formatDateShort(taskDate)}</td>
-                    <td>
-                        ${task.crop}
-                        <span class="category-badge ${categoryClass}" title="${task.plantingMethod || 'Transplant'}">${methodLabel}</span>
-                    </td>
-                    <td>${task.variety}</td>
-                    <td><strong>${quantityDisplay}</strong></td>
-                    <td>${isDirectSeed ? '-' : task.cellsPerTray}</td>
-                    <td>${task.bed || '-'}</td>
+                    ${rowContent}
                 </tr>
             `;
         }
@@ -1128,11 +1332,13 @@
         function printSheet() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
+            const config = taskTypeConfig[currentTaskType];
+            const dateField = config.dateField;
 
             // Sort tasks for print
             let sortedTasks = [...tasks];
             if (currentSort === 'date') {
-                sortedTasks.sort((a, b) => new Date(a.ghSowDate) - new Date(b.ghSowDate) || a.crop.localeCompare(b.crop));
+                sortedTasks.sort((a, b) => new Date(a[dateField]) - new Date(b[dateField]) || a.crop.localeCompare(b.crop));
             } else {
                 sortedTasks.sort((a, b) => a.crop.localeCompare(b.crop));
             }
@@ -1143,11 +1349,12 @@
             if (currentSort === 'date') {
                 let currentDate = '';
                 sortedTasks.forEach(task => {
-                    if (task.ghSowDate !== currentDate) {
-                        currentDate = task.ghSowDate;
+                    const taskDate = task[dateField];
+                    if (taskDate !== currentDate) {
+                        currentDate = taskDate;
                         taskRows += `
                             <tr class="date-group">
-                                <td colspan="7" style="background: #e8f5e9; font-weight: 700; color: #2d5a27;">
+                                <td colspan="${config.columns.length + 1}" style="background: #e8f5e9; font-weight: 700; color: #2d5a27;">
                                     ${formatDateDisplay(currentDate)}
                                 </td>
                             </tr>
@@ -1162,7 +1369,7 @@
                         currentCrop = task.crop;
                         taskRows += `
                             <tr class="date-group">
-                                <td colspan="7" style="background: #e8f5e9; font-weight: 700; color: #2d5a27;">
+                                <td colspan="${config.columns.length + 1}" style="background: #e8f5e9; font-weight: 700; color: #2d5a27;">
                                     ${currentCrop}
                                 </td>
                             </tr>
@@ -1172,32 +1379,38 @@
                 });
             }
 
-            // Germination notes
-            const uniqueGermNotes = [...new Map(tasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
+            // Germination notes (only for GH Sowing)
             let germNotesHTML = '';
-            if (uniqueGermNotes.length > 0) {
-                germNotesHTML = `
-                    <div style="background: #fff8e1; border: 1px solid #ffcc80; border-radius: 6px; padding: 12px; margin-top: 20px;">
-                        <div style="font-weight: 700; color: #e65100; margin-bottom: 8px;">GERMINATION NOTES</div>
-                        ${uniqueGermNotes.map(t => `
-                            <div style="font-size: 10pt; padding: 4px 0; border-bottom: 1px solid #ffe0b2;">
-                                <strong>${t.crop}:</strong> ${t.germTemp ? `${t.germTemp} - ` : ''}${t.germInstructions}
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+            if (currentTaskType === 'ghSow') {
+                const uniqueGermNotes = [...new Map(tasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
+                if (uniqueGermNotes.length > 0) {
+                    germNotesHTML = `
+                        <div style="background: #fff8e1; border: 1px solid #ffcc80; border-radius: 6px; padding: 12px; margin-top: 20px;">
+                            <div style="font-weight: 700; color: #e65100; margin-bottom: 8px;">GERMINATION NOTES</div>
+                            ${uniqueGermNotes.map(t => `
+                                <div style="font-size: 10pt; padding: 4px 0; border-bottom: 1px solid #ffe0b2;">
+                                    <strong>${t.crop}:</strong> ${t.germTemp ? `${t.germTemp} - ` : ''}${t.germInstructions}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
             }
+
+            // Generate summary HTML based on task type
+            const summaryHTML = getPrintSummaryHTML();
+            const footerSummary = getFooterSummary();
 
             const printContent = `
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Greenhouse Sowing Tasks - ${formatDateDisplay(startDate)}</title>
+                    <title>${config.title} - ${formatDateDisplay(startDate)}</title>
                     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
                     <style>
                         @page {
                             size: letter portrait;
-                            margin: 0.5in;
+                            margin: 0.25in;
                         }
 
                         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1324,12 +1537,49 @@
                     <div class="header">
                         <img src="${FARM_LOGO}" alt="Tiny Seed Farm" class="logo">
                         <div class="title-block">
-                            <div class="title">GREENHOUSE SOWING TASKS</div>
+                            <div class="title">${config.title}</div>
                             <div class="subtitle">${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}</div>
                             <div class="subtitle">Printed: ${new Date().toLocaleDateString()}</div>
                         </div>
                     </div>
 
+                    ${summaryHTML}
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="text-align: center;">Done</th>
+                                ${config.columns.map(col => `<th>${col}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${taskRows}
+                        </tbody>
+                    </table>
+
+                    ${germNotesHTML}
+
+                    <div class="footer">
+                        Generated by Tiny Seed OS | ${tasks.length} tasks | ${footerSummary}
+                    </div>
+
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() { window.print(); }, 300);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+        }
+
+        // Get print summary HTML based on task type
+        function getPrintSummaryHTML() {
+            if (currentTaskType === 'ghSow') {
+                return `
                     <div class="summary-grid">
                         <div class="summary-box">
                             <div class="summary-title">Tray Counts</div>
@@ -1354,55 +1604,121 @@
                             `).join('')}
                         </div>
                     </div>
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="text-align: center;">Done</th>
-                                <th>Date</th>
-                                <th>Crop</th>
-                                <th>Variety</th>
-                                <th>Trays</th>
-                                <th>Cells</th>
-                                <th>Destination</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${taskRows}
-                        </tbody>
-                    </table>
-
-                    ${germNotesHTML}
-
-                    <div class="footer">
-                        Generated by Tiny Seed OS | ${tasks.length} tasks | ${summary.totalTrays || 0} trays total
+                `;
+            } else if (currentTaskType === 'transplant') {
+                return `
+                    <div class="summary-grid">
+                        <div class="summary-box">
+                            <div class="summary-title">Plants by Location</div>
+                            ${Object.entries(summary.byLocation || {}).map(([loc, count]) => `
+                                <div class="summary-row">
+                                    <span>${loc}</span>
+                                    <span>${count.toLocaleString()}</span>
+                                </div>
+                            `).join('')}
+                            <div class="summary-row summary-total">
+                                <span>TOTAL PLANTS</span>
+                                <span>${summary.totalPlants || tasks.reduce((sum, t) => sum + (t.plants || 0), 0)}</span>
+                            </div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-title">Task Overview</div>
+                            <div class="summary-row">
+                                <span>Total Tasks</span>
+                                <span>${tasks.length}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Unique Crops</span>
+                                <span>${[...new Set(tasks.map(t => t.crop))].length}</span>
+                            </div>
+                        </div>
                     </div>
+                `;
+            } else if (currentTaskType === 'directSeed') {
+                return `
+                    <div class="summary-grid">
+                        <div class="summary-box">
+                            <div class="summary-title">Seeding Summary</div>
+                            <div class="summary-row summary-total">
+                                <span>TOTAL BED FEET</span>
+                                <span>${summary.totalFeet || tasks.reduce((sum, t) => sum + (t.feet || 0), 0)}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Total Seeds</span>
+                                <span>${(summary.totalSeeds || tasks.reduce((sum, t) => sum + (t.seedsNeeded || 0), 0)).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-title">Task Overview</div>
+                            <div class="summary-row">
+                                <span>Total Tasks</span>
+                                <span>${tasks.length}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Unique Crops</span>
+                                <span>${[...new Set(tasks.map(t => t.crop))].length}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            return '';
+        }
 
-                    <script>
-                        window.onload = function() {
-                            setTimeout(function() { window.print(); }, 300);
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `;
-
-            printWindow.document.write(printContent);
-            printWindow.document.close();
+        // Get footer summary based on task type
+        function getFooterSummary() {
+            if (currentTaskType === 'ghSow') {
+                return `${summary.totalTrays || 0} trays total`;
+            } else if (currentTaskType === 'transplant') {
+                return `${summary.totalPlants || tasks.reduce((sum, t) => sum + (t.plants || 0), 0)} plants total`;
+            } else if (currentTaskType === 'directSeed') {
+                return `${summary.totalFeet || tasks.reduce((sum, t) => sum + (t.feet || 0), 0)} bed feet total`;
+            }
+            return '';
         }
 
         function printTaskRow(task) {
-            return `
-                <tr>
-                    <td style="text-align: center;"><div class="checkbox"></div></td>
-                    <td>${formatDateShort(task.ghSowDate)}</td>
-                    <td>${task.crop}</td>
-                    <td>${task.variety}</td>
-                    <td style="font-weight: 600;">${task.trays}</td>
-                    <td>${task.cellsPerTray}</td>
-                    <td>${task.bed || '-'}</td>
-                </tr>
-            `;
+            const config = taskTypeConfig[currentTaskType];
+            const taskDate = task[config.dateField];
+
+            if (currentTaskType === 'ghSow') {
+                return `
+                    <tr>
+                        <td style="text-align: center;"><div class="checkbox"></div></td>
+                        <td>${formatDateShort(taskDate)}</td>
+                        <td>${task.crop}</td>
+                        <td>${task.variety}</td>
+                        <td style="font-weight: 600;">${task.trays}</td>
+                        <td>${task.cellsPerTray}</td>
+                        <td>${task.bed || '-'}</td>
+                    </tr>
+                `;
+            } else if (currentTaskType === 'transplant') {
+                return `
+                    <tr>
+                        <td style="text-align: center;"><div class="checkbox"></div></td>
+                        <td>${formatDateShort(taskDate)}</td>
+                        <td>${task.crop}</td>
+                        <td>${task.variety}</td>
+                        <td style="font-weight: 600;">${task.plants}</td>
+                        <td>${task.location || '-'}</td>
+                        <td>${task.fromTray || '-'}</td>
+                    </tr>
+                `;
+            } else if (currentTaskType === 'directSeed') {
+                return `
+                    <tr>
+                        <td style="text-align: center;"><div class="checkbox"></div></td>
+                        <td>${formatDateShort(taskDate)}</td>
+                        <td>${task.crop}</td>
+                        <td>${task.variety}</td>
+                        <td style="font-weight: 600;">${task.feet} ft</td>
+                        <td>${(task.seedsNeeded || 0).toLocaleString()}</td>
+                        <td>${task.location || '-'}</td>
+                    </tr>
+                `;
+            }
+            return '';
         }
 
         // Toast Notification

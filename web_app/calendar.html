@@ -1571,6 +1571,9 @@
         </div>
 
         <div class="sidebar-section">
+            <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="openAddPlantingModal()">
+                <i class="fas fa-plus"></i> Add Planting
+            </button>
             <button class="btn btn-secondary" style="width: 100%;" onclick="refreshData()">
                 <i class="fas fa-sync-alt"></i> Refresh Data
             </button>
@@ -1745,6 +1748,111 @@
         </div>
     </div>
 
+    <!-- Add Planting Modal -->
+    <div class="edit-modal-overlay" id="addPlantingModal">
+        <div class="edit-modal" style="max-width: 600px;">
+            <div class="edit-modal-header">
+                <div class="edit-modal-title">
+                    <span style="font-size: 1.5rem;">🌱</span>
+                    <div>
+                        <div style="font-size: 1.1rem;">Add New Planting</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: normal;">Create a new planting on the calendar</div>
+                    </div>
+                </div>
+                <button class="edit-modal-close" onclick="closeAddPlantingModal()">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-label">Crop</label>
+                        <select class="edit-input" id="addCrop" onchange="onAddCropChange()">
+                            <option value="">Select crop...</option>
+                        </select>
+                        <input type="text" class="edit-input" id="addNewCrop" placeholder="Enter new crop name..." style="display: none; margin-top: 6px;">
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-label">Variety</label>
+                        <select class="edit-input" id="addVariety" onchange="onAddVarietyChange()">
+                            <option value="">Select variety...</option>
+                        </select>
+                        <input type="text" class="edit-input" id="addNewVariety" placeholder="Enter new variety name..." style="display: none; margin-top: 6px;">
+                    </div>
+                </div>
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-label">Planting Method</label>
+                        <select class="edit-input" id="addMethod">
+                            <option value="Transplant">Transplant</option>
+                            <option value="Direct Seed">Direct Seed</option>
+                        </select>
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-label">Tray Size</label>
+                        <select class="edit-input" id="addTraySize">
+                            <option value="128">128-cell</option>
+                            <option value="72">72-cell</option>
+                            <option value="50">50-cell</option>
+                            <option value="32">32-cell</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-label">Bed Feet</label>
+                        <input type="number" class="edit-input" id="addFeet" value="100" min="1">
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-label">Target Field/Bed</label>
+                        <input type="text" class="edit-input" id="addBed" placeholder="e.g., F1L-01">
+                    </div>
+                </div>
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-label">Date Type</label>
+                        <select class="edit-input" id="addDateType">
+                            <option value="transplant">Transplant Date</option>
+                            <option value="ghSow">GH Sow Date</option>
+                            <option value="fieldSow">Field Sow Date</option>
+                            <option value="harvest">First Harvest Date</option>
+                        </select>
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-label">Date</label>
+                        <input type="date" class="edit-input" id="addDate">
+                    </div>
+                </div>
+                <div class="edit-form-row">
+                    <div class="edit-form-group" style="flex: 1;">
+                        <label class="edit-label">
+                            <input type="checkbox" id="addSuccessionCheck" onchange="toggleAddSuccession()">
+                            Add Successions
+                        </label>
+                        <div id="addSuccessionOptions" style="display: none; margin-top: 10px;">
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="number" class="edit-input" id="addSuccessionCount" value="4" min="1" max="20" style="width: 70px;">
+                                <span>plantings every</span>
+                                <input type="number" class="edit-input" id="addInterval" value="7" min="1" style="width: 70px;">
+                                <select class="edit-input" id="addIntervalUnit" style="width: 100px;">
+                                    <option value="days">days</option>
+                                    <option value="weeks">weeks</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="addPlantingSummary" style="margin-top: 15px; padding: 12px; background: rgba(45, 90, 39, 0.2); border-radius: 8px; font-size: 0.9rem;">
+                    <strong>Summary:</strong> Select crop and dates to see planting summary
+                </div>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-btn edit-btn-cancel" onclick="closeAddPlantingModal()">Cancel</button>
+                <button class="edit-btn edit-btn-save" onclick="saveAddPlanting()">
+                    <i class="fas fa-plus"></i> Add Planting
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Gap Analysis Tooltip -->
     <div class="gap-tooltip" id="gapTooltip">
         <div class="gap-tooltip-header">
@@ -1867,18 +1975,10 @@
 
         // All available beds (even if empty) - will be populated from API or defaults
         let allBeds = [];
-        // Field configurations: { fieldCode: numberOfBeds }
-        const FIELD_CONFIG = {
-            'F3L': 12,
-            'F7M': 10,   // 250 ft beds
-            'F11M': 10,  // 250 ft beds
-            'HOL': 12,
-            'IL': 12,
-            'JL': 12,
-            'JS1': 12,
-            'M': 12
-        };
-        const DEFAULT_FIELDS = Object.keys(FIELD_CONFIG);
+        // Field configurations: { fieldCode: numberOfBeds } - loaded from API
+        let FIELD_CONFIG = {};
+        let DEFAULT_FIELDS = [];
+        let allFieldsData = []; // Full field data from API
 
         // Crop icons - expanded for actual farm crops
         const cropIcons = {
@@ -1934,10 +2034,45 @@
         let cropProfileColors = {};
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            loadCropProfiles(); // Load colors first
-            loadPlantings();
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadFields();    // Load field config first
+            loadCropProfiles();    // Load colors
+            loadPlantings();       // Then load plantings
         });
+
+        // Load field configuration from API
+        async function loadFields() {
+            try {
+                const response = await fetch(`${API_URL}?action=getFields`);
+                const data = await response.json();
+
+                if (data.success && data.fields) {
+                    allFieldsData = data.fields;
+                    FIELD_CONFIG = data.fieldConfig || {};
+                    DEFAULT_FIELDS = Object.keys(FIELD_CONFIG).sort();
+
+                    console.log(`Loaded ${data.count} fields from API:`, DEFAULT_FIELDS);
+                } else {
+                    console.warn('Failed to load fields, using fallback');
+                    useFallbackFields();
+                }
+            } catch (error) {
+                console.error('Error loading fields:', error);
+                useFallbackFields();
+            }
+        }
+
+        // Fallback if API fails
+        function useFallbackFields() {
+            FIELD_CONFIG = {
+                'F3L': 12, 'F7M': 10, 'F11M': 10, 'HOL': 12,
+                'IL': 11, 'IOL': 8, 'JL': 10, 'JS1': 15,
+                'JS4': 10, 'JS6': 10, 'JS10': 14, 'M': 14,
+                'SO': 12, 'Z3': 15, 'Z5': 6
+            };
+            DEFAULT_FIELDS = Object.keys(FIELD_CONFIG).sort();
+            allFieldsData = [];
+        }
 
         // Load crop profiles to get colors
         async function loadCropProfiles() {
@@ -1978,11 +2113,11 @@
                         setSyncStatus('synced', `Live: ${plantings.length} plantings`);
                         showToast(`Loaded ${plantings.length} plantings from Google Sheets`, 'success');
                     } else {
-                        console.warn('All plantings filtered out - check date fields in your data');
-                            Plan_GH_Sow: data.data[0].Plan_GH_Sow,
-                            Plan_Transplant: data.data[0].Plan_Transplant,
-                            Plan_Field_Sow: data.data[0].Plan_Field_Sow,
-                            Last_Harvest: data.data[0].Last_Harvest
+                        console.warn('All plantings filtered out - check date fields in your data', {
+                            Plan_GH_Sow: data.data[0]?.Plan_GH_Sow,
+                            Plan_Transplant: data.data[0]?.Plan_Transplant,
+                            Plan_Field_Sow: data.data[0]?.Plan_Field_Sow,
+                            Last_Harvest: data.data[0]?.Last_Harvest
                         });
                         plantings = getDemoPlantings();
                         setSyncStatus('synced', 'Demo (no valid dates)');
@@ -3859,6 +3994,263 @@
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
+
+        // ========================================
+        // ADD PLANTING MODAL
+        // ========================================
+        let addNurseryDays = 21;
+        let addDTM = 60;
+        let addRows = 3;
+        let addSpacing = 6;
+
+        function openAddPlantingModal(presetDate = null) {
+            // Populate crop dropdown
+            const cropSelect = document.getElementById('addCrop');
+            const uniqueCrops = [...new Set(cropProfiles.map(p => p.Crop))].sort();
+            cropSelect.innerHTML = '<option value="">Select crop...</option>' +
+                uniqueCrops.map(c => `<option value="${c}">${c}</option>`).join('') +
+                '<option value="__add_new__">+ Add New Crop...</option>';
+
+            // Reset form
+            document.getElementById('addVariety').innerHTML = '<option value="">Select variety...</option>';
+            document.getElementById('addNewCrop').style.display = 'none';
+            document.getElementById('addNewVariety').style.display = 'none';
+            document.getElementById('addMethod').value = 'Transplant';
+            document.getElementById('addTraySize').value = '128';
+            document.getElementById('addFeet').value = '100';
+            document.getElementById('addBed').value = '';
+            document.getElementById('addDateType').value = 'transplant';
+            document.getElementById('addDate').value = presetDate || new Date().toISOString().split('T')[0];
+            document.getElementById('addSuccessionCheck').checked = false;
+            document.getElementById('addSuccessionOptions').style.display = 'none';
+
+            updateAddPlantingSummary();
+
+            // Show modal
+            document.getElementById('addPlantingModal').classList.add('active');
+        }
+
+        function closeAddPlantingModal() {
+            document.getElementById('addPlantingModal').classList.remove('active');
+        }
+
+        function onAddCropChange() {
+            const crop = document.getElementById('addCrop').value;
+            const varietySelect = document.getElementById('addVariety');
+            const newCropInput = document.getElementById('addNewCrop');
+            const newVarietyInput = document.getElementById('addNewVariety');
+
+            if (crop === '__add_new__') {
+                newCropInput.style.display = 'block';
+                newCropInput.focus();
+                varietySelect.innerHTML = '<option value="">Select variety...</option>' +
+                    '<option value="__add_new__">+ Add New Variety...</option>';
+                newVarietyInput.style.display = 'none';
+                return;
+            } else {
+                newCropInput.style.display = 'none';
+                newCropInput.value = '';
+            }
+
+            const varieties = cropProfiles
+                .filter(p => p.Crop === crop)
+                .map(p => p.Variety)
+                .filter(v => v);
+            const uniqueVarieties = [...new Set(varieties)];
+
+            varietySelect.innerHTML = '<option value="">Select variety...</option>' +
+                uniqueVarieties.map(v => `<option value="${v}">${v}</option>`).join('') +
+                '<option value="__add_new__">+ Add New Variety...</option>';
+
+            if (uniqueVarieties.length > 0) {
+                varietySelect.value = uniqueVarieties[0];
+                onAddVarietyChange();
+            }
+        }
+
+        function onAddVarietyChange() {
+            const crop = document.getElementById('addCrop').value;
+            const variety = document.getElementById('addVariety').value;
+            const newVarietyInput = document.getElementById('addNewVariety');
+
+            if (variety === '__add_new__') {
+                newVarietyInput.style.display = 'block';
+                newVarietyInput.focus();
+                // Set defaults for new variety
+                document.getElementById('addMethod').value = 'Transplant';
+                document.getElementById('addTraySize').value = '128';
+                addNurseryDays = 21;
+                addDTM = 60;
+                addRows = 3;
+                addSpacing = 6;
+                return;
+            } else {
+                newVarietyInput.style.display = 'none';
+                newVarietyInput.value = '';
+            }
+
+            const profile = cropProfiles.find(p => p.Crop === crop && p.Variety === variety) ||
+                           cropProfiles.find(p => p.Crop === crop);
+
+            if (profile) {
+                document.getElementById('addMethod').value = profile.Planting_Method || 'Transplant';
+                document.getElementById('addTraySize').value = profile.Tray_Cell_Count || '128';
+                addNurseryDays = profile.Nursery_Days || 21;
+                addDTM = profile.DTM || 60;
+                addRows = profile.Rows_Per_Bed || 3;
+                addSpacing = profile.Spacing || 6;
+            }
+
+            updateAddPlantingSummary();
+        }
+
+        function toggleAddSuccession() {
+            const checked = document.getElementById('addSuccessionCheck').checked;
+            document.getElementById('addSuccessionOptions').style.display = checked ? 'block' : 'none';
+            updateAddPlantingSummary();
+        }
+
+        function updateAddPlantingSummary() {
+            const crop = document.getElementById('addCrop').value;
+            const variety = document.getElementById('addVariety').value;
+            const feet = parseInt(document.getElementById('addFeet').value) || 100;
+            const succession = document.getElementById('addSuccessionCheck').checked;
+            const count = succession ? parseInt(document.getElementById('addSuccessionCount').value) || 1 : 1;
+
+            if (!crop || crop === '__add_new__') {
+                document.getElementById('addPlantingSummary').innerHTML =
+                    '<strong>Summary:</strong> Select a crop to see planting summary';
+                return;
+            }
+
+            const totalFeet = feet * count;
+            const plantsPerFoot = addRows * (12 / addSpacing);
+            const totalPlants = Math.ceil(totalFeet * plantsPerFoot);
+            const traySize = parseInt(document.getElementById('addTraySize').value) || 128;
+            const traysNeeded = Math.ceil(totalPlants / traySize);
+
+            document.getElementById('addPlantingSummary').innerHTML = `
+                <strong>Summary:</strong> ${count} planting${count > 1 ? 's' : ''} × ${feet} ft = ${totalFeet} total ft<br>
+                <span style="color: var(--text-secondary);">
+                    Plants: ~${totalPlants.toLocaleString()} | Trays: ${traysNeeded} |
+                    Nursery: ${addNurseryDays} days | DTM: ${addDTM} days
+                </span>
+            `;
+        }
+
+        async function saveAddPlanting() {
+            let crop = document.getElementById('addCrop').value;
+            let variety = document.getElementById('addVariety').value;
+            const method = document.getElementById('addMethod').value;
+            const traySize = document.getElementById('addTraySize').value;
+            const feet = document.getElementById('addFeet').value;
+            const bed = document.getElementById('addBed').value;
+            const dateType = document.getElementById('addDateType').value;
+            const targetDate = document.getElementById('addDate').value;
+
+            // Handle new crop/variety
+            const isNewCrop = crop === '__add_new__';
+            const isNewVariety = variety === '__add_new__';
+
+            if (isNewCrop) {
+                crop = document.getElementById('addNewCrop').value.trim();
+                if (!crop) {
+                    showToast('Please enter a crop name', 'error');
+                    return;
+                }
+            }
+
+            if (isNewVariety) {
+                variety = document.getElementById('addNewVariety').value.trim();
+                if (!variety) {
+                    showToast('Please enter a variety name', 'error');
+                    return;
+                }
+            }
+
+            if (!crop || !targetDate) {
+                showToast('Please select crop and date', 'error');
+                return;
+            }
+
+            const successionEnabled = document.getElementById('addSuccessionCheck').checked;
+            const successionCount = successionEnabled ? parseInt(document.getElementById('addSuccessionCount').value) : 1;
+            const interval = parseInt(document.getElementById('addInterval').value) || 7;
+            const intervalUnit = document.getElementById('addIntervalUnit').value;
+            const intervalDays = intervalUnit === 'weeks' ? interval * 7 : interval;
+
+            try {
+                // Create new crop profile if adding new crop or variety
+                if (isNewCrop || isNewVariety) {
+                    const profileParams = new URLSearchParams({
+                        action: 'createCropProfile',
+                        crop: crop,
+                        variety: variety || 'Standard',
+                        plantingMethod: method,
+                        trayCellCount: traySize,
+                        nurseryDays: addNurseryDays,
+                        dtm: addDTM,
+                        rowsPerBed: addRows,
+                        spacing: addSpacing
+                    });
+
+                    const profileResponse = await fetch(`${API_URL}?${profileParams}`);
+                    const profileResult = await profileResponse.json();
+
+                    if (profileResult.success) {
+                        showToast(`New ${isNewCrop ? 'crop' : 'variety'} added!`, 'success');
+                    }
+                }
+
+                // Save plantings
+                for (let i = 0; i < successionCount; i++) {
+                    const offsetDays = i * intervalDays;
+                    const plantingDate = new Date(targetDate);
+                    plantingDate.setDate(plantingDate.getDate() + offsetDays);
+
+                    const params = new URLSearchParams({
+                        action: 'savePlanting',
+                        crop: crop,
+                        variety: variety || 'Standard',
+                        method: method,
+                        traySize: traySize,
+                        feet: feet,
+                        Target_Bed_ID: bed,
+                        dateType: dateType,
+                        targetDate: plantingDate.toISOString().split('T')[0],
+                        nurseryDays: addNurseryDays,
+                        dtm: addDTM,
+                        rows: addRows,
+                        spacing: addSpacing
+                    });
+
+                    await fetch(`${API_URL}?${params}`);
+                }
+
+                showToast(`${successionCount} planting(s) added!`, 'success');
+                closeAddPlantingModal();
+
+                // Refresh calendar
+                await loadPlantings();
+
+            } catch (error) {
+                console.error('Error saving planting:', error);
+                showToast('Error saving planting', 'error');
+            }
+        }
+
+        // Close add modal on overlay click
+        document.getElementById('addPlantingModal').addEventListener('click', function(e) {
+            if (e.target === this) closeAddPlantingModal();
+        });
+
+        // Close add modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAddPlantingModal();
+                closeEditModal();
+            }
+        });
     </script>
 </body>
 </html>

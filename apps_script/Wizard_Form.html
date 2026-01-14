@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Roboto', sans-serif; background-color: #f8f9fa; color: #333; padding: 0; margin: 0; }
+      .header { background-color: #2e7d32; color: white; padding: 20px; text-align: center; }
+      .header h2 { margin: 0; font-size: 20px; }
+      .container { padding: 15px; }
+      .card { background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 15px; margin-bottom: 12px; }
+      label { display: block; font-weight: 500; margin-bottom: 4px; font-size: 12px; color: #555; }
+      input[type="text"], input[type="number"], input[type="date"], select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+      
+      /* New Checklist Style */
+      .checklist-box { max-height: 150px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px; background: #fafafa; }
+      .checklist-item { display: flex; align-items: center; padding: 4px; border-bottom: 1px solid #eee; font-size: 13px; }
+      .checklist-item:last-child { border-bottom: none; }
+      .checklist-item input { margin-right: 8px; width: auto; margin-bottom: 0; }
+      .capacity-tag { font-size: 11px; color: #2e7d32; margin-left: auto; font-weight: bold; }
+      .full-tag { font-size: 11px; color: #c0392b; margin-left: auto; font-weight: bold; }
+
+      .toggle-group { display: flex; gap: 5px; margin-bottom: 10px; }
+      .toggle-btn { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; text-align: center; font-size: 13px; }
+      .toggle-btn.active { background-color: #e8f5e9; border-color: #2e7d32; color: #2e7d32; font-weight: bold; }
+      .radio-option { display: flex; align-items: center; background: #f1f3f4; padding: 8px; border-radius: 4px; margin-bottom: 5px; cursor: pointer; font-size: 13px; }
+      .radio-option.selected { background: #e8f5e9; border: 1px solid #2e7d32; }
+      .btn-submit { background-color: #2e7d32; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 15px; font-weight: bold; margin-top: 5px; }
+      .hidden { display: none; }
+      .section-title { font-size: 14px; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #2e7d32; }
+    </style>
+  </head>
+  <body>
+    <div id="loading" style="text-align:center; padding:40px;"><h3>🚜 Loading...</h3></div>
+
+    <div id="mainForm" class="hidden">
+      <div class="header"><h2>Planting Wizard</h2></div>
+      <div class="container">
+        
+        <div class="card">
+          <div class="toggle-group">
+            <div class="toggle-btn active" id="btnVeg" onclick="setCategory('Veg')">Vegetable</div>
+            <div class="toggle-btn" id="btnFloral" onclick="setCategory('Floral')">Floral</div>
+          </div>
+          <label>Crop Name</label>
+          <input list="cropList" id="cropInput" placeholder="Search..." onchange="loadCropDetails()">
+          <datalist id="cropList"></datalist>
+          <label>Variety</label>
+          <input list="varList" id="varInput" placeholder="Select or Type New...">
+          <datalist id="varList"></datalist>
+        </div>
+
+        <div id="detailsSection" class="card">
+          <div class="section-title">Grow Settings</div>
+          <div style="display:flex; gap:10px;">
+             <div style="flex:1"><label>Method</label>
+               <select id="method" onchange="recalcAvailability()">
+                 <option value="Transplant">Transplant</option>
+                 <option value="Direct Seed">Direct Seed</option>
+                 <option value="Paperpot">Paperpot</option>
+               </select>
+             </div>
+             <div style="flex:1"><label>Tray Size</label><input type="number" id="traySize" value="72"></div>
+          </div>
+          <div style="display:flex; gap:10px;">
+             <div style="flex:1"><label>Rows/Bed</label><input type="number" id="rowsPerBed" value="1"></div>
+             <div style="flex:1"><label>Spacing (in)</label><input type="number" id="spacing" value="12"></div>
+          </div>
+          <div style="display:flex; gap:10px;">
+             <div style="flex:1"><label>Nursery Days</label><input type="number" id="nurseryDays" value="28" onchange="recalcAvailability()"></div>
+             <div style="flex:1"><label>DTM (Days)</label><input type="number" id="dtm" value="50" onchange="recalcAvailability()"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <label style="margin-bottom:8px;">Anchor Date</label>
+          <label class="radio-option" id="optHarvest"><input type="radio" name="anchor" value="harvest" checked onchange="uiDate(); recalcAvailability();"> Target Harvest</label>
+          <label class="radio-option" id="optTrans"><input type="radio" name="anchor" value="transplant" onchange="uiDate(); recalcAvailability();"> Target Transplant/Sow</label>
+          <label class="radio-option" id="optSow"><input type="radio" name="anchor" value="gh_sow" onchange="uiDate(); recalcAvailability();"> Target GH Start</label>
+          <input type="date" id="anchorDate" onchange="recalcAvailability()">
+        </div>
+
+        <div class="card">
+          <div class="section-title">Location & Footage</div>
+          <label>Select Beds (Check Multiple)</label>
+          
+          <div id="bedChecklist" class="checklist-box">
+             </div>
+          <div style="text-align:right; font-size:11px; color:#555; margin-top:5px;">
+             Total Free Space Selected: <strong id="totalCapDisplay">0</strong> ft
+          </div>
+
+          <label style="margin-top:10px;">Total Feet to Plant</label>
+          <input type="number" id="feet" placeholder="1200">
+        </div>
+
+        <label>Notes</label><input type="text" id="notes">
+        <button class="btn-submit" onclick="submitForm()">Add to Plan</button>
+        <div id="status" style="text-align:center; margin-top:10px; color:#2e7d32; font-weight:bold; white-space: pre-wrap;"></div>
+      </div>
+    </div>
+
+    <script>
+      let farmData = {};
+      let currentCategory = 'Veg';
+      let bedAvailability = {}; 
+
+      window.onload = function() { google.script.run.withSuccessHandler(init).getWizardData(); };
+
+      function init(data) {
+        farmData = data;
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('mainForm').classList.remove('hidden');
+        document.getElementById('anchorDate').valueAsDate = new Date();
+        loadCrops('Veg');
+        recalcAvailability(); 
+      }
+
+      function recalcAvailability() {
+        const anchorDateVal = document.getElementById('anchorDate').value;
+        if (!anchorDateVal) return;
+
+        // Date Logic (Same as before)
+        const anchor = new Date(anchorDateVal);
+        const type = document.querySelector('input[name="anchor"]:checked').value;
+        const dtm = Number(document.getElementById('dtm').value) || 50;
+        const nursery = Number(document.getElementById('nurseryDays').value) || 0;
+        const method = document.getElementById('method').value;
+        const isTransplant = method.includes('Transplant') || method === 'Paperpot';
+
+        let start, end;
+        if (type === 'harvest') {
+          end = new Date(anchor); start = new Date(anchor); start.setDate(end.getDate() - dtm);
+        } else if (type === 'transplant') {
+          start = new Date(anchor); end = new Date(start); end.setDate(start.getDate() + dtm);
+        } else if (type === 'gh_sow') {
+          let sow = new Date(anchor); start = new Date(sow); start.setDate(sow.getDate() + (isTransplant ? nursery : 0));
+          end = new Date(start); end.setDate(start.getDate() + dtm);
+        }
+
+        // Build Checklist
+        const container = document.getElementById('bedChecklist');
+        container.innerHTML = ""; 
+
+        // Always add Unassigned
+        addCheckbox(container, "Unassigned", 9999, "Backlog");
+
+        farmData.beds.forEach(bed => {
+          let usedFeet = 0;
+          const relevantBookings = farmData.bookings.filter(b => String(b.bedId) === String(bed.id));
+          
+          relevantBookings.forEach(booking => {
+            if (start.getTime() <= booking.end && end.getTime() >= booking.start) {
+              usedFeet += booking.feet;
+            }
+          });
+
+          let free = bed.length - usedFeet;
+          if (free < 0) free = 0;
+          bedAvailability[bed.id] = free;
+
+          // Only show bed if it exists (skip empty lines)
+          if(bed.id) addCheckbox(container, bed.id, free, null);
+        });
+      }
+
+      function addCheckbox(parent, id, free, labelOverride) {
+        const div = document.createElement('div');
+        div.className = 'checklist-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = id;
+        checkbox.setAttribute('data-free', free);
+        checkbox.onchange = updateTotalCapacity;
+        
+        const text = document.createElement('span');
+        text.innerText = id;
+
+        const tag = document.createElement('span');
+        if (labelOverride) {
+           tag.innerText = labelOverride;
+           tag.className = 'capacity-tag';
+        } else if (free === 0) {
+           tag.innerText = "FULL 🔴";
+           tag.className = 'full-tag';
+        } else {
+           tag.innerText = free + "' Free 🟢";
+           tag.className = 'capacity-tag';
+        }
+
+        div.appendChild(checkbox);
+        div.appendChild(text);
+        div.appendChild(tag);
+        parent.appendChild(div);
+      }
+
+      function updateTotalCapacity() {
+        const checks = document.querySelectorAll('#bedChecklist input:checked');
+        let totalFree = 0;
+        checks.forEach(c => {
+           let val = Number(c.getAttribute('data-free'));
+           if (val > 9000) val = 0; // Don't count "Unassigned" infinity
+           totalFree += val;
+        });
+        document.getElementById('totalCapDisplay').innerText = totalFree;
+        
+        // Auto-fill Feet Input with Total Capacity (if empty or simple match)
+        // Only autofill if they haven't typed a custom number yet? 
+        // Let's autofill to be helpful.
+        if (totalFree > 0) document.getElementById('feet').value = totalFree;
+      }
+
+      function setCategory(cat) {
+        currentCategory = cat;
+        document.getElementById('btnVeg').classList.toggle('active', cat === 'Veg');
+        document.getElementById('btnFloral').classList.toggle('active', cat === 'Floral');
+        document.getElementById('cropInput').value = '';
+        loadCrops(cat);
+      }
+
+      function loadCrops(cat) {
+        const list = (cat === 'Veg') ? farmData.veg : farmData.floral;
+        document.getElementById('cropList').innerHTML = list.map(c => `<option value="${c}">`).join('');
+      }
+
+      function loadCropDetails() {
+        const crop = document.getElementById('cropInput').value;
+        const details = farmData.map[crop];
+        if (details) {
+          document.getElementById('varList').innerHTML = details.varieties.map(v => `<option value="${v}">`).join('');
+          document.getElementById('method').value = details.method;
+          document.getElementById('traySize').value = details.tray;
+          document.getElementById('rowsPerBed').value = details.rows;
+          document.getElementById('spacing').value = details.spacing;
+          document.getElementById('nurseryDays').value = details.nursery;
+          document.getElementById('dtm').value = details.dtm;
+          uiDate(); recalcAvailability(); 
+        }
+      }
+
+      function uiDate() {
+        const type = document.querySelector('input[name="anchor"]:checked').value;
+        const method = document.getElementById('method').value;
+        const sowOpt = document.getElementById('optSow');
+        if (method === 'Direct Seed') {
+           sowOpt.style.display = 'none';
+           if (type === 'gh_sow') document.querySelector('input[value="transplant"]').checked = true;
+        } else { sowOpt.style.display = 'flex'; }
+      }
+
+      function submitForm() {
+        const btn = document.querySelector('.btn-submit');
+        btn.innerText = "Saving...";
+        btn.disabled = true;
+
+        // Get all checked beds
+        const checks = document.querySelectorAll('#bedChecklist input:checked');
+        let selectedBeds = [];
+        checks.forEach(c => selectedBeds.push(c.value));
+
+        if (selectedBeds.length === 0) {
+           alert("Please select at least one bed.");
+           btn.innerText = "Add to Plan"; btn.disabled = false; return;
+        }
+
+        const form = {
+          crop: document.getElementById('cropInput').value,
+          variety: document.getElementById('varInput').value,
+          category: currentCategory,
+          bedIds: selectedBeds, // Send Array
+          feet: document.getElementById('feet').value,
+          anchorType: document.querySelector('input[name="anchor"]:checked').value,
+          anchorDate: document.getElementById('anchorDate').value,
+          notes: document.getElementById('notes').value,
+          method: document.getElementById('method').value,
+          traySize: document.getElementById('traySize').value,
+          rowsPerBed: document.getElementById('rowsPerBed').value,
+          spacing: document.getElementById('spacing').value,
+          nurseryDays: document.getElementById('nurseryDays').value,
+          dtm: document.getElementById('dtm').value
+        };
+
+        if (!form.crop || !form.feet || !form.anchorDate) {
+          alert("Missing Info");
+          btn.innerText = "Add to Plan"; btn.disabled = false; return;
+        }
+
+        google.script.run.withSuccessHandler(function(msg) {
+          document.getElementById('status').innerText = msg;
+          setTimeout(function() { google.script.host.close(); }, 2000);
+        }).submitPlanting(form);
+      }
+    </script>
+  </body>
+</html>

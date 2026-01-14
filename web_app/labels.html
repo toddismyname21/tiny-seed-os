@@ -843,6 +843,7 @@
                         transplantDate: s.transplantDate || '',
                         trays: s.traysNeeded || s.trays || 1,
                         cellsPerTray: s.cellsPerTray || 128,
+                        paperpotSpacing: s.paperpotSpacing || 0,
                         batchNumber: s.batchNumber || '',
                         seedLot: s.seedLotNum || s.seedLot || s.batchNumber || '',
                         nurseryDays: s.nurseryDays || 0
@@ -897,6 +898,7 @@
             let html = '';
             seedingData.forEach(seeding => {
                 const isSelected = selectedSeedings.has(seeding.id);
+                const traySizeDisplay = formatTraySize(seeding.cellsPerTray, seeding.paperpotSpacing);
                 html += `
                     <div class="seeding-item ${isSelected ? 'selected' : ''}" onclick="toggleSeeding('${seeding.id}')">
                         <input type="checkbox" class="seeding-checkbox"
@@ -905,7 +907,7 @@
                         <div class="seeding-info">
                             <div class="seeding-crop">${seeding.crop}</div>
                             <div class="seeding-meta">
-                                ${seeding.variety} | ${formatDate(seeding.seedDate)} | ${seeding.cellsPerTray} cells
+                                ${seeding.variety} | ${formatDate(seeding.seedDate)} | ${traySizeDisplay}
                             </div>
                         </div>
                         <span class="seeding-badge">${seeding.trays} trays</span>
@@ -973,12 +975,14 @@
                     for (let trayNum = 1; trayNum <= seeding.trays; trayNum++) {
                         for (let labelNum = 1; labelNum <= labelsPerTray; labelNum++) {
                             const labelId = `${seeding.id}-T${trayNum}-L${labelNum}`;
+                            const traySizeDisplay = formatTraySize(seeding.cellsPerTray, seeding.paperpotSpacing);
                             labels.push({
                                 ...seeding,
                                 labelId: labelId,
                                 trayNumber: trayNum,
                                 labelNumber: labelNum,
-                                qrContent: qrContent
+                                qrContent: qrContent,
+                                traySizeDisplay: traySizeDisplay
                             });
                             selectedLabels.add(labelId);
                         }
@@ -1022,8 +1026,8 @@
                         <div class="label-content">
                             <div class="label-crop">${label.crop}</div>
                             <div class="label-variety">${label.variety}</div>
-                            <div class="label-batch">${label.batchNumber} T${label.trayNumber}</div>
-                            <div class="label-date">${formatDate(label.seedDate)}</div>
+                            <div class="label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
+                            <div class="label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}</div>
                         </div>
                     </div>
                 `;
@@ -1044,13 +1048,20 @@
                 case 'batch':
                     return label.batchNumber || label.id;
                 case 'full':
-                    return JSON.stringify({
+                    const qrData = {
                         batch: label.batchNumber,
                         crop: label.crop,
                         variety: label.variety,
                         seedDate: label.seedDate,
-                        tray: label.trayNumber
-                    });
+                        tray: label.trayNumber,
+                        traySize: label.traySizeDisplay,
+                        seedLot: label.seedLot
+                    };
+                    // Include paperpot spacing if applicable
+                    if (label.paperpotSpacing) {
+                        qrData.ppSpacing = label.paperpotSpacing;
+                    }
+                    return JSON.stringify(qrData);
                 default:
                     return label.batchNumber;
             }
@@ -1129,8 +1140,8 @@
                         <div class="print-label-content">
                             <div class="print-label-crop">${label.crop}</div>
                             <div class="print-label-variety">${label.variety}</div>
-                            <div class="print-label-batch">${label.batchNumber} T${label.trayNumber}</div>
-                            <div class="print-label-date">${formatDate(label.seedDate)}</div>
+                            <div class="print-label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
+                            <div class="print-label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}</div>
                         </div>
                     </div>
                 `;
@@ -1253,8 +1264,8 @@
                         <div class="label-content">
                             <div class="label-crop">${label.crop}</div>
                             <div class="label-variety">${label.variety}</div>
-                            <div class="label-batch">${label.batchNumber} T${label.trayNumber}</div>
-                            <div class="label-date">${formatDate(label.seedDate)}</div>
+                            <div class="label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
+                            <div class="label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}</div>
                         </div>
                     </div>
                 `;
@@ -1305,6 +1316,14 @@
             if (!dateString) return 'TBD';
             const date = new Date(dateString);
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // Format tray size with paperpot spacing
+        function formatTraySize(cellsPerTray, paperpotSpacing) {
+            if (cellsPerTray === 264 && paperpotSpacing) {
+                return `264-${paperpotSpacing}`;
+            }
+            return `${cellsPerTray}-cell`;
         }
 
         function showToast(message) {

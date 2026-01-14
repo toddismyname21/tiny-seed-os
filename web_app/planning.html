@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning View - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title i { color: var(--secondary); }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(45, 90, 39, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .main-container {
+            padding: 100px 2rem 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* View Toggle */
+        .view-toggle {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            width: fit-content;
+        }
+
+        .view-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .view-btn:hover:not(.active) {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-card .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .stat-card .label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-card.success .icon { color: var(--success); }
+        .stat-card.warning .icon { color: var(--warning); }
+        .stat-card.danger .icon { color: var(--danger); }
+        .stat-card.primary .icon { color: var(--primary-light); }
+
+        /* Filters */
+        .filters-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 40px 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+        }
+
+        .search-box i {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        /* Table Styles */
+        .data-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-header h2 {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-header h2 i {
+            color: var(--secondary);
+        }
+
+        .section-header .count-badge {
+            background: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: var(--bg-light);
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .data-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .data-table tr.selected {
+            background: rgba(45, 90, 39, 0.2);
+        }
+
+        /* Checkbox column */
+        .checkbox-col {
+            width: 40px;
+        }
+
+        .checkbox-col input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        /* Crop Info Cell */
+        .crop-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .crop-icon {
+            font-size: 1.5rem;
+        }
+
+        .crop-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .crop-name {
+            font-weight: 600;
+        }
+
+        .crop-variety {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-badge.planned {
+            background: rgba(45, 90, 39, 0.2);
+            color: var(--primary-light);
+        }
+
+        .status-badge.seeding {
+            background: rgba(142, 68, 173, 0.2);
+            color: #9b59b6;
+        }
+
+        .status-badge.growing {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .status-badge.ready {
+            background: rgba(244, 162, 97, 0.2);
+            color: var(--secondary);
+        }
+
+        .status-badge.transplanted {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+
+        .status-badge.harvesting {
+            background: rgba(230, 126, 34, 0.2);
+            color: #e67e22;
+        }
+
+        /* Date Cell */
+        .date-cell {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .date-main {
+            font-weight: 500;
+        }
+
+        .date-relative {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .date-relative.soon {
+            color: var(--warning);
+        }
+
+        .date-relative.overdue {
+            color: var(--danger);
+        }
+
+        /* Actions */
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn.edit {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+
+        .action-btn.edit:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .action-btn.delete {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        .action-btn.delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .action-btn.mark {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .action-btn.mark:hover {
+            background: var(--success);
+            color: white;
+        }
+
+        /* Bulk Actions Bar */
+        .bulk-actions {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .bulk-actions.visible {
+            display: flex;
+        }
+
+        .bulk-count {
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+
+        .bulk-btns {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Delete Confirmation Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header i {
+            font-size: 2rem;
+            color: var(--danger);
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .modal-body .warning-list {
+            background: rgba(230, 57, 70, 0.1);
+            border: 1px solid rgba(230, 57, 70, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .modal-body .warning-item {
+            padding: 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 4rem;
+        }
+
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+            color: var(--primary-light);
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transition: bottom 0.3s;
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            bottom: 2rem;
+        }
+
+        .toast.success { border-color: var(--success); }
+        .toast.error { border-color: var(--danger); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { padding: 1rem; }
+            .main-container { padding: 90px 1rem 1rem; }
+            .filters-bar { flex-direction: column; align-items: stretch; }
+            .search-box { max-width: none; }
+        }
+
+        /* ========================================
+           INLINE EDITING STYLES
+           ======================================== */
+        .editable-cell {
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            position: relative;
+            min-width: 60px;
+        }
+
+        .editable-cell:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .editable-cell:hover::after {
+            content: '\f303';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .editable-cell.editing {
+            background: rgba(45, 90, 39, 0.2);
+            padding: 0;
+        }
+
+        .editable-cell.editing:hover::after {
+            display: none;
+        }
+
+        .editable-cell input,
+        .editable-cell select {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-light);
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .editable-cell input:focus,
+        .editable-cell select:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.3);
+        }
+
+        .editable-cell input[type="date"] {
+            cursor: pointer;
+        }
+
+        /* Save indicator */
+        .save-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            z-index: 1100;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .save-indicator.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .save-indicator.saving {
+            border-color: var(--warning);
+        }
+
+        .save-indicator.saving i {
+            color: var(--warning);
+            animation: spin 1s linear infinite;
+        }
+
+        .save-indicator.saved {
+            border-color: var(--success);
+        }
+
+        .save-indicator.saved i {
+            color: var(--success);
+        }
+
+        .save-indicator.error {
+            border-color: var(--danger);
+        }
+
+        .save-indicator.error i {
+            color: var(--danger);
+        }
+
+        /* Row saving state */
+        .data-table tr.saving {
+            background: rgba(233, 196, 106, 0.1) !important;
+        }
+
+        .data-table tr.saved {
+            animation: savedFlash 0.5s ease;
+        }
+
+        @keyframes savedFlash {
+            0% { background: rgba(42, 157, 143, 0.2); }
+            100% { background: transparent; }
+        }
+
+        /* ========================================
+           SIDE PANEL STYLES
+           ======================================== */
+        .side-panel-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1500;
+        }
+
+        .side-panel-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .side-panel {
+            position: fixed;
+            top: 0;
+            right: -500px;
+            width: 480px;
+            max-width: 90vw;
+            height: 100vh;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            z-index: 1600;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .side-panel.active {
+            right: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-light);
+        }
+
+        .panel-header h3 {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-header h3 i {
+            color: var(--secondary);
+        }
+
+        .panel-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel-close:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .panel-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .panel-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .panel-field {
+            margin-bottom: 1rem;
+        }
+
+        .panel-field label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        .panel-field input,
+        .panel-field select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .panel-field input:focus,
+        .panel-field select:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .panel-field input:disabled,
+        .panel-field select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .panel-field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .panel-batch-id {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: var(--primary-light);
+            background: rgba(45, 90, 39, 0.2);
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .panel-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            background: var(--bg-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .panel-save-status {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-save-status.saved {
+            color: var(--success);
+        }
+
+        .panel-save-status.saving {
+            color: var(--warning);
+        }
+
+        .panel-footer-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Kbd hint in table header */
+        .table-hint {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-left: 8px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Dashboard</span>
+            </a>
+            <h1 class="page-title">
+                <i class="fas fa-clipboard-list"></i>
+                Planning View
+            </h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+            <a href="succession.html" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                New Planting
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- View Toggle -->
+        <div class="view-toggle">
+            <button class="view-btn" data-view="greenhouse" onclick="setView('greenhouse')">
+                <i class="fas fa-seedling"></i>
+                Greenhouse View
+            </button>
+            <button class="view-btn" data-view="transplant" onclick="setView('transplant')">
+                <i class="fas fa-truck-loading"></i>
+                Transplant View
+            </button>
+            <button class="view-btn active" data-view="all" onclick="setView('all')">
+                <i class="fas fa-list"></i>
+                All Plantings
+            </button>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card primary">
+                <div class="icon"><i class="fas fa-clipboard-list"></i></div>
+                <div class="value" id="statTotal">--</div>
+                <div class="label">Total Plantings</div>
+            </div>
+            <div class="stat-card success">
+                <div class="icon"><i class="fas fa-seedling"></i></div>
+                <div class="value" id="statGH">--</div>
+                <div class="label">In Greenhouse</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="icon"><i class="fas fa-truck-loading"></i></div>
+                <div class="value" id="statReady">--</div>
+                <div class="label">Ready to Transplant</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="value" id="statOverdue">--</div>
+                <div class="label">Overdue</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search crops, batches..." oninput="filterPlantings()">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="filter-group">
+                <label>Status:</label>
+                <select id="statusFilter" onchange="filterPlantings()">
+                    <option value="">All</option>
+                    <option value="Planned">Planned</option>
+                    <option value="Sown">Sown/Seeded</option>
+                    <option value="PLANTED">Transplanted</option>
+                    <option value="HARVESTING">Harvesting</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Crop:</label>
+                <select id="cropFilter" onchange="filterPlantings()">
+                    <option value="">All Crops</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Field:</label>
+                <select id="fieldFilter" onchange="filterPlantings()">
+                    <option value="">All Fields</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="data-section">
+            <div class="section-header">
+                <h2>
+                    <i class="fas fa-seedling"></i>
+                    <span id="viewTitle">All Plantings</span>
+                </h2>
+                <span class="count-badge" id="countBadge">0 plantings</span>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-col">
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                            </th>
+                            <th>Batch ID</th>
+                            <th>Crop</th>
+                            <th>Method</th>
+                            <th>Bed</th>
+                            <th>Feet</th>
+                            <th>GH Sow</th>
+                            <th>Transplant</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plantingsBody">
+                        <tr>
+                            <td colspan="10">
+                                <div class="loading">
+                                    <i class="fas fa-spinner"></i>
+                                    <p>Loading plantings...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bulk Actions Bar -->
+    <div class="bulk-actions" id="bulkActions">
+        <span class="bulk-count"><span id="selectedCount">0</span> selected</span>
+        <div class="bulk-btns">
+            <button class="btn btn-secondary" onclick="clearSelection()">
+                <i class="fas fa-times"></i>
+                Clear
+            </button>
+            <button class="btn btn-danger" onclick="confirmBulkDelete()">
+                <i class="fas fa-trash"></i>
+                Delete Selected
+            </button>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Confirm Delete</h3>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the following plantings? This action cannot be undone.</p>
+                <div class="warning-list" id="deleteList">
+                    <!-- Items to delete will be listed here -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="executeDelete()">
+                    <i class="fas fa-trash"></i>
+                    Delete Permanently
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Success!</span>
+    </div>
+
+    <!-- Save Indicator -->
+    <div class="save-indicator" id="saveIndicator">
+        <i class="fas fa-spinner"></i>
+        <span id="saveIndicatorText">Saving...</span>
+    </div>
+
+    <!-- Side Panel Overlay -->
+    <div class="side-panel-overlay" id="panelOverlay" onclick="closeEditPanel()"></div>
+
+    <!-- Edit Side Panel -->
+    <div class="side-panel" id="editPanel">
+        <div class="panel-header">
+            <h3>
+                <i class="fas fa-edit"></i>
+                Edit Planting
+            </h3>
+            <button class="panel-close" onclick="closeEditPanel()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="panel-body">
+            <div class="panel-section">
+                <div class="panel-section-title">Identification</div>
+                <div class="panel-field">
+                    <label>Batch ID</label>
+                    <div class="panel-batch-id" id="panelBatchId">--</div>
+                </div>
+                <div class="panel-field-row">
+                    <div class="panel-field">
+                        <label>Crop</label>
+                        <input type="text" id="panelCrop" disabled>
+                    </div>
+                    <div class="panel-field">
+                        <label>Variety</label>
+                        <input type="text" id="panelVariety" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title">Planting Details</div>
+                <div class="panel-field-row">
+                    <div class="panel-field">
+                        <label>Method</label>
+                        <select id="panelMethod" onchange="panelFieldChange('Planting_Method', this.value)">
+                            <option value="Direct Sow">Direct Sow</option>
+                            <option value="Transplant">Transplant</option>
+                            <option value="Paperpot">Paperpot</option>
+                        </select>
+                    </div>
+                    <div class="panel-field">
+                        <label>Bed Feet</label>
+                        <input type="number" id="panelFeet" onchange="panelFieldChange('Feet_Used', this.value)">
+                    </div>
+                </div>
+                <div class="panel-field">
+                    <label>Target Bed</label>
+                    <input type="text" id="panelBed" placeholder="e.g., F3L-01" onchange="panelFieldChange('Target_Bed_ID', this.value)">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title">Planned Dates</div>
+                <div class="panel-field-row">
+                    <div class="panel-field">
+                        <label>GH Sow Date</label>
+                        <input type="date" id="panelGHSow" onchange="panelFieldChange('Plan_GH_Sow', this.value)">
+                    </div>
+                    <div class="panel-field">
+                        <label>Transplant Date</label>
+                        <input type="date" id="panelTransplant" onchange="panelFieldChange('Plan_Transplant', this.value)">
+                    </div>
+                </div>
+                <div class="panel-field-row">
+                    <div class="panel-field">
+                        <label>First Harvest</label>
+                        <input type="date" id="panelFirstHarvest" onchange="panelFieldChange('Plan_First_Harvest', this.value)">
+                    </div>
+                    <div class="panel-field">
+                        <label>Last Harvest</label>
+                        <input type="date" id="panelLastHarvest" onchange="panelFieldChange('Plan_Last_Harvest', this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title">Actual Dates (Completed)</div>
+                <div class="panel-field-row">
+                    <div class="panel-field">
+                        <label>Actual GH Sow</label>
+                        <input type="date" id="panelActGHSow" onchange="panelFieldChange('Act_GH_Sow', this.value)">
+                    </div>
+                    <div class="panel-field">
+                        <label>Actual Transplant</label>
+                        <input type="date" id="panelActTransplant" onchange="panelFieldChange('Act_Transplant', this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title">Status</div>
+                <div class="panel-field">
+                    <select id="panelStatus" onchange="panelFieldChange('STATUS', this.value)">
+                        <option value="Planned">Planned</option>
+                        <option value="Sown">Sown</option>
+                        <option value="Growing">Growing</option>
+                        <option value="Ready">Ready to Transplant</option>
+                        <option value="PLANTED">Transplanted</option>
+                        <option value="HARVESTING">Harvesting</option>
+                        <option value="COMPLETE">Complete</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <div class="panel-save-status" id="panelSaveStatus">
+                <i class="fas fa-check-circle"></i>
+                <span>All changes saved</span>
+            </div>
+            <div class="panel-footer-actions">
+                <button class="btn btn-secondary" onclick="closeEditPanel()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // CONFIGURATION
+        // ========================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+
+        // State
+        let allPlantings = [];
+        let filteredPlantings = [];
+        let selectedIds = new Set();
+        let currentView = 'all';
+        let pendingDeleteIds = [];
+        let editingCell = null;
+        let pendingSaves = new Map();
+
+        // Crop icons
+        const cropIcons = {
+            'Lettuce': '🥬', 'Tomatoes': '🍅', 'Peppers': '🫑', 'Basil': '🌿',
+            'Kale': '🥗', 'Spinach': '🍃', 'Carrots': '🥕', 'Cucumbers': '🥒',
+            'Beans': '🫘', 'Squash': '🎃', 'Onions': '🧅', 'Broccoli': '🥦',
+            'Cabbage': '🥬', 'Beets': '🟣', 'Eggplant': '🍆', 'Corn': '🌽',
+            'Zucchini': '🥒', 'Arugula': '🥬', 'Chard': '🥬', 'Fennel': '🌿',
+            'Zinnia': '🌸', 'Sunflower': '🌻', 'Dahlia': '🌺', 'Cosmos': '🌼'
+        };
+
+        // ========================================
+        // INITIALIZATION
+        // ========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPlantings();
+        });
+
+        async function refreshData() {
+            showToast('Refreshing...', 'info');
+            await loadPlantings();
+        }
+
+        // ========================================
+        // DATA LOADING
+        // ========================================
+        async function loadPlantings() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPlanningData`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    allPlantings = data.data;
+                    populateFilters();
+                    filterPlantings();
+                    updateStats();
+                    showToast(`Loaded ${allPlantings.length} plantings`, 'success');
+                } else {
+                    showEmptyState('No plantings found');
+                }
+            } catch (error) {
+                console.error('Error loading plantings:', error);
+                showEmptyState('Error loading data');
+            }
+        }
+
+        function populateFilters() {
+            // Crop filter
+            const crops = [...new Set(allPlantings.map(p => p.Crop))].filter(c => c).sort();
+            const cropSelect = document.getElementById('cropFilter');
+            cropSelect.innerHTML = '<option value="">All Crops</option>' +
+                crops.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            // Field filter
+            const fields = [...new Set(allPlantings.map(p => {
+                const bed = p.Target_Bed_ID || '';
+                return bed.split('-')[0];
+            }))].filter(f => f && f !== 'Unassigned').sort();
+            const fieldSelect = document.getElementById('fieldFilter');
+            fieldSelect.innerHTML = '<option value="">All Fields</option>' +
+                fields.map(f => `<option value="${f}">${f}</option>`).join('');
+        }
+
+        // ========================================
+        // VIEW MANAGEMENT
+        // ========================================
+        function setView(view) {
+            currentView = view;
+
+            // Update toggle buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === view);
+            });
+
+            // Update title
+            const titles = {
+                'greenhouse': 'Greenhouse Plantings',
+                'transplant': 'Transplant Schedule',
+                'all': 'All Plantings'
+            };
+            document.getElementById('viewTitle').textContent = titles[view];
+
+            filterPlantings();
+        }
+
+        // ========================================
+        // FILTERING
+        // ========================================
+        function filterPlantings() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const crop = document.getElementById('cropFilter').value;
+            const field = document.getElementById('fieldFilter').value;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            filteredPlantings = allPlantings.filter(p => {
+                // View filter
+                if (currentView === 'greenhouse') {
+                    // Show transplant/paperpot that have been sown but not transplanted
+                    const method = (p.Planting_Method || '').toLowerCase();
+                    const isTransplant = method.includes('transplant') || method.includes('paperpot');
+                    const isSown = p.Act_GH_Sow && p.Act_GH_Sow !== '';
+                    const isTransplanted = p.Act_Transplant && p.Act_Transplant !== '';
+                    if (!isTransplant || isTransplanted) return false;
+                    // Also show planned GH sowings coming up
+                    if (!isSown) {
+                        const ghSowDate = parseDate(p.Plan_GH_Sow);
+                        if (!ghSowDate) return false;
+                        const daysUntil = Math.floor((ghSowDate - today) / (1000 * 60 * 60 * 24));
+                        if (daysUntil > 14) return false; // Only show next 14 days
+                    }
+                } else if (currentView === 'transplant') {
+                    // Show plantings ready for transplant (next 14 days)
+                    const method = (p.Planting_Method || '').toLowerCase();
+                    const isTransplant = method.includes('transplant') || method.includes('paperpot');
+                    const isTransplanted = p.Act_Transplant && p.Act_Transplant !== '';
+                    if (!isTransplant || isTransplanted) return false;
+
+                    const transplantDate = parseDate(p.Plan_Transplant);
+                    if (!transplantDate) return false;
+                    const daysUntil = Math.floor((transplantDate - today) / (1000 * 60 * 60 * 24));
+                    if (daysUntil > 14 || daysUntil < -7) return false;
+                }
+
+                // Search filter
+                if (search) {
+                    const searchStr = `${p.Batch_ID} ${p.Crop} ${p.Variety} ${p.Target_Bed_ID}`.toLowerCase();
+                    if (!searchStr.includes(search)) return false;
+                }
+
+                // Status filter
+                if (status && p.STATUS !== status) return false;
+
+                // Crop filter
+                if (crop && p.Crop !== crop) return false;
+
+                // Field filter
+                if (field) {
+                    const bedField = (p.Target_Bed_ID || '').split('-')[0];
+                    if (bedField !== field) return false;
+                }
+
+                return true;
+            });
+
+            renderTable();
+            updateBulkActions();
+        }
+
+        // ========================================
+        // TABLE RENDERING
+        // ========================================
+        function renderTable() {
+            const tbody = document.getElementById('plantingsBody');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (filteredPlantings.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h3>No plantings found</h3>
+                                <p>Try adjusting your filters or add a new planting.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('countBadge').textContent = '0 plantings';
+                return;
+            }
+
+            // Sort by relevant date
+            filteredPlantings.sort((a, b) => {
+                const dateA = parseDate(currentView === 'transplant' ? a.Plan_Transplant : a.Plan_GH_Sow);
+                const dateB = parseDate(currentView === 'transplant' ? b.Plan_Transplant : b.Plan_GH_Sow);
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+                return dateA - dateB;
+            });
+
+            let html = '';
+            filteredPlantings.forEach(p => {
+                const icon = cropIcons[p.Crop] || '🌱';
+                const isSelected = selectedIds.has(p.Batch_ID);
+
+                // Dates
+                const ghSowDate = parseDate(p.Plan_GH_Sow);
+                const actGhSow = parseDate(p.Act_GH_Sow);
+                const transplantDate = parseDate(p.Plan_Transplant);
+                const actTransplant = parseDate(p.Act_Transplant);
+
+                // Calculate days until/since
+                let ghDays = '--';
+                let ghClass = '';
+                if (actGhSow) {
+                    const days = Math.floor((today - actGhSow) / (1000 * 60 * 60 * 24));
+                    ghDays = `${days} days ago`;
+                } else if (ghSowDate) {
+                    const days = Math.floor((ghSowDate - today) / (1000 * 60 * 60 * 24));
+                    if (days < 0) {
+                        ghDays = `${Math.abs(days)} days overdue`;
+                        ghClass = 'overdue';
+                    } else if (days === 0) {
+                        ghDays = 'Today!';
+                        ghClass = 'soon';
+                    } else {
+                        ghDays = `in ${days} days`;
+                        if (days <= 3) ghClass = 'soon';
+                    }
+                }
+
+                let transDays = '--';
+                let transClass = '';
+                if (actTransplant) {
+                    transDays = 'Done';
+                } else if (transplantDate) {
+                    const days = Math.floor((transplantDate - today) / (1000 * 60 * 60 * 24));
+                    if (days < 0) {
+                        transDays = `${Math.abs(days)} days overdue`;
+                        transClass = 'overdue';
+                    } else if (days === 0) {
+                        transDays = 'Today!';
+                        transClass = 'soon';
+                    } else {
+                        transDays = `in ${days} days`;
+                        if (days <= 3) transClass = 'soon';
+                    }
+                }
+
+                // Status badge
+                const statusClass = getStatusClass(p.STATUS);
+
+                // Format date for input
+                const ghSowValue = p.Plan_GH_Sow ? formatDateForInput(p.Plan_GH_Sow) : '';
+                const transplantValue = p.Plan_Transplant ? formatDateForInput(p.Plan_Transplant) : '';
+
+                html += `
+                    <tr class="${isSelected ? 'selected' : ''}" data-id="${p.Batch_ID}">
+                        <td class="checkbox-col">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect('${p.Batch_ID}')">
+                        </td>
+                        <td><code style="cursor: pointer;" onclick="openEditPanel('${p.Batch_ID}')">${p.Batch_ID || '--'}</code></td>
+                        <td>
+                            <div class="crop-cell" style="cursor: pointer;" onclick="openEditPanel('${p.Batch_ID}')">
+                                <span class="crop-icon">${icon}</span>
+                                <div class="crop-info">
+                                    <span class="crop-name">${p.Crop || 'Unknown'}</span>
+                                    <span class="crop-variety">${p.Variety || ''}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Planting_Method', 'select')" data-field="Planting_Method" data-value="${p.Planting_Method || ''}">${p.Planting_Method || '--'}</td>
+                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Target_Bed_ID', 'text')" data-field="Target_Bed_ID" data-value="${p.Target_Bed_ID || ''}">${p.Target_Bed_ID || 'Unassigned'}</td>
+                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Feet_Used', 'number')" data-field="Feet_Used" data-value="${p.Feet_Used || ''}">${p.Feet_Used || '--'}</td>
+                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Plan_GH_Sow', 'date')" data-field="Plan_GH_Sow" data-value="${ghSowValue}">
+                            <div class="date-cell">
+                                <span class="date-main">${formatDate(actGhSow || ghSowDate)}</span>
+                                <span class="date-relative ${ghClass}">${ghDays}</span>
+                            </div>
+                        </td>
+                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Plan_Transplant', 'date')" data-field="Plan_Transplant" data-value="${transplantValue}">
+                            <div class="date-cell">
+                                <span class="date-main">${formatDate(actTransplant || transplantDate)}</span>
+                                <span class="date-relative ${transClass}">${transDays}</span>
+                            </div>
+                        </td>
+                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'STATUS', 'status')" data-field="STATUS" data-value="${p.STATUS || ''}"><span class="status-badge ${statusClass}">${p.STATUS || 'Unknown'}</span></td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="action-btn edit" title="Edit All Fields" onclick="openEditPanel('${p.Batch_ID}')">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                                <button class="action-btn mark" title="Mark Complete" onclick="markSown('${p.Batch_ID}')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="action-btn delete" title="Delete" onclick="confirmSingleDelete('${p.Batch_ID}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('countBadge').textContent = `${filteredPlantings.length} plantings`;
+        }
+
+        function getStatusClass(status) {
+            const map = {
+                'Planned': 'planned',
+                'Sown': 'seeding',
+                'Growing': 'growing',
+                'Ready': 'ready',
+                'PLANTED': 'transplanted',
+                'HARVESTING': 'harvesting'
+            };
+            return map[status] || 'planned';
+        }
+
+        // ========================================
+        // SELECTION MANAGEMENT
+        // ========================================
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) {
+                selectedIds.delete(id);
+            } else {
+                selectedIds.add(id);
+            }
+            updateBulkActions();
+            renderTable();
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            if (selectAll) {
+                filteredPlantings.forEach(p => selectedIds.add(p.Batch_ID));
+            } else {
+                selectedIds.clear();
+            }
+            updateBulkActions();
+            renderTable();
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            document.getElementById('selectAll').checked = false;
+            updateBulkActions();
+            renderTable();
+        }
+
+        function updateBulkActions() {
+            const bulkBar = document.getElementById('bulkActions');
+            const count = selectedIds.size;
+            document.getElementById('selectedCount').textContent = count;
+            bulkBar.classList.toggle('visible', count > 0);
+        }
+
+        // ========================================
+        // DELETE FUNCTIONALITY
+        // ========================================
+        function confirmSingleDelete(id) {
+            pendingDeleteIds = [id];
+            showDeleteModal();
+        }
+
+        function confirmBulkDelete() {
+            pendingDeleteIds = Array.from(selectedIds);
+            showDeleteModal();
+        }
+
+        function showDeleteModal() {
+            const list = document.getElementById('deleteList');
+            list.innerHTML = pendingDeleteIds.map(id => {
+                const p = allPlantings.find(pl => pl.Batch_ID === id);
+                if (!p) return '';
+                return `<div class="warning-item"><strong>${id}</strong> - ${p.Crop} ${p.Variety || ''}</div>`;
+            }).join('');
+
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            pendingDeleteIds = [];
+        }
+
+        async function executeDelete() {
+            if (pendingDeleteIds.length === 0) return;
+
+            showToast(`Deleting ${pendingDeleteIds.length} planting(s)...`, 'info');
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const id of pendingDeleteIds) {
+                try {
+                    const response = await fetch(`${API_URL}?action=deletePlanting&id=${encodeURIComponent(id)}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                        // Remove from local state
+                        allPlantings = allPlantings.filter(p => p.Batch_ID !== id);
+                        selectedIds.delete(id);
+                    } else {
+                        errorCount++;
+                        console.error(`Failed to delete ${id}:`, result.error);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    console.error(`Error deleting ${id}:`, error);
+                }
+            }
+
+            closeDeleteModal();
+
+            if (successCount > 0) {
+                showToast(`Deleted ${successCount} planting(s)`, 'success');
+                filterPlantings();
+                updateStats();
+            }
+
+            if (errorCount > 0) {
+                showToast(`Failed to delete ${errorCount} planting(s)`, 'error');
+            }
+
+            updateBulkActions();
+        }
+
+        // ========================================
+        // INLINE EDITING
+        // ========================================
+        function startInlineEdit(cell, batchId, field, type) {
+            // Don't start if already editing
+            if (cell.classList.contains('editing')) return;
+
+            // Cancel any previous editing
+            cancelInlineEdit();
+
+            editingCell = { cell, batchId, field, type };
+            cell.classList.add('editing');
+
+            const currentValue = cell.dataset.value || '';
+            let inputHtml = '';
+
+            if (type === 'select') {
+                inputHtml = `
+                    <select onchange="finishInlineEdit(this.value)" onblur="cancelInlineEdit()" onkeydown="handleInlineKeydown(event)">
+                        <option value="Direct Sow" ${currentValue === 'Direct Sow' ? 'selected' : ''}>Direct Sow</option>
+                        <option value="Transplant" ${currentValue === 'Transplant' ? 'selected' : ''}>Transplant</option>
+                        <option value="Paperpot" ${currentValue === 'Paperpot' ? 'selected' : ''}>Paperpot</option>
+                    </select>
+                `;
+            } else if (type === 'status') {
+                inputHtml = `
+                    <select onchange="finishInlineEdit(this.value)" onblur="cancelInlineEdit()" onkeydown="handleInlineKeydown(event)">
+                        <option value="Planned" ${currentValue === 'Planned' ? 'selected' : ''}>Planned</option>
+                        <option value="Sown" ${currentValue === 'Sown' ? 'selected' : ''}>Sown</option>
+                        <option value="Growing" ${currentValue === 'Growing' ? 'selected' : ''}>Growing</option>
+                        <option value="Ready" ${currentValue === 'Ready' ? 'selected' : ''}>Ready</option>
+                        <option value="PLANTED" ${currentValue === 'PLANTED' ? 'selected' : ''}>Transplanted</option>
+                        <option value="HARVESTING" ${currentValue === 'HARVESTING' ? 'selected' : ''}>Harvesting</option>
+                        <option value="COMPLETE" ${currentValue === 'COMPLETE' ? 'selected' : ''}>Complete</option>
+                    </select>
+                `;
+            } else if (type === 'date') {
+                inputHtml = `<input type="date" value="${currentValue}" onchange="finishInlineEdit(this.value)" onblur="cancelInlineEdit()" onkeydown="handleInlineKeydown(event)">`;
+            } else if (type === 'number') {
+                inputHtml = `<input type="number" value="${currentValue}" onchange="finishInlineEdit(this.value)" onblur="cancelInlineEdit()" onkeydown="handleInlineKeydown(event)" min="1" step="1">`;
+            } else {
+                inputHtml = `<input type="text" value="${currentValue}" onblur="finishInlineEdit(this.value)" onkeydown="handleInlineKeydown(event)">`;
+            }
+
+            cell.innerHTML = inputHtml;
+            const input = cell.querySelector('input, select');
+            input.focus();
+            if (input.select) input.select();
+        }
+
+        function handleInlineKeydown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                finishInlineEdit(event.target.value);
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                cancelInlineEdit();
+            } else if (event.key === 'Tab') {
+                // Allow tab to move to next editable cell
+                event.preventDefault();
+                const value = event.target.value;
+                finishInlineEdit(value, true);
+            }
+        }
+
+        function cancelInlineEdit() {
+            if (!editingCell) return;
+
+            const { cell, batchId, field } = editingCell;
+            const planting = allPlantings.find(p => p.Batch_ID === batchId);
+
+            if (planting) {
+                // Restore original display
+                cell.classList.remove('editing');
+
+                if (field === 'STATUS') {
+                    const statusClass = getStatusClass(planting.STATUS);
+                    cell.innerHTML = `<span class="status-badge ${statusClass}">${planting.STATUS || 'Unknown'}</span>`;
+                } else if (field === 'Plan_GH_Sow' || field === 'Plan_Transplant') {
+                    const date = parseDate(planting[field]);
+                    const dateStr = formatDate(date);
+                    cell.innerHTML = `<div class="date-cell"><span class="date-main">${dateStr}</span></div>`;
+                } else {
+                    cell.textContent = planting[field] || '--';
+                }
+            }
+
+            editingCell = null;
+        }
+
+        async function finishInlineEdit(value, moveToNext = false) {
+            if (!editingCell) return;
+
+            const { cell, batchId, field, type } = editingCell;
+            const oldValue = cell.dataset.value;
+
+            // Check if value actually changed
+            if (value === oldValue) {
+                cancelInlineEdit();
+                return;
+            }
+
+            // Update local state immediately
+            const planting = allPlantings.find(p => p.Batch_ID === batchId);
+            if (planting) {
+                planting[field] = value;
+            }
+
+            // Update cell display
+            cell.dataset.value = value;
+            cell.classList.remove('editing');
+
+            if (field === 'STATUS') {
+                const statusClass = getStatusClass(value);
+                cell.innerHTML = `<span class="status-badge ${statusClass}">${value || 'Unknown'}</span>`;
+            } else if (field === 'Plan_GH_Sow' || field === 'Plan_Transplant') {
+                const date = parseDate(value);
+                const dateStr = formatDate(date);
+                cell.innerHTML = `<div class="date-cell"><span class="date-main">${dateStr}</span></div>`;
+            } else {
+                cell.textContent = value || '--';
+            }
+
+            editingCell = null;
+
+            // Save to server with auto-save
+            await autoSave(batchId, field, value);
+
+            // Move to next cell if Tab was pressed
+            if (moveToNext) {
+                const row = cell.closest('tr');
+                const cells = Array.from(row.querySelectorAll('.editable-cell'));
+                const currentIndex = cells.indexOf(cell);
+                if (currentIndex < cells.length - 1) {
+                    cells[currentIndex + 1].click();
+                }
+            }
+        }
+
+        // ========================================
+        // AUTO-SAVE
+        // ========================================
+        let saveTimeout = null;
+        let saveQueue = new Map();
+
+        async function autoSave(batchId, field, value) {
+            // Add to save queue
+            if (!saveQueue.has(batchId)) {
+                saveQueue.set(batchId, {});
+            }
+            saveQueue.get(batchId)[field] = value;
+
+            // Show saving indicator
+            showSaveIndicator('saving');
+
+            // Mark row as saving
+            const row = document.querySelector(`tr[data-id="${batchId}"]`);
+            if (row) row.classList.add('saving');
+
+            // Debounce save
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                await executeSave();
+            }, 500);
+        }
+
+        async function executeSave() {
+            if (saveQueue.size === 0) return;
+
+            const entries = Array.from(saveQueue.entries());
+            saveQueue.clear();
+
+            let hasError = false;
+
+            for (const [batchId, fields] of entries) {
+                try {
+                    // Build query params
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        id: batchId
+                    });
+
+                    for (const [key, val] of Object.entries(fields)) {
+                        params.append(key, val);
+                    }
+
+                    const response = await fetch(`${API_URL}?${params.toString()}`);
+                    const result = await response.json();
+
+                    const row = document.querySelector(`tr[data-id="${batchId}"]`);
+                    if (row) {
+                        row.classList.remove('saving');
+                        if (result.success) {
+                            row.classList.add('saved');
+                            setTimeout(() => row.classList.remove('saved'), 500);
+                        }
+                    }
+
+                    if (!result.success) {
+                        console.error(`Failed to save ${batchId}:`, result.error);
+                        hasError = true;
+                    }
+                } catch (error) {
+                    console.error(`Error saving ${batchId}:`, error);
+                    hasError = true;
+                    const row = document.querySelector(`tr[data-id="${batchId}"]`);
+                    if (row) row.classList.remove('saving');
+                }
+            }
+
+            showSaveIndicator(hasError ? 'error' : 'saved');
+        }
+
+        function showSaveIndicator(state) {
+            const indicator = document.getElementById('saveIndicator');
+            const text = document.getElementById('saveIndicatorText');
+            const icon = indicator.querySelector('i');
+
+            indicator.className = `save-indicator visible ${state}`;
+
+            if (state === 'saving') {
+                icon.className = 'fas fa-spinner';
+                text.textContent = 'Saving...';
+            } else if (state === 'saved') {
+                icon.className = 'fas fa-check-circle';
+                text.textContent = 'Saved';
+                setTimeout(() => {
+                    indicator.classList.remove('visible');
+                }, 2000);
+            } else if (state === 'error') {
+                icon.className = 'fas fa-exclamation-circle';
+                text.textContent = 'Save failed';
+                setTimeout(() => {
+                    indicator.classList.remove('visible');
+                }, 3000);
+            }
+        }
+
+        // ========================================
+        // SIDE PANEL EDITING
+        // ========================================
+        let currentEditId = null;
+
+        function openEditPanel(batchId) {
+            const planting = allPlantings.find(p => p.Batch_ID === batchId);
+            if (!planting) return;
+
+            currentEditId = batchId;
+
+            // Populate panel fields
+            document.getElementById('panelBatchId').textContent = batchId;
+            document.getElementById('panelCrop').value = planting.Crop || '';
+            document.getElementById('panelVariety').value = planting.Variety || '';
+            document.getElementById('panelMethod').value = planting.Planting_Method || 'Transplant';
+            document.getElementById('panelFeet').value = planting.Feet_Used || '';
+            document.getElementById('panelBed').value = planting.Target_Bed_ID || '';
+            document.getElementById('panelGHSow').value = formatDateForInput(planting.Plan_GH_Sow);
+            document.getElementById('panelTransplant').value = formatDateForInput(planting.Plan_Transplant);
+            document.getElementById('panelFirstHarvest').value = formatDateForInput(planting.Plan_First_Harvest);
+            document.getElementById('panelLastHarvest').value = formatDateForInput(planting.Plan_Last_Harvest);
+            document.getElementById('panelActGHSow').value = formatDateForInput(planting.Act_GH_Sow);
+            document.getElementById('panelActTransplant').value = formatDateForInput(planting.Act_Transplant);
+            document.getElementById('panelStatus').value = planting.STATUS || 'Planned';
+
+            // Reset save status
+            updatePanelSaveStatus('saved');
+
+            // Show panel
+            document.getElementById('panelOverlay').classList.add('active');
+            document.getElementById('editPanel').classList.add('active');
+
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEditPanel() {
+            document.getElementById('panelOverlay').classList.remove('active');
+            document.getElementById('editPanel').classList.remove('active');
+            document.body.style.overflow = '';
+            currentEditId = null;
+
+            // Refresh table to show any changes
+            filterPlantings();
+        }
+
+        async function panelFieldChange(field, value) {
+            if (!currentEditId) return;
+
+            // Update local state
+            const planting = allPlantings.find(p => p.Batch_ID === currentEditId);
+            if (planting) {
+                planting[field] = value;
+            }
+
+            // Update save status
+            updatePanelSaveStatus('saving');
+
+            // Save to server
+            await autoSave(currentEditId, field, value);
+
+            // Update save status
+            updatePanelSaveStatus('saved');
+        }
+
+        function updatePanelSaveStatus(state) {
+            const status = document.getElementById('panelSaveStatus');
+            const icon = status.querySelector('i');
+            const text = status.querySelector('span');
+
+            status.className = `panel-save-status ${state}`;
+
+            if (state === 'saving') {
+                icon.className = 'fas fa-spinner fa-spin';
+                text.textContent = 'Saving...';
+            } else if (state === 'saved') {
+                icon.className = 'fas fa-check-circle';
+                text.textContent = 'All changes saved';
+            }
+        }
+
+        // ========================================
+        // LEGACY EDIT FUNCTION (redirect to panel)
+        // ========================================
+        function editPlanting(id) {
+            openEditPanel(id);
+        }
+
+        async function markSown(id) {
+            const today = new Date().toISOString().split('T')[0];
+            try {
+                const response = await fetch(`${API_URL}?action=updatePlanting&id=${encodeURIComponent(id)}&Act_GH_Sow=${today}&STATUS=Sown`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Marked as sown!', 'success');
+                    await loadPlantings();
+                } else {
+                    showToast('Failed to update', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error updating planting', 'error');
+            }
+        }
+
+        // ========================================
+        // STATS
+        // ========================================
+        function updateStats() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let inGH = 0;
+            let readyToTransplant = 0;
+            let overdue = 0;
+
+            allPlantings.forEach(p => {
+                const method = (p.Planting_Method || '').toLowerCase();
+                const isTransplant = method.includes('transplant') || method.includes('paperpot');
+                const isSown = p.Act_GH_Sow && p.Act_GH_Sow !== '';
+                const isTransplanted = p.Act_Transplant && p.Act_Transplant !== '';
+
+                if (isTransplant && isSown && !isTransplanted) {
+                    inGH++;
+
+                    const transplantDate = parseDate(p.Plan_Transplant);
+                    if (transplantDate) {
+                        const days = Math.floor((transplantDate - today) / (1000 * 60 * 60 * 24));
+                        if (days <= 3) readyToTransplant++;
+                        if (days < 0) overdue++;
+                    }
+                }
+            });
+
+            document.getElementById('statTotal').textContent = allPlantings.length;
+            document.getElementById('statGH').textContent = inGH;
+            document.getElementById('statReady').textContent = readyToTransplant;
+            document.getElementById('statOverdue').textContent = overdue;
+        }
+
+        // ========================================
+        // UTILITIES
+        // ========================================
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            if (dateStr instanceof Date) return dateStr;
+            const d = new Date(dateStr);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function formatDate(date) {
+            if (!date) return '--';
+            const d = date instanceof Date ? date : new Date(date);
+            if (isNaN(d.getTime())) return '--';
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function formatDateForInput(dateStr) {
+            if (!dateStr) return '';
+            const d = parseDate(dateStr);
+            if (!d) return '';
+            // Return YYYY-MM-DD format for date inputs
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function showEmptyState(message) {
+            document.getElementById('plantingsBody').innerHTML = `
+                <tr>
+                    <td colspan="10">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <h3>${message}</h3>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('i');
+            document.getElementById('toastMessage').textContent = message;
+
+            toast.className = `toast ${type}`;
+            icon.className = type === 'error' ? 'fas fa-times-circle' :
+                            type === 'info' ? 'fas fa-info-circle' : 'fas fa-check-circle';
+
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ========================================
+        // KEYBOARD & GLOBAL EVENT HANDLERS
+        // ========================================
+        document.addEventListener('keydown', (e) => {
+            // Escape to close panel or cancel inline edit
+            if (e.key === 'Escape') {
+                if (document.getElementById('editPanel').classList.contains('active')) {
+                    closeEditPanel();
+                } else if (editingCell) {
+                    cancelInlineEdit();
+                }
+            }
+        });
+
+        // Click outside editable cell to cancel
+        document.addEventListener('click', (e) => {
+            if (editingCell && !e.target.closest('.editable-cell')) {
+                // Small delay to allow onchange to fire
+                setTimeout(() => {
+                    if (editingCell) cancelInlineEdit();
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -243,6 +243,309 @@
             color: var(--secondary);
         }
 
+        /* Tray Stock Management */
+        .tray-stock-section {
+            background: linear-gradient(135deg, rgba(42, 157, 143, 0.1) 0%, rgba(45, 90, 39, 0.1) 100%);
+            border: 1px solid rgba(42, 157, 143, 0.3);
+        }
+
+        .tray-stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .tray-stock-item {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .tray-stock-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .tray-stock-size {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .tray-stock-edit {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .tray-stock-edit:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tray-stock-counts {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .tray-count-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .tray-count-label {
+            color: var(--text-secondary);
+        }
+
+        .tray-count-value {
+            font-weight: 600;
+        }
+
+        .tray-count-value.available {
+            color: var(--success);
+        }
+
+        .tray-count-value.in-use {
+            color: var(--secondary);
+        }
+
+        .tray-count-value.total {
+            color: var(--text-primary);
+        }
+
+        .tray-count-value.low {
+            color: var(--danger);
+        }
+
+        .tray-stock-bar {
+            height: 6px;
+            background: var(--bg-dark);
+            border-radius: 3px;
+            margin-top: 0.75rem;
+            overflow: hidden;
+        }
+
+        .tray-stock-bar-fill {
+            height: 100%;
+            background: var(--success);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .tray-stock-bar-fill.high { background: var(--success); }
+        .tray-stock-bar-fill.medium { background: var(--warning); }
+        .tray-stock-bar-fill.low { background: var(--danger); }
+
+        /* Stock Edit Modal */
+        .stock-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .stock-modal.active {
+            display: flex;
+        }
+
+        .stock-modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border);
+        }
+
+        .stock-modal h3 {
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stock-modal h3 i {
+            color: var(--success);
+        }
+
+        .stock-input-group {
+            margin-bottom: 1rem;
+        }
+
+        .stock-input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .stock-input-group input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .stock-input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .stock-modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stock-modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .stock-modal-actions .btn-cancel {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .stock-modal-actions .btn-save {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+
+        .stock-modal-actions .btn-save:hover {
+            background: var(--primary-light);
+        }
+
+        /* Tray Edit Modal */
+        .tray-edit-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .tray-edit-modal.active {
+            display: flex;
+        }
+
+        .tray-edit-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 450px;
+            border: 1px solid var(--border);
+        }
+
+        .tray-edit-content h3 {
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tray-edit-content h3 i {
+            color: var(--secondary);
+        }
+
+        .tray-edit-info {
+            background: var(--bg-light);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tray-edit-info .crop-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .tray-edit-info .batch-id {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .paperpot-spacing-group {
+            display: none;
+        }
+
+        .paperpot-spacing-group.visible {
+            display: block;
+        }
+
+        .spacing-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 8px;
+        }
+
+        .spacing-btn {
+            flex: 1;
+            padding: 12px;
+            background: var(--bg-light);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .spacing-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .spacing-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Edit button in table */
+        .edit-tray-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .edit-tray-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
         /* Table Styles */
         .data-table {
             width: 100%;
@@ -493,12 +796,31 @@
             </div>
         </div>
 
-        <!-- Tray Inventory by Size -->
+        <!-- Tray Stock Management -->
+        <section class="section tray-stock-section" id="trays">
+            <div class="section-header">
+                <div class="section-header-left">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <h2>Tray Stock (Empty + In Use)</h2>
+                </div>
+                <button class="btn btn-secondary" onclick="openAddTrayModal()" style="padding: 8px 16px; font-size: 0.85rem;">
+                    <i class="fas fa-plus"></i> Add Stock
+                </button>
+            </div>
+            <div class="tray-stock-grid" id="trayStockGrid">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <span>Loading tray stock...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tray Inventory by Size (In Use) -->
         <section class="section">
             <div class="section-header">
                 <div class="section-header-left">
                     <i class="fas fa-th"></i>
-                    <h2>Tray Inventory by Size</h2>
+                    <h2>Trays Currently In Use</h2>
                 </div>
             </div>
             <div class="tray-inventory" id="trayInventory">
@@ -559,6 +881,82 @@
         </section>
     </main>
 
+    <!-- Tray Stock Modal -->
+    <div class="stock-modal" id="stockModal">
+        <div class="stock-modal-content">
+            <h3><i class="fas fa-boxes-stacked"></i> <span id="stockModalTitle">Update Tray Stock</span></h3>
+            <input type="hidden" id="stockModalSize">
+            <div class="stock-input-group">
+                <label>Tray Size (cells)</label>
+                <select id="stockSizeSelect" style="width: 100%; padding: 12px; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+                    <option value="50">50-cell</option>
+                    <option value="72">72-cell</option>
+                    <option value="98">98-cell</option>
+                    <option value="128">128-cell</option>
+                    <option value="200">200-cell</option>
+                    <option value="264">264-cell (Paperpot)</option>
+                </select>
+            </div>
+            <div class="stock-input-group">
+                <label>Total Stock (empty trays you own)</label>
+                <input type="number" id="stockTotalInput" min="0" placeholder="Enter total trays owned">
+            </div>
+            <div class="stock-input-group">
+                <label>Reorder Point (alert when available drops below)</label>
+                <input type="number" id="stockReorderInput" min="0" placeholder="e.g., 10">
+            </div>
+            <div class="stock-modal-actions">
+                <button class="btn-cancel" onclick="closeStockModal()">Cancel</button>
+                <button class="btn-save" onclick="saveStock()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tray Edit Modal (for individual plantings) -->
+    <div class="tray-edit-modal" id="trayEditModal">
+        <div class="tray-edit-content">
+            <h3><i class="fas fa-edit"></i> Edit Tray Details</h3>
+            <input type="hidden" id="trayEditBatchId">
+
+            <div class="tray-edit-info">
+                <div class="crop-name" id="trayEditCropName">Lettuce - Salanova</div>
+                <div class="batch-id" id="trayEditBatchDisplay">26-LET-001</div>
+            </div>
+
+            <div class="stock-input-group">
+                <label>Number of Trays</label>
+                <input type="number" id="trayEditCount" min="1" placeholder="e.g., 4">
+            </div>
+
+            <div class="stock-input-group">
+                <label>Tray Size</label>
+                <select id="trayEditSize" onchange="onTrayEditSizeChange()">
+                    <option value="50">50-cell</option>
+                    <option value="72">72-cell</option>
+                    <option value="98">98-cell</option>
+                    <option value="128">128-cell</option>
+                    <option value="200">200-cell</option>
+                    <option value="264">264-cell (Paperpot)</option>
+                </select>
+            </div>
+
+            <div class="stock-input-group paperpot-spacing-group" id="paperpotSpacingGroup">
+                <label>Paperpot Spacing</label>
+                <div class="spacing-buttons">
+                    <button type="button" class="spacing-btn" data-spacing="2" onclick="selectSpacing(2)">2"</button>
+                    <button type="button" class="spacing-btn" data-spacing="4" onclick="selectSpacing(4)">4"</button>
+                    <button type="button" class="spacing-btn" data-spacing="6" onclick="selectSpacing(6)">6"</button>
+                </div>
+                <input type="hidden" id="trayEditSpacing" value="">
+            </div>
+
+            <div class="stock-modal-actions">
+                <button class="btn-cancel" onclick="closeTrayEditModal()">Cancel</button>
+                <button class="btn-save" onclick="saveTrayEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ========================================
         // CONFIGURATION
@@ -577,15 +975,267 @@
             'marigold': '🌼', 'snapdragon': '🌷', 'celosia': '🌺', 'aster': '🌸'
         };
 
+        // Tray stock data
+        let trayStock = {};
+        let traysInUse = {};
+
         // ========================================
         // INITIALIZATION
         // ========================================
         document.addEventListener('DOMContentLoaded', () => {
+            loadTrayStock();
             loadGreenhouseData();
         });
 
         async function refreshData() {
+            await loadTrayStock();
             await loadGreenhouseData();
+        }
+
+        // ========================================
+        // TRAY STOCK MANAGEMENT
+        // ========================================
+        async function loadTrayStock() {
+            try {
+                const response = await fetch(`${API_URL}?action=getTrayInventory`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    trayStock = {};
+                    data.data.forEach(item => {
+                        trayStock[item.size] = {
+                            total: item.total || 0,
+                            reorderPoint: item.reorderPoint || 10
+                        };
+                    });
+                } else {
+                    // Use default stock if no data
+                    trayStock = getDefaultTrayStock();
+                }
+            } catch (error) {
+                console.error('Error loading tray stock:', error);
+                trayStock = getDefaultTrayStock();
+            }
+        }
+
+        function getDefaultTrayStock() {
+            // Default tray stock (user can update)
+            return {
+                '50': { total: 20, reorderPoint: 5 },
+                '72': { total: 50, reorderPoint: 10 },
+                '98': { total: 30, reorderPoint: 10 },
+                '128': { total: 40, reorderPoint: 10 },
+                '200': { total: 20, reorderPoint: 5 },
+                '264': { total: 15, reorderPoint: 5 }
+            };
+        }
+
+        function renderTrayStockGrid() {
+            const container = document.getElementById('trayStockGrid');
+            const sizes = ['50', '72', '98', '128', '200', '264'];
+
+            let html = '';
+            sizes.forEach(size => {
+                const stock = trayStock[size] || { total: 0, reorderPoint: 10 };
+                const inUse = traysInUse[size] || 0;
+                const available = Math.max(0, stock.total - inUse);
+                const percentAvailable = stock.total > 0 ? (available / stock.total) * 100 : 0;
+
+                let barClass = 'high';
+                if (available <= stock.reorderPoint) barClass = 'low';
+                else if (percentAvailable < 50) barClass = 'medium';
+
+                const isPaperpot = size === '264';
+
+                html += `
+                    <div class="tray-stock-item">
+                        <div class="tray-stock-header">
+                            <span class="tray-stock-size">${size}-cell${isPaperpot ? ' (PP)' : ''}</span>
+                            <button class="tray-stock-edit" onclick="openEditStockModal('${size}')">
+                                <i class="fas fa-pencil"></i>
+                            </button>
+                        </div>
+                        <div class="tray-stock-counts">
+                            <div class="tray-count-row">
+                                <span class="tray-count-label">Total Owned</span>
+                                <span class="tray-count-value total">${stock.total}</span>
+                            </div>
+                            <div class="tray-count-row">
+                                <span class="tray-count-label">In Use</span>
+                                <span class="tray-count-value in-use">${inUse}</span>
+                            </div>
+                            <div class="tray-count-row">
+                                <span class="tray-count-label">Available</span>
+                                <span class="tray-count-value ${available <= stock.reorderPoint ? 'low' : 'available'}">${available}${available <= stock.reorderPoint ? ' ⚠️' : ''}</span>
+                            </div>
+                        </div>
+                        <div class="tray-stock-bar">
+                            <div class="tray-stock-bar-fill ${barClass}" style="width: ${percentAvailable}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function openAddTrayModal() {
+            document.getElementById('stockModalTitle').textContent = 'Add Tray Stock';
+            document.getElementById('stockModalSize').value = '';
+            document.getElementById('stockSizeSelect').value = '72';
+            document.getElementById('stockSizeSelect').disabled = false;
+            document.getElementById('stockTotalInput').value = '';
+            document.getElementById('stockReorderInput').value = '10';
+            document.getElementById('stockModal').classList.add('active');
+        }
+
+        function openEditStockModal(size) {
+            const stock = trayStock[size] || { total: 0, reorderPoint: 10 };
+            document.getElementById('stockModalTitle').textContent = `Update ${size}-cell Stock`;
+            document.getElementById('stockModalSize').value = size;
+            document.getElementById('stockSizeSelect').value = size;
+            document.getElementById('stockSizeSelect').disabled = true;
+            document.getElementById('stockTotalInput').value = stock.total;
+            document.getElementById('stockReorderInput').value = stock.reorderPoint;
+            document.getElementById('stockModal').classList.add('active');
+        }
+
+        function closeStockModal() {
+            document.getElementById('stockModal').classList.remove('active');
+        }
+
+        async function saveStock() {
+            const size = document.getElementById('stockModalSize').value || document.getElementById('stockSizeSelect').value;
+            const total = parseInt(document.getElementById('stockTotalInput').value) || 0;
+            const reorderPoint = parseInt(document.getElementById('stockReorderInput').value) || 10;
+
+            // Update local state
+            trayStock[size] = { total, reorderPoint };
+
+            // Save to backend
+            try {
+                const params = new URLSearchParams({
+                    action: 'saveTrayInventory',
+                    size: size,
+                    total: total,
+                    reorderPoint: reorderPoint
+                });
+                await fetch(`${API_URL}?${params.toString()}`);
+            } catch (error) {
+                console.error('Error saving tray stock:', error);
+            }
+
+            // Update UI
+            renderTrayStockGrid();
+            closeStockModal();
+        }
+
+        // ========================================
+        // TRAY EDIT MODAL (Individual Plantings)
+        // ========================================
+        let currentEditPlanting = null;
+        let allPlantings = []; // Store all plantings for reference
+
+        function openTrayEditModal(batchId) {
+            const planting = allPlantings.find(p => p.Batch_ID === batchId);
+            if (!planting) return;
+
+            currentEditPlanting = planting;
+
+            // Populate modal
+            document.getElementById('trayEditBatchId').value = batchId;
+            document.getElementById('trayEditCropName').textContent =
+                `${planting.Crop || 'Unknown'}${planting.Variety ? ' - ' + planting.Variety : ''}`;
+            document.getElementById('trayEditBatchDisplay').textContent = batchId;
+            document.getElementById('trayEditCount').value = planting.trays || planting.Trays_Needed || 1;
+
+            // Parse tray size and spacing
+            const traySize = parseInt(planting.Tray_Cell_Count) || 128;
+            const spacing = parseInt(planting.Paperpot_Spacing) || 0;
+
+            document.getElementById('trayEditSize').value = traySize;
+            document.getElementById('trayEditSpacing').value = spacing;
+
+            // Show/hide paperpot spacing
+            onTrayEditSizeChange();
+
+            // Set active spacing button
+            if (spacing) {
+                selectSpacing(spacing);
+            }
+
+            document.getElementById('trayEditModal').classList.add('active');
+        }
+
+        function closeTrayEditModal() {
+            document.getElementById('trayEditModal').classList.remove('active');
+            currentEditPlanting = null;
+        }
+
+        function onTrayEditSizeChange() {
+            const size = document.getElementById('trayEditSize').value;
+            const spacingGroup = document.getElementById('paperpotSpacingGroup');
+
+            if (size === '264') {
+                spacingGroup.classList.add('visible');
+                // Default to 4" if no spacing selected
+                if (!document.getElementById('trayEditSpacing').value) {
+                    selectSpacing(4);
+                }
+            } else {
+                spacingGroup.classList.remove('visible');
+                document.getElementById('trayEditSpacing').value = '';
+                // Clear active state on buttons
+                document.querySelectorAll('.spacing-btn').forEach(btn => btn.classList.remove('active'));
+            }
+        }
+
+        function selectSpacing(spacing) {
+            document.getElementById('trayEditSpacing').value = spacing;
+            document.querySelectorAll('.spacing-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.spacing) === spacing);
+            });
+        }
+
+        async function saveTrayEdit() {
+            const batchId = document.getElementById('trayEditBatchId').value;
+            const trays = parseInt(document.getElementById('trayEditCount').value) || 1;
+            const traySize = parseInt(document.getElementById('trayEditSize').value) || 128;
+            const spacing = parseInt(document.getElementById('trayEditSpacing').value) || 0;
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'updatePlanting',
+                    batchId: batchId,
+                    Trays_Needed: trays,
+                    Tray_Cell_Count: traySize,
+                    Paperpot_Spacing: spacing
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    closeTrayEditModal();
+                    refreshData(); // Reload to show updated data
+                } else {
+                    alert('Error saving: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving tray edit:', error);
+                alert('Error saving changes. Please try again.');
+            }
+        }
+
+        // Format tray size display (handles paperpot spacing)
+        function formatTraySize(traySize, spacing, isPaperpot) {
+            if (isPaperpot || traySize === 264) {
+                if (spacing) {
+                    return `264-${spacing}`;
+                }
+                return '264-cell';
+            }
+            return `${traySize}-cell`;
         }
 
         // ========================================
@@ -610,6 +1260,9 @@
         function processGreenhouseData(plantings) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
+
+            // Store all plantings for reference (used by edit modal)
+            allPlantings = plantings;
 
             // Filter for greenhouse-relevant plantings (transplant or paperpot method)
             const ghPlantings = plantings.filter(p => {
@@ -636,6 +1289,9 @@
                     const daysInGH = Math.floor((today - actGhSowDate) / (1000 * 60 * 60 * 24));
                     const nurseryDays = parseInt(p.Nursery_Days) || 28;
                     const daysUntilTransplant = transplantDate ? Math.floor((transplantDate - today) / (1000 * 60 * 60 * 24)) : (nurseryDays - daysInGH);
+                    const method = (p.Planting_Method || p.Method || '').toLowerCase();
+                    const isPaperpot = method.includes('paperpot') || traySize === 264;
+                    const spacing = parseInt(p.Paperpot_Spacing) || 0;
 
                     currentInGH.push({
                         ...p,
@@ -643,7 +1299,9 @@
                         daysUntilTransplant: daysUntilTransplant,
                         transplantDate: transplantDate,
                         trays: trays,
-                        traySize: traySize
+                        traySize: traySize,
+                        isPaperpot: isPaperpot,
+                        paperpotSpacing: spacing
                     });
 
                     // Count trays by size
@@ -671,12 +1329,18 @@
                 if (ghSowDate && !actGhSowDate) {
                     const daysUntil = Math.floor((ghSowDate - today) / (1000 * 60 * 60 * 24));
                     if (daysUntil >= 0 && daysUntil <= 7) {
+                        const method = (p.Planting_Method || p.Method || '').toLowerCase();
+                        const isPaperpot = method.includes('paperpot') || traySize === 264;
+                        const spacing = parseInt(p.Paperpot_Spacing) || 0;
+
                         upcomingSowings.push({
                             ...p,
                             daysUntilSow: daysUntil,
                             sowDate: ghSowDate,
                             trays: trays,
-                            traySize: traySize
+                            traySize: traySize,
+                            isPaperpot: isPaperpot,
+                            paperpotSpacing: spacing
                         });
                     }
                 }
@@ -692,7 +1356,11 @@
             document.getElementById('upcomingSowings').textContent = upcomingSowings.length;
             document.getElementById('uniqueCrops').textContent = uniqueCrops;
 
+            // Store trays in use for stock calculation
+            traysInUse = traysBySize;
+
             // Render sections
+            renderTrayStockGrid();
             renderTrayInventory(traysBySize);
             renderCurrentTrays(currentInGH);
             renderUpcomingTransplants(upcomingTransplants);
@@ -761,6 +1429,7 @@
                             <th>Days in GH</th>
                             <th>Transplant</th>
                             <th>Status</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -773,6 +1442,7 @@
                                                t.daysUntilTransplant <= 3 ? 'upcoming' : 'seedling';
                             const statusText = t.daysUntilTransplant <= 0 ? 'Ready!' :
                                               t.daysUntilTransplant <= 3 ? 'Soon' : 'Growing';
+                            const traySizeDisplay = formatTraySize(t.traySize, t.paperpotSpacing, t.isPaperpot);
 
                             return `
                                 <tr>
@@ -786,7 +1456,7 @@
                                         </div>
                                     </td>
                                     <td>${t.Batch_ID || '--'}</td>
-                                    <td>${t.trays} × ${t.traySize}-cell</td>
+                                    <td>${t.trays} × ${traySizeDisplay}</td>
                                     <td>
                                         <div class="days-display">
                                             <span class="days">${t.daysInGH}</span>
@@ -800,6 +1470,11 @@
                                         </div>
                                     </td>
                                     <td><span class="status-badge ${statusBadge}">${statusText}</span></td>
+                                    <td>
+                                        <button class="edit-tray-btn" onclick="openTrayEditModal('${t.Batch_ID}')" title="Edit tray details">
+                                            <i class="fas fa-pencil"></i>
+                                        </button>
+                                    </td>
                                 </tr>
                             `;
                         }).join('')}
@@ -916,13 +1591,14 @@
                                     ${items.map(item => {
                                         const cropKey = (item.Crop || '').toLowerCase();
                                         const icon = cropIcons[cropKey] || '🌱';
+                                        const traySizeDisplay = formatTraySize(item.traySize, item.paperpotSpacing, item.isPaperpot);
                                         return `
                                             <div class="task-item">
                                                 <div class="task-crop">
                                                     <span>${icon}</span>
                                                     <span>${item.Crop}${item.Variety ? ' - ' + item.Variety : ''}</span>
                                                 </div>
-                                                <span class="task-trays">${item.trays} × ${item.traySize}</span>
+                                                <span class="task-trays">${item.trays} × ${traySizeDisplay}</span>
                                             </div>
                                         `;
                                     }).join('')}

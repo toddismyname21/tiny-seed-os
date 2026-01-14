@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+      body { padding: 0; font-family: 'Google Sans', sans-serif; background-color: #f8f9fa; }
+      
+      /* TABS */
+      .tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 10; }
+      .tab { flex: 1; text-align: center; padding: 12px 5px; cursor: pointer; color: #5f6368; font-weight: bold; font-size: 0.85em; border-bottom: 3px solid transparent; }
+      .tab.active { color: #188038; border-bottom-color: #188038; background: #e6f4ea; }
+      
+      /* PANELS */
+      .panel { display: none; padding: 15px; padding-bottom: 60px; }
+      .panel.active { display: block; }
+
+      /* ELEMENTS */
+      label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.8em; color: #444; }
+      input, select, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+      input:focus, select:focus { border-color: #188038; outline: none; }
+      
+      .row { display: flex; gap: 10px; }
+      .col { flex: 1; }
+      .section-title { font-weight: bold; color: #188038; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 0.9em; text-transform: uppercase; }
+
+      /* SMART ALERT */
+      #auto-msg { background-color: #e6f4ea; color: #137333; padding: 10px; border-radius: 4px; font-size: 0.9em; display: none; margin-bottom: 10px; border: 1px solid #ceead6; }
+
+      /* FOOTER */
+      .footer { padding: 15px; background: #fff; border-top: 1px solid #ddd; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
+      button.action { background: #188038; color: white; width: 100%; padding: 12px; border: none; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 1.1em; }
+    </style>
+  </head>
+  <body>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab(0)">1. Identity</div>
+      <div class="tab" onclick="showTab(1)">2. Field</div>
+      <div class="tab" onclick="showTab(2)">3. Seed/GH</div>
+      <div class="tab" onclick="showTab(3)">4. Eco/Data</div>
+    </div>
+
+    <form id="cropForm">
+      
+      <div class="panel active" id="tab0">
+        
+        <div id="auto-msg">⚡ Auto-filled details from existing profile!</div>
+
+        <div class="section-title">Taxonomy</div>
+        <div class="row">
+           <div class="col">
+             <label>Crop Name (Plural)</label>
+             <input type="text" name="Crop_Name" required placeholder="Type 'Carrots'..." onchange="checkAutoFill(this)">
+           </div>
+           <div class="col"><label>Variety</label><input type="text" name="Variety_Default" placeholder="e.g. Purple Haze"></div>
+        </div>
+        <div class="row">
+           <div class="col"><label>Category</label>
+             <select name="Primary_Category">
+               <option>Vegetable</option><option>Flower</option><option>Herb</option><option>Fruit</option><option>Cover Crop</option>
+             </select>
+           </div>
+           <div class="col"><label>Scientific Name</label><input type="text" name="Scientific_Name"></div>
+        </div>
+
+        <div class="section-title">Visuals (Auto-Color)</div>
+        <div class="row">
+           <div class="col">
+             <label>Family</label>
+             <input type="text" name="Family" list="families" onchange="autoColor(this)">
+             <datalist id="families">
+               <option value="Apiaceae">Carrot/Parsley</option>
+               <option value="Asteraceae">Lettuce/Sunflower</option>
+               <option value="Brassicaceae">Brassica</option>
+               <option value="Cucurbitaceae">Cucurbits</option>
+               <option value="Fabaceae">Legumes</option>
+               <option value="Lamiaceae">Mints/Basil</option>
+               <option value="Solanaceae">Nightshades</option>
+               <option value="Alliaceae">Onions</option>
+             </datalist>
+           </div>
+           <div class="col">
+             <label>Map Color</label>
+             <input type="color" name="Color_Hex" id="colorPicker" value="#999999" style="height:38px;">
+           </div>
+        </div>
+
+        <div class="section-title">Economics</div>
+        <div class="row">
+           <div class="col"><label>Harvest Unit</label><input type="text" name="Harvest_Unit" placeholder="Bunch / lb"></div>
+           <div class="col"><label>Est. Yield/Ft (lbs)</label><input type="number" step="0.1" name="Yield_Lbs_Per_Ft"></div>
+        </div>
+        <div class="row">
+           <div class="col"><label>Wholesale ($)</label><input type="number" step="0.01" name="Price_Wholesale"></div>
+           <div class="col"><label>Retail ($)</label><input type="number" step="0.01" name="Price_Retail"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="tab1">
+        <div class="section-title">Planting Method</div>
+        <div class="row">
+           <div class="col"><label>Rec. Direct Seed?</label><select name="Rec_Direct"><option>Yes</option><option>No</option></select></div>
+           <div class="col"><label>Rec. Transplant?</label><select name="Rec_Transplant"><option>No</option><option>Yes</option></select></div>
+        </div>
+        <label>Primary Calculation Method</label>
+        <select name="Calc_Method"><option>Direct Seed</option><option>Transplant</option></select>
+
+        <div class="section-title">Spacing & Tools</div>
+        <div class="row">
+           <div class="col"><label>Rows/Bed</label><input type="number" name="Rows_Per_Bed" value="1"></div>
+           <div class="col"><label>Spacing (in)</label><input type="number" name="In_Row_Spacing_In" value="12"></div>
+        </div>
+        <div class="row">
+           <div class="col"><label>Tray Type</label>
+             <select name="Tray_Cell_Count">
+               <option value="72">72-Cell</option>
+               <option value="128">128-Cell</option>
+               <option value="288">288-Cell</option>
+               <option value="264">Paperpot (264)</option>
+               <option value="0">N/A (Direct)</option>
+             </select>
+           </div>
+           <div class="col"><label>Seeder Config</label><input type="text" name="Seeder_Config" placeholder="e.g. LJ-12"></div>
+        </div>
+
+        <div class="section-title">Days to Maturity (DTM)</div>
+        <div class="row">
+           <div class="col"><label>Spring</label><input type="number" name="DTM_Spring"></div>
+           <div class="col"><label>Summer</label><input type="number" name="DTM_Summer"></div>
+           <div class="col"><label>Fall</label><input type="number" name="DTM_Fall"></div>
+        </div>
+        <label>Average DTM (Standard)</label>
+        <input type="number" name="DTM_Average" required>
+      </div>
+
+      <div class="panel" id="tab2">
+        <div class="section-title">Germination</div>
+        <div class="row">
+           <div class="col"><label>Ideal Temp (°F)</label><input type="text" name="Germ_Temp_F"></div>
+           <div class="col"><label>Days to Germ</label><input type="number" name="Germination_Days"></div>
+        </div>
+        <div class="row">
+           <div class="col"><label>Cold Stratify?</label><select name="Cold_Stratify"><option>No</option><option>Yes</option></select></div>
+           <div class="col"><label>Light Req</label><input type="text" name="Light_Req"></div>
+        </div>
+        <label>Germination Instructions</label>
+        <textarea name="Germination_Instructions" rows="2"></textarea>
+        
+        <div class="section-title">Nursery Schedule</div>
+        <div class="row">
+           <div class="col"><label>Total Nursery Days</label><input type="number" name="Nursery_Days"></div>
+           <div class="col"><label>Pot Up Day</label><input type="number" name="Days_To_Pot_Up"></div>
+        </div>
+        <label>Harden Off Days</label>
+        <input type="number" name="Days_To_Harden_Off">
+      </div>
+
+      <div class="panel" id="tab3">
+        <div class="section-title">Growing Environment</div>
+        <div class="row">
+           <div class="col"><label>Day Temp</label><input type="text" name="Temp_Day_Optimum"></div>
+           <div class="col"><label>Night Temp</label><input type="text" name="Temp_Night_Optimum"></div>
+        </div>
+        <div class="row">
+           <div class="col"><label>Soil Temp</label><input type="text" name="Soil_Temp_Optimum"></div>
+           <div class="col"><label>Water Req</label><input type="text" name="Water_Req"></div>
+        </div>
+        <div class="row">
+           <div class="col"><label>pH Min</label><input type="number" step="0.1" name="pH_Min"></div>
+           <div class="col"><label>pH Max</label><input type="number" step="0.1" name="pH_Max"></div>
+        </div>
+
+        <div class="section-title">Health & Storage</div>
+        <div class="row">
+           <div class="col"><label>Common Pests</label><input type="text" name="Common_Pests"></div>
+           <div class="col"><label>Diseases</label><input type="text" name="Common_Diseases"></div>
+        </div>
+        <div class="row">
+           <div class="col"><label>Rotation Group</label><input type="text" name="Rotation_Group"></div>
+           <div class="col"><label>Hardiness Zone</label><input type="text" name="Hardiness_Zone"></div>
+        </div>
+        <label>Storage Notes</label>
+        <input type="text" name="Storage_Reqs">
+
+        <div class="section-title">Notes</div>
+        <textarea name="Grower_Notes" rows="3"></textarea>
+      </div>
+
+      <div class="footer">
+        <button class="action" type="button" onclick="submitCrop()">💾 Save to Database</button>
+        <div id="msg" style="text-align:center; color:green; margin-top:5px; font-weight:bold;"></div>
+      </div>
+
+    </form>
+
+    <script>
+      function showTab(n) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab')[n].classList.add('active');
+        document.querySelectorAll('.panel')[n].classList.add('active');
+      }
+
+      function autoColor(input) {
+        const map = {
+          "Apiaceae": "#FF9966", "Asteraceae": "#99CC00", "Brassicaceae": "#006600",
+          "Cucurbitaceae": "#FFCC00", "Fabaceae": "#9933CC", "Solanaceae": "#CC0000",
+          "Lamiaceae": "#996633", "Alliaceae": "#F4CCCC"
+        };
+        if (map[input.value]) document.getElementById('colorPicker').value = map[input.value];
+      }
+
+      // --- SMART LOGIC ---
+      function checkAutoFill(input) {
+        const name = input.value;
+        if (!name || name.length < 3) return;
+
+        google.script.run.withSuccessHandler(function(data) {
+          if (!data) return; // No match found
+          
+          // Match found! Fill the form
+          document.getElementById('auto-msg').style.display = 'block';
+          const form = document.getElementById('cropForm');
+          
+          for (const key in data) {
+             // Don't overwrite the Variety field (user wants to add a new one)
+             if (key === 'Variety_Default') continue; 
+             
+             if (form.elements[key]) {
+               form.elements[key].value = data[key];
+             }
+          }
+          // Trigger color logic manually since we filled Family programmatically
+          if(form.elements['Family']) autoColor(form.elements['Family']);
+
+        }).getCropTemplate(name);
+      }
+
+      function submitCrop() {
+        const btn = document.querySelector('button.action');
+        const form = document.getElementById('cropForm');
+        if(!form.Crop_Name.value) { alert("Crop Name is required!"); return; }
+        
+        btn.disabled = true; btn.innerText = "Saving...";
+        
+        const data = {};
+        for(let i=0; i<form.elements.length; i++){
+          const el = form.elements[i];
+          if(el.name) data[el.name] = el.value;
+        }
+        
+        google.script.run
+          .withSuccessHandler(() => {
+             document.getElementById('msg').innerText = "✅ Saved!";
+             setTimeout(() => google.script.host.close(), 1000);
+          })
+          .saveNewCropProfile(data);
+      }
+    </script>
+  </body>
+</html>

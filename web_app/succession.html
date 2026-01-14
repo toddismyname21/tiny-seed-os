@@ -1126,18 +1126,58 @@
             }
         }
 
-        function loadDefaultBeds() {
+        async function loadDefaultBeds() {
             const bedSelect = document.getElementById('bedSelect');
-            // Field configurations with bed counts and lengths
+
+            // Try to load from getFields API first
+            try {
+                const response = await fetch(`${API_URL}?action=getFields`);
+                const data = await response.json();
+
+                if (data.success && data.fields && data.fields.length > 0) {
+                    data.fields.forEach(field => {
+                        if (!field.fieldCode || field.numberOfBeds === 0) return;
+
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = field.fieldName || `Field ${field.fieldCode}`;
+
+                        for (let i = 1; i <= field.numberOfBeds; i++) {
+                            const bedId = `${field.fieldCode}-${String(i).padStart(2, '0')}`;
+                            const length = field.length || 100;
+                            bedData.set(bedId, length);
+
+                            const option = document.createElement('option');
+                            option.value = bedId;
+                            option.textContent = `${bedId} (${length} ft)`;
+                            option.dataset.length = length;
+                            optgroup.appendChild(option);
+                        }
+
+                        bedSelect.appendChild(optgroup);
+                    });
+                    return;
+                }
+            } catch (error) {
+                console.warn('Could not load fields from API, using fallback:', error);
+            }
+
+            // Fallback to hardcoded values if API fails
             const fieldConfig = {
-                'F3L': { beds: 12, length: 300 },
+                'F3L': { beds: 12, length: 400 },
                 'F7M': { beds: 10, length: 250 },
-                'F11M': { beds: 10, length: 250 },
-                'HOL': { beds: 12, length: 300 },
-                'IL': { beds: 12, length: 300 },
-                'JL': { beds: 12, length: 300 },
-                'JS1': { beds: 12, length: 300 },
-                'M': { beds: 12, length: 300 }
+                'F11M': { beds: 10, length: 240 },
+                'HOL': { beds: 12, length: 540 },
+                'IL': { beds: 11, length: 300 },
+                'IOL': { beds: 8, length: 400 },
+                'JL': { beds: 10, length: 460 },
+                'JS1': { beds: 15, length: 320 },
+                'JS4': { beds: 10, length: 300 },
+                'JS6': { beds: 10, length: 360 },
+                'JS10': { beds: 14, length: 350 },
+                'M': { beds: 14, length: 300 },
+                'SO': { beds: 12, length: 400 },
+                'Z3': { beds: 15, length: 520 },
+                'Z5': { beds: 6, length: 300 }
             };
 
             Object.keys(fieldConfig).sort().forEach(field => {

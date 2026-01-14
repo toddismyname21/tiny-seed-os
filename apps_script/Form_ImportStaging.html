@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+      body { padding: 15px; font-family: 'Google Sans', sans-serif; background: #f8f9fa; }
+      .step { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+      h3 { margin-top: 0; color: #188038; font-size: 1.1em; }
+      
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+      th { text-align: left; background: #f1f3f4; padding: 8px; border-bottom: 2px solid #ddd; }
+      td { padding: 8px; border-bottom: 1px solid #eee; }
+      select { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+      
+      button.action { background: #188038; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; width: 100%; font-size: 1em; }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+
+    <div id="step1" class="step">
+      <h3>🚀 Universal Import</h3>
+      <p>I will analyze the data in <b>IMPORT_Staging</b>.</p>
+      <button onclick="scanStaging()" class="action">🔍 Analyze Data</button>
+    </div>
+
+    <div id="step2" class="step hidden">
+      <h3>🧠 Analysis Result</h3>
+      <div id="analysis-result" style="margin-bottom:10px;"></div>
+      
+      <label style="font-weight:bold;">Import As:</label>
+      <select id="importType" onchange="updateMapper()">
+        <option value="CROPS">🥬 Crop Profiles</option>
+        <option value="ORDERS">📦 Purchase/Seed Order</option>
+      </select>
+      <br><br>
+      <button onclick="showMapping()" class="action">Next: Map Columns</button>
+    </div>
+
+    <div id="step3" class="step hidden">
+      <h3>🔗 Map Columns</h3>
+      <div style="max-height: 350px; overflow-y: auto;">
+        <table id="mapTable">
+          <thead><tr><th>Your Header</th><th>➔ Maps To</th></tr></thead>
+          <tbody id="mapBody"></tbody>
+        </table>
+      </div>
+      <br>
+      <button onclick="runImport()" class="action">🚀 Run Import</button>
+    </div>
+
+    <div id="status" style="margin-top:10px; font-weight:bold; color: #188038; text-align: center;"></div>
+
+    <script>
+      let stagingHeaders = [];
+      
+      // Define Fields for Dropdowns
+      const FIELDS_CROPS = [
+        {id: "skip", name: "-- SKIP --"},
+        {id: "Crop_Name", name: "Crop Name (Required)"},
+        {id: "Variety_Default", name: "Variety"},
+        {id: "Family", name: "Family"},
+        {id: "Scientific_Name", name: "Scientific Name"},
+        {id: "Primary_Category", name: "Category"},
+        {id: "Harvest_Unit", name: "Harvest Unit"},
+        {id: "Yield_Lbs_Per_Ft", name: "Yield (lbs/ft)"},
+        {id: "Price_Wholesale", name: "Price (Wholesale)"},
+        {id: "Direct_or_Transplant", name: "Method"},
+        {id: "Rows_Per_Bed", name: "Rows per Bed"},
+        {id: "In_Row_Spacing_In", name: "Spacing (in)"},
+        {id: "Tray_Cell_Count", name: "Tray Size"},
+        {id: "DTM_Average", name: "DTM (Avg)"},
+        {id: "Nursery_Days", name: "Nursery Days"},
+        {id: "Germination_Days", name: "Germ Days"},
+        {id: "Grower_Notes", name: "Notes"}
+      ];
+
+      const FIELDS_ORDERS = [
+        {id: "skip", name: "-- SKIP --"},
+        {id: "Date", name: "Order Date"},
+        {id: "Vendor", name: "Vendor Name"},
+        {id: "Order#", name: "Order # / Invoice"},
+        {id: "Item", name: "Item Name (Required)"},
+        {id: "SKU", name: "SKU / Part #"},
+        {id: "Category", name: "Category"},
+        {id: "Qty", name: "Quantity"},
+        {id: "Unit", name: "Unit (lb/pkt)"},
+        {id: "Cost", name: "Total Cost"},
+        {id: "Status", name: "Status"}
+      ];
+
+      function scanStaging() {
+        document.querySelector('#step1 button').innerText = "Analyzing...";
+        google.script.run.withSuccessHandler(handleScan).analyzeStaging();
+      }
+
+      function handleScan(result) {
+        if(!result.headers.length) { alert("Staging is empty!"); return; }
+        stagingHeaders = result.headers;
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step2').classList.remove('hidden');
+        
+        const sel = document.getElementById('importType');
+        sel.value = result.likelyType;
+        document.getElementById('analysis-result').innerHTML = result.likelyType === "CROPS" ? "Looks like <b>Crop Data</b>." : "Looks like an <b>Order</b>.";
+      }
+
+      function showMapping() {
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step3').classList.remove('hidden');
+        updateMapper();
+      }
+
+      function updateMapper() {
+        const type = document.getElementById('importType').value;
+        const fields = (type === "CROPS") ? FIELDS_CROPS : FIELDS_ORDERS;
+        const tbody = document.getElementById('mapBody');
+        tbody.innerHTML = "";
+
+        stagingHeaders.forEach((header, index) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><b>${header}</b></td>`;
+          
+          const td = document.createElement('td');
+          const select = document.createElement('select');
+          select.id = `map_${index}`;
+          
+          fields.forEach(f => {
+             let opt = document.createElement('option');
+             opt.value = f.id; opt.text = f.name;
+             select.add(opt);
+          });
+
+          // Smart Auto-Select
+          const h = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+          for(let f of fields) {
+             const fName = f.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+             const fId = f.id.toLowerCase().replace(/[^a-z0-9]/g, '');
+             if (h.includes(fId) || fId.includes(h) || h.includes(fName)) select.value = f.id;
+          }
+          
+          td.appendChild(select);
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        });
+      }
+
+      function runImport() {
+        const btn = document.querySelector('#step3 button');
+        btn.disabled = true; btn.innerText = "Processing...";
+        
+        const map = {};
+        stagingHeaders.forEach((_, i) => {
+           const val = document.getElementById(`map_${i}`).value;
+           if(val !== "skip") map[i] = val;
+        });
+
+        google.script.run.withSuccessHandler(res => {
+           document.getElementById('step3').classList.add('hidden');
+           document.getElementById('status').innerText = `✅ Imported ${res} rows!`;
+           setTimeout(() => google.script.host.close(), 2000);
+        }).executeUniversalImport(document.getElementById('importType').value, map);
+      }
+    </script>
+  </body>
+</html>

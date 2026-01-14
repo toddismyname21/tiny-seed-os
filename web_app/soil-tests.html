@@ -552,6 +552,7 @@
             <div class="tab" data-tab="fertigation" onclick="switchTab('fertigation')">Fertigation</div>
             <div class="tab" data-tab="ipmToolkit" onclick="switchTab('ipmToolkit')">IPM Toolkit</div>
             <div class="tab" data-tab="insights" onclick="switchTab('insights')">Farm Insights</div>
+            <div class="tab" data-tab="inventory" onclick="switchTab('inventory')">Inventory</div>
         </div>
 
         <!-- Tests Grid -->
@@ -589,7 +590,9 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Sample Location / Field</label>
-                                <input type="text" id="sampleLocation" required placeholder="e.g., KRET-O or Field 3">
+                                <select id="sampleLocation" required>
+                                    <option value="">-- Select Field --</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Test Date</label>
@@ -754,11 +757,122 @@
         const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
 
         // ============================================
-        // FARM FIELDS - Imported from production spreadsheet
+        // BACKEND SYNC HELPERS
+        // Sync data to Google Sheets with localStorage fallback
+        // ============================================
+
+        /**
+         * Sync data to backend API with localStorage fallback
+         * @param {string} action - The API action to call
+         * @param {object} data - The data to send
+         * @returns {Promise<object>} - Response from API or localStorage confirmation
+         */
+        async function syncToBackend(action, data) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action, ...data }),
+                    redirect: 'follow'
+                });
+                const text = await response.text();
+                try {
+                    const result = JSON.parse(text);
+                    if (result.success) {
+                        return result;
+                    }
+                    throw new Error(result.error || 'API error');
+                } catch (parseErr) {
+                    console.warn('Response parse error:', text.substring(0, 200));
+                    throw new Error('Invalid response from server');
+                }
+            } catch (e) {
+                console.warn('API sync failed, using localStorage:', e.message);
+                return { success: false, error: e.message, offline: true };
+            }
+        }
+
+        /**
+         * Load data from backend API with localStorage fallback
+         * @param {string} action - The API action to call
+         * @param {object} params - Query parameters
+         * @returns {Promise<object>} - Data from API or localStorage
+         */
+        async function loadFromBackend(action, params = {}) {
+            try {
+                const queryString = new URLSearchParams({ action, ...params }).toString();
+                const response = await fetch(`${API_URL}?${queryString}`);
+                const result = await response.json();
+                if (result.success) {
+                    return result;
+                }
+                throw new Error(result.error || 'API error');
+            } catch (e) {
+                console.warn('API load failed:', e.message);
+                return { success: false, error: e.message, offline: true };
+            }
+        }
+
+        /**
+         * Initialize soil data from backend on page load
+         */
+        async function initializeSoilData() {
+            try {
+                // Load compliance records
+                const complianceResult = await loadFromBackend('getComplianceRecords');
+                if (complianceResult.success && complianceResult.data.length > 0) {
+                    localStorage.setItem('complianceRecords', JSON.stringify(complianceResult.data));
+                }
+
+                // Load IPM schedules
+                const ipmResult = await loadFromBackend('getIPMSchedules');
+                if (ipmResult.success && ipmResult.data.length > 0) {
+                    localStorage.setItem('mandatoryIPMSchedules', JSON.stringify(ipmResult.data));
+                }
+
+                // Load fertigation data
+                const fertResult = await loadFromBackend('getFertigationData');
+                if (fertResult.success) {
+                    if (fertResult.data.schedules && fertResult.data.schedules.length > 0) {
+                        localStorage.setItem('fertigationSchedules', JSON.stringify(fertResult.data.schedules));
+                    }
+                    if (fertResult.data.logs && fertResult.data.logs.length > 0) {
+                        localStorage.setItem('fertigationLogs', JSON.stringify(fertResult.data.logs));
+                    }
+                }
+
+                // Load foliar applications
+                const foliarResult = await loadFromBackend('getFoliarApplications');
+                if (foliarResult.success && foliarResult.data.length > 0) {
+                    localStorage.setItem('foliarTasks', JSON.stringify(foliarResult.data));
+                }
+
+                // Load soil amendments
+                const amendResult = await loadFromBackend('getSoilAmendments');
+                if (amendResult.success && amendResult.data.length > 0) {
+                    localStorage.setItem('plannedAmendments', JSON.stringify(amendResult.data));
+                }
+
+                console.info('Soil data initialized from backend');
+            } catch (e) {
+                console.warn('Could not initialize from backend, using localStorage:', e.message);
+            }
+        }
+
+        // Initialize data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSoilData();
+        });
+
+        // ============================================
+        // FARM FIELDS - Loaded from API or fallback
         // Source: 2026 Farm Records - REF_Fields
         // Total Acreage: 7.6 acres
         // ============================================
-        const FARM_FIELDS = {
+        let FARM_FIELDS = {}; // Will be populated from API
+
+        // Fallback field data if API fails
+        const FALLBACK_FIELDS = {
             // Vegetable Production Fields
             'Field F3L': { acreage: 0.51, lengthFt: 400, widthFt: 55, beds: 12, bedWidthIn: 45, pathWidthIn: 12, production: 'vegetable', notes: '' },
             'Field HOL': { acreage: 0.62, lengthFt: 540, widthFt: 50, beds: 12, bedWidthIn: 45, pathWidthIn: 12, production: 'vegetable', notes: '' },
@@ -792,6 +906,52 @@
             'Seedling House': { acreage: 0.07, lengthFt: 100, widthFt: 30, beds: 6, bedWidthIn: 45, pathWidthIn: 12, production: 'seedling', notes: '' }
         };
 
+        // Load fields from API
+        async function loadFieldsFromAPI() {
+            try {
+                const response = await fetch(`${API_URL}?action=getFields`);
+                const data = await response.json();
+
+                if (data.success && data.fields && data.fields.length > 0) {
+                    FARM_FIELDS = {};
+                    data.fields.forEach(f => {
+                        // Determine production type
+                        let production = 'fallow';
+                        if (f.inVegProduction) production = 'vegetable';
+                        else if (f.inFloralProduction) production = 'floral';
+                        else if (f.inPerennialProduction) production = 'perennial';
+                        else if (f.inCoverCrop) production = 'cover';
+
+                        FARM_FIELDS[f.fieldName] = {
+                            acreage: f.acreage,
+                            lengthFt: f.length,
+                            widthFt: f.width,
+                            beds: f.numberOfBeds,
+                            bedWidthIn: f.bedWidth,
+                            pathWidthIn: f.pathWidth,
+                            production: production,
+                            notes: f.notes || ''
+                        };
+                    });
+                    console.log(`Loaded ${data.fields.length} fields from API`);
+                    return true;
+                }
+            } catch (error) {
+                console.warn('Could not load fields from API:', error);
+            }
+            return false;
+        }
+
+        // Initialize FARM_FIELDS with fallback
+        async function initializeFarmFields() {
+            const loaded = await loadFieldsFromAPI();
+            if (!loaded) {
+                console.log('Using fallback field data');
+                FARM_FIELDS = { ...FALLBACK_FIELDS };
+            }
+            populateSampleLocationDropdown();
+        }
+
         // Helper to get field acreage
         function getFieldAcreage(fieldName) {
             const field = FARM_FIELDS[fieldName];
@@ -814,11 +974,23 @@
         let selectedForCompare = [];
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeFarmFields();  // Load fields from API first
             loadSoilTests();
             setupUploadZone();
             document.getElementById('testDate').valueAsDate = new Date();
         });
+
+        // Populate sample location dropdown from FARM_FIELDS
+        function populateSampleLocationDropdown() {
+            const select = document.getElementById('sampleLocation');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">-- Select Field --</option>' +
+                Object.keys(FARM_FIELDS).map(f =>
+                    `<option value="${f}">${f} (${FARM_FIELDS[f].acreage} ac)</option>`
+                ).join('');
+        }
 
         // Upload Zone Setup
         function setupUploadZone() {
@@ -1294,6 +1466,9 @@
                 return;
             } else if (currentTab === 'ipmToolkit') {
                 renderIPMToolkit();
+                return;
+            } else if (currentTab === 'inventory') {
+                renderInventoryTab();
                 return;
             }
 
@@ -6242,10 +6417,33 @@
                 createdAt: new Date().toISOString()
             };
 
-            // Store in local storage for now (will connect to backend later)
+            // Store in local storage
             let plannedAmendments = JSON.parse(localStorage.getItem('plannedAmendments') || '[]');
             plannedAmendments.push(plannedAmendment);
             localStorage.setItem('plannedAmendments', JSON.stringify(plannedAmendments));
+
+            // Sync to backend
+            syncToBackend('saveSoilAmendment', {
+                date: plannedAmendment.createdAt,
+                field: plannedAmendment.location,
+                zone: plannedAmendment.areaLabel,
+                products: plannedAmendment.recommendations.map(r => r.material).join(', '),
+                rates: plannedAmendment.recommendations.map(r => `${r.amountPerAcre} ${r.unit}/ac`).join(', '),
+                status: plannedAmendment.status,
+                plannedDate: plannedAmendment.applicationDate,
+                notes: `Crop: ${plannedAmendment.crop}, Area: ${plannedAmendment.areaSize} ${plannedAmendment.areaUnit}`,
+                source: 'soil_test_recommendation'
+            }).then(result => {
+                if (result.success && result.id) {
+                    let amendments = JSON.parse(localStorage.getItem('plannedAmendments') || '[]');
+                    const idx = amendments.findIndex(a => a.id === plannedAmendment.id);
+                    if (idx !== -1) {
+                        amendments[idx].backendId = result.id;
+                        amendments[idx].synced = true;
+                        localStorage.setItem('plannedAmendments', JSON.stringify(amendments));
+                    }
+                }
+            });
 
             // Create task for the amendment application
             createAmendmentTask(plannedAmendment);
@@ -6293,6 +6491,7 @@
 
         async function checkInventoryAndCreateOrderTasks(recommendations, areaInAcres) {
             // For now, log the inventory check - will connect to actual inventory later
+            console.log('Inventory check for:', recommendations.map(r => ({
                 material: r.material,
                 needed: r.amount * areaInAcres
             })));
@@ -6529,13 +6728,49 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Field/Location *</label>
-                                        <input type="text" id="compField" required placeholder="e.g., Field 3, Greenhouse A" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <select id="compField" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                            <option value="">-- Select Field --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div class="form-group">
+                                        <label>Planting/Batch</label>
+                                        <select id="compBatch" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                            <option value="">-- Select Planting (Optional) --</option>
+                                        </select>
+                                        <small style="color: #64748b; font-size: 0.75rem;">Links this input to a specific crop planting</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Product Category</label>
+                                        <select id="compCategory" onchange="filterComplianceProducts()" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                            <option value="">-- All Categories --</option>
+                                            <option value="AMENDMENT">Amendments</option>
+                                            <option value="FERTILIZER">Fertilizers</option>
+                                            <option value="PESTICIDE">Pesticides</option>
+                                            <option value="BIOLOGICAL">Biologicals</option>
+                                            <option value="SEED">Seeds</option>
+                                            <option value="SUPPLY">Supplies</option>
+                                        </select>
                                     </div>
                                 </div>
 
                                 <div class="form-group" style="margin-bottom: 1rem;">
                                     <label>Material/Product Name *</label>
-                                    <input type="text" id="compMaterial" required placeholder="e.g., Agricultural Lime, Fish Emulsion" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                    <select id="compMaterial" required onchange="autoFillProductDetails()" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <option value="">-- Select Product --</option>
+                                    </select>
+                                    <div id="compProductInfo" style="margin-top: 0.5rem; padding: 0.5rem; background: #f0fdf4; border-radius: 0.25rem; font-size: 0.85rem; display: none;">
+                                        <span id="compProductStock" style="color: #166534;"></span>
+                                    </div>
+                                    <div style="margin-top: 0.5rem;">
+                                        <label style="font-size: 0.85rem; color: #64748b;">
+                                            <input type="checkbox" id="compManualEntry" onchange="toggleManualProductEntry()">
+                                            Product not in inventory? Enter manually
+                                        </label>
+                                        <input type="text" id="compMaterialManual" placeholder="Enter product name manually" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; margin-top: 0.25rem; display: none;">
+                                    </div>
                                 </div>
 
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
@@ -6544,8 +6779,20 @@
                                         <input type="text" id="compRate" required placeholder="e.g., 500 lbs/acre, 2 gal/100 ft" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
                                     </div>
                                     <div class="form-group">
-                                        <label>Total Amount Applied</label>
-                                        <input type="text" id="compAmount" placeholder="e.g., 250 lbs, 10 gallons" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <label>Total Amount Used</label>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <input type="number" step="0.01" id="compAmount" placeholder="e.g., 10" style="flex: 1; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                            <select id="compAmountUnit" style="width: 80px; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                                <option value="">unit</option>
+                                                <option value="lb">lb</option>
+                                                <option value="oz">oz</option>
+                                                <option value="gal">gal</option>
+                                                <option value="qt">qt</option>
+                                                <option value="pt">pt</option>
+                                                <option value="fl oz">fl oz</option>
+                                                <option value="each">each</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -6557,17 +6804,37 @@
                                             <option value="approved">Approved by Certifier</option>
                                             <option value="restricted">Restricted Use</option>
                                             <option value="pending">Pending Review</option>
+                                            <option value="not_listed">Not Listed</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label>Crop/Purpose</label>
-                                        <input type="text" id="compCrop" placeholder="e.g., Tomatoes, Cover Crop" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <label>Applied By</label>
+                                        <input type="text" id="compAppliedBy" placeholder="e.g., Sam, John" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
                                     </div>
                                 </div>
 
                                 <div class="form-group" style="margin-bottom: 1rem;">
                                     <label>Manufacturer/Supplier</label>
-                                    <input type="text" id="compManufacturer" placeholder="e.g., Down to Earth, Neptune's Harvest" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                    <input type="text" id="compManufacturer" placeholder="Auto-filled from product or enter manually" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 1rem;">
+                                    <label>Photo Documentation</label>
+                                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                                        <button type="button" onclick="captureCompliancePhoto()" style="background: #7c3aed; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 1.2em;">&#128247;</span> Take Photo
+                                        </button>
+                                        <input type="file" id="compPhotoFile" accept="image/*" capture="environment" onchange="handleCompliancePhotoFile(event)" style="display: none;">
+                                        <button type="button" onclick="document.getElementById('compPhotoFile').click()" style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer;">
+                                            Upload File
+                                        </button>
+                                    </div>
+                                    <div id="compPhotoPreview" style="margin-top: 0.5rem; display: none;">
+                                        <img id="compPhotoImg" style="max-width: 200px; max-height: 150px; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                                        <button type="button" onclick="clearCompliancePhoto()" style="margin-left: 0.5rem; background: #fee2e2; color: #dc2626; border: none; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem;">Remove</button>
+                                    </div>
+                                    <input type="hidden" id="compPhotoUrl">
+                                    <input type="hidden" id="compPhotoBase64">
                                 </div>
 
                                 <div class="form-group" style="margin-bottom: 1rem;">
@@ -6660,8 +6927,9 @@
                                 <th>Field</th>
                                 <th>Material</th>
                                 <th>Rate</th>
-                                <th>OMRI Status</th>
-                                <th>Crop</th>
+                                <th>OMRI</th>
+                                <th>Batch</th>
+                                <th style="text-align: center;">Photo</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -6678,13 +6946,14 @@
                                             border-radius: 9999px;
                                             font-size: 0.75rem;
                                             font-weight: 500;
-                                            background: ${r.omriStatus === 'omri' ? '#dcfce7' : r.omriStatus === 'approved' ? '#dbeafe' : r.omriStatus === 'restricted' ? '#fef3c7' : '#f1f5f9'};
-                                            color: ${r.omriStatus === 'omri' ? '#166534' : r.omriStatus === 'approved' ? '#1e40af' : r.omriStatus === 'restricted' ? '#92400e' : '#64748b'};
+                                            background: ${r.omriStatus === 'omri' ? '#dcfce7' : r.omriStatus === 'approved' ? '#dbeafe' : r.omriStatus === 'restricted' ? '#fef3c7' : r.omriStatus === 'not_listed' ? '#fecaca' : '#f1f5f9'};
+                                            color: ${r.omriStatus === 'omri' ? '#166534' : r.omriStatus === 'approved' ? '#1e40af' : r.omriStatus === 'restricted' ? '#92400e' : r.omriStatus === 'not_listed' ? '#991b1b' : '#64748b'};
                                         ">
-                                            ${r.omriStatus === 'omri' ? 'OMRI Listed' : r.omriStatus === 'approved' ? 'Approved' : r.omriStatus === 'restricted' ? 'Restricted' : 'Pending'}
+                                            ${r.omriStatus === 'omri' ? 'OMRI' : r.omriStatus === 'approved' ? 'Approved' : r.omriStatus === 'restricted' ? 'Restricted' : r.omriStatus === 'not_listed' ? 'Not Listed' : 'Pending'}
                                         </span>
                                     </td>
-                                    <td>${r.crop || '-'}</td>
+                                    <td>${r.batchId ? `<span style="font-family: monospace; font-size: 0.8rem; background: #e0e7ff; padding: 0.125rem 0.5rem; border-radius: 0.25rem;">${r.batchId}</span>` : '-'}</td>
+                                    <td style="text-align: center;">${r.photoUrl ? `<a href="${r.photoUrl}" target="_blank" style="color: #22c55e; text-decoration: none;" title="View photo">&#128247;</a>` : '-'}</td>
                                     <td>
                                         <button onclick="editComplianceRecord('${r.id}')" style="background: none; border: none; color: #7c3aed; cursor: pointer; padding: 0.25rem;">Edit</button>
                                         <button onclick="deleteComplianceRecord('${r.id}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0.25rem;">Delete</button>
@@ -6700,33 +6969,353 @@
             `;
         }
 
-        function showAddComplianceRecord() {
+        async function showAddComplianceRecord() {
             document.getElementById('complianceModalTitle').textContent = 'Add Input Record';
             document.getElementById('complianceForm').reset();
             document.getElementById('compRecordId').value = '';
             document.getElementById('compAppDate').value = new Date().toISOString().split('T')[0];
+
+            // Populate field dropdown from FARM_FIELDS
+            const fieldSelect = document.getElementById('compField');
+            fieldSelect.innerHTML = '<option value="">-- Select Field --</option>' +
+                Object.keys(FARM_FIELDS).map(f =>
+                    `<option value="${f}">${f} (${FARM_FIELDS[f].acreage} ac)</option>`
+                ).join('');
+
+            // Load inventory products if not already loaded
+            if (inventoryProducts.length === 0) {
+                try {
+                    const result = await loadFromBackend('getInventoryProducts');
+                    inventoryProducts = result.data || [];
+                } catch (e) {
+                    console.log('Could not load inventory products:', e);
+                }
+            }
+
+            // Populate products dropdown
+            filterComplianceProducts();
+
+            // Populate batch dropdown with active plantings (if available)
+            populateComplianceBatchDropdown();
+
+            // Reset manual entry mode
+            document.getElementById('compManualEntry').checked = false;
+            document.getElementById('compMaterialManual').style.display = 'none';
+            document.getElementById('compMaterial').style.display = 'block';
+            document.getElementById('compProductInfo').style.display = 'none';
+
+            // Clear photo preview
+            clearCompliancePhoto();
+
             document.getElementById('complianceModal').style.display = 'flex';
+        }
+
+        // Filter products dropdown by category
+        function filterComplianceProducts() {
+            const category = document.getElementById('compCategory').value;
+            const productSelect = document.getElementById('compMaterial');
+
+            let filtered = inventoryProducts;
+            if (category) {
+                filtered = inventoryProducts.filter(p => p.Category === category);
+            }
+
+            productSelect.innerHTML = '<option value="">-- Select Product --</option>' +
+                filtered.map(p =>
+                    `<option value="${p.Product_ID}" data-name="${p.Product_Name}" data-omri="${p.OMRI_Status || ''}" data-mfg="${p.Manufacturer || ''}" data-qty="${p.Current_Qty || 0}" data-unit="${p.Unit || ''}">${p.Product_Name}${p.Manufacturer ? ' - ' + p.Manufacturer : ''}</option>`
+                ).join('');
+        }
+
+        // Auto-fill product details when selection changes
+        function autoFillProductDetails() {
+            const productSelect = document.getElementById('compMaterial');
+            const selectedOption = productSelect.options[productSelect.selectedIndex];
+
+            if (!selectedOption || !selectedOption.value) {
+                document.getElementById('compProductInfo').style.display = 'none';
+                return;
+            }
+
+            // Auto-fill OMRI status
+            const omriStatus = selectedOption.dataset.omri;
+            if (omriStatus) {
+                const omriMap = {
+                    'OMRI Listed': 'omri',
+                    'Approved': 'approved',
+                    'Restricted': 'restricted',
+                    'Pending': 'pending',
+                    'Not Listed': 'not_listed'
+                };
+                document.getElementById('compOMRI').value = omriMap[omriStatus] || 'omri';
+            }
+
+            // Auto-fill manufacturer
+            const manufacturer = selectedOption.dataset.mfg;
+            if (manufacturer) {
+                document.getElementById('compManufacturer').value = manufacturer;
+            }
+
+            // Show current stock
+            const qty = selectedOption.dataset.qty;
+            const unit = selectedOption.dataset.unit;
+            document.getElementById('compProductStock').textContent =
+                `Current stock: ${qty} ${unit} in inventory`;
+            document.getElementById('compProductInfo').style.display = 'block';
+
+            // Set the amount unit to match product unit
+            if (unit) {
+                document.getElementById('compAmountUnit').value = unit;
+            }
+        }
+
+        // Toggle manual product entry
+        function toggleManualProductEntry() {
+            const isManual = document.getElementById('compManualEntry').checked;
+            document.getElementById('compMaterial').style.display = isManual ? 'none' : 'block';
+            document.getElementById('compMaterial').required = !isManual;
+            document.getElementById('compMaterialManual').style.display = isManual ? 'block' : 'none';
+            document.getElementById('compMaterialManual').required = isManual;
+            document.getElementById('compProductInfo').style.display = 'none';
+        }
+
+        // Populate batch dropdown with active plantings
+        async function populateComplianceBatchDropdown() {
+            const batchSelect = document.getElementById('compBatch');
+            batchSelect.innerHTML = '<option value="">-- Select Planting (Optional) --</option>';
+
+            try {
+                // Try to load planning data from backend
+                const result = await loadFromBackend('getPlanningData');
+                if (result.data && result.data.length > 0) {
+                    // Filter for active plantings
+                    const activePlantings = result.data.filter(p =>
+                        ['PLANNED', 'Sown', 'PLANTED', 'HARVESTING', 'GROWING'].includes(p.STATUS)
+                    );
+
+                    batchSelect.innerHTML += activePlantings.map(p =>
+                        `<option value="${p.Batch_ID}">${p.Batch_ID} - ${p.Crop_Name || 'Unknown'} - ${p.Field || 'Unknown Field'}</option>`
+                    ).join('');
+                }
+            } catch (e) {
+                console.log('Could not load planting data for batch dropdown:', e);
+            }
+        }
+
+        // ============================================
+        // PHOTO CAPTURE FUNCTIONS
+        // ============================================
+
+        // Capture photo using device camera
+        async function captureCompliancePhoto() {
+            try {
+                // Check if getUserMedia is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    // Fallback to file input
+                    document.getElementById('compPhotoFile').click();
+                    return;
+                }
+
+                // Create camera modal
+                const cameraModal = document.createElement('div');
+                cameraModal.id = 'cameraModal';
+                cameraModal.innerHTML = `
+                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <video id="cameraVideo" autoplay playsinline style="max-width: 100%; max-height: 70vh; border-radius: 0.5rem;"></video>
+                        <canvas id="cameraCanvas" style="display: none;"></canvas>
+                        <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                            <button onclick="takeCameraSnapshot()" style="background: #22c55e; color: white; border: none; padding: 1rem 2rem; border-radius: 9999px; cursor: pointer; font-size: 1.1em; font-weight: bold;">
+                                Capture
+                            </button>
+                            <button onclick="closeCameraModal()" style="background: #ef4444; color: white; border: none; padding: 1rem 2rem; border-radius: 9999px; cursor: pointer; font-size: 1.1em;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(cameraModal);
+
+                // Start camera stream
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                const video = document.getElementById('cameraVideo');
+                video.srcObject = stream;
+                window.currentCameraStream = stream;
+
+            } catch (err) {
+                console.log('Camera error:', err);
+                // Fallback to file input
+                document.getElementById('compPhotoFile').click();
+            }
+        }
+
+        // Take snapshot from camera video
+        function takeCameraSnapshot() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+
+            // Set canvas size to video size
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw video frame to canvas
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            // Compress and get base64
+            const base64 = canvas.toDataURL('image/jpeg', 0.7);
+
+            // Set preview
+            setCompliancePhotoPreview(base64);
+
+            // Close camera modal
+            closeCameraModal();
+        }
+
+        // Close camera modal and stop stream
+        function closeCameraModal() {
+            if (window.currentCameraStream) {
+                window.currentCameraStream.getTracks().forEach(track => track.stop());
+                window.currentCameraStream = null;
+            }
+            const modal = document.getElementById('cameraModal');
+            if (modal) modal.remove();
+        }
+
+        // Handle file input for photo
+        function handleCompliancePhotoFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Compress the image
+                compressImage(e.target.result, 800, 0.7, (compressedBase64) => {
+                    setCompliancePhotoPreview(compressedBase64);
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Compress image to reduce size
+        function compressImage(base64, maxWidth, quality, callback) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // Scale down if needed
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                callback(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.src = base64;
+        }
+
+        // Set photo preview and store base64
+        function setCompliancePhotoPreview(base64) {
+            document.getElementById('compPhotoImg').src = base64;
+            document.getElementById('compPhotoBase64').value = base64;
+            document.getElementById('compPhotoPreview').style.display = 'block';
+        }
+
+        // Clear photo preview
+        function clearCompliancePhoto() {
+            document.getElementById('compPhotoImg').src = '';
+            document.getElementById('compPhotoBase64').value = '';
+            document.getElementById('compPhotoUrl').value = '';
+            document.getElementById('compPhotoPreview').style.display = 'none';
+            document.getElementById('compPhotoFile').value = '';
+        }
+
+        // Upload photo to Google Drive and get URL
+        async function uploadCompliancePhoto(base64) {
+            if (!base64) return null;
+
+            try {
+                // Extract just the base64 data (remove data:image/jpeg;base64, prefix)
+                const base64Data = base64.split(',')[1];
+
+                const result = await syncToBackend('uploadProductPhoto', {
+                    base64: base64Data,
+                    fileName: `compliance_${Date.now()}.jpg`,
+                    folder: 'Compliance_Photos'
+                });
+
+                if (result.success && result.url) {
+                    return result.url;
+                }
+            } catch (e) {
+                console.log('Photo upload error:', e);
+            }
+            return null;
         }
 
         function closeComplianceModal() {
             document.getElementById('complianceModal').style.display = 'none';
+            // Clean up any camera stream
+            closeCameraModal();
         }
 
-        function saveComplianceRecord(event) {
+        async function saveComplianceRecord(event) {
             event.preventDefault();
 
             const recordId = document.getElementById('compRecordId').value;
+            const isManualEntry = document.getElementById('compManualEntry').checked;
+
+            // Get product name - from dropdown or manual entry
+            let productId = '';
+            let materialName = '';
+            if (isManualEntry) {
+                materialName = document.getElementById('compMaterialManual').value;
+            } else {
+                const productSelect = document.getElementById('compMaterial');
+                productId = productSelect.value;
+                const selectedOption = productSelect.options[productSelect.selectedIndex];
+                materialName = selectedOption ? selectedOption.dataset.name : '';
+            }
+
+            const amountValue = document.getElementById('compAmount').value;
+            const amountUnit = document.getElementById('compAmountUnit').value;
+            const amountWithUnit = amountValue ? `${amountValue} ${amountUnit}`.trim() : '';
+
+            // Handle photo upload
+            let photoUrl = document.getElementById('compPhotoUrl').value;
+            const photoBase64 = document.getElementById('compPhotoBase64').value;
+            if (photoBase64 && !photoUrl) {
+                // Upload new photo
+                showToast('Uploading photo...', 'info');
+                photoUrl = await uploadCompliancePhoto(photoBase64);
+            }
+
             const record = {
                 id: recordId || Date.now().toString(),
+                date: document.getElementById('compAppDate').value,
                 applicationDate: document.getElementById('compAppDate').value,
                 field: document.getElementById('compField').value,
-                material: document.getElementById('compMaterial').value,
+                productId: productId,
+                product: materialName,
+                material: materialName,
                 rate: document.getElementById('compRate').value,
-                amount: document.getElementById('compAmount').value,
+                amount: amountWithUnit,
+                amountQty: parseFloat(amountValue) || 0,
+                amountUnit: amountUnit,
                 omriStatus: document.getElementById('compOMRI').value,
-                crop: document.getElementById('compCrop').value,
+                batchId: document.getElementById('compBatch').value,
+                appliedBy: document.getElementById('compAppliedBy').value,
                 manufacturer: document.getElementById('compManufacturer').value,
                 notes: document.getElementById('compNotes').value,
+                photoUrl: photoUrl || '',
                 updatedAt: new Date().toISOString()
             };
 
@@ -6741,27 +7330,129 @@
                 complianceRecords.push(record);
             }
 
+            // Save to localStorage first (immediate)
             localStorage.setItem('complianceRecords', JSON.stringify(complianceRecords));
+
+            // Sync to backend (async)
+            syncToBackend('saveComplianceRecord', record).then(result => {
+                if (result.success) {
+                    showToast('Compliance record saved & synced', 'success');
+                } else {
+                    showToast('Compliance record saved locally', 'success');
+                }
+            });
+
+            // Deduct from inventory if product is from inventory and amount was entered
+            if (productId && record.amountQty > 0) {
+                try {
+                    await syncToBackend('deductInventoryOnApplication', {
+                        productId: productId,
+                        qty: record.amountQty,
+                        batchId: record.batchId,
+                        field: record.field,
+                        appliedBy: record.appliedBy,
+                        notes: `Applied ${record.rate} - ${record.notes || ''}`
+                    });
+                    showToast('Inventory deducted', 'success');
+
+                    // Update local inventory cache
+                    const product = inventoryProducts.find(p => p.Product_ID === productId);
+                    if (product) {
+                        product.Current_Qty = (parseFloat(product.Current_Qty) || 0) - record.amountQty;
+                    }
+                } catch (e) {
+                    console.log('Could not deduct inventory:', e);
+                }
+            }
+
             closeComplianceModal();
             filterComplianceRecords();
-            showToast('Compliance record saved', 'success');
         }
 
-        function editComplianceRecord(id) {
+        async function editComplianceRecord(id) {
             const record = complianceRecords.find(r => r.id === id);
             if (!record) return;
 
             document.getElementById('complianceModalTitle').textContent = 'Edit Input Record';
+
+            // First populate the dropdowns
+            const fieldSelect = document.getElementById('compField');
+            fieldSelect.innerHTML = '<option value="">-- Select Field --</option>' +
+                Object.keys(FARM_FIELDS).map(f =>
+                    `<option value="${f}">${f} (${FARM_FIELDS[f].acreage} ac)</option>`
+                ).join('');
+
+            // Load inventory products if needed
+            if (inventoryProducts.length === 0) {
+                try {
+                    const result = await loadFromBackend('getInventoryProducts');
+                    inventoryProducts = result.data || [];
+                } catch (e) {
+                    console.log('Could not load inventory products:', e);
+                }
+            }
+            filterComplianceProducts();
+            await populateComplianceBatchDropdown();
+
+            // Now set the values
             document.getElementById('compRecordId').value = record.id;
             document.getElementById('compAppDate').value = record.applicationDate;
             document.getElementById('compField').value = record.field;
-            document.getElementById('compMaterial').value = record.material;
             document.getElementById('compRate').value = record.rate;
-            document.getElementById('compAmount').value = record.amount || '';
             document.getElementById('compOMRI').value = record.omriStatus;
-            document.getElementById('compCrop').value = record.crop || '';
             document.getElementById('compManufacturer').value = record.manufacturer || '';
             document.getElementById('compNotes').value = record.notes || '';
+            document.getElementById('compBatch').value = record.batchId || '';
+            document.getElementById('compAppliedBy').value = record.appliedBy || '';
+
+            // Handle amount - could be stored as "10 gal" or just "10"
+            if (record.amountQty) {
+                document.getElementById('compAmount').value = record.amountQty;
+                document.getElementById('compAmountUnit').value = record.amountUnit || '';
+            } else if (record.amount) {
+                // Try to parse old format "10 gal"
+                const parts = record.amount.match(/^([\d.]+)\s*(.*)$/);
+                if (parts) {
+                    document.getElementById('compAmount').value = parts[1];
+                    document.getElementById('compAmountUnit').value = parts[2] || '';
+                } else {
+                    document.getElementById('compAmount').value = record.amount;
+                }
+            }
+
+            // Handle product - either from inventory or manual entry
+            if (record.productId) {
+                document.getElementById('compManualEntry').checked = false;
+                document.getElementById('compMaterial').style.display = 'block';
+                document.getElementById('compMaterialManual').style.display = 'none';
+                document.getElementById('compMaterial').value = record.productId;
+                autoFillProductDetails();
+            } else if (record.material) {
+                // Manual entry - check if product exists in inventory by name
+                const matchingProduct = inventoryProducts.find(p => p.Product_Name === record.material);
+                if (matchingProduct) {
+                    document.getElementById('compManualEntry').checked = false;
+                    document.getElementById('compMaterial').style.display = 'block';
+                    document.getElementById('compMaterialManual').style.display = 'none';
+                    document.getElementById('compMaterial').value = matchingProduct.Product_ID;
+                    autoFillProductDetails();
+                } else {
+                    document.getElementById('compManualEntry').checked = true;
+                    document.getElementById('compMaterial').style.display = 'none';
+                    document.getElementById('compMaterialManual').style.display = 'block';
+                    document.getElementById('compMaterialManual').value = record.material;
+                }
+            }
+
+            // Load existing photo if present
+            if (record.photoUrl) {
+                document.getElementById('compPhotoImg').src = record.photoUrl;
+                document.getElementById('compPhotoUrl').value = record.photoUrl;
+                document.getElementById('compPhotoPreview').style.display = 'block';
+            } else {
+                clearCompliancePhoto();
+            }
+
             document.getElementById('complianceModal').style.display = 'flex';
         }
 
@@ -6774,17 +7465,19 @@
         }
 
         function exportComplianceCSV() {
-            const headers = ['Application Date', 'Field', 'Material', 'Rate', 'Amount', 'OMRI Status', 'Crop', 'Manufacturer', 'Notes'];
+            const headers = ['Application Date', 'Field', 'Batch_ID', 'Material', 'Rate', 'Amount', 'OMRI Status', 'Applied_By', 'Manufacturer', 'Notes', 'Photo_URL'];
             const rows = complianceRecords.map(r => [
                 r.applicationDate,
                 r.field,
+                r.batchId || '',
                 r.material,
                 r.rate,
                 r.amount || '',
                 r.omriStatus,
-                r.crop || '',
+                r.appliedBy || '',
                 r.manufacturer || '',
-                (r.notes || '').replace(/"/g, '""')
+                (r.notes || '').replace(/"/g, '""'),
+                r.photoUrl || ''
             ]);
 
             let csv = headers.join(',') + '\n';
@@ -7612,7 +8305,10 @@
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                                     <div class="form-group">
                                         <label>Zone Name *</label>
-                                        <input type="text" id="zoneName" required placeholder="e.g., Field 3, High Tunnel A" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <select id="zoneName" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                            <option value="">-- Select Zone/Field --</option>
+                                            ${Object.keys(FARM_FIELDS).map(f => `<option value="${f}">${f}</option>`).join('')}
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label>Acreage</label>
@@ -9697,6 +10393,25 @@
             foliarTasks.push(task);
             localStorage.setItem('foliarTasks', JSON.stringify(foliarTasks));
 
+            // Sync to backend
+            syncToBackend('saveFoliarApplication', {
+                date: task.scheduledDate,
+                recipe: task.name,
+                field: task.fields.join(', '),
+                products: task.products.join(', '),
+                notes: task.notes,
+                status: task.status
+            }).then(result => {
+                if (result.success && result.id) {
+                    const idx = foliarTasks.findIndex(t => t.id === task.id);
+                    if (idx !== -1) {
+                        foliarTasks[idx].backendId = result.id;
+                        foliarTasks[idx].synced = true;
+                        localStorage.setItem('foliarTasks', JSON.stringify(foliarTasks));
+                    }
+                }
+            });
+
             closeFoliarScheduleModal();
             renderFoliarProgram();
             showToast('Spray task created!', 'success');
@@ -11198,6 +11913,24 @@
             fertigationSchedules.push(schedule);
             localStorage.setItem('fertigationSchedules', JSON.stringify(fertigationSchedules));
 
+            // Sync to backend
+            syncToBackend('saveFertigationData', {
+                type: 'schedule',
+                cropKey: schedule.cropKey,
+                field: schedule.field,
+                data: schedule
+            }).then(result => {
+                if (result.success && result.id) {
+                    // Update local record with backend ID
+                    const idx = fertigationSchedules.findIndex(s => s.id === schedule.id);
+                    if (idx !== -1) {
+                        fertigationSchedules[idx].backendId = result.id;
+                        fertigationSchedules[idx].synced = true;
+                        localStorage.setItem('fertigationSchedules', JSON.stringify(fertigationSchedules));
+                    }
+                }
+            });
+
             closeFertigationModal();
             renderFertigationTab();
             showToast('Fertigation schedule created!', 'success');
@@ -11268,6 +12001,22 @@
 
             fertigationLogs.push(log);
             localStorage.setItem('fertigationLogs', JSON.stringify(fertigationLogs));
+
+            // Sync to backend
+            syncToBackend('saveFertigationData', {
+                type: 'log',
+                field: log.field,
+                data: log
+            }).then(result => {
+                if (result.success && result.id) {
+                    const idx = fertigationLogs.findIndex(l => l.id === log.id);
+                    if (idx !== -1) {
+                        fertigationLogs[idx].backendId = result.id;
+                        fertigationLogs[idx].synced = true;
+                        localStorage.setItem('fertigationLogs', JSON.stringify(fertigationLogs));
+                    }
+                }
+            });
 
             // Also record in FarmLearning
             const product = FERTIGATION_PRODUCTS[log.product];
@@ -11999,8 +12748,8 @@
             `;
         }
 
-        // Save mandatory spray schedule to localStorage
-        function saveMandatorySchedule(cropName, sowingDate) {
+        // Save mandatory spray schedule to localStorage AND backend
+        async function saveMandatorySchedule(cropName, sowingDate) {
             const scheduleData = generateMandatorySpraySchedule(cropName, sowingDate);
             if (!scheduleData) return;
 
@@ -12013,17 +12762,26 @@
                 return;
             }
 
-            savedSchedules.push({
+            const newSchedule = {
                 id: Date.now(),
                 cropName: cropName,
                 sowingDate: sowingDate,
                 protocolName: scheduleData.protocol.name,
                 schedule: scheduleData.schedule,
                 createdAt: new Date().toISOString()
-            });
+            };
 
+            // Save to localStorage first (immediate)
+            savedSchedules.push(newSchedule);
             localStorage.setItem('mandatoryIPMSchedules', JSON.stringify(savedSchedules));
-            alert(`Saved! ${scheduleData.protocol.name} for ${cropName} added to active schedules.`);
+
+            // Sync to backend (async)
+            const result = await syncToBackend('saveIPMSchedule', newSchedule);
+            if (result.success) {
+                alert(`Saved & Synced! ${scheduleData.protocol.name} for ${cropName} added to active schedules.`);
+            } else {
+                alert(`Saved locally! ${scheduleData.protocol.name} for ${cropName} added. (Will sync when online)`);
+            }
         }
 
         // Export schedule as CSV
@@ -12064,6 +12822,677 @@
         function printMandatorySchedule() {
             window.print();
         }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INVENTORY MANAGEMENT SYSTEM
+        // Complete inventory tracking with seed-to-sale traceability
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let inventoryProducts = [];
+        let inventoryTransactions = [];
+        let lowStockProducts = [];
+        let inventorySearchTerm = '';
+        let inventoryCategoryFilter = 'all';
+        let inventoryLocationFilter = 'all';
+
+        const PRODUCT_CATEGORIES = ['SEED', 'AMENDMENT', 'FERTILIZER', 'PESTICIDE', 'BIOLOGICAL', 'SUPPLY'];
+        const STORAGE_LOCATIONS = ['Barn', 'Greenhouse', 'High Tunnel', 'Field Shed', 'Other'];
+        const OMRI_STATUSES = ['OMRI Listed', 'Approved by Certifier', 'Restricted Use', 'Not Listed'];
+
+        /**
+         * Load inventory data from backend
+         */
+        async function loadInventoryData() {
+            try {
+                const [productsResult, lowStockResult] = await Promise.all([
+                    loadFromBackend('getInventoryProducts'),
+                    loadFromBackend('getLowStockProducts')
+                ]);
+
+                if (productsResult.success) {
+                    inventoryProducts = productsResult.data || [];
+                }
+                if (lowStockResult.success) {
+                    lowStockProducts = lowStockResult.data || [];
+                }
+            } catch (e) {
+                console.warn('Failed to load inventory data:', e);
+            }
+        }
+
+        /**
+         * Render the main inventory tab
+         */
+        async function renderInventoryTab() {
+            const container = document.getElementById('testsContainer');
+            container.innerHTML = `<div class="loading"><div class="spinner"></div><p>Loading inventory...</p></div>`;
+
+            await loadInventoryData();
+
+            const filteredProducts = inventoryProducts.filter(p => {
+                const matchesSearch = !inventorySearchTerm ||
+                    p.Product_Name?.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
+                    p.Manufacturer?.toLowerCase().includes(inventorySearchTerm.toLowerCase());
+                const matchesCategory = inventoryCategoryFilter === 'all' || p.Category === inventoryCategoryFilter;
+                const matchesLocation = inventoryLocationFilter === 'all' || p.Location === inventoryLocationFilter;
+                return matchesSearch && matchesCategory && matchesLocation;
+            });
+
+            container.innerHTML = `
+                <div style="padding: 1.5rem;">
+                    <!-- Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2 style="margin: 0; color: #1e293b;">Inventory Management</h2>
+                        <button onclick="showAddProductModal()" class="btn btn-primary" style="background: #7c3aed; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">
+                            + Add Product
+                        </button>
+                    </div>
+
+                    <!-- Low Stock Alerts -->
+                    ${lowStockProducts.length > 0 ? `
+                        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1.5rem;">
+                            <h3 style="color: #dc2626; margin: 0 0 0.75rem 0; font-size: 0.95rem;">Low Stock Alerts (${lowStockProducts.length})</h3>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                                ${lowStockProducts.slice(0, 6).map(p => `
+                                    <div style="background: white; border: 1px solid #fecaca; border-radius: 0.5rem; padding: 0.75rem; min-width: 150px;">
+                                        <div style="font-weight: 600; font-size: 0.875rem;">${p.Product_Name}</div>
+                                        <div style="color: #dc2626; font-size: 0.8rem;">${p.Current_Qty} ${p.Unit} left</div>
+                                        <div style="color: #6b7280; font-size: 0.75rem;">Reorder: ${p.Reorder_Point} ${p.Unit}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Filters -->
+                    <div style="background: white; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <input type="text" placeholder="Search products..." value="${inventorySearchTerm}"
+                                onchange="inventorySearchTerm = this.value; renderInventoryTab();"
+                                style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                        </div>
+                        <div>
+                            <select onchange="inventoryCategoryFilter = this.value; renderInventoryTab();"
+                                style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                <option value="all" ${inventoryCategoryFilter === 'all' ? 'selected' : ''}>All Categories</option>
+                                ${PRODUCT_CATEGORIES.map(cat => `
+                                    <option value="${cat}" ${inventoryCategoryFilter === cat ? 'selected' : ''}>${cat}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <select onchange="inventoryLocationFilter = this.value; renderInventoryTab();"
+                                style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                <option value="all" ${inventoryLocationFilter === 'all' ? 'selected' : ''}>All Locations</option>
+                                ${STORAGE_LOCATIONS.map(loc => `
+                                    <option value="${loc}" ${inventoryLocationFilter === loc ? 'selected' : ''}>${loc}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <button onclick="showRecordPurchaseModal()" class="btn" style="background: #10b981; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; cursor: pointer;">
+                            + Record Purchase
+                        </button>
+                    </div>
+
+                    <!-- Products Table -->
+                    <div style="background: white; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        ${filteredProducts.length === 0 ? `
+                            <div style="padding: 3rem; text-align: center; color: #6b7280;">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
+                                <h3>No products found</h3>
+                                <p>Add products to start tracking your inventory</p>
+                            </div>
+                        ` : `
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                                <thead>
+                                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                                        <th style="padding: 0.75rem 1rem; text-align: left;">Product</th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left;">Category</th>
+                                        <th style="padding: 0.75rem 1rem; text-align: left;">Location</th>
+                                        <th style="padding: 0.75rem 1rem; text-align: right;">Stock</th>
+                                        <th style="padding: 0.75rem 1rem; text-align: right;">Reorder</th>
+                                        <th style="padding: 0.75rem 1rem; text-align: center;">OMRI</th>
+                                        <th style="padding: 0.75rem 1rem; text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${filteredProducts.map(p => {
+                                        const isLow = parseFloat(p.Current_Qty) <= parseFloat(p.Reorder_Point);
+                                        return `
+                                            <tr style="border-bottom: 1px solid #e2e8f0; ${isLow ? 'background: #fef2f2;' : ''}">
+                                                <td style="padding: 0.75rem 1rem;">
+                                                    <div style="font-weight: 600;">${p.Product_Name || 'Unnamed'}</div>
+                                                    <div style="font-size: 0.75rem; color: #6b7280;">${p.Manufacturer || ''}</div>
+                                                </td>
+                                                <td style="padding: 0.75rem 1rem;">
+                                                    <span style="background: ${getCategoryColor(p.Category)}; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem;">
+                                                        ${p.Category || 'N/A'}
+                                                    </span>
+                                                </td>
+                                                <td style="padding: 0.75rem 1rem; color: #6b7280;">${p.Location || '-'}</td>
+                                                <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; ${isLow ? 'color: #dc2626;' : ''}">
+                                                    ${p.Current_Qty || 0} ${p.Unit || ''}
+                                                </td>
+                                                <td style="padding: 0.75rem 1rem; text-align: right; color: #6b7280;">
+                                                    ${p.Reorder_Point || 0} ${p.Unit || ''}
+                                                </td>
+                                                <td style="padding: 0.75rem 1rem; text-align: center;">
+                                                    ${p.OMRI_Status === 'OMRI Listed' ? '<span style="color: #10b981;">✓</span>' :
+                                                      p.OMRI_Status === 'Not Listed' ? '<span style="color: #ef4444;">✗</span>' :
+                                                      '<span style="color: #f59e0b;">○</span>'}
+                                                </td>
+                                                <td style="padding: 0.75rem 1rem; text-align: center;">
+                                                    <button onclick="showEditProductModal('${p.Product_ID}')" style="background: none; border: none; cursor: pointer; color: #6b7280; padding: 0.25rem;">✏️</button>
+                                                    <button onclick="showProductHistory('${p.Product_ID}')" style="background: none; border: none; cursor: pointer; color: #6b7280; padding: 0.25rem;">📋</button>
+                                                    <button onclick="showQuickAdjustModal('${p.Product_ID}')" style="background: none; border: none; cursor: pointer; color: #6b7280; padding: 0.25rem;">±</button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        `}
+                    </div>
+
+                    <!-- Summary Stats -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                        <div style="background: white; border-radius: 0.5rem; padding: 1rem; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #7c3aed;">${inventoryProducts.length}</div>
+                            <div style="font-size: 0.875rem; color: #6b7280;">Total Products</div>
+                        </div>
+                        <div style="background: white; border-radius: 0.5rem; padding: 1rem; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #dc2626;">${lowStockProducts.length}</div>
+                            <div style="font-size: 0.875rem; color: #6b7280;">Low Stock</div>
+                        </div>
+                        <div style="background: white; border-radius: 0.5rem; padding: 1rem; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">${inventoryProducts.filter(p => p.OMRI_Status === 'OMRI Listed').length}</div>
+                            <div style="font-size: 0.875rem; color: #6b7280;">OMRI Listed</div>
+                        </div>
+                        <div style="background: white; border-radius: 0.5rem; padding: 1rem; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #f59e0b;">${inventoryProducts.filter(p => p.Category === 'SEED').length}</div>
+                            <div style="font-size: 0.875rem; color: #6b7280;">Seed Varieties</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getCategoryColor(category) {
+            const colors = {
+                'SEED': '#f59e0b',
+                'AMENDMENT': '#8b5cf6',
+                'FERTILIZER': '#10b981',
+                'PESTICIDE': '#ef4444',
+                'BIOLOGICAL': '#06b6d4',
+                'SUPPLY': '#6b7280'
+            };
+            return colors[category] || '#6b7280';
+        }
+
+        /**
+         * Show modal to add a new product
+         */
+        function showAddProductModal() {
+            const modal = document.getElementById('fertigationModal'); // Reuse existing modal
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 1rem; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto;">
+                    <div style="background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; padding: 1.5rem; border-radius: 1rem 1rem 0 0;">
+                        <h3 style="margin: 0;">Add New Product</h3>
+                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.875rem;">Add a product to your inventory catalog</p>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <form id="addProductForm" onsubmit="saveNewProduct(event)">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Product Name *</label>
+                                    <input type="text" id="prodName" required placeholder="e.g., Entrust SC" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Category *</label>
+                                    <select id="prodCategory" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        ${PRODUCT_CATEGORIES.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Manufacturer</label>
+                                    <input type="text" id="prodManufacturer" placeholder="e.g., Corteva" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">OMRI Status *</label>
+                                    <select id="prodOMRI" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        ${OMRI_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Unit</label>
+                                    <select id="prodUnit" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <option value="qt">Quart (qt)</option>
+                                        <option value="gal">Gallon (gal)</option>
+                                        <option value="lb">Pound (lb)</option>
+                                        <option value="oz">Ounce (oz)</option>
+                                        <option value="fl oz">Fluid Ounce (fl oz)</option>
+                                        <option value="bag">Bag</option>
+                                        <option value="pint">Pint</option>
+                                        <option value="each">Each</option>
+                                        <option value="pack">Pack</option>
+                                        <option value="tray">Tray</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Cost per Unit ($)</label>
+                                    <input type="number" step="0.01" id="prodCost" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Current Quantity</label>
+                                    <input type="number" step="0.01" id="prodQty" value="0" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Reorder Point</label>
+                                    <input type="number" step="0.01" id="prodReorder" value="0" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Storage Location</label>
+                                    <select id="prodLocation" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <option value="">Select location...</option>
+                                        ${STORAGE_LOCATIONS.map(loc => `<option value="${loc}">${loc}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Lot Number</label>
+                                    <input type="text" id="prodLot" placeholder="Supplier's lot #" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                            </div>
+
+                            <!-- Seed-specific fields -->
+                            <div id="seedFields" style="display: none; margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 0.5rem;">
+                                <h4 style="margin: 0 0 0.75rem 0; color: #92400e;">Seed Information</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                    <div class="form-group">
+                                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Seeds per Pack</label>
+                                        <input type="number" id="prodSeedsPerPack" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Germination Rate (%)</label>
+                                        <input type="number" id="prodGermRate" min="0" max="100" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Notes</label>
+                                <textarea id="prodNotes" rows="2" placeholder="Application rates, storage notes, etc." style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;"></textarea>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                                <button type="button" onclick="closeFertigationModal()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border: 1px solid #e2e8f0; background: white; border-radius: 0.375rem; cursor: pointer;">Cancel</button>
+                                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background: #7c3aed; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-weight: 600;">Save Product</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+
+            // Show/hide seed fields based on category
+            document.getElementById('prodCategory').addEventListener('change', (e) => {
+                document.getElementById('seedFields').style.display = e.target.value === 'SEED' ? 'block' : 'none';
+            });
+        }
+
+        /**
+         * Save a new product to inventory
+         */
+        async function saveNewProduct(event) {
+            event.preventDefault();
+
+            const productData = {
+                Product_Name: document.getElementById('prodName').value,
+                Category: document.getElementById('prodCategory').value,
+                Manufacturer: document.getElementById('prodManufacturer').value,
+                OMRI_Status: document.getElementById('prodOMRI').value,
+                Unit: document.getElementById('prodUnit').value,
+                Cost_Per_Unit: parseFloat(document.getElementById('prodCost').value) || 0,
+                Current_Qty: parseFloat(document.getElementById('prodQty').value) || 0,
+                Reorder_Point: parseFloat(document.getElementById('prodReorder').value) || 0,
+                Location: document.getElementById('prodLocation').value,
+                Lot_Number: document.getElementById('prodLot').value,
+                Notes: document.getElementById('prodNotes').value,
+                Active: true
+            };
+
+            // Add seed-specific fields if applicable
+            if (productData.Category === 'SEED') {
+                productData.Seeds_Per_Pack = parseInt(document.getElementById('prodSeedsPerPack').value) || 0;
+                productData.Germination_Rate = parseInt(document.getElementById('prodGermRate').value) || 0;
+            }
+
+            const result = await syncToBackend('saveProduct', productData);
+
+            if (result.success) {
+                showToast('Product added to inventory!', 'success');
+                closeFertigationModal();
+                renderInventoryTab();
+            } else {
+                showToast('Failed to save product: ' + (result.error || 'Unknown error'), 'error');
+            }
+        }
+
+        /**
+         * Show modal to record a purchase (stock in)
+         */
+        function showRecordPurchaseModal() {
+            const modal = document.getElementById('fertigationModal');
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 1rem; max-width: 500px; width: 95%; max-height: 90vh; overflow-y: auto;">
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 1.5rem; border-radius: 1rem 1rem 0 0;">
+                        <h3 style="margin: 0;">Record Purchase</h3>
+                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.875rem;">Add stock to your inventory</p>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <form onsubmit="recordPurchase(event)">
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Product *</label>
+                                <select id="purchaseProduct" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                    <option value="">Select product...</option>
+                                    ${inventoryProducts.map(p => `<option value="${p.Product_ID}" data-unit="${p.Unit}">${p.Product_Name} (${p.Current_Qty} ${p.Unit} in stock)</option>`).join('')}
+                                </select>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Quantity *</label>
+                                    <input type="number" step="0.01" id="purchaseQty" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Date</label>
+                                    <input type="date" id="purchaseDate" value="${new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Notes</label>
+                                <input type="text" id="purchaseNotes" placeholder="Vendor, invoice #, etc." style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                            </div>
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                                <button type="button" onclick="closeFertigationModal()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border: 1px solid #e2e8f0; background: white; border-radius: 0.375rem; cursor: pointer;">Cancel</button>
+                                <button type="submit" class="btn btn-success" style="padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-weight: 600;">Record Purchase</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * Record a purchase transaction
+         */
+        async function recordPurchase(event) {
+            event.preventDefault();
+
+            const productId = document.getElementById('purchaseProduct').value;
+            const qty = parseFloat(document.getElementById('purchaseQty').value);
+            const date = document.getElementById('purchaseDate').value;
+            const notes = document.getElementById('purchaseNotes').value;
+
+            const result = await syncToBackend('recordTransaction', {
+                productId: productId,
+                type: 'PURCHASE',
+                qty: qty, // Positive for purchase
+                date: date,
+                notes: notes
+            });
+
+            if (result.success) {
+                showToast(`Added ${qty} to inventory!`, 'success');
+                closeFertigationModal();
+                renderInventoryTab();
+            } else {
+                showToast('Failed to record purchase: ' + (result.error || 'Unknown error'), 'error');
+            }
+        }
+
+        /**
+         * Show quick adjust modal for a product
+         */
+        function showQuickAdjustModal(productId) {
+            const product = inventoryProducts.find(p => p.Product_ID === productId);
+            if (!product) return;
+
+            const modal = document.getElementById('fertigationModal');
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 1rem; max-width: 400px; width: 95%;">
+                    <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 1.5rem; border-radius: 1rem 1rem 0 0;">
+                        <h3 style="margin: 0;">Adjust Inventory</h3>
+                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.875rem;">${product.Product_Name}</p>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <div style="font-size: 2rem; font-weight: 700;">${product.Current_Qty} ${product.Unit}</div>
+                            <div style="color: #6b7280;">Current Stock</div>
+                        </div>
+                        <form onsubmit="quickAdjustInventory(event, '${productId}')">
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Adjustment (+/-)</label>
+                                <input type="number" step="0.01" id="adjustQty" required placeholder="e.g., -2 or +5" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 1.25rem; text-align: center;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Reason</label>
+                                <input type="text" id="adjustReason" placeholder="e.g., Spoilage, count correction" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                            </div>
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                                <button type="button" onclick="closeFertigationModal()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border: 1px solid #e2e8f0; background: white; border-radius: 0.375rem; cursor: pointer;">Cancel</button>
+                                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background: #6366f1; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-weight: 600;">Adjust</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * Quick adjust inventory quantity
+         */
+        async function quickAdjustInventory(event, productId) {
+            event.preventDefault();
+
+            const qty = parseFloat(document.getElementById('adjustQty').value);
+            const reason = document.getElementById('adjustReason').value;
+
+            const result = await syncToBackend('adjustInventory', {
+                productId: productId,
+                qty: qty,
+                reason: reason
+            });
+
+            if (result.success) {
+                showToast('Inventory adjusted!', 'success');
+                closeFertigationModal();
+                renderInventoryTab();
+            } else {
+                showToast('Failed to adjust: ' + (result.error || 'Unknown error'), 'error');
+            }
+        }
+
+        /**
+         * Show product transaction history
+         */
+        async function showProductHistory(productId) {
+            const product = inventoryProducts.find(p => p.Product_ID === productId);
+            if (!product) return;
+
+            const result = await loadFromBackend('getTransactionHistory', { productId: productId });
+
+            const modal = document.getElementById('fertigationModal');
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 1rem; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto;">
+                    <div style="background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; padding: 1.5rem; border-radius: 1rem 1rem 0 0;">
+                        <h3 style="margin: 0;">${product.Product_Name}</h3>
+                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.875rem;">Transaction History</p>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        ${result.success && result.data.length > 0 ? `
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                                <thead>
+                                    <tr style="background: #f8fafc;">
+                                        <th style="padding: 0.5rem; text-align: left;">Date</th>
+                                        <th style="padding: 0.5rem; text-align: left;">Type</th>
+                                        <th style="padding: 0.5rem; text-align: right;">Qty</th>
+                                        <th style="padding: 0.5rem; text-align: left;">Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${result.data.map(t => `
+                                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                                            <td style="padding: 0.5rem;">${t.Date}</td>
+                                            <td style="padding: 0.5rem;">
+                                                <span style="background: ${t.Transaction_Type === 'PURCHASE' ? '#10b981' : t.Transaction_Type === 'APPLICATION' ? '#ef4444' : '#6b7280'}; color: white; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem;">
+                                                    ${t.Transaction_Type}
+                                                </span>
+                                            </td>
+                                            <td style="padding: 0.5rem; text-align: right; color: ${parseFloat(t.Qty) >= 0 ? '#10b981' : '#ef4444'};">
+                                                ${parseFloat(t.Qty) >= 0 ? '+' : ''}${t.Qty}
+                                            </td>
+                                            <td style="padding: 0.5rem; color: #6b7280;">${t.Notes || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : `
+                            <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                                No transactions recorded yet
+                            </div>
+                        `}
+                        <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                            <button onclick="closeFertigationModal()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border: 1px solid #e2e8f0; background: white; border-radius: 0.375rem; cursor: pointer;">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * Show edit product modal
+         */
+        function showEditProductModal(productId) {
+            const product = inventoryProducts.find(p => p.Product_ID === productId);
+            if (!product) return;
+
+            const modal = document.getElementById('fertigationModal');
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 1rem; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto;">
+                    <div style="background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; padding: 1.5rem; border-radius: 1rem 1rem 0 0;">
+                        <h3 style="margin: 0;">Edit Product</h3>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <form onsubmit="updateProduct(event, '${productId}')">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Product Name *</label>
+                                    <input type="text" id="editProdName" value="${product.Product_Name || ''}" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Category</label>
+                                    <select id="editProdCategory" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        ${PRODUCT_CATEGORIES.map(cat => `<option value="${cat}" ${product.Category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Manufacturer</label>
+                                    <input type="text" id="editProdManufacturer" value="${product.Manufacturer || ''}" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">OMRI Status</label>
+                                    <select id="editProdOMRI" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        ${OMRI_STATUSES.map(s => `<option value="${s}" ${product.OMRI_Status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Unit</label>
+                                    <select id="editProdUnit" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        ${['qt', 'gal', 'lb', 'oz', 'fl oz', 'bag', 'pint', 'each', 'pack', 'tray'].map(u =>
+                                            `<option value="${u}" ${product.Unit === u ? 'selected' : ''}>${u}</option>`
+                                        ).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Cost per Unit ($)</label>
+                                    <input type="number" step="0.01" id="editProdCost" value="${product.Cost_Per_Unit || ''}" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Reorder Point</label>
+                                    <input type="number" step="0.01" id="editProdReorder" value="${product.Reorder_Point || ''}" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Location</label>
+                                    <select id="editProdLocation" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <option value="">Select...</option>
+                                        ${STORAGE_LOCATIONS.map(loc => `<option value="${loc}" ${product.Location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Notes</label>
+                                <textarea id="editProdNotes" rows="2" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">${product.Notes || ''}</textarea>
+                            </div>
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                                <button type="button" onclick="closeFertigationModal()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border: 1px solid #e2e8f0; background: white; border-radius: 0.375rem; cursor: pointer;">Cancel</button>
+                                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background: #7c3aed; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-weight: 600;">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * Update an existing product
+         */
+        async function updateProduct(event, productId) {
+            event.preventDefault();
+
+            const productData = {
+                Product_ID: productId,
+                Product_Name: document.getElementById('editProdName').value,
+                Category: document.getElementById('editProdCategory').value,
+                Manufacturer: document.getElementById('editProdManufacturer').value,
+                OMRI_Status: document.getElementById('editProdOMRI').value,
+                Unit: document.getElementById('editProdUnit').value,
+                Cost_Per_Unit: parseFloat(document.getElementById('editProdCost').value) || 0,
+                Reorder_Point: parseFloat(document.getElementById('editProdReorder').value) || 0,
+                Location: document.getElementById('editProdLocation').value,
+                Notes: document.getElementById('editProdNotes').value
+            };
+
+            const result = await syncToBackend('saveProduct', productData);
+
+            if (result.success) {
+                showToast('Product updated!', 'success');
+                closeFertigationModal();
+                renderInventoryTab();
+            } else {
+                showToast('Failed to update: ' + (result.error || 'Unknown error'), 'error');
+            }
+        }
+
+        /**
+         * Get products for dropdown (for use in other forms like compliance)
+         */
+        function getInventoryDropdownOptions(category = null) {
+            let filtered = inventoryProducts.filter(p => p.Active !== false && p.Active !== 'false');
+            if (category) {
+                filtered = filtered.filter(p => p.Category === category);
+            }
+            return filtered.map(p => ({
+                value: p.Product_ID,
+                label: p.Product_Name,
+                omriStatus: p.OMRI_Status,
+                unit: p.Unit,
+                currentQty: p.Current_Qty
+            }));
+        }
+
     </script>
 </body>
 </html>
