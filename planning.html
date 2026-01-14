@@ -1066,6 +1066,7 @@
                             <th>Method</th>
                             <th>Bed</th>
                             <th>Feet</th>
+                            <th>Tray</th>
                             <th>GH Sow</th>
                             <th>Transplant</th>
                             <th>Status</th>
@@ -1074,7 +1075,7 @@
                     </thead>
                     <tbody id="plantingsBody">
                         <tr>
-                            <td colspan="10">
+                            <td colspan="11">
                                 <div class="loading">
                                     <i class="fas fa-spinner"></i>
                                     <p>Loading plantings...</p>
@@ -1184,6 +1185,29 @@
                     <div class="panel-field">
                         <label>Bed Feet</label>
                         <input type="number" id="panelFeet" onchange="panelFieldChange('Feet_Used', this.value)">
+                    </div>
+                </div>
+                <div class="panel-field-row">
+                    <div class="panel-field">
+                        <label>Tray Size (cells)</label>
+                        <select id="panelTraySize" onchange="panelFieldChange('Tray_Cell_Count', this.value)">
+                            <option value="">-- Select --</option>
+                            <option value="6">6 cell</option>
+                            <option value="12">12 cell</option>
+                            <option value="18">18 cell</option>
+                            <option value="32">32 cell</option>
+                            <option value="50">50 cell</option>
+                            <option value="72">72 cell</option>
+                            <option value="98">98 cell</option>
+                            <option value="128">128 cell</option>
+                            <option value="162">162 cell</option>
+                            <option value="200">200 cell</option>
+                            <option value="288">288 cell</option>
+                        </select>
+                    </div>
+                    <div class="panel-field">
+                        <label>Trays Needed</label>
+                        <input type="number" id="panelTraysNeeded" min="0" onchange="panelFieldChange('Trays_Needed', this.value)">
                     </div>
                 </div>
                 <div class="panel-field">
@@ -1450,7 +1474,7 @@
             if (filteredPlantings.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="10">
+                        <td colspan="11">
                             <div class="empty-state">
                                 <i class="fas fa-inbox"></i>
                                 <h3>No plantings found</h3>
@@ -1546,6 +1570,7 @@
                         <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Planting_Method', 'select')" data-field="Planting_Method" data-value="${p.Planting_Method || ''}">${p.Planting_Method || '--'}</td>
                         <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Target_Bed_ID', 'text')" data-field="Target_Bed_ID" data-value="${p.Target_Bed_ID || ''}">${p.Target_Bed_ID || 'Unassigned'}</td>
                         <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Feet_Used', 'number')" data-field="Feet_Used" data-value="${p.Feet_Used || ''}">${p.Feet_Used || '--'}</td>
+                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Tray_Cell_Count', 'tray')" data-field="Tray_Cell_Count" data-value="${p.Tray_Cell_Count || ''}">${p.Tray_Cell_Count ? p.Tray_Cell_Count + ' cell' : '--'}</td>
                         <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Plan_GH_Sow', 'date')" data-field="Plan_GH_Sow" data-value="${ghSowValue}">
                             <div class="date-cell">
                                 <span class="date-main">${formatDate(actGhSow || ghSowDate)}</span>
@@ -1738,6 +1763,23 @@
                         <option value="COMPLETE" ${currentValue === 'COMPLETE' ? 'selected' : ''}>Complete</option>
                     </select>
                 `;
+            } else if (type === 'tray') {
+                inputHtml = `
+                    <select onchange="finishInlineEdit(this.value)" onblur="cancelInlineEdit()" onkeydown="handleInlineKeydown(event)">
+                        <option value="">--</option>
+                        <option value="6" ${currentValue === '6' ? 'selected' : ''}>6 cell</option>
+                        <option value="12" ${currentValue === '12' ? 'selected' : ''}>12 cell</option>
+                        <option value="18" ${currentValue === '18' ? 'selected' : ''}>18 cell</option>
+                        <option value="32" ${currentValue === '32' ? 'selected' : ''}>32 cell</option>
+                        <option value="50" ${currentValue === '50' ? 'selected' : ''}>50 cell</option>
+                        <option value="72" ${currentValue === '72' ? 'selected' : ''}>72 cell</option>
+                        <option value="98" ${currentValue === '98' ? 'selected' : ''}>98 cell</option>
+                        <option value="128" ${currentValue === '128' ? 'selected' : ''}>128 cell</option>
+                        <option value="162" ${currentValue === '162' ? 'selected' : ''}>162 cell</option>
+                        <option value="200" ${currentValue === '200' ? 'selected' : ''}>200 cell</option>
+                        <option value="288" ${currentValue === '288' ? 'selected' : ''}>288 cell</option>
+                    </select>
+                `;
             } else if (type === 'date') {
                 inputHtml = `<input type="date" value="${currentValue}" onchange="finishInlineEdit(this.value)" onblur="cancelInlineEdit()" onkeydown="handleInlineKeydown(event)">`;
             } else if (type === 'number') {
@@ -1784,6 +1826,8 @@
                     const date = parseDate(planting[field]);
                     const dateStr = formatDate(date);
                     cell.innerHTML = `<div class="date-cell"><span class="date-main">${dateStr}</span></div>`;
+                } else if (field === 'Tray_Cell_Count') {
+                    cell.textContent = planting[field] ? planting[field] + ' cell' : '--';
                 } else {
                     cell.textContent = planting[field] || '--';
                 }
@@ -1821,6 +1865,8 @@
                 const date = parseDate(value);
                 const dateStr = formatDate(date);
                 cell.innerHTML = `<div class="date-cell"><span class="date-main">${dateStr}</span></div>`;
+            } else if (field === 'Tray_Cell_Count') {
+                cell.textContent = value ? value + ' cell' : '--';
             } else {
                 cell.textContent = value || '--';
             }
@@ -1957,6 +2003,8 @@
             document.getElementById('panelVariety').value = planting.Variety || '';
             document.getElementById('panelMethod').value = planting.Planting_Method || 'Transplant';
             document.getElementById('panelFeet').value = planting.Feet_Used || '';
+            document.getElementById('panelTraySize').value = planting.Tray_Cell_Count || '';
+            document.getElementById('panelTraysNeeded').value = planting.Trays_Needed || '';
             document.getElementById('panelBed').value = planting.Target_Bed_ID || '';
             document.getElementById('panelGHSow').value = formatDateForInput(planting.Plan_GH_Sow);
             document.getElementById('panelTransplant').value = formatDateForInput(planting.Plan_Transplant);
