@@ -542,9 +542,9 @@ function createUsersSheet(ss) {
   // Add default admin user
   const adminRow = [
     'USR-001',           // User_ID
-    'admin',             // Username
-    '1234',              // PIN (change this!)
-    'Farm Admin',        // Full_Name
+    'todd',              // Username
+    '7714',              // PIN
+    'Todd',              // Full_Name
     '',                  // Email
     'Admin',             // Role
     true,                // Is_Active
