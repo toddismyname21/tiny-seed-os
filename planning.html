@@ -1367,33 +1367,51 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
+            // When a specific status is selected, bypass date restrictions
+            const bypassDateRestriction = status !== '';
+
             filteredPlantings = allPlantings.filter(p => {
                 // View filter
                 if (currentView === 'greenhouse') {
-                    // Show transplant/paperpot that have been sown but not transplanted
+                    // Show transplant/paperpot methods for greenhouse view
                     const method = (p.Planting_Method || '').toLowerCase();
                     const isTransplant = method.includes('transplant') || method.includes('paperpot');
-                    const isSown = p.Act_GH_Sow && p.Act_GH_Sow !== '';
-                    const isTransplanted = p.Act_Transplant && p.Act_Transplant !== '';
-                    if (!isTransplant || isTransplanted) return false;
-                    // Also show planned GH sowings coming up
-                    if (!isSown) {
-                        const ghSowDate = parseDate(p.Plan_GH_Sow);
-                        if (!ghSowDate) return false;
-                        const daysUntil = Math.floor((ghSowDate - today) / (1000 * 60 * 60 * 24));
-                        if (daysUntil > 14) return false; // Only show next 14 days
+                    if (!isTransplant) return false;
+
+                    // If status filter is set, show all matching items (no date restriction)
+                    if (bypassDateRestriction) {
+                        // Just filter by method - status filter applied below
+                    } else {
+                        // Default behavior: show sown but not transplanted, or upcoming planned
+                        const isSown = p.Act_GH_Sow && p.Act_GH_Sow !== '';
+                        const isTransplanted = p.Act_Transplant && p.Act_Transplant !== '';
+                        if (isTransplanted) return false;
+                        if (!isSown) {
+                            const ghSowDate = parseDate(p.Plan_GH_Sow);
+                            if (!ghSowDate) return false;
+                            const daysUntil = Math.floor((ghSowDate - today) / (1000 * 60 * 60 * 24));
+                            if (daysUntil > 14) return false; // Only show next 14 days
+                        }
                     }
                 } else if (currentView === 'transplant') {
-                    // Show plantings ready for transplant (next 14 days)
+                    // Show transplant/paperpot methods for transplant view
                     const method = (p.Planting_Method || '').toLowerCase();
                     const isTransplant = method.includes('transplant') || method.includes('paperpot');
-                    const isTransplanted = p.Act_Transplant && p.Act_Transplant !== '';
-                    if (!isTransplant || isTransplanted) return false;
+                    if (!isTransplant) return false;
 
-                    const transplantDate = parseDate(p.Plan_Transplant);
-                    if (!transplantDate) return false;
-                    const daysUntil = Math.floor((transplantDate - today) / (1000 * 60 * 60 * 24));
-                    if (daysUntil > 14 || daysUntil < -7) return false;
+                    // If status filter is set, show all matching items (no date restriction)
+                    if (bypassDateRestriction) {
+                        // Just filter by method - status filter applied below
+                    } else {
+                        // Default behavior: show ready for transplant within date window
+                        const isTransplanted = p.Act_Transplant && p.Act_Transplant !== '';
+                        if (isTransplanted) return false;
+
+                        const transplantDate = parseDate(p.Plan_Transplant);
+                        if (!transplantDate) return false;
+                        const daysUntil = Math.floor((transplantDate - today) / (1000 * 60 * 60 * 24));
+                        if (daysUntil > 14 || daysUntil < -7) return false;
+                    }
                 }
 
                 // Search filter
