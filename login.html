@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed Farm OS - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2d5a27;
+            --primary-dark: #1e3d1a;
+            --primary-light: #4a7c43;
+            --accent: #8fbc8f;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --error: #ef4444;
+            --success: #22c55e;
+            --border: #475569;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a2744 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .brand-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .brand-tagline {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+        }
+
+        .login-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 14px 14px 44px;
+            font-size: 16px;
+            font-family: inherit;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            background: var(--bg-dark);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .pin-input-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .pin-digit {
+            width: 52px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            font-family: inherit;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .pin-digit:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            background: var(--bg-dark);
+        }
+
+        .pin-digit.filled {
+            border-color: var(--primary);
+            background: var(--primary-dark);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .login-btn:hover {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            transform: translateY(-1px);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-btn .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        .quick-access {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .quick-access-title {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .quick-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .quick-link {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quick-link:hover {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            border-color: var(--primary);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 24px 20px;
+            }
+
+            .pin-digit {
+                width: 46px;
+                height: 54px;
+                font-size: 22px;
+            }
+
+            .brand-name {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">🌱</div>
+            <h1 class="brand-name">Tiny Seed Farm</h1>
+            <p class="brand-tagline">Farm Management System</p>
+        </div>
+
+        <div class="login-card">
+            <h2 class="login-title">Sign In</h2>
+
+            <div class="error-message" id="errorMessage">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorText">Invalid credentials</span>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text"
+                               id="username"
+                               class="form-input"
+                               placeholder="Enter your username"
+                               autocomplete="username"
+                               required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">PIN</label>
+                    <div class="pin-input-container">
+                        <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="0">
+                        <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="1">
+                        <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="2">
+                        <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="3">
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Sign In</span>
+                </button>
+            </form>
+
+            <div class="quick-access">
+                <p class="quick-access-title">Quick Access Portals</p>
+                <div class="quick-links">
+                    <a href="web_app/customer.html" class="quick-link">
+                        <i class="fas fa-shopping-cart"></i>
+                        Customer
+                    </a>
+                    <a href="web_app/driver.html" class="quick-link">
+                        <i class="fas fa-truck"></i>
+                        Driver
+                    </a>
+                    <a href="employee.html" class="quick-link">
+                        <i class="fas fa-user-clock"></i>
+                        Employee
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <p class="footer">
+            &copy; 2026 Tiny Seed Farm &bull; Regenerative Agriculture
+        </p>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CONFIGURATION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxtWxaZPcJbnej76PlcLtQrMU1RVefcFHnzs5k9HImxfIYA4jIQaRvwkCQMRZSkIlTy/exec';
+
+        // Session storage key
+        const SESSION_KEY = 'tinyseed_session';
+
+        // Role-based redirects
+        const ROLE_REDIRECTS = {
+            'Admin': 'index.html',
+            'Manager': 'index.html',
+            'Field_Lead': 'index.html',
+            'Driver': 'web_app/driver.html',
+            'Employee': 'employee.html'
+        };
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CHECK EXISTING SESSION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        (function checkSession() {
+            const session = localStorage.getItem(SESSION_KEY);
+            if (session) {
+                try {
+                    const data = JSON.parse(session);
+                    // Check if session is less than 24 hours old
+                    if (data.timestamp && (Date.now() - data.timestamp) < 24 * 60 * 60 * 1000) {
+                        // Valid session, redirect to appropriate page
+                        const redirect = ROLE_REDIRECTS[data.role] || 'index.html';
+                        window.location.href = redirect;
+                        return;
+                    }
+                } catch (e) {
+                    localStorage.removeItem(SESSION_KEY);
+                }
+            }
+        })();
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PIN INPUT HANDLING
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const pinInputs = document.querySelectorAll('.pin-digit');
+
+        pinInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+
+                // Only allow numbers
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = '';
+                    return;
+                }
+
+                // Update filled state
+                e.target.classList.toggle('filled', value.length > 0);
+
+                // Auto-advance to next input
+                if (value.length === 1 && index < pinInputs.length - 1) {
+                    pinInputs[index + 1].focus();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                // Handle backspace
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    pinInputs[index - 1].focus();
+                    pinInputs[index - 1].value = '';
+                    pinInputs[index - 1].classList.remove('filled');
+                }
+            });
+
+            // Select all on focus
+            input.addEventListener('focus', () => {
+                input.select();
+            });
+        });
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GET PIN VALUE
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function getPIN() {
+            return Array.from(pinInputs).map(input => input.value).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SHOW ERROR
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // LOGIN FORM SUBMISSION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const username = document.getElementById('username').value.trim();
+            const pin = getPIN();
+
+            if (!username) {
+                showError('Please enter your username');
+                return;
+            }
+
+            if (pin.length !== 4) {
+                showError('Please enter your 4-digit PIN');
+                return;
+            }
+
+            const loginBtn = document.getElementById('loginBtn');
+            const originalContent = loginBtn.innerHTML;
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<div class="spinner"></div><span>Signing in...</span>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=authenticateUser&username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // Store session
+                    const session = {
+                        userId: result.user.User_ID,
+                        username: result.user.Username,
+                        fullName: result.user.Full_Name,
+                        role: result.user.Role,
+                        timestamp: Date.now(),
+                        token: result.token
+                    };
+                    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
+                    // Redirect based on role
+                    const redirect = ROLE_REDIRECTS[result.user.Role] || 'index.html';
+                    window.location.href = redirect;
+                } else {
+                    showError(result.error || 'Invalid username or PIN');
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = originalContent;
+
+                    // Clear PIN inputs
+                    pinInputs.forEach(input => {
+                        input.value = '';
+                        input.classList.remove('filled');
+                    });
+                    pinInputs[0].focus();
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Connection error. Please try again.');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = originalContent;
+            }
+        });
+
+        // Focus username on load
+        document.getElementById('username').focus();
+    </script>
+</body>
+</html>

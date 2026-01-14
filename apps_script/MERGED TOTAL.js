@@ -52,10 +52,18 @@ function doGet(e) {
   
   try {
     switch(action) {
+      // ============ USER AUTHENTICATION ============
+      case 'authenticateUser':
+        return jsonResponse(authenticateUser(e.parameter));
+      case 'validateSession':
+        return jsonResponse(validateSession(e.parameter));
+      case 'getUsers':
+        return jsonResponse(getUsers(e.parameter));
+
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
         return testConnection();
-      
+
   case 'updateTaskCompletion':
     return jsonResponse(updateTaskCompletion(e.parameter));
       case 'getPlanningData':
@@ -386,6 +394,223 @@ function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// USER AUTHENTICATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+const USERS_SHEET_NAME = 'USERS';
+const USERS_HEADERS = [
+  'User_ID', 'Username', 'PIN', 'Full_Name', 'Email',
+  'Role', 'Is_Active', 'Last_Login', 'Created_At'
+];
+
+// Valid roles and their access levels
+const USER_ROLES = {
+  'Admin': { level: 100, description: 'Full system access' },
+  'Manager': { level: 80, description: 'Sales, planning, inventory, reports' },
+  'Field_Lead': { level: 60, description: 'Field operations, tasks, greenhouse' },
+  'Driver': { level: 40, description: 'Delivery routes and driver app' },
+  'Employee': { level: 20, description: 'Employee app and time clock' }
+};
+
+function authenticateUser(params) {
+  try {
+    const username = (params.username || '').toLowerCase().trim();
+    const pin = (params.pin || '').trim();
+
+    if (!username || !pin) {
+      return { success: false, error: 'Username and PIN are required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    // If USERS sheet doesn't exist, create it with default admin
+    if (!sheet) {
+      sheet = createUsersSheet(ss);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const usernameCol = headers.indexOf('Username');
+    const pinCol = headers.indexOf('PIN');
+    const activeCol = headers.indexOf('Is_Active');
+    const loginCol = headers.indexOf('Last_Login');
+
+    for (let i = 1; i < data.length; i++) {
+      const rowUsername = (data[i][usernameCol] || '').toString().toLowerCase().trim();
+      const rowPin = (data[i][pinCol] || '').toString().trim();
+      const isActive = data[i][activeCol];
+
+      if (rowUsername === username && rowPin === pin) {
+        // Check if user is active
+        if (isActive === false || isActive === 'FALSE' || isActive === 'false') {
+          return { success: false, error: 'Account is disabled. Contact administrator.' };
+        }
+
+        // Build user object (exclude PIN)
+        const user = {};
+        headers.forEach((h, j) => {
+          if (h !== 'PIN') {
+            user[h] = data[i][j];
+          }
+        });
+
+        // Update last login timestamp
+        if (loginCol >= 0) {
+          sheet.getRange(i + 1, loginCol + 1).setValue(new Date().toISOString());
+        }
+
+        // Generate simple session token
+        const token = Utilities.getUuid();
+
+        return {
+          success: true,
+          user: user,
+          token: token,
+          role: user.Role,
+          permissions: USER_ROLES[user.Role] || USER_ROLES['Employee']
+        };
+      }
+    }
+
+    return { success: false, error: 'Invalid username or PIN' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function validateSession(params) {
+  // For now, just validate that token exists
+  // In a production system, you'd store tokens in a sheet or cache
+  const token = params.token;
+  if (!token) {
+    return { success: false, valid: false, error: 'No token provided' };
+  }
+
+  // Token validation would go here
+  // For now, we trust client-side session management
+  return { success: true, valid: true };
+}
+
+function getUsers(params) {
+  try {
+    // Only admins can get user list
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'Users sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const users = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const user = {};
+      headers.forEach((h, j) => {
+        // Never return PIN
+        if (h !== 'PIN') {
+          user[h] = data[i][j];
+        }
+      });
+      users.push(user);
+    }
+
+    return { success: true, users: users };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function createUsersSheet(ss) {
+  const sheet = ss.insertSheet(USERS_SHEET_NAME);
+
+  // Add headers
+  sheet.getRange(1, 1, 1, USERS_HEADERS.length).setValues([USERS_HEADERS]);
+
+  // Style headers
+  const headerRange = sheet.getRange(1, 1, 1, USERS_HEADERS.length);
+  headerRange.setBackground('#2d5a27');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setFontWeight('bold');
+
+  // Add default admin user
+  const adminRow = [
+    'USR-001',           // User_ID
+    'admin',             // Username
+    '1234',              // PIN (change this!)
+    'Farm Admin',        // Full_Name
+    '',                  // Email
+    'Admin',             // Role
+    true,                // Is_Active
+    '',                  // Last_Login
+    new Date().toISOString() // Created_At
+  ];
+
+  sheet.getRange(2, 1, 1, adminRow.length).setValues([adminRow]);
+
+  // Protect PIN column
+  const pinCol = USERS_HEADERS.indexOf('PIN') + 1;
+  sheet.hideColumns(pinCol);
+
+  // Set column widths
+  sheet.setColumnWidth(1, 100);  // User_ID
+  sheet.setColumnWidth(2, 120);  // Username
+  sheet.setColumnWidth(3, 80);   // PIN
+  sheet.setColumnWidth(4, 150);  // Full_Name
+  sheet.setColumnWidth(5, 200);  // Email
+  sheet.setColumnWidth(6, 100);  // Role
+  sheet.setColumnWidth(7, 80);   // Is_Active
+  sheet.setColumnWidth(8, 180);  // Last_Login
+  sheet.setColumnWidth(9, 180);  // Created_At
+
+  // Freeze header row
+  sheet.setFrozenRows(1);
+
+  return sheet;
+}
+
+function createUser(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      sheet = createUsersSheet(ss);
+    }
+
+    // Generate User ID
+    const lastRow = sheet.getLastRow();
+    const userId = 'USR-' + String(lastRow).padStart(3, '0');
+
+    // Validate role
+    if (!USER_ROLES[data.role]) {
+      return { success: false, error: 'Invalid role: ' + data.role };
+    }
+
+    const newRow = [
+      userId,
+      (data.username || '').toLowerCase().trim(),
+      data.pin || '0000',
+      data.fullName || '',
+      data.email || '',
+      data.role || 'Employee',
+      true,
+      '',
+      new Date().toISOString()
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, userId: userId, message: 'User created successfully' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -22,7 +22,7 @@ const TINY_SEED_API = {
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     // After deploying MERGED TOTAL.js, update this URL with the new deployment ID
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbwwZY_lGF6Yk9a-4aMMAKwqRyebKJqmaPXEE2HU6sgCQwZvQz3qM7hto6t8c2abqhPZ/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbxtWxaZPcJbnej76PlcLtQrMU1RVefcFHnzs5k9HImxfIYA4jIQaRvwkCQMRZSkIlTy/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

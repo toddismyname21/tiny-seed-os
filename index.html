@@ -2561,6 +2561,40 @@
     </style>
 </head>
 <body>
+    <!-- Authentication Check - Redirect to login if no valid session -->
+    <script>
+        (function() {
+            const SESSION_KEY = 'tinyseed_session';
+            const session = localStorage.getItem(SESSION_KEY);
+
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const data = JSON.parse(session);
+                // Check if session is less than 24 hours old
+                if (!data.timestamp || (Date.now() - data.timestamp) > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem(SESSION_KEY);
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Store user info globally for use in page
+                window.currentUser = {
+                    userId: data.userId,
+                    username: data.username,
+                    fullName: data.fullName,
+                    role: data.role
+                };
+            } catch (e) {
+                localStorage.removeItem(SESSION_KEY);
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+
     <!-- Left Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
@@ -2660,6 +2694,18 @@
         </nav>
 
         <div class="sidebar-footer">
+            <div class="user-info" style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600;" id="userAvatar">A</div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="userName">User</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);" id="userRole">Role</div>
+                    </div>
+                    <button onclick="logout()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px;" title="Sign Out">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
             <div class="connection-status">
                 <span class="status-dot" id="statusDot"></span>
                 <span id="statusText">Connecting...</span>
@@ -3333,7 +3379,7 @@
         // ========================================
         // CONFIGURATION
         // ========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbwwZY_lGF6Yk9a-4aMMAKwqRyebKJqmaPXEE2HU6sgCQwZvQz3qM7hto6t8c2abqhPZ/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxtWxaZPcJbnej76PlcLtQrMU1RVefcFHnzs5k9HImxfIYA4jIQaRvwkCQMRZSkIlTy/exec';
 
         // State
         let allPlantings = [];
@@ -3380,9 +3426,30 @@
         };
 
         // ========================================
+        // USER SESSION & LOGOUT
+        // ========================================
+        function populateUserInfo() {
+            if (window.currentUser) {
+                const avatar = document.getElementById('userAvatar');
+                const name = document.getElementById('userName');
+                const role = document.getElementById('userRole');
+
+                if (avatar) avatar.textContent = (window.currentUser.fullName || 'U').charAt(0).toUpperCase();
+                if (name) name.textContent = window.currentUser.fullName || window.currentUser.username || 'User';
+                if (role) role.textContent = window.currentUser.role || 'User';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('tinyseed_session');
+            window.location.href = 'login.html';
+        }
+
+        // ========================================
         // INITIALIZATION
         // ========================================
         document.addEventListener('DOMContentLoaded', () => {
+            populateUserInfo();
             updateWelcomeBanner();
             checkConnection();
             loadAllData();
