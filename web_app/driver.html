@@ -1,0 +1,2577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <title>Tiny Seed Delivery</title>
+    <link rel="manifest" href="manifest-driver.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #22c55e;
+            --primary-dark: #16a34a;
+            --primary-light: #4ade80;
+            --secondary: #3b82f6;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --bg-input: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --touch-min: 48px;
+            --header-height: 56px;
+            --bottom-nav-height: 64px;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        /* App Container */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Header */
+        .app-header {
+            height: var(--header-height);
+            padding-top: var(--safe-top);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 16px;
+            padding-right: 16px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            border: none;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .header-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.online {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .status-badge.offline {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .login-logo {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .pin-display {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .pin-dot.filled {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .pin-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            max-width: 280px;
+        }
+
+        .pin-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-size: 28px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .pin-btn:active {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: scale(0.95);
+        }
+
+        .pin-btn.action {
+            font-size: 20px;
+            background: transparent;
+            border: none;
+        }
+
+        .login-error {
+            color: var(--danger);
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        /* Route Summary */
+        .route-summary {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            padding: 20px;
+            color: white;
+        }
+
+        .route-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            text-align: center;
+        }
+
+        .route-stat {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 12px 8px;
+        }
+
+        .route-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .route-stat-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .route-progress {
+            margin-top: 16px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        /* Start Route Button */
+        .start-route-btn {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            color: var(--primary-dark);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .start-route-btn:active {
+            transform: scale(0.98);
+        }
+
+        .start-route-btn.in-progress {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* Stop List */
+        .stop-list {
+            padding: 16px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .section-badge {
+            background: var(--bg-elevated);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Stop Card */
+        .stop-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stop-card.current {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+        }
+
+        .stop-card.completed {
+            opacity: 0.6;
+        }
+
+        .stop-card.completed::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 40%, rgba(34, 197, 94, 0.1) 100%);
+        }
+
+        .stop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .stop-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .stop-card.current .stop-number {
+            background: var(--primary);
+            color: white;
+        }
+
+        .stop-card.completed .stop-number {
+            background: var(--success);
+            color: white;
+        }
+
+        .stop-info {
+            flex: 1;
+            margin-left: 12px;
+        }
+
+        .stop-customer {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .stop-address {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .stop-eta {
+            text-align: right;
+        }
+
+        .stop-time {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .stop-window {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .stop-items {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stop-items-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stop-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 14px;
+        }
+
+        .stop-item-name {
+            color: var(--text-primary);
+        }
+
+        .stop-item-qty {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .stop-notes {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 3px solid var(--warning);
+            padding: 8px 12px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: var(--warning);
+        }
+
+        .stop-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .stop-action-btn {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stop-action-btn:active {
+            background: var(--bg-dark);
+        }
+
+        .stop-action-btn.primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            grid-column: span 3;
+            flex-direction: row;
+            justify-content: center;
+            padding: 14px;
+            font-size: 14px;
+        }
+
+        .stop-action-btn.primary:active {
+            background: var(--primary-dark);
+        }
+
+        .stop-action-icon {
+            font-size: 18px;
+        }
+
+        /* Completed Badge */
+        .completed-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--success);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            height: var(--bottom-nav-height);
+            padding-bottom: var(--safe-bottom);
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 11px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 22px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 24px 24px 0 0;
+            width: 100%;
+            max-height: 90vh;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: none;
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Proof of Delivery */
+        .pod-section {
+            margin-bottom: 24px;
+        }
+
+        .pod-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .photo-capture {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--bg-dark);
+            border-radius: 12px;
+            border: 2px dashed var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .photo-capture.has-photo {
+            border-style: solid;
+            border-color: var(--primary);
+        }
+
+        .photo-capture img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-placeholder {
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .photo-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .retake-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Signature Pad */
+        .signature-pad {
+            width: 100%;
+            height: 150px;
+            background: white;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .signature-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+
+        .signature-clear {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 6px 12px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .signature-line {
+            position: absolute;
+            bottom: 40px;
+            left: 20px;
+            right: 20px;
+            height: 1px;
+            background: #ccc;
+        }
+
+        .signature-label {
+            position: absolute;
+            bottom: 16px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+        }
+
+        /* GPS Status */
+        .gps-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .gps-status.valid {
+            color: var(--success);
+        }
+
+        .gps-status.invalid {
+            color: var(--danger);
+        }
+
+        /* Issue Report */
+        .issue-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .issue-option {
+            padding: 16px;
+            background: var(--bg-dark);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .issue-option:active,
+        .issue-option.selected {
+            border-color: var(--primary);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .issue-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .issue-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .issue-textarea {
+            width: 100%;
+            height: 100px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            resize: none;
+            margin-top: 16px;
+        }
+
+        .issue-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .submit-btn:active {
+            background: var(--primary-dark);
+        }
+
+        .submit-btn:disabled {
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* History Tab */
+        .history-list {
+            padding: 16px;
+        }
+
+        .history-date {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .history-status {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .history-status.delivered {
+            background: rgba(34, 197, 94, 0.2);
+        }
+
+        .history-status.issue {
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        .history-details {
+            flex: 1;
+        }
+
+        .history-customer {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Settings Tab */
+        .settings-section {
+            padding: 16px;
+        }
+
+        .settings-group {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            font-size: 15px;
+        }
+
+        .settings-value {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Toggle Switch */
+        .toggle {
+            width: 52px;
+            height: 28px;
+            background: var(--bg-elevated);
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle.active {
+            background: var(--primary);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .toggle.active::after {
+            transform: translateX(24px);
+        }
+
+        /* Driver Info Card */
+        .driver-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 16px;
+            text-align: center;
+        }
+
+        .driver-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 auto 12px;
+        }
+
+        .driver-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .driver-role {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .driver-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .driver-stat {
+            text-align: center;
+        }
+
+        .driver-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .driver-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* Logout Button */
+        .logout-btn {
+            width: calc(100% - 32px);
+            margin: 16px;
+            padding: 16px;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* Map Container */
+        .map-container {
+            height: 200px;
+            background: var(--bg-dark);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .map-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .open-maps-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            padding: 10px 16px;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* No Route */
+        .no-route {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            text-align: center;
+        }
+
+        .no-route-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .no-route-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .no-route-text {
+            color: var(--text-secondary);
+            max-width: 280px;
+        }
+
+        /* Offline Indicator */
+        .offline-bar {
+            background: var(--danger);
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .offline-bar.visible {
+            display: block;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .quick-action {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .quick-action:active {
+            background: var(--bg-elevated);
+        }
+
+        .quick-action-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .quick-action-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--bg-elevated);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 24px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Delivery complete celebration */
+        .celebration {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .celebration.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .celebration-icon {
+            font-size: 80px;
+            animation: bounce 0.6s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .celebration-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 16px 0 8px;
+        }
+
+        .celebration-text {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .celebration-btn {
+            margin-top: 32px;
+            padding: 14px 32px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Call/Text buttons */
+        .contact-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .contact-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .contact-btn.call {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .contact-btn.text {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        /* Hidden file input */
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .app-container {
+                max-width: 480px;
+                margin: 0 auto;
+                box-shadow: 0 0 50px rgba(0, 0, 0, 0.3);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Offline Bar -->
+        <div class="offline-bar" id="offlineBar">
+            You're offline - deliveries will sync when connected
+        </div>
+
+        <!-- Header -->
+        <header class="app-header" id="appHeader" style="display: none;">
+            <div class="header-left">
+                <div>
+                    <div class="header-title">Tiny Seed Delivery</div>
+                    <div class="header-subtitle" id="routeDate">Today's Route</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span class="status-badge online" id="statusBadge">
+                    <span class="status-dot"></span>
+                    Online
+                </span>
+                <button class="header-btn" onclick="refreshRoute()">
+                    <span>&#x21bb;</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Login Screen -->
+            <div class="login-screen" id="loginScreen">
+                <div class="login-logo">&#x1F69A;</div>
+                <h1 class="login-title">Driver Login</h1>
+                <p class="login-subtitle">Enter your 4-digit PIN to start</p>
+
+                <div class="pin-display">
+                    <div class="pin-dot" id="pin1"></div>
+                    <div class="pin-dot" id="pin2"></div>
+                    <div class="pin-dot" id="pin3"></div>
+                    <div class="pin-dot" id="pin4"></div>
+                </div>
+
+                <div class="pin-pad">
+                    <button class="pin-btn" onclick="enterPin(1)">1</button>
+                    <button class="pin-btn" onclick="enterPin(2)">2</button>
+                    <button class="pin-btn" onclick="enterPin(3)">3</button>
+                    <button class="pin-btn" onclick="enterPin(4)">4</button>
+                    <button class="pin-btn" onclick="enterPin(5)">5</button>
+                    <button class="pin-btn" onclick="enterPin(6)">6</button>
+                    <button class="pin-btn" onclick="enterPin(7)">7</button>
+                    <button class="pin-btn" onclick="enterPin(8)">8</button>
+                    <button class="pin-btn" onclick="enterPin(9)">9</button>
+                    <button class="pin-btn action"></button>
+                    <button class="pin-btn" onclick="enterPin(0)">0</button>
+                    <button class="pin-btn action" onclick="clearPin()">&#x232B;</button>
+                </div>
+
+                <div class="login-error" id="loginError"></div>
+            </div>
+
+            <!-- Route Tab -->
+            <div class="tab-content" id="routeTab">
+                <!-- Route Summary -->
+                <div class="route-summary" id="routeSummary">
+                    <div class="route-stats">
+                        <div class="route-stat">
+                            <div class="route-stat-value" id="totalStops">0</div>
+                            <div class="route-stat-label">Stops</div>
+                        </div>
+                        <div class="route-stat">
+                            <div class="route-stat-value" id="completedStops">0</div>
+                            <div class="route-stat-label">Done</div>
+                        </div>
+                        <div class="route-stat">
+                            <div class="route-stat-value" id="totalMiles">0</div>
+                            <div class="route-stat-label">Miles</div>
+                        </div>
+                        <div class="route-stat">
+                            <div class="route-stat-value" id="estTime">0h</div>
+                            <div class="route-stat-label">ETA</div>
+                        </div>
+                    </div>
+                    <div class="route-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="progressText">0 of 0 deliveries</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                    </div>
+                    <button class="start-route-btn" id="startRouteBtn" onclick="startRoute()">
+                        <span>&#x25B6;</span> Start Route
+                    </button>
+                </div>
+
+                <!-- Stop List -->
+                <div class="stop-list" id="stopList">
+                    <!-- Stops rendered here -->
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="tab-content" id="historyTab">
+                <div class="history-list" id="historyList">
+                    <!-- History rendered here -->
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-content" id="settingsTab">
+                <div class="driver-card">
+                    <div class="driver-avatar" id="driverAvatar">JD</div>
+                    <div class="driver-name" id="driverName">John Doe</div>
+                    <div class="driver-role">Delivery Driver</div>
+                    <div class="driver-stats">
+                        <div class="driver-stat">
+                            <div class="driver-stat-value" id="todayDeliveries">0</div>
+                            <div class="driver-stat-label">Today</div>
+                        </div>
+                        <div class="driver-stat">
+                            <div class="driver-stat-value" id="weekDeliveries">0</div>
+                            <div class="driver-stat-label">This Week</div>
+                        </div>
+                        <div class="driver-stat">
+                            <div class="driver-stat-value" id="totalDeliveries">0</div>
+                            <div class="driver-stat-label">All Time</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <span class="settings-label">Navigation App</span>
+                            <span class="settings-value">Google Maps</span>
+                        </div>
+                        <div class="settings-item">
+                            <span class="settings-label">Auto-open navigation</span>
+                            <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+                        </div>
+                        <div class="settings-item">
+                            <span class="settings-label">Sound alerts</span>
+                            <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <span class="settings-label">Photo quality</span>
+                            <span class="settings-value">High</span>
+                        </div>
+                        <div class="settings-item">
+                            <span class="settings-label">Require signature</span>
+                            <div class="toggle" onclick="this.classList.toggle('active')"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-item">
+                            <span class="settings-label">App version</span>
+                            <span class="settings-value">1.0.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="logout-btn" onclick="logout()">Log Out</button>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav" id="bottomNav" style="display: none;">
+            <div class="nav-item active" onclick="switchTab('route')">
+                <span class="nav-icon">&#x1F4CD;</span>
+                <span>Route</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('history')">
+                <span class="nav-icon">&#x1F4CB;</span>
+                <span>History</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('settings')">
+                <span class="nav-icon">&#x2699;</span>
+                <span>Settings</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Proof of Delivery Modal -->
+    <div class="modal-overlay" id="podModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Complete Delivery</h2>
+                <button class="modal-close" onclick="closeModal('podModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pod-section">
+                    <div class="pod-label">Delivery Photo</div>
+                    <div class="photo-capture" id="deliveryPhoto" onclick="capturePhoto()">
+                        <div class="photo-placeholder">
+                            <div class="photo-icon">&#x1F4F7;</div>
+                            <div>Tap to take photo</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pod-section">
+                    <div class="pod-label">GPS Location</div>
+                    <div class="gps-status" id="gpsStatus">
+                        <span>&#x1F4CD;</span>
+                        <span>Acquiring location...</span>
+                    </div>
+                </div>
+
+                <div class="pod-section">
+                    <div class="pod-label">Customer Signature (Optional)</div>
+                    <div class="signature-pad">
+                        <canvas class="signature-canvas" id="signatureCanvas"></canvas>
+                        <button class="signature-clear" onclick="clearSignature()">Clear</button>
+                        <div class="signature-line"></div>
+                        <div class="signature-label">Sign above the line</div>
+                    </div>
+                </div>
+
+                <button class="submit-btn" id="completeDeliveryBtn" onclick="completeDelivery()">
+                    Complete Delivery
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Issue Report Modal -->
+    <div class="modal-overlay" id="issueModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Report Issue</h2>
+                <button class="modal-close" onclick="closeModal('issueModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="issue-options">
+                    <div class="issue-option" onclick="selectIssue(this, 'not_home')">
+                        <div class="issue-icon">&#x1F3E0;</div>
+                        <div class="issue-label">Not Home</div>
+                    </div>
+                    <div class="issue-option" onclick="selectIssue(this, 'refused')">
+                        <div class="issue-icon">&#x1F6AB;</div>
+                        <div class="issue-label">Refused</div>
+                    </div>
+                    <div class="issue-option" onclick="selectIssue(this, 'wrong_address')">
+                        <div class="issue-icon">&#x2753;</div>
+                        <div class="issue-label">Wrong Address</div>
+                    </div>
+                    <div class="issue-option" onclick="selectIssue(this, 'damaged')">
+                        <div class="issue-icon">&#x1F4E6;</div>
+                        <div class="issue-label">Damaged</div>
+                    </div>
+                </div>
+
+                <textarea class="issue-textarea" id="issueNotes" placeholder="Add details about the issue..."></textarea>
+
+                <div class="pod-section" style="margin-top: 16px;">
+                    <div class="pod-label">Photo (Optional)</div>
+                    <div class="photo-capture" id="issuePhoto" onclick="captureIssuePhoto()">
+                        <div class="photo-placeholder">
+                            <div class="photo-icon">&#x1F4F7;</div>
+                            <div>Tap to take photo</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="submit-btn" id="submitIssueBtn" onclick="submitIssue()" disabled>
+                    Submit Issue Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration Modal -->
+    <div class="celebration" id="celebration">
+        <div class="celebration-icon">&#x1F389;</div>
+        <div class="celebration-title">Route Complete!</div>
+        <div class="celebration-text">Great job! All deliveries finished.</div>
+        <button class="celebration-btn" onclick="closeCelebration()">View Summary</button>
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+    <input type="file" id="issuePhotoInput" accept="image/*" capture="environment" onchange="handleIssuePhoto(event)">
+
+    <!-- Load shared API configuration -->
+    <script src="api-config.js"></script>
+
+    <script>
+        // ============================================
+        // API INSTANCE
+        // ============================================
+        const api = new DriverAPI();
+
+        // ============================================
+        // APPLICATION STATE
+        // ============================================
+        let AppState = {
+            isLoggedIn: false,
+            driver: null,
+            pin: '',
+            currentTab: 'route',
+            route: {
+                stops: [],
+                isStarted: false,
+                currentStopIndex: -1
+            },
+            currentStop: null,
+            deliveryPhoto: null,
+            issuePhoto: null,
+            selectedIssue: null,
+            gpsLocation: null,
+            signature: null,
+            history: [],
+            isOnline: navigator.onLine
+        };
+
+        // ============================================
+        // SAMPLE DATA
+        // ============================================
+        const SAMPLE_DRIVERS = [
+            { id: 'DRV-001', name: 'John Miller', pin: '1234', initials: 'JM' },
+            { id: 'DRV-002', name: 'Sarah Chen', pin: '5678', initials: 'SC' },
+            { id: 'DRV-003', name: 'Marcus Johnson', pin: '9012', initials: 'MJ' }
+        ];
+
+        const SAMPLE_ROUTE = [
+            {
+                id: 'STOP-001',
+                customer: 'Cafe Aroma',
+                address: '1234 Main St, Pittsburgh PA 15213',
+                phone: '412-555-0101',
+                deliveryWindow: '8:00 AM - 10:00 AM',
+                eta: '8:30 AM',
+                items: [
+                    { name: 'Mixed Salad Greens', qty: '5 lbs' },
+                    { name: 'Cherry Tomatoes', qty: '3 pints' },
+                    { name: 'Fresh Basil', qty: '2 bunches' }
+                ],
+                notes: 'Use side entrance. Ring bell twice.',
+                lat: 40.4406,
+                lng: -79.9959,
+                status: 'pending'
+            },
+            {
+                id: 'STOP-002',
+                customer: 'Green Plate Kitchen',
+                address: '567 Oak Ave, Pittsburgh PA 15232',
+                phone: '412-555-0102',
+                deliveryWindow: '9:00 AM - 11:00 AM',
+                eta: '9:15 AM',
+                items: [
+                    { name: 'Rainbow Chard', qty: '4 bunches' },
+                    { name: 'Baby Kale', qty: '3 lbs' },
+                    { name: 'Microgreens Mix', qty: '1 lb' }
+                ],
+                notes: '',
+                lat: 40.4528,
+                lng: -79.9351,
+                status: 'pending'
+            },
+            {
+                id: 'STOP-003',
+                customer: 'Farm Fresh Bistro',
+                address: '890 Walnut St, Pittsburgh PA 15206',
+                phone: '412-555-0103',
+                deliveryWindow: '10:00 AM - 12:00 PM',
+                eta: '10:00 AM',
+                items: [
+                    { name: 'Heirloom Tomatoes', qty: '8 lbs' },
+                    { name: 'Sweet Peppers', qty: '5 lbs' },
+                    { name: 'Summer Squash', qty: '6 lbs' }
+                ],
+                notes: 'Ask for Chef Maria',
+                lat: 40.4621,
+                lng: -79.9241,
+                status: 'pending'
+            },
+            {
+                id: 'STOP-004',
+                customer: 'The Healthy Table',
+                address: '321 Pine Rd, Pittsburgh PA 15217',
+                phone: '412-555-0104',
+                deliveryWindow: '11:00 AM - 1:00 PM',
+                eta: '11:15 AM',
+                items: [
+                    { name: 'Spinach', qty: '4 lbs' },
+                    { name: 'Arugula', qty: '2 lbs' },
+                    { name: 'Fresh Herbs Mix', qty: '3 bunches' }
+                ],
+                notes: '',
+                lat: 40.4312,
+                lng: -79.9223,
+                status: 'pending'
+            },
+            {
+                id: 'STOP-005',
+                customer: 'Sunrise Market',
+                address: '555 Elm Blvd, Pittsburgh PA 15201',
+                phone: '412-555-0105',
+                deliveryWindow: '12:00 PM - 2:00 PM',
+                eta: '12:30 PM',
+                items: [
+                    { name: 'CSA Box - Large', qty: '10 boxes' },
+                    { name: 'Seasonal Flowers', qty: '5 bouquets' }
+                ],
+                notes: 'Loading dock in back',
+                lat: 40.4789,
+                lng: -79.9512,
+                status: 'pending'
+            }
+        ];
+
+        const SAMPLE_HISTORY = [
+            { customer: 'Cafe Aroma', time: '8:32 AM', status: 'delivered' },
+            { customer: 'Green Plate Kitchen', time: '9:18 AM', status: 'delivered' },
+            { customer: 'Quick Stop Deli', time: '10:05 AM', status: 'issue', issueType: 'not_home' }
+        ];
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            checkOnlineStatus();
+            initSignatureCanvas();
+            checkSession();
+        });
+
+        function checkSession() {
+            const session = localStorage.getItem('driverSession');
+            if (session) {
+                const data = JSON.parse(session);
+                AppState.isLoggedIn = true;
+                AppState.driver = data.driver;
+                showApp();
+                loadRoute();
+            }
+        }
+
+        function checkOnlineStatus() {
+            window.addEventListener('online', () => {
+                AppState.isOnline = true;
+                updateOnlineStatus();
+                syncOfflineData();
+            });
+
+            window.addEventListener('offline', () => {
+                AppState.isOnline = false;
+                updateOnlineStatus();
+            });
+
+            updateOnlineStatus();
+        }
+
+        function updateOnlineStatus() {
+            const bar = document.getElementById('offlineBar');
+            const badge = document.getElementById('statusBadge');
+
+            if (AppState.isOnline) {
+                bar.classList.remove('visible');
+                badge.className = 'status-badge online';
+                badge.innerHTML = '<span class="status-dot"></span> Online';
+            } else {
+                bar.classList.add('visible');
+                badge.className = 'status-badge offline';
+                badge.innerHTML = '<span class="status-dot"></span> Offline';
+            }
+        }
+
+        // ============================================
+        // AUTHENTICATION
+        // ============================================
+        function enterPin(digit) {
+            if (AppState.pin.length < 4) {
+                AppState.pin += digit;
+                updatePinDisplay();
+
+                if (AppState.pin.length === 4) {
+                    setTimeout(validatePin, 200);
+                }
+            }
+        }
+
+        function clearPin() {
+            AppState.pin = AppState.pin.slice(0, -1);
+            updatePinDisplay();
+        }
+
+        function updatePinDisplay() {
+            for (let i = 1; i <= 4; i++) {
+                const dot = document.getElementById(`pin${i}`);
+                dot.classList.toggle('filled', i <= AppState.pin.length);
+            }
+            document.getElementById('loginError').textContent = '';
+        }
+
+        async function validatePin() {
+            try {
+                // Call API to authenticate driver
+                const result = await api.authenticateDriver(AppState.pin);
+
+                if (result.success && result.driver) {
+                    AppState.driver = {
+                        id: result.driver.Driver_ID,
+                        name: result.driver.Driver_Name,
+                        pin: AppState.pin,
+                        initials: result.driver.Driver_Name.split(' ').map(n => n[0]).join('')
+                    };
+                    AppState.isLoggedIn = true;
+
+                    localStorage.setItem('driverSession', JSON.stringify({
+                        driver: AppState.driver,
+                        loginTime: new Date().toISOString()
+                    }));
+
+                    showApp();
+                    loadRoute();
+                } else {
+                    showLoginError('Invalid PIN. Please try again.');
+                }
+            } catch (error) {
+                console.error('Authentication error:', error);
+                // Fallback to sample drivers for demo/offline mode
+                const driver = SAMPLE_DRIVERS.find(d => d.pin === AppState.pin);
+                if (driver) {
+                    AppState.driver = driver;
+                    AppState.isLoggedIn = true;
+                    localStorage.setItem('driverSession', JSON.stringify({
+                        driver: driver,
+                        loginTime: new Date().toISOString()
+                    }));
+                    showApp();
+                    loadRoute();
+                } else {
+                    showLoginError('Invalid PIN. Please try again.');
+                }
+            }
+        }
+
+        function showLoginError(message) {
+            document.getElementById('loginError').textContent = message;
+            AppState.pin = '';
+            updatePinDisplay();
+
+            // Shake animation
+            document.querySelector('.pin-display').style.animation = 'shake 0.3s';
+            setTimeout(() => {
+                document.querySelector('.pin-display').style.animation = '';
+            }, 300);
+        }
+
+        function logout() {
+            localStorage.removeItem('driverSession');
+            AppState.isLoggedIn = false;
+            AppState.driver = null;
+            AppState.pin = '';
+            AppState.route = { stops: [], isStarted: false, currentStopIndex: -1 };
+
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('appHeader').style.display = 'none';
+            document.getElementById('bottomNav').style.display = 'none';
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            updatePinDisplay();
+        }
+
+        function showApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appHeader').style.display = 'flex';
+            document.getElementById('bottomNav').style.display = 'flex';
+
+            // Update driver info
+            if (AppState.driver) {
+                document.getElementById('driverAvatar').textContent = AppState.driver.initials;
+                document.getElementById('driverName').textContent = AppState.driver.name;
+            }
+
+            switchTab('route');
+        }
+
+        // ============================================
+        // ROUTE MANAGEMENT
+        // ============================================
+        async function loadRoute() {
+            try {
+                // Fetch today's route from API
+                const today = new Date().toISOString().split('T')[0];
+                const result = await api.getDriverRoute(AppState.driver?.id, today);
+
+                if (result.success && result.stops) {
+                    // Transform API response to app format
+                    AppState.route.stops = result.stops.map(stop => ({
+                        id: stop.Delivery_ID || stop.Stop_ID,
+                        customer: stop.Customer_Name,
+                        address: stop.Delivery_Address,
+                        phone: stop.Customer_Phone || '',
+                        deliveryWindow: stop.Delivery_Window || 'Flexible',
+                        eta: stop.ETA || '--:--',
+                        items: stop.items || [],
+                        notes: stop.Delivery_Notes || '',
+                        lat: stop.GPS_Lat,
+                        lng: stop.GPS_Lng,
+                        status: (stop.Status || 'pending').toLowerCase()
+                    }));
+
+                    // Load delivery history
+                    const historyResult = await api.getDeliveryHistory(AppState.driver?.id, 7);
+                    if (historyResult.success) {
+                        AppState.history = historyResult.deliveries || [];
+                    }
+                } else {
+                    // Fallback to sample data for demo
+                    console.log('Using sample route data');
+                    AppState.route.stops = [...SAMPLE_ROUTE];
+                    AppState.history = [...SAMPLE_HISTORY];
+                }
+            } catch (error) {
+                console.error('Error loading route:', error);
+                // Fallback to sample data for offline/demo mode
+                AppState.route.stops = [...SAMPLE_ROUTE];
+                AppState.history = [...SAMPLE_HISTORY];
+            }
+
+            updateRouteStats();
+            renderStops();
+            renderHistory();
+        }
+
+        function refreshRoute() {
+            const btn = document.querySelector('.header-btn');
+            btn.style.animation = 'spin 0.5s linear';
+
+            setTimeout(() => {
+                btn.style.animation = '';
+                loadRoute();
+            }, 500);
+        }
+
+        function updateRouteStats() {
+            const stops = AppState.route.stops;
+            const completed = stops.filter(s => s.status === 'delivered' || s.status === 'issue').length;
+            const total = stops.length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('totalStops').textContent = total;
+            document.getElementById('completedStops').textContent = completed;
+            document.getElementById('totalMiles').textContent = '24'; // Would calculate actual
+            document.getElementById('estTime').textContent = '3h'; // Would calculate actual
+
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = `${completed} of ${total} deliveries`;
+            document.getElementById('progressPercent').textContent = `${percent}%`;
+
+            // Update button state
+            const startBtn = document.getElementById('startRouteBtn');
+            if (AppState.route.isStarted) {
+                startBtn.classList.add('in-progress');
+                startBtn.innerHTML = '<span>&#x23F8;</span> Route In Progress';
+            }
+
+            // Check if route complete
+            if (completed === total && total > 0) {
+                document.getElementById('celebration').classList.add('active');
+            }
+
+            // Update settings stats
+            document.getElementById('todayDeliveries').textContent = completed;
+            document.getElementById('weekDeliveries').textContent = completed + 12; // Sample
+            document.getElementById('totalDeliveries').textContent = completed + 156; // Sample
+        }
+
+        function renderStops() {
+            const container = document.getElementById('stopList');
+            const stops = AppState.route.stops;
+
+            if (stops.length === 0) {
+                container.innerHTML = `
+                    <div class="no-route">
+                        <div class="no-route-icon">&#x1F4E6;</div>
+                        <div class="no-route-title">No Deliveries Today</div>
+                        <div class="no-route-text">Check back later or contact dispatch if you expected a route.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Find current stop
+            const currentIndex = stops.findIndex(s => s.status === 'pending');
+            AppState.route.currentStopIndex = currentIndex;
+
+            let html = `
+                <div class="section-header">
+                    <span class="section-title">Delivery Stops</span>
+                    <span class="section-badge">${stops.filter(s => s.status === 'pending').length} remaining</span>
+                </div>
+            `;
+
+            stops.forEach((stop, index) => {
+                const isCurrent = index === currentIndex && AppState.route.isStarted;
+                const isCompleted = stop.status === 'delivered' || stop.status === 'issue';
+
+                html += `
+                    <div class="stop-card ${isCurrent ? 'current' : ''} ${isCompleted ? 'completed' : ''}" data-stop-id="${stop.id}">
+                        ${isCompleted ? `<div class="completed-badge">${stop.status === 'delivered' ? 'Delivered' : 'Issue'}</div>` : ''}
+
+                        <div class="stop-header">
+                            <div class="stop-number">${isCompleted ? '&#x2713;' : index + 1}</div>
+                            <div class="stop-info">
+                                <div class="stop-customer">${stop.customer}</div>
+                                <div class="stop-address">${stop.address}</div>
+                            </div>
+                            <div class="stop-eta">
+                                <div class="stop-time">${stop.eta}</div>
+                                <div class="stop-window">${stop.deliveryWindow}</div>
+                            </div>
+                        </div>
+
+                        <div class="stop-items">
+                            <div class="stop-items-title">Order Items</div>
+                            ${stop.items.map(item => `
+                                <div class="stop-item">
+                                    <span class="stop-item-name">${item.name}</span>
+                                    <span class="stop-item-qty">${item.qty}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        ${stop.notes ? `<div class="stop-notes">&#x1F4DD; ${stop.notes}</div>` : ''}
+
+                        ${!isCompleted ? `
+                            <div class="contact-actions">
+                                <button class="contact-btn call" onclick="callCustomer('${stop.phone}')">
+                                    <span>&#x1F4DE;</span> Call
+                                </button>
+                                <button class="contact-btn text" onclick="textCustomer('${stop.phone}')">
+                                    <span>&#x1F4AC;</span> Text
+                                </button>
+                            </div>
+
+                            <div class="stop-actions" style="margin-top: 12px;">
+                                <button class="stop-action-btn" onclick="openNavigation('${stop.address}')">
+                                    <span class="stop-action-icon">&#x1F5FA;</span>
+                                    <span>Navigate</span>
+                                </button>
+                                <button class="stop-action-btn" onclick="openIssueModal('${stop.id}')">
+                                    <span class="stop-action-icon">&#x26A0;</span>
+                                    <span>Issue</span>
+                                </button>
+                                <button class="stop-action-btn" onclick="openPODModal('${stop.id}')">
+                                    <span class="stop-action-icon">&#x2713;</span>
+                                    <span>Delivered</span>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            const today = new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            let html = `<div class="history-date">${today}</div>`;
+
+            if (AppState.history.length === 0) {
+                html += `
+                    <div class="no-route">
+                        <div class="no-route-icon">&#x1F4CB;</div>
+                        <div class="no-route-title">No History Yet</div>
+                        <div class="no-route-text">Completed deliveries will appear here.</div>
+                    </div>
+                `;
+            } else {
+                AppState.history.forEach(item => {
+                    html += `
+                        <div class="history-item">
+                            <div class="history-status ${item.status}">
+                                ${item.status === 'delivered' ? '&#x2713;' : '&#x26A0;'}
+                            </div>
+                            <div class="history-details">
+                                <div class="history-customer">${item.customer}</div>
+                                <div class="history-time">${item.time}${item.issueType ? ' - ' + formatIssueType(item.issueType) : ''}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        function formatIssueType(type) {
+            const types = {
+                'not_home': 'Customer Not Home',
+                'refused': 'Delivery Refused',
+                'wrong_address': 'Wrong Address',
+                'damaged': 'Item Damaged'
+            };
+            return types[type] || type;
+        }
+
+        // ============================================
+        // ROUTE ACTIONS
+        // ============================================
+        function startRoute() {
+            if (!AppState.route.isStarted) {
+                AppState.route.isStarted = true;
+                updateRouteStats();
+                renderStops();
+
+                // Auto-open navigation to first stop if enabled
+                const firstPending = AppState.route.stops.find(s => s.status === 'pending');
+                if (firstPending) {
+                    // Could auto-open maps here
+                }
+            }
+        }
+
+        function openNavigation(address) {
+            const encoded = encodeURIComponent(address);
+            // Try Google Maps first, fallback to Apple Maps
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+            if (isIOS) {
+                window.open(`maps://?daddr=${encoded}`);
+            } else {
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`);
+            }
+        }
+
+        function callCustomer(phone) {
+            window.open(`tel:${phone}`);
+        }
+
+        function textCustomer(phone) {
+            window.open(`sms:${phone}`);
+        }
+
+        // ============================================
+        // PROOF OF DELIVERY
+        // ============================================
+        function openPODModal(stopId) {
+            AppState.currentStop = AppState.route.stops.find(s => s.id === stopId);
+            AppState.deliveryPhoto = null;
+            AppState.signature = null;
+            AppState.gpsLocation = null;
+
+            // Reset photo
+            document.getElementById('deliveryPhoto').innerHTML = `
+                <div class="photo-placeholder">
+                    <div class="photo-icon">&#x1F4F7;</div>
+                    <div>Tap to take photo</div>
+                </div>
+            `;
+            document.getElementById('deliveryPhoto').classList.remove('has-photo');
+
+            // Clear signature
+            clearSignature();
+
+            // Get GPS
+            captureGPS();
+
+            document.getElementById('podModal').classList.add('active');
+        }
+
+        function capturePhoto() {
+            document.getElementById('photoInput').click();
+        }
+
+        function handlePhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    compressImage(e.target.result, (compressed) => {
+                        AppState.deliveryPhoto = compressed;
+
+                        const container = document.getElementById('deliveryPhoto');
+                        container.innerHTML = `
+                            <img src="${compressed}" alt="Delivery photo">
+                            <button class="retake-btn" onclick="event.stopPropagation(); capturePhoto();">Retake</button>
+                        `;
+                        container.classList.add('has-photo');
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function compressImage(dataUrl, callback, maxWidth = 1200) {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ratio = Math.min(maxWidth / img.width, 1);
+                canvas.width = img.width * ratio;
+                canvas.height = img.height * ratio;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                callback(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.src = dataUrl;
+        }
+
+        function captureGPS() {
+            const statusEl = document.getElementById('gpsStatus');
+            statusEl.className = 'gps-status';
+            statusEl.innerHTML = '<span>&#x1F504;</span> <span>Acquiring location...</span>';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    AppState.gpsLocation = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    };
+
+                    statusEl.className = 'gps-status valid';
+                    statusEl.innerHTML = `<span>&#x2713;</span> <span>Location captured (±${Math.round(pos.coords.accuracy)}m)</span>`;
+                },
+                (err) => {
+                    statusEl.className = 'gps-status invalid';
+                    statusEl.innerHTML = `<span>&#x2717;</span> <span>Could not get location</span>`;
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        // Signature Canvas
+        let signatureCtx;
+        let isDrawing = false;
+
+        function initSignatureCanvas() {
+            const canvas = document.getElementById('signatureCanvas');
+            if (!canvas) return;
+
+            signatureCtx = canvas.getContext('2d');
+
+            // Set canvas size
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = 150;
+
+            // Touch events
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            // Mouse events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            signatureCtx.beginPath();
+            signatureCtx.lineWidth = 2;
+            signatureCtx.lineCap = 'round';
+            signatureCtx.strokeStyle = '#000';
+
+            const pos = getEventPos(e);
+            signatureCtx.moveTo(pos.x, pos.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+
+            const pos = getEventPos(e);
+            signatureCtx.lineTo(pos.x, pos.y);
+            signatureCtx.stroke();
+        }
+
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                AppState.signature = document.getElementById('signatureCanvas').toDataURL();
+            }
+        }
+
+        function getEventPos(e) {
+            const canvas = document.getElementById('signatureCanvas');
+            const rect = canvas.getBoundingClientRect();
+
+            if (e.touches) {
+                return {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+            }
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function clearSignature() {
+            const canvas = document.getElementById('signatureCanvas');
+            if (canvas && signatureCtx) {
+                signatureCtx.clearRect(0, 0, canvas.width, canvas.height);
+                AppState.signature = null;
+            }
+        }
+
+        async function completeDelivery() {
+            if (!AppState.currentStop) return;
+
+            const btn = document.getElementById('completeDeliveryBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            const deliveryData = {
+                deliveryId: AppState.currentStop.id,
+                customer: AppState.currentStop.customer,
+                timestamp: new Date().toISOString(),
+                photo: AppState.deliveryPhoto,
+                gps: AppState.gpsLocation,
+                signature: AppState.signature,
+                driverId: AppState.driver?.id
+            };
+
+            try {
+                // Try to submit to API
+                const result = await api.completeDelivery(deliveryData);
+
+                if (!result.success) {
+                    // If API fails, queue for later sync
+                    saveToQueue('delivery', deliveryData);
+                }
+            } catch (error) {
+                console.error('API error, saving offline:', error);
+                // Save to queue for offline support
+                saveToQueue('delivery', deliveryData);
+            }
+
+            // Update local state
+            const stop = AppState.route.stops.find(s => s.id === AppState.currentStop.id);
+            if (stop) {
+                stop.status = 'delivered';
+            }
+
+            // Add to history
+            AppState.history.unshift({
+                customer: AppState.currentStop.customer,
+                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                status: 'delivered'
+            });
+
+            // Update UI
+            updateRouteStats();
+            renderStops();
+            renderHistory();
+
+            closeModal('podModal');
+            btn.disabled = false;
+            btn.textContent = 'Complete Delivery';
+        }
+
+        // ============================================
+        // ISSUE REPORTING
+        // ============================================
+        function openIssueModal(stopId) {
+            AppState.currentStop = AppState.route.stops.find(s => s.id === stopId);
+            AppState.selectedIssue = null;
+            AppState.issuePhoto = null;
+
+            // Reset selections
+            document.querySelectorAll('.issue-option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById('issueNotes').value = '';
+            document.getElementById('submitIssueBtn').disabled = true;
+
+            // Reset photo
+            document.getElementById('issuePhoto').innerHTML = `
+                <div class="photo-placeholder">
+                    <div class="photo-icon">&#x1F4F7;</div>
+                    <div>Tap to take photo</div>
+                </div>
+            `;
+
+            document.getElementById('issueModal').classList.add('active');
+        }
+
+        function selectIssue(element, type) {
+            document.querySelectorAll('.issue-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            AppState.selectedIssue = type;
+            document.getElementById('submitIssueBtn').disabled = false;
+        }
+
+        function captureIssuePhoto() {
+            document.getElementById('issuePhotoInput').click();
+        }
+
+        function handleIssuePhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    compressImage(e.target.result, (compressed) => {
+                        AppState.issuePhoto = compressed;
+
+                        const container = document.getElementById('issuePhoto');
+                        container.innerHTML = `
+                            <img src="${compressed}" alt="Issue photo">
+                            <button class="retake-btn" onclick="event.stopPropagation(); captureIssuePhoto();">Retake</button>
+                        `;
+                        container.classList.add('has-photo');
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function submitIssue() {
+            if (!AppState.currentStop || !AppState.selectedIssue) return;
+
+            const btn = document.getElementById('submitIssueBtn');
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+
+            const issueData = {
+                deliveryId: AppState.currentStop.id,
+                customer: AppState.currentStop.customer,
+                timestamp: new Date().toISOString(),
+                issueType: AppState.selectedIssue,
+                notes: document.getElementById('issueNotes').value,
+                photo: AppState.issuePhoto,
+                driverId: AppState.driver?.id
+            };
+
+            try {
+                // Try to submit to API
+                const result = await api.reportDeliveryIssue(issueData);
+
+                if (!result.success) {
+                    // If API fails, queue for later sync
+                    saveToQueue('issue', issueData);
+                }
+            } catch (error) {
+                console.error('API error, saving offline:', error);
+                // Save to queue for offline support
+                saveToQueue('issue', issueData);
+            }
+
+            // Update local state
+            const stop = AppState.route.stops.find(s => s.id === AppState.currentStop.id);
+            if (stop) {
+                stop.status = 'issue';
+            }
+
+            // Add to history
+            AppState.history.unshift({
+                customer: AppState.currentStop.customer,
+                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                status: 'issue',
+                issueType: AppState.selectedIssue
+            });
+
+            // Update UI
+            updateRouteStats();
+            renderStops();
+            renderHistory();
+
+            closeModal('issueModal');
+            btn.disabled = false;
+            btn.textContent = 'Submit Issue Report';
+        }
+
+        // ============================================
+        // OFFLINE SYNC
+        // ============================================
+        function saveToQueue(type, data) {
+            const queue = JSON.parse(localStorage.getItem('deliveryQueue') || '[]');
+            queue.push({
+                id: Date.now(),
+                type,
+                data,
+                timestamp: new Date().toISOString(),
+                synced: false
+            });
+            localStorage.setItem('deliveryQueue', JSON.stringify(queue));
+
+            if (AppState.isOnline) {
+                syncOfflineData();
+            }
+        }
+
+        async function syncOfflineData() {
+            const queue = JSON.parse(localStorage.getItem('deliveryQueue') || '[]');
+            const unsynced = queue.filter(item => !item.synced);
+
+            if (unsynced.length === 0) return;
+
+            console.log(`Syncing ${unsynced.length} items...`);
+
+            for (const item of unsynced) {
+                try {
+                    let result;
+                    if (item.type === 'delivery') {
+                        result = await api.completeDelivery(item.data);
+                    } else if (item.type === 'issue') {
+                        result = await api.reportDeliveryIssue(item.data);
+                    }
+
+                    if (result && result.success) {
+                        item.synced = true;
+                        console.log(`Synced: ${item.type} for ${item.data.customer}`);
+                    }
+                } catch (err) {
+                    console.error('Sync failed:', err);
+                }
+            }
+
+            localStorage.setItem('deliveryQueue', JSON.stringify(queue));
+        }
+
+        // ============================================
+        // MODAL MANAGEMENT
+        // ============================================
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function closeCelebration() {
+            document.getElementById('celebration').classList.remove('active');
+            switchTab('history');
+        }
+
+        // Close modal on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
+        function switchTab(tabName) {
+            AppState.currentTab = tabName;
+
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`.nav-item[onclick="switchTab('${tabName}')"]`).classList.add('active');
+
+            // Show/hide tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+
+            // Re-init signature canvas when settings tab is shown
+            if (tabName === 'settings') {
+                // Could refresh driver stats here
+            }
+        }
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+
+        // Add shake animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-10px); }
+                75% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

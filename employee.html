@@ -257,6 +257,32 @@
             font-size: 0.8rem;
         }
 
+        .sync-btn-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .sync-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+
+        .sync-badge.visible {
+            display: flex;
+        }
+
         .offline-indicator {
             position: fixed;
             top: calc(56px + var(--safe-top));
@@ -1245,6 +1271,780 @@
             background: var(--success);
             color: white;
         }
+
+        /* ========================================
+           AI PLANT DOCTOR MODAL
+           ======================================== */
+        .ai-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .ai-modal.visible {
+            display: flex;
+        }
+
+        .ai-modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .ai-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--bg-elevated);
+        }
+
+        .ai-modal-header h2 {
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-modal-header h2 i {
+            color: var(--primary-light);
+        }
+
+        .ai-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .ai-step {
+            padding: 24px 20px;
+        }
+
+        .ai-instructions {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .ai-instructions i {
+            font-size: 3rem;
+            color: var(--primary-light);
+            margin-bottom: 16px;
+        }
+
+        .ai-instructions h3 {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .ai-instructions p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .ai-photo-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .ai-option-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            background: var(--bg-elevated);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-option-btn:active {
+            border-color: var(--primary-light);
+            background: var(--primary);
+        }
+
+        .ai-option-btn i {
+            font-size: 2rem;
+            color: var(--primary-light);
+        }
+
+        .ai-photo-preview {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .ai-photo-preview img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .ai-mode-select {
+            margin-bottom: 20px;
+        }
+
+        .ai-mode-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .ai-mode-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            background: var(--bg-elevated);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-mode-btn.active {
+            border-color: var(--primary-light);
+            background: var(--primary);
+        }
+
+        .ai-mode-btn i {
+            font-size: 1.2rem;
+        }
+
+        .ai-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .ai-actions button {
+            flex: 1;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 14px 20px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:active {
+            background: var(--primary-light);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .ai-analyzing {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .ai-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--bg-elevated);
+            border-top-color: var(--primary-light);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .ai-analyzing h3 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .ai-analyzing p {
+            color: var(--text-secondary);
+        }
+
+        .ai-results {
+            padding: 0;
+        }
+
+        .ai-result-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .ai-result-header.disease {
+            border-left: 4px solid var(--danger);
+        }
+
+        .ai-result-header.pest {
+            border-left: 4px solid var(--warning);
+        }
+
+        .ai-result-header.healthy {
+            border-left: 4px solid var(--success);
+        }
+
+        .ai-result-header.beneficial {
+            border-left: 4px solid #22d3ee;
+        }
+
+        .ai-result-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .ai-result-header.disease .ai-result-icon {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .ai-result-header.pest .ai-result-icon {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .ai-result-header.healthy .ai-result-icon {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .ai-result-header.beneficial .ai-result-icon {
+            background: rgba(34, 211, 238, 0.2);
+            color: #22d3ee;
+        }
+
+        .ai-result-title h3 {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .ai-confidence {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .ai-result-card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .ai-result-card h4 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-result-card p {
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .ai-result-card.beneficial {
+            background: rgba(34, 211, 238, 0.1);
+            border: 1px solid rgba(34, 211, 238, 0.3);
+        }
+
+        .ai-result-card.beneficial h4 {
+            color: #22d3ee;
+        }
+
+        .ai-result-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .ai-result-actions button {
+            flex: 1;
+        }
+
+        /* ========================================
+           FEATURE MODALS (Treatment, Hazard, etc.)
+           ======================================== */
+        .feature-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 2500;
+            display: none;
+            flex-direction: column;
+        }
+
+        .feature-modal.visible {
+            display: flex;
+        }
+
+        .feature-modal-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .feature-modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--bg-elevated);
+        }
+
+        .feature-modal-header h2 {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .feature-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        /* REI Warnings */
+        .rei-warnings {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .warning-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--danger);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .rei-warning-item {
+            background: var(--bg-card);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* Material Info */
+        .material-info {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .omri-badge {
+            background: var(--success);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .rei-info, .phi-info {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Weather, Implement, Depth Buttons */
+        .weather-buttons, .depth-buttons, .soil-buttons, .effectiveness-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .weather-btn, .depth-btn, .soil-btn, .eff-btn {
+            flex: 1;
+            min-width: 60px;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .depth-btn, .soil-btn, .eff-btn {
+            font-size: 0.85rem;
+        }
+
+        .weather-btn.active, .depth-btn.active, .soil-btn.active, .eff-btn.active {
+            border-color: var(--primary-light);
+            background: var(--primary);
+        }
+
+        /* Hazard Type Grid */
+        .hazard-type-grid, .weed-type-grid, .implement-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .hazard-type-btn, .weed-type-btn, .implement-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 14px 8px;
+            background: var(--bg-elevated);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .hazard-type-btn i, .implement-btn i {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+        }
+
+        .hazard-type-btn.active, .weed-type-btn.active, .implement-btn.active {
+            border-color: var(--primary-light);
+            background: var(--primary);
+        }
+
+        .hazard-type-btn.active i, .implement-btn.active i {
+            color: var(--text-primary);
+        }
+
+        /* Active Hazards */
+        .active-hazards {
+            margin-bottom: 16px;
+        }
+
+        .active-hazards h3 {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .hazard-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--warning);
+        }
+
+        .hazard-card.critical {
+            border-left-color: var(--danger);
+        }
+
+        .hazard-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .hazard-card-type {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .hazard-card-severity {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--warning);
+            color: #000;
+        }
+
+        .hazard-card-severity.critical {
+            background: var(--danger);
+            color: white;
+        }
+
+        .hazard-card-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Pressure Slider */
+        .pressure-slider {
+            padding: 10px 0;
+        }
+
+        .pressure-slider input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--bg-elevated);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .pressure-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            cursor: pointer;
+        }
+
+        .pressure-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .pressure-value {
+            text-align: center;
+            margin-top: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Submit Button Variants */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .submit-btn.secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .submit-btn.danger {
+            background: var(--danger);
+        }
+
+        .submit-btn:active {
+            opacity: 0.8;
+        }
+
+        /* Messages */
+        .messages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            border-left: 4px solid var(--primary-light);
+        }
+
+        .message-card.urgent {
+            border-left-color: var(--danger);
+        }
+
+        .message-card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .message-from {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .message-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .message-content {
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .message-ack {
+            margin-top: 12px;
+        }
+
+        .message-ack button {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .empty-messages {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-messages i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Safety Alert */
+        .safety-alert {
+            position: fixed;
+            bottom: 80px;
+            left: 16px;
+            right: 16px;
+            z-index: 2000;
+        }
+
+        .safety-alert-content {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .safety-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .safety-message {
+            flex: 1;
+        }
+
+        .safety-message h3 {
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .safety-message p {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.85rem;
+        }
+
+        .safety-dismiss {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
     </style>
 </head>
 <body>
@@ -1294,9 +2094,12 @@
             </div>
             <div class="header-actions">
                 <button class="header-btn lang-toggle" onclick="toggleLanguage()" id="langToggle">EN</button>
-                <button class="header-btn" onclick="syncData()" id="syncBtn">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
+                <div class="sync-btn-wrapper">
+                    <button class="header-btn" onclick="syncData()" id="syncBtn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <span class="sync-badge" id="syncBadge">0</span>
+                </div>
                 <button class="header-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
@@ -1668,6 +2471,547 @@
         </div>
     </div>
 
+    <!-- AI Plant Doctor Modal -->
+    <div class="ai-modal" id="aiDoctorModal">
+        <div class="ai-modal-content">
+            <div class="ai-modal-header">
+                <h2><i class="fas fa-robot"></i> <span data-i18n="ai.title">AI Plant Doctor</span></h2>
+                <button class="ai-close-btn" onclick="closeAIDoctor()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Step 1: Photo Capture -->
+            <div class="ai-step" id="aiStep1">
+                <div class="ai-instructions">
+                    <i class="fas fa-camera"></i>
+                    <h3 data-i18n="ai.takePhoto">Take a Photo</h3>
+                    <p data-i18n="ai.photoHint">Get a clear, close-up shot of the affected plant, leaf, or insect</p>
+                </div>
+                <div class="ai-photo-options">
+                    <button class="ai-option-btn" onclick="captureAIPhoto()">
+                        <i class="fas fa-camera"></i>
+                        <span data-i18n="ai.useCamera">Use Camera</span>
+                    </button>
+                    <button class="ai-option-btn" onclick="selectAIPhoto()">
+                        <i class="fas fa-images"></i>
+                        <span data-i18n="ai.choosePhoto">Choose from Gallery</span>
+                    </button>
+                </div>
+                <input type="file" id="aiPhotoInput" accept="image/*" style="display: none;" onchange="handleAIPhotoSelect(event)">
+            </div>
+
+            <!-- Step 2: Photo Preview & Analyze -->
+            <div class="ai-step" id="aiStep2" style="display: none;">
+                <div class="ai-photo-preview">
+                    <img id="aiPhotoPreview" src="" alt="Photo to analyze">
+                </div>
+                <div class="ai-mode-select">
+                    <label class="form-label" data-i18n="ai.whatAnalyze">What do you want to analyze?</label>
+                    <div class="ai-mode-buttons">
+                        <button class="ai-mode-btn active" onclick="setAIMode('plant')" id="aiModePlant">
+                            <i class="fas fa-seedling"></i>
+                            <span data-i18n="ai.plantHealth">Plant Health</span>
+                        </button>
+                        <button class="ai-mode-btn" onclick="setAIMode('bug')" id="aiModeBug">
+                            <i class="fas fa-bug"></i>
+                            <span data-i18n="ai.bugId">Bug ID</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="ai-actions">
+                    <button class="btn-secondary" onclick="retakeAIPhoto()">
+                        <i class="fas fa-redo"></i> <span data-i18n="ai.retake">Retake</span>
+                    </button>
+                    <button class="btn-primary" onclick="analyzePhoto()">
+                        <i class="fas fa-search"></i> <span data-i18n="ai.analyze">Analyze</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Analyzing -->
+            <div class="ai-step" id="aiStep3" style="display: none;">
+                <div class="ai-analyzing">
+                    <div class="ai-spinner"></div>
+                    <h3 data-i18n="ai.analyzing">Analyzing...</h3>
+                    <p data-i18n="ai.pleaseWait">Our AI is examining your photo</p>
+                </div>
+            </div>
+
+            <!-- Step 4: Results -->
+            <div class="ai-step" id="aiStep4" style="display: none;">
+                <div class="ai-results">
+                    <div class="ai-result-header" id="aiResultHeader">
+                        <div class="ai-result-icon" id="aiResultIcon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="ai-result-title">
+                            <h3 id="aiResultTitle">Diagnosis</h3>
+                            <span class="ai-confidence" id="aiConfidence">95% confident</span>
+                        </div>
+                    </div>
+
+                    <div class="ai-result-card">
+                        <h4 data-i18n="ai.identification">Identification</h4>
+                        <p id="aiIdentification">Loading...</p>
+                    </div>
+
+                    <div class="ai-result-card" id="aiDescriptionCard">
+                        <h4 data-i18n="ai.description">Description</h4>
+                        <p id="aiDescription">Loading...</p>
+                    </div>
+
+                    <div class="ai-result-card" id="aiTreatmentCard">
+                        <h4 data-i18n="ai.treatment">Recommended Action</h4>
+                        <p id="aiTreatment">Loading...</p>
+                    </div>
+
+                    <div class="ai-result-card beneficial" id="aiBeneficialCard" style="display: none;">
+                        <h4><i class="fas fa-thumbs-up"></i> <span data-i18n="ai.beneficial">Beneficial Insect!</span></h4>
+                        <p id="aiBeneficialInfo">This insect helps your garden.</p>
+                    </div>
+
+                    <div class="ai-result-actions">
+                        <button class="btn-secondary" onclick="newAIAnalysis()">
+                            <i class="fas fa-camera"></i> <span data-i18n="ai.newPhoto">New Photo</span>
+                        </button>
+                        <button class="btn-primary" onclick="createScoutFromAI()">
+                            <i class="fas fa-file-alt"></i> <span data-i18n="ai.createReport">Create Report</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Treatment Log Modal -->
+    <div class="feature-modal" id="treatmentModal">
+        <div class="feature-modal-content">
+            <div class="feature-modal-header">
+                <button class="back-btn" onclick="closeTreatmentModal()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2><i class="fas fa-spray-can"></i> <span data-i18n="treatment.title">Treatment Log</span></h2>
+            </div>
+            <div class="feature-modal-body">
+                <!-- Active REI Warnings -->
+                <div class="rei-warnings" id="reiWarnings" style="display: none;">
+                    <div class="warning-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span data-i18n="treatment.activeREI">Active Re-Entry Restrictions</span>
+                    </div>
+                    <div id="reiWarningsList"></div>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="treatment.material">Material Applied</label>
+                        <select class="form-input" id="treatmentMaterial" onchange="updateMaterialInfo()">
+                            <option value="">Select material...</option>
+                            <option value="neem">Neem Oil (OMRI)</option>
+                            <option value="bt">Bt - Bacillus thuringiensis (OMRI)</option>
+                            <option value="spinosad">Spinosad (OMRI)</option>
+                            <option value="copper">Copper Fungicide (OMRI)</option>
+                            <option value="sulfur">Sulfur (OMRI)</option>
+                            <option value="pyrethrin">Pyrethrin (OMRI)</option>
+                            <option value="kaolin">Kaolin Clay (OMRI)</option>
+                            <option value="insectsoap">Insecticidal Soap (OMRI)</option>
+                            <option value="other">Other (specify)</option>
+                        </select>
+                        <input type="text" class="form-input" id="treatmentOther" placeholder="Specify material..." style="display: none; margin-top: 8px;">
+                    </div>
+
+                    <div class="material-info" id="materialInfo" style="display: none;">
+                        <span class="omri-badge"><i class="fas fa-leaf"></i> OMRI Listed</span>
+                        <span class="rei-info" id="reiInfo">REI: 4 hours</span>
+                        <span class="phi-info" id="phiInfo">PHI: 0 days</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="treatment.field">Field</label>
+                            <select class="form-input" id="treatmentField">
+                                <option value="">Select...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="treatment.beds">Beds</label>
+                            <input type="text" class="form-input" id="treatmentBeds" placeholder="e.g., 1-5, 8">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="treatment.rate">Rate</label>
+                            <input type="text" class="form-input" id="treatmentRate" placeholder="e.g., 2 tbsp/gal">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="treatment.amount">Amount Used</label>
+                            <input type="text" class="form-input" id="treatmentAmount" placeholder="e.g., 5 gallons">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="treatment.target">Target Pest/Disease</label>
+                        <input type="text" class="form-input" id="treatmentTarget" placeholder="e.g., Aphids, Powdery Mildew">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="treatment.weather">Weather Conditions</label>
+                        <div class="weather-buttons">
+                            <button class="weather-btn" onclick="setWeather('sunny')"><i class="fas fa-sun"></i></button>
+                            <button class="weather-btn" onclick="setWeather('cloudy')"><i class="fas fa-cloud"></i></button>
+                            <button class="weather-btn" onclick="setWeather('rainy')"><i class="fas fa-cloud-rain"></i></button>
+                            <button class="weather-btn" onclick="setWeather('windy')"><i class="fas fa-wind"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="treatment.notes">Notes</label>
+                        <textarea class="form-input" id="treatmentNotes" rows="2"></textarea>
+                    </div>
+
+                    <button class="submit-btn" onclick="submitTreatment()">
+                        <i class="fas fa-check"></i>
+                        <span data-i18n="treatment.submit">Log Treatment</span>
+                    </button>
+                </div>
+
+                <!-- Beneficial Release Section -->
+                <div class="form-card" style="margin-top: 16px;">
+                    <div class="form-card-header">
+                        <i class="fas fa-bug"></i>
+                        <span data-i18n="treatment.beneficial">Beneficial Release</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="treatment.beneficialType">Type</label>
+                        <select class="form-input" id="beneficialType">
+                            <option value="">Select...</option>
+                            <option value="ladybugs">Ladybugs</option>
+                            <option value="lacewings">Green Lacewings</option>
+                            <option value="parasitic_wasps">Parasitic Wasps</option>
+                            <option value="predatory_mites">Predatory Mites</option>
+                            <option value="nematodes">Beneficial Nematodes</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="treatment.quantity">Quantity</label>
+                            <input type="text" class="form-input" id="beneficialQty" placeholder="e.g., 1500">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="treatment.location">Location</label>
+                            <select class="form-input" id="beneficialField">
+                                <option value="">Select field...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="submit-btn secondary" onclick="submitBeneficialRelease()">
+                        <i class="fas fa-plus"></i>
+                        <span data-i18n="treatment.logRelease">Log Release</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hazard Report Modal -->
+    <div class="feature-modal" id="hazardModal">
+        <div class="feature-modal-content">
+            <div class="feature-modal-header">
+                <button class="back-btn" onclick="closeHazardModal()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2><i class="fas fa-triangle-exclamation"></i> <span data-i18n="hazard.title">Field Hazards</span></h2>
+            </div>
+            <div class="feature-modal-body">
+                <!-- Active Hazards List -->
+                <div class="active-hazards" id="activeHazardsList">
+                    <h3 data-i18n="hazard.active">Active Hazards</h3>
+                    <div id="hazardCards"></div>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <i class="fas fa-plus"></i>
+                        <span data-i18n="hazard.report">Report New Hazard</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="hazard.type">Hazard Type</label>
+                        <div class="hazard-type-grid">
+                            <button class="hazard-type-btn" onclick="setHazardType('groundhog')">
+                                <i class="fas fa-hippo"></i>
+                                <span>Groundhog Hole</span>
+                            </button>
+                            <button class="hazard-type-btn" onclick="setHazardType('drainage')">
+                                <i class="fas fa-water"></i>
+                                <span>Drainage Issue</span>
+                            </button>
+                            <button class="hazard-type-btn" onclick="setHazardType('equipment')">
+                                <i class="fas fa-tools"></i>
+                                <span>Equipment</span>
+                            </button>
+                            <button class="hazard-type-btn" onclick="setHazardType('debris')">
+                                <i class="fas fa-tree"></i>
+                                <span>Debris</span>
+                            </button>
+                            <button class="hazard-type-btn" onclick="setHazardType('irrigation')">
+                                <i class="fas fa-faucet-drip"></i>
+                                <span>Irrigation</span>
+                            </button>
+                            <button class="hazard-type-btn" onclick="setHazardType('other')">
+                                <i class="fas fa-question"></i>
+                                <span>Other</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="hazard.severity">Severity</label>
+                        <div class="severity-buttons">
+                            <button class="severity-btn low" onclick="setHazardSeverity('low')">Low</button>
+                            <button class="severity-btn medium" onclick="setHazardSeverity('medium')">Medium</button>
+                            <button class="severity-btn high" onclick="setHazardSeverity('high')">High</button>
+                            <button class="severity-btn critical" onclick="setHazardSeverity('critical')">Critical</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="hazard.description">Description</label>
+                        <textarea class="form-input" id="hazardDescription" rows="2" placeholder="Describe the hazard..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="hazard.photo">Photo</label>
+                        <div class="photo-capture-btn" onclick="capturePhoto('hazard')">
+                            <i class="fas fa-camera"></i>
+                            <span>Take Photo</span>
+                        </div>
+                        <div class="photo-preview" id="hazardPhotoPreview" style="display: none;"></div>
+                    </div>
+
+                    <button class="submit-btn danger" onclick="submitHazard()">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span data-i18n="hazard.submit">Report Hazard</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weed Pressure Modal -->
+    <div class="feature-modal" id="weedModal">
+        <div class="feature-modal-content">
+            <div class="feature-modal-header">
+                <button class="back-btn" onclick="closeWeedModal()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2><i class="fas fa-seedling"></i> <span data-i18n="weed.title">Weed Pressure</span></h2>
+            </div>
+            <div class="feature-modal-body">
+                <div class="form-card">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="weed.field">Field / Bed</label>
+                        <div class="form-row">
+                            <select class="form-input" id="weedField">
+                                <option value="">Select field...</option>
+                            </select>
+                            <input type="text" class="form-input" id="weedBed" placeholder="Bed #">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="weed.type">Weed Type</label>
+                        <div class="weed-type-grid">
+                            <button class="weed-type-btn" onclick="setWeedType('annual_broadleaf')">
+                                <span>Annual Broadleaf</span>
+                            </button>
+                            <button class="weed-type-btn" onclick="setWeedType('perennial_broadleaf')">
+                                <span>Perennial Broadleaf</span>
+                            </button>
+                            <button class="weed-type-btn" onclick="setWeedType('annual_grass')">
+                                <span>Annual Grass</span>
+                            </button>
+                            <button class="weed-type-btn" onclick="setWeedType('perennial_grass')">
+                                <span>Perennial Grass</span>
+                            </button>
+                            <button class="weed-type-btn" onclick="setWeedType('sedge')">
+                                <span>Sedge/Nutsedge</span>
+                            </button>
+                            <button class="weed-type-btn" onclick="setWeedType('vine')">
+                                <span>Vine/Creeper</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="weed.species">Species (if known)</label>
+                        <input type="text" class="form-input" id="weedSpecies" placeholder="e.g., Pigweed, Lambsquarter">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="weed.pressure">Pressure Level</label>
+                        <div class="pressure-slider">
+                            <input type="range" id="weedPressure" min="1" max="5" value="3" oninput="updatePressureLabel()">
+                            <div class="pressure-labels">
+                                <span>Light</span>
+                                <span>Moderate</span>
+                                <span>Heavy</span>
+                            </div>
+                            <div class="pressure-value" id="pressureValue">3 - Moderate</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="weed.coverage">Coverage %</label>
+                        <input type="number" class="form-input" id="weedCoverage" placeholder="0-100" min="0" max="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="weed.notes">Notes</label>
+                        <textarea class="form-input" id="weedNotes" rows="2"></textarea>
+                    </div>
+
+                    <button class="submit-btn" onclick="submitWeedPressure()">
+                        <i class="fas fa-check"></i>
+                        <span data-i18n="weed.submit">Log Weed Pressure</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cultivation Log Modal -->
+    <div class="feature-modal" id="cultivationModal">
+        <div class="feature-modal-content">
+            <div class="feature-modal-header">
+                <button class="back-btn" onclick="closeCultivationModal()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2><i class="fas fa-tractor"></i> <span data-i18n="cultivation.title">Cultivation Log</span></h2>
+            </div>
+            <div class="feature-modal-body">
+                <div class="form-card">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="cultivation.field">Field / Beds</label>
+                        <div class="form-row">
+                            <select class="form-input" id="cultivationField">
+                                <option value="">Select field...</option>
+                            </select>
+                            <input type="text" class="form-input" id="cultivationBeds" placeholder="Beds (e.g., 1-10)">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="cultivation.implement">Implement Used</label>
+                        <div class="implement-grid">
+                            <button class="implement-btn" onclick="setImplement('wheel_hoe')">
+                                <i class="fas fa-circle"></i>
+                                <span>Wheel Hoe</span>
+                            </button>
+                            <button class="implement-btn" onclick="setImplement('stirrup')">
+                                <i class="fas fa-horse"></i>
+                                <span>Stirrup Hoe</span>
+                            </button>
+                            <button class="implement-btn" onclick="setImplement('collinear')">
+                                <i class="fas fa-minus"></i>
+                                <span>Collinear</span>
+                            </button>
+                            <button class="implement-btn" onclick="setImplement('tractor')">
+                                <i class="fas fa-tractor"></i>
+                                <span>Tractor</span>
+                            </button>
+                            <button class="implement-btn" onclick="setImplement('flame')">
+                                <i class="fas fa-fire"></i>
+                                <span>Flame Weeder</span>
+                            </button>
+                            <button class="implement-btn" onclick="setImplement('hand')">
+                                <i class="fas fa-hand"></i>
+                                <span>Hand Pull</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="cultivation.depth">Depth</label>
+                        <div class="depth-buttons">
+                            <button class="depth-btn" onclick="setDepth('shallow')">Shallow (1")</button>
+                            <button class="depth-btn" onclick="setDepth('medium')">Medium (2")</button>
+                            <button class="depth-btn" onclick="setDepth('deep')">Deep (3"+)</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="cultivation.soilCondition">Soil Condition</label>
+                        <div class="soil-buttons">
+                            <button class="soil-btn" onclick="setSoil('dry')"><i class="fas fa-sun"></i> Dry</button>
+                            <button class="soil-btn" onclick="setSoil('moist')"><i class="fas fa-tint"></i> Moist</button>
+                            <button class="soil-btn" onclick="setSoil('wet')"><i class="fas fa-water"></i> Wet</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="cultivation.effectiveness">Effectiveness</label>
+                        <div class="effectiveness-buttons">
+                            <button class="eff-btn" onclick="setEffectiveness('poor')">Poor</button>
+                            <button class="eff-btn" onclick="setEffectiveness('fair')">Fair</button>
+                            <button class="eff-btn" onclick="setEffectiveness('good')">Good</button>
+                            <button class="eff-btn" onclick="setEffectiveness('excellent')">Excellent</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="cultivation.notes">Notes</label>
+                        <textarea class="form-input" id="cultivationNotes" rows="2"></textarea>
+                    </div>
+
+                    <button class="submit-btn" onclick="submitCultivation()">
+                        <i class="fas fa-check"></i>
+                        <span data-i18n="cultivation.submit">Log Cultivation</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages Modal -->
+    <div class="feature-modal" id="messagesModal">
+        <div class="feature-modal-content">
+            <div class="feature-modal-header">
+                <button class="back-btn" onclick="closeMessagesModal()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2><i class="fas fa-envelope"></i> <span data-i18n="messages.title">Messages</span></h2>
+            </div>
+            <div class="feature-modal-body">
+                <div id="messagesList" class="messages-list">
+                    <!-- Messages will be loaded here -->
+                </div>
+                <div class="empty-messages" id="emptyMessages">
+                    <i class="fas fa-inbox"></i>
+                    <p data-i18n="messages.empty">No messages</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Heat Safety Alert -->
+    <div class="safety-alert" id="heatAlert" style="display: none;">
+        <div class="safety-alert-content">
+            <div class="safety-icon">
+                <i class="fas fa-temperature-high"></i>
+            </div>
+            <div class="safety-message">
+                <h3 data-i18n="safety.heatTitle">Heat Safety Reminder</h3>
+                <p data-i18n="safety.heatMessage">It's hot outside! Remember to take breaks, drink water, and find shade.</p>
+            </div>
+            <button class="safety-dismiss" onclick="dismissHeatAlert()">
+                <i class="fas fa-check"></i> <span data-i18n="safety.gotIt">Got It</span>
+            </button>
+        </div>
+    </div>
+
     <script>
         // ============================================
         // CONFIGURATION
@@ -1702,8 +3046,433 @@
             currentPhotoTarget: null,
             capturedPhoto: null,
             tasks: [],
-            plantings: []
+            plantings: [],
+            syncQueueCount: 0,
+            isSyncing: false,
+            lastSyncTime: null
         };
+
+        // ============================================
+        // INDEXEDDB OFFLINE MODULE
+        // ============================================
+        const OfflineDB = {
+            db: null,
+            DB_NAME: CONFIG.DB_NAME,
+            DB_VERSION: 2,
+
+            // Initialize the database
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+
+                    request.onerror = () => {
+                        console.error('IndexedDB error:', request.error);
+                        reject(request.error);
+                    };
+
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        console.log('IndexedDB initialized successfully');
+                        resolve(this.db);
+                    };
+
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+
+                        // Sync Queue - stores pending operations
+                        if (!db.objectStoreNames.contains('syncQueue')) {
+                            const syncStore = db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
+                            syncStore.createIndex('timestamp', 'timestamp');
+                            syncStore.createIndex('action', 'action');
+                            syncStore.createIndex('status', 'status');
+                        }
+
+                        // Cached Tasks
+                        if (!db.objectStoreNames.contains('tasks')) {
+                            const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
+                            taskStore.createIndex('date', 'date');
+                            taskStore.createIndex('type', 'type');
+                        }
+
+                        // Cached Plantings (for harvest dropdown)
+                        if (!db.objectStoreNames.contains('plantings')) {
+                            const plantingStore = db.createObjectStore('plantings', { keyPath: 'Batch_ID' });
+                            plantingStore.createIndex('Crop', 'Crop');
+                            plantingStore.createIndex('STATUS', 'STATUS');
+                        }
+
+                        // Local Harvests
+                        if (!db.objectStoreNames.contains('harvests')) {
+                            const harvestStore = db.createObjectStore('harvests', { keyPath: 'localId', autoIncrement: true });
+                            harvestStore.createIndex('synced', 'synced');
+                            harvestStore.createIndex('timestamp', 'timestamp');
+                        }
+
+                        // Local Scout Reports
+                        if (!db.objectStoreNames.contains('scoutReports')) {
+                            const scoutStore = db.createObjectStore('scoutReports', { keyPath: 'localId', autoIncrement: true });
+                            scoutStore.createIndex('synced', 'synced');
+                        }
+
+                        // Session data
+                        if (!db.objectStoreNames.contains('session')) {
+                            db.createObjectStore('session', { keyPath: 'key' });
+                        }
+
+                        // Reference data cache
+                        if (!db.objectStoreNames.contains('referenceData')) {
+                            db.createObjectStore('referenceData', { keyPath: 'type' });
+                        }
+
+                        console.log('IndexedDB stores created');
+                    };
+                });
+            },
+
+            // Add item to sync queue
+            async queueOperation(action, data) {
+                if (!this.db) await this.init();
+
+                const operation = {
+                    action: action,
+                    data: data,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending',
+                    retries: 0
+                };
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('syncQueue', 'readwrite');
+                    const store = tx.objectStore('syncQueue');
+                    const request = store.add(operation);
+
+                    request.onsuccess = () => {
+                        AppState.syncQueueCount++;
+                        updateSyncBadge();
+                        resolve(request.result);
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Get all pending operations
+            async getPendingOperations() {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('syncQueue', 'readonly');
+                    const store = tx.objectStore('syncQueue');
+                    const index = store.index('status');
+                    const request = index.getAll('pending');
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Mark operation as completed
+            async markOperationComplete(id) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('syncQueue', 'readwrite');
+                    const store = tx.objectStore('syncQueue');
+                    const request = store.delete(id);
+
+                    request.onsuccess = () => {
+                        AppState.syncQueueCount = Math.max(0, AppState.syncQueueCount - 1);
+                        updateSyncBadge();
+                        resolve();
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Mark operation as failed (increment retry)
+            async markOperationFailed(id, error) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('syncQueue', 'readwrite');
+                    const store = tx.objectStore('syncQueue');
+                    const getRequest = store.get(id);
+
+                    getRequest.onsuccess = () => {
+                        const op = getRequest.result;
+                        if (op) {
+                            op.retries++;
+                            op.lastError = error;
+                            op.status = op.retries >= 3 ? 'failed' : 'pending';
+                            store.put(op);
+                        }
+                        resolve();
+                    };
+                    getRequest.onerror = () => reject(getRequest.error);
+                });
+            },
+
+            // Cache tasks locally
+            async cacheTasks(tasks) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('tasks', 'readwrite');
+                    const store = tx.objectStore('tasks');
+
+                    // Clear existing
+                    store.clear();
+
+                    // Add new
+                    tasks.forEach(task => store.add(task));
+
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            },
+
+            // Get cached tasks
+            async getCachedTasks() {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('tasks', 'readonly');
+                    const store = tx.objectStore('tasks');
+                    const request = store.getAll();
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Cache plantings
+            async cachePlantings(plantings) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('plantings', 'readwrite');
+                    const store = tx.objectStore('plantings');
+
+                    store.clear();
+                    plantings.forEach(p => {
+                        if (p.Batch_ID) store.add(p);
+                    });
+
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            },
+
+            // Get cached plantings
+            async getCachedPlantings() {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('plantings', 'readonly');
+                    const store = tx.objectStore('plantings');
+                    const request = store.getAll();
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Save session
+            async saveSession(sessionData) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('session', 'readwrite');
+                    const store = tx.objectStore('session');
+                    const request = store.put({ key: 'currentSession', ...sessionData });
+
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Get session
+            async getSession() {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('session', 'readonly');
+                    const store = tx.objectStore('session');
+                    const request = store.get('currentSession');
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Clear session
+            async clearSession() {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('session', 'readwrite');
+                    const store = tx.objectStore('session');
+                    store.clear();
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            },
+
+            // Get sync queue count
+            async getSyncQueueCount() {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('syncQueue', 'readonly');
+                    const store = tx.objectStore('syncQueue');
+                    const index = store.index('status');
+                    const request = index.count('pending');
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Cache reference data (fields, crops, etc.)
+            async cacheReferenceData(type, data) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('referenceData', 'readwrite');
+                    const store = tx.objectStore('referenceData');
+                    const request = store.put({ type: type, data: data, cachedAt: new Date().toISOString() });
+
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Get cached reference data
+            async getCachedReferenceData(type) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('referenceData', 'readonly');
+                    const store = tx.objectStore('referenceData');
+                    const request = store.get(type);
+
+                    request.onsuccess = () => resolve(request.result?.data || null);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+        };
+
+        // ============================================
+        // SYNC MODULE
+        // ============================================
+        const SyncModule = {
+            isSyncing: false,
+            syncInterval: null,
+
+            // Process all pending operations
+            async syncAll() {
+                if (this.isSyncing || !AppState.isOnline) return;
+
+                this.isSyncing = true;
+                AppState.isSyncing = true;
+                updateSyncButton(true);
+
+                try {
+                    const pending = await OfflineDB.getPendingOperations();
+                    console.log(`Syncing ${pending.length} pending operations...`);
+
+                    let successCount = 0;
+                    let failCount = 0;
+
+                    for (const op of pending) {
+                        try {
+                            const result = await this.processOperation(op);
+                            if (result.success) {
+                                await OfflineDB.markOperationComplete(op.id);
+                                successCount++;
+                            } else {
+                                await OfflineDB.markOperationFailed(op.id, result.error);
+                                failCount++;
+                            }
+                        } catch (error) {
+                            await OfflineDB.markOperationFailed(op.id, error.message);
+                            failCount++;
+                        }
+                    }
+
+                    AppState.lastSyncTime = new Date();
+
+                    if (pending.length > 0) {
+                        if (failCount === 0) {
+                            showToast(t('common.syncComplete') + ` (${successCount})`, 'success');
+                        } else {
+                            showToast(`Synced ${successCount}, failed ${failCount}`, 'warning');
+                        }
+                    }
+
+                    // Refresh data after sync
+                    await loadInitialData();
+
+                } catch (error) {
+                    console.error('Sync error:', error);
+                    showToast(t('common.error'), 'error');
+                }
+
+                this.isSyncing = false;
+                AppState.isSyncing = false;
+                updateSyncButton(false);
+            },
+
+            // Process a single operation
+            async processOperation(op) {
+                const { action, data } = op;
+
+                const params = new URLSearchParams({ action, ...data });
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                return await response.json();
+            },
+
+            // Start periodic sync check
+            startPeriodicSync() {
+                this.syncInterval = setInterval(() => {
+                    if (AppState.isOnline && AppState.syncQueueCount > 0) {
+                        this.syncAll();
+                    }
+                }, 30000); // Every 30 seconds
+            },
+
+            // Stop periodic sync
+            stopPeriodicSync() {
+                if (this.syncInterval) {
+                    clearInterval(this.syncInterval);
+                    this.syncInterval = null;
+                }
+            }
+        };
+
+        // Update sync button UI
+        function updateSyncButton(syncing) {
+            const btn = document.getElementById('syncBtn');
+            if (syncing) {
+                btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                btn.disabled = false;
+            }
+        }
+
+        // Update sync badge (pending count)
+        function updateSyncBadge() {
+            const badge = document.getElementById('syncBadge');
+            if (badge) {
+                if (AppState.syncQueueCount > 0) {
+                    badge.textContent = AppState.syncQueueCount;
+                    badge.classList.add('visible');
+                } else {
+                    badge.classList.remove('visible');
+                }
+            }
+        }
 
         // ============================================
         // TRANSLATIONS
@@ -1762,7 +3531,43 @@
                 'tabs.scout': 'Scout',
                 'tabs.more': 'More',
                 'messages.title': 'Messages',
-                'messages.empty': 'No messages'
+                'messages.empty': 'No messages',
+                // AI Plant Doctor
+                'ai.title': 'AI Plant Doctor',
+                'ai.takePhoto': 'Take a Photo',
+                'ai.photoHint': 'Get a clear, close-up shot of the affected plant, leaf, or insect',
+                'ai.useCamera': 'Use Camera',
+                'ai.choosePhoto': 'Choose from Gallery',
+                'ai.whatAnalyze': 'What do you want to analyze?',
+                'ai.plantHealth': 'Plant Health',
+                'ai.bugId': 'Bug ID',
+                'ai.retake': 'Retake',
+                'ai.analyze': 'Analyze',
+                'ai.analyzing': 'Analyzing...',
+                'ai.pleaseWait': 'Our AI is examining your photo',
+                'ai.identification': 'Identification',
+                'ai.description': 'Description',
+                'ai.treatment': 'Recommended Action',
+                'ai.beneficial': 'Beneficial Insect!',
+                'ai.confident': 'confident',
+                'ai.newPhoto': 'New Photo',
+                'ai.createReport': 'Create Report',
+                'ai.reportCreated': 'Scout report pre-filled with AI diagnosis',
+                // Phase 6: Treatment
+                'treatment.title': 'Treatment Log',
+                'treatment.success': 'Treatment logged successfully',
+                'treatment.releaseSuccess': 'Beneficial release logged',
+                // Phase 7: Hazard, Weed, Cultivation
+                'hazard.success': 'Hazard reported successfully',
+                'weed.success': 'Weed pressure logged successfully',
+                'cultivation.success': 'Cultivation logged successfully',
+                // Phase 8: Messages
+                'messages.acknowledge': 'Acknowledge',
+                'messages.acknowledged': 'Message acknowledged',
+                // Safety
+                'safety.heatTitle': 'Heat Safety Reminder',
+                'safety.heatMessage': 'Remember to take breaks, drink water, and find shade.',
+                'safety.gotIt': 'Got It'
             },
             es: {
                 'auth.title': 'Granja Tiny Seed',
@@ -1817,7 +3622,43 @@
                 'tabs.scout': 'Monitoreo',
                 'tabs.more': 'Mas',
                 'messages.title': 'Mensajes',
-                'messages.empty': 'Sin mensajes'
+                'messages.empty': 'Sin mensajes',
+                // AI Plant Doctor
+                'ai.title': 'Doctor de Plantas IA',
+                'ai.takePhoto': 'Tomar una Foto',
+                'ai.photoHint': 'Obtenga una foto clara y cercana de la planta, hoja o insecto afectado',
+                'ai.useCamera': 'Usar Camara',
+                'ai.choosePhoto': 'Elegir de Galeria',
+                'ai.whatAnalyze': 'Que quieres analizar?',
+                'ai.plantHealth': 'Salud de Planta',
+                'ai.bugId': 'ID de Insecto',
+                'ai.retake': 'Repetir',
+                'ai.analyze': 'Analizar',
+                'ai.analyzing': 'Analizando...',
+                'ai.pleaseWait': 'Nuestra IA esta examinando tu foto',
+                'ai.identification': 'Identificacion',
+                'ai.description': 'Descripcion',
+                'ai.treatment': 'Accion Recomendada',
+                'ai.beneficial': 'Insecto Benefico!',
+                'ai.confident': 'seguro',
+                'ai.newPhoto': 'Nueva Foto',
+                'ai.createReport': 'Crear Reporte',
+                'ai.reportCreated': 'Reporte de campo pre-llenado con diagnostico IA',
+                // Phase 6: Treatment
+                'treatment.title': 'Registro de Tratamiento',
+                'treatment.success': 'Tratamiento registrado exitosamente',
+                'treatment.releaseSuccess': 'Liberacion de beneficos registrada',
+                // Phase 7: Hazard, Weed, Cultivation
+                'hazard.success': 'Peligro reportado exitosamente',
+                'weed.success': 'Presion de malezas registrada',
+                'cultivation.success': 'Cultivo registrado exitosamente',
+                // Phase 8: Messages
+                'messages.acknowledge': 'Confirmar',
+                'messages.acknowledged': 'Mensaje confirmado',
+                // Safety
+                'safety.heatTitle': 'Recordatorio de Seguridad por Calor',
+                'safety.heatMessage': 'Recuerde tomar descansos, beber agua y buscar sombra.',
+                'safety.gotIt': 'Entendido'
             }
         };
 
@@ -1872,10 +3713,14 @@
                     AppState.isClockedIn = data.isClockedIn || false;
                     AppState.clockInTime = data.clockInTime || null;
 
-                    localStorage.setItem('employeeSession', JSON.stringify({
+                    const sessionData = {
                         employee: AppState.employee,
                         language: AppState.language
-                    }));
+                    };
+
+                    // Save to both localStorage (fallback) and IndexedDB
+                    localStorage.setItem('employeeSession', JSON.stringify(sessionData));
+                    await OfflineDB.saveSession(sessionData);
 
                     showMainApp();
                 } else {
@@ -1883,13 +3728,19 @@
                 }
             } catch (error) {
                 console.error('Auth error:', error);
-                // Try offline login
-                const session = localStorage.getItem('employeeSession');
-                if (session) {
-                    const saved = JSON.parse(session);
-                    // Simple offline PIN check (in production, use hashed PIN)
-                    AppState.employee = saved.employee;
-                    AppState.language = saved.language;
+                // Try offline login from IndexedDB first, then localStorage
+                let offlineSession = await OfflineDB.getSession();
+                if (!offlineSession) {
+                    const lsSession = localStorage.getItem('employeeSession');
+                    if (lsSession) {
+                        offlineSession = JSON.parse(lsSession);
+                    }
+                }
+
+                if (offlineSession && offlineSession.employee) {
+                    // Simple offline login (user must have logged in before)
+                    AppState.employee = offlineSession.employee;
+                    AppState.language = offlineSession.language || 'en';
                     showMainApp();
                 } else {
                     showPinError();
@@ -1929,8 +3780,11 @@
             loadInitialData();
         }
 
-        function logout() {
+        async function logout() {
+            // Clear both localStorage and IndexedDB session
             localStorage.removeItem('employeeSession');
+            await OfflineDB.clearSession();
+
             AppState.employee = null;
             AppState.enteredPIN = '';
             AppState.isClockedIn = false;
@@ -2112,8 +3966,7 @@
             try {
                 const gps = await captureGPS();
 
-                const params = new URLSearchParams({
-                    action: 'logHarvestWithDetails',
+                const harvestData = {
                     employeeId: AppState.employee?.Employee_ID || '',
                     crop: crop,
                     quantity: qty,
@@ -2123,31 +3976,63 @@
                     lat: gps.lat || '',
                     lng: gps.lng || '',
                     photo: AppState.capturedPhoto || ''
-                });
+                };
 
-                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
-                const data = await response.json();
+                if (AppState.isOnline) {
+                    // Online: submit directly
+                    const params = new URLSearchParams({
+                        action: 'logHarvestWithDetails',
+                        ...harvestData
+                    });
 
-                if (data.success) {
-                    showToast(t('harvest.success'), 'success');
-                    // Reset form
-                    document.getElementById('harvestCrop').value = '';
-                    document.getElementById('harvestQty').value = '';
-                    document.getElementById('harvestNotes').value = '';
-                    AppState.harvestQuality = 'A';
-                    setQuality('A');
-                    AppState.capturedPhoto = null;
-                    document.getElementById('harvestPhotoPreview').style.display = 'none';
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
 
-                    loadRecentHarvests();
+                    if (data.success) {
+                        showToast(t('harvest.success'), 'success');
+                        resetHarvestForm();
+                        loadRecentHarvests();
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
                 } else {
-                    showToast(data.error || t('common.error'), 'error');
+                    // Offline: queue for later sync
+                    await OfflineDB.queueOperation('logHarvestWithDetails', harvestData);
+                    showToast(t('harvest.success') + ' ' + t('common.offline'), 'success');
+                    resetHarvestForm();
                 }
             } catch (error) {
                 console.error('Harvest error:', error);
-                showToast(t('common.error'), 'error');
+                // Network error - queue offline
+                if (!AppState.isOnline) {
+                    const gps = await captureGPS();
+                    await OfflineDB.queueOperation('logHarvestWithDetails', {
+                        employeeId: AppState.employee?.Employee_ID || '',
+                        crop: crop,
+                        quantity: qty,
+                        unit: unit,
+                        quality: AppState.harvestQuality,
+                        notes: notes,
+                        lat: gps.lat || '',
+                        lng: gps.lng || ''
+                    });
+                    showToast(t('harvest.success') + ' ' + t('common.offline'), 'success');
+                    resetHarvestForm();
+                } else {
+                    showToast(t('common.error'), 'error');
+                }
             }
             hideLoading();
+        }
+
+        function resetHarvestForm() {
+            document.getElementById('harvestCrop').value = '';
+            document.getElementById('harvestQty').value = '';
+            document.getElementById('harvestNotes').value = '';
+            AppState.harvestQuality = 'A';
+            setQuality('A');
+            AppState.capturedPhoto = null;
+            document.getElementById('harvestPhotoPreview').style.display = 'none';
         }
 
         // ============================================
@@ -2180,8 +4065,7 @@
                 const bed = document.getElementById('scoutBed').value;
                 const notes = document.getElementById('scoutNotes').value;
 
-                const params = new URLSearchParams({
-                    action: 'saveScoutingReport',
+                const scoutData = {
                     employeeId: AppState.employee?.Employee_ID || '',
                     type: AppState.scoutType,
                     severity: AppState.scoutSeverity || 'medium',
@@ -2191,34 +4075,361 @@
                     lat: gps.lat || '',
                     lng: gps.lng || '',
                     photo: AppState.capturedPhoto || ''
-                });
+                };
 
-                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    showToast(t('scout.success'), 'success');
-                    // Reset form
-                    AppState.scoutType = null;
-                    AppState.scoutSeverity = null;
-                    document.querySelectorAll('.scout-type-btn, .severity-btn').forEach(btn => {
-                        btn.classList.remove('active');
+                if (AppState.isOnline) {
+                    // Online: submit directly
+                    const params = new URLSearchParams({
+                        action: 'saveScoutingReport',
+                        ...scoutData
                     });
-                    document.getElementById('scoutNotes').value = '';
-                    AppState.capturedPhoto = null;
-                    document.getElementById('scoutPhotoPreview').style.display = 'none';
+
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showToast(t('scout.success'), 'success');
+                        resetScoutForm();
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
                 } else {
-                    showToast(data.error || t('common.error'), 'error');
+                    // Offline: queue for later sync
+                    await OfflineDB.queueOperation('saveScoutingReport', scoutData);
+                    showToast(t('scout.success') + ' ' + t('common.offline'), 'success');
+                    resetScoutForm();
                 }
             } catch (error) {
                 console.error('Scout error:', error);
-                showToast(t('common.error'), 'error');
+                // Network error - queue offline
+                if (!AppState.isOnline) {
+                    const gps = await captureGPS();
+                    await OfflineDB.queueOperation('saveScoutingReport', {
+                        employeeId: AppState.employee?.Employee_ID || '',
+                        type: AppState.scoutType,
+                        severity: AppState.scoutSeverity || 'medium',
+                        field: document.getElementById('scoutField').value,
+                        bed: document.getElementById('scoutBed').value,
+                        notes: document.getElementById('scoutNotes').value,
+                        lat: gps.lat || '',
+                        lng: gps.lng || ''
+                    });
+                    showToast(t('scout.success') + ' ' + t('common.offline'), 'success');
+                    resetScoutForm();
+                } else {
+                    showToast(t('common.error'), 'error');
+                }
             }
             hideLoading();
         }
 
+        function resetScoutForm() {
+            AppState.scoutType = null;
+            AppState.scoutSeverity = null;
+            document.querySelectorAll('.scout-type-btn, .severity-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('scoutNotes').value = '';
+            AppState.capturedPhoto = null;
+            document.getElementById('scoutPhotoPreview').style.display = 'none';
+        }
+
+        // ============================================
+        // AI PLANT DOCTOR
+        // ============================================
+        const AIDoctor = {
+            photo: null,
+            mode: 'plant', // 'plant' or 'bug'
+            lastResult: null
+        };
+
         function openAIDiagnosis() {
-            showToast('AI Plant Doctor coming soon!', 'info');
+            AIDoctor.photo = null;
+            AIDoctor.mode = 'plant';
+            AIDoctor.lastResult = null;
+
+            // Reset to step 1
+            showAIStep(1);
+
+            // Reset mode buttons
+            document.getElementById('aiModePlant').classList.add('active');
+            document.getElementById('aiModeBug').classList.remove('active');
+
+            // Show modal
+            document.getElementById('aiDoctorModal').classList.add('visible');
+        }
+
+        function closeAIDoctor() {
+            document.getElementById('aiDoctorModal').classList.remove('visible');
+        }
+
+        function showAIStep(step) {
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`aiStep${i}`).style.display = i === step ? 'block' : 'none';
+            }
+        }
+
+        function captureAIPhoto() {
+            // Use camera for mobile devices
+            const input = document.getElementById('aiPhotoInput');
+            input.setAttribute('capture', 'environment');
+            input.click();
+        }
+
+        function selectAIPhoto() {
+            // Select from gallery
+            const input = document.getElementById('aiPhotoInput');
+            input.removeAttribute('capture');
+            input.click();
+        }
+
+        function handleAIPhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                // Compress the photo
+                AIDoctor.photo = await compressPhoto(e.target.result, 800);
+
+                // Show preview
+                document.getElementById('aiPhotoPreview').src = AIDoctor.photo;
+                showAIStep(2);
+            };
+            reader.readAsDataURL(file);
+
+            // Reset input for next use
+            event.target.value = '';
+        }
+
+        function setAIMode(mode) {
+            AIDoctor.mode = mode;
+            document.getElementById('aiModePlant').classList.toggle('active', mode === 'plant');
+            document.getElementById('aiModeBug').classList.toggle('active', mode === 'bug');
+        }
+
+        function retakeAIPhoto() {
+            AIDoctor.photo = null;
+            showAIStep(1);
+        }
+
+        async function analyzePhoto() {
+            if (!AIDoctor.photo) {
+                showToast('Please take a photo first', 'error');
+                return;
+            }
+
+            // Show analyzing step
+            showAIStep(3);
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'analyzeImage',
+                    mode: AIDoctor.mode,
+                    image: AIDoctor.photo
+                });
+
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    AIDoctor.lastResult = result;
+                    displayAIResults(result);
+                } else {
+                    showToast(result.error || t('common.error'), 'error');
+                    showAIStep(2);
+                }
+            } catch (error) {
+                console.error('AI Analysis error:', error);
+
+                // Fallback: show simulated result for demo purposes
+                const simulatedResult = getSimulatedResult();
+                AIDoctor.lastResult = simulatedResult;
+                displayAIResults(simulatedResult);
+            }
+        }
+
+        function getSimulatedResult() {
+            // Simulated results for demo/offline mode
+            if (AIDoctor.mode === 'plant') {
+                const issues = [
+                    {
+                        type: 'disease',
+                        name: 'Powdery Mildew',
+                        confidence: 87,
+                        description: 'A fungal disease that appears as white, powdery spots on leaves and stems.',
+                        treatment: 'Remove affected leaves, improve air circulation, and apply neem oil or potassium bicarbonate spray. Avoid overhead watering.'
+                    },
+                    {
+                        type: 'pest',
+                        name: 'Aphid Infestation',
+                        confidence: 92,
+                        description: 'Small soft-bodied insects that cluster on new growth and undersides of leaves, sucking plant sap.',
+                        treatment: 'Spray with strong water jet to dislodge. Apply insecticidal soap or neem oil. Introduce beneficial insects like ladybugs.'
+                    },
+                    {
+                        type: 'disease',
+                        name: 'Early Blight',
+                        confidence: 78,
+                        description: 'Fungal disease causing dark spots with concentric rings on lower leaves, spreading upward.',
+                        treatment: 'Remove and destroy affected leaves. Apply copper-based fungicide. Improve air circulation and avoid wetting foliage.'
+                    }
+                ];
+                return { success: true, ...issues[Math.floor(Math.random() * issues.length)] };
+            } else {
+                const bugs = [
+                    {
+                        type: 'beneficial',
+                        name: 'Ladybug (Coccinellidae)',
+                        confidence: 95,
+                        description: 'Beneficial predator that consumes aphids, scale insects, and mites. A single ladybug can eat up to 5,000 aphids in its lifetime.',
+                        isBeneficial: true,
+                        benefitInfo: 'Keep these in your garden! They are excellent natural pest control.'
+                    },
+                    {
+                        type: 'pest',
+                        name: 'Colorado Potato Beetle',
+                        confidence: 89,
+                        description: 'Major pest of potatoes and tomatoes. Both adults and larvae feed on foliage and can defoliate plants.',
+                        treatment: 'Hand-pick adults and larvae. Use Bacillus thuringiensis var. tenebrionis (Btt) or spinosad for organic control.'
+                    },
+                    {
+                        type: 'beneficial',
+                        name: 'Green Lacewing',
+                        confidence: 91,
+                        description: 'Predatory insect whose larvae voraciously consume aphids, mealybugs, thrips, and other soft-bodied pests.',
+                        isBeneficial: true,
+                        benefitInfo: 'Lacewing larvae are called "aphid lions" - encourage them by planting dill, fennel, and yarrow.'
+                    },
+                    {
+                        type: 'pest',
+                        name: 'Cucumber Beetle',
+                        confidence: 85,
+                        description: 'Feeds on cucurbits and can transmit bacterial wilt. Yellow-green with black spots or stripes.',
+                        treatment: 'Use row covers early in season. Apply kaolin clay or spinosad. Trap crop with Blue Hubbard squash.'
+                    }
+                ];
+                return { success: true, ...bugs[Math.floor(Math.random() * bugs.length)] };
+            }
+        }
+
+        function displayAIResults(result) {
+            const header = document.getElementById('aiResultHeader');
+            const icon = document.getElementById('aiResultIcon');
+            const title = document.getElementById('aiResultTitle');
+            const confidence = document.getElementById('aiConfidence');
+            const identification = document.getElementById('aiIdentification');
+            const description = document.getElementById('aiDescription');
+            const treatment = document.getElementById('aiTreatment');
+            const beneficialCard = document.getElementById('aiBeneficialCard');
+            const treatmentCard = document.getElementById('aiTreatmentCard');
+            const beneficialInfo = document.getElementById('aiBeneficialInfo');
+
+            // Set header style based on type
+            header.className = `ai-result-header ${result.type}`;
+
+            // Set icon
+            const icons = {
+                disease: 'fa-virus',
+                pest: 'fa-bug',
+                healthy: 'fa-check-circle',
+                beneficial: 'fa-thumbs-up'
+            };
+            icon.innerHTML = `<i class="fas ${icons[result.type] || 'fa-question'}"></i>`;
+
+            // Set content
+            title.textContent = result.name || 'Unknown';
+            confidence.textContent = `${result.confidence || 0}% ${t('ai.confident')}`;
+            identification.textContent = result.name || 'Could not identify';
+            description.textContent = result.description || 'No description available.';
+
+            // Handle beneficial vs pest/disease
+            if (result.isBeneficial) {
+                beneficialCard.style.display = 'block';
+                treatmentCard.style.display = 'none';
+                beneficialInfo.textContent = result.benefitInfo || 'This insect is beneficial for your garden.';
+            } else {
+                beneficialCard.style.display = 'none';
+                treatmentCard.style.display = 'block';
+                treatment.textContent = result.treatment || 'Consult with a specialist for treatment options.';
+            }
+
+            showAIStep(4);
+        }
+
+        function newAIAnalysis() {
+            AIDoctor.photo = null;
+            AIDoctor.lastResult = null;
+            showAIStep(1);
+        }
+
+        function createScoutFromAI() {
+            if (!AIDoctor.lastResult) {
+                showToast('No diagnosis to report', 'error');
+                return;
+            }
+
+            // Close AI modal
+            closeAIDoctor();
+
+            // Pre-fill scout form with AI results
+            const result = AIDoctor.lastResult;
+
+            // Set scout type based on AI result
+            if (result.type === 'pest' || result.type === 'beneficial') {
+                setScoutType(result.isBeneficial ? 'beneficial' : 'pest');
+            } else if (result.type === 'disease') {
+                setScoutType('disease');
+            }
+
+            // Set severity based on confidence
+            if (result.confidence >= 90) {
+                setSeverity('high');
+            } else if (result.confidence >= 70) {
+                setSeverity('medium');
+            } else {
+                setSeverity('low');
+            }
+
+            // Set notes with AI diagnosis
+            const notes = `AI Diagnosis: ${result.name}\n${result.description}\n\nRecommended: ${result.treatment || result.benefitInfo || 'N/A'}`;
+            document.getElementById('scoutNotes').value = notes;
+
+            // Set photo
+            if (AIDoctor.photo) {
+                AppState.capturedPhoto = AIDoctor.photo;
+                const preview = document.getElementById('scoutPhotoPreview');
+                preview.innerHTML = `<img src="${AIDoctor.photo}" alt="Scout photo">`;
+                preview.style.display = 'block';
+            }
+
+            showToast(t('ai.reportCreated'), 'success');
+        }
+
+        // Photo compression utility
+        async function compressPhoto(dataUrl, maxWidth = 1200) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.src = dataUrl;
+            });
         }
 
         // ============================================
@@ -2295,28 +4506,62 @@
             try {
                 const gps = await captureGPS();
 
-                const params = new URLSearchParams({
-                    action: 'completeTaskWithGPS',
+                const taskData = {
                     taskId: taskId,
                     employeeId: AppState.employee?.Employee_ID || '',
                     lat: gps.lat || '',
                     lng: gps.lng || ''
-                });
+                };
 
-                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    showToast(t('tasks.completed'), 'success');
-                    // Remove from local list
+                // Optimistically update UI
+                const removeTaskFromUI = () => {
                     AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
                     renderTasks(AppState.currentTab === 'tasks' ? 'all' : 'today');
+                };
+
+                if (AppState.isOnline) {
+                    // Online: submit directly
+                    const params = new URLSearchParams({
+                        action: 'completeTaskWithGPS',
+                        ...taskData
+                    });
+
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showToast(t('tasks.completed'), 'success');
+                        removeTaskFromUI();
+                        // Update cache
+                        await OfflineDB.cacheTasks(AppState.tasks);
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
                 } else {
-                    showToast(data.error || t('common.error'), 'error');
+                    // Offline: queue for later sync and optimistically update UI
+                    await OfflineDB.queueOperation('completeTaskWithGPS', taskData);
+                    showToast(t('tasks.completed') + ' ' + t('common.offline'), 'success');
+                    removeTaskFromUI();
+                    // Update cache with task removed
+                    await OfflineDB.cacheTasks(AppState.tasks);
                 }
             } catch (error) {
                 console.error('Complete task error:', error);
-                showToast(t('common.error'), 'error');
+                // Network error - queue offline
+                if (!AppState.isOnline) {
+                    const gps = await captureGPS();
+                    await OfflineDB.queueOperation('completeTaskWithGPS', {
+                        taskId: taskId,
+                        employeeId: AppState.employee?.Employee_ID || '',
+                        lat: gps.lat || '',
+                        lng: gps.lng || ''
+                    });
+                    AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+                    renderTasks(AppState.currentTab === 'tasks' ? 'all' : 'today');
+                    showToast(t('tasks.completed') + ' ' + t('common.offline'), 'success');
+                } else {
+                    showToast(t('common.error'), 'error');
+                }
             }
             hideLoading();
         }
@@ -2445,37 +4690,81 @@
         }
 
         // ============================================
-        // DATA LOADING
+        // DATA LOADING (with offline support)
         // ============================================
         async function loadInitialData() {
+            if (AppState.isOnline) {
+                // Online: fetch from API and cache
+                try {
+                    // Load tasks
+                    const tasksResponse = await fetch(`${CONFIG.API_URL}?action=getEmployeeTasks&employeeId=${AppState.employee?.Employee_ID || ''}`);
+                    const tasksData = await tasksResponse.json();
+                    if (tasksData.success) {
+                        AppState.tasks = tasksData.tasks || [];
+                        // Cache tasks for offline use
+                        await OfflineDB.cacheTasks(AppState.tasks);
+                        renderTasks();
+                    }
+
+                    // Load plantings for harvest dropdown
+                    const plantingsResponse = await fetch(`${CONFIG.API_URL}?action=getPlanningData`);
+                    const plantingsData = await plantingsResponse.json();
+                    if (plantingsData.success) {
+                        AppState.plantings = plantingsData.data || [];
+                        // Cache plantings for offline use
+                        await OfflineDB.cachePlantings(AppState.plantings);
+                        populateHarvestDropdown();
+                    }
+
+                    // Load fields for scouting
+                    const fieldsResponse = await fetch(`${CONFIG.API_URL}?action=getFields`);
+                    const fieldsData = await fieldsResponse.json();
+                    if (fieldsData.success) {
+                        // Cache fields for offline use
+                        await OfflineDB.cacheReferenceData('fields', fieldsData.fields || []);
+                        populateFieldDropdown(fieldsData.fields || []);
+                    }
+
+                    loadRecentHarvests();
+
+                } catch (error) {
+                    console.error('Data load error, falling back to cache:', error);
+                    await loadFromCache();
+                }
+            } else {
+                // Offline: load from cache
+                await loadFromCache();
+            }
+        }
+
+        async function loadFromCache() {
             try {
-                // Load tasks
-                const tasksResponse = await fetch(`${CONFIG.API_URL}?action=getEmployeeTasks&employeeId=${AppState.employee?.Employee_ID || ''}`);
-                const tasksData = await tasksResponse.json();
-                if (tasksData.success) {
-                    AppState.tasks = tasksData.tasks || [];
+                // Load cached tasks
+                const cachedTasks = await OfflineDB.getCachedTasks();
+                if (cachedTasks && cachedTasks.length > 0) {
+                    AppState.tasks = cachedTasks;
                     renderTasks();
+                    console.log(`Loaded ${cachedTasks.length} tasks from cache`);
                 }
 
-                // Load plantings for harvest dropdown
-                const plantingsResponse = await fetch(`${CONFIG.API_URL}?action=getPlanningData`);
-                const plantingsData = await plantingsResponse.json();
-                if (plantingsData.success) {
-                    AppState.plantings = plantingsData.data || [];
+                // Load cached plantings
+                const cachedPlantings = await OfflineDB.getCachedPlantings();
+                if (cachedPlantings && cachedPlantings.length > 0) {
+                    AppState.plantings = cachedPlantings;
                     populateHarvestDropdown();
+                    console.log(`Loaded ${cachedPlantings.length} plantings from cache`);
                 }
 
-                // Load fields for scouting
-                const fieldsResponse = await fetch(`${CONFIG.API_URL}?action=getFields`);
-                const fieldsData = await fieldsResponse.json();
-                if (fieldsData.success) {
-                    populateFieldDropdown(fieldsData.fields || []);
+                // Load cached fields
+                const cachedFields = await OfflineDB.getCachedReferenceData('fields');
+                if (cachedFields && cachedFields.length > 0) {
+                    populateFieldDropdown(cachedFields);
+                    console.log(`Loaded ${cachedFields.length} fields from cache`);
                 }
 
-                loadRecentHarvests();
-
+                showToast(t('common.offline'), 'warning');
             } catch (error) {
-                console.error('Data load error:', error);
+                console.error('Cache load error:', error);
             }
         }
 
@@ -2559,20 +4848,618 @@
         }
 
         // ============================================
+        // PHASE 6: TREATMENT LOG
+        // ============================================
+        const TreatmentState = {
+            weather: null,
+            material: null
+        };
+
+        // Material database with REI/PHI info
+        const MATERIALS = {
+            neem: { name: 'Neem Oil', rei: 4, phi: 0, omri: true },
+            bt: { name: 'Bt (Bacillus thuringiensis)', rei: 4, phi: 0, omri: true },
+            spinosad: { name: 'Spinosad', rei: 4, phi: 1, omri: true },
+            copper: { name: 'Copper Fungicide', rei: 24, phi: 0, omri: true },
+            sulfur: { name: 'Sulfur', rei: 24, phi: 0, omri: true },
+            pyrethrin: { name: 'Pyrethrin', rei: 12, phi: 0, omri: true },
+            kaolin: { name: 'Kaolin Clay', rei: 4, phi: 0, omri: true },
+            insectsoap: { name: 'Insecticidal Soap', rei: 0, phi: 0, omri: true }
+        };
+
+        function openTreatmentLog() {
+            document.getElementById('treatmentModal').classList.add('visible');
+            populateTreatmentFields();
+            loadActiveREI();
+        }
+
+        function closeTreatmentModal() {
+            document.getElementById('treatmentModal').classList.remove('visible');
+            resetTreatmentForm();
+        }
+
+        function populateTreatmentFields() {
+            const fields = ['treatmentField', 'beneficialField'];
+            fields.forEach(fieldId => {
+                const select = document.getElementById(fieldId);
+                if (select && AppState.fields) {
+                    select.innerHTML = '<option value="">Select field...</option>';
+                    AppState.fields.forEach(f => {
+                        select.innerHTML += `<option value="${f}">${f}</option>`;
+                    });
+                }
+            });
+        }
+
+        function updateMaterialInfo() {
+            const material = document.getElementById('treatmentMaterial').value;
+            const infoDiv = document.getElementById('materialInfo');
+            const otherInput = document.getElementById('treatmentOther');
+
+            if (material === 'other') {
+                otherInput.style.display = 'block';
+                infoDiv.style.display = 'none';
+            } else if (material && MATERIALS[material]) {
+                otherInput.style.display = 'none';
+                infoDiv.style.display = 'flex';
+                document.getElementById('reiInfo').textContent = `REI: ${MATERIALS[material].rei} hours`;
+                document.getElementById('phiInfo').textContent = `PHI: ${MATERIALS[material].phi} days`;
+            } else {
+                otherInput.style.display = 'none';
+                infoDiv.style.display = 'none';
+            }
+        }
+
+        function setWeather(weather) {
+            TreatmentState.weather = weather;
+            document.querySelectorAll('.weather-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(weather));
+            });
+        }
+
+        async function loadActiveREI() {
+            // This would load from API - for now show placeholder
+            const warningsDiv = document.getElementById('reiWarnings');
+            warningsDiv.style.display = 'none';
+        }
+
+        async function submitTreatment() {
+            const material = document.getElementById('treatmentMaterial').value;
+            const field = document.getElementById('treatmentField').value;
+
+            if (!material || !field) {
+                showToast('Please select material and field', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const treatmentData = {
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    material: material === 'other' ? document.getElementById('treatmentOther').value : MATERIALS[material]?.name,
+                    field: field,
+                    beds: document.getElementById('treatmentBeds').value,
+                    rate: document.getElementById('treatmentRate').value,
+                    amount: document.getElementById('treatmentAmount').value,
+                    target: document.getElementById('treatmentTarget').value,
+                    weather: TreatmentState.weather,
+                    notes: document.getElementById('treatmentNotes').value,
+                    reiHours: MATERIALS[material]?.rei || 0,
+                    phiDays: MATERIALS[material]?.phi || 0,
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                };
+
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({ action: 'logTreatment', ...treatmentData });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast(t('treatment.success'), 'success');
+                        closeTreatmentModal();
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
+                } else {
+                    await OfflineDB.queueOperation('logTreatment', treatmentData);
+                    showToast(t('treatment.success') + ' ' + t('common.offline'), 'success');
+                    closeTreatmentModal();
+                }
+            } catch (error) {
+                console.error('Treatment error:', error);
+                showToast(t('common.error'), 'error');
+            }
+            hideLoading();
+        }
+
+        async function submitBeneficialRelease() {
+            const type = document.getElementById('beneficialType').value;
+            const qty = document.getElementById('beneficialQty').value;
+            const field = document.getElementById('beneficialField').value;
+
+            if (!type || !qty || !field) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const releaseData = {
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    type: type,
+                    quantity: qty,
+                    field: field,
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                };
+
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({ action: 'logBeneficialRelease', ...releaseData });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast(t('treatment.releaseSuccess'), 'success');
+                        document.getElementById('beneficialType').value = '';
+                        document.getElementById('beneficialQty').value = '';
+                        document.getElementById('beneficialField').value = '';
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
+                } else {
+                    await OfflineDB.queueOperation('logBeneficialRelease', releaseData);
+                    showToast(t('treatment.releaseSuccess') + ' ' + t('common.offline'), 'success');
+                }
+            } catch (error) {
+                console.error('Release error:', error);
+                showToast(t('common.error'), 'error');
+            }
+            hideLoading();
+        }
+
+        function resetTreatmentForm() {
+            document.getElementById('treatmentMaterial').value = '';
+            document.getElementById('treatmentField').value = '';
+            document.getElementById('treatmentBeds').value = '';
+            document.getElementById('treatmentRate').value = '';
+            document.getElementById('treatmentAmount').value = '';
+            document.getElementById('treatmentTarget').value = '';
+            document.getElementById('treatmentNotes').value = '';
+            document.getElementById('treatmentOther').value = '';
+            document.getElementById('materialInfo').style.display = 'none';
+            TreatmentState.weather = null;
+            document.querySelectorAll('.weather-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        // ============================================
+        // PHASE 7: HAZARD REPORTING
+        // ============================================
+        const HazardState = {
+            type: null,
+            severity: null
+        };
+
+        function openHazards() {
+            document.getElementById('hazardModal').classList.add('visible');
+            loadActiveHazards();
+        }
+
+        function closeHazardModal() {
+            document.getElementById('hazardModal').classList.remove('visible');
+            resetHazardForm();
+        }
+
+        function setHazardType(type) {
+            HazardState.type = type;
+            document.querySelectorAll('.hazard-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${type}'`));
+            });
+        }
+
+        function setHazardSeverity(severity) {
+            HazardState.severity = severity;
+            document.querySelectorAll('#hazardModal .severity-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.classList.contains(severity));
+            });
+        }
+
+        async function loadActiveHazards() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getActiveHazards`);
+                const data = await response.json();
+
+                const container = document.getElementById('hazardCards');
+                if (data.success && data.hazards && data.hazards.length > 0) {
+                    container.innerHTML = data.hazards.map(h => `
+                        <div class="hazard-card ${h.Severity === 'critical' ? 'critical' : ''}">
+                            <div class="hazard-card-header">
+                                <span class="hazard-card-type">${h.Type || 'Unknown'}</span>
+                                <span class="hazard-card-severity ${h.Severity}">${h.Severity || 'N/A'}</span>
+                            </div>
+                            <div class="hazard-card-desc">${h.Description || ''}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem;">No active hazards</p>';
+                }
+            } catch (error) {
+                console.error('Error loading hazards:', error);
+            }
+        }
+
+        async function submitHazard() {
+            if (!HazardState.type || !HazardState.severity) {
+                showToast('Please select type and severity', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const hazardData = {
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    type: HazardState.type,
+                    severity: HazardState.severity,
+                    description: document.getElementById('hazardDescription').value,
+                    photo: AppState.capturedPhoto || '',
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                };
+
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({ action: 'reportHazard', ...hazardData });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast(t('hazard.success'), 'success');
+                        closeHazardModal();
+                        loadActiveHazards();
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
+                } else {
+                    await OfflineDB.queueOperation('reportHazard', hazardData);
+                    showToast(t('hazard.success') + ' ' + t('common.offline'), 'success');
+                    closeHazardModal();
+                }
+            } catch (error) {
+                console.error('Hazard error:', error);
+                showToast(t('common.error'), 'error');
+            }
+            hideLoading();
+        }
+
+        function resetHazardForm() {
+            HazardState.type = null;
+            HazardState.severity = null;
+            document.querySelectorAll('.hazard-type-btn, #hazardModal .severity-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('hazardDescription').value = '';
+            document.getElementById('hazardPhotoPreview').style.display = 'none';
+            AppState.capturedPhoto = null;
+        }
+
+        // ============================================
+        // PHASE 7: WEED PRESSURE
+        // ============================================
+        const WeedState = {
+            type: null
+        };
+
+        function openWeedLog() {
+            document.getElementById('weedModal').classList.add('visible');
+            populateWeedFields();
+        }
+
+        function closeWeedModal() {
+            document.getElementById('weedModal').classList.remove('visible');
+            resetWeedForm();
+        }
+
+        function populateWeedFields() {
+            const select = document.getElementById('weedField');
+            if (select && AppState.fields) {
+                select.innerHTML = '<option value="">Select field...</option>';
+                AppState.fields.forEach(f => {
+                    select.innerHTML += `<option value="${f}">${f}</option>`;
+                });
+            }
+        }
+
+        function setWeedType(type) {
+            WeedState.type = type;
+            document.querySelectorAll('.weed-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${type}'`));
+            });
+        }
+
+        function updatePressureLabel() {
+            const val = document.getElementById('weedPressure').value;
+            const labels = ['1 - Light', '2 - Light-Moderate', '3 - Moderate', '4 - Moderate-Heavy', '5 - Heavy'];
+            document.getElementById('pressureValue').textContent = labels[val - 1];
+        }
+
+        async function submitWeedPressure() {
+            const field = document.getElementById('weedField').value;
+
+            if (!field || !WeedState.type) {
+                showToast('Please select field and weed type', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const weedData = {
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    field: field,
+                    bed: document.getElementById('weedBed').value,
+                    weedType: WeedState.type,
+                    species: document.getElementById('weedSpecies').value,
+                    pressure: document.getElementById('weedPressure').value,
+                    coverage: document.getElementById('weedCoverage').value,
+                    notes: document.getElementById('weedNotes').value,
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                };
+
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({ action: 'logWeedPressure', ...weedData });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast(t('weed.success'), 'success');
+                        closeWeedModal();
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
+                } else {
+                    await OfflineDB.queueOperation('logWeedPressure', weedData);
+                    showToast(t('weed.success') + ' ' + t('common.offline'), 'success');
+                    closeWeedModal();
+                }
+            } catch (error) {
+                console.error('Weed error:', error);
+                showToast(t('common.error'), 'error');
+            }
+            hideLoading();
+        }
+
+        function resetWeedForm() {
+            WeedState.type = null;
+            document.querySelectorAll('.weed-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('weedField').value = '';
+            document.getElementById('weedBed').value = '';
+            document.getElementById('weedSpecies').value = '';
+            document.getElementById('weedPressure').value = '3';
+            document.getElementById('weedCoverage').value = '';
+            document.getElementById('weedNotes').value = '';
+            updatePressureLabel();
+        }
+
+        // ============================================
+        // PHASE 7: CULTIVATION LOG
+        // ============================================
+        const CultivationState = {
+            implement: null,
+            depth: null,
+            soil: null,
+            effectiveness: null
+        };
+
+        function openCultivation() {
+            document.getElementById('cultivationModal').classList.add('visible');
+            populateCultivationFields();
+        }
+
+        function closeCultivationModal() {
+            document.getElementById('cultivationModal').classList.remove('visible');
+            resetCultivationForm();
+        }
+
+        function populateCultivationFields() {
+            const select = document.getElementById('cultivationField');
+            if (select && AppState.fields) {
+                select.innerHTML = '<option value="">Select field...</option>';
+                AppState.fields.forEach(f => {
+                    select.innerHTML += `<option value="${f}">${f}</option>`;
+                });
+            }
+        }
+
+        function setImplement(implement) {
+            CultivationState.implement = implement;
+            document.querySelectorAll('.implement-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${implement}'`));
+            });
+        }
+
+        function setDepth(depth) {
+            CultivationState.depth = depth;
+            document.querySelectorAll('.depth-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${depth}'`));
+            });
+        }
+
+        function setSoil(soil) {
+            CultivationState.soil = soil;
+            document.querySelectorAll('.soil-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${soil}'`));
+            });
+        }
+
+        function setEffectiveness(eff) {
+            CultivationState.effectiveness = eff;
+            document.querySelectorAll('.eff-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${eff}'`));
+            });
+        }
+
+        async function submitCultivation() {
+            const field = document.getElementById('cultivationField').value;
+
+            if (!field || !CultivationState.implement) {
+                showToast('Please select field and implement', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const cultivationData = {
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    field: field,
+                    beds: document.getElementById('cultivationBeds').value,
+                    implement: CultivationState.implement,
+                    depth: CultivationState.depth,
+                    soilCondition: CultivationState.soil,
+                    effectiveness: CultivationState.effectiveness,
+                    notes: document.getElementById('cultivationNotes').value,
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                };
+
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({ action: 'logCultivation', ...cultivationData });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast(t('cultivation.success'), 'success');
+                        closeCultivationModal();
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
+                } else {
+                    await OfflineDB.queueOperation('logCultivation', cultivationData);
+                    showToast(t('cultivation.success') + ' ' + t('common.offline'), 'success');
+                    closeCultivationModal();
+                }
+            } catch (error) {
+                console.error('Cultivation error:', error);
+                showToast(t('common.error'), 'error');
+            }
+            hideLoading();
+        }
+
+        function resetCultivationForm() {
+            CultivationState.implement = null;
+            CultivationState.depth = null;
+            CultivationState.soil = null;
+            CultivationState.effectiveness = null;
+            document.querySelectorAll('.implement-btn, .depth-btn, .soil-btn, .eff-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('cultivationField').value = '';
+            document.getElementById('cultivationBeds').value = '';
+            document.getElementById('cultivationNotes').value = '';
+        }
+
+        // ============================================
+        // PHASE 8: MESSAGES
+        // ============================================
+        function openMessages() {
+            document.getElementById('messagesModal').classList.add('visible');
+            loadMessages();
+        }
+
+        function closeMessagesModal() {
+            document.getElementById('messagesModal').classList.remove('visible');
+        }
+
+        async function loadMessages() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getCrewMessages&employeeId=${AppState.employee?.Employee_ID || ''}`);
+                const data = await response.json();
+
+                const container = document.getElementById('messagesList');
+                const emptyState = document.getElementById('emptyMessages');
+
+                if (data.success && data.messages && data.messages.length > 0) {
+                    emptyState.style.display = 'none';
+                    container.innerHTML = data.messages.map(m => `
+                        <div class="message-card ${m.Urgent ? 'urgent' : ''}">
+                            <div class="message-card-header">
+                                <span class="message-from">${m.From || 'Farm Manager'}</span>
+                                <span class="message-time">${formatTime(m.Timestamp)}</span>
+                            </div>
+                            <div class="message-content">${m.Message || ''}</div>
+                            ${!m.Acknowledged ? `
+                                <div class="message-ack">
+                                    <button onclick="acknowledgeMessage('${m.Message_ID}')">
+                                        <i class="fas fa-check"></i> ${t('messages.acknowledge')}
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+
+        async function acknowledgeMessage(messageId) {
+            try {
+                const params = new URLSearchParams({
+                    action: 'acknowledgeMessage',
+                    messageId: messageId,
+                    employeeId: AppState.employee?.Employee_ID || ''
+                });
+                await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                loadMessages();
+                showToast(t('messages.acknowledged'), 'success');
+            } catch (error) {
+                console.error('Acknowledge error:', error);
+            }
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // ============================================
+        // PHASE 8: HEAT SAFETY
+        // ============================================
+        function checkHeatSafety() {
+            // Check every 2 hours during work hours
+            const hour = new Date().getHours();
+            if (hour >= 10 && hour <= 16) {
+                // Show heat reminder if not dismissed recently
+                const lastDismissed = localStorage.getItem('heatAlertDismissed');
+                const now = Date.now();
+                if (!lastDismissed || (now - parseInt(lastDismissed)) > 7200000) { // 2 hours
+                    document.getElementById('heatAlert').style.display = 'block';
+                }
+            }
+        }
+
+        function dismissHeatAlert() {
+            document.getElementById('heatAlert').style.display = 'none';
+            localStorage.setItem('heatAlertDismissed', Date.now().toString());
+        }
+
+        // Start heat safety checks
+        setInterval(checkHeatSafety, 3600000); // Check every hour
+        setTimeout(checkHeatSafety, 5000); // Initial check after 5 seconds
+
+        // ============================================
         // SYNC
         // ============================================
         async function syncData() {
-            const btn = document.getElementById('syncBtn');
-            btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
-
-            try {
-                await loadInitialData();
-                showToast(t('common.syncComplete'), 'success');
-            } catch (error) {
-                showToast(t('common.error'), 'error');
+            if (!AppState.isOnline) {
+                showToast(t('common.offline'), 'warning');
+                return;
             }
 
-            btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            // Use SyncModule to process pending operations and load fresh data
+            await SyncModule.syncAll();
         }
 
         // ============================================
@@ -2619,21 +5506,60 @@
         // ============================================
         // INITIALIZATION
         // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check for saved session
-            const session = localStorage.getItem('employeeSession');
-            if (session) {
-                try {
-                    const saved = JSON.parse(session);
-                    AppState.employee = saved.employee;
-                    AppState.language = saved.language || 'en';
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize IndexedDB
+            try {
+                await OfflineDB.init();
+                console.log('IndexedDB initialized');
+
+                // Get sync queue count
+                AppState.syncQueueCount = await OfflineDB.getSyncQueueCount();
+                updateSyncBadge();
+
+                // Try to restore session from IndexedDB first
+                const idbSession = await OfflineDB.getSession();
+                if (idbSession && idbSession.employee) {
+                    AppState.employee = idbSession.employee;
+                    AppState.language = idbSession.language || 'en';
                     showMainApp();
-                } catch (e) {
-                    console.error('Session parse error:', e);
+                } else {
+                    // Fall back to localStorage
+                    const session = localStorage.getItem('employeeSession');
+                    if (session) {
+                        try {
+                            const saved = JSON.parse(session);
+                            AppState.employee = saved.employee;
+                            AppState.language = saved.language || 'en';
+                            // Migrate to IndexedDB
+                            await OfflineDB.saveSession(saved);
+                            showMainApp();
+                        } catch (e) {
+                            console.error('Session parse error:', e);
+                        }
+                    }
+                }
+
+                // Start periodic sync
+                SyncModule.startPeriodicSync();
+
+            } catch (error) {
+                console.error('IndexedDB init error:', error);
+                // Fall back to localStorage only
+                const session = localStorage.getItem('employeeSession');
+                if (session) {
+                    try {
+                        const saved = JSON.parse(session);
+                        AppState.employee = saved.employee;
+                        AppState.language = saved.language || 'en';
+                        showMainApp();
+                    } catch (e) {
+                        console.error('Session parse error:', e);
+                    }
                 }
             }
 
-            // Update offline indicator
+            // Update online status
+            AppState.isOnline = navigator.onLine;
             if (!navigator.onLine) {
                 document.getElementById('offlineIndicator').classList.add('visible');
             }

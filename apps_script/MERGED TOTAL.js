@@ -91,8 +91,6 @@ function doGet(e) {
         return getCropByName(e.parameter.crop, e.parameter.variety);
       case 'getBeds':
         return getBeds();
-      case 'getFields':
-        return jsonResponse(getFields(e.parameter));
       case 'getBedsByField':
         return getBedsByField(e.parameter.field);
       case 'getTasks':
@@ -156,33 +154,81 @@ function doGet(e) {
       case 'saveTrayInventory':
         return jsonResponse(saveTrayInventory(e.parameter));
 
-      // ============ EMPLOYEE APP ENDPOINTS ============
-      case 'authenticateEmployee':
-        return jsonResponse(authenticateEmployee(e.parameter));
-      case 'getEmployeeProfile':
-        return jsonResponse(getEmployeeProfile(e.parameter));
-      case 'updateEmployeeLanguage':
-        return jsonResponse(updateEmployeeLanguage(e.parameter));
-      case 'clockIn':
-        return jsonResponse(clockIn(e.parameter));
-      case 'clockOut':
-        return jsonResponse(clockOut(e.parameter));
-      case 'getTimeClockStatus':
-        return jsonResponse(getTimeClockStatus(e.parameter));
-      case 'getTimeClockHistory':
-        return jsonResponse(getTimeClockHistory(e.parameter));
-      case 'getEmployeeTasks':
-        return jsonResponse(getEmployeeTasks(e.parameter));
-      case 'completeTaskWithGPS':
-        return jsonResponse(completeTaskWithGPS(e.parameter));
-      case 'logHarvestWithDetails':
-        return jsonResponse(logHarvestWithDetails(e.parameter));
-      case 'saveScoutingReport':
-        return jsonResponse(saveScoutingReport(e.parameter));
-      case 'reportHazard':
-        return jsonResponse(reportHazard(e.parameter));
-      case 'getActiveHazards':
-        return jsonResponse(getActiveHazards(e.parameter));
+      // ============ SALES MODULE - CUSTOMER FACING ============
+      case 'authenticateCustomer':
+        return jsonResponse(authenticateCustomer(e.parameter));
+      case 'verifyCustomerToken':
+        return jsonResponse(verifyCustomerToken(e.parameter));
+      case 'getWholesaleProducts':
+        return jsonResponse(getWholesaleProducts(e.parameter));
+      case 'getCSAProducts':
+        return jsonResponse(getCSAProducts(e.parameter));
+      case 'getCSABoxContents':
+        return jsonResponse(getCSABoxContents(e.parameter));
+      case 'getCustomerOrders':
+        return jsonResponse(getCustomerOrders(e.parameter));
+      case 'getCustomerProfile':
+        return jsonResponse(getCustomerProfile(e.parameter));
+
+      // ============ SALES MODULE - MANAGER FACING ============
+      case 'getSalesOrders':
+        return jsonResponse(getSalesOrders(e.parameter));
+      case 'getOrderById':
+        return jsonResponse(getOrderById(e.parameter));
+      case 'getSalesCustomers':
+        return jsonResponse(getSalesCustomers(e.parameter));
+      case 'getCustomerById':
+        return jsonResponse(getCustomerById(e.parameter));
+      case 'getSalesCSAMembers':
+        return jsonResponse(getSalesCSAMembers(e.parameter));
+      case 'getSalesDashboard':
+        return jsonResponse(getSalesDashboard(e.parameter));
+      case 'getPickPackList':
+        return jsonResponse(getPickPackList(e.parameter));
+      case 'getSMSCampaigns':
+        return jsonResponse(getSMSCampaigns(e.parameter));
+      case 'getSalesReports':
+        return jsonResponse(getSalesReports(e.parameter));
+
+      // ============ DELIVERY & DRIVER ============
+      case 'getDeliveryRoutes':
+        return jsonResponse(getDeliveryRoutes(e.parameter));
+      case 'getDriverRoute':
+        return jsonResponse(getDriverRoute(e.parameter));
+      case 'authenticateDriver':
+        return jsonResponse(authenticateDriver(e.parameter));
+      case 'getDeliveryDrivers':
+        return jsonResponse(getDeliveryDrivers(e.parameter));
+
+      // ============ FLEET MANAGEMENT ============
+      case 'getFleetAssets':
+        return jsonResponse(getFleetAssets(e.parameter));
+      case 'getFleetAssetById':
+        return jsonResponse(getFleetAssetById(e.parameter));
+      case 'getFleetUsageLog':
+        return jsonResponse(getFleetUsageLog(e.parameter));
+      case 'getFleetFuelLog':
+        return jsonResponse(getFleetFuelLog(e.parameter));
+      case 'getFleetMaintenanceLog':
+        return jsonResponse(getFleetMaintenanceLog(e.parameter));
+      case 'getFleetCostReport':
+        return jsonResponse(getFleetCostReport(e.parameter));
+      case 'getMaintenanceDue':
+        return jsonResponse(getMaintenanceDue(e.parameter));
+      case 'getFleetDashboard':
+        return jsonResponse(getFleetDashboard(e.parameter));
+
+      // ============ LABEL GENERATION ============
+      case 'getMarketSignItems':
+        return jsonResponse(getMarketSignItems(e.parameter));
+      case 'getOrdersForLabels':
+        return jsonResponse(getOrdersForLabels(e.parameter));
+      case 'getSalesCycles':
+        return jsonResponse(getSalesCycles(e.parameter));
+      case 'closeSalesCycle':
+        return jsonResponse(closeSalesCycle(e.parameter));
+      case 'initializeMarketItems':
+        return jsonResponse(initializeMarketItemsSheet());
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -251,6 +297,66 @@ function doPost(e) {
         return jsonResponse(uploadProductPhoto(data));
       case 'deductInventoryOnApplication':
         return jsonResponse(deductInventoryOnApplication(data));
+
+      // ============ SALES MODULE - CUSTOMER ACTIONS ============
+      case 'sendCustomerMagicLink':
+        return jsonResponse(sendCustomerMagicLink(data));
+      case 'submitWholesaleOrder':
+        return jsonResponse(submitWholesaleOrder(data));
+      case 'submitCSAOrder':
+        return jsonResponse(submitCSAOrder(data));
+      case 'customizeCSABox':
+        return jsonResponse(customizeCSABox(data));
+      case 'updateCustomerProfile':
+        return jsonResponse(updateCustomerProfile(data));
+
+      // ============ SALES MODULE - MANAGER ACTIONS ============
+      case 'createSalesOrder':
+        return jsonResponse(createSalesOrder(data));
+      case 'updateSalesOrder':
+        return jsonResponse(updateSalesOrder(data));
+      case 'cancelSalesOrder':
+        return jsonResponse(cancelSalesOrder(data));
+      case 'createSalesCustomer':
+        return jsonResponse(createSalesCustomer(data));
+      case 'updateSalesCustomer':
+        return jsonResponse(updateSalesCustomer(data));
+      case 'createCSAMember':
+        return jsonResponse(createCSAMember(data));
+      case 'updateCSAMember':
+        return jsonResponse(updateCSAMember(data));
+      case 'completePickPackItem':
+        return jsonResponse(completePickPackItem(data));
+      case 'createSMSCampaign':
+        return jsonResponse(createSMSCampaign(data));
+      case 'sendSMSCampaign':
+        return jsonResponse(sendSMSCampaign(data));
+
+      // ============ DELIVERY & DRIVER ACTIONS ============
+      case 'createDeliveryRoute':
+        return jsonResponse(createDeliveryRoute(data));
+      case 'assignDeliveryRoute':
+        return jsonResponse(assignDeliveryRoute(data));
+      case 'recordDeliveryProof':
+        return jsonResponse(recordDeliveryProof(data));
+      case 'reportDeliveryIssue':
+        return jsonResponse(reportDeliveryIssue(data));
+      case 'updateDeliveryETA':
+        return jsonResponse(updateDeliveryETA(data));
+
+      // ============ FLEET MANAGEMENT ACTIONS ============
+      case 'createFleetAsset':
+        return jsonResponse(createFleetAsset(data));
+      case 'updateFleetAsset':
+        return jsonResponse(updateFleetAsset(data));
+      case 'logFleetUsage':
+        return jsonResponse(logFleetUsage(data));
+      case 'logFleetFuel':
+        return jsonResponse(logFleetFuel(data));
+      case 'logFleetMaintenance':
+        return jsonResponse(logFleetMaintenance(data));
+      case 'linkUsageToTask':
+        return jsonResponse(linkUsageToTask(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -1233,7 +1339,7 @@ function getBeds() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('REF_Beds');
   if (!sheet) return jsonResponse({error: 'REF_Beds not found'}, 404);
-
+  
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const beds = data.slice(1).map(row => {
@@ -1241,79 +1347,8 @@ function getBeds() {
     headers.forEach((header, index) => { obj[header] = row[index]; });
     return obj;
   }).filter(row => row['Bed ID']);
-
+  
   return jsonResponse({success: true, count: beds.length, beds: beds});
-}
-
-/**
- * Get all fields from REF_Fields sheet
- * Returns field configuration including dimensions, bed counts, and production types
- */
-function getFields(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('REF_Fields');
-  if (!sheet) return {error: 'REF_Fields not found'};
-
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-
-  const fields = data.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((header, index) => { obj[header] = row[index]; });
-    return obj;
-  }).filter(row => row['Field Name'] && row['Field Name'] !== '');
-
-  // Transform to a cleaner format for frontend use
-  const formattedFields = fields.map(f => {
-    // Extract field code from "Field XXX" format
-    const fieldName = String(f['Field Name'] || '');
-    const fieldCode = fieldName.replace('Field ', '').trim();
-
-    return {
-      fieldId: f['Field ID (QR)'] || '',
-      fieldName: fieldName,
-      fieldCode: fieldCode,
-      acreage: Number(f['Acreage']) || 0,
-      length: Number(f['Length (Ft)']) || 0,
-      width: Number(f['Width (Ft)']) || 0,
-      pathWidth: Number(f['Path Width (in)']) || 12,
-      bedWidth: Number(f['Bed Width (in)']) || 45,
-      numberOfBeds: Number(f['Number of Beds']) || 0,
-      notes: f['Notes'] || '',
-      inVegProduction: f['In Vegetable Production'] === true || f['In Vegetable Production'] === 'TRUE',
-      inFloralProduction: f['In Floral Production'] === true || f['In Floral Production'] === 'TRUE',
-      inPerennialProduction: f['In Perrenial Production'] === true || f['In Perrenial Production'] === 'TRUE',
-      inCoverCrop: f['Fallow/In Cover Crop'] === true || f['Fallow/In Cover Crop'] === 'TRUE'
-    };
-  });
-
-  // Optionally filter by production type
-  let result = formattedFields;
-  if (params && params.productionType) {
-    const type = params.productionType.toLowerCase();
-    if (type === 'veg' || type === 'vegetable') {
-      result = result.filter(f => f.inVegProduction);
-    } else if (type === 'floral' || type === 'flower') {
-      result = result.filter(f => f.inFloralProduction);
-    } else if (type === 'perennial') {
-      result = result.filter(f => f.inPerennialProduction);
-    }
-  }
-
-  // Also return a simple config object for easy frontend use
-  const fieldConfig = {};
-  result.forEach(f => {
-    if (f.fieldCode) {
-      fieldConfig[f.fieldCode] = f.numberOfBeds;
-    }
-  });
-
-  return {
-    success: true,
-    count: result.length,
-    fields: result,
-    fieldConfig: fieldConfig  // { 'F3L': 12, 'HOL': 12, ... }
-  };
 }
 
 function addPlanting(planting) {
@@ -4344,7 +4379,15 @@ function saveSoilAmendment(data) {
 // SOIL TESTS - Test Results Storage
 // ═══════════════════════════════════════════════════════════════════════════
 
-const SOIL_TEST_HEADERS = ['ID', 'Date', 'Field', 'Zone', 'Lab', 'TestType', 'ResultsJSON', 'Notes', 'RecommendationsJSON', 'CreatedAt'];
+// Full soil test headers matching frontend data structure
+const SOIL_TEST_HEADERS = [
+  'id', 'sampleLocation', 'testDate', 'labNumber', 'sampleDepth',
+  'ph', 'cec', 'organicMatter', 'sulfur', 'phosphorus',
+  'caDesired', 'caFound', 'mgDesired', 'mgFound', 'kDesired', 'kFound',
+  'sodium', 'caPct', 'mgPct', 'kPct', 'naPct', 'otherPct', 'hPct',
+  'boron', 'iron', 'manganese', 'copper', 'zinc', 'aluminum',
+  'isArchived', 'notes', 'createdAt'
+];
 
 function getSoilTests(params) {
   try {
@@ -4365,11 +4408,21 @@ function getSoilTests(params) {
       const test = {};
       headers.forEach((header, index) => {
         let value = row[index];
-        if (header === 'ResultsJSON' || header === 'RecommendationsJSON') {
-          try { value = JSON.parse(value); } catch(e) { value = {}; }
-        }
+        // Convert dates to string format
         if (value instanceof Date) {
           value = value.toISOString().split('T')[0];
+        }
+        // Convert numeric strings to numbers for numeric fields
+        if (['ph', 'cec', 'organicMatter', 'sulfur', 'phosphorus',
+             'caDesired', 'caFound', 'mgDesired', 'mgFound', 'kDesired', 'kFound',
+             'sodium', 'caPct', 'mgPct', 'kPct', 'naPct', 'otherPct', 'hPct',
+             'boron', 'iron', 'manganese', 'copper', 'zinc', 'aluminum',
+             'sampleDepth', 'labNumber'].includes(header) && value !== '') {
+          value = parseFloat(value) || value;
+        }
+        // Convert isArchived to boolean
+        if (header === 'isArchived') {
+          value = value === true || value === 'true' || value === 'TRUE';
         }
         test[header] = value;
       });
@@ -4391,22 +4444,64 @@ function saveSoilTest(data) {
   try {
     const sheet = getOrCreateSheet('SOIL_TESTS', SOIL_TEST_HEADERS);
 
+    // Generate ID if not provided, or use existing
     const id = data.id || generateId('SOIL');
     const now = new Date().toISOString();
 
+    // Build row matching SOIL_TEST_HEADERS order
     const row = [
       id,
-      data.date || new Date().toISOString().split('T')[0],
-      data.field || '',
-      data.zone || '',
-      data.lab || '',
-      data.testType || '',
-      JSON.stringify(data.results || {}),
+      data.sampleLocation || data.field || '',
+      data.testDate || data.date || new Date().toISOString().split('T')[0],
+      data.labNumber || '',
+      data.sampleDepth || '',
+      data.ph || '',
+      data.cec || '',
+      data.organicMatter || '',
+      data.sulfur || '',
+      data.phosphorus || '',
+      data.caDesired || '',
+      data.caFound || '',
+      data.mgDesired || '',
+      data.mgFound || '',
+      data.kDesired || '',
+      data.kFound || '',
+      data.sodium || '',
+      data.caPct || '',
+      data.mgPct || '',
+      data.kPct || '',
+      data.naPct || '',
+      data.otherPct || '',
+      data.hPct || '',
+      data.boron || '',
+      data.iron || '',
+      data.manganese || '',
+      data.copper || '',
+      data.zinc || '',
+      data.aluminum || '',
+      data.isArchived || false,
       data.notes || '',
-      JSON.stringify(data.recommendations || {}),
       now
     ];
 
+    // Check if this is an update (id exists in sheet) or new entry
+    if (data.id) {
+      // Try to find and update existing row
+      const existingData = sheet.getDataRange().getValues();
+      for (let i = 1; i < existingData.length; i++) {
+        if (existingData[i][0] === data.id) {
+          sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
+          return {
+            success: true,
+            id: id,
+            message: 'Soil test updated',
+            timestamp: now
+          };
+        }
+      }
+    }
+
+    // Append new row
     sheet.appendRow(row);
 
     return {
@@ -4950,64 +5045,1211 @@ function deductInventoryOnApplication(data) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EMPLOYEE APP FUNCTIONS
+// SALES & FLEET MODULE - IMPLEMENTATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-/**
- * Authenticate employee by PIN
- */
-function authenticateEmployee(params) {
+// ═══════════════════════════════════════════════════════════════════════════
+// SHEET NAMES CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SALES_SHEETS = {
+  CUSTOMERS: 'SALES_Customers',
+  ORDERS: 'SALES_Orders',
+  ORDER_ITEMS: 'SALES_OrderItems',
+  CSA_MEMBERS: 'CSA_Members',
+  CSA_BOX_CONTENTS: 'CSA_BoxContents',
+  DELIVERIES: 'SALES_Deliveries',
+  DELIVERY_STOPS: 'SALES_DeliveryStops',
+  DRIVERS: 'SALES_Drivers',
+  PICK_PACK: 'SALES_PickPack',
+  SMS_CAMPAIGNS: 'SALES_SMSCampaigns',
+  MAGIC_LINKS: 'SALES_MagicLinks',
+  DELIVERY_PROOFS: 'SALES_DeliveryProofs',
+  SALES_CYCLES: 'SALES_Cycles',
+  MARKET_ITEMS: 'SALES_MarketItems'
+};
+
+const FLEET_SHEETS = {
+  ASSETS: 'FLEET_Assets',
+  USAGE_LOG: 'FLEET_UsageLog',
+  FUEL_LOG: 'FLEET_FuelLog',
+  MAINTENANCE: 'FLEET_Maintenance'
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INITIALIZATION - Run this once to create all sheets
+// ═══════════════════════════════════════════════════════════════════════════
+
+function initializeSalesAndFleetModule() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SALES SHEETS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  createSheetIfNotExists(ss, SALES_SHEETS.CUSTOMERS, [
+    'Customer_ID', 'Customer_Type', 'Company_Name', 'Contact_Name', 'Email', 'Phone',
+    'Address', 'City', 'State', 'Zip', 'Delivery_Instructions',
+    'Payment_Terms', 'Price_Tier', 'Is_Active', 'Created_At', 'Last_Order_Date',
+    'Total_Orders', 'Total_Spent', 'Notes'
+  ], '#3b82f6');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.ORDERS, [
+    'Order_ID', 'Order_Date', 'Customer_ID', 'Customer_Name', 'Customer_Type',
+    'Delivery_Date', 'Delivery_Window', 'Delivery_Address', 'Status',
+    'Subtotal', 'Tax', 'Delivery_Fee', 'Total', 'Payment_Status',
+    'Payment_Method', 'Notes', 'Source', 'Created_By', 'Created_At', 'Updated_At'
+  ], '#22c55e');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.ORDER_ITEMS, [
+    'Item_ID', 'Order_ID', 'Crop_ID', 'Product_Name', 'Variety',
+    'Quantity', 'Unit', 'Unit_Price', 'Line_Total', 'Notes'
+  ], '#22c55e');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.CSA_MEMBERS, [
+    'Member_ID', 'Customer_ID', 'Share_Type', 'Share_Size', 'Season',
+    'Start_Date', 'End_Date', 'Total_Weeks', 'Weeks_Remaining',
+    'Pickup_Day', 'Pickup_Location', 'Delivery_Address',
+    'Customization_Allowed', 'Swap_Credits', 'Vacation_Weeks_Used',
+    'Status', 'Payment_Status', 'Amount_Paid', 'Notes'
+  ], '#8b5cf6');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.CSA_BOX_CONTENTS, [
+    'Box_ID', 'Week_Date', 'Share_Type', 'Crop_ID', 'Product_Name',
+    'Variety', 'Quantity', 'Unit', 'Is_Swappable', 'Swap_Options', 'Notes'
+  ], '#8b5cf6');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.DELIVERIES, [
+    'Route_ID', 'Route_Name', 'Delivery_Date', 'Driver_ID', 'Driver_Name',
+    'Status', 'Total_Stops', 'Completed_Stops', 'Est_Miles', 'Est_Duration',
+    'Actual_Start', 'Actual_End', 'Notes'
+  ], '#f59e0b');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.DELIVERY_STOPS, [
+    'Stop_ID', 'Route_ID', 'Stop_Order', 'Order_ID', 'Customer_Name',
+    'Address', 'Phone', 'Delivery_Window', 'ETA', 'Status',
+    'Arrived_At', 'Completed_At', 'Photo_URL', 'Signature_URL',
+    'GPS_Lat', 'GPS_Lng', 'Issue_Type', 'Issue_Notes'
+  ], '#f59e0b');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.DRIVERS, [
+    'Driver_ID', 'Name', 'PIN', 'Phone', 'Email', 'Vehicle',
+    'License_Plate', 'Is_Active', 'Today_Deliveries', 'Week_Deliveries',
+    'Total_Deliveries', 'Last_Login'
+  ], '#ef4444');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.PICK_PACK, [
+    'Pick_ID', 'Delivery_Date', 'Order_ID', 'Customer_Name', 'Customer_Type',
+    'Crop_ID', 'Product_Name', 'Quantity', 'Unit', 'Location',
+    'Status', 'Picked_By', 'Picked_At', 'Notes'
+  ], '#06b6d4');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.SMS_CAMPAIGNS, [
+    'Campaign_ID', 'Name', 'Message', 'Audience', 'Audience_Filter',
+    'Total_Recipients', 'Sent_Count', 'Status', 'Scheduled_At',
+    'Sent_At', 'Created_By', 'Created_At'
+  ], '#ec4899');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.MAGIC_LINKS, [
+    'Token', 'Customer_ID', 'Email', 'Customer_Type', 'Created_At',
+    'Expires_At', 'Used', 'Used_At'
+  ], '#64748b');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.DELIVERY_PROOFS, [
+    'Proof_ID', 'Stop_ID', 'Order_ID', 'Timestamp', 'Driver_ID',
+    'Photo_URL', 'Signature_URL', 'GPS_Lat', 'GPS_Lng', 'Notes'
+  ], '#64748b');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // FLEET SHEETS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  createSheetIfNotExists(ss, FLEET_SHEETS.ASSETS, [
+    'Asset_ID', 'Asset_Name', 'Asset_Type', 'Make', 'Model', 'Year',
+    'Serial_Number', 'Fuel_Type', 'Current_Hours', 'Current_Miles',
+    'Service_Interval_Hours', 'Last_Service_Hours', 'Hours_Until_Service',
+    'Purchase_Date', 'Purchase_Price', 'Depreciation_Per_Hour',
+    'Status', 'Location', 'Notes', 'Photo_URL'
+  ], '#475569');
+
+  createSheetIfNotExists(ss, FLEET_SHEETS.USAGE_LOG, [
+    'Usage_ID', 'Asset_ID', 'Asset_Name', 'Date', 'Task_ID', 'Task_Type',
+    'Field', 'Bed_IDs', 'Operator_ID', 'Operator_Name',
+    'Start_Hours', 'End_Hours', 'Hours_Used',
+    'Fuel_Gallons', 'Fuel_Cost', 'Total_Cost', 'Notes'
+  ], '#475569');
+
+  createSheetIfNotExists(ss, FLEET_SHEETS.FUEL_LOG, [
+    'Fuel_ID', 'Date', 'Asset_ID', 'Asset_Name', 'Gallons', 'Price_Per_Gallon',
+    'Total_Cost', 'Vendor', 'Receipt_Photo', 'Filled_By', 'Notes'
+  ], '#f97316');
+
+  createSheetIfNotExists(ss, FLEET_SHEETS.MAINTENANCE, [
+    'Maint_ID', 'Date', 'Asset_ID', 'Asset_Name', 'Maint_Type',
+    'Description', 'Parts_Used', 'Parts_Cost', 'Labor_Hours', 'Labor_Cost',
+    'Total_Cost', 'Performed_By', 'Next_Service_Hours', 'Photo_URL', 'Notes'
+  ], '#dc2626');
+
+  // Try to show UI alert if in spreadsheet context, otherwise just log
   try {
-    const pin = params.pin;
-    if (!pin || pin.length !== 4) {
-      return { success: false, error: 'Invalid PIN format' };
+    const ui = SpreadsheetApp.getUi();
+    ui.alert('Sales & Fleet Module Initialized',
+      'All sheets have been created successfully!\n\n' +
+      'Sales Sheets: ' + Object.keys(SALES_SHEETS).length + '\n' +
+      'Fleet Sheets: ' + Object.keys(FLEET_SHEETS).length,
+      ui.ButtonSet.OK);
+  } catch (e) {
+    Logger.log('Sales & Fleet Module Initialized - ' +
+      Object.keys(SALES_SHEETS).length + ' sales sheets, ' +
+      Object.keys(FLEET_SHEETS).length + ' fleet sheets created.');
+  }
+
+  return {
+    success: true,
+    message: 'Sales & Fleet Module Initialized',
+    salesSheets: Object.keys(SALES_SHEETS).length,
+    fleetSheets: Object.keys(FLEET_SHEETS).length
+  };
+}
+
+function createSheetIfNotExists(ss, name, headers, color) {
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setBackground(color)
+      .setFontColor('white')
+      .setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    Logger.log('Created sheet: ' + name);
+  }
+  return sheet;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CUSTOMER AUTHENTICATION (Magic Link)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function sendCustomerMagicLink(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
+
+    if (!customerSheet || !linkSheet) {
+      return { success: false, error: 'Required sheets not found. Run initializeSalesAndFleetModule() first.' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('EMPLOYEES');
+    // Find customer by email
+    const customerData = customerSheet.getDataRange().getValues();
+    const headers = customerData[0];
+    const emailCol = headers.indexOf('Email');
+    const idCol = headers.indexOf('Customer_ID');
+    const typeCol = headers.indexOf('Customer_Type');
+    const nameCol = headers.indexOf('Contact_Name');
 
-    // Create EMPLOYEES sheet if it doesn't exist
+    let customer = null;
+    for (let i = 1; i < customerData.length; i++) {
+      if (customerData[i][emailCol] === data.email) {
+        customer = {
+          id: customerData[i][idCol],
+          email: customerData[i][emailCol],
+          name: customerData[i][nameCol],
+          type: customerData[i][typeCol]
+        };
+        break;
+      }
+    }
+
+    if (!customer) {
+      return { success: false, error: 'Email not found. Please contact us to set up your account.' };
+    }
+
+    // Generate token
+    const token = Utilities.getUuid();
+    const now = new Date();
+    const expires = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
+
+    // Store token
+    linkSheet.appendRow([
+      token, customer.id, customer.email, customer.type,
+      now.toISOString(), expires.toISOString(), false, ''
+    ]);
+
+    // Determine portal URL based on customer type
+    const portalPath = customer.type === 'CSA' ? 'csa.html' : 'wholesale.html';
+    const loginUrl = `${data.baseUrl || ''}${portalPath}?token=${token}&email=${encodeURIComponent(customer.email)}`;
+
+    // Send email
+    try {
+      MailApp.sendEmail({
+        to: customer.email,
+        subject: 'Your Tiny Seed Farm Login Link',
+        htmlBody: generateMagicLinkEmail(customer.name, loginUrl, customer.type)
+      });
+    } catch (emailErr) {
+      Logger.log('Email error: ' + emailErr.toString());
+      // Return token anyway for testing
+    }
+
+    return { success: true, message: 'Magic link sent', customerType: customer.type };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function generateMagicLinkEmail(name, url, customerType) {
+  const portalName = customerType === 'CSA' ? 'CSA Member Portal' : 'Wholesale Portal';
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #22c55e; margin: 0;">Tiny Seed Farm</h1>
+        <p style="color: #666; margin: 5px 0;">${portalName}</p>
+      </div>
+      <p>Hi ${name},</p>
+      <p>Click the button below to log in to your account:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${url}" style="display: inline-block; padding: 14px 32px; background: #22c55e; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+          Log In to ${portalName}
+        </a>
+      </div>
+      <p style="color: #666; font-size: 14px;">This link expires in 15 minutes. If you didn't request this, you can ignore this email.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+      <p style="color: #999; font-size: 12px; text-align: center;">Tiny Seed Farm - "Sort of Cool"</p>
+    </div>
+  `;
+}
+
+function authenticateCustomer(params) {
+  return verifyCustomerToken(params);
+}
+
+function verifyCustomerToken(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
+    const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
+    if (!linkSheet || !customerSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    const linkData = linkSheet.getDataRange().getValues();
+    const now = new Date();
+
+    for (let i = 1; i < linkData.length; i++) {
+      if (linkData[i][0] === params.token && linkData[i][2] === params.email) {
+        // Check if used
+        if (linkData[i][6]) {
+          return { success: false, error: 'This link has already been used' };
+        }
+
+        // Check expiry
+        const expires = new Date(linkData[i][5]);
+        if (now > expires) {
+          return { success: false, error: 'This link has expired' };
+        }
+
+        // Mark as used
+        linkSheet.getRange(i + 1, 7).setValue(true);
+        linkSheet.getRange(i + 1, 8).setValue(now.toISOString());
+
+        // Get full customer details
+        const customerId = linkData[i][1];
+        const customerType = linkData[i][3];
+        const customer = getCustomerById({ customerId: customerId });
+
+        if (!customer.success) {
+          return { success: false, error: 'Customer not found' };
+        }
+
+        // Check if CSA member
+        let csaMembership = null;
+        if (customerType === 'CSA') {
+          const csaResult = getCSAMembers({ customerId: customerId });
+          if (csaResult.success && csaResult.members.length > 0) {
+            csaMembership = csaResult.members[0];
+          }
+        }
+
+        return {
+          success: true,
+          customer: customer.customer,
+          customerType: customerType,
+          csaMembership: csaMembership
+        };
+      }
+    }
+
+    return { success: false, error: 'Invalid token' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SALES CUSTOMERS API
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSalesCustomers(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
     if (!sheet) {
-      sheet = ss.insertSheet('EMPLOYEES');
-      sheet.appendRow([
-        'Employee_ID', 'First_Name', 'Last_Name', 'Badge_PIN', 'Role',
-        'Language_Pref', 'Hire_Date', 'Is_Active', 'Phone', 'Last_Login'
-      ]);
-      // Add a default employee for testing
-      sheet.appendRow([
-        'EMP-001', 'Test', 'Employee', '1234', 'Worker',
-        'en', new Date().toISOString().split('T')[0], 'TRUE', '', ''
-      ]);
+      return { success: false, error: 'Customers sheet not found' };
     }
 
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
-    const pinIndex = headers.indexOf('Badge_PIN');
-    const activeIndex = headers.indexOf('Is_Active');
+    let customers = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let customer = {};
+      headers.forEach((h, j) => customer[h] = data[i][j]);
+
+      // Apply filters
+      if (params.type && customer.Customer_Type !== params.type) continue;
+      if (params.isActive === 'true' && !customer.Is_Active) continue;
+      if (params.search) {
+        const search = params.search.toLowerCase();
+        const searchFields = [customer.Company_Name, customer.Contact_Name, customer.Email].join(' ').toLowerCase();
+        if (!searchFields.includes(search)) continue;
+      }
+
+      customers.push(customer);
+    }
+
+    return { success: true, customers: customers };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getCustomerById(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === params.customerId) {
+        let customer = {};
+        headers.forEach((h, j) => customer[h] = data[i][j]);
+        return { success: true, customer: customer };
+      }
+    }
+
+    return { success: false, error: 'Customer not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getCustomerProfile(params) {
+  return getCustomerById(params);
+}
+
+function createSalesCustomer(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
+    // Check for duplicate email
+    const existing = sheet.getDataRange().getValues();
+    for (let i = 1; i < existing.length; i++) {
+      if (existing[i][4] === data.email) { // Email column
+        return { success: false, error: 'Customer with this email already exists' };
+      }
+    }
+
+    const customerId = 'CUS-' + Date.now();
+    const now = new Date().toISOString();
+
+    sheet.appendRow([
+      customerId,
+      data.customerType || 'Retail',
+      data.companyName || '',
+      data.contactName,
+      data.email,
+      data.phone || '',
+      data.address || '',
+      data.city || '',
+      data.state || '',
+      data.zip || '',
+      data.deliveryInstructions || '',
+      data.paymentTerms || 'Due on delivery',
+      data.priceTier || 'Standard',
+      true, // Is_Active
+      now,
+      '', // Last_Order_Date
+      0, // Total_Orders
+      0, // Total_Spent
+      data.notes || ''
+    ]);
+
+    return { success: true, customerId: customerId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateSalesCustomer(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.customerId) {
+        // Update provided fields
+        headers.forEach((h, j) => {
+          const key = h.replace(/_/g, '').toLowerCase();
+          const dataKey = Object.keys(data).find(k => k.toLowerCase() === key);
+          if (dataKey && data[dataKey] !== undefined) {
+            sheet.getRange(i + 1, j + 1).setValue(data[dataKey]);
+          }
+        });
+        return { success: true, message: 'Customer updated' };
+      }
+    }
+
+    return { success: false, error: 'Customer not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateCustomerProfile(data) {
+  return updateSalesCustomer(data);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SALES ORDERS API
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSalesOrders(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+
+    if (!sheet) {
+      return { success: false, error: 'Orders sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let orders = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let order = {};
+      headers.forEach((h, j) => order[h] = data[i][j]);
+
+      // Apply filters
+      if (params.status && order.Status !== params.status) continue;
+      if (params.customerId && order.Customer_ID !== params.customerId) continue;
+      if (params.customerType && order.Customer_Type !== params.customerType) continue;
+      if (params.deliveryDate && formatDateStringSales(order.Delivery_Date) !== params.deliveryDate) continue;
+
+      // Get order items
+      order.items = getOrderItems(order.Order_ID);
+      orders.push(order);
+    }
+
+    // Sort by date descending
+    orders.sort((a, b) => new Date(b.Order_Date) - new Date(a.Order_Date));
+
+    // Apply limit
+    if (params.limit) {
+      orders = orders.slice(0, parseInt(params.limit));
+    }
+
+    return { success: true, orders: orders };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getOrderById(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === params.orderId) {
+        let order = {};
+        headers.forEach((h, j) => order[h] = data[i][j]);
+        order.items = getOrderItems(params.orderId);
+        return { success: true, order: order };
+      }
+    }
+
+    return { success: false, error: 'Order not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getCustomerOrders(params) {
+  return getSalesOrders({ customerId: params.customerId, limit: params.limit || 50 });
+}
+
+function getOrderItems(orderId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SALES_SHEETS.ORDER_ITEMS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const items = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === orderId) { // Order_ID column
+      let item = {};
+      headers.forEach((h, j) => item[h] = data[i][j]);
+      items.push(item);
+    }
+  }
+
+  return items;
+}
+
+function createSalesOrder(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const orderSheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+    const itemSheet = ss.getSheetByName(SALES_SHEETS.ORDER_ITEMS);
+
+    const orderId = 'ORD-' + Date.now();
+    const now = new Date().toISOString();
+
+    // Calculate totals
+    let subtotal = 0;
+    (data.items || []).forEach(item => {
+      subtotal += (item.quantity * item.unitPrice);
+    });
+    const tax = subtotal * (data.taxRate || 0);
+    const deliveryFee = data.deliveryFee || 0;
+    const total = subtotal + tax + deliveryFee;
+
+    // Add order
+    orderSheet.appendRow([
+      orderId,
+      now,
+      data.customerId,
+      data.customerName,
+      data.customerType || 'Retail',
+      data.deliveryDate,
+      data.deliveryWindow || '',
+      data.deliveryAddress || '',
+      'Pending',
+      subtotal,
+      tax,
+      deliveryFee,
+      total,
+      'Unpaid',
+      data.paymentMethod || '',
+      data.notes || '',
+      data.source || 'Web',
+      data.createdBy || 'System',
+      now,
+      now
+    ]);
+
+    // Add order items
+    (data.items || []).forEach(item => {
+      const itemId = 'ITM-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+      itemSheet.appendRow([
+        itemId,
+        orderId,
+        item.cropId || '',
+        item.productName,
+        item.variety || '',
+        item.quantity,
+        item.unit,
+        item.unitPrice,
+        item.quantity * item.unitPrice,
+        item.notes || ''
+      ]);
+    });
+
+    // Generate pick list
+    generatePickListForOrder(orderId, data);
+
+    // Update customer stats
+    updateCustomerOrderStats(data.customerId, total);
+
+    return { success: true, orderId: orderId, total: total };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function submitWholesaleOrder(data) {
+  return createSalesOrder({ ...data, customerType: 'Wholesale', source: 'Wholesale Portal' });
+}
+
+function submitCSAOrder(data) {
+  return createSalesOrder({ ...data, customerType: 'CSA', source: 'CSA Portal' });
+}
+
+function updateSalesOrder(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.orderId) {
+        // Update status
+        if (data.status) {
+          const statusCol = headers.indexOf('Status');
+          sheet.getRange(i + 1, statusCol + 1).setValue(data.status);
+        }
+        // Update payment status
+        if (data.paymentStatus) {
+          const payCol = headers.indexOf('Payment_Status');
+          sheet.getRange(i + 1, payCol + 1).setValue(data.paymentStatus);
+        }
+        // Update notes
+        if (data.notes) {
+          const notesCol = headers.indexOf('Notes');
+          sheet.getRange(i + 1, notesCol + 1).setValue(data.notes);
+        }
+        // Update timestamp
+        const updatedCol = headers.indexOf('Updated_At');
+        sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+
+        return { success: true, message: 'Order updated' };
+      }
+    }
+
+    return { success: false, error: 'Order not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function cancelSalesOrder(data) {
+  return updateSalesOrder({ orderId: data.orderId, status: 'Cancelled' });
+}
+
+function updateCustomerOrderStats(customerId, orderTotal) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    const idCol = headers.indexOf('Customer_ID');
+    const lastOrderCol = headers.indexOf('Last_Order_Date');
+    const totalOrdersCol = headers.indexOf('Total_Orders');
+    const totalSpentCol = headers.indexOf('Total_Spent');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][idCol] === customerId) {
+        sheet.getRange(i + 1, lastOrderCol + 1).setValue(new Date().toISOString());
+        sheet.getRange(i + 1, totalOrdersCol + 1).setValue((values[i][totalOrdersCol] || 0) + 1);
+        sheet.getRange(i + 1, totalSpentCol + 1).setValue((values[i][totalSpentCol] || 0) + orderTotal);
+        break;
+      }
+    }
+  } catch (error) {
+    Logger.log('Error updating customer stats: ' + error.toString());
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRODUCTS API (Uses REF_Crops for unified dropdowns)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getWholesaleProducts(params) {
+  return getProductsFromCrops('Wholesale', params);
+}
+
+function getCSAProducts(params) {
+  return getProductsFromCrops('CSA', params);
+}
+
+function getProductsFromCrops(priceType, params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('REF_Crops');
+
+    if (!sheet) {
+      return { success: false, error: 'REF_Crops sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let products = [];
+
+    // Find column indices
+    const cropIdCol = headers.indexOf('Crop_ID');
+    const nameCol = headers.indexOf('Crop_Name') !== -1 ? headers.indexOf('Crop_Name') : headers.indexOf('Item_Name');
+    const varietyCol = headers.indexOf('Variety');
+    const categoryCol = headers.indexOf('Category');
+    const unitCol = headers.indexOf('Sales_Unit') !== -1 ? headers.indexOf('Sales_Unit') : headers.indexOf('Unit');
+    const wholesalePriceCol = headers.indexOf('Wholesale_Price');
+    const retailPriceCol = headers.indexOf('Retail_Price');
+    const csaPriceCol = headers.indexOf('CSA_Price') !== -1 ? headers.indexOf('CSA_Price') : wholesalePriceCol;
+    const statusCol = headers.indexOf('Status');
+    const imageCol = headers.indexOf('Image_URL');
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (String(row[pinIndex]) === String(pin) && row[activeIndex] !== 'FALSE') {
-        const employee = {};
-        headers.forEach((h, idx) => {
-          employee[h] = row[idx];
+
+      // Skip inactive
+      if (statusCol !== -1 && row[statusCol] === 'Inactive') continue;
+
+      // Determine price based on type
+      let price = 0;
+      if (priceType === 'Wholesale' && wholesalePriceCol !== -1) {
+        price = row[wholesalePriceCol];
+      } else if (priceType === 'CSA' && csaPriceCol !== -1) {
+        price = row[csaPriceCol];
+      } else if (retailPriceCol !== -1) {
+        price = row[retailPriceCol];
+      }
+
+      products.push({
+        cropId: cropIdCol !== -1 ? row[cropIdCol] : 'CROP-' + i,
+        name: nameCol !== -1 ? row[nameCol] : '',
+        variety: varietyCol !== -1 ? row[varietyCol] : '',
+        category: categoryCol !== -1 ? row[categoryCol] : '',
+        unit: unitCol !== -1 ? row[unitCol] : 'each',
+        price: price,
+        image: imageCol !== -1 ? row[imageCol] : ''
+      });
+    }
+
+    // Apply category filter
+    if (params && params.category) {
+      products = products.filter(p => p.category === params.category);
+    }
+
+    return { success: true, products: products };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSA MEMBERS API
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getCSAMembers(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+    if (!sheet) {
+      return { success: false, error: 'CSA Members sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let members = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let member = {};
+      headers.forEach((h, j) => member[h] = data[i][j]);
+
+      // Apply filters
+      if (params.customerId && member.Customer_ID !== params.customerId) continue;
+      if (params.memberId && member.Member_ID !== params.memberId) continue;
+      if (params.status && member.Status !== params.status) continue;
+      if (params.season && member.Season !== params.season) continue;
+
+      members.push(member);
+    }
+
+    return { success: true, members: members };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getSalesCSAMembers(params) {
+  return getCSAMembers(params || {});
+}
+
+function createCSAMember(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+    const memberId = 'CSA-' + Date.now();
+
+    sheet.appendRow([
+      memberId,
+      data.customerId,
+      data.shareType || 'Vegetable',
+      data.shareSize || 'Regular',
+      data.season || new Date().getFullYear().toString(),
+      data.startDate,
+      data.endDate,
+      data.totalWeeks || 20,
+      data.totalWeeks || 20, // Weeks remaining starts at total
+      data.pickupDay || '',
+      data.pickupLocation || '',
+      data.deliveryAddress || '',
+      data.customizationAllowed !== false,
+      data.swapCredits || 3,
+      0, // Vacation weeks used
+      'Active',
+      data.paymentStatus || 'Unpaid',
+      data.amountPaid || 0,
+      data.notes || ''
+    ]);
+
+    return { success: true, memberId: memberId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateCSAMember(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.memberId) {
+        // Update provided fields
+        if (data.status) {
+          const col = headers.indexOf('Status');
+          sheet.getRange(i + 1, col + 1).setValue(data.status);
+        }
+        if (data.weeksRemaining !== undefined) {
+          const col = headers.indexOf('Weeks_Remaining');
+          sheet.getRange(i + 1, col + 1).setValue(data.weeksRemaining);
+        }
+        if (data.swapCredits !== undefined) {
+          const col = headers.indexOf('Swap_Credits');
+          sheet.getRange(i + 1, col + 1).setValue(data.swapCredits);
+        }
+        if (data.paymentStatus) {
+          const col = headers.indexOf('Payment_Status');
+          sheet.getRange(i + 1, col + 1).setValue(data.paymentStatus);
+        }
+
+        return { success: true, message: 'CSA membership updated' };
+      }
+    }
+
+    return { success: false, error: 'Member not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getCSABoxContents(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_BOX_CONTENTS);
+
+    if (!sheet) {
+      return { success: false, error: 'CSA Box Contents sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let items = [];
+
+    const weekDate = params.weekDate || getCurrentWeekDateSales();
+
+    for (let i = 1; i < data.length; i++) {
+      let item = {};
+      headers.forEach((h, j) => item[h] = data[i][j]);
+
+      // Filter by week and share type
+      if (formatDateStringSales(item.Week_Date) !== weekDate) continue;
+      if (params.shareType && item.Share_Type !== params.shareType) continue;
+
+      items.push(item);
+    }
+
+    return { success: true, weekDate: weekDate, items: items };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function customizeCSABox(data) {
+  try {
+    // Verify member has swap credits
+    const memberResult = getCSAMembers({ memberId: data.memberId });
+    if (!memberResult.success || memberResult.members.length === 0) {
+      return { success: false, error: 'Member not found' };
+    }
+
+    const member = memberResult.members[0];
+    const swapsNeeded = (data.swaps || []).length;
+
+    if (member.Swap_Credits < swapsNeeded) {
+      return { success: false, error: 'Not enough swap credits. You have ' + member.Swap_Credits + ' remaining.' };
+    }
+
+    // Record the customization (in production, would create/modify order)
+    Logger.log('CSA Box customization: ' + JSON.stringify({
+      memberId: data.memberId,
+      weekDate: data.weekDate,
+      swaps: data.swaps
+    }));
+
+    // Deduct swap credits
+    updateCSAMember({
+      memberId: data.memberId,
+      swapCredits: member.Swap_Credits - swapsNeeded
+    });
+
+    return { success: true, message: 'Box customized successfully', creditsRemaining: member.Swap_Credits - swapsNeeded };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PICK & PACK API
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getPickPackList(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.PICK_PACK);
+
+    if (!sheet) {
+      return { success: false, error: 'Pick Pack sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let items = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let item = {};
+      headers.forEach((h, j) => item[h] = data[i][j]);
+
+      // Apply filters
+      if (params.date && formatDateStringSales(item.Delivery_Date) !== params.date) continue;
+      if (params.status && item.Status !== params.status) continue;
+      if (params.customerType && item.Customer_Type !== params.customerType) continue;
+
+      items.push(item);
+    }
+
+    return { success: true, items: items };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function generatePickListForOrder(orderId, orderData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.PICK_PACK);
+
+    (orderData.items || []).forEach(item => {
+      const pickId = 'PCK-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+      sheet.appendRow([
+        pickId,
+        orderData.deliveryDate,
+        orderId,
+        orderData.customerName,
+        orderData.customerType || 'Retail',
+        item.cropId || '',
+        item.productName,
+        item.quantity,
+        item.unit,
+        item.location || '',
+        'Pending',
+        '', // Picked_By
+        '', // Picked_At
+        item.notes || ''
+      ]);
+    });
+
+    return { success: true };
+  } catch (error) {
+    Logger.log('Error generating pick list: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function completePickPackItem(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.PICK_PACK);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.pickId) {
+        const statusCol = headers.indexOf('Status');
+        const pickedByCol = headers.indexOf('Picked_By');
+        const pickedAtCol = headers.indexOf('Picked_At');
+        const notesCol = headers.indexOf('Notes');
+
+        sheet.getRange(i + 1, statusCol + 1).setValue('Picked');
+        sheet.getRange(i + 1, pickedByCol + 1).setValue(data.pickedBy);
+        sheet.getRange(i + 1, pickedAtCol + 1).setValue(new Date().toISOString());
+        if (data.notes) sheet.getRange(i + 1, notesCol + 1).setValue(data.notes);
+
+        return { success: true, message: 'Item marked as picked' };
+      }
+    }
+
+    return { success: false, error: 'Pick item not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DELIVERY & DRIVER API
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getDeliveryRoutes(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERIES);
+
+    if (!sheet) {
+      return { success: false, error: 'Deliveries sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let routes = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let route = {};
+      headers.forEach((h, j) => route[h] = data[i][j]);
+
+      // Apply filters
+      if (params.date && formatDateStringSales(route.Delivery_Date) !== params.date) continue;
+      if (params.driverId && route.Driver_ID !== params.driverId) continue;
+      if (params.status && route.Status !== params.status) continue;
+
+      // Get stops
+      route.stops = getRouteStops(route.Route_ID);
+      routes.push(route);
+    }
+
+    return { success: true, routes: routes };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getRouteStops(routeId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const stops = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === routeId) { // Route_ID column
+      let stop = {};
+      headers.forEach((h, j) => stop[h] = data[i][j]);
+      stop.items = getOrderItems(stop.Order_ID);
+      stops.push(stop);
+    }
+  }
+
+  stops.sort((a, b) => a.Stop_Order - b.Stop_Order);
+  return stops;
+}
+
+function getDriverRoute(params) {
+  try {
+    // Authenticate driver first
+    const driverResult = authenticateDriver(params);
+    if (!driverResult.success) {
+      return driverResult;
+    }
+
+    // Get today's route
+    const today = formatDateStringSales(new Date());
+    const routes = getDeliveryRoutes({ driverId: driverResult.driver.Driver_ID, date: today });
+
+    if (routes.success && routes.routes.length > 0) {
+      return { success: true, route: routes.routes[0], driver: driverResult.driver };
+    }
+
+    return { success: true, route: null, driver: driverResult.driver, message: 'No route assigned for today' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getDeliveryDrivers(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.DRIVERS);
+
+    if (!sheet) {
+      return { success: false, error: 'Drivers sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let drivers = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let driver = {};
+      headers.forEach((h, j) => {
+        if (h !== 'PIN') driver[h] = data[i][j]; // Don't expose PIN
+      });
+
+      if (params.activeOnly && !driver.Is_Active) continue;
+
+      drivers.push(driver);
+    }
+
+    return { success: true, drivers: drivers };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function authenticateDriver(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.DRIVERS);
+
+    if (!sheet) {
+      return { success: false, error: 'Drivers sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const pinCol = headers.indexOf('PIN');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][pinCol] === params.pin) {
+        let driver = {};
+        headers.forEach((h, j) => {
+          if (h !== 'PIN') driver[h] = data[i][j];
         });
 
         // Update last login
-        const lastLoginIndex = headers.indexOf('Last_Login');
-        if (lastLoginIndex >= 0) {
-          sheet.getRange(i + 1, lastLoginIndex + 1).setValue(new Date().toISOString());
-        }
+        const loginCol = headers.indexOf('Last_Login');
+        sheet.getRange(i + 1, loginCol + 1).setValue(new Date().toISOString());
 
-        // Check if clocked in today
-        const clockStatus = getTimeClockStatus({ employeeId: employee.Employee_ID });
-
-        return {
-          success: true,
-          employee: employee,
-          isClockedIn: clockStatus.isClockedIn || false,
-          clockInTime: clockStatus.clockInTime || null
-        };
+        return { success: true, driver: driver };
       }
     }
 
@@ -5017,655 +6259,1456 @@ function authenticateEmployee(params) {
   }
 }
 
-/**
- * Get employee profile by ID
- */
-function getEmployeeProfile(params) {
+function createDeliveryRoute(data) {
   try {
-    const employeeId = params.employeeId;
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('EMPLOYEES');
+    const routeSheet = ss.getSheetByName(SALES_SHEETS.DELIVERIES);
+    const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
 
-    if (!sheet) {
-      return { success: false, error: 'EMPLOYEES sheet not found' };
-    }
+    const routeId = 'RTE-' + Date.now();
 
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const idIndex = headers.indexOf('Employee_ID');
+    // Create route
+    routeSheet.appendRow([
+      routeId,
+      data.routeName || 'Route ' + data.deliveryDate,
+      data.deliveryDate,
+      data.driverId || '',
+      data.driverName || '',
+      'Pending',
+      (data.stops || []).length,
+      0, // Completed stops
+      data.estMiles || 0,
+      data.estDuration || '',
+      '', // Actual start
+      '', // Actual end
+      data.notes || ''
+    ]);
 
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][idIndex] === employeeId) {
-        const employee = {};
-        headers.forEach((h, idx) => {
-          employee[h] = data[i][idx];
-        });
-        return { success: true, employee: employee };
-      }
-    }
-
-    return { success: false, error: 'Employee not found' };
-  } catch (error) {
-    return { success: false, error: error.toString() };
-  }
-}
-
-/**
- * Update employee language preference
- */
-function updateEmployeeLanguage(params) {
-  try {
-    const employeeId = params.employeeId;
-    const lang = params.lang;
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('EMPLOYEES');
-
-    if (!sheet) {
-      return { success: false, error: 'EMPLOYEES sheet not found' };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const idIndex = headers.indexOf('Employee_ID');
-    const langIndex = headers.indexOf('Language_Pref');
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][idIndex] === employeeId) {
-        sheet.getRange(i + 1, langIndex + 1).setValue(lang);
-        return { success: true };
-      }
-    }
-
-    return { success: false, error: 'Employee not found' };
-  } catch (error) {
-    return { success: false, error: error.toString() };
-  }
-}
-
-/**
- * Clock in employee
- */
-function clockIn(params) {
-  try {
-    const employeeId = params.employeeId;
-    const lat = params.lat || '';
-    const lng = params.lng || '';
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('TIME_CLOCK');
-
-    // Create TIME_CLOCK sheet if it doesn't exist
-    if (!sheet) {
-      sheet = ss.insertSheet('TIME_CLOCK');
-      sheet.appendRow([
-        'Entry_ID', 'Employee_ID', 'Date', 'Clock_In', 'Clock_Out',
-        'Hours_Worked', 'GPS_In_Lat', 'GPS_In_Lng', 'GPS_Out_Lat', 'GPS_Out_Lng',
-        'In_Geofence', 'Notes', 'Synced_At'
+    // Create stops
+    (data.stops || []).forEach((stop, index) => {
+      const stopId = 'STP-' + Date.now() + '-' + index;
+      stopsSheet.appendRow([
+        stopId,
+        routeId,
+        index + 1,
+        stop.orderId,
+        stop.customerName,
+        stop.address,
+        stop.phone || '',
+        stop.deliveryWindow || '',
+        stop.eta || '',
+        'Pending',
+        '', '', '', '', '', '', '', ''
       ]);
+    });
+
+    return { success: true, routeId: routeId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function assignDeliveryRoute(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERIES);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.routeId) {
+        const driverIdCol = headers.indexOf('Driver_ID');
+        const driverNameCol = headers.indexOf('Driver_Name');
+
+        sheet.getRange(i + 1, driverIdCol + 1).setValue(data.driverId);
+        sheet.getRange(i + 1, driverNameCol + 1).setValue(data.driverName);
+
+        return { success: true, message: 'Driver assigned to route' };
+      }
     }
 
-    // Check if already clocked in today
-    const status = getTimeClockStatus({ employeeId: employeeId });
-    if (status.isClockedIn) {
-      return { success: false, error: 'Already clocked in' };
+    return { success: false, error: 'Route not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function recordDeliveryProof(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const proofSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_PROOFS);
+    const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+
+    const proofId = 'PRF-' + Date.now();
+    const now = new Date().toISOString();
+
+    // Save photos to Drive
+    let photoUrl = '';
+    let signatureUrl = '';
+
+    if (data.photo) {
+      photoUrl = savePhotoToDriveSales(data.photo, 'delivery_' + proofId);
+    }
+    if (data.signature) {
+      signatureUrl = savePhotoToDriveSales(data.signature, 'signature_' + proofId);
     }
 
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const entryId = 'TC-' + today.replace(/-/g, '') + '-' + employeeId;
+    // Record proof
+    proofSheet.appendRow([
+      proofId,
+      data.stopId,
+      data.orderId,
+      now,
+      data.driverId,
+      photoUrl,
+      signatureUrl,
+      data.gpsLat || '',
+      data.gpsLng || '',
+      data.notes || ''
+    ]);
 
-    // Check geofence (simplified)
-    const inGeofence = lat && lng ? 'TRUE' : 'UNKNOWN';
+    // Update stop status
+    updateDeliveryStopStatus(stopsSheet, data.stopId, 'Delivered', now, photoUrl, signatureUrl, data.gpsLat, data.gpsLng);
+
+    // Update order status
+    updateSalesOrder({ orderId: data.orderId, status: 'Delivered' });
+
+    // Update route progress
+    if (data.routeId) {
+      updateRouteProgress(data.routeId);
+    }
+
+    return { success: true, proofId: proofId, photoUrl: photoUrl };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function reportDeliveryIssue(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+
+    const now = new Date().toISOString();
+
+    // Save photo if provided
+    let photoUrl = '';
+    if (data.photo) {
+      photoUrl = savePhotoToDriveSales(data.photo, 'issue_' + data.stopId);
+    }
+
+    // Update stop with issue
+    const values = stopsSheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.stopId) {
+        stopsSheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue('Issue');
+        stopsSheet.getRange(i + 1, headers.indexOf('Completed_At') + 1).setValue(now);
+        stopsSheet.getRange(i + 1, headers.indexOf('Issue_Type') + 1).setValue(data.issueType);
+        stopsSheet.getRange(i + 1, headers.indexOf('Issue_Notes') + 1).setValue(data.notes || '');
+        if (photoUrl) {
+          stopsSheet.getRange(i + 1, headers.indexOf('Photo_URL') + 1).setValue(photoUrl);
+        }
+        break;
+      }
+    }
+
+    // Update order status
+    const orderStatus = data.issueType === 'not_home' ? 'Delivery Attempted' : 'Issue - ' + data.issueType;
+    updateSalesOrder({ orderId: data.orderId, status: orderStatus });
+
+    // Update route progress
+    if (data.routeId) {
+      updateRouteProgress(data.routeId);
+    }
+
+    return { success: true, message: 'Issue reported' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateDeliveryETA(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.stopId) {
+        const etaCol = headers.indexOf('ETA');
+        sheet.getRange(i + 1, etaCol + 1).setValue(data.eta);
+        return { success: true, message: 'ETA updated' };
+      }
+    }
+
+    return { success: false, error: 'Stop not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateDeliveryStopStatus(sheet, stopId, status, timestamp, photoUrl, signatureUrl, lat, lng) {
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][0] === stopId) {
+      sheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue(status);
+      sheet.getRange(i + 1, headers.indexOf('Completed_At') + 1).setValue(timestamp);
+      if (photoUrl) sheet.getRange(i + 1, headers.indexOf('Photo_URL') + 1).setValue(photoUrl);
+      if (signatureUrl) sheet.getRange(i + 1, headers.indexOf('Signature_URL') + 1).setValue(signatureUrl);
+      if (lat) sheet.getRange(i + 1, headers.indexOf('GPS_Lat') + 1).setValue(lat);
+      if (lng) sheet.getRange(i + 1, headers.indexOf('GPS_Lng') + 1).setValue(lng);
+      break;
+    }
+  }
+}
+
+function updateRouteProgress(routeId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const routeSheet = ss.getSheetByName(SALES_SHEETS.DELIVERIES);
+  const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+
+  // Count completed stops
+  const stopsData = stopsSheet.getDataRange().getValues();
+  let completed = 0;
+  let total = 0;
+
+  for (let i = 1; i < stopsData.length; i++) {
+    if (stopsData[i][1] === routeId) {
+      total++;
+      if (stopsData[i][9] === 'Delivered' || stopsData[i][9] === 'Issue') {
+        completed++;
+      }
+    }
+  }
+
+  // Update route
+  const routeData = routeSheet.getDataRange().getValues();
+  const headers = routeData[0];
+
+  for (let i = 1; i < routeData.length; i++) {
+    if (routeData[i][0] === routeId) {
+      routeSheet.getRange(i + 1, headers.indexOf('Completed_Stops') + 1).setValue(completed);
+
+      if (completed === total && total > 0) {
+        routeSheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue('Completed');
+        routeSheet.getRange(i + 1, headers.indexOf('Actual_End') + 1).setValue(new Date().toISOString());
+      }
+      break;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FLEET MANAGEMENT API
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getFleetAssets(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
+
+    if (!sheet) {
+      return { success: false, error: 'Fleet Assets sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let assets = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let asset = {};
+      headers.forEach((h, j) => asset[h] = data[i][j]);
+
+      // Apply filters
+      if (params.type && asset.Asset_Type !== params.type) continue;
+      if (params.status && asset.Status !== params.status) continue;
+
+      // Calculate hours until service
+      if (asset.Service_Interval_Hours && asset.Last_Service_Hours) {
+        asset.Hours_Until_Service = (asset.Last_Service_Hours + asset.Service_Interval_Hours) - asset.Current_Hours;
+      }
+
+      assets.push(asset);
+    }
+
+    return { success: true, assets: assets };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getFleetAssetById(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === params.assetId) {
+        let asset = {};
+        headers.forEach((h, j) => asset[h] = data[i][j]);
+
+        // Get usage history
+        asset.recentUsage = getFleetUsageLog({ assetId: params.assetId, limit: 10 }).usage || [];
+
+        return { success: true, asset: asset };
+      }
+    }
+
+    return { success: false, error: 'Asset not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function createFleetAsset(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
+
+    const assetId = data.assetType.substring(0, 4).toUpperCase() + '-' + Date.now().toString().slice(-6);
 
     sheet.appendRow([
-      entryId, employeeId, today, now.toISOString(), '',
-      '', lat, lng, '', '',
-      inGeofence, '', now.toISOString()
+      assetId,
+      data.assetName,
+      data.assetType,
+      data.make || '',
+      data.model || '',
+      data.year || '',
+      data.serialNumber || '',
+      data.fuelType || 'Diesel',
+      data.currentHours || 0,
+      data.currentMiles || 0,
+      data.serviceIntervalHours || 250,
+      data.currentHours || 0, // Last service at current hours
+      data.serviceIntervalHours || 250, // Hours until service
+      data.purchaseDate || '',
+      data.purchasePrice || 0,
+      data.depreciationPerHour || 0,
+      'Active',
+      data.location || '',
+      data.notes || '',
+      data.photoUrl || ''
     ]);
+
+    return { success: true, assetId: assetId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateFleetAsset(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.assetId) {
+        // Update current hours
+        if (data.currentHours !== undefined) {
+          sheet.getRange(i + 1, headers.indexOf('Current_Hours') + 1).setValue(data.currentHours);
+
+          // Recalculate hours until service
+          const lastService = values[i][headers.indexOf('Last_Service_Hours')];
+          const interval = values[i][headers.indexOf('Service_Interval_Hours')];
+          const hoursUntil = (lastService + interval) - data.currentHours;
+          sheet.getRange(i + 1, headers.indexOf('Hours_Until_Service') + 1).setValue(hoursUntil);
+        }
+
+        // Update status
+        if (data.status) {
+          sheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue(data.status);
+        }
+
+        return { success: true, message: 'Asset updated' };
+      }
+    }
+
+    return { success: false, error: 'Asset not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getFleetUsageLog(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.USAGE_LOG);
+
+    if (!sheet) {
+      return { success: false, error: 'Fleet Usage Log sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let usage = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let entry = {};
+      headers.forEach((h, j) => entry[h] = data[i][j]);
+
+      // Apply filters
+      if (params.assetId && entry.Asset_ID !== params.assetId) continue;
+      if (params.taskId && entry.Task_ID !== params.taskId) continue;
+      if (params.date && formatDateStringSales(entry.Date) !== params.date) continue;
+
+      usage.push(entry);
+    }
+
+    // Sort by date descending
+    usage.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+    // Apply limit
+    if (params.limit) {
+      usage = usage.slice(0, parseInt(params.limit));
+    }
+
+    return { success: true, usage: usage };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logFleetUsage(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.USAGE_LOG);
+
+    const usageId = 'USE-' + Date.now();
+    const hoursUsed = (data.endHours || 0) - (data.startHours || 0);
+
+    // Get asset info
+    const assetResult = getFleetAssetById({ assetId: data.assetId });
+    const assetName = assetResult.success ? assetResult.asset.Asset_Name : '';
+    const depreciationPerHour = assetResult.success ? (assetResult.asset.Depreciation_Per_Hour || 0) : 0;
+
+    // Calculate costs
+    const fuelCost = (data.fuelGallons || 0) * (data.fuelPricePerGallon || 4.00);
+    const depreciationCost = hoursUsed * depreciationPerHour;
+    const totalCost = fuelCost + depreciationCost;
+
+    sheet.appendRow([
+      usageId,
+      data.assetId,
+      assetName,
+      data.date || new Date().toISOString(),
+      data.taskId || '',
+      data.taskType || '',
+      data.field || '',
+      data.bedIds || '',
+      data.operatorId || '',
+      data.operatorName || '',
+      data.startHours || 0,
+      data.endHours || 0,
+      hoursUsed,
+      data.fuelGallons || 0,
+      fuelCost,
+      totalCost,
+      data.notes || ''
+    ]);
+
+    // Update asset current hours
+    if (data.endHours) {
+      updateFleetAsset({ assetId: data.assetId, currentHours: data.endHours });
+    }
+
+    return { success: true, usageId: usageId, hoursUsed: hoursUsed, totalCost: totalCost };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function linkUsageToTask(data) {
+  // Link fleet usage to a field task for cost rollup
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const usageSheet = ss.getSheetByName(FLEET_SHEETS.USAGE_LOG);
+
+    // Update usage record with task ID
+    const values = usageSheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.usageId) {
+        usageSheet.getRange(i + 1, headers.indexOf('Task_ID') + 1).setValue(data.taskId);
+        return { success: true, message: 'Usage linked to task' };
+      }
+    }
+
+    return { success: false, error: 'Usage record not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getFleetFuelLog(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.FUEL_LOG);
+
+    if (!sheet) {
+      return { success: false, error: 'Fleet Fuel Log sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let entries = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let entry = {};
+      headers.forEach((h, j) => entry[h] = data[i][j]);
+
+      // Apply filters
+      if (params.assetId && entry.Asset_ID !== params.assetId) continue;
+
+      entries.push(entry);
+    }
+
+    // Sort by date descending
+    entries.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+    return { success: true, fuelLog: entries };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logFleetFuel(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.FUEL_LOG);
+
+    const fuelId = 'FUEL-' + Date.now();
+    const totalCost = (data.gallons || 0) * (data.pricePerGallon || 0);
+
+    // Get asset name
+    const assetResult = getFleetAssetById({ assetId: data.assetId });
+    const assetName = assetResult.success ? assetResult.asset.Asset_Name : '';
+
+    sheet.appendRow([
+      fuelId,
+      data.date || new Date().toISOString(),
+      data.assetId,
+      assetName,
+      data.gallons || 0,
+      data.pricePerGallon || 0,
+      totalCost,
+      data.vendor || '',
+      data.receiptPhoto || '',
+      data.filledBy || '',
+      data.notes || ''
+    ]);
+
+    return { success: true, fuelId: fuelId, totalCost: totalCost };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getFleetMaintenanceLog(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.MAINTENANCE);
+
+    if (!sheet) {
+      return { success: false, error: 'Fleet Maintenance sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let entries = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let entry = {};
+      headers.forEach((h, j) => entry[h] = data[i][j]);
+
+      // Apply filters
+      if (params.assetId && entry.Asset_ID !== params.assetId) continue;
+
+      entries.push(entry);
+    }
+
+    // Sort by date descending
+    entries.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+    return { success: true, maintenance: entries };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logFleetMaintenance(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(FLEET_SHEETS.MAINTENANCE);
+    const assetSheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
+
+    const maintId = 'MAINT-' + Date.now();
+    const totalCost = (data.partsCost || 0) + (data.laborCost || 0);
+
+    // Get asset info
+    const assetResult = getFleetAssetById({ assetId: data.assetId });
+    const assetName = assetResult.success ? assetResult.asset.Asset_Name : '';
+    const currentHours = assetResult.success ? assetResult.asset.Current_Hours : 0;
+
+    sheet.appendRow([
+      maintId,
+      data.date || new Date().toISOString(),
+      data.assetId,
+      assetName,
+      data.maintType || 'Service',
+      data.description || '',
+      data.partsUsed || '',
+      data.partsCost || 0,
+      data.laborHours || 0,
+      data.laborCost || 0,
+      totalCost,
+      data.performedBy || '',
+      data.nextServiceHours || '',
+      data.photoUrl || '',
+      data.notes || ''
+    ]);
+
+    // Update asset's last service hours
+    const assetValues = assetSheet.getDataRange().getValues();
+    const assetHeaders = assetValues[0];
+
+    for (let i = 1; i < assetValues.length; i++) {
+      if (assetValues[i][0] === data.assetId) {
+        assetSheet.getRange(i + 1, assetHeaders.indexOf('Last_Service_Hours') + 1).setValue(currentHours);
+
+        // Recalculate hours until service
+        const interval = assetValues[i][assetHeaders.indexOf('Service_Interval_Hours')];
+        assetSheet.getRange(i + 1, assetHeaders.indexOf('Hours_Until_Service') + 1).setValue(interval);
+        break;
+      }
+    }
+
+    return { success: true, maintId: maintId, totalCost: totalCost };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getMaintenanceDue(params) {
+  try {
+    const assets = getFleetAssets({}).assets || [];
+
+    const threshold = params.threshold || 25; // Hours
+    const due = assets.filter(a => {
+      return a.Hours_Until_Service !== undefined && a.Hours_Until_Service <= threshold;
+    });
+
+    return { success: true, assetsDue: due };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getFleetCostReport(params) {
+  try {
+    const usage = getFleetUsageLog(params).usage || [];
+    const fuel = getFleetFuelLog(params).fuelLog || [];
+    const maintenance = getFleetMaintenanceLog(params).maintenance || [];
+
+    // Calculate totals
+    const usageCost = usage.reduce((sum, u) => sum + (u.Total_Cost || 0), 0);
+    const fuelCost = fuel.reduce((sum, f) => sum + (f.Total_Cost || 0), 0);
+    const maintCost = maintenance.reduce((sum, m) => sum + (m.Total_Cost || 0), 0);
+    const totalHours = usage.reduce((sum, u) => sum + (u.Hours_Used || 0), 0);
+    const totalFuelGallons = fuel.reduce((sum, f) => sum + (f.Gallons || 0), 0);
 
     return {
       success: true,
-      entryId: entryId,
-      timestamp: now.toISOString()
+      report: {
+        totalCost: usageCost + fuelCost + maintCost,
+        usageCost: usageCost,
+        fuelCost: fuelCost,
+        maintenanceCost: maintCost,
+        totalHours: totalHours,
+        totalFuelGallons: totalFuelGallons,
+        costPerHour: totalHours > 0 ? (usageCost + fuelCost + maintCost) / totalHours : 0
+      }
     };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
 
-/**
- * Clock out employee
- */
-function clockOut(params) {
+function getFleetDashboard(params) {
   try {
-    const employeeId = params.employeeId;
-    const lat = params.lat || '';
-    const lng = params.lng || '';
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('TIME_CLOCK');
-
-    if (!sheet) {
-      return { success: false, error: 'TIME_CLOCK sheet not found' };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const empIdIndex = headers.indexOf('Employee_ID');
-    const clockOutIndex = headers.indexOf('Clock_Out');
-    const clockInIndex = headers.indexOf('Clock_In');
-    const hoursIndex = headers.indexOf('Hours_Worked');
-    const gpsOutLatIndex = headers.indexOf('GPS_Out_Lat');
-    const gpsOutLngIndex = headers.indexOf('GPS_Out_Lng');
-
-    const today = new Date().toISOString().split('T')[0];
-    const dateIndex = headers.indexOf('Date');
-
-    // Find today's open entry for this employee
-    for (let i = data.length - 1; i >= 1; i--) {
-      const row = data[i];
-      const rowDate = row[dateIndex] instanceof Date
-        ? row[dateIndex].toISOString().split('T')[0]
-        : String(row[dateIndex]).split('T')[0];
-
-      if (row[empIdIndex] === employeeId && rowDate === today && !row[clockOutIndex]) {
-        const now = new Date();
-        const clockInTime = new Date(row[clockInIndex]);
-        const hoursWorked = (now - clockInTime) / (1000 * 60 * 60);
-
-        sheet.getRange(i + 1, clockOutIndex + 1).setValue(now.toISOString());
-        sheet.getRange(i + 1, hoursIndex + 1).setValue(hoursWorked.toFixed(2));
-        sheet.getRange(i + 1, gpsOutLatIndex + 1).setValue(lat);
-        sheet.getRange(i + 1, gpsOutLngIndex + 1).setValue(lng);
-
-        return {
-          success: true,
-          hoursWorked: hoursWorked,
-          timestamp: now.toISOString()
-        };
-      }
-    }
-
-    return { success: false, error: 'No open clock-in found for today' };
-  } catch (error) {
-    return { success: false, error: error.toString() };
-  }
-}
-
-/**
- * Get time clock status for employee
- */
-function getTimeClockStatus(params) {
-  try {
-    const employeeId = params.employeeId;
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('TIME_CLOCK');
-
-    if (!sheet) {
-      return { success: true, isClockedIn: false };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const empIdIndex = headers.indexOf('Employee_ID');
-    const clockOutIndex = headers.indexOf('Clock_Out');
-    const clockInIndex = headers.indexOf('Clock_In');
-    const dateIndex = headers.indexOf('Date');
-
-    const today = new Date().toISOString().split('T')[0];
-
-    // Check for open entry today
-    for (let i = data.length - 1; i >= 1; i--) {
-      const row = data[i];
-      const rowDate = row[dateIndex] instanceof Date
-        ? row[dateIndex].toISOString().split('T')[0]
-        : String(row[dateIndex]).split('T')[0];
-
-      if (row[empIdIndex] === employeeId && rowDate === today && !row[clockOutIndex]) {
-        return {
-          success: true,
-          isClockedIn: true,
-          clockInTime: row[clockInIndex]
-        };
-      }
-    }
-
-    return { success: true, isClockedIn: false };
-  } catch (error) {
-    return { success: false, error: error.toString(), isClockedIn: false };
-  }
-}
-
-/**
- * Get time clock history for employee
- */
-function getTimeClockHistory(params) {
-  try {
-    const employeeId = params.employeeId;
-    const period = params.period || 'week'; // week, month, all
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('TIME_CLOCK');
-
-    if (!sheet) {
-      return { success: true, entries: [], totalHours: 0 };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const empIdIndex = headers.indexOf('Employee_ID');
-
-    const entries = [];
-    let totalHours = 0;
-
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][empIdIndex] === employeeId) {
-        const entry = {};
-        headers.forEach((h, idx) => {
-          entry[h] = data[i][idx];
-        });
-
-        const entryDate = new Date(entry.Date);
-        if (period === 'week' && entryDate < weekAgo) continue;
-
-        entries.push(entry);
-        totalHours += parseFloat(entry.Hours_Worked) || 0;
-      }
-    }
+    const assets = getFleetAssets({}).assets || [];
+    const maintenanceDue = getMaintenanceDue({ threshold: 25 }).assetsDue || [];
+    const costReport = getFleetCostReport(params).report || {};
 
     return {
       success: true,
-      entries: entries.reverse(),
-      totalHours: totalHours
+      dashboard: {
+        totalAssets: assets.length,
+        activeAssets: assets.filter(a => a.Status === 'Active').length,
+        maintenanceDueCount: maintenanceDue.length,
+        maintenanceDueAssets: maintenanceDue,
+        costSummary: costReport
+      }
     };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
 
-/**
- * Get tasks assigned to employee
- */
-function getEmployeeTasks(params) {
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD & REPORTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSalesDashboard(params) {
   try {
-    const employeeId = params.employeeId;
+    const orders = getSalesOrders({}).orders || [];
+    const customers = getSalesCustomers({}).customers || [];
 
-    // Get planning data and convert to tasks
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('PLANNING_2026');
+    const today = formatDateStringSales(new Date());
+    const weekAgo = formatDateStringSales(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
-    if (!sheet) {
-      return { success: true, tasks: [] };
+    // Calculate metrics
+    const todayOrders = orders.filter(o => formatDateStringSales(o.Order_Date) === today);
+    const weekOrders = orders.filter(o => formatDateStringSales(o.Order_Date) >= weekAgo);
+    const pendingOrders = orders.filter(o => o.Status === 'Pending');
+
+    const todayRevenue = todayOrders.reduce((sum, o) => sum + (Number(o.Total) || 0), 0);
+    const weekRevenue = weekOrders.reduce((sum, o) => sum + (Number(o.Total) || 0), 0);
+
+    // Get delivery stats
+    const routes = getDeliveryRoutes({ date: today }).routes || [];
+    const todayDeliveries = routes.reduce((sum, r) => sum + (r.Total_Stops || 0), 0);
+    const completedDeliveries = routes.reduce((sum, r) => sum + (r.Completed_Stops || 0), 0);
+
+    // Alerts
+    const alerts = [];
+    if (pendingOrders.length > 0) {
+      alerts.push({ type: 'warning', message: pendingOrders.length + ' orders pending processing' });
     }
 
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const tasks = [];
-
-    const today = new Date();
-    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      const planting = {};
-      headers.forEach((h, idx) => {
-        planting[h] = row[idx];
-      });
-
-      // Skip completed plantings
-      if (['HARVESTED', 'CANCELLED'].includes(planting.STATUS)) continue;
-
-      // Check for upcoming tasks
-      const ghSowDate = planting.Plan_GH_Sow ? new Date(planting.Plan_GH_Sow) : null;
-      const transplantDate = planting.Plan_Transplant ? new Date(planting.Plan_Transplant) : null;
-      const fieldSowDate = planting.Plan_Field_Sow ? new Date(planting.Plan_Field_Sow) : null;
-
-      // GH Sow task
-      if (ghSowDate && !planting.Act_GH_Sow && ghSowDate <= nextWeek) {
-        tasks.push({
-          id: planting.Batch_ID + '-ghsow',
-          batchId: planting.Batch_ID,
-          type: 'sow',
-          crop: planting.Crop,
-          variety: planting.Variety,
-          date: ghSowDate.toISOString().split('T')[0],
-          bed: 'Greenhouse',
-          field: 'GH',
-          quantity: planting.Trays_Needed + ' trays',
-          status: planting.STATUS
-        });
-      }
-
-      // Transplant task
-      if (transplantDate && !planting.Act_Transplant && planting.Act_GH_Sow && transplantDate <= nextWeek) {
-        tasks.push({
-          id: planting.Batch_ID + '-transplant',
-          batchId: planting.Batch_ID,
-          type: 'transplant',
-          crop: planting.Crop,
-          variety: planting.Variety,
-          date: transplantDate.toISOString().split('T')[0],
-          bed: planting.Target_Bed_ID,
-          field: planting.Field,
-          quantity: planting.Plants_Needed + ' plants',
-          status: planting.STATUS
-        });
-      }
-
-      // Field sow task
-      if (fieldSowDate && !planting.Act_Field_Sow && fieldSowDate <= nextWeek) {
-        tasks.push({
-          id: planting.Batch_ID + '-fieldsow',
-          batchId: planting.Batch_ID,
-          type: 'sow',
-          crop: planting.Crop,
-          variety: planting.Variety,
-          date: fieldSowDate.toISOString().split('T')[0],
-          bed: planting.Target_Bed_ID,
-          field: planting.Field,
-          quantity: planting.Feet_Used + ' ft',
-          status: planting.STATUS
-        });
-      }
+    const maintenanceDue = getMaintenanceDue({ threshold: 25 }).assetsDue || [];
+    if (maintenanceDue.length > 0) {
+      alerts.push({ type: 'info', message: maintenanceDue.length + ' equipment needing service soon' });
     }
-
-    // Sort by date
-    tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    return { success: true, tasks: tasks };
-  } catch (error) {
-    return { success: false, error: error.toString() };
-  }
-}
-
-/**
- * Complete task with GPS coordinates
- */
-function completeTaskWithGPS(params) {
-  try {
-    const taskId = params.taskId;
-    const employeeId = params.employeeId;
-    const lat = params.lat || '';
-    const lng = params.lng || '';
-
-    // Parse task ID to get batch ID and task type
-    const parts = taskId.split('-');
-    const taskType = parts.pop(); // ghsow, transplant, fieldsow
-    const batchId = parts.join('-');
-
-    // Map task type to actual date column
-    let dateColumn;
-    let statusValue;
-    if (taskType === 'ghsow') {
-      dateColumn = 'Act_GH_Sow';
-      statusValue = 'Sown';
-    } else if (taskType === 'transplant') {
-      dateColumn = 'Act_Transplant';
-      statusValue = 'PLANTED';
-    } else if (taskType === 'fieldsow') {
-      dateColumn = 'Act_Field_Sow';
-      statusValue = 'PLANTED';
-    }
-
-    if (!dateColumn) {
-      return { success: false, error: 'Unknown task type' };
-    }
-
-    // Update the planting record
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('PLANNING_2026');
-
-    if (!sheet) {
-      return { success: false, error: 'PLANNING_2026 sheet not found' };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const batchIndex = headers.indexOf('Batch_ID');
-    const dateIndex = headers.indexOf(dateColumn);
-    const statusIndex = headers.indexOf('STATUS');
-
-    const today = new Date().toISOString().split('T')[0];
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][batchIndex] === batchId) {
-        sheet.getRange(i + 1, dateIndex + 1).setValue(today);
-        sheet.getRange(i + 1, statusIndex + 1).setValue(statusValue);
-
-        // Log to MASTER_LOG
-        logToMasterLog({
-          action: 'TASK_COMPLETE',
-          batchId: batchId,
-          taskType: taskType,
-          employeeId: employeeId,
-          lat: lat,
-          lng: lng,
-          timestamp: new Date().toISOString()
-        });
-
-        return { success: true, batchId: batchId, taskType: taskType };
-      }
-    }
-
-    return { success: false, error: 'Batch not found: ' + batchId };
-  } catch (error) {
-    return { success: false, error: error.toString() };
-  }
-}
-
-/**
- * Log harvest with full details
- */
-function logHarvestWithDetails(params) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('HARVEST_LOG');
-
-    // Create HARVEST_LOG sheet if it doesn't exist
-    if (!sheet) {
-      sheet = ss.insertSheet('HARVEST_LOG');
-      sheet.appendRow([
-        'Harvest_ID', 'Timestamp', 'Batch_ID', 'Crop', 'Variety',
-        'Bed_ID', 'Quantity', 'Unit', 'Quality_Grade', 'Lot_Number',
-        'GPS_Lat', 'GPS_Lng', 'Photo_URL', 'Harvested_By', 'Notes', 'Synced_At'
-      ]);
-    }
-
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
-    const cropCode = (params.crop || 'UNK').substring(0, 3).toUpperCase();
-
-    // Generate lot number
-    const lotNumber = dateStr + '-' + cropCode + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    const harvestId = 'HV-' + lotNumber;
-
-    sheet.appendRow([
-      harvestId,
-      now.toISOString(),
-      params.batchId || '',
-      params.crop || '',
-      params.variety || '',
-      params.bed || '',
-      params.quantity || '',
-      params.unit || 'lbs',
-      params.quality || 'A',
-      lotNumber,
-      params.lat || '',
-      params.lng || '',
-      params.photo || '',
-      params.employeeId || '',
-      params.notes || '',
-      now.toISOString()
-    ]);
 
     return {
       success: true,
-      harvestId: harvestId,
-      lotNumber: lotNumber
+      stats: {
+        todayOrders: todayOrders.length,
+        todayRevenue: todayRevenue,
+        weekOrders: weekOrders.length,
+        weekRevenue: weekRevenue,
+        pendingOrders: pendingOrders.length,
+        totalCustomers: customers.length,
+        wholesaleCustomers: customers.filter(c => c.Customer_Type === 'Wholesale').length,
+        csaMembers: customers.filter(c => c.Customer_Type === 'CSA').length,
+        todayDeliveries: todayDeliveries,
+        completedDeliveries: completedDeliveries
+      },
+      recentOrders: orders.slice(0, 10),
+      alerts: alerts
     };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
 
-/**
- * Save scouting report
- */
-function saveScoutingReport(params) {
+function getSalesReports(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('FIELD_SCOUTING');
+    const orders = getSalesOrders({}).orders || [];
 
-    // Create FIELD_SCOUTING sheet if it doesn't exist
-    if (!sheet) {
-      sheet = ss.insertSheet('FIELD_SCOUTING');
-      sheet.appendRow([
-        'Scout_ID', 'Date', 'Time', 'Employee_ID', 'Field_ID',
-        'Bed_ID', 'Observation_Type', 'Severity', 'Organism_ID',
-        'Photo_URL', 'GPS_Lat', 'GPS_Lng', 'Notes', 'AI_Diagnosis',
-        'Recommended_Action', 'Followup_Date', 'Synced_At'
-      ]);
+    // Filter by date range
+    let filtered = orders;
+    if (params.startDate) {
+      filtered = filtered.filter(o => formatDateStringSales(o.Order_Date) >= params.startDate);
+    }
+    if (params.endDate) {
+      filtered = filtered.filter(o => formatDateStringSales(o.Order_Date) <= params.endDate);
     }
 
-    const now = new Date();
-    const scoutId = 'SC-' + now.toISOString().split('T')[0].replace(/-/g, '') + '-' +
-                    Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    // Calculate totals
+    const totalRevenue = filtered.reduce((sum, o) => sum + (Number(o.Total) || 0), 0);
+    const totalOrders = filtered.length;
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    sheet.appendRow([
-      scoutId,
-      now.toISOString().split('T')[0],
-      now.toTimeString().split(' ')[0],
-      params.employeeId || '',
-      params.field || '',
-      params.bed || '',
-      params.type || '',
-      params.severity || 'medium',
-      params.organismId || '',
-      params.photo || '',
-      params.lat || '',
-      params.lng || '',
-      params.notes || '',
-      params.aiDiagnosis || '',
-      params.recommendedAction || '',
-      params.followupDate || '',
-      now.toISOString()
-    ]);
+    // Group by customer type
+    const byCustomerType = {};
+    filtered.forEach(o => {
+      const type = o.Customer_Type || 'Other';
+      if (!byCustomerType[type]) {
+        byCustomerType[type] = { count: 0, revenue: 0 };
+      }
+      byCustomerType[type].count++;
+      byCustomerType[type].revenue += Number(o.Total) || 0;
+    });
 
-    return { success: true, scoutId: scoutId };
+    // Group by date
+    const byDate = {};
+    filtered.forEach(o => {
+      const date = formatDateStringSales(o.Order_Date);
+      if (!byDate[date]) {
+        byDate[date] = { count: 0, revenue: 0 };
+      }
+      byDate[date].count++;
+      byDate[date].revenue += Number(o.Total) || 0;
+    });
+
+    return {
+      success: true,
+      summary: { totalRevenue, totalOrders, avgOrderValue },
+      byCustomerType: byCustomerType,
+      byDate: Object.entries(byDate).map(([date, data]) => ({ date, ...data })).sort((a, b) => a.date.localeCompare(b.date))
+    };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
 
-/**
- * Report field hazard
- */
-function reportHazard(params) {
+// ═══════════════════════════════════════════════════════════════════════════
+// SMS CAMPAIGNS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSMSCampaigns(params) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('FIELD_HAZARDS');
+    const sheet = ss.getSheetByName(SALES_SHEETS.SMS_CAMPAIGNS);
 
-    // Create FIELD_HAZARDS sheet if it doesn't exist
     if (!sheet) {
-      sheet = ss.insertSheet('FIELD_HAZARDS');
-      sheet.appendRow([
-        'Hazard_ID', 'Date_Reported', 'Employee_ID', 'Field_ID',
-        'Hazard_Type', 'Severity', 'GPS_Lat', 'GPS_Lng',
-        'Photo_URL', 'Description', 'Status', 'Resolved_By',
-        'Resolved_Date', 'Synced_At'
-      ]);
+      return { success: false, error: 'SMS Campaigns sheet not found' };
     }
 
-    const now = new Date();
-    const hazardId = 'HZ-' + now.toISOString().split('T')[0].replace(/-/g, '') + '-' +
-                     Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let campaigns = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let campaign = {};
+      headers.forEach((h, j) => campaign[h] = data[i][j]);
+
+      if (params.status && campaign.Status !== params.status) continue;
+
+      campaigns.push(campaign);
+    }
+
+    campaigns.sort((a, b) => new Date(b.Created_At) - new Date(a.Created_At));
+
+    return { success: true, campaigns: campaigns };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function createSMSCampaign(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.SMS_CAMPAIGNS);
+
+    const campaignId = 'SMS-' + Date.now();
+    const now = new Date().toISOString();
+
+    // Count recipients
+    const recipientCount = getAudienceCount(data.audience, data.audienceFilter);
 
     sheet.appendRow([
-      hazardId,
-      now.toISOString(),
-      params.employeeId || '',
-      params.field || '',
-      params.type || 'Other',
-      params.severity || 'medium',
-      params.lat || '',
-      params.lng || '',
-      params.photo || '',
-      params.description || '',
-      'Reported',
+      campaignId,
+      data.name,
+      data.message,
+      data.audience,
+      data.audienceFilter || '',
+      recipientCount,
+      0, // Sent count
+      data.scheduledAt ? 'Scheduled' : 'Draft',
+      data.scheduledAt || '',
       '',
-      '',
-      now.toISOString()
+      data.createdBy || 'System',
+      now
     ]);
 
-    return { success: true, hazardId: hazardId };
+    return { success: true, campaignId: campaignId, recipientCount: recipientCount };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function sendSMSCampaign(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.SMS_CAMPAIGNS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.campaignId) {
+        const audience = values[i][headers.indexOf('Audience')];
+        const audienceFilter = values[i][headers.indexOf('Audience_Filter')];
+        const message = values[i][headers.indexOf('Message')];
+
+        // Get recipients
+        const recipients = getAudienceRecipients(audience, audienceFilter);
+
+        // In production, integrate with Twilio here
+        let sentCount = 0;
+        recipients.forEach(r => {
+          // UrlFetchApp.fetch(TWILIO_URL, {...})
+          Logger.log('Would send SMS to: ' + r.phone + ' - ' + message);
+          sentCount++;
+        });
+
+        // Update campaign
+        sheet.getRange(i + 1, headers.indexOf('Sent_Count') + 1).setValue(sentCount);
+        sheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue('Sent');
+        sheet.getRange(i + 1, headers.indexOf('Sent_At') + 1).setValue(new Date().toISOString());
+
+        return { success: true, sentCount: sentCount };
+      }
+    }
+
+    return { success: false, error: 'Campaign not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getAudienceCount(audience, filter) {
+  const customers = getSalesCustomers({}).customers || [];
+  return filterAudience(customers, audience, filter).length;
+}
+
+function getAudienceRecipients(audience, filter) {
+  const customers = getSalesCustomers({}).customers || [];
+  return filterAudience(customers, audience, filter).map(c => ({
+    phone: c.Phone,
+    name: c.Contact_Name
+  }));
+}
+
+function filterAudience(customers, audience, filter) {
+  let filtered = customers.filter(c => c.Phone && c.Is_Active);
+
+  switch (audience) {
+    case 'wholesale':
+      filtered = filtered.filter(c => c.Customer_Type === 'Wholesale');
+      break;
+    case 'csa':
+      filtered = filtered.filter(c => c.Customer_Type === 'CSA');
+      break;
+    case 'retail':
+      filtered = filtered.filter(c => c.Customer_Type === 'Retail');
+      break;
+    // 'all' returns all active customers with phone
+  }
+
+  return filtered;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SALES MODULE UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function formatDateStringSales(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toISOString().split('T')[0];
+}
+
+function getCurrentWeekDateSales() {
+  const now = new Date();
+  // Get Monday of current week
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now.setDate(diff));
+  return formatDateStringSales(monday);
+}
+
+function savePhotoToDriveSales(base64Data, filename) {
+  try {
+    let folder;
+    const folders = DriveApp.getFoldersByName('TinySeed_Photos');
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder('TinySeed_Photos');
+    }
+
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(base64Data.split(',')[1]),
+      'image/jpeg',
+      filename + '.jpg'
+    );
+
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    return file.getUrl();
+  } catch (error) {
+    Logger.log('Error saving photo: ' + error.toString());
+    return '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MENU EXTENSION - Add to onOpen()
+// ═══════════════════════════════════════════════════════════════════════════
+
+/*
+  Add this submenu to the existing onOpen() function:
+
+  .addSubMenu(ui.createMenu('Sales & Fleet')
+    .addItem('Initialize Sales & Fleet Module', 'initializeSalesAndFleetModule')
+    .addSeparator()
+    .addItem('View Sales Dashboard', 'viewSalesDashboard')
+    .addItem('View Fleet Dashboard', 'viewFleetDashboard'))
+*/
+
+function viewSalesDashboard() {
+  const dashboard = getSalesDashboard({});
+  const ui = SpreadsheetApp.getUi();
+
+  if (dashboard.success) {
+    const stats = dashboard.stats;
+    ui.alert('Sales Dashboard',
+      'Today\'s Orders: ' + stats.todayOrders + '\n' +
+      'Today\'s Revenue: $' + stats.todayRevenue.toFixed(2) + '\n' +
+      'Pending Orders: ' + stats.pendingOrders + '\n' +
+      'Total Customers: ' + stats.totalCustomers + '\n' +
+      'Deliveries Today: ' + stats.completedDeliveries + '/' + stats.todayDeliveries,
+      ui.ButtonSet.OK);
+  } else {
+    ui.alert('Error', dashboard.error, ui.ButtonSet.OK);
+  }
+}
+
+function viewFleetDashboard() {
+  const dashboard = getFleetDashboard({});
+  const ui = SpreadsheetApp.getUi();
+
+  if (dashboard.success) {
+    const d = dashboard.dashboard;
+    ui.alert('Fleet Dashboard',
+      'Total Assets: ' + d.totalAssets + '\n' +
+      'Active Assets: ' + d.activeAssets + '\n' +
+      'Maintenance Due: ' + d.maintenanceDueCount + '\n' +
+      'Total Cost (Period): $' + (d.costSummary.totalCost || 0).toFixed(2),
+      ui.ButtonSet.OK);
+  } else {
+    ui.alert('Error', dashboard.error, ui.ButtonSet.OK);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LABEL GENERATION & SALES CYCLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get market sign items for a given date
+ * These are products available at the farmer's market with prices
+ */
+function getMarketSignItems(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // First try dedicated market items sheet
+    let sheet = ss.getSheetByName(SALES_SHEETS.MARKET_ITEMS);
+
+    if (sheet) {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      let items = [];
+
+      for (let i = 1; i < data.length; i++) {
+        let item = {};
+        headers.forEach((h, j) => item[h] = data[i][j]);
+
+        // Filter active items only (market items show current prices, not date-specific)
+        if (item.Is_Active === false) continue;
+
+        items.push({
+          id: item.Item_ID || i,
+          name: item.Item_Name || item.Product_Name || '',
+          variety: item.Variety || '',
+          price: Number(item.Price) || 0,
+          unit: item.Unit || '/each'
+        });
+      }
+
+      return { success: true, items: items };
+    }
+
+    // Fallback: Get items from inventory/products with market prices
+    const invSheet = ss.getSheetByName('INV_Products');
+    if (invSheet) {
+      const data = invSheet.getDataRange().getValues();
+      const headers = data[0];
+      let items = [];
+
+      for (let i = 1; i < data.length; i++) {
+        let product = {};
+        headers.forEach((h, j) => product[h] = data[i][j]);
+
+        // Only include items with retail/market prices
+        if (product.Retail_Price && Number(product.Retail_Price) > 0) {
+          items.push({
+            id: product.Product_ID || i,
+            name: product.Product_Name || '',
+            variety: product.Variety || '',
+            price: Number(product.Retail_Price) || 0,
+            unit: product.Unit ? '/' + product.Unit : '/each'
+          });
+        }
+      }
+
+      return { success: true, items: items };
+    }
+
+    // If no sheet found, return empty with instructions
+    return {
+      success: true,
+      items: [],
+      message: 'No market items sheet found. Create SALES_MarketItems sheet or add items manually.'
+    };
+
   } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
 
 /**
- * Get active (unresolved) hazards
+ * Get orders formatted for label printing
+ * Groups orders by customer type (CSA vs Wholesale)
  */
-function getActiveHazards(params) {
+function getOrdersForLabels(params) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('FIELD_HAZARDS');
+    const ordersSheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+    const itemsSheet = ss.getSheetByName(SALES_SHEETS.ORDER_ITEMS);
 
+    if (!ordersSheet) {
+      return { success: false, error: 'Orders sheet not found' };
+    }
+
+    // Get all orders
+    const ordersData = ordersSheet.getDataRange().getValues();
+    const ordersHeaders = ordersData[0];
+
+    // Get all order items
+    let orderItemsMap = {};
+    if (itemsSheet) {
+      const itemsData = itemsSheet.getDataRange().getValues();
+      const itemsHeaders = itemsData[0];
+
+      for (let i = 1; i < itemsData.length; i++) {
+        let item = {};
+        itemsHeaders.forEach((h, j) => item[h] = itemsData[i][j]);
+
+        const orderId = item.Order_ID;
+        if (!orderItemsMap[orderId]) {
+          orderItemsMap[orderId] = [];
+        }
+        orderItemsMap[orderId].push({
+          productName: item.Product_Name || item.Crop || '',
+          variety: item.Variety || '',
+          quantity: item.Quantity || 1,
+          unit: item.Unit || 'each'
+        });
+      }
+    }
+
+    // Process orders
+    let csaOrders = [];
+    let wholesaleOrders = [];
+
+    for (let i = 1; i < ordersData.length; i++) {
+      let order = {};
+      ordersHeaders.forEach((h, j) => order[h] = ordersData[i][j]);
+
+      // Filter by delivery date if provided
+      if (params.date) {
+        const orderDate = formatDateStringSales(order.Delivery_Date);
+        if (orderDate !== params.date) continue;
+      }
+
+      // Skip cancelled/completed orders for label printing
+      if (order.Status === 'Cancelled' || order.Status === 'Delivered') continue;
+
+      const orderLabel = {
+        orderId: order.Order_ID,
+        customerName: order.Customer_Name || 'Unknown',
+        customerType: order.Customer_Type || 'Retail',
+        deliveryDate: order.Delivery_Date,
+        items: orderItemsMap[order.Order_ID] || []
+      };
+
+      // Categorize by customer type
+      if (order.Customer_Type === 'CSA') {
+        csaOrders.push(orderLabel);
+      } else if (order.Customer_Type === 'Wholesale') {
+        wholesaleOrders.push(orderLabel);
+      }
+    }
+
+    // Sort by customer name
+    csaOrders.sort((a, b) => a.customerName.localeCompare(b.customerName));
+    wholesaleOrders.sort((a, b) => a.customerName.localeCompare(b.customerName));
+
+    return {
+      success: true,
+      csaOrders: csaOrders,
+      wholesaleOrders: wholesaleOrders,
+      totalCSA: csaOrders.length,
+      totalWholesale: wholesaleOrders.length
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get sales cycles (Monday/Thursday harvest schedules)
+ */
+function getSalesCycles(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SALES_SHEETS.SALES_CYCLES);
+
+    // Create sheet if it doesn't exist
     if (!sheet) {
-      return { success: true, hazards: [] };
+      sheet = ss.insertSheet(SALES_SHEETS.SALES_CYCLES);
+      sheet.setTabColor('#9333ea');
+      sheet.appendRow([
+        'Cycle_ID', 'Cycle_Name', 'Harvest_Day', 'Order_Cutoff_Day',
+        'Order_Cutoff_Time', 'Status', 'Week_Of', 'Total_Orders',
+        'Total_Revenue', 'Created_At', 'Closed_At'
+      ]);
+      sheet.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#9333ea').setFontColor('#ffffff');
+
+      // Add default Monday/Thursday cycles
+      const now = new Date();
+      sheet.appendRow([
+        'CYCLE-MON', 'Monday Harvest', 'Monday', 'Sunday', '6:00 PM',
+        'Active', getWeekOf(now), 0, 0, now.toISOString(), ''
+      ]);
+      sheet.appendRow([
+        'CYCLE-THU', 'Thursday Harvest', 'Thursday', 'Wednesday', '6:00 PM',
+        'Active', getWeekOf(now), 0, 0, now.toISOString(), ''
+      ]);
     }
 
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
-    const hazards = [];
+    let cycles = [];
 
     for (let i = 1; i < data.length; i++) {
-      const hazard = {};
-      headers.forEach((h, idx) => {
-        hazard[h] = data[i][idx];
-      });
+      let cycle = {};
+      headers.forEach((h, j) => cycle[h] = data[i][j]);
 
-      if (hazard.Status !== 'Resolved') {
-        hazards.push(hazard);
-      }
+      if (params.status && cycle.Status !== params.status) continue;
+
+      cycles.push(cycle);
     }
 
-    return { success: true, hazards: hazards };
+    return { success: true, cycles: cycles };
+
   } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
 
 /**
- * Helper function to log actions to MASTER_LOG
+ * Close a sales cycle - generates pick/pack lists and prepares for harvest
  */
-function logToMasterLog(data) {
+function closeSalesCycle(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('MASTER_LOG');
-
-    if (!sheet) {
-      sheet = ss.insertSheet('MASTER_LOG');
-      sheet.appendRow(['Timestamp', 'Action', 'Details', 'Employee_ID', 'GPS_Lat', 'GPS_Lng']);
+    const cycleId = params.cycleId;
+    if (!cycleId) {
+      return { success: false, error: 'Cycle ID required' };
     }
 
-    sheet.appendRow([
-      data.timestamp || new Date().toISOString(),
-      data.action || '',
-      JSON.stringify(data),
-      data.employeeId || '',
-      data.lat || '',
-      data.lng || ''
-    ]);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const cycleSheet = ss.getSheetByName(SALES_SHEETS.SALES_CYCLES);
 
-    return true;
+    if (!cycleSheet) {
+      return { success: false, error: 'Sales cycles sheet not found' };
+    }
+
+    // Find and update the cycle
+    const cycleData = cycleSheet.getDataRange().getValues();
+    const headers = cycleData[0];
+    let cycleRow = -1;
+    let cycle = {};
+
+    for (let i = 1; i < cycleData.length; i++) {
+      if (cycleData[i][0] === cycleId) {
+        cycleRow = i + 1;
+        headers.forEach((h, j) => cycle[h] = cycleData[i][j]);
+        break;
+      }
+    }
+
+    if (cycleRow === -1) {
+      return { success: false, error: 'Cycle not found' };
+    }
+
+    // Get all pending orders for this cycle's delivery day
+    const ordersResult = getOrdersForLabels({ date: params.deliveryDate });
+    if (!ordersResult.success) {
+      return ordersResult;
+    }
+
+    const totalOrders = ordersResult.totalCSA + ordersResult.totalWholesale;
+
+    // Update cycle status
+    const statusCol = headers.indexOf('Status') + 1;
+    const closedAtCol = headers.indexOf('Closed_At') + 1;
+    const totalOrdersCol = headers.indexOf('Total_Orders') + 1;
+
+    cycleSheet.getRange(cycleRow, statusCol).setValue('Closed');
+    cycleSheet.getRange(cycleRow, closedAtCol).setValue(new Date().toISOString());
+    cycleSheet.getRange(cycleRow, totalOrdersCol).setValue(totalOrders);
+
+    // Generate consolidated pick list
+    const pickPackResult = generateConsolidatedPickList(params.deliveryDate);
+
+    return {
+      success: true,
+      message: 'Sales cycle closed successfully',
+      cycleId: cycleId,
+      totalOrders: totalOrders,
+      csaOrders: ordersResult.totalCSA,
+      wholesaleOrders: ordersResult.totalWholesale,
+      pickListGenerated: pickPackResult.success
+    };
+
   } catch (error) {
-    console.error('Error logging to MASTER_LOG:', error);
-    return false;
+    return { success: false, error: error.toString() };
   }
+}
+
+/**
+ * Generate consolidated pick list for a delivery date
+ */
+function generateConsolidatedPickList(deliveryDate) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ordersResult = getOrdersForLabels({ date: deliveryDate });
+
+    if (!ordersResult.success) {
+      return ordersResult;
+    }
+
+    // Combine all orders
+    const allOrders = [...ordersResult.csaOrders, ...ordersResult.wholesaleOrders];
+
+    // Aggregate items across all orders
+    const itemTotals = {};
+
+    allOrders.forEach(order => {
+      (order.items || []).forEach(item => {
+        const key = `${item.productName}|${item.variety}|${item.unit}`;
+        if (!itemTotals[key]) {
+          itemTotals[key] = {
+            productName: item.productName,
+            variety: item.variety,
+            unit: item.unit,
+            totalQuantity: 0,
+            orderCount: 0
+          };
+        }
+        itemTotals[key].totalQuantity += Number(item.quantity) || 0;
+        itemTotals[key].orderCount++;
+      });
+    });
+
+    // Create or update pick list sheet
+    let pickSheet = ss.getSheetByName(SALES_SHEETS.PICK_PACK);
+
+    // Add consolidated summary items
+    Object.values(itemTotals).forEach(item => {
+      const pickId = 'PCK-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+      pickSheet.appendRow([
+        pickId,
+        deliveryDate,
+        'CONSOLIDATED',
+        'All Orders',
+        'Mixed',
+        '',
+        item.productName + (item.variety ? ' - ' + item.variety : ''),
+        item.totalQuantity,
+        item.unit,
+        '',
+        'Pending',
+        '',
+        '',
+        `Total from ${item.orderCount} orders`
+      ]);
+    });
+
+    return {
+      success: true,
+      itemCount: Object.keys(itemTotals).length,
+      totalQuantity: Object.values(itemTotals).reduce((sum, i) => sum + i.totalQuantity, 0)
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Helper: Get week identifier for a date
+ */
+function getWeekOf(date) {
+  const d = new Date(date);
+  const dayNum = d.getDay();
+  const startOfWeek = new Date(d);
+  startOfWeek.setDate(d.getDate() - dayNum);
+  return startOfWeek.toISOString().split('T')[0];
+}
+
+/**
+ * Initialize the market items sheet with headers
+ */
+function initializeMarketItemsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SALES_SHEETS.MARKET_ITEMS);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SALES_SHEETS.MARKET_ITEMS);
+    sheet.setTabColor('#f59e0b');
+    sheet.appendRow([
+      'Item_ID', 'Date', 'Item_Name', 'Variety', 'Price', 'Unit',
+      'Category', 'Is_Active', 'Display_Order', 'Notes'
+    ]);
+    sheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#f59e0b').setFontColor('#000000');
+
+    // Add sample items
+    const today = new Date().toISOString().split('T')[0];
+    const sampleItems = [
+      ['MKT-001', today, 'Tomatoes', 'Cherokee Purple', 5.00, '/lb', 'Vegetables', true, 1, ''],
+      ['MKT-002', today, 'Lettuce', 'Butterhead', 4.00, '/head', 'Greens', true, 2, ''],
+      ['MKT-003', today, 'Kale', 'Lacinato', 4.00, '/bunch', 'Greens', true, 3, ''],
+      ['MKT-004', today, 'Carrots', 'Nantes', 3.00, '/bunch', 'Vegetables', true, 4, ''],
+      ['MKT-005', today, 'Peppers', 'Mixed Bell', 6.00, '/lb', 'Vegetables', true, 5, ''],
+      ['MKT-006', today, 'Zucchini', 'Black Beauty', 3.00, '/lb', 'Vegetables', true, 6, ''],
+      ['MKT-007', today, 'Cucumbers', 'Marketmore', 2.00, '/each', 'Vegetables', true, 7, ''],
+      ['MKT-008', today, 'Basil', 'Genovese', 4.00, '/bunch', 'Herbs', true, 8, '']
+    ];
+
+    sampleItems.forEach(item => sheet.appendRow(item));
+
+    // Format
+    sheet.autoResizeColumns(1, 10);
+  }
+
+  return { success: true, message: 'Market items sheet initialized' };
 }
 

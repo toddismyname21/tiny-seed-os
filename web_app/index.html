@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed OS - Application Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #22c55e;
+            --primary-dark: #16a34a;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .logo {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+
+        .status-banner {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        .status-dot.loading {
+            background: #f59e0b;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .app-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .app-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 40px rgba(34, 197, 94, 0.2);
+        }
+
+        .app-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .app-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .app-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .feature-tag {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .api-test {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 48px;
+        }
+
+        .test-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-right: 12px;
+            margin-bottom: 12px;
+        }
+
+        .test-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .test-result {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .integration-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .status-card {
+            background: var(--bg-dark);
+            padding: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-icon {
+            font-size: 24px;
+        }
+
+        .status-label {
+            flex: 1;
+        }
+
+        .status-value {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .status-value.success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-value.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .status-value.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 32px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .quick-links {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .quick-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .quick-link:hover {
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">&#x1F331;</div>
+            <h1>Tiny Seed OS</h1>
+            <p class="subtitle">Complete Farm Management System</p>
+        </header>
+
+        <div class="status-banner">
+            <div class="status-item">
+                <div class="status-dot" id="apiStatusDot"></div>
+                <span id="apiStatusText">Checking API...</span>
+            </div>
+            <div class="status-item">
+                <span>Version: 1.0.0</span>
+            </div>
+            <div class="status-item">
+                <span id="lastUpdated">Last updated: Loading...</span>
+            </div>
+        </div>
+
+        <h2 class="section-title">Applications</h2>
+
+        <div class="apps-grid">
+            <!-- Manager Apps -->
+            <a href="sales.html" class="app-card">
+                <div class="app-icon">&#x1F4CA;</div>
+                <h3 class="app-title">Sales Dashboard</h3>
+                <p class="app-description">Complete sales management for farm managers. Track orders, customers, inventory, and delivery routes.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Orders</span>
+                    <span class="feature-tag">Customers</span>
+                    <span class="feature-tag">CSA</span>
+                    <span class="feature-tag">Pick & Pack</span>
+                    <span class="feature-tag">Reports</span>
+                </div>
+            </a>
+
+            <a href="../planning.html" class="app-card">
+                <div class="app-icon">&#x1F4C5;</div>
+                <h3 class="app-title">Production Planning</h3>
+                <p class="app-description">Plan your growing season with succession planting, bed assignments, and harvest scheduling.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Succession</span>
+                    <span class="feature-tag">Beds</span>
+                    <span class="feature-tag">Calendar</span>
+                    <span class="feature-tag">DTM</span>
+                </div>
+            </a>
+
+            <a href="../greenhouse.html" class="app-card">
+                <div class="app-icon">&#x1F33F;</div>
+                <h3 class="app-title">Greenhouse Manager</h3>
+                <p class="app-description">Manage seeding schedules, tray inventory, and transplant timing for greenhouse operations.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Seeding</span>
+                    <span class="feature-tag">Trays</span>
+                    <span class="feature-tag">Labels</span>
+                </div>
+            </a>
+
+            <a href="../soil-tests.html" class="app-card">
+                <div class="app-icon">&#x1FAB4;</div>
+                <h3 class="app-title">Soil & Compliance</h3>
+                <p class="app-description">Track soil tests, amendments, IPM schedules, and maintain organic certification records.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Soil Tests</span>
+                    <span class="feature-tag">IPM</span>
+                    <span class="feature-tag">Compliance</span>
+                </div>
+            </a>
+
+            <!-- Field Apps -->
+            <a href="../employee.html" class="app-card">
+                <div class="app-icon">&#x1F468;&#x200D;&#x1F33E;</div>
+                <h3 class="app-title">Employee Field App</h3>
+                <p class="app-description">Mobile app for field workers. Time clock, tasks, harvest logging, scouting, and treatment records.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Time Clock</span>
+                    <span class="feature-tag">Tasks</span>
+                    <span class="feature-tag">Harvest</span>
+                    <span class="feature-tag">Scouting</span>
+                    <span class="feature-tag">Spanish</span>
+                </div>
+            </a>
+
+            <a href="driver.html" class="app-card">
+                <div class="app-icon">&#x1F69A;</div>
+                <h3 class="app-title">Driver Delivery App</h3>
+                <p class="app-description">Route management for delivery drivers. Navigation, proof of delivery, and customer contact.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Routes</span>
+                    <span class="feature-tag">Navigation</span>
+                    <span class="feature-tag">POD</span>
+                    <span class="feature-tag">GPS</span>
+                </div>
+            </a>
+
+            <!-- Customer Apps -->
+            <a href="customer.html" class="app-card">
+                <div class="app-icon">&#x1F6D2;</div>
+                <h3 class="app-title">Customer Portal</h3>
+                <p class="app-description">Self-service ordering portal for customers. Browse products, place orders, track deliveries.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Ordering</span>
+                    <span class="feature-tag">CSA Portal</span>
+                    <span class="feature-tag">Tracking</span>
+                    <span class="feature-tag">History</span>
+                </div>
+            </a>
+
+            <a href="../seed_inventory_PRODUCTION.html" class="app-card">
+                <div class="app-icon">&#x1F4E6;</div>
+                <h3 class="app-title">Seed Inventory</h3>
+                <p class="app-description">Track seeds, supplies, and farm inputs. Set reorder points and manage transactions.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Seeds</span>
+                    <span class="feature-tag">Inventory</span>
+                    <span class="feature-tag">Tracking</span>
+                </div>
+            </a>
+
+            <a href="labels.html" class="app-card">
+                <div class="app-icon">&#x1F3F7;</div>
+                <h3 class="app-title">Label Generator</h3>
+                <p class="app-description">Generate and print farmer's market signs, CSA labels, and wholesale order labels.</p>
+                <div class="app-features">
+                    <span class="feature-tag">Market Signs</span>
+                    <span class="feature-tag">CSA Labels</span>
+                    <span class="feature-tag">Wholesale</span>
+                    <span class="feature-tag">Print</span>
+                </div>
+            </a>
+        </div>
+
+        <h2 class="section-title">API Connection Test</h2>
+
+        <div class="api-test">
+            <div>
+                <button class="test-btn" onclick="testMainAPI()">Test Main API</button>
+                <button class="test-btn" onclick="testSalesEndpoints()">Test Sales Endpoints</button>
+                <button class="test-btn" onclick="testEmployeeEndpoints()">Test Employee Endpoints</button>
+                <button class="test-btn" onclick="testLabelEndpoints()">Test Label Endpoints</button>
+                <button class="test-btn" onclick="clearResults()">Clear</button>
+            </div>
+
+            <div class="test-result" id="testResult">Click a button to test API connectivity...</div>
+
+            <div class="integration-status">
+                <div class="status-card">
+                    <span class="status-icon">&#x1F4CA;</span>
+                    <span class="status-label">Sales Module</span>
+                    <span class="status-value pending" id="salesStatus">Pending</span>
+                </div>
+                <div class="status-card">
+                    <span class="status-icon">&#x1F468;&#x200D;&#x1F33E;</span>
+                    <span class="status-label">Employee Module</span>
+                    <span class="status-value pending" id="employeeStatus">Pending</span>
+                </div>
+                <div class="status-card">
+                    <span class="status-icon">&#x1F33F;</span>
+                    <span class="status-label">Planning Module</span>
+                    <span class="status-value pending" id="planningStatus">Pending</span>
+                </div>
+                <div class="status-card">
+                    <span class="status-icon">&#x1F4E6;</span>
+                    <span class="status-label">Inventory Module</span>
+                    <span class="status-value pending" id="inventoryStatus">Pending</span>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Tiny Seed Farm OS &copy; 2026 | Built with &#x2764; by <a href="#">Tiny Seed Farm</a></p>
+            <div class="quick-links">
+                <a href="https://docs.google.com/spreadsheets/d/128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc/edit" class="quick-link" target="_blank">Main Google Sheet</a>
+                <a href="#" class="quick-link">Documentation</a>
+                <a href="#" class="quick-link">Support</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec';
+
+        // Check API on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(`${API_URL}?action=testConnection`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('apiStatusDot').classList.remove('loading', 'error');
+                    document.getElementById('apiStatusText').textContent = 'API Connected';
+                    document.getElementById('lastUpdated').textContent = `Connected at: ${new Date().toLocaleTimeString()}`;
+                } else {
+                    throw new Error('API returned error');
+                }
+            } catch (error) {
+                document.getElementById('apiStatusDot').classList.add('error');
+                document.getElementById('apiStatusText').textContent = 'API Disconnected';
+            }
+        });
+
+        async function testMainAPI() {
+            const resultEl = document.getElementById('testResult');
+            resultEl.textContent = 'Testing connection to main API...\n\n';
+
+            try {
+                const start = Date.now();
+                const response = await fetch(`${API_URL}?action=testConnection`);
+                const data = await response.json();
+                const elapsed = Date.now() - start;
+
+                resultEl.textContent += `✅ Connection successful (${elapsed}ms)\n\n`;
+                resultEl.textContent += JSON.stringify(data, null, 2);
+
+                updateStatus('planningStatus', 'success', 'Connected');
+            } catch (error) {
+                resultEl.textContent += `❌ Error: ${error.message}`;
+                updateStatus('planningStatus', 'error', 'Error');
+            }
+        }
+
+        async function testSalesEndpoints() {
+            const resultEl = document.getElementById('testResult');
+            resultEl.textContent = 'Testing sales module endpoints...\n\n';
+
+            const endpoints = [
+                { action: 'getSalesOrders', name: 'Get Orders' },
+                { action: 'getCustomers', name: 'Get Customers' },
+                { action: 'getSalesDashboard', name: 'Get Dashboard' },
+                { action: 'getProductCatalog', name: 'Get Products' }
+            ];
+
+            let allSuccess = true;
+
+            for (const endpoint of endpoints) {
+                try {
+                    resultEl.textContent += `Testing ${endpoint.name}... `;
+                    const response = await fetch(`${API_URL}?action=${endpoint.action}`);
+                    const data = await response.json();
+
+                    if (data.error) {
+                        resultEl.textContent += `⚠️ ${data.error}\n`;
+                        allSuccess = false;
+                    } else {
+                        resultEl.textContent += `✅ OK\n`;
+                    }
+                } catch (error) {
+                    resultEl.textContent += `❌ ${error.message}\n`;
+                    allSuccess = false;
+                }
+            }
+
+            updateStatus('salesStatus', allSuccess ? 'success' : 'pending', allSuccess ? 'Ready' : 'Partial');
+        }
+
+        async function testEmployeeEndpoints() {
+            const resultEl = document.getElementById('testResult');
+            resultEl.textContent = 'Testing employee module endpoints...\n\n';
+
+            const endpoints = [
+                { action: 'getEmployeeTasks', name: 'Get Tasks' },
+                { action: 'getActiveHazards', name: 'Get Hazards' },
+                { action: 'getCrewMessages', name: 'Get Messages' }
+            ];
+
+            let allSuccess = true;
+
+            for (const endpoint of endpoints) {
+                try {
+                    resultEl.textContent += `Testing ${endpoint.name}... `;
+                    const response = await fetch(`${API_URL}?action=${endpoint.action}`);
+                    const data = await response.json();
+
+                    if (data.error) {
+                        resultEl.textContent += `⚠️ ${data.error}\n`;
+                        allSuccess = false;
+                    } else {
+                        resultEl.textContent += `✅ OK\n`;
+                    }
+                } catch (error) {
+                    resultEl.textContent += `❌ ${error.message}\n`;
+                    allSuccess = false;
+                }
+            }
+
+            updateStatus('employeeStatus', allSuccess ? 'success' : 'pending', allSuccess ? 'Ready' : 'Partial');
+        }
+
+        async function testLabelEndpoints() {
+            const resultEl = document.getElementById('testResult');
+            resultEl.textContent = 'Testing label generation endpoints...\n\n';
+
+            const endpoints = [
+                { action: 'getMarketSignItems', name: 'Get Market Signs' },
+                { action: 'getOrdersForLabels', name: 'Get Orders For Labels' },
+                { action: 'getSalesCycles', name: 'Get Sales Cycles' }
+            ];
+
+            let allSuccess = true;
+
+            for (const endpoint of endpoints) {
+                try {
+                    resultEl.textContent += `Testing ${endpoint.name}... `;
+                    const response = await fetch(`${API_URL}?action=${endpoint.action}`);
+                    const data = await response.json();
+
+                    if (data.error) {
+                        resultEl.textContent += `⚠️ ${data.error}\n`;
+                        allSuccess = false;
+                    } else {
+                        resultEl.textContent += `✅ OK\n`;
+                        if (data.items) resultEl.textContent += `   → ${data.items.length} items\n`;
+                        if (data.cycles) resultEl.textContent += `   → ${data.cycles.length} cycles\n`;
+                        if (data.csaOrders !== undefined) resultEl.textContent += `   → ${data.totalCSA} CSA, ${data.totalWholesale} Wholesale\n`;
+                    }
+                } catch (error) {
+                    resultEl.textContent += `❌ ${error.message}\n`;
+                    allSuccess = false;
+                }
+            }
+
+            resultEl.textContent += `\n${allSuccess ? '✅' : '⚠️'} Label endpoints ${allSuccess ? 'ready' : 'need attention'}`;
+        }
+
+        function updateStatus(id, status, text) {
+            const el = document.getElementById(id);
+            el.className = 'status-value ' + status;
+            el.textContent = text;
+        }
+
+        function clearResults() {
+            document.getElementById('testResult').textContent = 'Click a button to test API connectivity...';
+        }
+    </script>
+</body>
+</html>

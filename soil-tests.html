@@ -1339,17 +1339,31 @@
                 const response = await fetch(`${API_URL}?action=getSoilTests`);
                 const data = await response.json();
 
-                if (data.success && data.data) {
+                if (data.success && data.data && data.data.length > 0) {
                     soilTests = data.data;
+                    // Update localStorage with server data
+                    saveToLocalStorage();
                 } else {
-                    // Use demo data if API not configured
-                    soilTests = getDemoData();
+                    // Try localStorage first, then demo data
+                    const localData = loadFromLocalStorage();
+                    if (localData && localData.length > 0) {
+                        soilTests = localData;
+                    } else {
+                        soilTests = getDemoData();
+                    }
                 }
 
                 renderTests();
             } catch (error) {
                 console.error('Error loading soil tests:', error);
-                soilTests = getDemoData();
+                // Try localStorage first, then demo data
+                const localData = loadFromLocalStorage();
+                if (localData && localData.length > 0) {
+                    soilTests = localData;
+                    showToast('Loaded from local storage (offline mode)', 'info');
+                } else {
+                    soilTests = getDemoData();
+                }
                 renderTests();
             }
         }
@@ -1875,39 +1889,95 @@
         }
 
         async function saveSoilTestData(data) {
+            // Always generate an ID if not present
+            const newTest = {
+                id: data.id || Date.now(),
+                ...data,
+                isArchived: data.isArchived || false
+            };
+
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'saveSoilTest',
-                        data: data
+                        data: newTest
                     })
                 });
 
                 const result = await response.json();
                 if (result.success) {
+                    // Update local array with the saved ID from server
+                    newTest.id = result.id || newTest.id;
+
+                    // Update or add to local array
+                    const existingIndex = soilTests.findIndex(t => t.id === newTest.id);
+                    if (existingIndex >= 0) {
+                        soilTests[existingIndex] = newTest;
+                    } else {
+                        soilTests.push(newTest);
+                    }
+
+                    // Also save to localStorage as backup
+                    saveToLocalStorage();
+
                     showToast('Soil test saved!', 'success');
                 } else {
                     throw new Error(result.error || 'Save failed');
                 }
             } catch (error) {
                 console.error('Error saving soil test:', error);
-                // Add to local data for demo
-                const newTest = {
-                    id: Date.now(),
-                    ...data,
-                    isArchived: false
-                };
-                soilTests.push(newTest);
-                showToast('Saved locally (API not configured)', 'success');
+
+                // Add to local array
+                const existingIndex = soilTests.findIndex(t => t.id === newTest.id);
+                if (existingIndex >= 0) {
+                    soilTests[existingIndex] = newTest;
+                } else {
+                    soilTests.push(newTest);
+                }
+
+                // Save to localStorage as fallback
+                saveToLocalStorage();
+
+                showToast('Saved locally (will sync when online)', 'success');
             }
+        }
+
+        // Save soilTests array to localStorage
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('soilTests', JSON.stringify(soilTests));
+            } catch (e) {
+                console.error('Failed to save to localStorage:', e);
+            }
+        }
+
+        // Load soilTests from localStorage
+        function loadFromLocalStorage() {
+            try {
+                const stored = localStorage.getItem('soilTests');
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Failed to load from localStorage:', e);
+            }
+            return null;
         }
 
         async function archiveTest(testId) {
             const test = soilTests.find(t => t.id === testId);
             if (test) {
                 test.isArchived = !test.isArchived;
+
+                // Try to sync with backend
+                try {
+                    await saveSoilTestData(test);
+                } catch (e) {
+                    // Already handled in saveSoilTestData
+                }
+
                 closeModal();
                 renderTests();
                 showToast(test.isArchived ? 'Test archived' : 'Test restored', 'success');

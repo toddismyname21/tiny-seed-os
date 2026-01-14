@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed Farm - Order Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ========================================
+           TINY SEED CUSTOMER PORTAL - CSS
+           Mobile-First Design
+           ======================================== */
+
+        :root {
+            /* Brand Colors */
+            --primary: #FF8C00;
+            --primary-dark: #e67e00;
+            --primary-light: #ffaa33;
+
+            /* Status Colors */
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+
+            /* Light Theme (Customer facing) */
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-elevated: #f1f5f9;
+            --bg-input: #ffffff;
+
+            /* Text Colors */
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+
+            /* Borders */
+            --border-color: #e2e8f0;
+            --border-light: #cbd5e1;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ========================================
+           HEADER
+           ======================================== */
+
+        .header {
+            background: var(--bg-card);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-menu:hover {
+            background: var(--bg-elevated);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* ========================================
+           LOGIN SCREEN
+           ======================================== */
+
+        .login-screen {
+            min-height: calc(100vh - 73px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .login-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 24px;
+        }
+
+        .login-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.2s;
+            background: var(--bg-card);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .login-divider span {
+            padding: 0 16px;
+        }
+
+        .magic-link-sent {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .magic-link-sent.show {
+            display: block;
+        }
+
+        .magic-link-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        /* ========================================
+           MAIN APP (AFTER LOGIN)
+           ======================================== */
+
+        .app-container {
+            display: none;
+        }
+
+        .app-container.show {
+            display: block;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            z-index: 100;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-item .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-item .nav-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .nav-item .nav-badge {
+            position: absolute;
+            top: 4px;
+            right: calc(50% - 16px);
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 10px;
+            position: relative;
+            margin-top: -8px;
+            margin-left: 8px;
+        }
+
+        /* Page Content */
+        .page-content {
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ========================================
+           SHOP TAB
+           ======================================== */
+
+        .shop-header {
+            margin-bottom: 20px;
+        }
+
+        .shop-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .shop-subtitle {
+            color: var(--text-secondary);
+        }
+
+        .delivery-banner {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .delivery-info h3 {
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 4px;
+        }
+
+        .delivery-date {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .delivery-countdown {
+            text-align: right;
+        }
+
+        .countdown-label {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .countdown-time {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* Categories */
+        .categories-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .categories-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-chip {
+            flex-shrink: 0;
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .category-chip:hover {
+            border-color: var(--primary);
+        }
+
+        .category-chip.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Products Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        @media (min-width: 768px) {
+            .products-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .products-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .product-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
+        }
+
+        .product-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 140px;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .product-info {
+            padding: 12px;
+        }
+
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .product-unit {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .product-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .product-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .add-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.1);
+        }
+
+        .out-of-stock {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .out-of-stock .add-btn {
+            background: var(--text-muted);
+        }
+
+        .stock-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .stock-badge.low {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .stock-badge.out {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        /* ========================================
+           CART TAB
+           ======================================== */
+
+        .cart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .cart-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .clear-cart-btn {
+            color: var(--danger);
+            font-size: 14px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .cart-empty {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .cart-empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .cart-empty-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .cart-empty-desc {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .cart-items {
+            margin-bottom: 20px;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cart-item-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-price {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .qty-btn:hover {
+            background: var(--bg-elevated);
+        }
+
+        .qty-value {
+            font-size: 16px;
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .remove-item-btn {
+            color: var(--danger);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 8px;
+        }
+
+        /* Cart Summary */
+        .cart-summary {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+
+        .summary-row.total {
+            border-top: 1px solid var(--border-color);
+            margin-top: 8px;
+            padding-top: 16px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .checkout-btn {
+            margin-top: 16px;
+        }
+
+        /* ========================================
+           ORDERS TAB
+           ======================================== */
+
+        .orders-header {
+            margin-bottom: 20px;
+        }
+
+        .orders-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .order-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .order-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .order-id {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .order-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .order-status.pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .order-status.confirmed {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+        }
+
+        .order-status.delivered {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+        }
+
+        .order-status.out-for-delivery {
+            background: rgba(139, 92, 246, 0.1);
+            color: #8b5cf6;
+        }
+
+        .order-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-date {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .order-total {
+            font-weight: 700;
+        }
+
+        .order-items-preview {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .order-actions .btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        /* ========================================
+           CSA TAB
+           ======================================== */
+
+        .csa-header {
+            margin-bottom: 20px;
+        }
+
+        .csa-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .csa-status-card {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .csa-status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .csa-share-type {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .csa-active-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .csa-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .csa-stat {
+            text-align: center;
+        }
+
+        .csa-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .csa-stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .csa-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .csa-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .this-week-box {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .box-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+
+        .box-item-icon {
+            font-size: 24px;
+        }
+
+        .box-item-name {
+            font-weight: 500;
+        }
+
+        .box-item-qty {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .swap-btn {
+            font-size: 12px;
+            color: var(--primary);
+            cursor: pointer;
+            margin-left: auto;
+        }
+
+        /* Vacation Hold */
+        .vacation-hold-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .vacation-hold-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+
+        .vacation-dates {
+            font-weight: 500;
+        }
+
+        .remove-hold-btn {
+            color: var(--danger);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* ========================================
+           ACCOUNT TAB
+           ======================================== */
+
+        .account-header {
+            text-align: center;
+            padding: 20px 0 30px;
+        }
+
+        .account-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 auto 16px;
+        }
+
+        .account-name {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .account-email {
+            color: var(--text-secondary);
+        }
+
+        .account-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .account-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 12px 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .account-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .account-item:hover {
+            background: var(--bg-elevated);
+        }
+
+        .account-item-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 16px;
+        }
+
+        .account-item-content {
+            flex: 1;
+        }
+
+        .account-item-label {
+            font-weight: 500;
+        }
+
+        .account-item-value {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .account-item-arrow {
+            color: var(--text-muted);
+        }
+
+        .logout-btn {
+            color: var(--danger);
+            margin-top: 20px;
+        }
+
+        /* ========================================
+           TOAST NOTIFICATIONS
+           ======================================== */
+
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: calc(100% - 40px);
+            max-width: 400px;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+
+        .toast-icon { font-size: 20px; }
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--danger); }
+
+        .toast-message { flex: 1; font-size: 14px; }
+
+        /* ========================================
+           DELIVERY TRACKING MODAL
+           ======================================== */
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 24px 24px 0 0;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Tracking Timeline */
+        .tracking-timeline {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .tracking-timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .tracking-step {
+            position: relative;
+            padding-bottom: 24px;
+        }
+
+        .tracking-step:last-child {
+            padding-bottom: 0;
+        }
+
+        .tracking-step::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border-color);
+        }
+
+        .tracking-step.completed::before {
+            background: var(--success);
+        }
+
+        .tracking-step.active::before {
+            background: var(--primary);
+            box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.2);
+        }
+
+        .tracking-step-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .tracking-step-time {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Map Placeholder */
+        .tracking-map {
+            height: 200px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🌱</div>
+            <div class="logo-text">Tiny Seed Farm</div>
+        </div>
+        <div class="user-menu" id="userMenuBtn" style="display: none;">
+            <div class="user-avatar" id="userInitials">--</div>
+        </div>
+    </header>
+
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-card">
+            <div class="login-icon">🌱</div>
+            <h1 class="login-title">Welcome Back</h1>
+            <p class="login-subtitle">Enter your email to receive a magic login link</p>
+
+            <div id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-input" id="loginEmail" placeholder="your@email.com">
+                </div>
+                <button class="btn btn-primary" onclick="sendMagicLink()">
+                    Send Magic Link
+                </button>
+
+                <div class="login-divider">
+                    <span>or</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" class="form-input" id="loginPhone" placeholder="(412) 555-0123">
+                </div>
+                <button class="btn btn-secondary" onclick="sendSMSCode()">
+                    Send SMS Code
+                </button>
+            </div>
+
+            <div class="magic-link-sent" id="magicLinkSent">
+                <div class="magic-link-icon">📧</div>
+                <h2>Check Your Email!</h2>
+                <p style="color: var(--text-secondary); margin-top: 8px;">
+                    We sent a login link to <strong id="sentEmail"></strong>
+                </p>
+                <p style="color: var(--text-muted); font-size: 14px; margin-top: 16px;">
+                    Didn't receive it? Check spam or <a href="#" onclick="showLoginForm()">try again</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="appContainer">
+        <!-- Page Content -->
+        <div class="page-content">
+            <!-- Shop Tab -->
+            <div class="tab-content active" id="tab-shop">
+                <div class="shop-header">
+                    <h1 class="shop-title">Fresh From the Farm</h1>
+                    <p class="shop-subtitle">Order by 5pm for delivery</p>
+                </div>
+
+                <div class="delivery-banner">
+                    <div class="delivery-info">
+                        <h3>Next Delivery</h3>
+                        <div class="delivery-date" id="nextDeliveryDate">Tuesday, Jan 14</div>
+                    </div>
+                    <div class="delivery-countdown">
+                        <div class="countdown-label">Order deadline in</div>
+                        <div class="countdown-time" id="countdownTime">4h 32m</div>
+                    </div>
+                </div>
+
+                <div class="categories-scroll">
+                    <div class="category-chip active" data-category="all">All</div>
+                    <div class="category-chip" data-category="leafy">Leafy Greens</div>
+                    <div class="category-chip" data-category="root">Root Vegetables</div>
+                    <div class="category-chip" data-category="fruiting">Fruiting</div>
+                    <div class="category-chip" data-category="herbs">Herbs</div>
+                    <div class="category-chip" data-category="flowers">Flowers</div>
+                </div>
+
+                <div class="products-grid" id="productsGrid">
+                    <!-- Products loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Cart Tab -->
+            <div class="tab-content" id="tab-cart">
+                <div class="cart-header">
+                    <h1 class="cart-title">Your Cart</h1>
+                    <button class="clear-cart-btn" onclick="clearCart()">Clear All</button>
+                </div>
+
+                <div class="cart-empty" id="cartEmpty">
+                    <div class="cart-empty-icon">🛒</div>
+                    <h3 class="cart-empty-title">Your cart is empty</h3>
+                    <p class="cart-empty-desc">Add some fresh produce to get started</p>
+                    <button class="btn btn-primary" onclick="switchTab('shop')" style="width: auto;">
+                        Start Shopping
+                    </button>
+                </div>
+
+                <div id="cartContent" style="display: none;">
+                    <div class="cart-items" id="cartItems">
+                        <!-- Cart items loaded dynamically -->
+                    </div>
+
+                    <div class="cart-summary">
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span id="cartSubtotal">$0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Delivery Fee</span>
+                            <span id="cartDelivery">$5.00</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Total</span>
+                            <span id="cartTotal">$5.00</span>
+                        </div>
+                        <button class="btn btn-primary checkout-btn" onclick="checkout()">
+                            Place Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Tab -->
+            <div class="tab-content" id="tab-orders">
+                <div class="orders-header">
+                    <h1 class="orders-title">Your Orders</h1>
+                </div>
+
+                <div id="ordersContainer">
+                    <!-- Orders loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- CSA Tab -->
+            <div class="tab-content" id="tab-csa">
+                <div class="csa-header">
+                    <h1 class="csa-title">My CSA Share</h1>
+                </div>
+
+                <div class="csa-status-card" id="csaStatusCard">
+                    <div class="csa-status-header">
+                        <div class="csa-share-type" id="csaShareType">Medium Share</div>
+                        <div class="csa-active-badge">Active</div>
+                    </div>
+                    <div class="csa-stats">
+                        <div class="csa-stat">
+                            <div class="csa-stat-value" id="csaWeeksLeft">18</div>
+                            <div class="csa-stat-label">Weeks Left</div>
+                        </div>
+                        <div class="csa-stat">
+                            <div class="csa-stat-value" id="csaBalance">$0</div>
+                            <div class="csa-stat-label">Balance</div>
+                        </div>
+                        <div class="csa-stat">
+                            <div class="csa-stat-value" id="csaNextBox">Tue</div>
+                            <div class="csa-stat-label">Next Box</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="csa-section">
+                    <h3 class="csa-section-title">
+                        <span>📦</span> This Week's Box
+                    </h3>
+                    <div class="this-week-box" id="thisWeekBox">
+                        <!-- Box contents loaded dynamically -->
+                    </div>
+                </div>
+
+                <div class="csa-section">
+                    <h3 class="csa-section-title">
+                        <span>🏖️</span> Vacation Holds
+                    </h3>
+                    <div class="vacation-hold-list" id="vacationHolds">
+                        <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
+                            No vacation holds scheduled
+                        </p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openVacationModal()" style="margin-top: 16px;">
+                        + Add Vacation Hold
+                    </button>
+                </div>
+
+                <div class="csa-section">
+                    <h3 class="csa-section-title">
+                        <span>⚙️</span> Preferences
+                    </h3>
+                    <div id="csaPreferences">
+                        <div class="account-item">
+                            <div class="account-item-icon">🥦</div>
+                            <div class="account-item-content">
+                                <div class="account-item-label">Dislikes / Allergies</div>
+                                <div class="account-item-value">None set</div>
+                            </div>
+                            <span class="account-item-arrow">›</span>
+                        </div>
+                        <div class="account-item">
+                            <div class="account-item-icon">📍</div>
+                            <div class="account-item-content">
+                                <div class="account-item-label">Pickup Location</div>
+                                <div class="account-item-value">Farm Stand - Tuesdays</div>
+                            </div>
+                            <span class="account-item-arrow">›</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Tab -->
+            <div class="tab-content" id="tab-account">
+                <div class="account-header">
+                    <div class="account-avatar" id="accountAvatar">--</div>
+                    <h2 class="account-name" id="accountName">--</h2>
+                    <p class="account-email" id="accountEmail">--</p>
+                </div>
+
+                <div class="account-section">
+                    <div class="account-section-title">Delivery</div>
+                    <div class="account-item" onclick="editAddress()">
+                        <div class="account-item-icon">📍</div>
+                        <div class="account-item-content">
+                            <div class="account-item-label">Delivery Address</div>
+                            <div class="account-item-value" id="accountAddress">Not set</div>
+                        </div>
+                        <span class="account-item-arrow">›</span>
+                    </div>
+                    <div class="account-item" onclick="editInstructions()">
+                        <div class="account-item-icon">📝</div>
+                        <div class="account-item-content">
+                            <div class="account-item-label">Delivery Instructions</div>
+                            <div class="account-item-value" id="accountInstructions">None</div>
+                        </div>
+                        <span class="account-item-arrow">›</span>
+                    </div>
+                </div>
+
+                <div class="account-section">
+                    <div class="account-section-title">Contact</div>
+                    <div class="account-item" onclick="editPhone()">
+                        <div class="account-item-icon">📱</div>
+                        <div class="account-item-content">
+                            <div class="account-item-label">Phone Number</div>
+                            <div class="account-item-value" id="accountPhone">--</div>
+                        </div>
+                        <span class="account-item-arrow">›</span>
+                    </div>
+                    <div class="account-item" onclick="editEmail()">
+                        <div class="account-item-icon">📧</div>
+                        <div class="account-item-content">
+                            <div class="account-item-label">Email</div>
+                            <div class="account-item-value" id="accountEmailDisplay">--</div>
+                        </div>
+                        <span class="account-item-arrow">›</span>
+                    </div>
+                </div>
+
+                <div class="account-section">
+                    <div class="account-section-title">Notifications</div>
+                    <div class="account-item">
+                        <div class="account-item-icon">🔔</div>
+                        <div class="account-item-content">
+                            <div class="account-item-label">SMS Notifications</div>
+                            <div class="account-item-value">Enabled</div>
+                        </div>
+                        <span class="account-item-arrow">›</span>
+                    </div>
+                    <div class="account-item">
+                        <div class="account-item-icon">📧</div>
+                        <div class="account-item-content">
+                            <div class="account-item-label">Email Updates</div>
+                            <div class="account-item-value">Weekly digest</div>
+                        </div>
+                        <span class="account-item-arrow">›</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary logout-btn" onclick="logout()">
+                    Log Out
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" data-tab="shop">
+                <span class="nav-icon">🛒</span>
+                <span class="nav-label">Shop</span>
+            </div>
+            <div class="nav-item" data-tab="cart">
+                <span class="nav-icon">🧺</span>
+                <span class="nav-label">Cart</span>
+                <span class="nav-badge" id="cartBadge" style="display: none;">0</span>
+            </div>
+            <div class="nav-item" data-tab="orders">
+                <span class="nav-icon">📦</span>
+                <span class="nav-label">Orders</span>
+            </div>
+            <div class="nav-item" data-tab="csa" id="csaNavItem" style="display: none;">
+                <span class="nav-icon">🌿</span>
+                <span class="nav-label">CSA</span>
+            </div>
+            <div class="nav-item" data-tab="account">
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">Account</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Tracking Modal -->
+    <div class="modal-overlay" id="trackingModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Delivery Tracking</h3>
+                <button class="modal-close" onclick="closeModal('trackingModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="tracking-map">
+                    🗺️ Live Map Coming Soon
+                </div>
+
+                <div class="tracking-timeline">
+                    <div class="tracking-step completed">
+                        <div class="tracking-step-title">Order Placed</div>
+                        <div class="tracking-step-time">Today, 8:30 AM</div>
+                    </div>
+                    <div class="tracking-step completed">
+                        <div class="tracking-step-title">Order Confirmed</div>
+                        <div class="tracking-step-time">Today, 8:45 AM</div>
+                    </div>
+                    <div class="tracking-step completed">
+                        <div class="tracking-step-title">Being Packed</div>
+                        <div class="tracking-step-time">Today, 10:00 AM</div>
+                    </div>
+                    <div class="tracking-step active">
+                        <div class="tracking-step-title">Out for Delivery</div>
+                        <div class="tracking-step-time">ETA: 2:30 PM</div>
+                    </div>
+                    <div class="tracking-step">
+                        <div class="tracking-step-title">Delivered</div>
+                        <div class="tracking-step-time">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ========================================
+        // TINY SEED CUSTOMER PORTAL - JAVASCRIPT
+        // ========================================
+
+        // Configuration
+        const CONFIG = {
+            API_URL: 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec'
+        };
+
+        // App State
+        let AppState = {
+            isLoggedIn: false,
+            user: null,
+            cart: [],
+            products: [],
+            orders: [],
+            isCSAMember: false
+        };
+
+        // ========================================
+        // INITIALIZATION
+        // ========================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            initNavigation();
+            initCategories();
+            loadProducts();
+        });
+
+        function checkAuth() {
+            // Check for stored session
+            const session = localStorage.getItem('tsf_customer_session');
+            if (session) {
+                try {
+                    AppState.user = JSON.parse(session);
+                    AppState.isLoggedIn = true;
+                    showApp();
+                } catch (e) {
+                    localStorage.removeItem('tsf_customer_session');
+                }
+            }
+
+            // Check URL for magic link token
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            if (token) {
+                verifyMagicLink(token);
+            }
+        }
+
+        function initNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const tab = item.dataset.tab;
+                    if (tab) switchTab(tab);
+                });
+            });
+        }
+
+        function initCategories() {
+            document.querySelectorAll('.category-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    filterProducts(chip.dataset.category);
+                });
+            });
+        }
+
+        // ========================================
+        // AUTHENTICATION
+        // ========================================
+
+        async function sendMagicLink() {
+            const email = document.getElementById('loginEmail').value;
+            if (!email) {
+                showToast('Please enter your email', 'error');
+                return;
+            }
+
+            // For demo, simulate magic link
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('magicLinkSent').classList.add('show');
+            document.getElementById('sentEmail').textContent = email;
+
+            // In production, this would call the API
+            // const response = await fetch(`${CONFIG.API_URL}?action=sendMagicLink&email=${email}`);
+
+            // For demo, auto-login after 2 seconds
+            setTimeout(() => {
+                loginUser({
+                    id: 'CUST-001',
+                    name: 'Demo Customer',
+                    email: email,
+                    phone: '(412) 555-0123',
+                    type: 'CSA',
+                    address: '123 Main St, Pittsburgh, PA 15206'
+                });
+            }, 2000);
+        }
+
+        async function sendSMSCode() {
+            const phone = document.getElementById('loginPhone').value;
+            if (!phone) {
+                showToast('Please enter your phone number', 'error');
+                return;
+            }
+
+            showToast('SMS code sent!', 'success');
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('magicLinkSent').classList.remove('show');
+        }
+
+        function loginUser(user) {
+            AppState.user = user;
+            AppState.isLoggedIn = true;
+            AppState.isCSAMember = user.type === 'CSA';
+
+            localStorage.setItem('tsf_customer_session', JSON.stringify(user));
+            showApp();
+        }
+
+        function logout() {
+            AppState.user = null;
+            AppState.isLoggedIn = false;
+            AppState.cart = [];
+            localStorage.removeItem('tsf_customer_session');
+
+            document.getElementById('appContainer').classList.remove('show');
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('userMenuBtn').style.display = 'none';
+
+            showLoginForm();
+            showToast('Logged out successfully', 'success');
+        }
+
+        function showApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContainer').classList.add('show');
+            document.getElementById('userMenuBtn').style.display = 'flex';
+
+            // Update user info
+            const initials = AppState.user.name.split(' ').map(n => n[0]).join('');
+            document.getElementById('userInitials').textContent = initials;
+            document.getElementById('accountAvatar').textContent = initials;
+            document.getElementById('accountName').textContent = AppState.user.name;
+            document.getElementById('accountEmail').textContent = AppState.user.email;
+            document.getElementById('accountEmailDisplay').textContent = AppState.user.email;
+            document.getElementById('accountPhone').textContent = AppState.user.phone || 'Not set';
+            document.getElementById('accountAddress').textContent = AppState.user.address || 'Not set';
+
+            // Show CSA tab if member
+            if (AppState.isCSAMember) {
+                document.getElementById('csaNavItem').style.display = 'flex';
+                loadCSAData();
+            }
+
+            loadOrders();
+            loadCart();
+        }
+
+        // ========================================
+        // TAB NAVIGATION
+        // ========================================
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.tab === tabId);
+            });
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('active', content.id === `tab-${tabId}`);
+            });
+        }
+
+        // ========================================
+        // PRODUCTS
+        // ========================================
+
+        function loadProducts() {
+            // Sample products - would be loaded from API
+            AppState.products = [
+                { id: 1, name: 'Basil', unit: 'bunch', price: 4.00, category: 'herbs', emoji: '🌿', stock: 45 },
+                { id: 2, name: 'Tomatoes', unit: 'lb', price: 6.00, category: 'fruiting', emoji: '🍅', stock: 120 },
+                { id: 3, name: 'Lettuce Mix', unit: 'bag', price: 5.00, category: 'leafy', emoji: '🥬', stock: 80 },
+                { id: 4, name: 'Carrots', unit: 'lb', price: 4.50, category: 'root', emoji: '🥕', stock: 150 },
+                { id: 5, name: 'Kale', unit: 'bunch', price: 4.00, category: 'leafy', emoji: '🥬', stock: 60 },
+                { id: 6, name: 'Zucchini', unit: 'lb', price: 3.00, category: 'fruiting', emoji: '🥒', stock: 5 },
+                { id: 7, name: 'Sunflowers', unit: 'bunch', price: 12.00, category: 'flowers', emoji: '🌻', stock: 25 },
+                { id: 8, name: 'Beets', unit: 'bunch', price: 5.00, category: 'root', emoji: '🫐', stock: 40 },
+                { id: 9, name: 'Cilantro', unit: 'bunch', price: 3.00, category: 'herbs', emoji: '🌿', stock: 0 },
+                { id: 10, name: 'Peppers', unit: 'lb', price: 5.00, category: 'fruiting', emoji: '🫑', stock: 85 },
+                { id: 11, name: 'Arugula', unit: 'bag', price: 5.00, category: 'leafy', emoji: '🥗', stock: 35 },
+                { id: 12, name: 'Radishes', unit: 'bunch', price: 4.00, category: 'root', emoji: '🔴', stock: 55 }
+            ];
+
+            renderProducts(AppState.products);
+        }
+
+        function filterProducts(category) {
+            if (category === 'all') {
+                renderProducts(AppState.products);
+            } else {
+                const filtered = AppState.products.filter(p => p.category === category);
+                renderProducts(filtered);
+            }
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = products.map(product => {
+                const isLowStock = product.stock > 0 && product.stock <= 10;
+                const isOutOfStock = product.stock === 0;
+
+                return `
+                    <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}">
+                        <div class="product-image">${product.emoji}</div>
+                        <div class="product-info">
+                            <div class="product-name">${product.name}</div>
+                            <div class="product-unit">per ${product.unit}</div>
+                            ${isLowStock ? '<span class="stock-badge low">Only ' + product.stock + ' left</span>' : ''}
+                            ${isOutOfStock ? '<span class="stock-badge out">Out of Stock</span>' : ''}
+                            <div class="product-footer">
+                                <span class="product-price">$${product.price.toFixed(2)}</span>
+                                <button class="add-btn" onclick="addToCart(${product.id})">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ========================================
+        // CART
+        // ========================================
+
+        function addToCart(productId) {
+            const product = AppState.products.find(p => p.id === productId);
+            if (!product || product.stock === 0) return;
+
+            const existing = AppState.cart.find(item => item.id === productId);
+            if (existing) {
+                existing.qty++;
+            } else {
+                AppState.cart.push({ ...product, qty: 1 });
+            }
+
+            saveCart();
+            updateCartUI();
+            showToast(`${product.name} added to cart`, 'success');
+        }
+
+        function updateQuantity(productId, delta) {
+            const item = AppState.cart.find(i => i.id === productId);
+            if (!item) return;
+
+            item.qty += delta;
+            if (item.qty <= 0) {
+                AppState.cart = AppState.cart.filter(i => i.id !== productId);
+            }
+
+            saveCart();
+            updateCartUI();
+        }
+
+        function removeFromCart(productId) {
+            AppState.cart = AppState.cart.filter(i => i.id !== productId);
+            saveCart();
+            updateCartUI();
+        }
+
+        function clearCart() {
+            AppState.cart = [];
+            saveCart();
+            updateCartUI();
+        }
+
+        function saveCart() {
+            localStorage.setItem('tsf_cart', JSON.stringify(AppState.cart));
+        }
+
+        function loadCart() {
+            const saved = localStorage.getItem('tsf_cart');
+            if (saved) {
+                try {
+                    AppState.cart = JSON.parse(saved);
+                    updateCartUI();
+                } catch (e) {
+                    AppState.cart = [];
+                }
+            }
+        }
+
+        function updateCartUI() {
+            const count = AppState.cart.reduce((sum, item) => sum + item.qty, 0);
+            const badge = document.getElementById('cartBadge');
+
+            if (count > 0) {
+                badge.style.display = 'inline';
+                badge.textContent = count;
+            } else {
+                badge.style.display = 'none';
+            }
+
+            // Update cart tab
+            const isEmpty = AppState.cart.length === 0;
+            document.getElementById('cartEmpty').style.display = isEmpty ? 'block' : 'none';
+            document.getElementById('cartContent').style.display = isEmpty ? 'none' : 'block';
+
+            if (!isEmpty) {
+                renderCartItems();
+                updateCartTotals();
+            }
+        }
+
+        function renderCartItems() {
+            const container = document.getElementById('cartItems');
+            container.innerHTML = AppState.cart.map(item => `
+                <div class="cart-item">
+                    <div class="cart-item-image">${item.emoji}</div>
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-price">$${item.price.toFixed(2)} / ${item.unit}</div>
+                    </div>
+                    <div class="quantity-control">
+                        <button class="qty-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
+                        <span class="qty-value">${item.qty}</span>
+                        <button class="qty-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+                    </div>
+                    <button class="remove-item-btn" onclick="removeFromCart(${item.id})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function updateCartTotals() {
+            const subtotal = AppState.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const delivery = 5.00;
+            const total = subtotal + delivery;
+
+            document.getElementById('cartSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('cartDelivery').textContent = `$${delivery.toFixed(2)}`;
+            document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
+        }
+
+        async function checkout() {
+            if (AppState.cart.length === 0) {
+                showToast('Your cart is empty', 'error');
+                return;
+            }
+
+            // TODO: Submit order to API
+            showToast('Order placed successfully!', 'success');
+
+            // Clear cart and switch to orders tab
+            AppState.cart = [];
+            saveCart();
+            updateCartUI();
+            loadOrders();
+            switchTab('orders');
+        }
+
+        // ========================================
+        // ORDERS
+        // ========================================
+
+        function loadOrders() {
+            // Sample orders - would be loaded from API
+            AppState.orders = [
+                {
+                    id: 'ORD-20260114-001',
+                    date: '2026-01-14',
+                    status: 'out-for-delivery',
+                    total: 47.50,
+                    items: ['Basil (2)', 'Tomatoes (3 lbs)', 'Lettuce Mix (1)']
+                },
+                {
+                    id: 'ORD-20260110-003',
+                    date: '2026-01-10',
+                    status: 'delivered',
+                    total: 62.00,
+                    items: ['Carrots (2 lbs)', 'Kale (1)', 'Sunflowers (1)']
+                },
+                {
+                    id: 'ORD-20260107-002',
+                    date: '2026-01-07',
+                    status: 'delivered',
+                    total: 35.00,
+                    items: ['Tomatoes (5 lbs)', 'Basil (1)']
+                }
+            ];
+
+            renderOrders();
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('ordersContainer');
+
+            if (AppState.orders.length === 0) {
+                container.innerHTML = `
+                    <div class="cart-empty">
+                        <div class="cart-empty-icon">📦</div>
+                        <h3 class="cart-empty-title">No orders yet</h3>
+                        <p class="cart-empty-desc">Your order history will appear here</p>
+                        <button class="btn btn-primary" onclick="switchTab('shop')" style="width: auto;">
+                            Start Shopping
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = AppState.orders.map(order => `
+                <div class="order-card">
+                    <div class="order-card-header">
+                        <span class="order-id">${order.id}</span>
+                        <span class="order-status ${order.status.replace(' ', '-')}">${formatStatus(order.status)}</span>
+                    </div>
+                    <div class="order-info">
+                        <span class="order-date">${formatDate(order.date)}</span>
+                        <span class="order-total">$${order.total.toFixed(2)}</span>
+                    </div>
+                    <div class="order-items-preview">${order.items.join(', ')}</div>
+                    <div class="order-actions">
+                        ${order.status === 'out-for-delivery' ? `
+                            <button class="btn btn-primary" onclick="trackOrder('${order.id}')">
+                                Track Delivery
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-secondary" onclick="reorder('${order.id}')">
+                            Reorder
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatStatus(status) {
+            const statuses = {
+                'pending': 'Pending',
+                'confirmed': 'Confirmed',
+                'out-for-delivery': 'Out for Delivery',
+                'delivered': 'Delivered'
+            };
+            return statuses[status] || status;
+        }
+
+        function trackOrder(orderId) {
+            openModal('trackingModal');
+        }
+
+        function reorder(orderId) {
+            showToast('Items added to cart!', 'success');
+            switchTab('cart');
+        }
+
+        // ========================================
+        // CSA
+        // ========================================
+
+        function loadCSAData() {
+            // Sample CSA data - would be loaded from API
+            const thisWeekBox = [
+                { name: 'Lettuce Mix', qty: '1 bag', emoji: '🥬' },
+                { name: 'Tomatoes', qty: '2 lbs', emoji: '🍅' },
+                { name: 'Basil', qty: '1 bunch', emoji: '🌿' },
+                { name: 'Carrots', qty: '1 lb', emoji: '🥕' },
+                { name: 'Peppers', qty: '1 lb', emoji: '🫑' },
+                { name: 'Zucchini', qty: '2 each', emoji: '🥒' }
+            ];
+
+            const container = document.getElementById('thisWeekBox');
+            container.innerHTML = thisWeekBox.map(item => `
+                <div class="box-item">
+                    <span class="box-item-icon">${item.emoji}</span>
+                    <div>
+                        <div class="box-item-name">${item.name}</div>
+                        <div class="box-item-qty">${item.qty}</div>
+                    </div>
+                    <span class="swap-btn" onclick="swapItem('${item.name}')">Swap</span>
+                </div>
+            `).join('');
+        }
+
+        function swapItem(itemName) {
+            showToast(`Swap ${itemName} for something else`, 'info');
+        }
+
+        function openVacationModal() {
+            showToast('Vacation hold feature coming soon!', 'info');
+        }
+
+        // ========================================
+        // UTILITY FUNCTIONS
+        // ========================================
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon">${type === 'success' ? '✓' : '!'}</span>
+                <span class="toast-message">${message}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Placeholder functions
+        function editAddress() { showToast('Edit address coming soon', 'info'); }
+        function editInstructions() { showToast('Edit instructions coming soon', 'info'); }
+        function editPhone() { showToast('Edit phone coming soon', 'info'); }
+        function editEmail() { showToast('Edit email coming soon', 'info'); }
+    </script>
+</body>
+</html>
