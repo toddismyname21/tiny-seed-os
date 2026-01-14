@@ -685,6 +685,61 @@
             font-size: 0.9rem;
         }
 
+        .upcoming-card .task-item {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .upcoming-card .task-actions {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+            margin-top: 6px;
+        }
+
+        .mark-complete-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .mark-complete-btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .mark-complete-btn:active {
+            transform: translateY(0);
+        }
+
+        .mark-complete-btn.completing {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .mark-complete-btn.completed {
+            background: var(--success);
+        }
+
+        .mark-transplant-btn {
+            background: var(--secondary);
+        }
+
+        .mark-transplant-btn:hover {
+            background: #e5974d;
+        }
+
         /* Loading State */
         .loading {
             display: flex;
@@ -1531,12 +1586,17 @@
                                         const cropKey = (item.Crop || '').toLowerCase();
                                         const icon = cropIcons[cropKey] || '🌱';
                                         return `
-                                            <div class="task-item">
+                                            <div class="task-item" data-batch-id="${item.Batch_ID}">
                                                 <div class="task-crop">
                                                     <span>${icon}</span>
                                                     <span>${item.Crop}${item.Variety ? ' - ' + item.Variety : ''}</span>
                                                 </div>
                                                 <span class="task-trays">${item.trays} trays</span>
+                                                <div class="task-actions">
+                                                    <button class="mark-complete-btn mark-transplant-btn" onclick="markTransplanted('${item.Batch_ID}', this)">
+                                                        <i class="fas fa-seedling"></i> Mark Transplanted
+                                                    </button>
+                                                </div>
                                             </div>
                                         `;
                                     }).join('')}
@@ -1593,12 +1653,17 @@
                                         const icon = cropIcons[cropKey] || '🌱';
                                         const traySizeDisplay = formatTraySize(item.traySize, item.paperpotSpacing, item.isPaperpot);
                                         return `
-                                            <div class="task-item">
+                                            <div class="task-item" data-batch-id="${item.Batch_ID}">
                                                 <div class="task-crop">
                                                     <span>${icon}</span>
                                                     <span>${item.Crop}${item.Variety ? ' - ' + item.Variety : ''}</span>
                                                 </div>
                                                 <span class="task-trays">${item.trays} × ${traySizeDisplay}</span>
+                                                <div class="task-actions">
+                                                    <button class="mark-complete-btn" onclick="markSown('${item.Batch_ID}', this)">
+                                                        <i class="fas fa-check"></i> Mark Sown
+                                                    </button>
+                                                </div>
                                             </div>
                                         `;
                                     }).join('')}
@@ -1608,6 +1673,111 @@
                     }).join('')}
                 </div>
             `;
+        }
+
+        // ========================================
+        // TASK COMPLETION
+        // ========================================
+        async function markSown(batchId, buttonEl) {
+            if (!batchId) return;
+
+            // Update button state
+            buttonEl.classList.add('completing');
+            buttonEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const params = new URLSearchParams({
+                    action: 'updatePlanting',
+                    id: batchId,
+                    Act_GH_Sow: today,
+                    STATUS: 'Sown'
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    buttonEl.classList.remove('completing');
+                    buttonEl.classList.add('completed');
+                    buttonEl.innerHTML = '<i class="fas fa-check-circle"></i> Sown!';
+
+                    showToast(`Marked as sown on ${formatDateDisplay(today)}`);
+
+                    // Remove the task item after a short delay
+                    setTimeout(() => {
+                        const taskItem = buttonEl.closest('.task-item');
+                        if (taskItem) {
+                            taskItem.style.opacity = '0';
+                            taskItem.style.transform = 'translateX(20px)';
+                            taskItem.style.transition = 'all 0.3s ease';
+                            setTimeout(() => {
+                                taskItem.remove();
+                                // Refresh to update counts
+                                loadGreenhouseData();
+                            }, 300);
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error(result.error || 'Failed to update');
+                }
+            } catch (error) {
+                console.error('Error marking sown:', error);
+                buttonEl.classList.remove('completing');
+                buttonEl.innerHTML = '<i class="fas fa-check"></i> Mark Sown';
+                showToast('Error: Could not mark as sown', 'error');
+            }
+        }
+
+        async function markTransplanted(batchId, buttonEl) {
+            if (!batchId) return;
+
+            // Update button state
+            buttonEl.classList.add('completing');
+            buttonEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const params = new URLSearchParams({
+                    action: 'updatePlanting',
+                    id: batchId,
+                    Act_Transplant: today,
+                    STATUS: 'PLANTED'
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    buttonEl.classList.remove('completing');
+                    buttonEl.classList.add('completed');
+                    buttonEl.innerHTML = '<i class="fas fa-check-circle"></i> Transplanted!';
+
+                    showToast(`Marked as transplanted on ${formatDateDisplay(today)}`);
+
+                    // Remove the task item after a short delay
+                    setTimeout(() => {
+                        const taskItem = buttonEl.closest('.task-item');
+                        if (taskItem) {
+                            taskItem.style.opacity = '0';
+                            taskItem.style.transform = 'translateX(20px)';
+                            taskItem.style.transition = 'all 0.3s ease';
+                            setTimeout(() => {
+                                taskItem.remove();
+                                // Refresh to update counts
+                                loadGreenhouseData();
+                            }, 300);
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error(result.error || 'Failed to update');
+                }
+            } catch (error) {
+                console.error('Error marking transplanted:', error);
+                buttonEl.classList.remove('completing');
+                buttonEl.innerHTML = '<i class="fas fa-seedling"></i> Mark Transplanted';
+                showToast('Error: Could not mark as transplanted', 'error');
+            }
         }
 
         // ========================================
@@ -1666,6 +1836,75 @@
                 </div>
             `;
         }
+
+        // ========================================
+        // TOAST NOTIFICATIONS
+        // ========================================
+        function showToast(message, type = 'success') {
+            // Remove existing toast
+            const existing = document.querySelector('.toast-notification');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+
+            document.body.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // Auto-remove
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
     </script>
+
+    <style>
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--success);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast-notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-notification.success {
+            border-color: var(--success);
+        }
+
+        .toast-notification.success i {
+            color: var(--success);
+        }
+
+        .toast-notification.error {
+            border-color: var(--danger);
+        }
+
+        .toast-notification.error i {
+            color: var(--danger);
+        }
+    </style>
 </body>
 </html>
