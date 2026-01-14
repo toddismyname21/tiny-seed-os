@@ -1,5 +1,36 @@
+# Reference documents - not needed for web app
+*.pdf
+*.PDF
+*.xlsx
+*.docx
+
+# Downloaded web pages
+*.htm
+*_files/
+
+# macOS system files
 .DS_Store
-*.zip
-.claude/
-*.csv
-claude_export/
+*.swp
+
+# Clasp (Apps Script CLI)
+.clasp.json
+
+# Environment and credentials
+.env
+credentials.json
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Node (if ever needed)
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
