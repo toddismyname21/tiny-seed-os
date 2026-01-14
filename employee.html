@@ -1,0 +1,2643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <title>Tiny Seed - Employee App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ========================================
+           CSS DESIGN SYSTEM - HIGH CONTRAST THEME
+           ======================================== */
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.15);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --info: #3b82f6;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --bg-input: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.1);
+            --border-active: rgba(74, 124, 67, 0.5);
+            --touch-min: 48px;
+            --touch-comfortable: 56px;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Screen Management */
+        .screen {
+            display: none;
+            min-height: 100vh;
+        }
+        .screen.active {
+            display: block;
+        }
+
+        /* ========================================
+           LOGIN SCREEN
+           ======================================== */
+        .login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(180deg, var(--bg-dark) 0%, #1a2744 100%);
+        }
+
+        .login-logo {
+            font-size: 3rem;
+            margin-bottom: 8px;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: var(--text-primary);
+        }
+
+        .pin-display {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .pin-dot.filled {
+            background: var(--primary-light);
+            border-color: var(--primary-light);
+        }
+
+        .pin-dot.error {
+            background: var(--danger);
+            border-color: var(--danger);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .pin-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            max-width: 280px;
+        }
+
+        .pin-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .pin-btn:active {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: scale(0.95);
+        }
+
+        .pin-btn.empty {
+            visibility: hidden;
+        }
+
+        .pin-btn.delete {
+            font-size: 1.25rem;
+        }
+
+        .login-error {
+            color: var(--danger);
+            margin-top: 20px;
+            font-size: 0.9rem;
+            min-height: 24px;
+        }
+
+        .login-hint {
+            color: var(--text-secondary);
+            margin-top: 30px;
+            font-size: 0.85rem;
+        }
+
+        /* ========================================
+           MAIN APP LAYOUT
+           ======================================== */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: calc(56px + var(--safe-top));
+            padding-top: var(--safe-top);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 16px;
+            padding-right: 16px;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .header-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .header-status {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .header-status.clocked-in {
+            color: var(--success);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-btn:active {
+            background: var(--primary);
+        }
+
+        .header-btn.lang-toggle {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .offline-indicator {
+            position: fixed;
+            top: calc(56px + var(--safe-top));
+            left: 0;
+            right: 0;
+            background: var(--warning);
+            color: #000;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: none;
+            z-index: 99;
+        }
+
+        .offline-indicator.visible {
+            display: block;
+        }
+
+        .main-content {
+            margin-top: calc(56px + var(--safe-top));
+            margin-bottom: calc(64px + var(--safe-bottom));
+            padding: 16px;
+            min-height: calc(100vh - 56px - 64px - var(--safe-top) - var(--safe-bottom));
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* ========================================
+           BOTTOM TAB BAR
+           ======================================== */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(64px + var(--safe-bottom));
+            padding-bottom: var(--safe-bottom);
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            z-index: 100;
+        }
+
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: color 0.2s;
+            text-decoration: none;
+            min-height: 64px;
+        }
+
+        .tab-item i {
+            font-size: 1.25rem;
+        }
+
+        .tab-item.active {
+            color: var(--primary-light);
+        }
+
+        .tab-item .tab-badge {
+            position: absolute;
+            top: 8px;
+            right: calc(50% - 20px);
+            background: var(--danger);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 5px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* ========================================
+           HOME TAB - CLOCK & DASHBOARD
+           ======================================== */
+        .clock-card {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .clock-time {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .clock-date {
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 20px;
+        }
+
+        .clock-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .clock-btn.clock-in {
+            background: var(--success);
+            color: white;
+        }
+
+        .clock-btn.clock-out {
+            background: var(--danger);
+            color: white;
+        }
+
+        .clock-btn:active {
+            transform: scale(0.98);
+        }
+
+        .clock-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .hours-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .hours-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .hours-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .hours-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Messages Section */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--info);
+        }
+
+        .message-card.urgent {
+            border-left-color: var(--danger);
+            background: var(--danger-bg);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .message-from {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .message-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* ========================================
+           TASKS TAB
+           ======================================== */
+        .task-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .task-filter {
+            padding: 10px 16px;
+            border-radius: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .task-filter.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .task-filter .count {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 6px;
+            font-size: 0.75rem;
+        }
+
+        .task-group {
+            margin-bottom: 20px;
+        }
+
+        .task-group-header {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .task-card.overdue {
+            border-color: var(--danger);
+            background: var(--danger-bg);
+        }
+
+        .task-checkbox {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .task-checkbox i {
+            opacity: 0;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .task-checkbox:active,
+        .task-checkbox.checked {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .task-checkbox.checked i {
+            opacity: 1;
+        }
+
+        .task-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-type-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .task-type-badge.sow {
+            background: rgba(74, 124, 67, 0.3);
+            color: var(--primary-light);
+        }
+
+        .task-type-badge.transplant {
+            background: rgba(42, 157, 143, 0.3);
+            color: #2a9d8f;
+        }
+
+        .task-type-badge.harvest {
+            background: rgba(244, 162, 97, 0.3);
+            color: var(--secondary);
+        }
+
+        .task-type-badge.scout {
+            background: rgba(59, 130, 246, 0.3);
+            color: var(--info);
+        }
+
+        .task-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .task-meta i {
+            margin-right: 4px;
+        }
+
+        .task-complete-btn {
+            width: var(--touch-min);
+            height: var(--touch-min);
+            border-radius: 10px;
+            border: none;
+            background: var(--success);
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .task-complete-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* ========================================
+           HARVEST TAB
+           ======================================== */
+        .form-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .form-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .form-card-header i {
+            color: var(--primary-light);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            min-height: var(--touch-min);
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 12px;
+        }
+
+        .quality-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .quality-btn {
+            flex: 1;
+            height: var(--touch-min);
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quality-btn.active {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .photo-capture-btn {
+            width: 100%;
+            height: 100px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .photo-capture-btn:active {
+            border-color: var(--primary-light);
+            color: var(--primary-light);
+        }
+
+        .photo-capture-btn i {
+            font-size: 1.5rem;
+        }
+
+        .photo-preview {
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .photo-remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--danger);
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .voice-input-wrapper {
+            position: relative;
+        }
+
+        .voice-input-wrapper textarea {
+            padding-right: 50px;
+        }
+
+        .voice-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+        }
+
+        .voice-btn.recording {
+            background: var(--danger);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.1); }
+        }
+
+        .btn-primary {
+            width: 100%;
+            height: var(--touch-comfortable);
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .recent-harvests {
+            margin-top: 20px;
+        }
+
+        .harvest-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .harvest-item:last-child {
+            border-bottom: none;
+        }
+
+        .harvest-info h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .harvest-info span {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .harvest-qty {
+            text-align: right;
+        }
+
+        .harvest-qty .amount {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .harvest-qty .time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           SCOUT TAB
+           ======================================== */
+        .scout-type-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .scout-type-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 10px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .scout-type-btn i {
+            font-size: 1.75rem;
+            margin-bottom: 8px;
+        }
+
+        .scout-type-btn span {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .scout-type-btn.active {
+            border-color: var(--primary-light);
+            background: rgba(74, 124, 67, 0.15);
+            color: var(--primary-light);
+        }
+
+        .scout-type-btn.pest { --type-color: var(--danger); }
+        .scout-type-btn.disease { --type-color: var(--warning); }
+        .scout-type-btn.weed { --type-color: #8b5cf6; }
+        .scout-type-btn.beneficial { --type-color: var(--success); }
+        .scout-type-btn.wildlife { --type-color: var(--secondary); }
+        .scout-type-btn.other { --type-color: var(--info); }
+
+        .scout-type-btn.active {
+            border-color: var(--type-color);
+            color: var(--type-color);
+        }
+
+        .severity-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .severity-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .severity-btn.low.active {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .severity-btn.medium.active {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .severity-btn.high.active {
+            background: rgba(249, 115, 22, 0.2);
+            border-color: #f97316;
+            color: #f97316;
+        }
+
+        .severity-btn.critical.active {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .ai-diagnosis-btn {
+            width: 100%;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px dashed var(--info);
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .ai-diagnosis-btn i {
+            font-size: 2rem;
+        }
+
+        .ai-diagnosis-btn span {
+            font-weight: 600;
+        }
+
+        .ai-diagnosis-btn small {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* ========================================
+           MORE TAB
+           ======================================== */
+        .more-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .more-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .more-item:active {
+            background: var(--bg-elevated);
+        }
+
+        .more-item-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .more-item-icon.treatment { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+        .more-item-icon.hazard { background: var(--danger-bg); color: var(--danger); }
+        .more-item-icon.weed { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+        .more-item-icon.cultivation { background: rgba(244, 162, 97, 0.2); color: var(--secondary); }
+        .more-item-icon.settings { background: var(--bg-elevated); color: var(--text-secondary); }
+
+        .more-item-text {
+            flex: 1;
+        }
+
+        .more-item-text h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .more-item-text p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .more-item i.fa-chevron-right {
+            color: var(--text-muted);
+        }
+
+        /* ========================================
+           TOAST NOTIFICATIONS
+           ======================================== */
+        .toast {
+            position: fixed;
+            bottom: calc(80px + var(--safe-bottom));
+            left: 16px;
+            right: 16px;
+            padding: 16px 20px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .toast-icon {
+            font-size: 1.25rem;
+        }
+
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--danger); }
+        .toast.warning .toast-icon { color: var(--warning); }
+
+        .toast-message {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        /* ========================================
+           LOADING OVERLAY
+           ======================================== */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary-light);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ========================================
+           EMPTY STATES
+           ======================================== */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* ========================================
+           CAMERA MODAL
+           ======================================== */
+        .camera-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            z-index: 3000;
+            display: none;
+        }
+
+        .camera-modal.visible {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .camera-preview {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .camera-preview video,
+        .camera-preview img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .camera-controls {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+        }
+
+        .camera-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .camera-btn.capture {
+            width: 70px;
+            height: 70px;
+            background: white;
+            color: #000;
+        }
+
+        .camera-btn.cancel {
+            background: var(--bg-elevated);
+            color: white;
+        }
+
+        .camera-btn.confirm {
+            background: var(--success);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-screen">
+            <div class="login-logo">🌱</div>
+            <h1 class="login-title" data-i18n="auth.title">Tiny Seed Farm</h1>
+
+            <div class="pin-display">
+                <div class="pin-dot" id="pin1"></div>
+                <div class="pin-dot" id="pin2"></div>
+                <div class="pin-dot" id="pin3"></div>
+                <div class="pin-dot" id="pin4"></div>
+            </div>
+
+            <div class="pin-pad">
+                <button class="pin-btn" onclick="enterPin('1')">1</button>
+                <button class="pin-btn" onclick="enterPin('2')">2</button>
+                <button class="pin-btn" onclick="enterPin('3')">3</button>
+                <button class="pin-btn" onclick="enterPin('4')">4</button>
+                <button class="pin-btn" onclick="enterPin('5')">5</button>
+                <button class="pin-btn" onclick="enterPin('6')">6</button>
+                <button class="pin-btn" onclick="enterPin('7')">7</button>
+                <button class="pin-btn" onclick="enterPin('8')">8</button>
+                <button class="pin-btn" onclick="enterPin('9')">9</button>
+                <button class="pin-btn empty"></button>
+                <button class="pin-btn" onclick="enterPin('0')">0</button>
+                <button class="pin-btn delete" onclick="deletePin()"><i class="fas fa-delete-left"></i></button>
+            </div>
+
+            <div class="login-error" id="loginError"></div>
+            <div class="login-hint" data-i18n="auth.hint">Enter your 4-digit PIN</div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="screen">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="header-avatar" id="headerAvatar">--</div>
+                <div class="header-info">
+                    <div class="header-name" id="headerName">Employee</div>
+                    <div class="header-status" id="headerStatus" data-i18n="clock.notClockedIn">Not clocked in</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn lang-toggle" onclick="toggleLanguage()" id="langToggle">EN</button>
+                <button class="header-btn" onclick="syncData()" id="syncBtn">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="header-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Offline Indicator -->
+        <div class="offline-indicator" id="offlineIndicator">
+            <i class="fas fa-wifi-slash"></i>
+            <span data-i18n="common.offline">Offline - will sync when connected</span>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Home Tab -->
+            <div id="homeTab" class="tab-panel active">
+                <!-- Clock Card -->
+                <div class="clock-card">
+                    <div class="clock-time" id="clockTime">--:--</div>
+                    <div class="clock-date" id="clockDate">---</div>
+                    <button class="clock-btn clock-in" id="clockBtn" onclick="toggleClock()">
+                        <i class="fas fa-play"></i>
+                        <span data-i18n="clock.clockIn">Clock In</span>
+                    </button>
+                </div>
+
+                <!-- Hours Summary -->
+                <div class="hours-summary">
+                    <div class="hours-card">
+                        <div class="hours-value" id="hoursToday">0.0</div>
+                        <div class="hours-label" data-i18n="clock.hoursToday">Hours Today</div>
+                    </div>
+                    <div class="hours-card">
+                        <div class="hours-value" id="hoursWeek">0.0</div>
+                        <div class="hours-label" data-i18n="clock.weeklyHours">This Week</div>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-envelope"></i>
+                        <span data-i18n="messages.title">Messages</span>
+                    </h2>
+                </div>
+                <div id="messagesContainer">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3 data-i18n="messages.empty">No messages</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Tab -->
+            <div id="tasksTab" class="tab-panel">
+                <div class="task-filters">
+                    <button class="task-filter active" onclick="filterTasks('all')" data-i18n="tasks.all">
+                        All <span class="count" id="taskCountAll">0</span>
+                    </button>
+                    <button class="task-filter" onclick="filterTasks('overdue')" data-i18n="tasks.overdue">
+                        Overdue <span class="count" id="taskCountOverdue">0</span>
+                    </button>
+                    <button class="task-filter" onclick="filterTasks('today')" data-i18n="tasks.today">
+                        Today <span class="count" id="taskCountToday">0</span>
+                    </button>
+                </div>
+                <div id="tasksContainer">
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-check"></i>
+                        <h3 data-i18n="tasks.noTasks">No tasks assigned</h3>
+                        <p data-i18n="tasks.noTasksHint">Check back later for new tasks</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Harvest Tab -->
+            <div id="harvestTab" class="tab-panel">
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <i class="fas fa-basket-shopping"></i>
+                        <span data-i18n="harvest.title">Log Harvest</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="harvest.crop">Crop</label>
+                        <select class="form-input" id="harvestCrop">
+                            <option value="" data-i18n="harvest.selectCrop">Select crop...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="harvest.quantity">Quantity</label>
+                            <input type="number" class="form-input" id="harvestQty"
+                                   inputmode="decimal" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="harvest.unit">Unit</label>
+                            <select class="form-input" id="harvestUnit">
+                                <option value="lbs">lbs</option>
+                                <option value="bunches">bunches</option>
+                                <option value="heads">heads</option>
+                                <option value="oz">oz</option>
+                                <option value="each">each</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="harvest.quality">Quality Grade</label>
+                        <div class="quality-buttons">
+                            <button class="quality-btn active" onclick="setQuality('A')">A</button>
+                            <button class="quality-btn" onclick="setQuality('B')">B</button>
+                            <button class="quality-btn" onclick="setQuality('C')">C</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="harvest.photo">Photo (optional)</label>
+                        <div class="photo-capture-btn" onclick="capturePhoto('harvest')">
+                            <i class="fas fa-camera"></i>
+                            <span data-i18n="harvest.addPhoto">Add Photo</span>
+                        </div>
+                        <div class="photo-preview" id="harvestPhotoPreview" style="display: none;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="harvest.notes">Notes</label>
+                        <div class="voice-input-wrapper">
+                            <textarea class="form-input" id="harvestNotes" rows="2"
+                                      placeholder="Add notes..."></textarea>
+                            <button class="voice-btn" onclick="startVoice('harvestNotes')">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" onclick="submitHarvest()">
+                        <i class="fas fa-check"></i>
+                        <span data-i18n="harvest.submit">Log Harvest</span>
+                    </button>
+                </div>
+
+                <div class="recent-harvests" id="recentHarvests">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-history"></i>
+                            <span data-i18n="harvest.recent">Recent Harvests</span>
+                        </h2>
+                    </div>
+                    <div id="recentHarvestsList"></div>
+                </div>
+            </div>
+
+            <!-- Scout Tab -->
+            <div id="scoutTab" class="tab-panel">
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <i class="fas fa-search"></i>
+                        <span data-i18n="scout.title">Field Scouting</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="scout.type">What did you find?</label>
+                        <div class="scout-type-grid">
+                            <button class="scout-type-btn pest" onclick="setScoutType('pest')">
+                                <i class="fas fa-bug"></i>
+                                <span data-i18n="scout.pest">Pest</span>
+                            </button>
+                            <button class="scout-type-btn disease" onclick="setScoutType('disease')">
+                                <i class="fas fa-virus"></i>
+                                <span data-i18n="scout.disease">Disease</span>
+                            </button>
+                            <button class="scout-type-btn weed" onclick="setScoutType('weed')">
+                                <i class="fas fa-leaf"></i>
+                                <span data-i18n="scout.weed">Weed</span>
+                            </button>
+                            <button class="scout-type-btn beneficial" onclick="setScoutType('beneficial')">
+                                <i class="fas fa-butterfly"></i>
+                                <span data-i18n="scout.beneficial">Beneficial</span>
+                            </button>
+                            <button class="scout-type-btn wildlife" onclick="setScoutType('wildlife')">
+                                <i class="fas fa-paw"></i>
+                                <span data-i18n="scout.wildlife">Wildlife</span>
+                            </button>
+                            <button class="scout-type-btn other" onclick="setScoutType('other')">
+                                <i class="fas fa-question"></i>
+                                <span data-i18n="scout.other">Other</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ai-diagnosis-btn" onclick="openAIDiagnosis()">
+                        <i class="fas fa-robot"></i>
+                        <span data-i18n="scout.aiDoctor">AI Plant Doctor</span>
+                        <small data-i18n="scout.aiHint">Take a photo for instant diagnosis</small>
+                    </div>
+
+                    <div class="form-row" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="scout.field">Field</label>
+                            <select class="form-input" id="scoutField">
+                                <option value="">Select...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="scout.bed">Bed</label>
+                            <select class="form-input" id="scoutBed">
+                                <option value="">Select...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="scout.severity">Severity</label>
+                        <div class="severity-buttons">
+                            <button class="severity-btn low" onclick="setSeverity('low')">Low</button>
+                            <button class="severity-btn medium" onclick="setSeverity('medium')">Medium</button>
+                            <button class="severity-btn high" onclick="setSeverity('high')">High</button>
+                            <button class="severity-btn critical" onclick="setSeverity('critical')">Critical</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="scout.photo">Photo</label>
+                        <div class="photo-capture-btn" onclick="capturePhoto('scout')">
+                            <i class="fas fa-camera"></i>
+                            <span data-i18n="scout.addPhoto">Take Photo</span>
+                        </div>
+                        <div class="photo-preview" id="scoutPhotoPreview" style="display: none;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="scout.notes">Notes</label>
+                        <div class="voice-input-wrapper">
+                            <textarea class="form-input" id="scoutNotes" rows="2"
+                                      placeholder="Describe what you found..."></textarea>
+                            <button class="voice-btn" onclick="startVoice('scoutNotes')">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" onclick="submitScoutReport()">
+                        <i class="fas fa-check"></i>
+                        <span data-i18n="scout.submit">Submit Report</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- More Tab -->
+            <div id="moreTab" class="tab-panel">
+                <div class="more-menu">
+                    <div class="more-item" onclick="openTreatmentLog()">
+                        <div class="more-item-icon treatment">
+                            <i class="fas fa-spray-can"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.treatment">Treatment Log</h3>
+                            <p data-i18n="more.treatmentDesc">Log spray applications & materials</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openHazards()">
+                        <div class="more-item-icon hazard">
+                            <i class="fas fa-triangle-exclamation"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.hazards">Field Hazards</h3>
+                            <p data-i18n="more.hazardsDesc">Report groundhog holes, issues</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openWeedLog()">
+                        <div class="more-item-icon weed">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.weed">Weed Pressure</h3>
+                            <p data-i18n="more.weedDesc">Track problem weeds by field</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openCultivation()">
+                        <div class="more-item-icon cultivation">
+                            <i class="fas fa-tractor"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.cultivation">Cultivation Log</h3>
+                            <p data-i18n="more.cultivationDesc">Log cultivation passes</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openSettings()">
+                        <div class="more-item-icon settings">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.settings">Settings</h3>
+                            <p data-i18n="more.settingsDesc">Language, notifications, account</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Tab Bar -->
+        <nav class="tab-bar">
+            <div class="tab-item active" onclick="switchTab('home')">
+                <i class="fas fa-home"></i>
+                <span data-i18n="tabs.home">Home</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('tasks')">
+                <i class="fas fa-clipboard-list"></i>
+                <span data-i18n="tabs.tasks">Tasks</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('harvest')">
+                <i class="fas fa-basket-shopping"></i>
+                <span data-i18n="tabs.harvest">Harvest</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('scout')">
+                <i class="fas fa-search"></i>
+                <span data-i18n="tabs.scout">Scout</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('more')">
+                <i class="fas fa-ellipsis-h"></i>
+                <span data-i18n="tabs.more">More</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle toast-icon"></i>
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div class="camera-modal" id="cameraModal">
+        <div class="camera-preview">
+            <video id="cameraVideo" autoplay playsinline></video>
+            <img id="capturedImage" style="display: none;">
+        </div>
+        <div class="camera-controls" id="cameraControls">
+            <button class="camera-btn cancel" onclick="closeCamera()">
+                <i class="fas fa-times"></i>
+            </button>
+            <button class="camera-btn capture" onclick="captureImage()">
+                <i class="fas fa-camera"></i>
+            </button>
+        </div>
+        <div class="camera-controls" id="confirmControls" style="display: none;">
+            <button class="camera-btn cancel" onclick="retakePhoto()">
+                <i class="fas fa-redo"></i>
+            </button>
+            <button class="camera-btn confirm" onclick="confirmPhoto()">
+                <i class="fas fa-check"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const CONFIG = {
+            API_URL: 'https://script.google.com/macros/s/AKfycbxmiizjT_T2KI6ZZqAgDt49-8AvTPmq3penl4gSO2qPETMHVFtm0i90C47zGkwJ92vb/exec',
+            DB_NAME: 'TinySeedEmployee',
+            DB_VERSION: 1,
+            GEOFENCE: {
+                // TODO: Set actual farm coordinates
+                lat: 40.0,
+                lng: -79.0,
+                radiusMeters: 500
+            }
+        };
+
+        // ============================================
+        // APPLICATION STATE
+        // ============================================
+        const AppState = {
+            employee: null,
+            language: 'en',
+            isOnline: navigator.onLine,
+            isClockedIn: false,
+            clockInTime: null,
+            currentTab: 'home',
+            currentGPS: null,
+            enteredPIN: '',
+            harvestQuality: 'A',
+            scoutType: null,
+            scoutSeverity: null,
+            currentPhotoTarget: null,
+            capturedPhoto: null,
+            tasks: [],
+            plantings: []
+        };
+
+        // ============================================
+        // TRANSLATIONS
+        // ============================================
+        const i18n = {
+            en: {
+                'auth.title': 'Tiny Seed Farm',
+                'auth.hint': 'Enter your 4-digit PIN',
+                'auth.invalid': 'Invalid PIN. Please try again.',
+                'clock.clockIn': 'Clock In',
+                'clock.clockOut': 'Clock Out',
+                'clock.hoursToday': 'Hours Today',
+                'clock.weeklyHours': 'This Week',
+                'clock.notClockedIn': 'Not clocked in',
+                'clock.clockedIn': 'Clocked in',
+                'clock.outsideGeofence': 'You must be at the farm to clock in',
+                'clock.clockedInSuccess': 'Clocked in successfully',
+                'clock.clockedOutSuccess': 'Clocked out successfully',
+                'tasks.all': 'All',
+                'tasks.today': 'Today',
+                'tasks.overdue': 'Overdue',
+                'tasks.noTasks': 'No tasks assigned',
+                'tasks.completed': 'Task completed',
+                'harvest.title': 'Log Harvest',
+                'harvest.crop': 'Crop',
+                'harvest.quantity': 'Quantity',
+                'harvest.unit': 'Unit',
+                'harvest.quality': 'Quality Grade',
+                'harvest.photo': 'Photo (optional)',
+                'harvest.notes': 'Notes',
+                'harvest.submit': 'Log Harvest',
+                'harvest.success': 'Harvest logged successfully',
+                'harvest.recent': 'Recent Harvests',
+                'scout.title': 'Field Scouting',
+                'scout.type': 'What did you find?',
+                'scout.pest': 'Pest',
+                'scout.disease': 'Disease',
+                'scout.weed': 'Weed',
+                'scout.beneficial': 'Beneficial',
+                'scout.wildlife': 'Wildlife',
+                'scout.other': 'Other',
+                'scout.severity': 'Severity',
+                'scout.field': 'Field',
+                'scout.bed': 'Bed',
+                'scout.submit': 'Submit Report',
+                'scout.success': 'Scout report submitted',
+                'scout.aiDoctor': 'AI Plant Doctor',
+                'scout.aiHint': 'Take a photo for instant diagnosis',
+                'common.offline': 'Offline - will sync when connected',
+                'common.syncing': 'Syncing...',
+                'common.syncComplete': 'Sync complete',
+                'common.error': 'An error occurred',
+                'tabs.home': 'Home',
+                'tabs.tasks': 'Tasks',
+                'tabs.harvest': 'Harvest',
+                'tabs.scout': 'Scout',
+                'tabs.more': 'More',
+                'messages.title': 'Messages',
+                'messages.empty': 'No messages'
+            },
+            es: {
+                'auth.title': 'Granja Tiny Seed',
+                'auth.hint': 'Ingrese su PIN de 4 digitos',
+                'auth.invalid': 'PIN invalido. Intente de nuevo.',
+                'clock.clockIn': 'Entrada',
+                'clock.clockOut': 'Salida',
+                'clock.hoursToday': 'Horas Hoy',
+                'clock.weeklyHours': 'Esta Semana',
+                'clock.notClockedIn': 'Sin registrar entrada',
+                'clock.clockedIn': 'Entrada registrada',
+                'clock.outsideGeofence': 'Debe estar en la granja para registrar entrada',
+                'clock.clockedInSuccess': 'Entrada registrada exitosamente',
+                'clock.clockedOutSuccess': 'Salida registrada exitosamente',
+                'tasks.all': 'Todas',
+                'tasks.today': 'Hoy',
+                'tasks.overdue': 'Atrasadas',
+                'tasks.noTasks': 'Sin tareas asignadas',
+                'tasks.completed': 'Tarea completada',
+                'harvest.title': 'Registrar Cosecha',
+                'harvest.crop': 'Cultivo',
+                'harvest.quantity': 'Cantidad',
+                'harvest.unit': 'Unidad',
+                'harvest.quality': 'Grado de Calidad',
+                'harvest.photo': 'Foto (opcional)',
+                'harvest.notes': 'Notas',
+                'harvest.submit': 'Registrar Cosecha',
+                'harvest.success': 'Cosecha registrada exitosamente',
+                'harvest.recent': 'Cosechas Recientes',
+                'scout.title': 'Monitoreo de Campo',
+                'scout.type': 'Que encontraste?',
+                'scout.pest': 'Plaga',
+                'scout.disease': 'Enfermedad',
+                'scout.weed': 'Maleza',
+                'scout.beneficial': 'Benefico',
+                'scout.wildlife': 'Animal',
+                'scout.other': 'Otro',
+                'scout.severity': 'Severidad',
+                'scout.field': 'Campo',
+                'scout.bed': 'Cama',
+                'scout.submit': 'Enviar Reporte',
+                'scout.success': 'Reporte enviado',
+                'scout.aiDoctor': 'Doctor de Plantas IA',
+                'scout.aiHint': 'Toma una foto para diagnostico instantaneo',
+                'common.offline': 'Sin conexion - se sincronizara al conectar',
+                'common.syncing': 'Sincronizando...',
+                'common.syncComplete': 'Sincronizacion completa',
+                'common.error': 'Ocurrio un error',
+                'tabs.home': 'Inicio',
+                'tabs.tasks': 'Tareas',
+                'tabs.harvest': 'Cosecha',
+                'tabs.scout': 'Monitoreo',
+                'tabs.more': 'Mas',
+                'messages.title': 'Mensajes',
+                'messages.empty': 'Sin mensajes'
+            }
+        };
+
+        function t(key) {
+            return i18n[AppState.language][key] || i18n['en'][key] || key;
+        }
+
+        function translatePage() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.textContent = t(key);
+            });
+        }
+
+        // ============================================
+        // AUTHENTICATION
+        // ============================================
+        function enterPin(digit) {
+            if (AppState.enteredPIN.length < 4) {
+                AppState.enteredPIN += digit;
+                updatePinDisplay();
+
+                if (AppState.enteredPIN.length === 4) {
+                    setTimeout(() => validatePIN(), 200);
+                }
+            }
+        }
+
+        function deletePin() {
+            AppState.enteredPIN = AppState.enteredPIN.slice(0, -1);
+            updatePinDisplay();
+        }
+
+        function updatePinDisplay() {
+            for (let i = 1; i <= 4; i++) {
+                const dot = document.getElementById(`pin${i}`);
+                dot.classList.toggle('filled', i <= AppState.enteredPIN.length);
+                dot.classList.remove('error');
+            }
+            document.getElementById('loginError').textContent = '';
+        }
+
+        async function validatePIN() {
+            showLoading();
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=authenticateEmployee&pin=${AppState.enteredPIN}`);
+                const data = await response.json();
+
+                if (data.success && data.employee) {
+                    AppState.employee = data.employee;
+                    AppState.language = data.employee.Language_Pref || 'en';
+                    AppState.isClockedIn = data.isClockedIn || false;
+                    AppState.clockInTime = data.clockInTime || null;
+
+                    localStorage.setItem('employeeSession', JSON.stringify({
+                        employee: AppState.employee,
+                        language: AppState.language
+                    }));
+
+                    showMainApp();
+                } else {
+                    showPinError();
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                // Try offline login
+                const session = localStorage.getItem('employeeSession');
+                if (session) {
+                    const saved = JSON.parse(session);
+                    // Simple offline PIN check (in production, use hashed PIN)
+                    AppState.employee = saved.employee;
+                    AppState.language = saved.language;
+                    showMainApp();
+                } else {
+                    showPinError();
+                }
+            }
+            hideLoading();
+        }
+
+        function showPinError() {
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`pin${i}`).classList.add('error');
+            }
+            document.getElementById('loginError').textContent = t('auth.invalid');
+            setTimeout(() => {
+                AppState.enteredPIN = '';
+                updatePinDisplay();
+            }, 1000);
+        }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.remove('active');
+            document.getElementById('mainApp').classList.add('active');
+
+            // Update header
+            if (AppState.employee) {
+                const initials = (AppState.employee.First_Name?.[0] || '') +
+                                (AppState.employee.Last_Name?.[0] || '');
+                document.getElementById('headerAvatar').textContent = initials || '??';
+                document.getElementById('headerName').textContent =
+                    `${AppState.employee.First_Name || ''} ${AppState.employee.Last_Name || ''}`.trim() || 'Employee';
+            }
+
+            document.getElementById('langToggle').textContent = AppState.language.toUpperCase();
+            translatePage();
+            updateClockUI();
+            startClock();
+            loadInitialData();
+        }
+
+        function logout() {
+            localStorage.removeItem('employeeSession');
+            AppState.employee = null;
+            AppState.enteredPIN = '';
+            AppState.isClockedIn = false;
+
+            document.getElementById('mainApp').classList.remove('active');
+            document.getElementById('loginScreen').classList.add('active');
+            updatePinDisplay();
+        }
+
+        // ============================================
+        // CLOCK & TIME
+        // ============================================
+        let clockInterval;
+
+        function startClock() {
+            updateClockDisplay();
+            clockInterval = setInterval(updateClockDisplay, 1000);
+        }
+
+        function updateClockDisplay() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString(AppState.language === 'es' ? 'es-ES' : 'en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const dateStr = now.toLocaleDateString(AppState.language === 'es' ? 'es-ES' : 'en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            document.getElementById('clockTime').textContent = timeStr;
+            document.getElementById('clockDate').textContent = dateStr;
+
+            // Update hours if clocked in
+            if (AppState.isClockedIn && AppState.clockInTime) {
+                const elapsed = (now - new Date(AppState.clockInTime)) / 1000 / 60 / 60;
+                document.getElementById('hoursToday').textContent = elapsed.toFixed(1);
+            }
+        }
+
+        function updateClockUI() {
+            const btn = document.getElementById('clockBtn');
+            const status = document.getElementById('headerStatus');
+
+            if (AppState.isClockedIn) {
+                btn.className = 'clock-btn clock-out';
+                btn.innerHTML = `<i class="fas fa-stop"></i><span>${t('clock.clockOut')}</span>`;
+                status.textContent = t('clock.clockedIn');
+                status.classList.add('clocked-in');
+            } else {
+                btn.className = 'clock-btn clock-in';
+                btn.innerHTML = `<i class="fas fa-play"></i><span>${t('clock.clockIn')}</span>`;
+                status.textContent = t('clock.notClockedIn');
+                status.classList.remove('clocked-in');
+            }
+        }
+
+        async function toggleClock() {
+            const btn = document.getElementById('clockBtn');
+            btn.disabled = true;
+
+            try {
+                const gps = await captureGPS();
+
+                if (!AppState.isClockedIn) {
+                    // Clock In
+                    const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}&lat=${gps.lat || ''}&lng=${gps.lng || ''}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        AppState.isClockedIn = true;
+                        AppState.clockInTime = new Date().toISOString();
+                        showToast(t('clock.clockedInSuccess'), 'success');
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
+                } else {
+                    // Clock Out
+                    const response = await fetch(`${CONFIG.API_URL}?action=clockOut&employeeId=${AppState.employee.Employee_ID}&lat=${gps.lat || ''}&lng=${gps.lng || ''}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        AppState.isClockedIn = false;
+                        AppState.clockInTime = null;
+                        document.getElementById('hoursToday').textContent = data.hoursWorked?.toFixed(1) || '0.0';
+                        showToast(t('clock.clockedOutSuccess'), 'success');
+                    } else {
+                        showToast(data.error || t('common.error'), 'error');
+                    }
+                }
+
+                updateClockUI();
+            } catch (error) {
+                console.error('Clock error:', error);
+                showToast(t('common.error'), 'error');
+            }
+
+            btn.disabled = false;
+        }
+
+        // ============================================
+        // GPS
+        // ============================================
+        async function captureGPS() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve({ error: 'Geolocation not supported' });
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    pos => resolve({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    }),
+                    err => resolve({ error: err.message }),
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                );
+            });
+        }
+
+        // ============================================
+        // TAB NAVIGATION
+        // ============================================
+        function switchTab(tabId) {
+            AppState.currentTab = tabId;
+
+            // Update tab panels
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.getElementById(`${tabId}Tab`).classList.add('active');
+
+            // Update tab bar
+            document.querySelectorAll('.tab-item').forEach((item, index) => {
+                const tabs = ['home', 'tasks', 'harvest', 'scout', 'more'];
+                item.classList.toggle('active', tabs[index] === tabId);
+            });
+        }
+
+        // ============================================
+        // LANGUAGE TOGGLE
+        // ============================================
+        function toggleLanguage() {
+            AppState.language = AppState.language === 'en' ? 'es' : 'en';
+            document.getElementById('langToggle').textContent = AppState.language.toUpperCase();
+            translatePage();
+
+            // Save preference
+            if (AppState.employee) {
+                fetch(`${CONFIG.API_URL}?action=updateEmployeeLanguage&employeeId=${AppState.employee.Employee_ID}&lang=${AppState.language}`);
+            }
+        }
+
+        // ============================================
+        // HARVEST
+        // ============================================
+        function setQuality(grade) {
+            AppState.harvestQuality = grade;
+            document.querySelectorAll('.quality-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent === grade);
+            });
+        }
+
+        async function submitHarvest() {
+            const crop = document.getElementById('harvestCrop').value;
+            const qty = document.getElementById('harvestQty').value;
+            const unit = document.getElementById('harvestUnit').value;
+            const notes = document.getElementById('harvestNotes').value;
+
+            if (!crop || !qty) {
+                showToast('Please select crop and enter quantity', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+
+                const params = new URLSearchParams({
+                    action: 'logHarvestWithDetails',
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    crop: crop,
+                    quantity: qty,
+                    unit: unit,
+                    quality: AppState.harvestQuality,
+                    notes: notes,
+                    lat: gps.lat || '',
+                    lng: gps.lng || '',
+                    photo: AppState.capturedPhoto || ''
+                });
+
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(t('harvest.success'), 'success');
+                    // Reset form
+                    document.getElementById('harvestCrop').value = '';
+                    document.getElementById('harvestQty').value = '';
+                    document.getElementById('harvestNotes').value = '';
+                    AppState.harvestQuality = 'A';
+                    setQuality('A');
+                    AppState.capturedPhoto = null;
+                    document.getElementById('harvestPhotoPreview').style.display = 'none';
+
+                    loadRecentHarvests();
+                } else {
+                    showToast(data.error || t('common.error'), 'error');
+                }
+            } catch (error) {
+                console.error('Harvest error:', error);
+                showToast(t('common.error'), 'error');
+            }
+            hideLoading();
+        }
+
+        // ============================================
+        // SCOUTING
+        // ============================================
+        function setScoutType(type) {
+            AppState.scoutType = type;
+            document.querySelectorAll('.scout-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.classList.contains(type));
+            });
+        }
+
+        function setSeverity(severity) {
+            AppState.scoutSeverity = severity;
+            document.querySelectorAll('.severity-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.classList.contains(severity));
+            });
+        }
+
+        async function submitScoutReport() {
+            if (!AppState.scoutType) {
+                showToast('Please select observation type', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const field = document.getElementById('scoutField').value;
+                const bed = document.getElementById('scoutBed').value;
+                const notes = document.getElementById('scoutNotes').value;
+
+                const params = new URLSearchParams({
+                    action: 'saveScoutingReport',
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    type: AppState.scoutType,
+                    severity: AppState.scoutSeverity || 'medium',
+                    field: field,
+                    bed: bed,
+                    notes: notes,
+                    lat: gps.lat || '',
+                    lng: gps.lng || '',
+                    photo: AppState.capturedPhoto || ''
+                });
+
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(t('scout.success'), 'success');
+                    // Reset form
+                    AppState.scoutType = null;
+                    AppState.scoutSeverity = null;
+                    document.querySelectorAll('.scout-type-btn, .severity-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    document.getElementById('scoutNotes').value = '';
+                    AppState.capturedPhoto = null;
+                    document.getElementById('scoutPhotoPreview').style.display = 'none';
+                } else {
+                    showToast(data.error || t('common.error'), 'error');
+                }
+            } catch (error) {
+                console.error('Scout error:', error);
+                showToast(t('common.error'), 'error');
+            }
+            hideLoading();
+        }
+
+        function openAIDiagnosis() {
+            showToast('AI Plant Doctor coming soon!', 'info');
+        }
+
+        // ============================================
+        // TASKS
+        // ============================================
+        function filterTasks(filter) {
+            document.querySelectorAll('.task-filter').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase().includes(filter) ||
+                    (filter === 'all' && btn.textContent.toLowerCase().includes('all')));
+            });
+            renderTasks(filter);
+        }
+
+        function renderTasks(filter = 'all') {
+            const container = document.getElementById('tasksContainer');
+            const tasks = AppState.tasks;
+
+            if (!tasks || tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-check"></i>
+                        <h3>${t('tasks.noTasks')}</h3>
+                    </div>
+                `;
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            let filteredTasks = tasks;
+
+            if (filter === 'today') {
+                filteredTasks = tasks.filter(t => t.date === today);
+            } else if (filter === 'overdue') {
+                filteredTasks = tasks.filter(t => t.date < today && t.status !== 'Completed');
+            }
+
+            if (filteredTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>No ${filter} tasks</h3>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredTasks.map(task => `
+                <div class="task-card ${task.date < today ? 'overdue' : ''}" data-id="${task.id}">
+                    <div class="task-checkbox" onclick="completeTask('${task.id}')">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="task-info">
+                        <span class="task-type-badge ${task.type}">${task.type}</span>
+                        <h3 class="task-title">${task.crop} - ${task.variety || ''}</h3>
+                        <div class="task-meta">
+                            <span><i class="fas fa-map-marker-alt"></i> ${task.bed || task.field || 'TBD'}</span>
+                            <span><i class="fas fa-calendar"></i> ${task.date}</span>
+                        </div>
+                    </div>
+                    <button class="task-complete-btn" onclick="completeTask('${task.id}')">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Update counts
+            document.getElementById('taskCountAll').textContent = tasks.length;
+            document.getElementById('taskCountToday').textContent = tasks.filter(t => t.date === today).length;
+            document.getElementById('taskCountOverdue').textContent = tasks.filter(t => t.date < today && t.status !== 'Completed').length;
+        }
+
+        async function completeTask(taskId) {
+            showLoading();
+            try {
+                const gps = await captureGPS();
+
+                const params = new URLSearchParams({
+                    action: 'completeTaskWithGPS',
+                    taskId: taskId,
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                });
+
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(t('tasks.completed'), 'success');
+                    // Remove from local list
+                    AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+                    renderTasks(AppState.currentTab === 'tasks' ? 'all' : 'today');
+                } else {
+                    showToast(data.error || t('common.error'), 'error');
+                }
+            } catch (error) {
+                console.error('Complete task error:', error);
+                showToast(t('common.error'), 'error');
+            }
+            hideLoading();
+        }
+
+        // ============================================
+        // CAMERA
+        // ============================================
+        let cameraStream = null;
+
+        function capturePhoto(target) {
+            AppState.currentPhotoTarget = target;
+            const modal = document.getElementById('cameraModal');
+            const video = document.getElementById('cameraVideo');
+
+            navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            })
+            .then(stream => {
+                cameraStream = stream;
+                video.srcObject = stream;
+                modal.classList.add('visible');
+                document.getElementById('cameraControls').style.display = 'flex';
+                document.getElementById('confirmControls').style.display = 'none';
+            })
+            .catch(err => {
+                console.error('Camera error:', err);
+                showToast('Camera not available', 'error');
+            });
+        }
+
+        function captureImage() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.7);
+            document.getElementById('capturedImage').src = imageData;
+            document.getElementById('capturedImage').style.display = 'block';
+            video.style.display = 'none';
+
+            document.getElementById('cameraControls').style.display = 'none';
+            document.getElementById('confirmControls').style.display = 'flex';
+
+            AppState.capturedPhoto = imageData;
+        }
+
+        function retakePhoto() {
+            document.getElementById('capturedImage').style.display = 'none';
+            document.getElementById('cameraVideo').style.display = 'block';
+            document.getElementById('cameraControls').style.display = 'flex';
+            document.getElementById('confirmControls').style.display = 'none';
+        }
+
+        function confirmPhoto() {
+            const previewId = AppState.currentPhotoTarget === 'harvest' ? 'harvestPhotoPreview' : 'scoutPhotoPreview';
+            const preview = document.getElementById(previewId);
+
+            preview.innerHTML = `
+                <img src="${AppState.capturedPhoto}" alt="Captured">
+                <button class="photo-remove" onclick="removePhoto('${AppState.currentPhotoTarget}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            preview.style.display = 'block';
+
+            closeCamera();
+        }
+
+        function removePhoto(target) {
+            AppState.capturedPhoto = null;
+            const previewId = target === 'harvest' ? 'harvestPhotoPreview' : 'scoutPhotoPreview';
+            document.getElementById(previewId).style.display = 'none';
+        }
+
+        function closeCamera() {
+            const modal = document.getElementById('cameraModal');
+            modal.classList.remove('visible');
+
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+
+            document.getElementById('cameraVideo').style.display = 'block';
+            document.getElementById('capturedImage').style.display = 'none';
+        }
+
+        // ============================================
+        // VOICE INPUT
+        // ============================================
+        let recognition = null;
+
+        function startVoice(targetId) {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                showToast('Voice input not supported', 'error');
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = AppState.language === 'es' ? 'es-ES' : 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            const btn = event.currentTarget;
+            btn.classList.add('recording');
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById(targetId).value += transcript + ' ';
+                btn.classList.remove('recording');
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Voice error:', event.error);
+                btn.classList.remove('recording');
+            };
+
+            recognition.onend = () => {
+                btn.classList.remove('recording');
+            };
+
+            recognition.start();
+        }
+
+        // ============================================
+        // DATA LOADING
+        // ============================================
+        async function loadInitialData() {
+            try {
+                // Load tasks
+                const tasksResponse = await fetch(`${CONFIG.API_URL}?action=getEmployeeTasks&employeeId=${AppState.employee?.Employee_ID || ''}`);
+                const tasksData = await tasksResponse.json();
+                if (tasksData.success) {
+                    AppState.tasks = tasksData.tasks || [];
+                    renderTasks();
+                }
+
+                // Load plantings for harvest dropdown
+                const plantingsResponse = await fetch(`${CONFIG.API_URL}?action=getPlanningData`);
+                const plantingsData = await plantingsResponse.json();
+                if (plantingsData.success) {
+                    AppState.plantings = plantingsData.data || [];
+                    populateHarvestDropdown();
+                }
+
+                // Load fields for scouting
+                const fieldsResponse = await fetch(`${CONFIG.API_URL}?action=getFields`);
+                const fieldsData = await fieldsResponse.json();
+                if (fieldsData.success) {
+                    populateFieldDropdown(fieldsData.fields || []);
+                }
+
+                loadRecentHarvests();
+
+            } catch (error) {
+                console.error('Data load error:', error);
+            }
+        }
+
+        function populateHarvestDropdown() {
+            const select = document.getElementById('harvestCrop');
+            const activeStatuses = ['PLANTED', 'HARVESTING', 'In Field'];
+
+            const harvestable = AppState.plantings.filter(p =>
+                activeStatuses.includes(p.STATUS) ||
+                (p.Plan_Transplant && new Date(p.Plan_Transplant) <= new Date())
+            );
+
+            // Get unique crops
+            const crops = [...new Set(harvestable.map(p => `${p.Crop} - ${p.Variety}`))].sort();
+
+            select.innerHTML = '<option value="">Select crop...</option>' +
+                crops.map(crop => `<option value="${crop}">${crop}</option>`).join('');
+        }
+
+        function populateFieldDropdown(fields) {
+            const select = document.getElementById('scoutField');
+            select.innerHTML = '<option value="">Select...</option>' +
+                fields.map(f => `<option value="${f.Field_ID || f}">${f.Field_Name || f.Field_ID || f}</option>`).join('');
+        }
+
+        async function loadRecentHarvests() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getHarvests&limit=5`);
+                const data = await response.json();
+
+                if (data.success && data.harvests) {
+                    const list = document.getElementById('recentHarvestsList');
+                    list.innerHTML = data.harvests.map(h => `
+                        <div class="harvest-item">
+                            <div class="harvest-info">
+                                <h4>${h.Crop}</h4>
+                                <span>${h.Bed_ID || 'N/A'}</span>
+                            </div>
+                            <div class="harvest-qty">
+                                <div class="amount">${h.Quantity} ${h.Unit}</div>
+                                <div class="time">${formatTime(h.Timestamp)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Load harvests error:', error);
+            }
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString(AppState.language === 'es' ? 'es-ES' : 'en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // ============================================
+        // MORE TAB ACTIONS (Placeholders)
+        // ============================================
+        function openTreatmentLog() {
+            showToast('Treatment log coming soon!', 'info');
+        }
+
+        function openHazards() {
+            showToast('Hazards reporting coming soon!', 'info');
+        }
+
+        function openWeedLog() {
+            showToast('Weed pressure log coming soon!', 'info');
+        }
+
+        function openCultivation() {
+            showToast('Cultivation log coming soon!', 'info');
+        }
+
+        function openSettings() {
+            showToast('Settings coming soon!', 'info');
+        }
+
+        // ============================================
+        // SYNC
+        // ============================================
+        async function syncData() {
+            const btn = document.getElementById('syncBtn');
+            btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+
+            try {
+                await loadInitialData();
+                showToast(t('common.syncComplete'), 'success');
+            } catch (error) {
+                showToast(t('common.error'), 'error');
+            }
+
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        }
+
+        // ============================================
+        // UI UTILITIES
+        // ============================================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('.toast-icon');
+
+            toast.className = `toast ${type}`;
+            icon.className = `fas toast-icon ${
+                type === 'success' ? 'fa-check-circle' :
+                type === 'error' ? 'fa-exclamation-circle' :
+                'fa-info-circle'
+            }`;
+            document.getElementById('toastMessage').textContent = message;
+
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 3000);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('visible');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('visible');
+        }
+
+        // ============================================
+        // ONLINE/OFFLINE HANDLING
+        // ============================================
+        window.addEventListener('online', () => {
+            AppState.isOnline = true;
+            document.getElementById('offlineIndicator').classList.remove('visible');
+            syncData();
+        });
+
+        window.addEventListener('offline', () => {
+            AppState.isOnline = false;
+            document.getElementById('offlineIndicator').classList.add('visible');
+        });
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for saved session
+            const session = localStorage.getItem('employeeSession');
+            if (session) {
+                try {
+                    const saved = JSON.parse(session);
+                    AppState.employee = saved.employee;
+                    AppState.language = saved.language || 'en';
+                    showMainApp();
+                } catch (e) {
+                    console.error('Session parse error:', e);
+                }
+            }
+
+            // Update offline indicator
+            if (!navigator.onLine) {
+                document.getElementById('offlineIndicator').classList.add('visible');
+            }
+        });
+    </script>
+</body>
+</html>

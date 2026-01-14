@@ -156,6 +156,34 @@ function doGet(e) {
       case 'saveTrayInventory':
         return jsonResponse(saveTrayInventory(e.parameter));
 
+      // ============ EMPLOYEE APP ENDPOINTS ============
+      case 'authenticateEmployee':
+        return jsonResponse(authenticateEmployee(e.parameter));
+      case 'getEmployeeProfile':
+        return jsonResponse(getEmployeeProfile(e.parameter));
+      case 'updateEmployeeLanguage':
+        return jsonResponse(updateEmployeeLanguage(e.parameter));
+      case 'clockIn':
+        return jsonResponse(clockIn(e.parameter));
+      case 'clockOut':
+        return jsonResponse(clockOut(e.parameter));
+      case 'getTimeClockStatus':
+        return jsonResponse(getTimeClockStatus(e.parameter));
+      case 'getTimeClockHistory':
+        return jsonResponse(getTimeClockHistory(e.parameter));
+      case 'getEmployeeTasks':
+        return jsonResponse(getEmployeeTasks(e.parameter));
+      case 'completeTaskWithGPS':
+        return jsonResponse(completeTaskWithGPS(e.parameter));
+      case 'logHarvestWithDetails':
+        return jsonResponse(logHarvestWithDetails(e.parameter));
+      case 'saveScoutingReport':
+        return jsonResponse(saveScoutingReport(e.parameter));
+      case 'reportHazard':
+        return jsonResponse(reportHazard(e.parameter));
+      case 'getActiveHazards':
+        return jsonResponse(getActiveHazards(e.parameter));
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -4919,5 +4947,725 @@ function deductInventoryOnApplication(data) {
     appliedBy: data.appliedBy,
     notes: data.notes || 'Applied to planting ' + data.batchId
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMPLOYEE APP FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Authenticate employee by PIN
+ */
+function authenticateEmployee(params) {
+  try {
+    const pin = params.pin;
+    if (!pin || pin.length !== 4) {
+      return { success: false, error: 'Invalid PIN format' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('EMPLOYEES');
+
+    // Create EMPLOYEES sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('EMPLOYEES');
+      sheet.appendRow([
+        'Employee_ID', 'First_Name', 'Last_Name', 'Badge_PIN', 'Role',
+        'Language_Pref', 'Hire_Date', 'Is_Active', 'Phone', 'Last_Login'
+      ]);
+      // Add a default employee for testing
+      sheet.appendRow([
+        'EMP-001', 'Test', 'Employee', '1234', 'Worker',
+        'en', new Date().toISOString().split('T')[0], 'TRUE', '', ''
+      ]);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const pinIndex = headers.indexOf('Badge_PIN');
+    const activeIndex = headers.indexOf('Is_Active');
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (String(row[pinIndex]) === String(pin) && row[activeIndex] !== 'FALSE') {
+        const employee = {};
+        headers.forEach((h, idx) => {
+          employee[h] = row[idx];
+        });
+
+        // Update last login
+        const lastLoginIndex = headers.indexOf('Last_Login');
+        if (lastLoginIndex >= 0) {
+          sheet.getRange(i + 1, lastLoginIndex + 1).setValue(new Date().toISOString());
+        }
+
+        // Check if clocked in today
+        const clockStatus = getTimeClockStatus({ employeeId: employee.Employee_ID });
+
+        return {
+          success: true,
+          employee: employee,
+          isClockedIn: clockStatus.isClockedIn || false,
+          clockInTime: clockStatus.clockInTime || null
+        };
+      }
+    }
+
+    return { success: false, error: 'Invalid PIN' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get employee profile by ID
+ */
+function getEmployeeProfile(params) {
+  try {
+    const employeeId = params.employeeId;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('EMPLOYEES');
+
+    if (!sheet) {
+      return { success: false, error: 'EMPLOYEES sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idIndex = headers.indexOf('Employee_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idIndex] === employeeId) {
+        const employee = {};
+        headers.forEach((h, idx) => {
+          employee[h] = data[i][idx];
+        });
+        return { success: true, employee: employee };
+      }
+    }
+
+    return { success: false, error: 'Employee not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update employee language preference
+ */
+function updateEmployeeLanguage(params) {
+  try {
+    const employeeId = params.employeeId;
+    const lang = params.lang;
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('EMPLOYEES');
+
+    if (!sheet) {
+      return { success: false, error: 'EMPLOYEES sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idIndex = headers.indexOf('Employee_ID');
+    const langIndex = headers.indexOf('Language_Pref');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idIndex] === employeeId) {
+        sheet.getRange(i + 1, langIndex + 1).setValue(lang);
+        return { success: true };
+      }
+    }
+
+    return { success: false, error: 'Employee not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Clock in employee
+ */
+function clockIn(params) {
+  try {
+    const employeeId = params.employeeId;
+    const lat = params.lat || '';
+    const lng = params.lng || '';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('TIME_CLOCK');
+
+    // Create TIME_CLOCK sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('TIME_CLOCK');
+      sheet.appendRow([
+        'Entry_ID', 'Employee_ID', 'Date', 'Clock_In', 'Clock_Out',
+        'Hours_Worked', 'GPS_In_Lat', 'GPS_In_Lng', 'GPS_Out_Lat', 'GPS_Out_Lng',
+        'In_Geofence', 'Notes', 'Synced_At'
+      ]);
+    }
+
+    // Check if already clocked in today
+    const status = getTimeClockStatus({ employeeId: employeeId });
+    if (status.isClockedIn) {
+      return { success: false, error: 'Already clocked in' };
+    }
+
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const entryId = 'TC-' + today.replace(/-/g, '') + '-' + employeeId;
+
+    // Check geofence (simplified)
+    const inGeofence = lat && lng ? 'TRUE' : 'UNKNOWN';
+
+    sheet.appendRow([
+      entryId, employeeId, today, now.toISOString(), '',
+      '', lat, lng, '', '',
+      inGeofence, '', now.toISOString()
+    ]);
+
+    return {
+      success: true,
+      entryId: entryId,
+      timestamp: now.toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Clock out employee
+ */
+function clockOut(params) {
+  try {
+    const employeeId = params.employeeId;
+    const lat = params.lat || '';
+    const lng = params.lng || '';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('TIME_CLOCK');
+
+    if (!sheet) {
+      return { success: false, error: 'TIME_CLOCK sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const empIdIndex = headers.indexOf('Employee_ID');
+    const clockOutIndex = headers.indexOf('Clock_Out');
+    const clockInIndex = headers.indexOf('Clock_In');
+    const hoursIndex = headers.indexOf('Hours_Worked');
+    const gpsOutLatIndex = headers.indexOf('GPS_Out_Lat');
+    const gpsOutLngIndex = headers.indexOf('GPS_Out_Lng');
+
+    const today = new Date().toISOString().split('T')[0];
+    const dateIndex = headers.indexOf('Date');
+
+    // Find today's open entry for this employee
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+      const rowDate = row[dateIndex] instanceof Date
+        ? row[dateIndex].toISOString().split('T')[0]
+        : String(row[dateIndex]).split('T')[0];
+
+      if (row[empIdIndex] === employeeId && rowDate === today && !row[clockOutIndex]) {
+        const now = new Date();
+        const clockInTime = new Date(row[clockInIndex]);
+        const hoursWorked = (now - clockInTime) / (1000 * 60 * 60);
+
+        sheet.getRange(i + 1, clockOutIndex + 1).setValue(now.toISOString());
+        sheet.getRange(i + 1, hoursIndex + 1).setValue(hoursWorked.toFixed(2));
+        sheet.getRange(i + 1, gpsOutLatIndex + 1).setValue(lat);
+        sheet.getRange(i + 1, gpsOutLngIndex + 1).setValue(lng);
+
+        return {
+          success: true,
+          hoursWorked: hoursWorked,
+          timestamp: now.toISOString()
+        };
+      }
+    }
+
+    return { success: false, error: 'No open clock-in found for today' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get time clock status for employee
+ */
+function getTimeClockStatus(params) {
+  try {
+    const employeeId = params.employeeId;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('TIME_CLOCK');
+
+    if (!sheet) {
+      return { success: true, isClockedIn: false };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const empIdIndex = headers.indexOf('Employee_ID');
+    const clockOutIndex = headers.indexOf('Clock_Out');
+    const clockInIndex = headers.indexOf('Clock_In');
+    const dateIndex = headers.indexOf('Date');
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // Check for open entry today
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+      const rowDate = row[dateIndex] instanceof Date
+        ? row[dateIndex].toISOString().split('T')[0]
+        : String(row[dateIndex]).split('T')[0];
+
+      if (row[empIdIndex] === employeeId && rowDate === today && !row[clockOutIndex]) {
+        return {
+          success: true,
+          isClockedIn: true,
+          clockInTime: row[clockInIndex]
+        };
+      }
+    }
+
+    return { success: true, isClockedIn: false };
+  } catch (error) {
+    return { success: false, error: error.toString(), isClockedIn: false };
+  }
+}
+
+/**
+ * Get time clock history for employee
+ */
+function getTimeClockHistory(params) {
+  try {
+    const employeeId = params.employeeId;
+    const period = params.period || 'week'; // week, month, all
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('TIME_CLOCK');
+
+    if (!sheet) {
+      return { success: true, entries: [], totalHours: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const empIdIndex = headers.indexOf('Employee_ID');
+
+    const entries = [];
+    let totalHours = 0;
+
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][empIdIndex] === employeeId) {
+        const entry = {};
+        headers.forEach((h, idx) => {
+          entry[h] = data[i][idx];
+        });
+
+        const entryDate = new Date(entry.Date);
+        if (period === 'week' && entryDate < weekAgo) continue;
+
+        entries.push(entry);
+        totalHours += parseFloat(entry.Hours_Worked) || 0;
+      }
+    }
+
+    return {
+      success: true,
+      entries: entries.reverse(),
+      totalHours: totalHours
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get tasks assigned to employee
+ */
+function getEmployeeTasks(params) {
+  try {
+    const employeeId = params.employeeId;
+
+    // Get planning data and convert to tasks
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!sheet) {
+      return { success: true, tasks: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const tasks = [];
+
+    const today = new Date();
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const planting = {};
+      headers.forEach((h, idx) => {
+        planting[h] = row[idx];
+      });
+
+      // Skip completed plantings
+      if (['HARVESTED', 'CANCELLED'].includes(planting.STATUS)) continue;
+
+      // Check for upcoming tasks
+      const ghSowDate = planting.Plan_GH_Sow ? new Date(planting.Plan_GH_Sow) : null;
+      const transplantDate = planting.Plan_Transplant ? new Date(planting.Plan_Transplant) : null;
+      const fieldSowDate = planting.Plan_Field_Sow ? new Date(planting.Plan_Field_Sow) : null;
+
+      // GH Sow task
+      if (ghSowDate && !planting.Act_GH_Sow && ghSowDate <= nextWeek) {
+        tasks.push({
+          id: planting.Batch_ID + '-ghsow',
+          batchId: planting.Batch_ID,
+          type: 'sow',
+          crop: planting.Crop,
+          variety: planting.Variety,
+          date: ghSowDate.toISOString().split('T')[0],
+          bed: 'Greenhouse',
+          field: 'GH',
+          quantity: planting.Trays_Needed + ' trays',
+          status: planting.STATUS
+        });
+      }
+
+      // Transplant task
+      if (transplantDate && !planting.Act_Transplant && planting.Act_GH_Sow && transplantDate <= nextWeek) {
+        tasks.push({
+          id: planting.Batch_ID + '-transplant',
+          batchId: planting.Batch_ID,
+          type: 'transplant',
+          crop: planting.Crop,
+          variety: planting.Variety,
+          date: transplantDate.toISOString().split('T')[0],
+          bed: planting.Target_Bed_ID,
+          field: planting.Field,
+          quantity: planting.Plants_Needed + ' plants',
+          status: planting.STATUS
+        });
+      }
+
+      // Field sow task
+      if (fieldSowDate && !planting.Act_Field_Sow && fieldSowDate <= nextWeek) {
+        tasks.push({
+          id: planting.Batch_ID + '-fieldsow',
+          batchId: planting.Batch_ID,
+          type: 'sow',
+          crop: planting.Crop,
+          variety: planting.Variety,
+          date: fieldSowDate.toISOString().split('T')[0],
+          bed: planting.Target_Bed_ID,
+          field: planting.Field,
+          quantity: planting.Feet_Used + ' ft',
+          status: planting.STATUS
+        });
+      }
+    }
+
+    // Sort by date
+    tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    return { success: true, tasks: tasks };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Complete task with GPS coordinates
+ */
+function completeTaskWithGPS(params) {
+  try {
+    const taskId = params.taskId;
+    const employeeId = params.employeeId;
+    const lat = params.lat || '';
+    const lng = params.lng || '';
+
+    // Parse task ID to get batch ID and task type
+    const parts = taskId.split('-');
+    const taskType = parts.pop(); // ghsow, transplant, fieldsow
+    const batchId = parts.join('-');
+
+    // Map task type to actual date column
+    let dateColumn;
+    let statusValue;
+    if (taskType === 'ghsow') {
+      dateColumn = 'Act_GH_Sow';
+      statusValue = 'Sown';
+    } else if (taskType === 'transplant') {
+      dateColumn = 'Act_Transplant';
+      statusValue = 'PLANTED';
+    } else if (taskType === 'fieldsow') {
+      dateColumn = 'Act_Field_Sow';
+      statusValue = 'PLANTED';
+    }
+
+    if (!dateColumn) {
+      return { success: false, error: 'Unknown task type' };
+    }
+
+    // Update the planting record
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!sheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const batchIndex = headers.indexOf('Batch_ID');
+    const dateIndex = headers.indexOf(dateColumn);
+    const statusIndex = headers.indexOf('STATUS');
+
+    const today = new Date().toISOString().split('T')[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][batchIndex] === batchId) {
+        sheet.getRange(i + 1, dateIndex + 1).setValue(today);
+        sheet.getRange(i + 1, statusIndex + 1).setValue(statusValue);
+
+        // Log to MASTER_LOG
+        logToMasterLog({
+          action: 'TASK_COMPLETE',
+          batchId: batchId,
+          taskType: taskType,
+          employeeId: employeeId,
+          lat: lat,
+          lng: lng,
+          timestamp: new Date().toISOString()
+        });
+
+        return { success: true, batchId: batchId, taskType: taskType };
+      }
+    }
+
+    return { success: false, error: 'Batch not found: ' + batchId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log harvest with full details
+ */
+function logHarvestWithDetails(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('HARVEST_LOG');
+
+    // Create HARVEST_LOG sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('HARVEST_LOG');
+      sheet.appendRow([
+        'Harvest_ID', 'Timestamp', 'Batch_ID', 'Crop', 'Variety',
+        'Bed_ID', 'Quantity', 'Unit', 'Quality_Grade', 'Lot_Number',
+        'GPS_Lat', 'GPS_Lng', 'Photo_URL', 'Harvested_By', 'Notes', 'Synced_At'
+      ]);
+    }
+
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+    const cropCode = (params.crop || 'UNK').substring(0, 3).toUpperCase();
+
+    // Generate lot number
+    const lotNumber = dateStr + '-' + cropCode + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const harvestId = 'HV-' + lotNumber;
+
+    sheet.appendRow([
+      harvestId,
+      now.toISOString(),
+      params.batchId || '',
+      params.crop || '',
+      params.variety || '',
+      params.bed || '',
+      params.quantity || '',
+      params.unit || 'lbs',
+      params.quality || 'A',
+      lotNumber,
+      params.lat || '',
+      params.lng || '',
+      params.photo || '',
+      params.employeeId || '',
+      params.notes || '',
+      now.toISOString()
+    ]);
+
+    return {
+      success: true,
+      harvestId: harvestId,
+      lotNumber: lotNumber
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Save scouting report
+ */
+function saveScoutingReport(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('FIELD_SCOUTING');
+
+    // Create FIELD_SCOUTING sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('FIELD_SCOUTING');
+      sheet.appendRow([
+        'Scout_ID', 'Date', 'Time', 'Employee_ID', 'Field_ID',
+        'Bed_ID', 'Observation_Type', 'Severity', 'Organism_ID',
+        'Photo_URL', 'GPS_Lat', 'GPS_Lng', 'Notes', 'AI_Diagnosis',
+        'Recommended_Action', 'Followup_Date', 'Synced_At'
+      ]);
+    }
+
+    const now = new Date();
+    const scoutId = 'SC-' + now.toISOString().split('T')[0].replace(/-/g, '') + '-' +
+                    Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+
+    sheet.appendRow([
+      scoutId,
+      now.toISOString().split('T')[0],
+      now.toTimeString().split(' ')[0],
+      params.employeeId || '',
+      params.field || '',
+      params.bed || '',
+      params.type || '',
+      params.severity || 'medium',
+      params.organismId || '',
+      params.photo || '',
+      params.lat || '',
+      params.lng || '',
+      params.notes || '',
+      params.aiDiagnosis || '',
+      params.recommendedAction || '',
+      params.followupDate || '',
+      now.toISOString()
+    ]);
+
+    return { success: true, scoutId: scoutId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Report field hazard
+ */
+function reportHazard(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('FIELD_HAZARDS');
+
+    // Create FIELD_HAZARDS sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('FIELD_HAZARDS');
+      sheet.appendRow([
+        'Hazard_ID', 'Date_Reported', 'Employee_ID', 'Field_ID',
+        'Hazard_Type', 'Severity', 'GPS_Lat', 'GPS_Lng',
+        'Photo_URL', 'Description', 'Status', 'Resolved_By',
+        'Resolved_Date', 'Synced_At'
+      ]);
+    }
+
+    const now = new Date();
+    const hazardId = 'HZ-' + now.toISOString().split('T')[0].replace(/-/g, '') + '-' +
+                     Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+
+    sheet.appendRow([
+      hazardId,
+      now.toISOString(),
+      params.employeeId || '',
+      params.field || '',
+      params.type || 'Other',
+      params.severity || 'medium',
+      params.lat || '',
+      params.lng || '',
+      params.photo || '',
+      params.description || '',
+      'Reported',
+      '',
+      '',
+      now.toISOString()
+    ]);
+
+    return { success: true, hazardId: hazardId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get active (unresolved) hazards
+ */
+function getActiveHazards(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('FIELD_HAZARDS');
+
+    if (!sheet) {
+      return { success: true, hazards: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const hazards = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const hazard = {};
+      headers.forEach((h, idx) => {
+        hazard[h] = data[i][idx];
+      });
+
+      if (hazard.Status !== 'Resolved') {
+        hazards.push(hazard);
+      }
+    }
+
+    return { success: true, hazards: hazards };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Helper function to log actions to MASTER_LOG
+ */
+function logToMasterLog(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('MASTER_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('MASTER_LOG');
+      sheet.appendRow(['Timestamp', 'Action', 'Details', 'Employee_ID', 'GPS_Lat', 'GPS_Lng']);
+    }
+
+    sheet.appendRow([
+      data.timestamp || new Date().toISOString(),
+      data.action || '',
+      JSON.stringify(data),
+      data.employeeId || '',
+      data.lat || '',
+      data.lng || ''
+    ]);
+
+    return true;
+  } catch (error) {
+    console.error('Error logging to MASTER_LOG:', error);
+    return false;
+  }
 }
 
