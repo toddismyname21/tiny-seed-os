@@ -63,6 +63,8 @@ function doGet(e) {
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
         return testConnection();
+      case 'populateTraySizes':
+        return jsonResponse(populateTraySizesFromProfiles());
 
   case 'updateTaskCompletion':
     return jsonResponse(updateTaskCompletion(e.parameter));
@@ -665,6 +667,116 @@ function getPlanningData() {
       success: false,
       error: error.toString()
     });
+  }
+}
+
+// ============================================
+// POPULATE TRAY SIZES FROM CROP PROFILES
+// ============================================
+
+/**
+ * One-time function to populate Tray_Cell_Count (column AC) in PLANNING_2026
+ * Uses crop profiles to look up default tray sizes for each planting
+ */
+function populateTraySizesFromProfiles() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+    const profileSheet = ss.getSheetByName('REF_CropProfiles');
+
+    if (!planSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+    if (!profileSheet) {
+      return { success: false, error: 'REF_CropProfiles sheet not found' };
+    }
+
+    // Get planning data
+    const planData = planSheet.getDataRange().getValues();
+    const planHeaders = planData[0];
+
+    // Find column indices
+    const cropCol = planHeaders.indexOf('Crop');
+    const varietyCol = planHeaders.indexOf('Variety');
+    const methodCol = planHeaders.indexOf('Planting_Method');
+    const traySizeCol = planHeaders.indexOf('Tray_Cell_Count');
+
+    if (traySizeCol === -1) {
+      return { success: false, error: 'Tray_Cell_Count column not found in PLANNING_2026. Please add it as column AC.' };
+    }
+
+    // Build crop profile lookup map
+    const profileData = profileSheet.getDataRange().getValues();
+    const profileHeaders = profileData[0];
+    const profCropCol = profileHeaders.indexOf('Crop') !== -1 ? profileHeaders.indexOf('Crop') : 0;
+    const profVarietyCol = profileHeaders.indexOf('Variety') !== -1 ? profileHeaders.indexOf('Variety') : 5;
+    const profTraySizeCol = profileHeaders.indexOf('Tray_Size') !== -1 ? profileHeaders.indexOf('Tray_Size') :
+                           profileHeaders.indexOf('TraySize') !== -1 ? profileHeaders.indexOf('TraySize') : 15; // Column P = index 15
+
+    const profileMap = {};
+    for (let i = 1; i < profileData.length; i++) {
+      const crop = (profileData[i][profCropCol] || '').toString().trim().toLowerCase();
+      const variety = (profileData[i][profVarietyCol] || '').toString().trim().toLowerCase();
+      const traySize = profileData[i][profTraySizeCol];
+      if (crop) {
+        // Store with variety
+        profileMap[crop + '|' + variety] = traySize || 72;
+        // Also store crop-only as fallback
+        if (!profileMap[crop + '|']) {
+          profileMap[crop + '|'] = traySize || 72;
+        }
+      }
+    }
+
+    // Process each planting row
+    let updated = 0;
+    let skipped = 0;
+    const updates = [];
+
+    for (let i = 1; i < planData.length; i++) {
+      const row = planData[i];
+      const crop = (row[cropCol] || '').toString().trim().toLowerCase();
+      const variety = (row[varietyCol] || '').toString().trim().toLowerCase();
+      const method = (row[methodCol] || '').toString().toLowerCase();
+      const currentTraySize = row[traySizeCol];
+
+      // Skip if already has a tray size
+      if (currentTraySize && currentTraySize !== '' && currentTraySize !== 0) {
+        skipped++;
+        continue;
+      }
+
+      // Skip direct seed - they don't use trays
+      if (method.includes('direct')) {
+        skipped++;
+        continue;
+      }
+
+      // Look up tray size from profile
+      let traySize = profileMap[crop + '|' + variety] || profileMap[crop + '|'] || 72;
+
+      updates.push({
+        row: i + 1,
+        col: traySizeCol + 1,
+        value: traySize
+      });
+      updated++;
+    }
+
+    // Batch update all cells
+    updates.forEach(u => {
+      planSheet.getRange(u.row, u.col).setValue(u.value);
+    });
+
+    return {
+      success: true,
+      message: `Populated tray sizes: ${updated} updated, ${skipped} skipped (already set or direct seed)`,
+      updated: updated,
+      skipped: skipped
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
   }
 }
 
