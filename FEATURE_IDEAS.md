@@ -3,11 +3,16 @@
 ## Priority Features (User Defined)
 
 ### Soil Management System
-- **Soil Test Tracker** - Store current and archived soil tests by field/bed
-- **Albrecht Method Integration** - Soil balancing calculations using Albrecht/Base Cation Saturation Ratio (BCSR) method
-- **Steve Solomon References** - Incorporate guidance from Steve Solomon's fertility approach
-- **Soil Amendment Calculator** - Calculate amendment recommendations based on:
-  - Most recent soil test results
+- [x] **Soil Test Tracker** - Store current and archived soil tests by field/bed (BUILT)
+- [x] **Albrecht Method Integration** - Soil balancing calculations using Albrecht/Base Cation Saturation Ratio (BCSR) method (BUILT)
+- [x] **Steve Solomon References** - Incorporate guidance from Steve Solomon's fertility approach (BUILT)
+- [x] **Soil Amendment Calculator** - Calculate amendment recommendations based on soil tests (BUILT)
+- [x] **Amendments Database** - Comprehensive database of 70+ amendments with NPK, application rates, sources (BUILT)
+  - Ohio Earth Food products integrated
+  - Advancing Eco Agriculture products integrated
+  - Soil Food Web/Dr. Elaine Ingham biological approaches
+  - OMRI listing indicators
+- **Crop-Based Amendment Adjustments** - Adjust recommendations based on:
   - Target crop nutrient requirements
   - Field/bed history
 
@@ -54,9 +59,7 @@
 - Watering Log - Track irrigation events, duration, crop needs
 - System Maintenance - Track filter cleanings, line repairs, winterization
 
-### Weed Management
-- Weed Pressure Tracker - Log problem weeds by field/bed
-- Cultivation Log - Track cultivation passes, methods, timing
+
 
 ### Pest & Disease Management
 - Scouting Log - Record pest observations with photos, severity ratings
@@ -78,6 +81,10 @@
 - [x] Task Manager (tasks.html)
 - [x] Weather Dashboard (weather.html)
 - [x] Inventory Tracker (inventory.html)
+- [x] Soil Test Tracker (soil-tests.html) - Includes:
+  - Logan Labs PDF parsing
+  - Amendment Calculator (Albrecht/Solomon method)
+  - Comprehensive Amendments Database (70+ products)
 
 ---
 

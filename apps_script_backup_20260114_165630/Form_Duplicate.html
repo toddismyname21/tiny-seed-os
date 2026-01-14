@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+      body { padding: 0; margin: 0; font-family: 'Google Sans', Roboto, Arial; font-size: 13px; display: flex; flex-direction: column; height: 100vh; background: #f8f9fa; }
+      
+      .top-bar { padding: 15px; background: white; border-bottom: 1px solid #ddd; display: flex; gap: 10px; align-items: flex-end; }
+      .control-group { flex: 1; }
+      label { display: block; font-weight: bold; font-size: 11px; color: #5f6368; margin-bottom: 4px; }
+      input, select { width: 100%; padding: 6px; border: 1px solid #dadce0; border-radius: 4px; box-sizing: border-box; }
+
+      .main-content { display: flex; flex: 1; overflow: hidden; }
+      
+      .panel-left { width: 40%; border-right: 1px solid #ddd; display: flex; flex-direction: column; background: white; }
+      .panel-header { padding: 10px; font-weight: bold; background: #f1f3f4; border-bottom: 1px solid #e0e0e0; color: #202124; }
+      .scroll-area { flex: 1; overflow-y: auto; padding: 0; }
+      
+      .bed-card { padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; display: flex; align-items: center; }
+      .bed-card:hover { background: #f8f9fa; }
+      .bed-card.selected { background: #e8f0fe; border-left: 4px solid #1a73e8; }
+      .bed-info { flex: 1; margin-left: 10px; }
+      .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+      .status-dot.green { background: #188038; } .status-dot.red { background: #d93025; }
+
+      .panel-right { flex: 1; display: flex; flex-direction: column; background: #fff; }
+      .crop-list { padding: 15px; overflow-y: auto; flex: 1; }
+      
+      /* Updated Crop Card */
+      .crop-card { display: flex; align-items: center; background: white; border: 1px solid #dadce0; padding: 8px; border-radius: 6px; margin-bottom: 8px; }
+      .crop-details { flex: 1; }
+      .crop-title { font-weight: 500; font-size: 13px; }
+      .crop-sub { font-size: 11px; color: #666; }
+      
+      /* New Mini Inputs */
+      .mini-group { display: flex; flex-direction: column; margin-right: 8px; align-items: center; }
+      .mini-label { font-size: 9px; color: #888; margin-bottom: 2px; text-transform: uppercase; }
+      .mini-input { width: 35px; text-align: center; padding: 4px; border: 1px solid #eee; background: #f9f9f9; border-radius: 3px; font-size: 11px; }
+      
+      .crop-input { width: 60px; text-align: right; font-weight: bold; color: #1a73e8; padding: 6px; border: 1px solid #ccc; border-radius: 4px;}
+      .crop-input:disabled { background: #eee; color: #333; }
+
+      .bottom-bar { padding: 15px; background: white; border-top: 1px solid #ddd; }
+      .fill-toggle { display: flex; align-items: center; margin-bottom: 10px; font-weight: bold; cursor: pointer; color: #1a73e8; }
+      .progress-track { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; width: 100%; margin-bottom: 10px; }
+      .progress-fill { height: 100%; background: #1a73e8; width: 0%; transition: width 0.3s; }
+      .progress-fill.full { background: #188038; }
+      
+      button.primary { width: 100%; padding: 10px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+      button.primary:disabled { background: #dadce0; color: #888; cursor: not-allowed; }
+    </style>
+  </head>
+  <body>
+
+    <div class="top-bar">
+      <div class="control-group">
+        <label>Anchor Date</label>
+        <input type="date" id="datePicker" onchange="refreshBedAvailability()">
+      </div>
+      <div class="control-group">
+        <label>Type</label>
+        <select id="anchorType">
+          <option value="transplant">Transplant</option>
+          <option value="gh_sow">GH Sow</option>
+          <option value="harvest">Harvest</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="panel-left">
+        <div class="panel-header">Select Target Beds</div>
+        <div class="scroll-area" id="bedList">
+          <div style="padding:15px; color:#666;">Loading...</div>
+        </div>
+      </div>
+
+      <div class="panel-right">
+        <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Crops</span>
+          <label class="fill-toggle">
+            <input type="checkbox" id="fillMode" onchange="toggleSmartFill()"> Smart Fill
+          </label>
+        </div>
+        <div class="crop-list" id="cropList"></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; font-weight:bold;">
+        <span id="capText">Capacity</span>
+        <span id="capNums">--</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressBar"></div>
+      </div>
+      <button class="primary" id="btnSubmit" disabled onclick="submitForm()">Duplicate</button>
+    </div>
+
+    <script>
+      let globalData = null;
+      let selectedBedIds = new Set(); 
+
+      google.script.run.withSuccessHandler(init).getDuplicateInitData();
+
+      function init(data) {
+        globalData = data;
+        document.getElementById('datePicker').valueAsDate = new Date();
+        renderCrops(data.selectedCrops);
+        refreshBedAvailability();
+      }
+
+      function refreshBedAvailability() {
+        const dateVal = document.getElementById('datePicker').value;
+        const selectedTime = new Date(dateVal).getTime();
+        const container = document.getElementById('bedList');
+        container.innerHTML = ''; 
+
+        globalData.beds.forEach(bed => {
+          let used = 0;
+          globalData.bookings.forEach(bk => {
+             if (bk.bedId === bed.id && selectedTime >= bk.start && selectedTime <= bk.end) used += bk.feet;
+          });
+          let free = bed.length - used;
+          let isSel = selectedBedIds.has(bed.id) ? "selected" : "";
+          
+          let div = document.createElement('div');
+          div.className = `bed-card ${isSel}`;
+          div.onclick = () => toggleBed(bed.id);
+          div.innerHTML = `
+            <div class="status-dot ${free<=0?'red':'green'}"></div>
+            <div class="bed-info">
+              <div style="font-weight:600;">${bed.id}</div>
+              <div style="font-size:11px;color:#666;">${free}' Free</div>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      function renderCrops(crops) {
+        const container = document.getElementById('cropList');
+        container.innerHTML = '';
+        crops.forEach((c, idx) => {
+          let div = document.createElement('div');
+          div.className = 'crop-card';
+          // ADDED: Rows and Spacing Inputs
+          div.innerHTML = `
+            <div class="crop-details">
+              <div style="font-weight:500;">${c.crop}</div>
+              <div style="font-size:11px;color:#666;">${c.variety}</div>
+            </div>
+            
+            <div class="mini-group">
+              <label class="mini-label">Rows</label>
+              <input type="number" class="mini-input row-input" data-idx="${idx}" value="${c.defRows}">
+            </div>
+            <div class="mini-group">
+              <label class="mini-label">Space</label>
+              <input type="number" class="mini-input space-input" data-idx="${idx}" value="${c.defSpace}">
+            </div>
+
+            <div class="mini-group" style="align-items:flex-end;">
+              <label class="mini-label">Feet</label>
+              <input type="text" class="crop-input foot-input" data-idx="${idx}" value="${c.currentFeet}" oninput="updateMath()">
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      function toggleBed(id) {
+        if (selectedBedIds.has(id)) selectedBedIds.delete(id); else selectedBedIds.add(id);
+        refreshBedAvailability();
+        
+        if (!document.getElementById('fillMode').checked && selectedBedIds.size > 0) {
+           const firstId = Array.from(selectedBedIds)[0];
+           const len = globalData.beds.find(b => b.id === firstId).length;
+           const inputs = document.querySelectorAll('.foot-input');
+           const share = Math.floor(len / inputs.length);
+           inputs.forEach(i => i.value = share);
+        }
+        updateMath();
+      }
+
+      function toggleSmartFill() {
+        const isSmart = document.getElementById('fillMode').checked;
+        const inputs = document.querySelectorAll('.foot-input');
+        
+        inputs.forEach(i => {
+          if (isSmart) {
+             i.dataset.oldVal = i.value; 
+             i.value = "AUTO";
+             i.disabled = true;
+          } else {
+             i.value = i.dataset.oldVal || 100;
+             i.disabled = false;
+          }
+        });
+        updateMath();
+      }
+
+      function updateMath() {
+        const btn = document.getElementById('btnSubmit');
+        const isSmart = document.getElementById('fillMode').checked;
+        
+        if (selectedBedIds.size === 0) {
+          btn.disabled = true;
+          document.getElementById('progressBar').style.width = "0%";
+          return;
+        }
+
+        if (isSmart) {
+          document.getElementById('capText').textContent = "Smart Fill Active";
+          document.getElementById('capNums').textContent = "100% Capacity";
+          document.getElementById('progressBar').style.width = "100%";
+          document.getElementById('progressBar').className = "progress-fill full";
+          btn.disabled = false;
+        } else {
+          let total = 0;
+          document.querySelectorAll('.foot-input').forEach(i => total += Number(i.value));
+          
+          let minCap = 9999;
+          selectedBedIds.forEach(id => {
+             let b = globalData.beds.find(x => x.id === id);
+             if (b.length < minCap) minCap = b.length;
+          });
+
+          let pct = (total / minCap) * 100;
+          document.getElementById('progressBar').style.width = Math.min(pct, 100) + "%";
+          document.getElementById('capNums').textContent = `${total}' / ${minCap}'`;
+          
+          if (total > minCap) {
+             document.getElementById('capText').textContent = "⚠️ Over Capacity";
+             document.getElementById('capText').style.color = "#d93025";
+          } else {
+             document.getElementById('capText').textContent = "Looks Good";
+             document.getElementById('capText').style.color = "#188038";
+          }
+          btn.disabled = false;
+        }
+      }
+
+      function submitForm() {
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        const allocations = [];
+        // Capture Rows/Space/Feet from the specific index
+        const footInputs = document.querySelectorAll('.foot-input');
+        const rowInputs = document.querySelectorAll('.row-input');
+        const spaceInputs = document.querySelectorAll('.space-input');
+
+        footInputs.forEach((input, i) => {
+          let idx = input.dataset.idx;
+          let val = input.value === "AUTO" ? 0 : Number(input.value); 
+          
+          allocations.push({ 
+            rowIndex: globalData.selectedCrops[idx].rowIndex, 
+            feet: val,
+            // Capture Density Overrides
+            newRows: Number(rowInputs[i].value) || 1,
+            newSpace: Number(spaceInputs[i].value) || 12
+          });
+        });
+
+        const payload = {
+          bedIds: Array.from(selectedBedIds),
+          allocations: allocations,
+          date: document.getElementById('datePicker').value,
+          type: document.getElementById('anchorType').value,
+          fillMode: document.getElementById('fillMode').checked
+        };
+
+        google.script.run
+          .withSuccessHandler(() => google.script.host.close())
+          .withFailureHandler(err => { alert(err); btn.disabled = false; })
+          .processAllocatedDuplication(payload);
+      }
+    </script>
+  </body>
+</html>
