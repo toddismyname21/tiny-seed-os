@@ -199,6 +199,8 @@ function doGet(e) {
         return jsonResponse(authenticateDriver(e.parameter));
       case 'getDeliveryDrivers':
         return jsonResponse(getDeliveryDrivers(e.parameter));
+      case 'getDeliveryHistory':
+        return jsonResponse(getDeliveryHistory(e.parameter));
 
       // ============ FLEET MANAGEMENT ============
       case 'getFleetAssets':
@@ -343,6 +345,8 @@ function doPost(e) {
         return jsonResponse(reportDeliveryIssue(data));
       case 'updateDeliveryETA':
         return jsonResponse(updateDeliveryETA(data));
+      case 'updateDeliveryStopStatus':
+        return jsonResponse(updateDeliveryStopStatusFromWeb(data));
 
       // ============ FLEET MANAGEMENT ACTIONS ============
       case 'createFleetAsset':
@@ -6259,6 +6263,52 @@ function authenticateDriver(params) {
   }
 }
 
+function getDeliveryHistory(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+
+    if (!stopsSheet) {
+      return { success: true, deliveries: [] };
+    }
+
+    const driverId = params.driverId;
+    const days = parseInt(params.days) || 7;
+
+    const data = stopsSheet.getDataRange().getValues();
+    const headers = data[0];
+    const driverIdCol = headers.indexOf('Driver_ID');
+    const dateCol = headers.indexOf('Delivery_Date');
+    const statusCol = headers.indexOf('Status');
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    let deliveries = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const deliveryDate = new Date(row[dateCol]);
+
+      // Filter by driver and date range
+      if (row[driverIdCol] === driverId && deliveryDate >= cutoffDate) {
+        let delivery = {};
+        headers.forEach((h, j) => {
+          delivery[h] = row[j];
+        });
+        deliveries.push(delivery);
+      }
+    }
+
+    // Sort by date descending
+    deliveries.sort((a, b) => new Date(b.Delivery_Date) - new Date(a.Delivery_Date));
+
+    return { success: true, deliveries: deliveries };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
 function createDeliveryRoute(data) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -6464,6 +6514,29 @@ function updateDeliveryStopStatus(sheet, stopId, status, timestamp, photoUrl, si
       if (lng) sheet.getRange(i + 1, headers.indexOf('GPS_Lng') + 1).setValue(lng);
       break;
     }
+  }
+}
+
+function updateDeliveryStopStatusFromWeb(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+
+    if (!stopsSheet) {
+      return { success: false, error: 'Delivery stops sheet not found' };
+    }
+
+    updateDeliveryStopStatus(
+      stopsSheet,
+      data.stopId,
+      data.status,
+      data.timestamp || new Date().toISOString(),
+      null, null, null, null
+    );
+
+    return { success: true, message: 'Stop status updated' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
   }
 }
 

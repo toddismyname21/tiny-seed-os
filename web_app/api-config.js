@@ -452,6 +452,14 @@ class DriverAPI extends TinySeedAPI {
     async updateStopStatus(stopId, status, timestamp) {
         return this.post('updateDeliveryStopStatus', { stopId, status, timestamp });
     }
+
+    async getDeliveryHistory(driverId, days = 7) {
+        return this.get('getDeliveryHistory', { driverId, days });
+    }
+
+    async getDriverRoute(driverId, date) {
+        return this.get('getDriverRoute', { driverId, date });
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
