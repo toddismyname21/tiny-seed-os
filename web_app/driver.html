@@ -1668,39 +1668,19 @@
     <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
     <input type="file" id="issuePhotoInput" accept="image/*" capture="environment" onchange="handleIssuePhoto(event)">
 
-    <!-- Load shared API configuration -->
-    <script src="api-config.js"></script>
+    <!-- API configuration removed - using self-contained version -->
 
     <script>
         // ============================================
-        // DRIVER API CLASS (stub for demo)
+        // SELF-CONTAINED DRIVER API (no dependencies)
         // ============================================
-        class DriverAPI {
-            constructor() {
-                this.baseUrl = '';
-            }
-            async authenticateDriver(pin) {
-                return { success: false };
-            }
-            async getDriverRoute(driverId, date) {
-                return { success: false };
-            }
-            async getDeliveryHistory(driverId, days) {
-                return { success: false };
-            }
-            async updateDeliveryStatus(data) {
-                console.log('Delivery updated:', data);
-                return { success: true };
-            }
-            async updateDriverLocation(data) {
-                return { success: true };
-            }
-        }
-
-        // ============================================
-        // API INSTANCE
-        // ============================================
-        const api = new DriverAPI();
+        var api = {
+            authenticateDriver: function(pin) { return Promise.resolve({ success: false }); },
+            getDriverRoute: function(driverId, date) { return Promise.resolve({ success: false }); },
+            getDeliveryHistory: function(driverId, days) { return Promise.resolve({ success: false, deliveries: [] }); },
+            updateDeliveryStatus: function(data) { console.log('Delivery:', data); return Promise.resolve({ success: true }); },
+            updateDriverLocation: function(data) { return Promise.resolve({ success: true }); }
+        };
 
         // ============================================
         // APPLICATION STATE
