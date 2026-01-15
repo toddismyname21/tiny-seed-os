@@ -18,6 +18,7 @@
 # Environment and credentials
 .env
 credentials.json
+apps_script/   # Contains Twilio credentials - never commit to public repo
 
 # IDE
 .idea/
