@@ -1548,6 +1548,61 @@
             0%, 100% { box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4); }
             50% { box-shadow: 0 2px 20px rgba(59, 130, 246, 0.8); }
         }
+
+        /* Farm Depot Marker */
+        .depot-marker {
+            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: 4px solid white;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.5);
+            animation: depot-pulse 3s infinite;
+        }
+
+        @keyframes depot-pulse {
+            0%, 100% {
+                box-shadow: 0 4px 12px rgba(34, 197, 94, 0.5);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(34, 197, 94, 0.8);
+                transform: scale(1.05);
+            }
+        }
+
+        /* Route summary card */
+        .route-summary {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-around;
+            gap: 12px;
+        }
+
+        .route-stat {
+            text-align: center;
+        }
+
+        .route-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .route-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
 <body>
@@ -3117,9 +3172,52 @@
             renderStops();
             renderHistory();
 
+            // Auto re-optimize remaining stops if route was optimized
+            if (AppState.route.optimized) {
+                autoReoptimizeRoute();
+            }
+
             closeModal('podModal');
             btn.disabled = false;
             btn.textContent = 'Complete Delivery';
+        }
+
+        // Auto re-optimize remaining route after delivery/skip
+        async function autoReoptimizeRoute() {
+            var remainingStops = AppState.route.stops.filter(function(s) {
+                return s.status === 'pending' && s.lat && s.lng;
+            });
+
+            if (remainingStops.length < 2) {
+                console.log('Not enough remaining stops to re-optimize');
+                return;
+            }
+
+            console.log('Auto re-optimizing ' + remainingStops.length + ' remaining stops...');
+
+            try {
+                var result = await RouteOptimizer.reoptimizeRemaining(remainingStops);
+
+                if (result.success) {
+                    // Update stops order
+                    var completedStops = AppState.route.stops.filter(function(s) {
+                        return s.status !== 'pending';
+                    });
+
+                    AppState.route.stops = completedStops.concat(result.stops);
+                    AppState.route.totalDistance = result.totalDistance;
+                    AppState.route.totalTime = result.totalTime;
+
+                    // Re-render
+                    renderStops();
+                    renderMapMarkers();
+
+                    console.log('Route re-optimized: ' + result.totalDistance.toFixed(1) + ' miles remaining');
+                    showNotificationToast('Route re-optimized for remaining stops');
+                }
+            } catch (error) {
+                console.error('Re-optimization error:', error);
+            }
         }
 
         // ============================================
@@ -3226,6 +3324,11 @@
             updateRouteStats();
             renderStops();
             renderHistory();
+
+            // Auto re-optimize remaining stops if route was optimized
+            if (AppState.route.optimized) {
+                autoReoptimizeRoute();
+            }
 
             closeModal('issueModal');
             btn.disabled = false;
@@ -3452,10 +3555,10 @@
             var mapContainer = document.getElementById('deliveryMap');
             if (!mapContainer) return;
 
-            // Default center (Pittsburgh area)
-            var defaultCenter = [40.4406, -79.9959];
+            // Center on farm depot
+            var defaultCenter = [FARM_DEPOT.lat, FARM_DEPOT.lng];
 
-            deliveryMap = L.map('deliveryMap').setView(defaultCenter, 12);
+            deliveryMap = L.map('deliveryMap').setView(defaultCenter, 11);
 
             // Add OpenStreetMap tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -3469,6 +3572,8 @@
             }
         }
 
+        var depotMarker = null; // Track depot marker separately
+
         function renderMapMarkers() {
             if (!deliveryMap) return;
 
@@ -3478,16 +3583,44 @@
             });
             mapMarkers = [];
 
+            if (depotMarker) {
+                deliveryMap.removeLayer(depotMarker);
+                depotMarker = null;
+            }
+
             if (routeLine) {
                 deliveryMap.removeLayer(routeLine);
                 routeLine = null;
             }
 
             var stops = AppState.route.stops;
-            if (stops.length === 0) return;
-
             var bounds = [];
             var routeCoords = [];
+
+            // Add farm depot marker (start/end point)
+            var depotIcon = L.divIcon({
+                className: '',
+                html: '<div class="depot-marker">&#x1F331;</div>',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+
+            depotMarker = L.marker([FARM_DEPOT.lat, FARM_DEPOT.lng], { icon: depotIcon })
+                .bindPopup(
+                    '<strong>' + FARM_DEPOT.name + '</strong><br>' +
+                    '<em>Route Start & End Point</em><br>' +
+                    FARM_DEPOT.address
+                )
+                .addTo(deliveryMap);
+
+            bounds.push([FARM_DEPOT.lat, FARM_DEPOT.lng]);
+            routeCoords.push([FARM_DEPOT.lat, FARM_DEPOT.lng]); // Start at depot
+
+            if (stops.length === 0) {
+                // Just show depot if no stops
+                deliveryMap.setView([FARM_DEPOT.lat, FARM_DEPOT.lng], 12);
+                return;
+            }
 
             stops.forEach(function(stop, index) {
                 if (!stop.lat || !stop.lng) return;
@@ -3521,13 +3654,16 @@
                 routeCoords.push([stop.lat, stop.lng]);
             });
 
-            // Draw route line
+            // Add return to depot
+            routeCoords.push([FARM_DEPOT.lat, FARM_DEPOT.lng]);
+
+            // Draw route line (depot -> stops -> depot)
             if (routeCoords.length > 1) {
                 routeLine = L.polyline(routeCoords, {
-                    color: '#3b82f6',
+                    color: '#22c55e',
                     weight: 4,
-                    opacity: 0.7,
-                    dashArray: '10, 10'
+                    opacity: 0.8,
+                    dashArray: '10, 5'
                 }).addTo(deliveryMap);
             }
 
@@ -3599,9 +3735,815 @@
         }
 
         // ============================================
-        // ROUTE OPTIMIZATION (Nearest Neighbor Algorithm)
+        // PRODUCTION-GRADE ROUTE OPTIMIZATION ENGINE
+        // Based on OR-Tools patterns and VRP best practices
         // ============================================
-        function optimizeRoute() {
+
+        // Farm Depot Configuration - MUST start and end here
+        const FARM_DEPOT = {
+            id: 'DEPOT',
+            name: 'Tiny Seed Farm',
+            lat: 40.7945,  // Zelienople area
+            lng: -80.1393,
+            address: 'Farm Depot - Start/End Point'
+        };
+
+        // Route Optimizer - Production Grade
+        const RouteOptimizer = {
+            // Configuration
+            config: {
+                useRealDistances: true,  // Use OSRM API for real driving distances
+                osrmServer: 'https://router.project-osrm.org',  // Public OSRM server
+                maxIterations: 1000,     // Max improvement iterations
+                saInitialTemp: 100,      // Simulated annealing initial temperature
+                saCoolingRate: 0.995,    // Cooling rate for SA
+                timeWindowPenalty: 1000, // Penalty for time window violations (minutes)
+                returnToDepot: true      // Must return to farm at end
+            },
+
+            // Distance/Time matrix cache
+            distanceMatrix: null,
+            timeMatrix: null,
+
+            // Haversine distance (fallback when OSRM unavailable)
+            haversineDistance: function(lat1, lng1, lat2, lng2) {
+                var R = 3959; // Earth radius in miles
+                var dLat = (lat2 - lat1) * Math.PI / 180;
+                var dLng = (lng2 - lng1) * Math.PI / 180;
+                var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                        Math.sin(dLng/2) * Math.sin(dLng/2);
+                var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return R * c;
+            },
+
+            // Estimate driving time from distance (fallback)
+            estimateDrivingTime: function(distanceMiles) {
+                // Assume average 30 mph for delivery routes (rural/suburban mix)
+                return (distanceMiles / 30) * 60; // Return minutes
+            },
+
+            // Fetch real driving distances from OSRM
+            fetchDistanceMatrix: async function(locations) {
+                try {
+                    // Build coordinates string for OSRM
+                    var coords = locations.map(function(loc) {
+                        return loc.lng + ',' + loc.lat;
+                    }).join(';');
+
+                    var url = this.config.osrmServer + '/table/v1/driving/' + coords +
+                              '?annotations=distance,duration';
+
+                    console.log('Fetching distance matrix from OSRM...');
+                    var response = await fetch(url);
+                    var data = await response.json();
+
+                    if (data.code === 'Ok') {
+                        console.log('OSRM matrix fetched successfully');
+                        return {
+                            distances: data.distances, // meters
+                            durations: data.durations  // seconds
+                        };
+                    } else {
+                        console.warn('OSRM returned error:', data.code);
+                        return null;
+                    }
+                } catch (error) {
+                    console.warn('OSRM fetch failed, using haversine fallback:', error.message);
+                    return null;
+                }
+            },
+
+            // Build distance matrix (real or estimated)
+            buildDistanceMatrix: async function(stops) {
+                var n = stops.length;
+                var distances = [];
+                var times = [];
+
+                // Try to get real driving distances
+                if (this.config.useRealDistances) {
+                    var osrmResult = await this.fetchDistanceMatrix(stops);
+                    if (osrmResult) {
+                        // Convert OSRM results (meters to miles, seconds to minutes)
+                        for (var i = 0; i < n; i++) {
+                            distances[i] = [];
+                            times[i] = [];
+                            for (var j = 0; j < n; j++) {
+                                distances[i][j] = osrmResult.distances[i][j] / 1609.34; // meters to miles
+                                times[i][j] = osrmResult.durations[i][j] / 60; // seconds to minutes
+                            }
+                        }
+                        this.distanceMatrix = distances;
+                        this.timeMatrix = times;
+                        return { distances: distances, times: times, source: 'OSRM' };
+                    }
+                }
+
+                // Fallback to haversine
+                console.log('Using haversine distance estimation');
+                for (var i = 0; i < n; i++) {
+                    distances[i] = [];
+                    times[i] = [];
+                    for (var j = 0; j < n; j++) {
+                        if (i === j) {
+                            distances[i][j] = 0;
+                            times[i][j] = 0;
+                        } else {
+                            var dist = this.haversineDistance(
+                                stops[i].lat, stops[i].lng,
+                                stops[j].lat, stops[j].lng
+                            );
+                            distances[i][j] = dist;
+                            times[i][j] = this.estimateDrivingTime(dist);
+                        }
+                    }
+                }
+
+                this.distanceMatrix = distances;
+                this.timeMatrix = times;
+                return { distances: distances, times: times, source: 'Haversine' };
+            },
+
+            // Calculate total route distance
+            calculateRouteDistance: function(route, matrix) {
+                if (route.length < 2) return 0;
+                var total = 0;
+                for (var i = 0; i < route.length - 1; i++) {
+                    total += matrix[route[i]][route[i + 1]];
+                }
+                return total;
+            },
+
+            // Calculate total route time including service time
+            calculateRouteTime: function(route, timeMatrix, serviceTime) {
+                serviceTime = serviceTime || 5; // 5 minutes per stop default
+                if (route.length < 2) return 0;
+                var total = 0;
+                for (var i = 0; i < route.length - 1; i++) {
+                    total += timeMatrix[route[i]][route[i + 1]];
+                    if (i > 0 && i < route.length - 1) { // Don't add service time for depot
+                        total += serviceTime;
+                    }
+                }
+                return total;
+            },
+
+            // ============================================
+            // CONSTRUCTION HEURISTICS
+            // ============================================
+
+            // Nearest Neighbor Construction
+            nearestNeighborConstruction: function(n, startIndex) {
+                var route = [startIndex];
+                var visited = new Set([startIndex]);
+                var current = startIndex;
+
+                while (visited.size < n) {
+                    var nearest = -1;
+                    var nearestDist = Infinity;
+
+                    for (var i = 0; i < n; i++) {
+                        if (!visited.has(i)) {
+                            var dist = this.distanceMatrix[current][i];
+                            if (dist < nearestDist) {
+                                nearestDist = dist;
+                                nearest = i;
+                            }
+                        }
+                    }
+
+                    if (nearest !== -1) {
+                        route.push(nearest);
+                        visited.add(nearest);
+                        current = nearest;
+                    }
+                }
+
+                return route;
+            },
+
+            // Nearest Insertion Construction
+            nearestInsertionConstruction: function(n, depotIndex) {
+                if (n <= 2) return [depotIndex, depotIndex === 0 ? 1 : 0];
+
+                // Start with depot and farthest node
+                var route = [depotIndex];
+                var inRoute = new Set([depotIndex]);
+
+                // Find farthest node from depot
+                var farthest = -1;
+                var farthestDist = 0;
+                for (var i = 0; i < n; i++) {
+                    if (i !== depotIndex && this.distanceMatrix[depotIndex][i] > farthestDist) {
+                        farthestDist = this.distanceMatrix[depotIndex][i];
+                        farthest = i;
+                    }
+                }
+                route.push(farthest);
+                inRoute.add(farthest);
+
+                // Insert remaining nodes
+                while (inRoute.size < n) {
+                    // Find nearest unvisited node to any node in route
+                    var nearestNode = -1;
+                    var nearestDist = Infinity;
+
+                    for (var i = 0; i < n; i++) {
+                        if (!inRoute.has(i)) {
+                            for (var j = 0; j < route.length; j++) {
+                                var dist = this.distanceMatrix[route[j]][i];
+                                if (dist < nearestDist) {
+                                    nearestDist = dist;
+                                    nearestNode = i;
+                                }
+                            }
+                        }
+                    }
+
+                    if (nearestNode === -1) break;
+
+                    // Find best position to insert
+                    var bestPos = 1;
+                    var bestCost = Infinity;
+
+                    for (var pos = 1; pos <= route.length; pos++) {
+                        var prev = route[pos - 1];
+                        var next = pos < route.length ? route[pos] : route[0];
+                        var insertionCost = this.distanceMatrix[prev][nearestNode] +
+                                           this.distanceMatrix[nearestNode][next] -
+                                           this.distanceMatrix[prev][next];
+                        if (insertionCost < bestCost) {
+                            bestCost = insertionCost;
+                            bestPos = pos;
+                        }
+                    }
+
+                    route.splice(bestPos, 0, nearestNode);
+                    inRoute.add(nearestNode);
+                }
+
+                return route;
+            },
+
+            // Clarke-Wright Savings Algorithm
+            savingsConstruction: function(n, depotIndex) {
+                // Calculate savings for each pair
+                var savings = [];
+                for (var i = 0; i < n; i++) {
+                    if (i === depotIndex) continue;
+                    for (var j = i + 1; j < n; j++) {
+                        if (j === depotIndex) continue;
+                        var saving = this.distanceMatrix[depotIndex][i] +
+                                    this.distanceMatrix[depotIndex][j] -
+                                    this.distanceMatrix[i][j];
+                        savings.push({ i: i, j: j, saving: saving });
+                    }
+                }
+
+                // Sort by saving (descending)
+                savings.sort(function(a, b) { return b.saving - a.saving; });
+
+                // Build route
+                var route = [depotIndex];
+                var inRoute = new Set([depotIndex]);
+
+                // Start with highest saving pair
+                if (savings.length > 0) {
+                    route.push(savings[0].i);
+                    route.push(savings[0].j);
+                    inRoute.add(savings[0].i);
+                    inRoute.add(savings[0].j);
+                }
+
+                // Add remaining nodes using savings
+                for (var s = 1; s < savings.length && inRoute.size < n; s++) {
+                    var pair = savings[s];
+                    var iIn = inRoute.has(pair.i);
+                    var jIn = inRoute.has(pair.j);
+
+                    if (iIn && !jIn) {
+                        // Find position of i and insert j next to it
+                        var posI = route.indexOf(pair.i);
+                        if (posI === route.length - 1) {
+                            route.push(pair.j);
+                        } else if (posI === 1) {
+                            route.splice(1, 0, pair.j);
+                        }
+                        inRoute.add(pair.j);
+                    } else if (!iIn && jIn) {
+                        var posJ = route.indexOf(pair.j);
+                        if (posJ === route.length - 1) {
+                            route.push(pair.i);
+                        } else if (posJ === 1) {
+                            route.splice(1, 0, pair.i);
+                        }
+                        inRoute.add(pair.i);
+                    }
+                }
+
+                // Add any remaining nodes
+                for (var i = 0; i < n; i++) {
+                    if (!inRoute.has(i)) {
+                        route.push(i);
+                        inRoute.add(i);
+                    }
+                }
+
+                return route;
+            },
+
+            // ============================================
+            // LOCAL SEARCH IMPROVEMENTS
+            // ============================================
+
+            // 2-opt improvement (reverse segments)
+            twoOptImprove: function(route, matrix) {
+                var improved = true;
+                var bestRoute = route.slice();
+                var bestDistance = this.calculateRouteDistance(bestRoute, matrix);
+                var iterations = 0;
+
+                while (improved && iterations < this.config.maxIterations) {
+                    improved = false;
+                    iterations++;
+
+                    for (var i = 1; i < bestRoute.length - 2; i++) {
+                        for (var j = i + 1; j < bestRoute.length - 1; j++) {
+                            // Calculate improvement from reversing segment [i, j]
+                            var delta =
+                                -matrix[bestRoute[i-1]][bestRoute[i]]
+                                -matrix[bestRoute[j]][bestRoute[j+1]]
+                                +matrix[bestRoute[i-1]][bestRoute[j]]
+                                +matrix[bestRoute[i]][bestRoute[j+1]];
+
+                            if (delta < -0.0001) { // Small tolerance for floating point
+                                // Reverse the segment
+                                var newRoute = bestRoute.slice(0, i);
+                                var reversed = bestRoute.slice(i, j + 1).reverse();
+                                newRoute = newRoute.concat(reversed);
+                                newRoute = newRoute.concat(bestRoute.slice(j + 1));
+
+                                bestRoute = newRoute;
+                                bestDistance += delta;
+                                improved = true;
+                            }
+                        }
+                    }
+                }
+
+                console.log('2-opt completed in ' + iterations + ' iterations');
+                return bestRoute;
+            },
+
+            // Or-opt improvement (relocate sequences of 1-3 nodes)
+            orOptImprove: function(route, matrix) {
+                var improved = true;
+                var bestRoute = route.slice();
+                var bestDistance = this.calculateRouteDistance(bestRoute, matrix);
+                var iterations = 0;
+
+                while (improved && iterations < this.config.maxIterations) {
+                    improved = false;
+                    iterations++;
+
+                    // Try relocating sequences of length 1, 2, and 3
+                    for (var seqLen = 1; seqLen <= 3; seqLen++) {
+                        for (var i = 1; i < bestRoute.length - seqLen; i++) {
+                            // Don't move depot
+                            if (i === 0 || i + seqLen >= bestRoute.length) continue;
+
+                            for (var j = 1; j < bestRoute.length; j++) {
+                                // Skip if j is within or adjacent to the sequence
+                                if (j >= i - 1 && j <= i + seqLen) continue;
+
+                                // Calculate cost of removing sequence from position i
+                                var removeCost =
+                                    -matrix[bestRoute[i-1]][bestRoute[i]]
+                                    -matrix[bestRoute[i+seqLen-1]][bestRoute[i+seqLen]]
+                                    +matrix[bestRoute[i-1]][bestRoute[i+seqLen]];
+
+                                // Calculate cost of inserting sequence at position j
+                                var insertCost =
+                                    -matrix[bestRoute[j-1]][bestRoute[j]]
+                                    +matrix[bestRoute[j-1]][bestRoute[i]]
+                                    +matrix[bestRoute[i+seqLen-1]][bestRoute[j]];
+
+                                var delta = removeCost + insertCost;
+
+                                if (delta < -0.0001) {
+                                    // Perform the move
+                                    var sequence = bestRoute.slice(i, i + seqLen);
+                                    var newRoute = bestRoute.slice();
+                                    newRoute.splice(i, seqLen);
+
+                                    var insertPos = j > i ? j - seqLen : j;
+                                    for (var k = 0; k < sequence.length; k++) {
+                                        newRoute.splice(insertPos + k, 0, sequence[k]);
+                                    }
+
+                                    bestRoute = newRoute;
+                                    bestDistance += delta;
+                                    improved = true;
+                                    break;
+                                }
+                            }
+                            if (improved) break;
+                        }
+                        if (improved) break;
+                    }
+                }
+
+                console.log('Or-opt completed in ' + iterations + ' iterations');
+                return bestRoute;
+            },
+
+            // 3-opt improvement (more complex rearrangements)
+            threeOptImprove: function(route, matrix) {
+                var improved = true;
+                var bestRoute = route.slice();
+                var bestDistance = this.calculateRouteDistance(bestRoute, matrix);
+                var iterations = 0;
+                var maxIter = Math.min(this.config.maxIterations, 100); // Limit 3-opt iterations
+
+                while (improved && iterations < maxIter) {
+                    improved = false;
+                    iterations++;
+
+                    for (var i = 1; i < bestRoute.length - 4; i++) {
+                        for (var j = i + 2; j < bestRoute.length - 2; j++) {
+                            for (var k = j + 2; k < bestRoute.length; k++) {
+                                // Try all 3-opt reconnection variants
+                                var variants = this.get3OptVariants(bestRoute, i, j, k);
+
+                                for (var v = 0; v < variants.length; v++) {
+                                    var newDistance = this.calculateRouteDistance(variants[v], matrix);
+                                    if (newDistance < bestDistance - 0.0001) {
+                                        bestRoute = variants[v];
+                                        bestDistance = newDistance;
+                                        improved = true;
+                                        break;
+                                    }
+                                }
+                                if (improved) break;
+                            }
+                            if (improved) break;
+                        }
+                        if (improved) break;
+                    }
+                }
+
+                console.log('3-opt completed in ' + iterations + ' iterations');
+                return bestRoute;
+            },
+
+            // Generate 3-opt reconnection variants
+            get3OptVariants: function(route, i, j, k) {
+                var variants = [];
+                var seg1 = route.slice(0, i);
+                var seg2 = route.slice(i, j);
+                var seg3 = route.slice(j, k);
+                var seg4 = route.slice(k);
+
+                // Variant 1: seg1 + reversed(seg2) + seg3 + seg4
+                variants.push(seg1.concat(seg2.slice().reverse()).concat(seg3).concat(seg4));
+
+                // Variant 2: seg1 + seg2 + reversed(seg3) + seg4
+                variants.push(seg1.concat(seg2).concat(seg3.slice().reverse()).concat(seg4));
+
+                // Variant 3: seg1 + reversed(seg2) + reversed(seg3) + seg4
+                variants.push(seg1.concat(seg2.slice().reverse()).concat(seg3.slice().reverse()).concat(seg4));
+
+                // Variant 4: seg1 + seg3 + seg2 + seg4
+                variants.push(seg1.concat(seg3).concat(seg2).concat(seg4));
+
+                // Variant 5: seg1 + seg3 + reversed(seg2) + seg4
+                variants.push(seg1.concat(seg3).concat(seg2.slice().reverse()).concat(seg4));
+
+                // Variant 6: seg1 + reversed(seg3) + seg2 + seg4
+                variants.push(seg1.concat(seg3.slice().reverse()).concat(seg2).concat(seg4));
+
+                // Variant 7: seg1 + reversed(seg3) + reversed(seg2) + seg4
+                variants.push(seg1.concat(seg3.slice().reverse()).concat(seg2.slice().reverse()).concat(seg4));
+
+                return variants;
+            },
+
+            // ============================================
+            // METAHEURISTICS
+            // ============================================
+
+            // Simulated Annealing to escape local optima
+            simulatedAnnealing: function(route, matrix) {
+                var currentRoute = route.slice();
+                var currentDistance = this.calculateRouteDistance(currentRoute, matrix);
+                var bestRoute = currentRoute.slice();
+                var bestDistance = currentDistance;
+
+                var temperature = this.config.saInitialTemp;
+                var coolingRate = this.config.saCoolingRate;
+                var iterations = 0;
+
+                while (temperature > 0.1 && iterations < this.config.maxIterations * 2) {
+                    iterations++;
+
+                    // Generate neighbor (random 2-opt move)
+                    var i = 1 + Math.floor(Math.random() * (currentRoute.length - 3));
+                    var j = i + 1 + Math.floor(Math.random() * (currentRoute.length - i - 2));
+
+                    // Create neighbor by reversing segment
+                    var neighbor = currentRoute.slice(0, i);
+                    neighbor = neighbor.concat(currentRoute.slice(i, j + 1).reverse());
+                    neighbor = neighbor.concat(currentRoute.slice(j + 1));
+
+                    var neighborDistance = this.calculateRouteDistance(neighbor, matrix);
+                    var delta = neighborDistance - currentDistance;
+
+                    // Accept if better, or probabilistically if worse
+                    if (delta < 0 || Math.random() < Math.exp(-delta / temperature)) {
+                        currentRoute = neighbor;
+                        currentDistance = neighborDistance;
+
+                        if (currentDistance < bestDistance) {
+                            bestRoute = currentRoute.slice();
+                            bestDistance = currentDistance;
+                        }
+                    }
+
+                    temperature *= coolingRate;
+                }
+
+                console.log('Simulated Annealing completed in ' + iterations + ' iterations');
+                return bestRoute;
+            },
+
+            // ============================================
+            // MAIN OPTIMIZATION FUNCTION
+            // ============================================
+
+            optimize: async function(stops, options) {
+                options = options || {};
+                var returnToDepot = options.returnToDepot !== undefined ? options.returnToDepot : this.config.returnToDepot;
+
+                console.log('=== PRODUCTION ROUTE OPTIMIZATION ===');
+                console.log('Stops to optimize:', stops.length);
+
+                if (stops.length < 2) {
+                    console.log('Not enough stops to optimize');
+                    return { success: false, message: 'Need at least 2 stops' };
+                }
+
+                // Build location array with depot at index 0
+                var locations = [FARM_DEPOT].concat(stops);
+                var n = locations.length;
+
+                console.log('Total locations (with depot):', n);
+
+                // Build distance matrix
+                console.log('Building distance matrix...');
+                var matrixResult = await this.buildDistanceMatrix(locations);
+                console.log('Distance source:', matrixResult.source);
+
+                // Try multiple construction heuristics and keep the best
+                console.log('Running construction heuristics...');
+
+                var constructionResults = [];
+
+                // Nearest Neighbor from depot
+                var nnRoute = this.nearestNeighborConstruction(n, 0);
+                constructionResults.push({
+                    name: 'Nearest Neighbor',
+                    route: nnRoute,
+                    distance: this.calculateRouteDistance(nnRoute.concat([0]), matrixResult.distances)
+                });
+
+                // Nearest Insertion
+                var niRoute = this.nearestInsertionConstruction(n, 0);
+                constructionResults.push({
+                    name: 'Nearest Insertion',
+                    route: niRoute,
+                    distance: this.calculateRouteDistance(niRoute.concat([0]), matrixResult.distances)
+                });
+
+                // Savings Algorithm
+                var savingsRoute = this.savingsConstruction(n, 0);
+                constructionResults.push({
+                    name: 'Savings',
+                    route: savingsRoute,
+                    distance: this.calculateRouteDistance(savingsRoute.concat([0]), matrixResult.distances)
+                });
+
+                // Select best construction
+                constructionResults.sort(function(a, b) { return a.distance - b.distance; });
+                console.log('Construction results:');
+                constructionResults.forEach(function(r) {
+                    console.log('  ' + r.name + ': ' + r.distance.toFixed(2) + ' miles');
+                });
+
+                var bestConstruction = constructionResults[0];
+                console.log('Best construction: ' + bestConstruction.name);
+
+                // Add return to depot
+                var route = bestConstruction.route.slice();
+                if (returnToDepot && route[route.length - 1] !== 0) {
+                    route.push(0);
+                }
+
+                var initialDistance = this.calculateRouteDistance(route, matrixResult.distances);
+                console.log('Initial distance: ' + initialDistance.toFixed(2) + ' miles');
+
+                // Apply local search improvements
+                console.log('Applying 2-opt improvement...');
+                route = this.twoOptImprove(route, matrixResult.distances);
+                var after2opt = this.calculateRouteDistance(route, matrixResult.distances);
+                console.log('After 2-opt: ' + after2opt.toFixed(2) + ' miles');
+
+                console.log('Applying Or-opt improvement...');
+                route = this.orOptImprove(route, matrixResult.distances);
+                var afterOrOpt = this.calculateRouteDistance(route, matrixResult.distances);
+                console.log('After Or-opt: ' + afterOrOpt.toFixed(2) + ' miles');
+
+                console.log('Applying 3-opt improvement...');
+                route = this.threeOptImprove(route, matrixResult.distances);
+                var after3opt = this.calculateRouteDistance(route, matrixResult.distances);
+                console.log('After 3-opt: ' + after3opt.toFixed(2) + ' miles');
+
+                console.log('Applying Simulated Annealing...');
+                route = this.simulatedAnnealing(route, matrixResult.distances);
+                var afterSA = this.calculateRouteDistance(route, matrixResult.distances);
+                console.log('After Simulated Annealing: ' + afterSA.toFixed(2) + ' miles');
+
+                // Final 2-opt pass to clean up
+                route = this.twoOptImprove(route, matrixResult.distances);
+                var finalDistance = this.calculateRouteDistance(route, matrixResult.distances);
+
+                // Calculate time
+                var totalTime = this.calculateRouteTime(route, matrixResult.times, 5);
+
+                console.log('=== OPTIMIZATION COMPLETE ===');
+                console.log('Final distance: ' + finalDistance.toFixed(2) + ' miles');
+                console.log('Improvement: ' + ((1 - finalDistance/initialDistance) * 100).toFixed(1) + '%');
+                console.log('Estimated time: ' + Math.round(totalTime) + ' minutes');
+
+                // Convert route indices back to stop objects (excluding depot)
+                var optimizedStops = [];
+                for (var i = 0; i < route.length; i++) {
+                    if (route[i] !== 0) { // Skip depot
+                        optimizedStops.push(stops[route[i] - 1]); // -1 because depot was at index 0
+                    }
+                }
+
+                return {
+                    success: true,
+                    stops: optimizedStops,
+                    totalDistance: finalDistance,
+                    totalTime: totalTime,
+                    improvement: ((1 - finalDistance/initialDistance) * 100),
+                    distanceSource: matrixResult.source,
+                    depot: FARM_DEPOT
+                };
+            },
+
+            // Re-optimize when a stop is skipped or completed
+            reoptimizeRemaining: async function(remainingStops) {
+                console.log('Re-optimizing remaining ' + remainingStops.length + ' stops...');
+                return await this.optimize(remainingStops, { returnToDepot: true });
+            },
+
+            // ============================================
+            // TIME WINDOW SUPPORT
+            // ============================================
+
+            // Parse time window string to minutes since midnight
+            parseTimeWindow: function(windowStr) {
+                if (!windowStr || windowStr === 'Flexible') {
+                    return { start: 0, end: 24 * 60 }; // All day
+                }
+
+                // Parse formats like "8:00 AM - 10:00 AM" or "9:00 - 11:00"
+                var parts = windowStr.split('-').map(function(s) { return s.trim(); });
+                if (parts.length !== 2) {
+                    return { start: 0, end: 24 * 60 };
+                }
+
+                function parseTime(timeStr) {
+                    var match = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
+                    if (!match) return 0;
+
+                    var hours = parseInt(match[1]);
+                    var minutes = match[2] ? parseInt(match[2]) : 0;
+                    var period = match[3];
+
+                    if (period) {
+                        if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                        if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                    }
+
+                    return hours * 60 + minutes;
+                }
+
+                return {
+                    start: parseTime(parts[0]),
+                    end: parseTime(parts[1])
+                };
+            },
+
+            // Calculate arrival time at each stop given a route
+            calculateArrivalTimes: function(route, locations, timeMatrix, startTime, serviceTime) {
+                startTime = startTime || 8 * 60; // Default 8:00 AM
+                serviceTime = serviceTime || 5;  // 5 min per stop
+
+                var arrivals = [];
+                var currentTime = startTime;
+
+                for (var i = 0; i < route.length; i++) {
+                    arrivals.push(currentTime);
+
+                    if (i < route.length - 1) {
+                        // Add travel time to next stop
+                        currentTime += timeMatrix[route[i]][route[i + 1]];
+                        // Add service time (except at depot)
+                        if (route[i] !== 0) {
+                            currentTime += serviceTime;
+                        }
+                    }
+                }
+
+                return arrivals;
+            },
+
+            // Calculate total time window violation penalty
+            calculateTimeWindowPenalty: function(route, locations, timeMatrix, startTime, serviceTime) {
+                var arrivals = this.calculateArrivalTimes(route, locations, timeMatrix, startTime, serviceTime);
+                var totalPenalty = 0;
+
+                for (var i = 0; i < route.length; i++) {
+                    var idx = route[i];
+                    if (idx === 0) continue; // Skip depot
+
+                    var location = locations[idx];
+                    var window = this.parseTimeWindow(location.deliveryWindow);
+                    var arrival = arrivals[i];
+
+                    // Penalty for arriving too early
+                    if (arrival < window.start) {
+                        totalPenalty += (window.start - arrival) * 0.5; // Wait time penalty
+                    }
+
+                    // Larger penalty for arriving too late
+                    if (arrival > window.end) {
+                        totalPenalty += (arrival - window.end) * 2; // Late penalty (bigger)
+                    }
+                }
+
+                return totalPenalty;
+            },
+
+            // Optimize with time window awareness
+            optimizeWithTimeWindows: async function(stops, options) {
+                options = options || {};
+                var startTime = options.startTime || 8 * 60; // 8:00 AM default
+
+                // First do standard optimization
+                var result = await this.optimize(stops, options);
+
+                if (!result.success) return result;
+
+                // Check time window violations
+                var locations = [FARM_DEPOT].concat(stops);
+                var route = [0]; // Start with depot
+                for (var i = 0; i < result.stops.length; i++) {
+                    route.push(stops.indexOf(result.stops[i]) + 1);
+                }
+                route.push(0); // End at depot
+
+                var penalty = this.calculateTimeWindowPenalty(route, locations, this.timeMatrix, startTime, 5);
+                var arrivals = this.calculateArrivalTimes(route, locations, this.timeMatrix, startTime, 5);
+
+                // Format arrival times for display
+                result.arrivalTimes = arrivals.map(function(mins) {
+                    var hours = Math.floor(mins / 60);
+                    var minutes = Math.round(mins % 60);
+                    var period = hours >= 12 ? 'PM' : 'AM';
+                    if (hours > 12) hours -= 12;
+                    if (hours === 0) hours = 12;
+                    return hours + ':' + (minutes < 10 ? '0' : '') + minutes + ' ' + period;
+                });
+
+                result.timeWindowPenalty = penalty;
+                result.hasTimeWindowViolations = penalty > 0;
+
+                if (penalty > 0) {
+                    console.log('Warning: Route has time window violations (penalty: ' + penalty.toFixed(1) + ' min)');
+                }
+
+                return result;
+            }
+        };
+
+        // ============================================
+        // MAIN OPTIMIZE ROUTE FUNCTION (UI Integration)
+        // ============================================
+        async function optimizeRoute() {
             var stops = AppState.route.stops.filter(function(s) {
                 return s.status === 'pending' && s.lat && s.lng;
             });
@@ -3611,57 +4553,57 @@
                 return;
             }
 
-            // Farm location (starting point) - approximate
-            var farmLat = 40.45;
-            var farmLng = -79.95;
-
-            // Nearest neighbor algorithm
-            var optimized = [];
-            var remaining = stops.slice();
-            var currentLat = farmLat;
-            var currentLng = farmLng;
-
-            while (remaining.length > 0) {
-                var nearestIndex = 0;
-                var nearestDist = Infinity;
-
-                for (var i = 0; i < remaining.length; i++) {
-                    var dist = haversineDistance(currentLat, currentLng, remaining[i].lat, remaining[i].lng);
-                    if (dist < nearestDist) {
-                        nearestDist = dist;
-                        nearestIndex = i;
-                    }
-                }
-
-                var nearest = remaining.splice(nearestIndex, 1)[0];
-                optimized.push(nearest);
-                currentLat = nearest.lat;
-                currentLng = nearest.lng;
+            // Show loading state
+            var btn = document.querySelector('[onclick="optimizeRoute()"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Optimizing...';
             }
 
-            // Reorder stops in AppState
-            var completedStops = AppState.route.stops.filter(function(s) {
-                return s.status !== 'pending';
-            });
+            try {
+                var result = await RouteOptimizer.optimize(stops);
 
-            AppState.route.stops = completedStops.concat(optimized);
+                if (result.success) {
+                    // Reorder stops in AppState
+                    var completedStops = AppState.route.stops.filter(function(s) {
+                        return s.status !== 'pending';
+                    });
 
-            // Re-render
-            renderStops();
-            renderMapMarkers();
+                    AppState.route.stops = completedStops.concat(result.stops);
+                    AppState.route.optimized = true;
+                    AppState.route.totalDistance = result.totalDistance;
+                    AppState.route.totalTime = result.totalTime;
 
-            alert('Route optimized! Stops reordered for shortest travel distance.');
+                    // Re-render
+                    renderStops();
+                    renderMapMarkers();
+
+                    // Show success message with details
+                    var msg = 'Route Optimized!\n\n' +
+                              'Total Distance: ' + result.totalDistance.toFixed(1) + ' miles\n' +
+                              'Est. Time: ' + Math.round(result.totalTime) + ' minutes\n' +
+                              'Improvement: ' + result.improvement.toFixed(1) + '%\n' +
+                              'Distance Source: ' + result.distanceSource + '\n\n' +
+                              'Route starts and ends at: ' + FARM_DEPOT.name;
+                    alert(msg);
+                } else {
+                    alert('Optimization failed: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Optimization error:', error);
+                alert('Error during optimization: ' + error.message);
+            }
+
+            // Reset button
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Optimize';
+            }
         }
 
+        // Haversine distance (legacy support)
         function haversineDistance(lat1, lng1, lat2, lng2) {
-            var R = 3959; // Earth radius in miles
-            var dLat = (lat2 - lat1) * Math.PI / 180;
-            var dLng = (lng2 - lng1) * Math.PI / 180;
-            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                    Math.sin(dLng/2) * Math.sin(dLng/2);
-            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
+            return RouteOptimizer.haversineDistance(lat1, lng1, lat2, lng2);
         }
 
         // ============================================
