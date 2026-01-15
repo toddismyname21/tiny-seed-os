@@ -256,6 +256,168 @@
             font-size: 14px;
         }
 
+        /* Clock In Screen */
+        .clock-in-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: 24px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-dark) 0%, #1a2744 100%);
+        }
+
+        .clock-in-content {
+            max-width: 340px;
+            width: 100%;
+        }
+
+        .clock-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .clock-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .clock-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            font-size: 16px;
+        }
+
+        .clock-driver-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .clock-driver-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .clock-driver-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .clock-time-display {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .current-time {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .current-date {
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .clock-in-btn {
+            width: 100%;
+            padding: 18px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+            transition: all 0.2s;
+        }
+
+        .clock-in-btn:active {
+            transform: scale(0.98);
+        }
+
+        .clock-in-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .clock-btn-icon {
+            font-size: 20px;
+        }
+
+        .clock-gps-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .clock-gps-status.success {
+            color: var(--success);
+        }
+
+        .clock-gps-status.error {
+            color: var(--warning);
+        }
+
+        .clock-logout-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* Clock Status Badge in Header */
+        .clock-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .clock-status-badge .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
         /* Route Summary */
         .route-summary {
             background: linear-gradient(135deg, var(--primary-dark), var(--primary));
@@ -1792,6 +1954,39 @@
                 <div class="login-error" id="loginError"></div>
             </div>
 
+            <!-- Clock In Screen -->
+            <div class="clock-in-screen" id="clockInScreen" style="display: none;">
+                <div class="clock-in-content">
+                    <div class="clock-icon">&#x1F551;</div>
+                    <h1 class="clock-title">Clock In Required</h1>
+                    <p class="clock-subtitle" id="clockGreeting">Good morning!</p>
+
+                    <div class="clock-driver-info">
+                        <div class="clock-driver-avatar" id="clockDriverAvatar">JD</div>
+                        <div class="clock-driver-name" id="clockDriverName">John Doe</div>
+                    </div>
+
+                    <div class="clock-time-display">
+                        <div class="current-time" id="clockCurrentTime">8:00 AM</div>
+                        <div class="current-date" id="clockCurrentDate">Monday, January 15</div>
+                    </div>
+
+                    <button class="clock-in-btn" id="clockInBtn" onclick="clockIn()">
+                        <span class="clock-btn-icon">&#x25B6;</span>
+                        <span class="clock-btn-text">Clock In & Start Day</span>
+                    </button>
+
+                    <div class="clock-gps-status" id="clockGpsStatus">
+                        <span>&#x1F4CD;</span>
+                        <span>Acquiring location...</span>
+                    </div>
+
+                    <button class="clock-logout-btn" onclick="logout()">
+                        Not you? Log out
+                    </button>
+                </div>
+            </div>
+
             <!-- Welcome Toast (hidden by default) -->
             <div id="welcomeToast" class="welcome-toast" style="display:none;"></div>
 
@@ -1921,6 +2116,26 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Clock Status & Clock Out -->
+                <div class="settings-group" id="clockStatusGroup">
+                    <div class="settings-item">
+                        <span class="settings-label">Status</span>
+                        <span class="settings-value" id="settingsClockStatus" style="color: var(--success);">Clocked In</span>
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-label">Clocked In At</span>
+                        <span class="settings-value" id="settingsClockInTime">--:--</span>
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-label">Hours Today</span>
+                        <span class="settings-value" id="settingsHoursToday">0.0h</span>
+                    </div>
+                </div>
+
+                <button class="logout-btn" onclick="clockOut()" style="background: var(--warning); margin-bottom: 12px;">
+                    &#x1F551; Clock Out & End Day
+                </button>
 
                 <button class="logout-btn" onclick="logout()">Log Out</button>
             </div>
@@ -2070,6 +2285,13 @@
             driver: null,
             pin: '',
             currentTab: 'route',
+            // Time clock state
+            clock: {
+                isClockedIn: false,
+                clockInTime: null,
+                clockInGPS: null,
+                entryId: null
+            },
             route: {
                 stops: [],
                 isStarted: false,
@@ -2335,8 +2557,27 @@
                     driver: driver,
                     loginTime: new Date().toISOString()
                 }));
-                showApp();
-                loadRoute();
+
+                // Check if already clocked in today
+                var clockData = localStorage.getItem('driverClock_' + driver.id);
+                if (clockData) {
+                    var clock = JSON.parse(clockData);
+                    var clockDate = new Date(clock.clockInTime).toDateString();
+                    var today = new Date().toDateString();
+                    if (clockDate === today && !clock.clockOutTime) {
+                        // Already clocked in today, go straight to app
+                        AppState.clock.isClockedIn = true;
+                        AppState.clock.clockInTime = clock.clockInTime;
+                        AppState.clock.clockInGPS = clock.gps;
+                        AppState.clock.entryId = clock.entryId;
+                        showApp();
+                        loadRoute();
+                        return;
+                    }
+                }
+
+                // Show clock-in screen
+                showClockInScreen();
                 return;
             }
 
@@ -2362,8 +2603,10 @@
             AppState.pin = '';
             window.pinValue = '';
             AppState.route = { stops: [], isStarted: false, currentStopIndex: -1 };
+            AppState.clock = { isClockedIn: false, clockInTime: null, clockInGPS: null, entryId: null };
 
             document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('clockInScreen').style.display = 'none';
             document.getElementById('appHeader').style.display = 'none';
             document.getElementById('bottomNav').style.display = 'none';
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
@@ -2372,6 +2615,191 @@
             document.getElementById('pin2').style.background = '#334155';
             document.getElementById('pin3').style.background = '#334155';
             document.getElementById('pin4').style.background = '#334155';
+        }
+
+        // ============================================
+        // TIME CLOCK FUNCTIONS
+        // ============================================
+        var clockTimeInterval = null;
+
+        function showClockInScreen() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('clockInScreen').style.display = 'flex';
+            document.getElementById('appHeader').style.display = 'none';
+            document.getElementById('bottomNav').style.display = 'none';
+
+            // Update driver info
+            if (AppState.driver) {
+                document.getElementById('clockDriverAvatar').textContent = AppState.driver.initials;
+                document.getElementById('clockDriverName').textContent = AppState.driver.name;
+            }
+
+            // Set greeting based on time
+            var hour = new Date().getHours();
+            var greeting = hour < 12 ? 'Good morning!' : hour < 17 ? 'Good afternoon!' : 'Good evening!';
+            document.getElementById('clockGreeting').textContent = greeting;
+
+            // Start clock update
+            updateClockDisplay();
+            clockTimeInterval = setInterval(updateClockDisplay, 1000);
+
+            // Get GPS for clock-in
+            getClockInGPS();
+        }
+
+        function updateClockDisplay() {
+            var now = new Date();
+            var timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            var dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+            document.getElementById('clockCurrentTime').textContent = timeStr;
+            document.getElementById('clockCurrentDate').textContent = dateStr;
+        }
+
+        function getClockInGPS() {
+            var gpsStatus = document.getElementById('clockGpsStatus');
+            gpsStatus.innerHTML = '<span>&#x1F4CD;</span><span>Acquiring location...</span>';
+            gpsStatus.className = 'clock-gps-status';
+
+            if (!navigator.geolocation) {
+                gpsStatus.innerHTML = '<span>&#x26A0;</span><span>GPS not available - clock in anyway</span>';
+                gpsStatus.className = 'clock-gps-status error';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    AppState.clock.clockInGPS = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    };
+                    gpsStatus.innerHTML = '<span>&#x2705;</span><span>Location acquired</span>';
+                    gpsStatus.className = 'clock-gps-status success';
+                },
+                function(err) {
+                    gpsStatus.innerHTML = '<span>&#x26A0;</span><span>Location unavailable - clock in anyway</span>';
+                    gpsStatus.className = 'clock-gps-status error';
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        async function clockIn() {
+            var btn = document.getElementById('clockInBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="clock-btn-icon">&#x23F3;</span><span class="clock-btn-text">Clocking in...</span>';
+
+            var clockInTime = new Date().toISOString();
+            var entryId = 'CLK-' + Date.now();
+
+            // Save to localStorage
+            var clockData = {
+                entryId: entryId,
+                driverId: AppState.driver.id,
+                driverName: AppState.driver.name,
+                clockInTime: clockInTime,
+                gps: AppState.clock.clockInGPS,
+                clockOutTime: null
+            };
+            localStorage.setItem('driverClock_' + AppState.driver.id, JSON.stringify(clockData));
+
+            // Try to sync to backend
+            try {
+                var params = new URLSearchParams({
+                    action: 'clockIn',
+                    driverId: AppState.driver.id,
+                    driverName: AppState.driver.name,
+                    timestamp: clockInTime,
+                    gpsLat: AppState.clock.clockInGPS?.lat || '',
+                    gpsLng: AppState.clock.clockInGPS?.lng || ''
+                });
+                await fetch(TRACKING_API_URL + '?' + params.toString());
+            } catch (e) {
+                console.log('Clock-in sync failed, saved locally:', e);
+            }
+
+            // Update state
+            AppState.clock.isClockedIn = true;
+            AppState.clock.clockInTime = clockInTime;
+            AppState.clock.entryId = entryId;
+
+            // Clear interval
+            if (clockTimeInterval) {
+                clearInterval(clockTimeInterval);
+                clockTimeInterval = null;
+            }
+
+            // Show the main app
+            document.getElementById('clockInScreen').style.display = 'none';
+            showApp();
+            loadRoute();
+        }
+
+        async function clockOut() {
+            if (!AppState.clock.isClockedIn) return;
+
+            var clockOutTime = new Date().toISOString();
+
+            // Get current GPS for clock-out
+            var clockOutGPS = null;
+            try {
+                clockOutGPS = await new Promise(function(resolve) {
+                    navigator.geolocation.getCurrentPosition(
+                        function(pos) {
+                            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                        },
+                        function() { resolve(null); },
+                        { enableHighAccuracy: true, timeout: 5000 }
+                    );
+                });
+            } catch (e) {
+                console.log('Clock-out GPS failed');
+            }
+
+            // Calculate hours worked
+            var clockInDate = new Date(AppState.clock.clockInTime);
+            var clockOutDate = new Date(clockOutTime);
+            var hoursWorked = ((clockOutDate - clockInDate) / (1000 * 60 * 60)).toFixed(2);
+
+            // Update localStorage
+            var clockData = JSON.parse(localStorage.getItem('driverClock_' + AppState.driver.id) || '{}');
+            clockData.clockOutTime = clockOutTime;
+            clockData.clockOutGPS = clockOutGPS;
+            clockData.hoursWorked = hoursWorked;
+            localStorage.setItem('driverClock_' + AppState.driver.id, JSON.stringify(clockData));
+
+            // Try to sync to backend
+            try {
+                var params = new URLSearchParams({
+                    action: 'clockOut',
+                    driverId: AppState.driver.id,
+                    entryId: AppState.clock.entryId,
+                    timestamp: clockOutTime,
+                    gpsLat: clockOutGPS?.lat || '',
+                    gpsLng: clockOutGPS?.lng || '',
+                    hoursWorked: hoursWorked
+                });
+                await fetch(TRACKING_API_URL + '?' + params.toString());
+            } catch (e) {
+                console.log('Clock-out sync failed, saved locally:', e);
+            }
+
+            // Show summary
+            alert('Clocked out!\n\nHours worked today: ' + hoursWorked + ' hours\n\nGreat job! Drive safe.');
+
+            // Reset state and logout
+            AppState.clock.isClockedIn = false;
+            AppState.clock.clockInTime = null;
+            logout();
+        }
+
+        function getClockStatusText() {
+            if (!AppState.clock.isClockedIn) return '';
+            var clockInDate = new Date(AppState.clock.clockInTime);
+            var now = new Date();
+            var hours = ((now - clockInDate) / (1000 * 60 * 60)).toFixed(1);
+            return hours + 'h';
         }
 
         function showApp() {
@@ -3631,8 +4059,24 @@
 
             // Re-init signature canvas when settings tab is shown
             if (tabName === 'settings') {
-                // Could refresh driver stats here
+                updateClockStatusDisplay();
             }
+        }
+
+        function updateClockStatusDisplay() {
+            if (!AppState.clock.isClockedIn) return;
+
+            var clockInDate = new Date(AppState.clock.clockInTime);
+            var now = new Date();
+            var hours = ((now - clockInDate) / (1000 * 60 * 60)).toFixed(1);
+
+            document.getElementById('settingsClockStatus').textContent = 'Clocked In';
+            document.getElementById('settingsClockInTime').textContent = clockInDate.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            document.getElementById('settingsHoursToday').textContent = hours + 'h';
         }
 
         // ============================================

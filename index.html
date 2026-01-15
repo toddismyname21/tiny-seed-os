@@ -2681,6 +2681,10 @@
                     <i class="fas fa-th"></i>
                     <span>All Apps</span>
                 </a>
+                <a class="nav-item" onclick="openSettings()">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
             </div>
 
             <!-- Command Palette Trigger -->
@@ -3375,11 +3379,71 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> Settings</h3>
+                <button class="modal-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Farm Name</label>
+                    <input type="text" id="settingsFarmName" value="Tiny Seed Farm" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Farm Location</label>
+                    <input type="text" id="settingsLocation" value="257 Zeigler Rd, Rochester PA 15074" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Default Bed Length (ft)</label>
+                    <input type="number" id="settingsBedLength" value="100" min="1" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Weather Location (ZIP)</label>
+                    <input type="text" id="settingsWeatherZip" value="15074" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+                </div>
+                <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Notifications</label>
+                    <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                        <input type="checkbox" id="settingsNotifyTasks" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>Daily task reminders</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; margin-top: 0.5rem;">
+                        <input type="checkbox" id="settingsNotifyWeather" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>Weather alerts</span>
+                    </label>
+                </div>
+                <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary);">System Info</label>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                            <span>Version</span>
+                            <span>1.0.0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                            <span>API Status</span>
+                            <span id="settingsApiStatus" style="color: var(--success);">Connected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ========================================
         // CONFIGURATION
         // ========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbz23N_RluRDlJheaK0vTZmvfIkd5yyMblNizASjuuo6vsNibuoWIPt04KuZOCKEwaoj/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec';
 
         // State
         let allPlantings = [];
@@ -3443,6 +3507,48 @@
         function logout() {
             localStorage.removeItem('tinyseed_session');
             window.location.href = 'login.html';
+        }
+
+        // ========================================
+        // SETTINGS
+        // ========================================
+        function openSettings() {
+            // Load saved settings from localStorage
+            const settings = JSON.parse(localStorage.getItem('tinyseed_settings') || '{}');
+
+            if (settings.farmName) document.getElementById('settingsFarmName').value = settings.farmName;
+            if (settings.location) document.getElementById('settingsLocation').value = settings.location;
+            if (settings.bedLength) document.getElementById('settingsBedLength').value = settings.bedLength;
+            if (settings.weatherZip) document.getElementById('settingsWeatherZip').value = settings.weatherZip;
+            if (settings.notifyTasks !== undefined) document.getElementById('settingsNotifyTasks').checked = settings.notifyTasks;
+            if (settings.notifyWeather !== undefined) document.getElementById('settingsNotifyWeather').checked = settings.notifyWeather;
+
+            // Update API status
+            const statusEl = document.getElementById('settingsApiStatus');
+            const isConnected = !document.getElementById('statusDot').classList.contains('error');
+            statusEl.textContent = isConnected ? 'Connected' : 'Offline';
+            statusEl.style.color = isConnected ? 'var(--success)' : 'var(--danger)';
+
+            document.getElementById('settingsModal').classList.add('visible');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('visible');
+        }
+
+        function saveSettings() {
+            const settings = {
+                farmName: document.getElementById('settingsFarmName').value,
+                location: document.getElementById('settingsLocation').value,
+                bedLength: document.getElementById('settingsBedLength').value,
+                weatherZip: document.getElementById('settingsWeatherZip').value,
+                notifyTasks: document.getElementById('settingsNotifyTasks').checked,
+                notifyWeather: document.getElementById('settingsNotifyWeather').checked
+            };
+
+            localStorage.setItem('tinyseed_settings', JSON.stringify(settings));
+            closeSettings();
+            showToast('Settings saved successfully', 'success');
         }
 
         // ========================================
