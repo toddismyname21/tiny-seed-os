@@ -1894,48 +1894,25 @@
             }
         }
 
-        async function validatePin() {
+        function validatePin() {
             var pin = window.pinValue || AppState.pin || '';
-            try {
-                // Call API to authenticate driver
-                var result = await api.authenticateDriver(pin);
 
-                if (result.success && result.driver) {
-                    AppState.driver = {
-                        id: result.driver.Driver_ID,
-                        name: result.driver.Driver_Name,
-                        pin: pin,
-                        initials: result.driver.Driver_Name.split(' ').map(function(n) { return n[0]; }).join('')
-                    };
-                    AppState.isLoggedIn = true;
-
-                    localStorage.setItem('driverSession', JSON.stringify({
-                        driver: AppState.driver,
-                        loginTime: new Date().toISOString()
-                    }));
-
-                    showApp();
-                    loadRoute();
-                } else {
-                    showLoginError('Invalid PIN. Please try again.');
-                }
-            } catch (error) {
-                console.error('Authentication error:', error);
-                // Fallback to sample drivers for demo/offline mode
-                var driver = SAMPLE_DRIVERS.find(function(d) { return d.pin === pin; });
-                if (driver) {
-                    AppState.driver = driver;
-                    AppState.isLoggedIn = true;
-                    localStorage.setItem('driverSession', JSON.stringify({
-                        driver: driver,
-                        loginTime: new Date().toISOString()
-                    }));
-                    showApp();
-                    loadRoute();
-                } else {
-                    showLoginError('Invalid PIN. Please try again.');
-                }
+            // Try sample drivers first for demo mode
+            var driver = SAMPLE_DRIVERS.find(function(d) { return d.pin === pin; });
+            if (driver) {
+                AppState.driver = driver;
+                AppState.isLoggedIn = true;
+                localStorage.setItem('driverSession', JSON.stringify({
+                    driver: driver,
+                    loginTime: new Date().toISOString()
+                }));
+                showApp();
+                loadRoute();
+                return;
             }
+
+            // If no sample driver matched, show error
+            showLoginError('Invalid PIN. Please try again.');
         }
 
         function showLoginError(message) {
