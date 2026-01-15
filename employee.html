@@ -9,6 +9,7 @@
     <title>Tiny Seed - Employee App</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y" async defer></script>
     <style>
         /* ========================================
            CSS DESIGN SYSTEM - HIGH CONTRAST THEME
@@ -959,6 +960,82 @@
         .scout-type-btn.active {
             border-color: var(--type-color);
             color: var(--type-color);
+        }
+
+        /* Pest/Scouting Map */
+        .pest-map-container {
+            height: 300px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg-elevated);
+            margin-bottom: 16px;
+        }
+
+        .pest-map-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .map-filter-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .map-filter-chip.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            margin-top: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .hotspot-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .severity-buttons {
@@ -2045,6 +2122,592 @@
             align-items: center;
             gap: 6px;
         }
+
+        /* =====================================================
+           WILDLIFE TRACKER STYLES
+           ===================================================== */
+        .wildlife-tabs, .pickpack-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            overflow-x: auto;
+        }
+
+        .wildlife-tab, .pickpack-tab {
+            flex: 1;
+            min-width: 70px;
+            padding: 10px 12px;
+            border: none;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .wildlife-tab.active, .pickpack-tab.active {
+            background: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .wildlife-tab i, .pickpack-tab i {
+            font-size: 1.1rem;
+        }
+
+        .wildlife-form-panel, .pickpack-panel {
+            padding: 16px;
+        }
+
+        .animal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .animal-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 14px 8px;
+            background: var(--bg-elevated);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .animal-btn.active {
+            border-color: var(--primary-light);
+            background: var(--primary);
+        }
+
+        .den-size-buttons, .activity-level-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .den-size-btn, .activity-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .den-size-btn.active, .activity-btn.active {
+            border-color: var(--primary-light);
+            background: var(--primary);
+        }
+
+        .dens-list {
+            margin-top: 12px;
+        }
+
+        .den-card {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 4px solid #8b4513;
+        }
+
+        .den-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .den-activity {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--warning);
+            color: #000;
+        }
+
+        .den-activity.high {
+            background: var(--danger);
+            color: white;
+        }
+
+        .den-activity.low {
+            background: var(--success);
+            color: white;
+        }
+
+        .den-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .severity-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .severity-btn {
+            flex: 1;
+            min-width: 70px;
+            padding: 10px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .severity-btn.active.low { border-color: var(--success); background: rgba(34, 197, 94, 0.2); }
+        .severity-btn.active.medium { border-color: var(--warning); background: rgba(245, 158, 11, 0.2); }
+        .severity-btn.active.high { border-color: var(--danger); background: rgba(239, 68, 68, 0.2); }
+        .severity-btn.active.critical { border-color: #7c0000; background: rgba(124, 0, 0, 0.3); }
+
+        .submit-btn.danger {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+
+        .wildlife-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .summary-card {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .summary-animal {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .summary-stats {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .damage-list {
+            margin-top: 12px;
+        }
+
+        .damage-item {
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--danger);
+        }
+
+        .damage-crop {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .damage-details {
+            display: flex;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .total-loss {
+            background: var(--danger);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        /* =====================================================
+           PICK & PACK STYLES
+           ===================================================== */
+        .pick-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .pick-date {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .pick-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .pick-stat {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .pick-stat .stat-value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .pick-stat .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .pick-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pick-field-group {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .field-header {
+            background: var(--bg-elevated);
+            padding: 10px 14px;
+            font-weight: 600;
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field-count {
+            margin-left: auto;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: normal;
+        }
+
+        .pick-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pick-item:last-child {
+            border-bottom: none;
+        }
+
+        .pick-item.completed {
+            opacity: 0.6;
+        }
+
+        .pick-item.completed .pick-crop {
+            text-decoration: line-through;
+        }
+
+        .pick-item-check {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .pick-item.completed .pick-item-check {
+            color: var(--success);
+        }
+
+        .pick-item-check i {
+            font-size: 1.3rem;
+        }
+
+        .pick-item-info {
+            flex: 1;
+        }
+
+        .pick-crop {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .pick-details {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .pick-item-qty {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .pack-header {
+            margin-bottom: 16px;
+        }
+
+        .pack-header h3 {
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .pack-orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pack-order-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .pack-order-header {
+            background: var(--bg-elevated);
+            padding: 12px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-id {
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+
+        .customer-name {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .pack-order-items {
+            padding: 12px 14px;
+        }
+
+        .pack-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .pack-item:last-child {
+            border-bottom: none;
+        }
+
+        .pack-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-state small {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.8rem;
+        }
+
+        .pick-header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .print-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        /* =====================================================
+           PRINT STYLES
+           ===================================================== */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #pickPackModal,
+            #pickPackModal * {
+                visibility: visible;
+            }
+
+            #pickPackModal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+            }
+
+            .feature-modal {
+                position: static !important;
+                background: white !important;
+            }
+
+            .feature-modal-content {
+                max-width: 100% !important;
+                height: auto !important;
+                background: white !important;
+                border-radius: 0 !important;
+            }
+
+            .feature-modal-header {
+                background: white !important;
+                color: black !important;
+                border-bottom: 2px solid #333;
+            }
+
+            .feature-modal-header h2 {
+                color: black !important;
+            }
+
+            .back-btn, .print-btn, .refresh-btn, .pickpack-tabs {
+                display: none !important;
+            }
+
+            .pick-header {
+                border-bottom: 1px solid #ccc;
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+            }
+
+            .pick-date {
+                color: black !important;
+                font-size: 1.2rem;
+            }
+
+            .pick-stats {
+                background: #f5f5f5 !important;
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+
+            .pick-stat {
+                background: white !important;
+                border: 1px solid #ddd;
+            }
+
+            .pick-stat .stat-value {
+                color: black !important;
+            }
+
+            .pick-stat .stat-label {
+                color: #666 !important;
+            }
+
+            .pick-field-group {
+                background: white !important;
+                border: 1px solid #ddd;
+                margin-bottom: 15px;
+                page-break-inside: avoid;
+            }
+
+            .field-header {
+                background: #f0f0f0 !important;
+                color: black !important;
+                font-size: 1rem;
+                border-bottom: 1px solid #ddd;
+            }
+
+            .pick-item {
+                border-bottom: 1px solid #eee !important;
+                padding: 10px 14px;
+            }
+
+            .pick-item-check {
+                width: 24px;
+                height: 24px;
+                border: 2px solid #333;
+                border-radius: 4px;
+            }
+
+            .pick-item-check i {
+                display: none;
+            }
+
+            .pick-item.completed .pick-item-check {
+                background: #333;
+            }
+
+            .pick-crop, .pick-details, .pick-item-qty {
+                color: black !important;
+            }
+
+            .pick-item-qty {
+                font-size: 1.1rem;
+                font-weight: bold;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2348,6 +3011,61 @@
                         <span data-i18n="scout.submit">Submit Report</span>
                     </button>
                 </div>
+
+                <!-- Pest/Observation Map Card -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <span data-i18n="scout.map">Pest & Observation Map</span>
+                    </div>
+
+                    <div class="pest-map-controls">
+                        <button class="map-filter-chip active" onclick="togglePestMapFilter('all')">
+                            <i class="fas fa-layer-group"></i> All
+                        </button>
+                        <button class="map-filter-chip" onclick="togglePestMapFilter('pest')">
+                            <i class="fas fa-bug"></i> Pests
+                        </button>
+                        <button class="map-filter-chip" onclick="togglePestMapFilter('disease')">
+                            <i class="fas fa-virus"></i> Disease
+                        </button>
+                        <button class="map-filter-chip" onclick="togglePestMapFilter('weed')">
+                            <i class="fas fa-leaf"></i> Weeds
+                        </button>
+                    </div>
+
+                    <div class="pest-map-container" id="pest-map"></div>
+
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #ef4444;"></div>
+                            <span>Pest</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #f59e0b;"></div>
+                            <span>Disease</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #8b5cf6;"></div>
+                            <span>Weed</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #22c55e;"></div>
+                            <span>Beneficial</span>
+                        </div>
+                        <div class="legend-item">
+                            <i class="fas fa-fire" style="color: #ef4444; font-size: 0.8rem;"></i>
+                            <span>Hotspot</span>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 12px;">
+                        <button class="btn-secondary" onclick="refreshPestMap()" style="padding: 10px 20px;">
+                            <i class="fas fa-sync-alt"></i>
+                            <span data-i18n="scout.refreshMap">Refresh Map</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- More Tab -->
@@ -2393,6 +3111,28 @@
                         <div class="more-item-text">
                             <h3 data-i18n="more.cultivation">Cultivation Log</h3>
                             <p data-i18n="more.cultivationDesc">Log cultivation passes</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openWildlife()">
+                        <div class="more-item-icon wildlife" style="background: linear-gradient(135deg, #8b4513, #a0522d);">
+                            <i class="fas fa-paw"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.wildlife">Wildlife Tracker</h3>
+                            <p data-i18n="more.wildlifeDesc">Log sightings, dens, damage</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openPickPack()">
+                        <div class="more-item-icon pickpack" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-boxes-stacked"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.pickpack">Pick & Pack</h3>
+                            <p data-i18n="more.pickpackDesc">Today's orders & packing</p>
                         </div>
                         <i class="fas fa-chevron-right"></i>
                     </div>
@@ -2975,6 +3715,344 @@
         </div>
     </div>
 
+    <!-- Wildlife Tracker Modal -->
+    <div class="feature-modal" id="wildlifeModal">
+        <div class="feature-modal-content">
+            <div class="feature-modal-header">
+                <button class="back-btn" onclick="closeWildlifeModal()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2><i class="fas fa-paw"></i> <span data-i18n="wildlife.title">Wildlife Tracker</span></h2>
+            </div>
+            <div class="feature-modal-body">
+                <!-- Tab Navigation for Wildlife -->
+                <div class="wildlife-tabs">
+                    <button class="wildlife-tab active" onclick="switchWildlifeTab('sighting')">
+                        <i class="fas fa-eye"></i> Sighting
+                    </button>
+                    <button class="wildlife-tab" onclick="switchWildlifeTab('den')">
+                        <i class="fas fa-house"></i> Den
+                    </button>
+                    <button class="wildlife-tab" onclick="switchWildlifeTab('damage')">
+                        <i class="fas fa-exclamation-triangle"></i> Damage
+                    </button>
+                    <button class="wildlife-tab" onclick="switchWildlifeTab('map')">
+                        <i class="fas fa-map"></i> Map
+                    </button>
+                </div>
+
+                <!-- Sighting Form -->
+                <div id="wildlifeSightingForm" class="wildlife-form-panel">
+                    <div class="form-card">
+                        <div class="form-group">
+                            <label class="form-label">Animal Type</label>
+                            <div class="animal-grid">
+                                <button class="animal-btn" onclick="setAnimalType('groundhog')">
+                                    <span style="font-size: 1.5rem;">🦫</span>
+                                    <span>Groundhog</span>
+                                </button>
+                                <button class="animal-btn" onclick="setAnimalType('deer')">
+                                    <span style="font-size: 1.5rem;">🦌</span>
+                                    <span>Deer</span>
+                                </button>
+                                <button class="animal-btn" onclick="setAnimalType('rabbit')">
+                                    <span style="font-size: 1.5rem;">🐰</span>
+                                    <span>Rabbit</span>
+                                </button>
+                                <button class="animal-btn" onclick="setAnimalType('raccoon')">
+                                    <span style="font-size: 1.5rem;">🦝</span>
+                                    <span>Raccoon</span>
+                                </button>
+                                <button class="animal-btn" onclick="setAnimalType('bird')">
+                                    <span style="font-size: 1.5rem;">🐦</span>
+                                    <span>Bird</span>
+                                </button>
+                                <button class="animal-btn" onclick="setAnimalType('other')">
+                                    <span style="font-size: 1.5rem;">❓</span>
+                                    <span>Other</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Count</label>
+                                <input type="number" class="form-input" id="wildlifeCount" value="1" min="1">
+                            </div>
+                            <div class="form-group" style="flex: 2;">
+                                <label class="form-label">Field</label>
+                                <select class="form-input" id="wildlifeField">
+                                    <option value="">Select field...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Activity</label>
+                            <select class="form-input" id="wildlifeActivity">
+                                <option value="feeding">Feeding</option>
+                                <option value="traveling">Traveling</option>
+                                <option value="resting">Resting</option>
+                                <option value="digging">Digging</option>
+                                <option value="damage">Causing Damage</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Photo</label>
+                            <div class="photo-capture">
+                                <button type="button" class="capture-btn" onclick="openCameraForWildlife()">
+                                    <i class="fas fa-camera"></i> Take Photo
+                                </button>
+                                <div id="wildlifePhotoPreview" class="photo-preview" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-input" id="wildlifeNotes" rows="2" placeholder="Any additional observations..."></textarea>
+                        </div>
+
+                        <button class="submit-btn" onclick="submitWildlifeSighting()">
+                            <i class="fas fa-check"></i>
+                            <span>Log Sighting</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Groundhog Den Form -->
+                <div id="wildlifeDenForm" class="wildlife-form-panel" style="display: none;">
+                    <div class="form-card">
+                        <h3 style="color: var(--text-primary); margin-bottom: 1rem;">
+                            <i class="fas fa-house"></i> Log Groundhog Den
+                        </h3>
+
+                        <div class="form-group">
+                            <label class="form-label">Field Location</label>
+                            <select class="form-input" id="denField">
+                                <option value="">Select field...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Den Size</label>
+                            <div class="den-size-buttons">
+                                <button class="den-size-btn" onclick="setDenSize('small')">Small</button>
+                                <button class="den-size-btn" onclick="setDenSize('medium')">Medium</button>
+                                <button class="den-size-btn" onclick="setDenSize('large')">Large</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Activity Level</label>
+                            <div class="activity-level-buttons">
+                                <button class="activity-btn" onclick="setDenActivity('low')">Low</button>
+                                <button class="activity-btn" onclick="setDenActivity('medium')">Medium</button>
+                                <button class="activity-btn" onclick="setDenActivity('high')">High</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Photo</label>
+                            <div class="photo-capture">
+                                <button type="button" class="capture-btn" onclick="openCameraForDen()">
+                                    <i class="fas fa-camera"></i> Take Photo
+                                </button>
+                                <div id="denPhotoPreview" class="photo-preview" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-input" id="denNotes" rows="2" placeholder="Signs of activity, nearby crops..."></textarea>
+                        </div>
+
+                        <button class="submit-btn" onclick="submitGroundhogDen()">
+                            <i class="fas fa-check"></i>
+                            <span>Log Den Location</span>
+                        </button>
+
+                        <h3 style="color: var(--text-primary); margin: 1.5rem 0 1rem;">Active Dens</h3>
+                        <div id="activeDensList" class="dens-list">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Damage Report Form -->
+                <div id="wildlifeDamageForm" class="wildlife-form-panel" style="display: none;">
+                    <div class="form-card">
+                        <h3 style="color: var(--text-primary); margin-bottom: 1rem;">
+                            <i class="fas fa-exclamation-triangle"></i> Report Crop Damage
+                        </h3>
+
+                        <div class="form-group">
+                            <label class="form-label">Animal Responsible</label>
+                            <select class="form-input" id="damageAnimal">
+                                <option value="groundhog">Groundhog</option>
+                                <option value="deer">Deer</option>
+                                <option value="rabbit">Rabbit</option>
+                                <option value="bird">Bird</option>
+                                <option value="unknown">Unknown</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Field</label>
+                                <select class="form-input" id="damageField">
+                                    <option value="">Select...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Bed</label>
+                                <input type="text" class="form-input" id="damageBed" placeholder="Bed #">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Crop Affected</label>
+                            <input type="text" class="form-input" id="damageCrop" placeholder="e.g., Lettuce, Tomatoes">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Damage Severity</label>
+                            <div class="severity-buttons">
+                                <button class="severity-btn low" onclick="setDamageSeverity('low')">Low</button>
+                                <button class="severity-btn medium" onclick="setDamageSeverity('medium')">Medium</button>
+                                <button class="severity-btn high" onclick="setDamageSeverity('high')">High</button>
+                                <button class="severity-btn critical" onclick="setDamageSeverity('critical')">Total Loss</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Estimated Loss ($)</label>
+                            <input type="number" class="form-input" id="damageLoss" placeholder="0.00" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Photo</label>
+                            <div class="photo-capture">
+                                <button type="button" class="capture-btn" onclick="openCameraForDamage()">
+                                    <i class="fas fa-camera"></i> Take Photo
+                                </button>
+                                <div id="damagePhotoPreview" class="photo-preview" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-input" id="damageNotes" rows="2"></textarea>
+                        </div>
+
+                        <button class="submit-btn danger" onclick="submitDamageReport()">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Report Damage</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Wildlife Map -->
+                <div id="wildlifeMapPanel" class="wildlife-form-panel" style="display: none;">
+                    <div class="form-card">
+                        <h3 style="color: var(--text-primary); margin-bottom: 1rem;">
+                            <i class="fas fa-map"></i> Wildlife Activity Map
+                        </h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                            Summary of wildlife activity in the last 30 days.
+                        </p>
+                        <div id="wildlifeSummary" class="wildlife-summary">
+                            <!-- Loaded dynamically -->
+                        </div>
+                        <div id="recentDamageList" class="damage-list">
+                            <h4 style="color: var(--text-primary); margin: 1rem 0 0.5rem;">Recent Damage Reports</h4>
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pick & Pack Modal -->
+    <div class="feature-modal" id="pickPackModal">
+        <div class="feature-modal-content">
+            <div class="feature-modal-header">
+                <button class="back-btn" onclick="closePickPackModal()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2><i class="fas fa-boxes-stacked"></i> <span data-i18n="pickpack.title">Pick & Pack</span></h2>
+            </div>
+            <div class="feature-modal-body">
+                <!-- Tab Navigation for Pick & Pack -->
+                <div class="pickpack-tabs">
+                    <button class="pickpack-tab active" onclick="switchPickPackTab('pick')">
+                        <i class="fas fa-basket-shopping"></i> Pick List
+                    </button>
+                    <button class="pickpack-tab" onclick="switchPickPackTab('pack')">
+                        <i class="fas fa-box"></i> Pack Orders
+                    </button>
+                </div>
+
+                <!-- Pick List Panel -->
+                <div id="pickListPanel" class="pickpack-panel">
+                    <div class="pick-header">
+                        <div class="pick-date">
+                            <i class="fas fa-calendar"></i>
+                            <span id="pickListDate">Today</span>
+                        </div>
+                        <div class="pick-header-actions">
+                            <button class="print-btn" onclick="printPickList()">
+                                <i class="fas fa-print"></i>
+                            </button>
+                            <button class="refresh-btn" onclick="loadPickList()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pick-stats">
+                        <div class="pick-stat">
+                            <span class="stat-value" id="pickTotalItems">0</span>
+                            <span class="stat-label">Items</span>
+                        </div>
+                        <div class="pick-stat">
+                            <span class="stat-value" id="pickCompletedItems">0</span>
+                            <span class="stat-label">Picked</span>
+                        </div>
+                        <div class="pick-stat">
+                            <span class="stat-value" id="pickOrders">0</span>
+                            <span class="stat-label">Orders</span>
+                        </div>
+                    </div>
+
+                    <div id="pickListItems" class="pick-items-list">
+                        <!-- Pick items loaded dynamically -->
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-check"></i>
+                            <p>No items to pick today</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pack Orders Panel -->
+                <div id="packOrdersPanel" class="pickpack-panel" style="display: none;">
+                    <div class="pack-header">
+                        <h3>Orders Ready to Pack</h3>
+                    </div>
+
+                    <div id="packOrdersList" class="pack-orders-list">
+                        <!-- Orders loaded dynamically -->
+                        <div class="empty-state">
+                            <i class="fas fa-box-open"></i>
+                            <p>No orders ready to pack</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Messages Modal -->
     <div class="feature-modal" id="messagesModal">
         <div class="feature-modal-content">
@@ -3017,7 +4095,7 @@
         // CONFIGURATION
         // ============================================
         const CONFIG = {
-            API_URL: 'https://script.google.com/macros/s/AKfycbz23N_RluRDlJheaK0vTZmvfIkd5yyMblNizASjuuo6vsNibuoWIPt04KuZOCKEwaoj/exec',
+            API_URL: 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec',
             DB_NAME: 'TinySeedEmployee',
             DB_VERSION: 1,
             GEOFENCE: {
@@ -3519,6 +4597,8 @@
                 'scout.bed': 'Bed',
                 'scout.submit': 'Submit Report',
                 'scout.success': 'Scout report submitted',
+                'scout.map': 'Pest & Observation Map',
+                'scout.refreshMap': 'Refresh Map',
                 'scout.aiDoctor': 'AI Plant Doctor',
                 'scout.aiHint': 'Take a photo for instant diagnosis',
                 'common.offline': 'Offline - will sync when connected',
@@ -3567,7 +4647,27 @@
                 // Safety
                 'safety.heatTitle': 'Heat Safety Reminder',
                 'safety.heatMessage': 'Remember to take breaks, drink water, and find shade.',
-                'safety.gotIt': 'Got It'
+                'safety.gotIt': 'Got It',
+                // Wildlife Tracker
+                'wildlife.title': 'Wildlife Tracker',
+                'more.wildlife': 'Wildlife Tracker',
+                'more.wildlifeDesc': 'Log sightings, dens, damage',
+                'wildlife.sighting': 'Log Sighting',
+                'wildlife.sightingSuccess': 'Sighting logged successfully',
+                'wildlife.den': 'Den Location',
+                'wildlife.denSuccess': 'Den logged successfully',
+                'wildlife.damage': 'Damage Report',
+                'wildlife.damageSuccess': 'Damage reported successfully',
+                'wildlife.map': 'Wildlife Map',
+                // Pick & Pack
+                'pickpack.title': 'Pick & Pack',
+                'more.pickpack': 'Pick & Pack',
+                'more.pickpackDesc': "Today's orders & packing",
+                'pickpack.pickList': 'Pick List',
+                'pickpack.packOrders': 'Pack Orders',
+                'pickpack.noItems': 'No items to pick today',
+                'pickpack.itemPicked': 'Item marked as picked',
+                'pickpack.orderPacked': 'Order packed successfully'
             },
             es: {
                 'auth.title': 'Granja Tiny Seed',
@@ -3610,6 +4710,8 @@
                 'scout.bed': 'Cama',
                 'scout.submit': 'Enviar Reporte',
                 'scout.success': 'Reporte enviado',
+                'scout.map': 'Mapa de Plagas',
+                'scout.refreshMap': 'Actualizar Mapa',
                 'scout.aiDoctor': 'Doctor de Plantas IA',
                 'scout.aiHint': 'Toma una foto para diagnostico instantaneo',
                 'common.offline': 'Sin conexion - se sincronizara al conectar',
@@ -3658,7 +4760,27 @@
                 // Safety
                 'safety.heatTitle': 'Recordatorio de Seguridad por Calor',
                 'safety.heatMessage': 'Recuerde tomar descansos, beber agua y buscar sombra.',
-                'safety.gotIt': 'Entendido'
+                'safety.gotIt': 'Entendido',
+                // Wildlife Tracker
+                'wildlife.title': 'Rastreador de Animales',
+                'more.wildlife': 'Rastreador de Animales',
+                'more.wildlifeDesc': 'Avistamientos, madrigueras, danos',
+                'wildlife.sighting': 'Registrar Avistamiento',
+                'wildlife.sightingSuccess': 'Avistamiento registrado',
+                'wildlife.den': 'Ubicacion de Madriguera',
+                'wildlife.denSuccess': 'Madriguera registrada',
+                'wildlife.damage': 'Reporte de Dano',
+                'wildlife.damageSuccess': 'Dano reportado',
+                'wildlife.map': 'Mapa de Animales',
+                // Pick & Pack
+                'pickpack.title': 'Recoger y Empacar',
+                'more.pickpack': 'Recoger y Empacar',
+                'more.pickpackDesc': 'Pedidos del dia y empaque',
+                'pickpack.pickList': 'Lista de Recoleccion',
+                'pickpack.packOrders': 'Empacar Pedidos',
+                'pickpack.noItems': 'Sin articulos para recoger hoy',
+                'pickpack.itemPicked': 'Articulo marcado como recogido',
+                'pickpack.orderPacked': 'Pedido empacado exitosamente'
             }
         };
 
@@ -4132,7 +5254,217 @@
             document.getElementById('scoutNotes').value = '';
             AppState.capturedPhoto = null;
             document.getElementById('scoutPhotoPreview').style.display = 'none';
+            // Refresh pest map after submission
+            refreshPestMap();
         }
+
+        // ============================================
+        // PEST/SCOUTING MAP
+        // ============================================
+        let pestMap = null;
+        let pestMarkers = [];
+        let hotspotCircles = [];
+        let pestMapFilter = 'all';
+        let scoutingData = [];
+
+        const FARM_CENTER = { lat: 40.7456217, lng: -80.1610431 };
+
+        const OBSERVATION_COLORS = {
+            'Pest': '#ef4444',
+            'pest': '#ef4444',
+            'Disease': '#f59e0b',
+            'disease': '#f59e0b',
+            'Weed': '#8b5cf6',
+            'weed': '#8b5cf6',
+            'Beneficial': '#22c55e',
+            'beneficial': '#22c55e',
+            'Wildlife': '#f4a261',
+            'wildlife': '#f4a261',
+            'Other': '#3b82f6',
+            'other': '#3b82f6'
+        };
+
+        const SEVERITY_SCALE = {
+            'Critical': 1.5,
+            'critical': 1.5,
+            'High': 1.2,
+            'high': 1.2,
+            'Medium': 1.0,
+            'medium': 1.0,
+            'Low': 0.8,
+            'low': 0.8
+        };
+
+        function initPestMap() {
+            const mapContainer = document.getElementById('pest-map');
+            if (!mapContainer || !window.google || !google.maps) {
+                // Retry in 1 second if Google Maps not loaded yet
+                setTimeout(initPestMap, 1000);
+                return;
+            }
+
+            pestMap = new google.maps.Map(mapContainer, {
+                center: FARM_CENTER,
+                zoom: 17,
+                mapTypeId: 'hybrid',
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                zoomControl: true,
+                gestureHandling: 'cooperative'
+            });
+
+            // Load scouting data
+            refreshPestMap();
+        }
+
+        async function refreshPestMap() {
+            if (!pestMap && window.google && google.maps) {
+                initPestMap();
+                return;
+            }
+
+            if (!pestMap) return;
+
+            try {
+                // Get last 30 days of scouting data
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                const params = new URLSearchParams({
+                    action: 'getScoutingMapData',
+                    startDate: thirtyDaysAgo.toISOString().split('T')[0]
+                });
+
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    scoutingData = data.observations || [];
+                    renderPestMapMarkers();
+                    renderHotspots(data.hotspots || []);
+                }
+            } catch (error) {
+                console.error('Error loading scouting map data:', error);
+            }
+        }
+
+        function renderPestMapMarkers() {
+            // Clear existing markers
+            pestMarkers.forEach(m => m.setMap(null));
+            pestMarkers = [];
+
+            // Filter data based on current filter
+            let filtered = scoutingData;
+            if (pestMapFilter !== 'all') {
+                filtered = scoutingData.filter(o =>
+                    o.Observation_Type?.toLowerCase() === pestMapFilter.toLowerCase()
+                );
+            }
+
+            filtered.forEach(obs => {
+                if (!obs.GPS_Lat || !obs.GPS_Lng) return;
+
+                const type = obs.Observation_Type || 'Other';
+                const color = OBSERVATION_COLORS[type] || '#3b82f6';
+                const scale = SEVERITY_SCALE[obs.Severity] || 1;
+
+                const marker = new google.maps.Marker({
+                    position: { lat: Number(obs.GPS_Lat), lng: Number(obs.GPS_Lng) },
+                    map: pestMap,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 8 * scale,
+                        fillColor: color,
+                        fillOpacity: 0.9,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 2
+                    },
+                    title: `${type} - ${obs.Severity || 'Unknown'}`
+                });
+
+                // Info window on tap
+                const infoContent = `
+                    <div style="color: #333; min-width: 150px;">
+                        <strong>${type}</strong><br>
+                        Severity: ${obs.Severity || 'Unknown'}<br>
+                        Field: ${obs.Field_ID || 'Unknown'}<br>
+                        Date: ${obs.Date ? new Date(obs.Date).toLocaleDateString() : 'Unknown'}<br>
+                        ${obs.Notes ? '<em>' + obs.Notes.substring(0, 50) + '...</em>' : ''}
+                    </div>
+                `;
+
+                marker.addListener('click', () => {
+                    const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+                    infoWindow.open(pestMap, marker);
+                });
+
+                marker.obsType = type.toLowerCase();
+                pestMarkers.push(marker);
+            });
+        }
+
+        function renderHotspots(hotspots) {
+            // Clear existing hotspot circles
+            hotspotCircles.forEach(c => c.setMap(null));
+            hotspotCircles = [];
+
+            hotspots.forEach(hs => {
+                if (!hs.center) return;
+
+                const color = OBSERVATION_COLORS[hs.dominantType] || '#ef4444';
+
+                // Pulsing circle for hotspot
+                const circle = new google.maps.Circle({
+                    center: hs.center,
+                    radius: 15, // meters
+                    strokeColor: color,
+                    strokeOpacity: 0.8,
+                    strokeWeight: 3,
+                    fillColor: color,
+                    fillOpacity: 0.3,
+                    map: pestMap
+                });
+
+                // Info on click
+                circle.addListener('click', () => {
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `
+                            <div style="color: #333;">
+                                <strong>Hotspot: ${hs.count} observations</strong><br>
+                                Primary: ${hs.dominantType}<br>
+                                Severity: ${hs.highestSeverity}
+                            </div>
+                        `,
+                        position: hs.center
+                    });
+                    infoWindow.open(pestMap);
+                });
+
+                hotspotCircles.push(circle);
+            });
+        }
+
+        function togglePestMapFilter(filter) {
+            pestMapFilter = filter;
+
+            // Update button states
+            document.querySelectorAll('.map-filter-chip').forEach(btn => {
+                const btnFilter = btn.onclick.toString().match(/togglePestMapFilter\('(\w+)'\)/)?.[1];
+                btn.classList.toggle('active', btnFilter === filter);
+            });
+
+            renderPestMapMarkers();
+        }
+
+        // Initialize pest map when switching to scout tab
+        const originalShowTab = showTab;
+        showTab = function(tabName) {
+            originalShowTab(tabName);
+            if (tabName === 'scout' && !pestMap) {
+                setTimeout(initPestMap, 500);
+            }
+        };
 
         // ============================================
         // AI PLANT DOCTOR
@@ -4845,6 +6177,597 @@
 
         function openSettings() {
             showToast('Settings coming soon!', 'info');
+        }
+
+        // ============================================
+        // WILDLIFE TRACKER
+        // ============================================
+        const WildlifeState = {
+            animalType: null,
+            denSize: null,
+            denActivity: null,
+            damageSeverity: null,
+            currentPhoto: null
+        };
+
+        function openWildlife() {
+            document.getElementById('wildlifeModal').classList.add('visible');
+            populateWildlifeFields();
+            loadActiveDens();
+        }
+
+        function closeWildlifeModal() {
+            document.getElementById('wildlifeModal').classList.remove('visible');
+            resetWildlifeState();
+        }
+
+        function switchWildlifeTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.wildlife-tab').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Show/hide panels
+            document.getElementById('wildlifeSightingForm').style.display = tab === 'sighting' ? 'block' : 'none';
+            document.getElementById('wildlifeDenForm').style.display = tab === 'den' ? 'block' : 'none';
+            document.getElementById('wildlifeDamageForm').style.display = tab === 'damage' ? 'block' : 'none';
+            document.getElementById('wildlifeMapPanel').style.display = tab === 'map' ? 'block' : 'none';
+
+            if (tab === 'map') {
+                loadWildlifeSummary();
+            }
+            if (tab === 'den') {
+                loadActiveDens();
+            }
+        }
+
+        function populateWildlifeFields() {
+            const fieldSelects = ['wildlifeField', 'denField', 'damageField'];
+            fieldSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select && AppState.fields) {
+                    select.innerHTML = '<option value="">Select field...</option>';
+                    AppState.fields.forEach(f => {
+                        select.innerHTML += `<option value="${f}">${f}</option>`;
+                    });
+                }
+            });
+        }
+
+        function setAnimalType(type) {
+            WildlifeState.animalType = type;
+            document.querySelectorAll('.animal-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${type}'`));
+            });
+        }
+
+        function setDenSize(size) {
+            WildlifeState.denSize = size;
+            document.querySelectorAll('.den-size-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${size}'`));
+            });
+        }
+
+        function setDenActivity(level) {
+            WildlifeState.denActivity = level;
+            document.querySelectorAll('.activity-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.onclick.toString().includes(`'${level}'`));
+            });
+        }
+
+        function setDamageSeverity(severity) {
+            WildlifeState.damageSeverity = severity;
+            document.querySelectorAll('#wildlifeDamageForm .severity-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.classList.contains(severity));
+            });
+        }
+
+        function openCameraForWildlife() {
+            AppState.currentPhotoTarget = 'wildlife';
+            openCamera('wildlife');
+        }
+
+        function openCameraForDen() {
+            AppState.currentPhotoTarget = 'den';
+            openCamera('den');
+        }
+
+        function openCameraForDamage() {
+            AppState.currentPhotoTarget = 'damage';
+            openCamera('damage');
+        }
+
+        async function submitWildlifeSighting() {
+            if (!WildlifeState.animalType) {
+                showToast('Please select an animal type', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const sightingData = {
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    animalType: WildlifeState.animalType,
+                    count: document.getElementById('wildlifeCount').value || 1,
+                    field: document.getElementById('wildlifeField').value,
+                    activity: document.getElementById('wildlifeActivity').value,
+                    photo: WildlifeState.currentPhoto || '',
+                    notes: document.getElementById('wildlifeNotes').value,
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                };
+
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({ action: 'logWildlifeSighting', ...sightingData });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast('Sighting logged!', 'success');
+                        resetWildlifeState();
+                    } else {
+                        showToast(data.error || 'Error logging sighting', 'error');
+                    }
+                } else {
+                    await OfflineDB.queueOperation('logWildlifeSighting', sightingData);
+                    showToast('Sighting saved offline', 'success');
+                    resetWildlifeState();
+                }
+            } catch (error) {
+                console.error('Wildlife sighting error:', error);
+                showToast('Error logging sighting', 'error');
+            }
+            hideLoading();
+        }
+
+        async function submitGroundhogDen() {
+            const field = document.getElementById('denField').value;
+            if (!field) {
+                showToast('Please select a field', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const denData = {
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    field: field,
+                    denSize: WildlifeState.denSize || 'medium',
+                    activityLevel: WildlifeState.denActivity || 'medium',
+                    photo: WildlifeState.currentPhoto || '',
+                    notes: document.getElementById('denNotes').value,
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                };
+
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({ action: 'logGroundhogDen', ...denData });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast('Den location logged!', 'success');
+                        loadActiveDens();
+                        resetDenForm();
+                    } else {
+                        showToast(data.error || 'Error logging den', 'error');
+                    }
+                } else {
+                    await OfflineDB.queueOperation('logGroundhogDen', denData);
+                    showToast('Den saved offline', 'success');
+                    resetDenForm();
+                }
+            } catch (error) {
+                console.error('Den logging error:', error);
+                showToast('Error logging den', 'error');
+            }
+            hideLoading();
+        }
+
+        async function loadActiveDens() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getGroundhogDens`);
+                const data = await response.json();
+
+                const container = document.getElementById('activeDensList');
+                if (data.success && data.dens && data.dens.length > 0) {
+                    container.innerHTML = data.dens.map(den => `
+                        <div class="den-card">
+                            <div class="den-info">
+                                <strong>${den.Field_ID || 'Unknown Field'}</strong>
+                                <span class="den-activity ${den.Activity_Level}">${den.Activity_Level || 'Medium'} Activity</span>
+                            </div>
+                            <div class="den-meta">
+                                <span><i class="fas fa-calendar"></i> ${den.Discovered_Date || 'N/A'}</span>
+                                <span><i class="fas fa-ruler"></i> ${den.Den_Size || 'Medium'}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p style="color: var(--text-secondary);">No active dens reported</p>';
+                }
+            } catch (error) {
+                console.error('Load dens error:', error);
+            }
+        }
+
+        async function submitDamageReport() {
+            const field = document.getElementById('damageField').value;
+            const crop = document.getElementById('damageCrop').value;
+
+            if (!field || !crop) {
+                showToast('Please fill in field and crop', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const gps = await captureGPS();
+                const damageData = {
+                    employeeId: AppState.employee?.Employee_ID || '',
+                    animalType: document.getElementById('damageAnimal').value,
+                    field: field,
+                    bed: document.getElementById('damageBed').value,
+                    cropAffected: crop,
+                    severity: WildlifeState.damageSeverity || 'medium',
+                    estimatedLoss: document.getElementById('damageLoss').value,
+                    photo: WildlifeState.currentPhoto || '',
+                    notes: document.getElementById('damageNotes').value,
+                    lat: gps.lat || '',
+                    lng: gps.lng || ''
+                };
+
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({ action: 'logDamageReport', ...damageData });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast('Damage reported!', 'success');
+                        resetDamageForm();
+                    } else {
+                        showToast(data.error || 'Error reporting damage', 'error');
+                    }
+                } else {
+                    await OfflineDB.queueOperation('logDamageReport', damageData);
+                    showToast('Damage saved offline', 'success');
+                    resetDamageForm();
+                }
+            } catch (error) {
+                console.error('Damage report error:', error);
+                showToast('Error reporting damage', 'error');
+            }
+            hideLoading();
+        }
+
+        async function loadWildlifeSummary() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getDamageReports&days=30`);
+                const data = await response.json();
+
+                const summaryDiv = document.getElementById('wildlifeSummary');
+                const listDiv = document.getElementById('recentDamageList');
+
+                if (data.success) {
+                    // Summary by animal
+                    if (data.byAnimal && Object.keys(data.byAnimal).length > 0) {
+                        summaryDiv.innerHTML = Object.entries(data.byAnimal).map(([animal, stats]) => `
+                            <div class="summary-card">
+                                <div class="summary-animal">${animal}</div>
+                                <div class="summary-stats">
+                                    <span>${stats.count} reports</span>
+                                    <span>$${stats.totalLoss.toFixed(2)} loss</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        summaryDiv.innerHTML = '<p style="color: var(--text-secondary);">No damage reports in the last 30 days</p>';
+                    }
+
+                    // Recent reports
+                    if (data.reports && data.reports.length > 0) {
+                        listDiv.innerHTML = '<h4 style="color: var(--text-primary); margin: 1rem 0 0.5rem;">Recent Damage Reports</h4>' +
+                            data.reports.slice(0, 5).map(r => `
+                                <div class="damage-item">
+                                    <div class="damage-crop">${r.Crop_Affected || 'Unknown'}</div>
+                                    <div class="damage-details">
+                                        <span>${r.Animal_Type || 'Unknown'}</span>
+                                        <span class="severity ${r.Damage_Severity}">${r.Damage_Severity}</span>
+                                        <span>$${r.Estimated_Loss_Value || '0'}</span>
+                                    </div>
+                                </div>
+                            `).join('');
+                    }
+
+                    // Total loss
+                    if (data.totalLoss && parseFloat(data.totalLoss) > 0) {
+                        listDiv.innerHTML += `
+                            <div class="total-loss">
+                                <strong>Total 30-Day Loss:</strong> $${data.totalLoss}
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Load wildlife summary error:', error);
+            }
+        }
+
+        function resetWildlifeState() {
+            WildlifeState.animalType = null;
+            WildlifeState.currentPhoto = null;
+            document.querySelectorAll('.animal-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('wildlifeCount').value = '1';
+            document.getElementById('wildlifeField').value = '';
+            document.getElementById('wildlifeActivity').value = 'feeding';
+            document.getElementById('wildlifeNotes').value = '';
+            document.getElementById('wildlifePhotoPreview').style.display = 'none';
+        }
+
+        function resetDenForm() {
+            WildlifeState.denSize = null;
+            WildlifeState.denActivity = null;
+            WildlifeState.currentPhoto = null;
+            document.querySelectorAll('.den-size-btn, .activity-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('denField').value = '';
+            document.getElementById('denNotes').value = '';
+            document.getElementById('denPhotoPreview').style.display = 'none';
+        }
+
+        function resetDamageForm() {
+            WildlifeState.damageSeverity = null;
+            WildlifeState.currentPhoto = null;
+            document.querySelectorAll('#wildlifeDamageForm .severity-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('damageAnimal').value = 'groundhog';
+            document.getElementById('damageField').value = '';
+            document.getElementById('damageBed').value = '';
+            document.getElementById('damageCrop').value = '';
+            document.getElementById('damageLoss').value = '';
+            document.getElementById('damageNotes').value = '';
+            document.getElementById('damagePhotoPreview').style.display = 'none';
+        }
+
+        // ============================================
+        // PICK & PACK
+        // ============================================
+        const PickPackState = {
+            pickList: [],
+            currentTab: 'pick'
+        };
+
+        function openPickPack() {
+            document.getElementById('pickPackModal').classList.add('visible');
+            loadPickList();
+        }
+
+        function closePickPackModal() {
+            document.getElementById('pickPackModal').classList.remove('visible');
+        }
+
+        function switchPickPackTab(tab) {
+            PickPackState.currentTab = tab;
+
+            // Update tab buttons
+            document.querySelectorAll('.pickpack-tab').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Show/hide panels
+            document.getElementById('pickListPanel').style.display = tab === 'pick' ? 'block' : 'none';
+            document.getElementById('packOrdersPanel').style.display = tab === 'pack' ? 'block' : 'none';
+
+            if (tab === 'pack') {
+                loadPackOrders();
+            }
+        }
+
+        async function loadPickList() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('pickListDate').textContent = new Date().toLocaleDateString();
+
+                const response = await fetch(`${CONFIG.API_URL}?action=getPickListForToday&date=${today}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    PickPackState.pickList = data.pickList || [];
+                    renderPickList();
+                }
+            } catch (error) {
+                console.error('Load pick list error:', error);
+            }
+        }
+
+        function renderPickList() {
+            const container = document.getElementById('pickListItems');
+            const pickList = PickPackState.pickList;
+
+            // Update stats
+            const totalItems = pickList.length;
+            const completedItems = pickList.filter(p => p.Status === 'Picked').length;
+            const uniqueOrders = [...new Set(pickList.map(p => p.Order_ID))].length;
+
+            document.getElementById('pickTotalItems').textContent = totalItems;
+            document.getElementById('pickCompletedItems').textContent = completedItems;
+            document.getElementById('pickOrders').textContent = uniqueOrders;
+
+            if (pickList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-check"></i>
+                        <p>No items to pick today</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group by field for efficient picking
+            const byField = {};
+            pickList.forEach(item => {
+                const field = item.Field || 'Unknown';
+                if (!byField[field]) byField[field] = [];
+                byField[field].push(item);
+            });
+
+            container.innerHTML = Object.entries(byField).map(([field, items]) => `
+                <div class="pick-field-group">
+                    <div class="field-header">
+                        <i class="fas fa-map-marker-alt"></i> ${field}
+                        <span class="field-count">${items.length} items</span>
+                    </div>
+                    ${items.map(item => `
+                        <div class="pick-item ${item.Status === 'Picked' ? 'completed' : ''}" data-pick-id="${item.Pick_ID}">
+                            <div class="pick-item-check" onclick="togglePickItem('${item.Pick_ID}')">
+                                <i class="fas ${item.Status === 'Picked' ? 'fa-check-circle' : 'fa-circle'}"></i>
+                            </div>
+                            <div class="pick-item-info">
+                                <div class="pick-crop">${item.Crop} ${item.Variety ? '- ' + item.Variety : ''}</div>
+                                <div class="pick-details">
+                                    <span><i class="fas fa-shopping-basket"></i> ${item.Quantity} ${item.Unit}</span>
+                                    <span><i class="fas fa-user"></i> ${item.Customer_Name || 'N/A'}</span>
+                                </div>
+                            </div>
+                            <div class="pick-item-qty">${item.Quantity}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        async function togglePickItem(pickId) {
+            const item = PickPackState.pickList.find(p => p.Pick_ID === pickId);
+            if (!item) return;
+
+            const newStatus = item.Status === 'Picked' ? 'Pending' : 'Picked';
+
+            try {
+                if (AppState.isOnline) {
+                    const params = new URLSearchParams({
+                        action: 'updatePickItemStatus',
+                        pickId: pickId,
+                        status: newStatus,
+                        employeeId: AppState.employee?.Employee_ID || ''
+                    });
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        item.Status = newStatus;
+                        renderPickList();
+                    }
+                } else {
+                    // Update locally
+                    item.Status = newStatus;
+                    renderPickList();
+                    await OfflineDB.queueOperation('updatePickItemStatus', { pickId, status: newStatus });
+                }
+            } catch (error) {
+                console.error('Toggle pick item error:', error);
+            }
+        }
+
+        async function loadPackOrders() {
+            const container = document.getElementById('packOrdersList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading orders...</p>
+                </div>
+            `;
+
+            // For now, show orders from pick list that are fully picked
+            const orderIds = [...new Set(PickPackState.pickList.map(p => p.Order_ID))];
+            const readyOrders = orderIds.filter(orderId => {
+                const orderItems = PickPackState.pickList.filter(p => p.Order_ID === orderId);
+                return orderItems.every(item => item.Status === 'Picked');
+            });
+
+            if (readyOrders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <p>No orders ready to pack</p>
+                        <small>Complete picking all items for an order first</small>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = readyOrders.map(orderId => {
+                const orderItems = PickPackState.pickList.filter(p => p.Order_ID === orderId);
+                const customerName = orderItems[0]?.Customer_Name || 'Unknown';
+
+                return `
+                    <div class="pack-order-card">
+                        <div class="pack-order-header">
+                            <span class="order-id">${orderId}</span>
+                            <span class="customer-name">${customerName}</span>
+                        </div>
+                        <div class="pack-order-items">
+                            ${orderItems.map(item => `
+                                <div class="pack-item">
+                                    <span>${item.Crop}</span>
+                                    <span>${item.Quantity} ${item.Unit}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="pack-btn" onclick="completePackOrder('${orderId}')">
+                            <i class="fas fa-box"></i> Mark as Packed
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function completePackOrder(orderId) {
+            showLoading();
+            try {
+                const params = new URLSearchParams({
+                    action: 'completePackingOrder',
+                    orderId: orderId,
+                    employeeId: AppState.employee?.Employee_ID || ''
+                });
+
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Order packed!', 'success');
+                    // Remove from pick list
+                    PickPackState.pickList = PickPackState.pickList.filter(p => p.Order_ID !== orderId);
+                    loadPackOrders();
+                } else {
+                    showToast(data.error || 'Error packing order', 'error');
+                }
+            } catch (error) {
+                console.error('Pack order error:', error);
+                showToast('Error packing order', 'error');
+            }
+            hideLoading();
+        }
+
+        function printPickList() {
+            // Add a header for printing
+            const header = document.createElement('div');
+            header.id = 'printHeader';
+            header.innerHTML = `
+                <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #333;">
+                    <h1 style="margin: 0; font-size: 24px;">Tiny Seed Farm - Pick List</h1>
+                    <p style="margin: 5px 0; font-size: 14px;">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+            `;
+
+            const modalBody = document.querySelector('#pickPackModal .feature-modal-body');
+            if (modalBody && !document.getElementById('printHeader')) {
+                modalBody.insertBefore(header, modalBody.firstChild);
+            }
+
+            // Print
+            window.print();
+
+            // Remove the header after printing
+            setTimeout(() => {
+                const printHeader = document.getElementById('printHeader');
+                if (printHeader) {
+                    printHeader.remove();
+                }
+            }, 1000);
         }
 
         // ============================================

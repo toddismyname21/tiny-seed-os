@@ -24,11 +24,32 @@
 const SPREADSHEET_ID = '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc';
 
 const FARM_CONFIG = {
-  LAT: 40.7956,
-  LONG: -80.1384,
+  LAT: 40.7456217,
+  LONG: -80.1610431,
   TIMEZONE: "America/New_York",
   SPRING_FROST: "05/20",
   FALL_FROST: "10/10"
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TWILIO SMS CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+// INSTRUCTIONS: Replace these with your actual Twilio credentials
+// Get them from: https://console.twilio.com/
+const TWILIO_CONFIG = {
+  ACCOUNT_SID: 'AC85c921ca82cb00ef4f009eefbad6d071',
+  AUTH_TOKEN: 'fef3e9a12e44a0a85e958e0255172997',
+  FROM_NUMBER: '+14128662259',
+  ENABLED: true                                 // A2P 10DLC registration required for full deliverability
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOOGLE ROUTES API CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+const GOOGLE_ROUTES_CONFIG = {
+  API_KEY: 'AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y',
+  FARM_ADDRESS: '257 Zeigler Rd, Rochester, PA 15074',
+  FARM_COORDS: { lat: 40.7456217, lng: -80.1610431 }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -108,7 +129,7 @@ function doGet(e) {
       case 'getTasksByDate':
         return getTasksByDateRange(e.parameter.start, e.parameter.end);
       case 'getHarvests':
-        return getHarvests();
+        return getHarvests(e.parameter);
       case 'getHarvestsByDate':
         return getHarvestsByDateRange(e.parameter.start, e.parameter.end);
       case 'getWeather':
@@ -241,6 +262,202 @@ function doGet(e) {
         return jsonResponse(closeSalesCycle(e.parameter));
       case 'initializeMarketItems':
         return jsonResponse(initializeMarketItemsSheet());
+
+      // ============ EMPLOYEE MOBILE APP ============
+      case 'authenticateEmployee':
+        return jsonResponse(authenticateEmployee(e.parameter));
+      case 'clockIn':
+        return jsonResponse(clockIn(e.parameter));
+      case 'clockOut':
+        return jsonResponse(clockOut(e.parameter));
+      case 'getClockStatus':
+        return jsonResponse(getClockStatus(e.parameter.employeeId));
+      case 'getTimeClockHistory':
+        return jsonResponse(getTimeClockHistory(e.parameter));
+      case 'getEmployeeTasks':
+        return jsonResponse(getEmployeeTasks(e.parameter));
+      case 'completeTaskWithGPS':
+        return jsonResponse(completeTaskWithGPS(e.parameter));
+      case 'logHarvestWithDetails':
+        return jsonResponse(logHarvestWithDetails(e.parameter));
+      case 'saveScoutingReport':
+        return jsonResponse(saveScoutingReport(e.parameter));
+      case 'logTreatment':
+        return jsonResponse(logTreatment(e.parameter));
+      case 'logBeneficialRelease':
+        return jsonResponse(logBeneficialRelease(e.parameter));
+      case 'getActiveREI':
+        return jsonResponse(getActiveREI(e.parameter));
+      case 'reportHazard':
+        return jsonResponse(reportHazard(e.parameter));
+      case 'getActiveHazards':
+        return jsonResponse(getActiveHazards(e.parameter));
+      case 'resolveHazard':
+        return jsonResponse(resolveHazard(e.parameter));
+      case 'logWeedPressure':
+        return jsonResponse(logWeedPressure(e.parameter));
+      case 'logCultivation':
+        return jsonResponse(logCultivation(e.parameter));
+      case 'getCrewMessages':
+        return jsonResponse(getCrewMessages(e.parameter));
+      case 'acknowledgeMessage':
+        return jsonResponse(acknowledgeMessage(e.parameter));
+      case 'sendCrewMessage':
+        return jsonResponse(sendCrewMessage(e.parameter));
+      case 'getFields':
+        return jsonResponse(getFields(e.parameter));
+      case 'updateEmployeeLanguage':
+        return jsonResponse(updateEmployeeLanguage(e.parameter));
+
+      // ============ PICK & PACK AUTOMATION ============
+      case 'getPickListForToday':
+        return jsonResponse(getPickListForToday(e.parameter));
+      case 'updatePickItemStatus':
+        return jsonResponse(updatePickItemStatus(e.parameter));
+      case 'getPackingList':
+        return jsonResponse(getPackingList(e.parameter));
+      case 'completePackingOrder':
+        return jsonResponse(completePackingOrder(e.parameter));
+
+      // ============ WILDLIFE TRACKING ============
+      case 'logWildlifeSighting':
+        return jsonResponse(logWildlifeSighting(e.parameter));
+      case 'logGroundhogDen':
+        return jsonResponse(logGroundhogDen(e.parameter));
+      case 'getGroundhogDens':
+        return jsonResponse(getGroundhogDens(e.parameter));
+      case 'updateDenStatus':
+        return jsonResponse(updateDenStatus(e.parameter));
+      case 'logDamageReport':
+        return jsonResponse(logDamageReport(e.parameter));
+      case 'getDamageReports':
+        return jsonResponse(getDamageReports(e.parameter));
+      case 'getWildlifeMap':
+        return jsonResponse(getWildlifeMap(e.parameter));
+
+      // ============ CUSTOMER NOTIFICATIONS ============
+      case 'sendOrderConfirmation':
+        return jsonResponse(sendOrderConfirmation(e.parameter));
+      case 'sendDeliveryNotification':
+        return jsonResponse(sendDeliveryNotification(e.parameter));
+      case 'sendDeliveryComplete':
+        return jsonResponse(sendDeliveryComplete(e.parameter));
+      case 'sendCSAWeeklyReminder':
+        return jsonResponse(sendCSAWeeklyReminder(e.parameter));
+
+      // ============ SMS NOTIFICATIONS (TWILIO) ============
+      case 'sendSMS':
+        return jsonResponse(sendSMS(e.parameter));
+      case 'sendOrderSMS':
+        return jsonResponse(sendOrderSMS(e.parameter));
+      case 'sendDeliverySMS':
+        return jsonResponse(sendDeliverySMS(e.parameter));
+      case 'sendCrewSMS':
+        return jsonResponse(sendCrewSMS(e.parameter));
+      case 'sendREIAlertSMS':
+        return jsonResponse(sendREIAlertSMS(e.parameter));
+      case 'getSMSHistory':
+        return jsonResponse(getSMSHistory(e.parameter));
+
+      // ============ ROUTE OPTIMIZATION (GOOGLE ROUTES API) ============
+      case 'optimizeDeliveryRoute':
+        return jsonResponse(optimizeDeliveryRoute(e.parameter));
+      case 'getRouteForDeliveries':
+        return jsonResponse(getRouteForDeliveries(e.parameter));
+      case 'geocodeAddress':
+        return jsonResponse(geocodeAddress(e.parameter));
+      case 'getDistanceMatrix':
+        return jsonResponse(getDistanceMatrix(e.parameter));
+      case 'getDeliverySchedule':
+        return jsonResponse(getDeliverySchedule(e.parameter));
+
+      // ============ REAL-TIME DELIVERY TRACKING ============
+      case 'startDeliveryTracking':
+        return jsonResponse(startDeliveryTracking(e.parameter));
+      case 'updateDriverLocation':
+        return jsonResponse(updateDriverLocation(e.parameter));
+      case 'stopDeliveryTracking':
+        return jsonResponse(stopDeliveryTracking(e.parameter));
+      case 'getTrackingStatus':
+        return jsonResponse(getTrackingStatus(e.parameter));
+      case 'getActiveTracking':
+        return jsonResponse(getActiveTracking(e.parameter));
+      case 'sendRouteStartNotifications':
+        return jsonResponse(sendRouteStartNotifications(e.parameter));
+      case 'sendDeliveredNotification':
+        return jsonResponse(sendDeliveredNotification(e.parameter));
+
+      // ============ PRE-SEASON PLANNING ============
+      case 'getPlanningChecklist':
+        return jsonResponse(getPlanningChecklist(e.parameter));
+      case 'updatePlanningTask':
+        return jsonResponse(updatePlanningTask(e.parameter));
+      case 'createPlanningChecklist':
+        return jsonResponse(createPlanningChecklist(e.parameter));
+      case 'getPlanningProgress':
+        return jsonResponse(getPlanningProgress(e.parameter));
+
+      // ============ IN-SEASON ADJUSTMENTS ============
+      case 'getSeasonAdjustments':
+        return jsonResponse(getSeasonAdjustments(e.parameter));
+      case 'addSeasonAdjustment':
+        return jsonResponse(addSeasonAdjustment(e.parameter));
+      case 'updateSuccessionStatus':
+        return jsonResponse(updateSuccessionStatus(e.parameter));
+
+      // ============ POST-SEASON REVIEW ============
+      case 'getVarietyReviews':
+        return jsonResponse(getVarietyReviews(e.parameter));
+      case 'saveVarietyReview':
+        return jsonResponse(saveVarietyReview(e.parameter));
+      case 'getSeasonSummary':
+        return jsonResponse(getSeasonSummary(e.parameter));
+
+      // ============ BED PREP ============
+      case 'getBedPrepLog':
+        return jsonResponse(getBedPrepLog(e.parameter));
+      case 'logBedPrep':
+        return jsonResponse(logBedPrep(e.parameter));
+      case 'getBedPrepStatus':
+        return jsonResponse(getBedPrepStatus(e.parameter));
+
+      // ============ IRRIGATION ============
+      case 'getIrrigationZones':
+        return jsonResponse(getIrrigationZones(e.parameter));
+      case 'saveIrrigationZone':
+        return jsonResponse(saveIrrigationZone(e.parameter));
+      case 'getWateringLog':
+        return jsonResponse(getWateringLog(e.parameter));
+      case 'logWatering':
+        return jsonResponse(logWatering(e.parameter));
+      case 'getIrrigationMaintenance':
+        return jsonResponse(getIrrigationMaintenance(e.parameter));
+      case 'logIrrigationMaintenance':
+        return jsonResponse(logIrrigationMaintenance(e.parameter));
+      case 'getIrrigationDashboard':
+        return jsonResponse(getIrrigationDashboard(e.parameter));
+
+      // ============ FARM INFRASTRUCTURE & EQUIPMENT LOCATIONS ============
+      case 'getFarmInfrastructure':
+        return jsonResponse(getFarmInfrastructure(e.parameter));
+      case 'saveFarmInfrastructure':
+        return jsonResponse(saveFarmInfrastructure(e.parameter));
+      case 'deleteFarmInfrastructure':
+        return jsonResponse(deleteFarmInfrastructure(e.parameter));
+      case 'getInfrastructureMap':
+        return jsonResponse(getInfrastructureMap(e.parameter));
+
+      // ============ BOUNDARY TRACING (Property Lines, Field Outlines) ============
+      case 'getBoundaries':
+        return jsonResponse(getBoundaries(e.parameter));
+      case 'saveBoundary':
+        return jsonResponse(saveBoundary(e.parameter));
+      case 'deleteBoundary':
+        return jsonResponse(deleteBoundary(e.parameter));
+
+      // ============ FIELD SCOUTING MAP ============
+      case 'getScoutingMapData':
+        return jsonResponse(getScoutingMapData(e.parameter));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -1708,8 +1925,64 @@ function getCropByName(crop, variety) { return jsonResponse({success: false, mes
 function getBedsByField(field) { return jsonResponse({success: false, message: 'Not implemented'}); }
 function getTasks(date) { return jsonResponse({success: false, message: 'Not implemented'}); }
 function getTasksByDateRange(start, end) { return jsonResponse({success: false, message: 'Not implemented'}); }
-function getHarvests() { return jsonResponse({success: false, message: 'Not implemented'}); }
-function getHarvestsByDateRange(start, end) { return jsonResponse({success: false, message: 'Not implemented'}); }
+function getHarvests(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('HARVEST_LOG');
+
+    if (!sheet) {
+      return jsonResponse({ success: true, harvests: [] });
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const limit = params && params.limit ? parseInt(params.limit) : 50;
+
+    const harvests = [];
+    for (let i = data.length - 1; i >= 1 && harvests.length < limit; i--) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+      if (row.Crop) {
+        harvests.push(row);
+      }
+    }
+
+    return jsonResponse({ success: true, harvests: harvests });
+  } catch (error) {
+    return jsonResponse({ success: false, error: error.toString() });
+  }
+}
+
+function getHarvestsByDateRange(start, end) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('HARVEST_LOG');
+
+    if (!sheet) {
+      return jsonResponse({ success: true, harvests: [] });
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    const harvests = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      const timestamp = new Date(row.Timestamp);
+      if (timestamp >= startDate && timestamp <= endDate) {
+        harvests.push(row);
+      }
+    }
+
+    return jsonResponse({ success: true, harvests: harvests });
+  } catch (error) {
+    return jsonResponse({ success: false, error: error.toString() });
+  }
+}
 function getWeatherData() { return jsonResponse({success: false, message: 'Not implemented'}); }
 function getCSAMembers() { return jsonResponse({success: false, message: 'Not implemented'}); }
 function getFinancials() { return jsonResponse({success: false, message: 'Not implemented'}); }
@@ -6497,6 +6770,60 @@ function getRouteStops(routeId) {
   const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
   if (!sheet) return [];
 
+  // Get customer data for email and type info
+  const customersSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+  let customerData = {};
+  if (customersSheet) {
+    const custData = customersSheet.getDataRange().getValues();
+    const custHeaders = custData[0];
+    for (let i = 1; i < custData.length; i++) {
+      const custId = custData[i][custHeaders.indexOf('Customer_ID')];
+      customerData[custId] = {
+        email: custData[i][custHeaders.indexOf('Email')],
+        type: custData[i][custHeaders.indexOf('Customer_Type')],
+        company: custData[i][custHeaders.indexOf('Company_Name')]
+      };
+    }
+  }
+
+  // Get order data for customer IDs and types
+  const ordersSheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+  let orderData = {};
+  if (ordersSheet) {
+    const ordData = ordersSheet.getDataRange().getValues();
+    const ordHeaders = ordData[0];
+    for (let i = 1; i < ordData.length; i++) {
+      const orderId = ordData[i][ordHeaders.indexOf('Order_ID')];
+      orderData[orderId] = {
+        customerId: ordData[i][ordHeaders.indexOf('Customer_ID')],
+        customerType: ordData[i][ordHeaders.indexOf('Customer_Type')]
+      };
+    }
+  }
+
+  // Get CSA box counts from CSA_Members if available
+  const csaMembersSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+  let csaBoxCounts = {};
+  let csaShareTypes = {};
+  if (csaMembersSheet) {
+    const csaData = csaMembersSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    for (let i = 1; i < csaData.length; i++) {
+      const custId = csaData[i][csaHeaders.indexOf('Customer_ID')];
+      const shareType = csaData[i][csaHeaders.indexOf('Share_Type')] || 'Veggie';
+      const shareSize = csaData[i][csaHeaders.indexOf('Share_Size')] || 'Regular';
+
+      // Store share type (Veggie, Flower, etc.)
+      csaShareTypes[custId] = shareType;
+
+      // Default box/bouquet count based on share size
+      let boxCount = 1;
+      if (shareSize === 'Family' || shareSize === 'Large') boxCount = 2;
+      if (shareSize === 'Extra Large') boxCount = 3;
+      csaBoxCounts[custId] = boxCount;
+    }
+  }
+
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const stops = [];
@@ -6506,6 +6833,27 @@ function getRouteStops(routeId) {
       let stop = {};
       headers.forEach((h, j) => stop[h] = data[i][j]);
       stop.items = getOrderItems(stop.Order_ID);
+
+      // Add customer type and email from order/customer data
+      const order = orderData[stop.Order_ID] || {};
+      const customer = customerData[order.customerId] || {};
+
+      stop.Customer_Type = order.customerType || customer.type || 'Retail';
+      stop.Customer_Email = customer.email || '';
+      stop.Customer_Company = customer.company || '';
+
+      // Add box count and share type for CSA deliveries
+      if (stop.Customer_Type === 'CSA') {
+        stop.Box_Count = csaBoxCounts[order.customerId] || 1;
+        stop.Share_Type = csaShareTypes[order.customerId] || 'Veggie';
+      }
+
+      // Add item count for wholesale
+      if (stop.Customer_Type === 'Wholesale') {
+        stop.Item_Count = stop.items ? stop.items.length : 0;
+        stop.Total_Units = stop.items ? stop.items.reduce((sum, item) => sum + (item.Quantity || 0), 0) : 0;
+      }
+
       stops.push(stop);
     }
   }
@@ -6910,6 +7258,627 @@ function updateRouteProgress(routeId) {
       }
       break;
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REAL-TIME DELIVERY TRACKING
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TRACKING_SHEET = 'DELIVERY_TRACKING';
+
+function startDeliveryTracking(params) {
+  try {
+    const { routeId, driverId, driverName } = params;
+    if (!routeId) return { success: false, error: 'Route ID required' };
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let trackingSheet = ss.getSheetByName(TRACKING_SHEET);
+
+    // Create sheet if it doesn't exist
+    if (!trackingSheet) {
+      trackingSheet = ss.insertSheet(TRACKING_SHEET);
+      trackingSheet.appendRow([
+        'Tracking_ID', 'Route_ID', 'Driver_ID', 'Driver_Name',
+        'Current_Lat', 'Current_Lng', 'Last_Updated', 'Status',
+        'Current_Stop_Index', 'Total_Stops', 'Started_At'
+      ]);
+      trackingSheet.setFrozenRows(1);
+    }
+
+    // Check if route already has active tracking
+    const data = trackingSheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === routeId && data[i][7] === 'active') {
+        // Already tracking - return existing tracking ID
+        return { success: true, trackingId: data[i][0], message: 'Tracking already active' };
+      }
+    }
+
+    // Get route stops count
+    const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+    let totalStops = 0;
+    if (stopsSheet) {
+      const stopsData = stopsSheet.getDataRange().getValues();
+      for (let i = 1; i < stopsData.length; i++) {
+        if (stopsData[i][1] === routeId) totalStops++;
+      }
+    }
+
+    // Generate tracking ID
+    const trackingId = 'TRK-' + Date.now().toString(36).toUpperCase();
+    const now = new Date().toISOString();
+
+    // Create new tracking record
+    trackingSheet.appendRow([
+      trackingId, routeId, driverId || '', driverName || '',
+      '', '', now, 'active', 0, totalStops, now
+    ]);
+
+    // Generate tracking codes for all stops on this route
+    generateTrackingCodes(routeId, trackingId);
+
+    return {
+      success: true,
+      trackingId: trackingId,
+      totalStops: totalStops,
+      message: 'Tracking started'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function generateTrackingCodes(routeId, trackingId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+    if (!stopsSheet) return;
+
+    const data = stopsSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Add Tracking_Code column if it doesn't exist
+    let trackingCodeCol = headers.indexOf('Tracking_Code');
+    if (trackingCodeCol === -1) {
+      trackingCodeCol = headers.length;
+      stopsSheet.getRange(1, trackingCodeCol + 1).setValue('Tracking_Code');
+    }
+
+    // Add Tracking_ID column if it doesn't exist
+    let trackingIdCol = headers.indexOf('Tracking_ID');
+    if (trackingIdCol === -1) {
+      trackingIdCol = headers.length + (trackingCodeCol === headers.length ? 1 : 0);
+      stopsSheet.getRange(1, trackingIdCol + 1).setValue('Tracking_ID');
+    }
+
+    // Generate tracking codes for stops on this route
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === routeId) { // Route_ID column
+        // Generate unique 6-character tracking code
+        const code = generateShortCode();
+        stopsSheet.getRange(i + 1, trackingCodeCol + 1).setValue(code);
+        stopsSheet.getRange(i + 1, trackingIdCol + 1).setValue(trackingId);
+      }
+    }
+  } catch (error) {
+    console.error('Error generating tracking codes:', error);
+  }
+}
+
+function generateShortCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+function updateDriverLocation(params) {
+  try {
+    const { routeId, trackingId, lat, lng, currentStopIndex, heading, speed } = params;
+    if (!routeId && !trackingId) return { success: false, error: 'Route ID or Tracking ID required' };
+    if (!lat || !lng) return { success: false, error: 'Location required' };
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const trackingSheet = ss.getSheetByName(TRACKING_SHEET);
+    if (!trackingSheet) return { success: false, error: 'Tracking not initialized' };
+
+    const data = trackingSheet.getDataRange().getValues();
+    const headers = data[0];
+    const now = new Date().toISOString();
+
+    for (let i = 1; i < data.length; i++) {
+      const matchRoute = routeId && data[i][1] === routeId;
+      const matchTracking = trackingId && data[i][0] === trackingId;
+
+      if ((matchRoute || matchTracking) && data[i][7] === 'active') {
+        // Update location
+        trackingSheet.getRange(i + 1, headers.indexOf('Current_Lat') + 1).setValue(lat);
+        trackingSheet.getRange(i + 1, headers.indexOf('Current_Lng') + 1).setValue(lng);
+        trackingSheet.getRange(i + 1, headers.indexOf('Last_Updated') + 1).setValue(now);
+
+        if (currentStopIndex !== undefined) {
+          trackingSheet.getRange(i + 1, headers.indexOf('Current_Stop_Index') + 1).setValue(currentStopIndex);
+        }
+
+        // Store heading/speed if columns exist (add them if they don't)
+        let headingCol = headers.indexOf('Heading');
+        let speedCol = headers.indexOf('Speed');
+
+        if (headingCol === -1 && heading !== undefined) {
+          headingCol = headers.length;
+          trackingSheet.getRange(1, headingCol + 1).setValue('Heading');
+        }
+        if (speedCol === -1 && speed !== undefined) {
+          speedCol = headers.length + (headingCol === headers.length ? 1 : 0);
+          trackingSheet.getRange(1, speedCol + 1).setValue('Speed');
+        }
+
+        if (heading !== undefined && headingCol !== -1) {
+          trackingSheet.getRange(i + 1, headingCol + 1).setValue(heading);
+        }
+        if (speed !== undefined && speedCol !== -1) {
+          trackingSheet.getRange(i + 1, speedCol + 1).setValue(speed);
+        }
+
+        return { success: true, message: 'Location updated' };
+      }
+    }
+
+    return { success: false, error: 'Active tracking session not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function stopDeliveryTracking(params) {
+  try {
+    const { routeId, trackingId } = params;
+    if (!routeId && !trackingId) return { success: false, error: 'Route ID or Tracking ID required' };
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const trackingSheet = ss.getSheetByName(TRACKING_SHEET);
+    if (!trackingSheet) return { success: false, error: 'Tracking sheet not found' };
+
+    const data = trackingSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const matchRoute = routeId && data[i][1] === routeId;
+      const matchTracking = trackingId && data[i][0] === trackingId;
+
+      if ((matchRoute || matchTracking) && data[i][7] === 'active') {
+        trackingSheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue('completed');
+        trackingSheet.getRange(i + 1, headers.indexOf('Last_Updated') + 1).setValue(new Date().toISOString());
+
+        return { success: true, message: 'Tracking stopped' };
+      }
+    }
+
+    return { success: false, error: 'Active tracking not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getTrackingStatus(params) {
+  try {
+    const { trackingCode, trackingId } = params;
+    if (!trackingCode && !trackingId) {
+      return { success: false, error: 'Tracking code or ID required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // If tracking code provided, look up the stop first
+    let stopInfo = null;
+    let routeTrackingId = trackingId;
+
+    if (trackingCode) {
+      const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+      if (stopsSheet) {
+        const stopsData = stopsSheet.getDataRange().getValues();
+        const stopsHeaders = stopsData[0];
+        const trackingCodeCol = stopsHeaders.indexOf('Tracking_Code');
+        const trackingIdCol = stopsHeaders.indexOf('Tracking_ID');
+
+        for (let i = 1; i < stopsData.length; i++) {
+          if (stopsData[i][trackingCodeCol] === trackingCode.toUpperCase()) {
+            stopInfo = {};
+            stopsHeaders.forEach((h, j) => {
+              if (h !== 'Tracking_Code') stopInfo[h] = stopsData[i][j];
+            });
+            routeTrackingId = stopsData[i][trackingIdCol];
+            break;
+          }
+        }
+
+        if (!stopInfo) {
+          return { success: false, error: 'Invalid tracking code' };
+        }
+      }
+    }
+
+    // Get tracking data
+    const trackingSheet = ss.getSheetByName(TRACKING_SHEET);
+    if (!trackingSheet) {
+      return { success: false, error: 'Tracking not available' };
+    }
+
+    const data = trackingSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === routeTrackingId) {
+        const tracking = {};
+        headers.forEach((h, j) => tracking[h] = data[i][j]);
+
+        // Calculate stops away
+        let stopsAway = 0;
+        let eta = null;
+
+        if (stopInfo && tracking.Status === 'active') {
+          const currentStopIndex = parseInt(tracking.Current_Stop_Index) || 0;
+          const customerStopOrder = parseInt(stopInfo.Stop_Order) || 0;
+          stopsAway = Math.max(0, customerStopOrder - currentStopIndex - 1);
+
+          // Estimate ETA (rough: 5 min per stop + existing ETA if available)
+          if (stopInfo.ETA) {
+            eta = stopInfo.ETA;
+          } else {
+            const minutesAway = stopsAway * 8; // ~8 min per stop average
+            const etaDate = new Date(Date.now() + minutesAway * 60000);
+            eta = etaDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          }
+        }
+
+        // Check if delivery is complete
+        let deliveryStatus = 'tracking';
+        if (stopInfo) {
+          if (stopInfo.Status === 'Delivered') deliveryStatus = 'delivered';
+          else if (stopInfo.Status === 'Issue') deliveryStatus = 'issue';
+          else if (tracking.Status !== 'active') deliveryStatus = 'tracking_ended';
+          else if (stopsAway === 0) deliveryStatus = 'next_stop';
+        }
+
+        return {
+          success: true,
+          tracking: {
+            id: tracking.Tracking_ID,
+            status: tracking.Status,
+            driverName: tracking.Driver_Name,
+            currentLat: tracking.Current_Lat,
+            currentLng: tracking.Current_Lng,
+            lastUpdated: tracking.Last_Updated,
+            currentStopIndex: tracking.Current_Stop_Index,
+            totalStops: tracking.Total_Stops,
+            heading: tracking.Heading,
+            speed: tracking.Speed
+          },
+          stop: stopInfo ? {
+            customerName: stopInfo.Customer_Name,
+            address: stopInfo.Address,
+            stopOrder: stopInfo.Stop_Order,
+            status: stopInfo.Status,
+            deliveryWindow: stopInfo.Delivery_Window
+          } : null,
+          stopsAway: stopsAway,
+          eta: eta,
+          deliveryStatus: deliveryStatus
+        };
+      }
+    }
+
+    return { success: false, error: 'Tracking session not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getActiveTracking(params) {
+  try {
+    const { driverId, routeId } = params;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const trackingSheet = ss.getSheetByName(TRACKING_SHEET);
+
+    if (!trackingSheet) {
+      return { success: true, activeSessions: [] };
+    }
+
+    const data = trackingSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const activeSessions = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][headers.indexOf('Status')] === 'active') {
+        const session = {};
+        headers.forEach((h, j) => session[h] = data[i][j]);
+
+        // Apply filters
+        if (driverId && session.Driver_ID !== driverId) continue;
+        if (routeId && session.Route_ID !== routeId) continue;
+
+        activeSessions.push(session);
+      }
+    }
+
+    return { success: true, activeSessions: activeSessions };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELIVERY NOTIFICATION FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TRACKING_PAGE_URL = 'https://tinyseedfarm.com/track.html'; // Update with your actual domain
+
+/**
+ * Send tracking SMS to all customers when driver starts the route
+ * @param {Object} params - { routeId, trackingId }
+ */
+function sendRouteStartNotifications(params) {
+  try {
+    const { routeId, trackingId } = params;
+    if (!routeId) return { success: false, error: 'Route ID required' };
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
+    const ordersSheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+    const customersSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
+    if (!stopsSheet) return { success: false, error: 'Stops sheet not found' };
+
+    const stopsData = stopsSheet.getDataRange().getValues();
+    const stopsHeaders = stopsData[0];
+
+    // Get customer data for emails
+    let customerData = {};
+    if (customersSheet) {
+      const custData = customersSheet.getDataRange().getValues();
+      const custHeaders = custData[0];
+      for (let i = 1; i < custData.length; i++) {
+        const custId = custData[i][custHeaders.indexOf('Customer_ID')];
+        customerData[custId] = {
+          email: custData[i][custHeaders.indexOf('Email')],
+          type: custData[i][custHeaders.indexOf('Customer_Type')],
+          company: custData[i][custHeaders.indexOf('Company_Name')]
+        };
+      }
+    }
+
+    // Get order data for customer IDs
+    let orderCustomerMap = {};
+    if (ordersSheet) {
+      const ordData = ordersSheet.getDataRange().getValues();
+      const ordHeaders = ordData[0];
+      for (let i = 1; i < ordData.length; i++) {
+        orderCustomerMap[ordData[i][ordHeaders.indexOf('Order_ID')]] = {
+          customerId: ordData[i][ordHeaders.indexOf('Customer_ID')],
+          customerType: ordData[i][ordHeaders.indexOf('Customer_Type')]
+        };
+      }
+    }
+
+    const results = [];
+    const sentPhones = new Set(); // Avoid duplicate SMS
+
+    for (let i = 1; i < stopsData.length; i++) {
+      if (stopsData[i][stopsHeaders.indexOf('Route_ID')] === routeId) {
+        const phone = stopsData[i][stopsHeaders.indexOf('Phone')];
+        const customerName = stopsData[i][stopsHeaders.indexOf('Customer_Name')];
+        const trackingCode = stopsData[i][stopsHeaders.indexOf('Tracking_Code')];
+        const orderId = stopsData[i][stopsHeaders.indexOf('Order_ID')];
+        const orderInfo = orderCustomerMap[orderId] || {};
+        const custInfo = customerData[orderInfo.customerId] || {};
+
+        // Only send if phone exists and not already sent
+        if (phone && !sentPhones.has(phone)) {
+          sentPhones.add(phone);
+
+          const trackingLink = `${TRACKING_PAGE_URL}?code=${trackingCode}`;
+          const message = `🚚 Tiny Seed Farm: Your delivery is on the way! Track your order in real-time: ${trackingLink}`;
+
+          // Send SMS
+          const smsResult = sendSMS({ to: phone, message: message });
+          results.push({
+            customer: customerName,
+            phone: phone,
+            type: 'sms',
+            success: smsResult.success,
+            error: smsResult.error
+          });
+
+          // Also send email if we have it (especially for wholesale)
+          if (custInfo.email) {
+            try {
+              MailApp.sendEmail({
+                to: custInfo.email,
+                subject: '🚚 Your Tiny Seed Farm Delivery is On The Way!',
+                htmlBody: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: #22c55e; padding: 20px; text-align: center;">
+                      <h1 style="color: white; margin: 0;">🌱 Tiny Seed Farm</h1>
+                    </div>
+                    <div style="padding: 30px; background: #f8fafc;">
+                      <h2 style="color: #1e293b;">Your Delivery is On The Way!</h2>
+                      <p style="color: #64748b; font-size: 16px;">
+                        Hi ${customerName.split(' ')[0]},
+                      </p>
+                      <p style="color: #64748b; font-size: 16px;">
+                        Great news! Your Tiny Seed Farm delivery has departed and is on its way to you.
+                      </p>
+                      <div style="text-align: center; margin: 30px 0;">
+                        <a href="${trackingLink}" style="background: #22c55e; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                          Track Your Delivery
+                        </a>
+                      </div>
+                      <p style="color: #94a3b8; font-size: 14px; text-align: center;">
+                        Tracking Code: <strong>${trackingCode}</strong>
+                      </p>
+                    </div>
+                    <div style="padding: 20px; background: #1e293b; text-align: center;">
+                      <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                        Tiny Seed Farm • Local, Organic, Delicious
+                      </p>
+                    </div>
+                  </div>
+                `
+              });
+              results.push({
+                customer: customerName,
+                email: custInfo.email,
+                type: 'email',
+                success: true
+              });
+            } catch (emailError) {
+              results.push({
+                customer: customerName,
+                email: custInfo.email,
+                type: 'email',
+                success: false,
+                error: emailError.toString()
+              });
+            }
+          }
+        }
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    return {
+      success: true,
+      message: `Sent ${successCount} of ${results.length} notifications`,
+      results: results
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send delivered notification to customer (SMS and email for wholesale)
+ * @param {Object} params - { stopId, orderId, customerName, phone, email, customerType, itemCount }
+ */
+function sendDeliveredNotification(params) {
+  try {
+    const { stopId, orderId, customerName, phone, email, customerType, itemCount, boxCount, shareType } = params;
+
+    const results = [];
+    const firstName = customerName ? customerName.split(' ')[0] : 'Valued Customer';
+
+    // Determine message based on customer type
+    let smsMessage;
+    if (customerType === 'CSA') {
+      const isFlower = shareType && shareType.toLowerCase().includes('flower');
+      const itemName = isFlower ? 'bouquet' : 'box';
+      const emoji = isFlower ? '💐' : '🥬';
+      smsMessage = `✅ Tiny Seed Farm: Your CSA ${itemName}${boxCount > 1 ? 's have' : ' has'} been delivered! ${boxCount || 1} ${itemName}${boxCount > 1 ? 's' : ''} - Enjoy! ${emoji}`;
+    } else if (customerType === 'Wholesale') {
+      smsMessage = `✅ Tiny Seed Farm: Your wholesale delivery has arrived! ${itemCount || 'All'} items delivered. Thank you for your business! 🌱`;
+    } else {
+      smsMessage = `✅ Tiny Seed Farm: Your delivery has arrived! Enjoy your fresh produce! 🥬`;
+    }
+
+    // Send SMS if phone provided
+    if (phone) {
+      const smsResult = sendSMS({ to: phone, message: smsMessage });
+      results.push({
+        type: 'sms',
+        to: phone,
+        success: smsResult.success,
+        error: smsResult.error
+      });
+    }
+
+    // Send email for wholesale customers
+    if (email && (customerType === 'Wholesale' || customerType === 'wholesale')) {
+      try {
+        // Get order items for the delivery summary
+        let itemsHtml = '';
+        if (orderId) {
+          const items = getOrderItems(orderId);
+          if (items && items.length > 0) {
+            itemsHtml = `
+              <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #1e293b; margin-bottom: 15px;">Delivered Items:</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr style="background: #f1f5f9;">
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0;">Product</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Quantity</th>
+                  </tr>
+                  ${items.map(item => `
+                    <tr>
+                      <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">${item.Product_Name}${item.Variety ? ' - ' + item.Variety : ''}</td>
+                      <td style="padding: 10px; text-align: right; border-bottom: 1px solid #f1f5f9;">${item.Quantity} ${item.Unit || ''}</td>
+                    </tr>
+                  `).join('')}
+                </table>
+              </div>
+            `;
+          }
+        }
+
+        MailApp.sendEmail({
+          to: email,
+          subject: '✅ Tiny Seed Farm Delivery Complete!',
+          htmlBody: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: #22c55e; padding: 20px; text-align: center;">
+                <h1 style="color: white; margin: 0;">🌱 Tiny Seed Farm</h1>
+              </div>
+              <div style="padding: 30px; background: #f8fafc;">
+                <h2 style="color: #1e293b;">Delivery Complete! ✅</h2>
+                <p style="color: #64748b; font-size: 16px;">
+                  Hi ${firstName},
+                </p>
+                <p style="color: #64748b; font-size: 16px;">
+                  Your wholesale delivery from Tiny Seed Farm has been completed and all items have arrived at your location.
+                </p>
+                ${itemsHtml}
+                <p style="color: #64748b; font-size: 16px;">
+                  Thank you for supporting local agriculture! If you have any questions or concerns about your delivery, please don't hesitate to reach out.
+                </p>
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                  <p style="color: #94a3b8; font-size: 14px; margin: 0;">
+                    Delivered: ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+                  </p>
+                </div>
+              </div>
+              <div style="padding: 20px; background: #1e293b; text-align: center;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                  Tiny Seed Farm • Local, Organic, Delicious
+                </p>
+              </div>
+            </div>
+          `
+        });
+        results.push({
+          type: 'email',
+          to: email,
+          success: true
+        });
+      } catch (emailError) {
+        results.push({
+          type: 'email',
+          to: email,
+          success: false,
+          error: emailError.toString()
+        });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Sent ${results.filter(r => r.success).length} notification(s)`,
+      results: results
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
   }
 }
 
@@ -8120,5 +9089,3795 @@ function initializeMarketItemsSheet() {
   }
 
   return { success: true, message: 'Market items sheet initialized' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMPLOYEE MOBILE APP - COMPLETE API SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+const EMPLOYEE_SHEETS = {
+  EMPLOYEES: 'EMPLOYEES',
+  TIME_CLOCK: 'TIME_CLOCK',
+  HARVEST_LOG: 'HARVEST_LOG',
+  FIELD_SCOUTING: 'FIELD_SCOUTING',
+  TREATMENT_LOG: 'TREATMENT_LOG',
+  BENEFICIAL_RELEASES: 'BENEFICIAL_RELEASES',
+  FIELD_HAZARDS: 'FIELD_HAZARDS',
+  WEED_PRESSURE: 'WEED_PRESSURE',
+  CULTIVATION_LOG: 'CULTIVATION_LOG',
+  CREW_MESSAGES: 'CREW_MESSAGES'
+};
+
+const EMPLOYEE_HEADERS = {
+  EMPLOYEES: ['Employee_ID', 'First_Name', 'Last_Name', 'Badge_PIN', 'Role', 'Language_Pref', 'Hire_Date', 'Is_Active', 'Phone', 'Last_Login'],
+  TIME_CLOCK: ['Entry_ID', 'Employee_ID', 'Date', 'Clock_In', 'Clock_Out', 'Hours_Worked', 'GPS_In_Lat', 'GPS_In_Lng', 'GPS_Out_Lat', 'GPS_Out_Lng', 'In_Geofence', 'Notes'],
+  HARVEST_LOG: ['Harvest_ID', 'Timestamp', 'Batch_ID', 'Crop', 'Variety', 'Bed_ID', 'Quantity', 'Unit', 'Quality_Grade', 'Lot_Number', 'GPS_Lat', 'GPS_Lng', 'Photo_URL', 'Harvested_By', 'Notes'],
+  FIELD_SCOUTING: ['Scout_ID', 'Date', 'Time', 'Employee_ID', 'Field_ID', 'Bed_ID', 'Observation_Type', 'Severity', 'Photo_URL', 'GPS_Lat', 'GPS_Lng', 'AI_Diagnosis', 'Recommended_Action', 'Notes'],
+  TREATMENT_LOG: ['Treatment_ID', 'Application_Date', 'Employee_ID', 'Field_ID', 'Bed_IDs', 'Material_Name', 'OMRI_Listed', 'Rate', 'Amount_Applied', 'Target_Pest_Disease', 'REI_Hours', 'REI_Expires_At', 'PHI_Days', 'PHI_Expires_At', 'Weather', 'Temperature', 'Notes', 'GPS_Lat', 'GPS_Lng'],
+  BENEFICIAL_RELEASES: ['Release_ID', 'Date', 'Employee_ID', 'Type', 'Quantity', 'Field_ID', 'GPS_Lat', 'GPS_Lng', 'Notes'],
+  FIELD_HAZARDS: ['Hazard_ID', 'Reported_Date', 'Employee_ID', 'Type', 'Severity', 'Description', 'Photo_URL', 'GPS_Lat', 'GPS_Lng', 'Status', 'Resolved_Date', 'Resolved_By'],
+  WEED_PRESSURE: ['Weed_ID', 'Date', 'Employee_ID', 'Field_ID', 'Bed_ID', 'Weed_Type', 'Species', 'Pressure_Level', 'Coverage_Pct', 'GPS_Lat', 'GPS_Lng', 'Notes'],
+  CULTIVATION_LOG: ['Cultivation_ID', 'Date', 'Employee_ID', 'Field_ID', 'Bed_IDs', 'Implement', 'Depth', 'Soil_Condition', 'Effectiveness', 'GPS_Lat', 'GPS_Lng', 'Notes'],
+  CREW_MESSAGES: ['Message_ID', 'Timestamp', 'From', 'To_Employee_ID', 'To_All', 'Message', 'Urgent', 'Acknowledged', 'Acknowledged_At']
+};
+
+// Farm geofence center (update with actual coordinates)
+const FARM_GEOFENCE = {
+  lat: 40.7956,
+  lng: -80.1384,
+  radiusMeters: 500
+};
+
+// ============================================
+// SHEET INITIALIZATION HELPERS
+// ============================================
+
+function getOrCreateEmployeeSheet(sheetName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    const headers = EMPLOYEE_HEADERS[sheetName];
+    if (headers) {
+      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length)
+        .setFontWeight('bold')
+        .setBackground('#2d5a27')
+        .setFontColor('#ffffff');
+      sheet.setFrozenRows(1);
+    }
+    sheet.setTabColor('#4a7c43');
+  }
+
+  return sheet;
+}
+
+function generateId(prefix) {
+  return prefix + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase();
+}
+
+// ============================================
+// EMPLOYEE AUTHENTICATION
+// ============================================
+
+function authenticateEmployee(params) {
+  try {
+    const pin = (params.pin || '').trim();
+
+    if (!pin || pin.length !== 4) {
+      return { success: false, error: 'Please enter a 4-digit PIN' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(EMPLOYEE_SHEETS.EMPLOYEES);
+
+    // If EMPLOYEES sheet doesn't exist, check USERS sheet for Employee role
+    if (!sheet) {
+      // Fall back to USERS sheet
+      const usersSheet = ss.getSheetByName('USERS');
+      if (usersSheet) {
+        const data = usersSheet.getDataRange().getValues();
+        const headers = data[0];
+        const pinCol = headers.indexOf('PIN');
+        const roleCol = headers.indexOf('Role');
+        const activeCol = headers.indexOf('Is_Active');
+
+        for (let i = 1; i < data.length; i++) {
+          const rowPin = (data[i][pinCol] || '').toString().trim();
+          const role = data[i][roleCol];
+          const isActive = data[i][activeCol];
+
+          if (rowPin === pin && (role === 'Employee' || role === 'Field_Lead' || role === 'Manager' || role === 'Admin')) {
+            if (isActive === false || isActive === 'FALSE') {
+              return { success: false, error: 'Account is disabled' };
+            }
+
+            const employee = {
+              Employee_ID: data[i][headers.indexOf('User_ID')],
+              First_Name: (data[i][headers.indexOf('Full_Name')] || '').split(' ')[0],
+              Last_Name: (data[i][headers.indexOf('Full_Name')] || '').split(' ').slice(1).join(' '),
+              Role: role,
+              Language_Pref: 'en'
+            };
+
+            // Check if clocked in
+            const clockStatus = getClockStatus(employee.Employee_ID);
+
+            return {
+              success: true,
+              employee: employee,
+              isClockedIn: clockStatus.isClockedIn,
+              clockInTime: clockStatus.clockInTime
+            };
+          }
+        }
+      }
+
+      // Create EMPLOYEES sheet with sample data
+      sheet = createEmployeesSheet(ss);
+    }
+
+    // Check EMPLOYEES sheet
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const pinCol = headers.indexOf('Badge_PIN');
+    const activeCol = headers.indexOf('Is_Active');
+    const loginCol = headers.indexOf('Last_Login');
+
+    for (let i = 1; i < data.length; i++) {
+      const rowPin = (data[i][pinCol] || '').toString().trim();
+      const isActive = data[i][activeCol];
+
+      if (rowPin === pin) {
+        if (isActive === false || isActive === 'FALSE' || isActive === 'false') {
+          return { success: false, error: 'Account is disabled' };
+        }
+
+        // Build employee object
+        const employee = {};
+        headers.forEach((h, j) => {
+          if (h !== 'Badge_PIN') {
+            employee[h] = data[i][j];
+          }
+        });
+
+        // Update last login
+        if (loginCol >= 0) {
+          sheet.getRange(i + 1, loginCol + 1).setValue(new Date().toISOString());
+        }
+
+        // Check if clocked in
+        const clockStatus = getClockStatus(employee.Employee_ID);
+
+        return {
+          success: true,
+          employee: employee,
+          isClockedIn: clockStatus.isClockedIn,
+          clockInTime: clockStatus.clockInTime
+        };
+      }
+    }
+
+    return { success: false, error: 'Invalid PIN' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function createEmployeesSheet(ss) {
+  const sheet = ss.insertSheet(EMPLOYEE_SHEETS.EMPLOYEES);
+  const headers = EMPLOYEE_HEADERS.EMPLOYEES;
+
+  sheet.appendRow(headers);
+  sheet.getRange(1, 1, 1, headers.length)
+    .setFontWeight('bold')
+    .setBackground('#2d5a27')
+    .setFontColor('#ffffff');
+  sheet.setFrozenRows(1);
+  sheet.setTabColor('#4a7c43');
+
+  // Add sample employees
+  const sampleEmployees = [
+    ['EMP-001', 'Maria', 'Garcia', '1234', 'Worker', 'es', '2024-03-01', true, '', ''],
+    ['EMP-002', 'John', 'Smith', '5678', 'Lead', 'en', '2024-01-15', true, '', ''],
+    ['EMP-003', 'Ana', 'Rodriguez', '9012', 'Worker', 'es', '2024-06-01', true, '', '']
+  ];
+
+  sampleEmployees.forEach(emp => sheet.appendRow(emp));
+
+  return sheet;
+}
+
+// ============================================
+// TIME CLOCK (with GPS)
+// ============================================
+
+function getClockStatus(employeeId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
+
+    if (!sheet) {
+      return { isClockedIn: false, clockInTime: null };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const empCol = headers.indexOf('Employee_ID');
+    const clockInCol = headers.indexOf('Clock_In');
+    const clockOutCol = headers.indexOf('Clock_Out');
+
+    // Find most recent entry for this employee
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (data[i][empCol] === employeeId) {
+        const clockIn = data[i][clockInCol];
+        const clockOut = data[i][clockOutCol];
+
+        if (clockIn && !clockOut) {
+          return {
+            isClockedIn: true,
+            clockInTime: clockIn instanceof Date ? clockIn.toISOString() : clockIn,
+            entryRow: i + 1
+          };
+        }
+        break;
+      }
+    }
+
+    return { isClockedIn: false, clockInTime: null };
+  } catch (error) {
+    return { isClockedIn: false, clockInTime: null, error: error.toString() };
+  }
+}
+
+function clockIn(params) {
+  try {
+    const employeeId = params.employeeId;
+    const lat = params.lat || '';
+    const lng = params.lng || '';
+
+    if (!employeeId) {
+      return { success: false, error: 'Employee ID required' };
+    }
+
+    // Check if already clocked in
+    const status = getClockStatus(employeeId);
+    if (status.isClockedIn) {
+      return { success: false, error: 'Already clocked in' };
+    }
+
+    // Check geofence (optional - can be enabled later)
+    const inGeofence = isInGeofence(lat, lng);
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TIME_CLOCK);
+
+    const now = new Date();
+    const entryId = generateId('TC');
+
+    const newRow = [
+      entryId,
+      employeeId,
+      now.toISOString().split('T')[0],
+      now.toISOString(),
+      '', // Clock_Out
+      '', // Hours_Worked
+      lat,
+      lng,
+      '', // GPS_Out_Lat
+      '', // GPS_Out_Lng
+      inGeofence,
+      ''  // Notes
+    ];
+
+    sheet.appendRow(newRow);
+
+    return {
+      success: true,
+      entryId: entryId,
+      timestamp: now.toISOString(),
+      inGeofence: inGeofence
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function clockOut(params) {
+  try {
+    const employeeId = params.employeeId;
+    const lat = params.lat || '';
+    const lng = params.lng || '';
+
+    if (!employeeId) {
+      return { success: false, error: 'Employee ID required' };
+    }
+
+    // Find open clock entry
+    const status = getClockStatus(employeeId);
+    if (!status.isClockedIn) {
+      return { success: false, error: 'Not clocked in' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    const now = new Date();
+    const clockIn = new Date(status.clockInTime);
+    const hoursWorked = (now - clockIn) / 1000 / 60 / 60;
+
+    // Update the row
+    const row = status.entryRow;
+    sheet.getRange(row, headers.indexOf('Clock_Out') + 1).setValue(now.toISOString());
+    sheet.getRange(row, headers.indexOf('Hours_Worked') + 1).setValue(hoursWorked.toFixed(2));
+    sheet.getRange(row, headers.indexOf('GPS_Out_Lat') + 1).setValue(lat);
+    sheet.getRange(row, headers.indexOf('GPS_Out_Lng') + 1).setValue(lng);
+
+    return {
+      success: true,
+      timestamp: now.toISOString(),
+      hoursWorked: parseFloat(hoursWorked.toFixed(2))
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function isInGeofence(lat, lng) {
+  if (!lat || !lng) return true; // Allow if no GPS
+
+  const distance = haversineDistance(
+    parseFloat(lat), parseFloat(lng),
+    FARM_GEOFENCE.lat, FARM_GEOFENCE.lng
+  );
+
+  return distance <= FARM_GEOFENCE.radiusMeters;
+}
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function getTimeClockHistory(params) {
+  try {
+    const employeeId = params.employeeId;
+    const days = parseInt(params.days) || 14;
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
+
+    if (!sheet) {
+      return { success: true, entries: [], totalHours: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    const entries = [];
+    let totalHours = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Employee_ID === employeeId) {
+        const entryDate = new Date(row.Date);
+        if (entryDate >= cutoffDate) {
+          entries.push(row);
+          if (row.Hours_Worked) {
+            totalHours += parseFloat(row.Hours_Worked);
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      entries: entries.reverse(),
+      totalHours: totalHours.toFixed(1)
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// EMPLOYEE TASKS
+// ============================================
+
+function getEmployeeTasks(params) {
+  try {
+    const employeeId = params.employeeId || '';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!planSheet) {
+      return { success: true, tasks: [] };
+    }
+
+    const data = planSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    const tasks = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      // Skip completed or non-active plantings
+      if (row.STATUS === 'Completed' || row.STATUS === 'Cancelled') continue;
+
+      // Generate tasks from planning dates
+      const sowDate = row.Plan_Sow ? new Date(row.Plan_Sow) : null;
+      const transplantDate = row.Plan_Transplant ? new Date(row.Plan_Transplant) : null;
+      const harvestDate = row.Plan_Harvest_Start ? new Date(row.Plan_Harvest_Start) : null;
+
+      // Sowing task
+      if (sowDate && sowDate >= today && sowDate <= nextWeek) {
+        tasks.push({
+          id: row.Batch_ID + '-sow',
+          type: 'sow',
+          crop: row.Crop,
+          variety: row.Variety,
+          date: sowDate.toISOString().split('T')[0],
+          bed: row.Bed_ID || row.Field,
+          field: row.Field,
+          quantity: row.Seeds_Needed || row.Transplants_Needed,
+          status: row.STATUS
+        });
+      }
+
+      // Transplant task
+      if (transplantDate && transplantDate >= today && transplantDate <= nextWeek) {
+        tasks.push({
+          id: row.Batch_ID + '-transplant',
+          type: 'transplant',
+          crop: row.Crop,
+          variety: row.Variety,
+          date: transplantDate.toISOString().split('T')[0],
+          bed: row.Bed_ID,
+          field: row.Field,
+          quantity: row.Transplants_Needed,
+          status: row.STATUS
+        });
+      }
+
+      // Harvest task
+      if (harvestDate && harvestDate >= today && harvestDate <= nextWeek && row.STATUS === 'In Field') {
+        tasks.push({
+          id: row.Batch_ID + '-harvest',
+          type: 'harvest',
+          crop: row.Crop,
+          variety: row.Variety,
+          date: harvestDate.toISOString().split('T')[0],
+          bed: row.Bed_ID,
+          field: row.Field,
+          status: row.STATUS
+        });
+      }
+    }
+
+    // Sort by date
+    tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    return { success: true, tasks: tasks };
+  } catch (error) {
+    return { success: false, error: error.toString(), tasks: [] };
+  }
+}
+
+function completeTaskWithGPS(params) {
+  try {
+    const taskId = params.taskId;
+    const employeeId = params.employeeId || '';
+    const lat = params.lat || '';
+    const lng = params.lng || '';
+    const notes = params.notes || '';
+
+    if (!taskId) {
+      return { success: false, error: 'Task ID required' };
+    }
+
+    // Parse task ID to get batch and type
+    const parts = taskId.split('-');
+    const batchId = parts.slice(0, -1).join('-');
+    const taskType = parts[parts.length - 1];
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!planSheet) {
+      return { success: false, error: 'Planning sheet not found' };
+    }
+
+    const data = planSheet.getDataRange().getValues();
+    const headers = data[0];
+    const batchCol = headers.indexOf('Batch_ID');
+    const statusCol = headers.indexOf('STATUS');
+
+    // Find the row
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][batchCol] === batchId) {
+        // Update status based on task type
+        let newStatus = data[i][statusCol];
+        if (taskType === 'sow') {
+          newStatus = 'Seeded';
+          // Update actual sow date
+          const actualSowCol = headers.indexOf('Actual_Sow');
+          if (actualSowCol >= 0) {
+            planSheet.getRange(i + 1, actualSowCol + 1).setValue(new Date().toISOString().split('T')[0]);
+          }
+        } else if (taskType === 'transplant') {
+          newStatus = 'In Field';
+          const actualTransCol = headers.indexOf('Actual_Transplant');
+          if (actualTransCol >= 0) {
+            planSheet.getRange(i + 1, actualTransCol + 1).setValue(new Date().toISOString().split('T')[0]);
+          }
+        } else if (taskType === 'harvest') {
+          newStatus = 'Harvesting';
+        }
+
+        planSheet.getRange(i + 1, statusCol + 1).setValue(newStatus);
+
+        return {
+          success: true,
+          message: 'Task completed',
+          taskId: taskId,
+          newStatus: newStatus
+        };
+      }
+    }
+
+    return { success: false, error: 'Task not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// HARVEST LOGGING
+// ============================================
+
+function logHarvestWithDetails(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.HARVEST_LOG);
+
+    const harvestId = generateId('HRV');
+    const now = new Date();
+
+    // Generate lot number: YYMMDD-CRP-###
+    const dateCode = now.toISOString().slice(2, 10).replace(/-/g, '');
+    const cropCode = (params.crop || 'UNK').substring(0, 3).toUpperCase();
+    const lotNumber = `${dateCode}-${cropCode}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+
+    const newRow = [
+      harvestId,
+      now.toISOString(),
+      params.batchId || '',
+      params.crop || '',
+      params.variety || '',
+      params.bedId || '',
+      params.quantity || 0,
+      params.unit || 'lbs',
+      params.quality || 'A',
+      lotNumber,
+      params.lat || '',
+      params.lng || '',
+      params.photo || '',
+      params.employeeId || '',
+      params.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return {
+      success: true,
+      harvestId: harvestId,
+      lotNumber: lotNumber,
+      timestamp: now.toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// FIELD SCOUTING
+// ============================================
+
+function saveScoutingReport(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.FIELD_SCOUTING);
+
+    const scoutId = generateId('SCT');
+    const now = new Date();
+
+    const newRow = [
+      scoutId,
+      now.toISOString().split('T')[0],
+      now.toISOString().split('T')[1].split('.')[0],
+      params.employeeId || '',
+      params.field || '',
+      params.bed || '',
+      params.type || '',
+      params.severity || 'medium',
+      params.photo || '',
+      params.lat || '',
+      params.lng || '',
+      params.aiDiagnosis || '',
+      params.recommendedAction || '',
+      params.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return {
+      success: true,
+      scoutId: scoutId,
+      timestamp: now.toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// TREATMENT LOG
+// ============================================
+
+function logTreatment(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TREATMENT_LOG);
+
+    const treatmentId = generateId('TRT');
+    const now = new Date();
+
+    // Calculate REI/PHI expiration
+    const reiHours = parseInt(params.reiHours) || 0;
+    const phiDays = parseInt(params.phiDays) || 0;
+
+    const reiExpires = new Date(now.getTime() + reiHours * 60 * 60 * 1000);
+    const phiExpires = new Date(now.getTime() + phiDays * 24 * 60 * 60 * 1000);
+
+    const newRow = [
+      treatmentId,
+      now.toISOString().split('T')[0],
+      params.employeeId || '',
+      params.field || '',
+      params.beds || '',
+      params.material || '',
+      params.omriListed !== false,
+      params.rate || '',
+      params.amount || '',
+      params.target || '',
+      reiHours,
+      reiExpires.toISOString(),
+      phiDays,
+      phiExpires.toISOString(),
+      params.weather || '',
+      params.temperature || '',
+      params.notes || '',
+      params.lat || '',
+      params.lng || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return {
+      success: true,
+      treatmentId: treatmentId,
+      reiExpiresAt: reiExpires.toISOString(),
+      phiExpiresAt: phiExpires.toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logBeneficialRelease(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.BENEFICIAL_RELEASES);
+
+    const releaseId = generateId('BEN');
+    const now = new Date();
+
+    const newRow = [
+      releaseId,
+      now.toISOString().split('T')[0],
+      params.employeeId || '',
+      params.type || '',
+      params.quantity || '',
+      params.field || '',
+      params.lat || '',
+      params.lng || '',
+      params.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, releaseId: releaseId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getActiveREI(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TREATMENT_LOG);
+
+    if (!sheet) {
+      return { success: true, activeREI: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const now = new Date();
+
+    const activeREI = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      const reiExpires = new Date(row.REI_Expires_At);
+      if (reiExpires > now) {
+        activeREI.push({
+          field: row.Field_ID,
+          beds: row.Bed_IDs,
+          material: row.Material_Name,
+          expiresAt: reiExpires.toISOString(),
+          hoursRemaining: Math.ceil((reiExpires - now) / (1000 * 60 * 60))
+        });
+      }
+    }
+
+    return { success: true, activeREI: activeREI };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// FIELD HAZARDS
+// ============================================
+
+function reportHazard(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.FIELD_HAZARDS);
+
+    const hazardId = generateId('HAZ');
+    const now = new Date();
+
+    const newRow = [
+      hazardId,
+      now.toISOString().split('T')[0],
+      params.employeeId || '',
+      params.type || '',
+      params.severity || 'medium',
+      params.description || '',
+      params.photo || '',
+      params.lat || '',
+      params.lng || '',
+      'Active',
+      '', // Resolved_Date
+      ''  // Resolved_By
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, hazardId: hazardId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getActiveHazards(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.FIELD_HAZARDS);
+
+    if (!sheet) {
+      return { success: true, hazards: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const hazards = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Status === 'Active') {
+        hazards.push(row);
+      }
+    }
+
+    return { success: true, hazards: hazards };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function resolveHazard(params) {
+  try {
+    const hazardId = params.hazardId;
+    const employeeId = params.employeeId || '';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.FIELD_HAZARDS);
+
+    if (!sheet) {
+      return { success: false, error: 'Hazards sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Hazard_ID');
+    const statusCol = headers.indexOf('Status');
+    const resolvedDateCol = headers.indexOf('Resolved_Date');
+    const resolvedByCol = headers.indexOf('Resolved_By');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === hazardId) {
+        sheet.getRange(i + 1, statusCol + 1).setValue('Resolved');
+        sheet.getRange(i + 1, resolvedDateCol + 1).setValue(new Date().toISOString().split('T')[0]);
+        sheet.getRange(i + 1, resolvedByCol + 1).setValue(employeeId);
+
+        return { success: true, message: 'Hazard resolved' };
+      }
+    }
+
+    return { success: false, error: 'Hazard not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// WEED PRESSURE
+// ============================================
+
+function logWeedPressure(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.WEED_PRESSURE);
+
+    const weedId = generateId('WED');
+    const now = new Date();
+
+    const newRow = [
+      weedId,
+      now.toISOString().split('T')[0],
+      params.employeeId || '',
+      params.field || '',
+      params.bed || '',
+      params.weedType || '',
+      params.species || '',
+      params.pressure || '3',
+      params.coverage || '',
+      params.lat || '',
+      params.lng || '',
+      params.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, weedId: weedId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// CULTIVATION LOG
+// ============================================
+
+function logCultivation(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.CULTIVATION_LOG);
+
+    const cultivationId = generateId('CUL');
+    const now = new Date();
+
+    const newRow = [
+      cultivationId,
+      now.toISOString().split('T')[0],
+      params.employeeId || '',
+      params.field || '',
+      params.beds || '',
+      params.implement || '',
+      params.depth || '',
+      params.soilCondition || '',
+      params.effectiveness || '',
+      params.lat || '',
+      params.lng || '',
+      params.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, cultivationId: cultivationId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// CREW MESSAGES
+// ============================================
+
+function getCrewMessages(params) {
+  try {
+    const employeeId = params.employeeId || '';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.CREW_MESSAGES);
+
+    if (!sheet) {
+      return { success: true, messages: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const messages = [];
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      const msgDate = new Date(row.Timestamp);
+      const isRecent = msgDate >= weekAgo;
+      const isForEmployee = row.To_All || row.To_Employee_ID === employeeId;
+
+      if (isRecent && isForEmployee) {
+        messages.push(row);
+      }
+    }
+
+    // Sort newest first
+    messages.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
+    return { success: true, messages: messages };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function acknowledgeMessage(params) {
+  try {
+    const messageId = params.messageId;
+    const employeeId = params.employeeId || '';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.CREW_MESSAGES);
+
+    if (!sheet) {
+      return { success: false, error: 'Messages sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Message_ID');
+    const ackCol = headers.indexOf('Acknowledged');
+    const ackAtCol = headers.indexOf('Acknowledged_At');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === messageId) {
+        sheet.getRange(i + 1, ackCol + 1).setValue(true);
+        sheet.getRange(i + 1, ackAtCol + 1).setValue(new Date().toISOString());
+
+        return { success: true };
+      }
+    }
+
+    return { success: false, error: 'Message not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function sendCrewMessage(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.CREW_MESSAGES);
+
+    const messageId = generateId('MSG');
+    const now = new Date();
+
+    const newRow = [
+      messageId,
+      now.toISOString(),
+      params.from || 'Farm Manager',
+      params.toEmployeeId || '',
+      params.toAll === true || params.toAll === 'true',
+      params.message || '',
+      params.urgent === true || params.urgent === 'true',
+      false, // Acknowledged
+      ''     // Acknowledged_At
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, messageId: messageId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// FIELDS REFERENCE DATA
+// ============================================
+
+function getFields(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Try to get fields from FIELD_MAP sheet or REF_Fields
+    let sheet = ss.getSheetByName('REF_Fields') || ss.getSheetByName('FIELD_MAP');
+
+    if (sheet) {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+
+      const fields = [];
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0]) {
+          fields.push({
+            Field_ID: data[i][headers.indexOf('Field_ID')] || data[i][0],
+            Field_Name: data[i][headers.indexOf('Field_Name')] || data[i][1] || data[i][0]
+          });
+        }
+      }
+
+      return { success: true, fields: fields };
+    }
+
+    // Fallback: extract unique fields from PLANNING_2026
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+    if (planSheet) {
+      const data = planSheet.getDataRange().getValues();
+      const headers = data[0];
+      const fieldCol = headers.indexOf('Field');
+
+      if (fieldCol >= 0) {
+        const uniqueFields = [...new Set(
+          data.slice(1).map(row => row[fieldCol]).filter(f => f)
+        )];
+
+        return {
+          success: true,
+          fields: uniqueFields.map(f => ({ Field_ID: f, Field_Name: f }))
+        };
+      }
+    }
+
+    // Default fields
+    return {
+      success: true,
+      fields: [
+        { Field_ID: 'Field A', Field_Name: 'Field A' },
+        { Field_ID: 'Field B', Field_Name: 'Field B' },
+        { Field_ID: 'Field C', Field_Name: 'Field C' },
+        { Field_ID: 'Greenhouse', Field_Name: 'Greenhouse' }
+      ]
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// EMPLOYEE LANGUAGE PREFERENCE
+// ============================================
+
+function updateEmployeeLanguage(params) {
+  try {
+    const employeeId = params.employeeId;
+    const lang = params.lang || 'en';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.EMPLOYEES);
+
+    if (!sheet) {
+      return { success: false, error: 'Employees sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Employee_ID');
+    const langCol = headers.indexOf('Language_Pref');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === employeeId) {
+        sheet.getRange(i + 1, langCol + 1).setValue(lang);
+        return { success: true };
+      }
+    }
+
+    return { success: false, error: 'Employee not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PICK & PACK AUTOMATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PICKPACK_HEADERS = {
+  PICK_LIST: ['Pick_ID', 'Date', 'Order_ID', 'Customer_Name', 'Crop', 'Variety', 'Quantity', 'Unit', 'Field', 'Bed_ID', 'Status', 'Picked_By', 'Picked_At', 'Quality_Check', 'Lot_Number', 'Notes']
+};
+
+function getPickListForToday(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const date = params && params.date ? params.date : new Date().toISOString().split('T')[0];
+
+    // Get pending orders for the date
+    const ordersSheet = ss.getSheetByName('SALES_ORDERS');
+    const pickItems = [];
+
+    if (ordersSheet) {
+      const data = ordersSheet.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+
+        // Include orders scheduled for today that need picking
+        const deliveryDate = row.Delivery_Date || row.Order_Date;
+        const orderDate = deliveryDate instanceof Date ? deliveryDate.toISOString().split('T')[0] : deliveryDate;
+
+        if (orderDate === date && (row.Status === 'Pending' || row.Status === 'Confirmed' || row.Status === 'Processing')) {
+          // Parse order items and add to pick list
+          const items = parseOrderItems(row.Items || row.Order_Items || '');
+          items.forEach((item, idx) => {
+            pickItems.push({
+              Pick_ID: generateId('PCK'),
+              Order_ID: row.Order_ID,
+              Customer_Name: row.Customer_Name || row.Customer,
+              Crop: item.crop,
+              Variety: item.variety || '',
+              Quantity: item.quantity,
+              Unit: item.unit || 'each',
+              Field: item.field || '',
+              Bed_ID: item.bed || '',
+              Status: 'Pending',
+              Priority: row.Priority || 'Normal',
+              Delivery_Time: row.Delivery_Time || ''
+            });
+          });
+        }
+      }
+    }
+
+    // Sort by field/bed for efficient picking route
+    pickItems.sort((a, b) => {
+      if (a.Field !== b.Field) return (a.Field || '').localeCompare(b.Field || '');
+      return (a.Bed_ID || '').localeCompare(b.Bed_ID || '');
+    });
+
+    return { success: true, pickList: pickItems, date: date };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function parseOrderItems(itemsStr) {
+  // Parse order items from various formats
+  if (!itemsStr) return [];
+
+  if (typeof itemsStr === 'object' && Array.isArray(itemsStr)) {
+    return itemsStr;
+  }
+
+  try {
+    // Try JSON parse
+    if (typeof itemsStr === 'string' && itemsStr.startsWith('[')) {
+      return JSON.parse(itemsStr);
+    }
+
+    // Parse comma-separated format: "Tomatoes x 5, Lettuce x 3"
+    const items = [];
+    const parts = itemsStr.split(',');
+    parts.forEach(part => {
+      const match = part.trim().match(/(.+?)\s*[xX×]\s*(\d+)/);
+      if (match) {
+        items.push({
+          crop: match[1].trim(),
+          quantity: parseInt(match[2])
+        });
+      }
+    });
+    return items;
+  } catch (e) {
+    return [];
+  }
+}
+
+function updatePickItemStatus(params) {
+  try {
+    const pickId = params.pickId;
+    const status = params.status || 'Picked';
+    const employeeId = params.employeeId || '';
+    const lotNumber = params.lotNumber || '';
+    const qualityCheck = params.qualityCheck || 'Pass';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('PICK_LIST');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('PICK_LIST');
+      sheet.appendRow(PICKPACK_HEADERS.PICK_LIST);
+      sheet.getRange(1, 1, 1, PICKPACK_HEADERS.PICK_LIST.length)
+        .setFontWeight('bold')
+        .setBackground('#f59e0b')
+        .setFontColor('#000000');
+      sheet.setFrozenRows(1);
+    }
+
+    // Find and update the pick item
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Pick_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === pickId) {
+        sheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue(status);
+        sheet.getRange(i + 1, headers.indexOf('Picked_By') + 1).setValue(employeeId);
+        sheet.getRange(i + 1, headers.indexOf('Picked_At') + 1).setValue(new Date().toISOString());
+        sheet.getRange(i + 1, headers.indexOf('Quality_Check') + 1).setValue(qualityCheck);
+        sheet.getRange(i + 1, headers.indexOf('Lot_Number') + 1).setValue(lotNumber);
+
+        return { success: true, pickId: pickId, status: status };
+      }
+    }
+
+    return { success: false, error: 'Pick item not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getPackingList(params) {
+  try {
+    const orderId = params.orderId;
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ordersSheet = ss.getSheetByName('SALES_ORDERS');
+
+    if (!ordersSheet) {
+      return { success: false, error: 'Orders sheet not found' };
+    }
+
+    const data = ordersSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Order_ID === orderId) {
+        const items = parseOrderItems(row.Items || row.Order_Items || '');
+
+        return {
+          success: true,
+          order: {
+            Order_ID: row.Order_ID,
+            Customer_Name: row.Customer_Name || row.Customer,
+            Delivery_Address: row.Delivery_Address || row.Address,
+            Delivery_Date: row.Delivery_Date,
+            Delivery_Time: row.Delivery_Time,
+            Phone: row.Phone,
+            Notes: row.Notes || row.Special_Instructions
+          },
+          items: items
+        };
+      }
+    }
+
+    return { success: false, error: 'Order not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function completePackingOrder(params) {
+  try {
+    const orderId = params.orderId;
+    const employeeId = params.employeeId || '';
+    const boxCount = params.boxCount || 1;
+    const notes = params.notes || '';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ordersSheet = ss.getSheetByName('SALES_ORDERS');
+
+    if (!ordersSheet) {
+      return { success: false, error: 'Orders sheet not found' };
+    }
+
+    const data = ordersSheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Order_ID');
+    const statusCol = headers.indexOf('Status');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === orderId) {
+        ordersSheet.getRange(i + 1, statusCol + 1).setValue('Packed');
+
+        // Add packing timestamp if column exists
+        const packedAtCol = headers.indexOf('Packed_At');
+        if (packedAtCol >= 0) {
+          ordersSheet.getRange(i + 1, packedAtCol + 1).setValue(new Date().toISOString());
+        }
+
+        const packedByCol = headers.indexOf('Packed_By');
+        if (packedByCol >= 0) {
+          ordersSheet.getRange(i + 1, packedByCol + 1).setValue(employeeId);
+        }
+
+        return {
+          success: true,
+          orderId: orderId,
+          status: 'Packed',
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+
+    return { success: false, error: 'Order not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WILDLIFE TRACKING (Groundhog, Deer, etc.)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const WILDLIFE_HEADERS = {
+  WILDLIFE_SIGHTINGS: ['Sighting_ID', 'Date', 'Time', 'Employee_ID', 'Animal_Type', 'Count', 'Field_ID', 'GPS_Lat', 'GPS_Lng', 'Photo_URL', 'Activity', 'Damage_Level', 'Notes'],
+  GROUNDHOG_DENS: ['Den_ID', 'Discovered_Date', 'Employee_ID', 'Field_ID', 'GPS_Lat', 'GPS_Lng', 'Photo_URL', 'Status', 'Den_Size', 'Activity_Level', 'Notes', 'Last_Activity', 'Treatment_Applied'],
+  DAMAGE_REPORTS: ['Damage_ID', 'Date', 'Employee_ID', 'Animal_Type', 'Field_ID', 'Bed_ID', 'Crop_Affected', 'Damage_Severity', 'Estimated_Loss_Value', 'Photo_URL', 'GPS_Lat', 'GPS_Lng', 'Notes']
+};
+
+function logWildlifeSighting(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('WILDLIFE_SIGHTINGS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('WILDLIFE_SIGHTINGS');
+      sheet.appendRow(WILDLIFE_HEADERS.WILDLIFE_SIGHTINGS);
+      sheet.getRange(1, 1, 1, WILDLIFE_HEADERS.WILDLIFE_SIGHTINGS.length)
+        .setFontWeight('bold')
+        .setBackground('#8b4513')
+        .setFontColor('#ffffff');
+      sheet.setFrozenRows(1);
+      sheet.setTabColor('#8b4513');
+    }
+
+    const sightingId = generateId('WLD');
+    const now = new Date();
+
+    const newRow = [
+      sightingId,
+      now.toISOString().split('T')[0],
+      now.toISOString().split('T')[1].split('.')[0],
+      params.employeeId || '',
+      params.animalType || '',
+      params.count || 1,
+      params.field || '',
+      params.lat || '',
+      params.lng || '',
+      params.photo || '',
+      params.activity || '',
+      params.damageLevel || 'none',
+      params.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, sightingId: sightingId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logGroundhogDen(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('GROUNDHOG_DENS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('GROUNDHOG_DENS');
+      sheet.appendRow(WILDLIFE_HEADERS.GROUNDHOG_DENS);
+      sheet.getRange(1, 1, 1, WILDLIFE_HEADERS.GROUNDHOG_DENS.length)
+        .setFontWeight('bold')
+        .setBackground('#8b4513')
+        .setFontColor('#ffffff');
+      sheet.setFrozenRows(1);
+      sheet.setTabColor('#8b4513');
+    }
+
+    const denId = generateId('DEN');
+    const now = new Date();
+
+    const newRow = [
+      denId,
+      now.toISOString().split('T')[0],
+      params.employeeId || '',
+      params.field || '',
+      params.lat || '',
+      params.lng || '',
+      params.photo || '',
+      'Active',
+      params.denSize || 'medium',
+      params.activityLevel || 'medium',
+      params.notes || '',
+      now.toISOString(),
+      ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, denId: denId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getGroundhogDens(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('GROUNDHOG_DENS');
+
+    if (!sheet) {
+      return { success: true, dens: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const dens = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      // Only include active dens unless requested otherwise
+      if (!params || !params.includeInactive) {
+        if (row.Status === 'Active') {
+          dens.push(row);
+        }
+      } else {
+        dens.push(row);
+      }
+    }
+
+    return { success: true, dens: dens };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateDenStatus(params) {
+  try {
+    const denId = params.denId;
+    const status = params.status || 'Active';
+    const treatment = params.treatment || '';
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('GROUNDHOG_DENS');
+
+    if (!sheet) {
+      return { success: false, error: 'Groundhog dens sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Den_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === denId) {
+        sheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue(status);
+        sheet.getRange(i + 1, headers.indexOf('Last_Activity') + 1).setValue(new Date().toISOString());
+        if (treatment) {
+          sheet.getRange(i + 1, headers.indexOf('Treatment_Applied') + 1).setValue(treatment);
+        }
+
+        return { success: true, denId: denId, status: status };
+      }
+    }
+
+    return { success: false, error: 'Den not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logDamageReport(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('DAMAGE_REPORTS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('DAMAGE_REPORTS');
+      sheet.appendRow(WILDLIFE_HEADERS.DAMAGE_REPORTS);
+      sheet.getRange(1, 1, 1, WILDLIFE_HEADERS.DAMAGE_REPORTS.length)
+        .setFontWeight('bold')
+        .setBackground('#dc2626')
+        .setFontColor('#ffffff');
+      sheet.setFrozenRows(1);
+      sheet.setTabColor('#dc2626');
+    }
+
+    const damageId = generateId('DMG');
+    const now = new Date();
+
+    const newRow = [
+      damageId,
+      now.toISOString().split('T')[0],
+      params.employeeId || '',
+      params.animalType || '',
+      params.field || '',
+      params.bed || '',
+      params.cropAffected || '',
+      params.severity || 'medium',
+      params.estimatedLoss || '',
+      params.photo || '',
+      params.lat || '',
+      params.lng || '',
+      params.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    return { success: true, damageId: damageId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getDamageReports(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('DAMAGE_REPORTS');
+
+    if (!sheet) {
+      return { success: true, reports: [], totalLoss: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const days = params && params.days ? parseInt(params.days) : 30;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    const reports = [];
+    let totalLoss = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      const reportDate = new Date(row.Date);
+      if (reportDate >= cutoffDate) {
+        reports.push(row);
+        if (row.Estimated_Loss_Value) {
+          totalLoss += parseFloat(row.Estimated_Loss_Value) || 0;
+        }
+      }
+    }
+
+    // Group by animal type for summary
+    const byAnimal = {};
+    reports.forEach(r => {
+      const animal = r.Animal_Type || 'Unknown';
+      if (!byAnimal[animal]) {
+        byAnimal[animal] = { count: 0, totalLoss: 0 };
+      }
+      byAnimal[animal].count++;
+      byAnimal[animal].totalLoss += parseFloat(r.Estimated_Loss_Value) || 0;
+    });
+
+    return {
+      success: true,
+      reports: reports,
+      totalLoss: totalLoss.toFixed(2),
+      byAnimal: byAnimal
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getWildlifeMap(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const mapData = {
+      sightings: [],
+      dens: [],
+      damageAreas: []
+    };
+
+    // Get sightings
+    const sightingsSheet = ss.getSheetByName('WILDLIFE_SIGHTINGS');
+    if (sightingsSheet) {
+      const data = sightingsSheet.getDataRange().getValues();
+      const headers = data[0];
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+        if (row.GPS_Lat && row.GPS_Lng) {
+          mapData.sightings.push({
+            lat: row.GPS_Lat,
+            lng: row.GPS_Lng,
+            type: row.Animal_Type,
+            date: row.Date,
+            count: row.Count
+          });
+        }
+      }
+    }
+
+    // Get active dens
+    const densSheet = ss.getSheetByName('GROUNDHOG_DENS');
+    if (densSheet) {
+      const data = densSheet.getDataRange().getValues();
+      const headers = data[0];
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+        if (row.GPS_Lat && row.GPS_Lng && row.Status === 'Active') {
+          mapData.dens.push({
+            lat: row.GPS_Lat,
+            lng: row.GPS_Lng,
+            denId: row.Den_ID,
+            field: row.Field_ID,
+            activityLevel: row.Activity_Level
+          });
+        }
+      }
+    }
+
+    // Get damage areas
+    const damageSheet = ss.getSheetByName('DAMAGE_REPORTS');
+    if (damageSheet) {
+      const data = damageSheet.getDataRange().getValues();
+      const headers = data[0];
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+        if (row.GPS_Lat && row.GPS_Lng && new Date(row.Date) >= thirtyDaysAgo) {
+          mapData.damageAreas.push({
+            lat: row.GPS_Lat,
+            lng: row.GPS_Lng,
+            severity: row.Damage_Severity,
+            crop: row.Crop_Affected,
+            animalType: row.Animal_Type
+          });
+        }
+      }
+    }
+
+    return { success: true, mapData: mapData };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CUSTOMER NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function sendOrderConfirmation(params) {
+  try {
+    const orderId = params.orderId;
+    const customerEmail = params.email;
+    const customerName = params.customerName || 'Valued Customer';
+
+    if (!customerEmail) {
+      return { success: false, error: 'Customer email required' };
+    }
+
+    // Get order details
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ordersSheet = ss.getSheetByName('SALES_ORDERS');
+
+    if (!ordersSheet) {
+      return { success: false, error: 'Orders sheet not found' };
+    }
+
+    const data = ordersSheet.getDataRange().getValues();
+    const headers = data[0];
+    let order = null;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+      if (row.Order_ID === orderId) {
+        order = row;
+        break;
+      }
+    }
+
+    if (!order) {
+      return { success: false, error: 'Order not found' };
+    }
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #2d5a27; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">🌱 Tiny Seed Farm</h1>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <h2>Order Confirmation</h2>
+          <p>Hi ${customerName},</p>
+          <p>Thank you for your order! We've received it and are preparing it with care.</p>
+
+          <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Order Details</h3>
+            <p><strong>Order #:</strong> ${orderId}</p>
+            <p><strong>Date:</strong> ${new Date(order.Order_Date || order.Date).toLocaleDateString()}</p>
+            ${order.Delivery_Date ? `<p><strong>Delivery:</strong> ${new Date(order.Delivery_Date).toLocaleDateString()}</p>` : ''}
+            <p><strong>Total:</strong> $${order.Total || order.Order_Total || '0.00'}</p>
+          </div>
+
+          <p>If you have any questions, just reply to this email.</p>
+          <p>With gratitude,<br>Tiny Seed Farm Team</p>
+        </div>
+        <div style="background: #333; color: white; padding: 15px; text-align: center; font-size: 12px;">
+          <p>Tiny Seed Farm | Fresh, Local, Sustainable</p>
+        </div>
+      </div>
+    `;
+
+    MailApp.sendEmail({
+      to: customerEmail,
+      subject: `Order Confirmed - #${orderId} | Tiny Seed Farm`,
+      htmlBody: htmlBody
+    });
+
+    return { success: true, message: 'Confirmation email sent' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function sendDeliveryNotification(params) {
+  try {
+    const orderId = params.orderId;
+    const customerEmail = params.email;
+    const customerName = params.customerName || 'Valued Customer';
+    const deliveryTime = params.deliveryTime || 'today';
+    const driverName = params.driverName || 'our delivery team';
+
+    if (!customerEmail) {
+      return { success: false, error: 'Customer email required' };
+    }
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #2d5a27; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">🌱 Tiny Seed Farm</h1>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <h2>🚚 Your Order is On the Way!</h2>
+          <p>Hi ${customerName},</p>
+          <p>Great news! Your order #${orderId} is being delivered ${deliveryTime} by ${driverName}.</p>
+
+          <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <p style="font-size: 18px; margin: 0;">📦 Estimated Arrival: <strong>${deliveryTime}</strong></p>
+          </div>
+
+          <p>Please make sure someone is available to receive your fresh produce.</p>
+          <p>Enjoy your farm-fresh food!<br>Tiny Seed Farm Team</p>
+        </div>
+        <div style="background: #333; color: white; padding: 15px; text-align: center; font-size: 12px;">
+          <p>Tiny Seed Farm | Fresh, Local, Sustainable</p>
+        </div>
+      </div>
+    `;
+
+    MailApp.sendEmail({
+      to: customerEmail,
+      subject: `Your Order is On the Way! - #${orderId} | Tiny Seed Farm`,
+      htmlBody: htmlBody
+    });
+
+    return { success: true, message: 'Delivery notification sent' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function sendDeliveryComplete(params) {
+  try {
+    const orderId = params.orderId;
+    const customerEmail = params.email;
+    const customerName = params.customerName || 'Valued Customer';
+
+    if (!customerEmail) {
+      return { success: false, error: 'Customer email required' };
+    }
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #2d5a27; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">🌱 Tiny Seed Farm</h1>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <h2>✅ Delivery Complete!</h2>
+          <p>Hi ${customerName},</p>
+          <p>Your order #${orderId} has been delivered. We hope you enjoy your fresh, farm-grown produce!</p>
+
+          <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Storage Tips</h3>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Store leafy greens in the refrigerator</li>
+              <li>Keep tomatoes at room temperature</li>
+              <li>Root vegetables last longest in a cool, dark place</li>
+            </ul>
+          </div>
+
+          <p>Thank you for supporting local agriculture!</p>
+          <p>The Tiny Seed Farm Team</p>
+        </div>
+        <div style="background: #333; color: white; padding: 15px; text-align: center; font-size: 12px;">
+          <p>Tiny Seed Farm | Fresh, Local, Sustainable</p>
+        </div>
+      </div>
+    `;
+
+    MailApp.sendEmail({
+      to: customerEmail,
+      subject: `Delivery Complete - #${orderId} | Tiny Seed Farm`,
+      htmlBody: htmlBody
+    });
+
+    return { success: true, message: 'Delivery complete notification sent' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function sendCSAWeeklyReminder(params) {
+  try {
+    const memberEmail = params.email;
+    const memberName = params.memberName || 'CSA Member';
+    const pickupDay = params.pickupDay || 'this week';
+    const boxContents = params.boxContents || [];
+
+    if (!memberEmail) {
+      return { success: false, error: 'Member email required' };
+    }
+
+    const contentsList = boxContents.length > 0
+      ? boxContents.map(item => `<li>${item}</li>`).join('')
+      : '<li>Seasonal produce (check our website for details)</li>';
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #2d5a27; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">🌱 Tiny Seed Farm CSA</h1>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <h2>🥬 Your CSA Box is Ready!</h2>
+          <p>Hi ${memberName},</p>
+          <p>Your weekly CSA box is ready for pickup ${pickupDay}!</p>
+
+          <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">This Week's Box Includes:</h3>
+            <ul style="padding-left: 20px;">
+              ${contentsList}
+            </ul>
+          </div>
+
+          <p>See you at the farm!</p>
+          <p>Tiny Seed Farm Team</p>
+        </div>
+        <div style="background: #333; color: white; padding: 15px; text-align: center; font-size: 12px;">
+          <p>Tiny Seed Farm | Fresh, Local, Sustainable</p>
+        </div>
+      </div>
+    `;
+
+    MailApp.sendEmail({
+      to: memberEmail,
+      subject: `Your CSA Box is Ready! | Tiny Seed Farm`,
+      htmlBody: htmlBody
+    });
+
+    return { success: true, message: 'CSA reminder sent' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TWILIO SMS INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Core SMS sending function using Twilio API
+ * @param {Object} params - { to: phone, message: text }
+ */
+function sendSMS(params) {
+  try {
+    if (!TWILIO_CONFIG.ENABLED) {
+      return {
+        success: false,
+        error: 'Twilio SMS is not configured. Update TWILIO_CONFIG in Apps Script.'
+      };
+    }
+
+    const { to, message } = params;
+
+    if (!to || !message) {
+      return { success: false, error: 'Missing required parameters: to, message' };
+    }
+
+    // Format phone number (ensure +1 prefix for US numbers)
+    let formattedPhone = to.replace(/\D/g, '');
+    if (formattedPhone.length === 10) {
+      formattedPhone = '+1' + formattedPhone;
+    } else if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+' + formattedPhone;
+    }
+
+    // Twilio API URL
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_CONFIG.ACCOUNT_SID}/Messages.json`;
+
+    // Prepare the request
+    const payload = {
+      To: formattedPhone,
+      From: TWILIO_CONFIG.FROM_NUMBER,
+      Body: message
+    };
+
+    const options = {
+      method: 'post',
+      headers: {
+        'Authorization': 'Basic ' + Utilities.base64Encode(
+          TWILIO_CONFIG.ACCOUNT_SID + ':' + TWILIO_CONFIG.AUTH_TOKEN
+        )
+      },
+      payload: payload,
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(twilioUrl, options);
+    const result = JSON.parse(response.getContentText());
+
+    // Log the SMS
+    logSMSToSheet({
+      to: formattedPhone,
+      message: message,
+      status: result.status || 'sent',
+      sid: result.sid,
+      timestamp: new Date().toISOString()
+    });
+
+    if (result.error_code) {
+      return { success: false, error: result.error_message, code: result.error_code };
+    }
+
+    return {
+      success: true,
+      message: 'SMS sent successfully',
+      sid: result.sid,
+      status: result.status
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log SMS to SMS_LOG sheet for tracking
+ */
+function logSMSToSheet(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SMS_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('SMS_LOG');
+      sheet.appendRow(['Timestamp', 'To', 'Message', 'Status', 'SID', 'Type']);
+    }
+
+    sheet.appendRow([
+      data.timestamp,
+      data.to,
+      data.message,
+      data.status,
+      data.sid || '',
+      data.type || 'general'
+    ]);
+  } catch (e) {
+    console.log('Failed to log SMS: ' + e.toString());
+  }
+}
+
+/**
+ * Send order confirmation SMS
+ * @param {Object} params - { orderId, customerPhone, customerName, total }
+ */
+function sendOrderSMS(params) {
+  const { orderId, customerPhone, customerName, total } = params;
+
+  if (!customerPhone) {
+    return { success: false, error: 'No phone number provided' };
+  }
+
+  const message = `Hi ${customerName || 'there'}! 🌱 Your Tiny Seed Farm order #${orderId} for $${total} has been confirmed. We'll text you when it's ready for pickup/delivery. Questions? Reply to this text!`;
+
+  const result = sendSMS({ to: customerPhone, message: message });
+
+  if (result.success) {
+    logSMSToSheet({ ...result, type: 'order_confirmation' });
+  }
+
+  return result;
+}
+
+/**
+ * Send delivery notification SMS
+ * @param {Object} params - { orderId, customerPhone, customerName, deliveryTime, driverName }
+ */
+function sendDeliverySMS(params) {
+  const { orderId, customerPhone, customerName, deliveryTime, driverName } = params;
+
+  if (!customerPhone) {
+    return { success: false, error: 'No phone number provided' };
+  }
+
+  const message = `🚚 Tiny Seed Farm: Your order #${orderId} is out for delivery! ${driverName ? driverName + ' is' : 'We are'} on the way. Expected arrival: ${deliveryTime || 'soon'}. Please ensure cooler is out!`;
+
+  const result = sendSMS({ to: customerPhone, message: message });
+
+  if (result.success) {
+    logSMSToSheet({ ...result, type: 'delivery_notification' });
+  }
+
+  return result;
+}
+
+/**
+ * Send SMS to crew members (employees)
+ * @param {Object} params - { employeeIds, message } or { phone, message }
+ */
+function sendCrewSMS(params) {
+  const { employeeIds, phone, message } = params;
+
+  if (!message) {
+    return { success: false, error: 'No message provided' };
+  }
+
+  // If single phone number provided
+  if (phone) {
+    return sendSMS({ to: phone, message: `[Tiny Seed Farm Crew] ${message}` });
+  }
+
+  // If employee IDs provided, look up their phones
+  if (employeeIds) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const empSheet = ss.getSheetByName('EMPLOYEES') || ss.getSheetByName('USERS');
+
+    if (!empSheet) {
+      return { success: false, error: 'No EMPLOYEES sheet found' };
+    }
+
+    const data = empSheet.getDataRange().getValues();
+    const headers = data[0];
+    const phoneCol = headers.indexOf('Phone');
+    const idCol = headers.indexOf('Employee_ID') !== -1 ? headers.indexOf('Employee_ID') : headers.indexOf('User_ID');
+
+    if (phoneCol === -1) {
+      return { success: false, error: 'No Phone column in EMPLOYEES sheet' };
+    }
+
+    const ids = employeeIds.split(',').map(id => id.trim());
+    const results = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const empId = data[i][idCol];
+      if (ids.includes(empId) || ids.includes('all')) {
+        const empPhone = data[i][phoneCol];
+        if (empPhone) {
+          results.push(sendSMS({ to: empPhone, message: `[Tiny Seed Farm Crew] ${message}` }));
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Sent to ${results.filter(r => r.success).length} crew members`,
+      results: results
+    };
+  }
+
+  return { success: false, error: 'No phone or employeeIds provided' };
+}
+
+/**
+ * Send REI (Re-Entry Interval) alert SMS
+ * Used when a field treatment creates a re-entry restriction
+ * @param {Object} params - { fieldId, material, reiHours, expiresAt }
+ */
+function sendREIAlertSMS(params) {
+  const { fieldId, material, reiHours, expiresAt } = params;
+
+  const message = `⚠️ REI ALERT: ${material} applied to ${fieldId}. DO NOT ENTER for ${reiHours} hours. Safe to enter after ${expiresAt}. - Tiny Seed Farm`;
+
+  // Send to all active employees with phones
+  return sendCrewSMS({ employeeIds: 'all', message: message });
+}
+
+/**
+ * Get SMS history from SMS_LOG sheet
+ * @param {Object} params - { limit, type }
+ */
+function getSMSHistory(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('SMS_LOG');
+
+    if (!sheet) {
+      return { success: true, history: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let history = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    // Filter by type if specified
+    if (params.type) {
+      history = history.filter(h => h.Type === params.type);
+    }
+
+    // Limit results
+    const limit = parseInt(params.limit) || 50;
+    history = history.slice(-limit).reverse();
+
+    return { success: true, history: history };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOOGLE ROUTES API - DELIVERY ROUTE OPTIMIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Geocode an address to lat/lng coordinates
+ * @param {Object} params - { address }
+ */
+function geocodeAddress(params) {
+  try {
+    const { address } = params;
+
+    if (!address) {
+      return { success: false, error: 'No address provided' };
+    }
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_ROUTES_CONFIG.API_KEY}`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const result = JSON.parse(response.getContentText());
+
+    if (result.status === 'OK' && result.results.length > 0) {
+      const location = result.results[0].geometry.location;
+      return {
+        success: true,
+        lat: location.lat,
+        lng: location.lng,
+        formatted_address: result.results[0].formatted_address
+      };
+    } else {
+      return { success: false, error: 'Could not geocode address', status: result.status };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get distance matrix between multiple locations
+ * @param {Object} params - { origins: "addr1|addr2", destinations: "addr1|addr2" }
+ */
+function getDistanceMatrix(params) {
+  try {
+    const { origins, destinations } = params;
+
+    if (!origins || !destinations) {
+      return { success: false, error: 'Missing origins or destinations' };
+    }
+
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origins)}&destinations=${encodeURIComponent(destinations)}&key=${GOOGLE_ROUTES_CONFIG.API_KEY}`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const result = JSON.parse(response.getContentText());
+
+    if (result.status === 'OK') {
+      return {
+        success: true,
+        rows: result.rows,
+        origin_addresses: result.origin_addresses,
+        destination_addresses: result.destination_addresses
+      };
+    } else {
+      return { success: false, error: 'Distance matrix failed', status: result.status };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get optimized route for a list of delivery addresses
+ * Uses Google Directions API with waypoint optimization
+ * @param {Object} params - { addresses: JSON array of addresses, returnToFarm: true/false }
+ */
+function getRouteForDeliveries(params) {
+  try {
+    let addresses = params.addresses;
+    if (typeof addresses === 'string') {
+      addresses = JSON.parse(addresses);
+    }
+
+    if (!addresses || addresses.length === 0) {
+      return { success: false, error: 'No addresses provided' };
+    }
+
+    const farmAddress = GOOGLE_ROUTES_CONFIG.FARM_ADDRESS;
+    const returnToFarm = params.returnToFarm !== 'false';
+
+    // Build waypoints string (optimize order)
+    const waypoints = addresses.map(a => encodeURIComponent(a)).join('|');
+
+    // Origin is farm, destination is farm (if returning) or last stop
+    const origin = encodeURIComponent(farmAddress);
+    const destination = returnToFarm ? encodeURIComponent(farmAddress) : encodeURIComponent(addresses[addresses.length - 1]);
+
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&waypoints=optimize:true|${waypoints}&key=${GOOGLE_ROUTES_CONFIG.API_KEY}`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const result = JSON.parse(response.getContentText());
+
+    if (result.status === 'OK' && result.routes.length > 0) {
+      const route = result.routes[0];
+      const optimizedOrder = route.waypoint_order;
+
+      // Calculate total distance and duration
+      let totalDistance = 0;
+      let totalDuration = 0;
+      const legs = route.legs.map((leg, index) => {
+        totalDistance += leg.distance.value;
+        totalDuration += leg.duration.value;
+        return {
+          from: leg.start_address,
+          to: leg.end_address,
+          distance: leg.distance.text,
+          duration: leg.duration.text,
+          steps: leg.steps.length
+        };
+      });
+
+      // Reorder addresses based on optimization
+      const optimizedAddresses = optimizedOrder.map(i => addresses[i]);
+
+      return {
+        success: true,
+        optimizedOrder: optimizedOrder,
+        optimizedAddresses: optimizedAddresses,
+        totalDistance: (totalDistance / 1609.34).toFixed(1) + ' miles',
+        totalDuration: Math.round(totalDuration / 60) + ' minutes',
+        legs: legs,
+        polyline: route.overview_polyline.points
+      };
+    } else {
+      return { success: false, error: 'Could not calculate route', status: result.status };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Optimize delivery route for a specific date
+ * Pulls orders from SALES_ORDERS sheet and optimizes the route
+ * @param {Object} params - { date: 'YYYY-MM-DD' }
+ */
+function optimizeDeliveryRoute(params) {
+  try {
+    const targetDate = params.date || new Date().toISOString().split('T')[0];
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ordersSheet = ss.getSheetByName('SALES_ORDERS');
+
+    if (!ordersSheet) {
+      return { success: false, error: 'SALES_ORDERS sheet not found' };
+    }
+
+    const data = ordersSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find relevant columns
+    const dateCol = headers.indexOf('Delivery_Date') !== -1 ? headers.indexOf('Delivery_Date') : headers.indexOf('Date');
+    const addressCol = headers.indexOf('Delivery_Address') !== -1 ? headers.indexOf('Delivery_Address') : headers.indexOf('Address');
+    const customerCol = headers.indexOf('Customer_Name') !== -1 ? headers.indexOf('Customer_Name') : headers.indexOf('Customer');
+    const orderIdCol = headers.indexOf('Order_ID') !== -1 ? headers.indexOf('Order_ID') : 0;
+    const statusCol = headers.indexOf('Status');
+    const typeCol = headers.indexOf('Order_Type') !== -1 ? headers.indexOf('Order_Type') : headers.indexOf('Type');
+
+    // Filter orders for the target date that need delivery
+    const deliveries = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      let rowDate = row[dateCol];
+
+      // Handle date formatting
+      if (rowDate instanceof Date) {
+        rowDate = rowDate.toISOString().split('T')[0];
+      } else if (typeof rowDate === 'string') {
+        rowDate = rowDate.split('T')[0];
+      }
+
+      // Check if this is a delivery for the target date
+      const orderType = typeCol !== -1 ? row[typeCol] : '';
+      const status = statusCol !== -1 ? row[statusCol] : '';
+
+      if (rowDate === targetDate &&
+          (orderType === 'Delivery' || orderType === 'delivery') &&
+          status !== 'Delivered' && status !== 'Cancelled') {
+
+        const address = row[addressCol];
+        if (address && address.trim()) {
+          deliveries.push({
+            orderId: row[orderIdCol],
+            customer: row[customerCol],
+            address: address.trim(),
+            rowIndex: i + 1
+          });
+        }
+      }
+    }
+
+    if (deliveries.length === 0) {
+      return {
+        success: true,
+        message: 'No deliveries found for ' + targetDate,
+        deliveries: [],
+        route: null
+      };
+    }
+
+    // Get optimized route
+    const addresses = deliveries.map(d => d.address);
+    const routeResult = getRouteForDeliveries({
+      addresses: JSON.stringify(addresses),
+      returnToFarm: 'true'
+    });
+
+    if (!routeResult.success) {
+      return {
+        success: false,
+        error: 'Route optimization failed: ' + routeResult.error,
+        deliveries: deliveries
+      };
+    }
+
+    // Reorder deliveries based on optimized route
+    const optimizedDeliveries = routeResult.optimizedOrder.map((idx, stopNum) => ({
+      ...deliveries[idx],
+      stopNumber: stopNum + 1,
+      leg: routeResult.legs[stopNum]
+    }));
+
+    return {
+      success: true,
+      date: targetDate,
+      totalStops: deliveries.length,
+      totalDistance: routeResult.totalDistance,
+      totalDuration: routeResult.totalDuration,
+      deliveries: optimizedDeliveries,
+      polyline: routeResult.polyline
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get delivery schedule with optimized routes for multiple days
+ * @param {Object} params - { startDate, endDate }
+ */
+function getDeliverySchedule(params) {
+  try {
+    const startDate = params.startDate || new Date().toISOString().split('T')[0];
+    const endDate = params.endDate || startDate;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const schedule = [];
+
+    // Loop through each day
+    const current = new Date(start);
+    while (current <= end) {
+      const dateStr = current.toISOString().split('T')[0];
+      const dayRoute = optimizeDeliveryRoute({ date: dateStr });
+
+      if (dayRoute.success && dayRoute.deliveries && dayRoute.deliveries.length > 0) {
+        schedule.push({
+          date: dateStr,
+          dayOfWeek: current.toLocaleDateString('en-US', { weekday: 'long' }),
+          ...dayRoute
+        });
+      }
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    return {
+      success: true,
+      startDate: startDate,
+      endDate: endDate,
+      totalDays: schedule.length,
+      schedule: schedule
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRE-SEASON PLANNING DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DEFAULT_PLANNING_TASKS = [
+  { category: 'Crop Planning', task: 'Review last season performance', order: 1 },
+  { category: 'Crop Planning', task: 'Finalize crop list for season', order: 2 },
+  { category: 'Crop Planning', task: 'Create succession planting schedule', order: 3 },
+  { category: 'Crop Planning', task: 'Calculate seed quantities needed', order: 4 },
+  { category: 'Seed Orders', task: 'Inventory existing seed stock', order: 5 },
+  { category: 'Seed Orders', task: 'Check germination rates on old seed', order: 6 },
+  { category: 'Seed Orders', task: 'Place seed orders', order: 7 },
+  { category: 'Seed Orders', task: 'Order transplants (if buying)', order: 8 },
+  { category: 'Infrastructure', task: 'Inspect/repair greenhouse', order: 9 },
+  { category: 'Infrastructure', task: 'Test irrigation system', order: 10 },
+  { category: 'Infrastructure', task: 'Service equipment', order: 11 },
+  { category: 'Infrastructure', task: 'Order supplies (trays, soil, amendments)', order: 12 },
+  { category: 'Field Prep', task: 'Soil test fields', order: 13 },
+  { category: 'Field Prep', task: 'Plan amendments based on soil tests', order: 14 },
+  { category: 'Field Prep', task: 'Create field/bed rotation plan', order: 15 },
+  { category: 'Field Prep', task: 'Plan cover crop termination dates', order: 16 },
+  { category: 'Sales & Markets', task: 'Confirm market dates/locations', order: 17 },
+  { category: 'Sales & Markets', task: 'Review CSA pricing/offerings', order: 18 },
+  { category: 'Sales & Markets', task: 'Contact wholesale accounts', order: 19 },
+  { category: 'Sales & Markets', task: 'Update website/marketing materials', order: 20 },
+  { category: 'Labor', task: 'Plan seasonal labor needs', order: 21 },
+  { category: 'Labor', task: 'Post job listings if needed', order: 22 },
+  { category: 'Certifications', task: 'Review organic certification paperwork', order: 23 },
+  { category: 'Certifications', task: 'Complete food safety plan updates', order: 24 }
+];
+
+function getPlanningChecklist(params) {
+  try {
+    const season = params.season || new Date().getFullYear().toString();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('PLANNING_CHECKLIST');
+
+    if (!sheet) {
+      // Create sheet with default tasks
+      sheet = ss.insertSheet('PLANNING_CHECKLIST');
+      sheet.appendRow(['Task_ID', 'Season', 'Category', 'Task', 'Status', 'Completed_Date', 'Completed_By', 'Notes', 'Order']);
+
+      DEFAULT_PLANNING_TASKS.forEach((t, i) => {
+        sheet.appendRow([`PLN-${season}-${String(i+1).padStart(3,'0')}`, season, t.category, t.task, 'Pending', '', '', '', t.order]);
+      });
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const tasks = data.slice(1)
+      .filter(row => row[1] == season)
+      .map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      })
+      .sort((a, b) => (a.Order || 0) - (b.Order || 0));
+
+    // Group by category
+    const byCategory = {};
+    tasks.forEach(t => {
+      if (!byCategory[t.Category]) byCategory[t.Category] = [];
+      byCategory[t.Category].push(t);
+    });
+
+    return { success: true, season: season, tasks: tasks, byCategory: byCategory };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updatePlanningTask(params) {
+  try {
+    const { taskId, status, notes, completedBy } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('PLANNING_CHECKLIST');
+
+    if (!sheet) return { success: false, error: 'Sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Task_ID');
+    const statusCol = headers.indexOf('Status');
+    const dateCol = headers.indexOf('Completed_Date');
+    const byCol = headers.indexOf('Completed_By');
+    const notesCol = headers.indexOf('Notes');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === taskId) {
+        if (status) sheet.getRange(i + 1, statusCol + 1).setValue(status);
+        if (status === 'Complete') sheet.getRange(i + 1, dateCol + 1).setValue(new Date().toISOString().split('T')[0]);
+        if (completedBy) sheet.getRange(i + 1, byCol + 1).setValue(completedBy);
+        if (notes) sheet.getRange(i + 1, notesCol + 1).setValue(notes);
+        return { success: true, message: 'Task updated' };
+      }
+    }
+
+    return { success: false, error: 'Task not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function createPlanningChecklist(params) {
+  try {
+    const season = params.season || new Date().getFullYear().toString();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('PLANNING_CHECKLIST');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('PLANNING_CHECKLIST');
+      sheet.appendRow(['Task_ID', 'Season', 'Category', 'Task', 'Status', 'Completed_Date', 'Completed_By', 'Notes', 'Order']);
+    }
+
+    // Check if season already exists
+    const data = sheet.getDataRange().getValues();
+    const existingSeasons = data.slice(1).map(r => r[1]);
+    if (existingSeasons.includes(season)) {
+      return { success: false, error: 'Checklist for this season already exists' };
+    }
+
+    DEFAULT_PLANNING_TASKS.forEach((t, i) => {
+      sheet.appendRow([`PLN-${season}-${String(i+1).padStart(3,'0')}`, season, t.category, t.task, 'Pending', '', '', '', t.order]);
+    });
+
+    return { success: true, message: `Created checklist for ${season}`, taskCount: DEFAULT_PLANNING_TASKS.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getPlanningProgress(params) {
+  try {
+    const season = params.season || new Date().getFullYear().toString();
+    const result = getPlanningChecklist({ season: season });
+
+    if (!result.success) return result;
+
+    const total = result.tasks.length;
+    const complete = result.tasks.filter(t => t.Status === 'Complete').length;
+    const inProgress = result.tasks.filter(t => t.Status === 'In Progress').length;
+    const pending = result.tasks.filter(t => t.Status === 'Pending').length;
+
+    const categoryProgress = {};
+    Object.keys(result.byCategory).forEach(cat => {
+      const catTasks = result.byCategory[cat];
+      categoryProgress[cat] = {
+        total: catTasks.length,
+        complete: catTasks.filter(t => t.Status === 'Complete').length,
+        percent: Math.round((catTasks.filter(t => t.Status === 'Complete').length / catTasks.length) * 100)
+      };
+    });
+
+    return {
+      success: true,
+      season: season,
+      total: total,
+      complete: complete,
+      inProgress: inProgress,
+      pending: pending,
+      percentComplete: Math.round((complete / total) * 100),
+      categoryProgress: categoryProgress
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IN-SEASON ADJUSTMENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSeasonAdjustments(params) {
+  try {
+    const season = params.season || new Date().getFullYear().toString();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SEASON_ADJUSTMENTS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('SEASON_ADJUSTMENTS');
+      sheet.appendRow(['Adjustment_ID', 'Date', 'Season', 'Type', 'Crop', 'Variety', 'Original_Plan', 'New_Plan', 'Reason', 'Impact', 'Created_By']);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const adjustments = data.slice(1)
+      .filter(row => row[2] == season)
+      .map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      })
+      .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+    // Summary stats
+    const adds = adjustments.filter(a => a.Type === 'Add').length;
+    const cancels = adjustments.filter(a => a.Type === 'Cancel').length;
+    const changes = adjustments.filter(a => a.Type === 'Change').length;
+
+    return {
+      success: true,
+      season: season,
+      adjustments: adjustments,
+      summary: { adds, cancels, changes, total: adjustments.length }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addSeasonAdjustment(params) {
+  try {
+    const { type, crop, variety, originalPlan, newPlan, reason, impact, createdBy } = params;
+    const season = params.season || new Date().getFullYear().toString();
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SEASON_ADJUSTMENTS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('SEASON_ADJUSTMENTS');
+      sheet.appendRow(['Adjustment_ID', 'Date', 'Season', 'Type', 'Crop', 'Variety', 'Original_Plan', 'New_Plan', 'Reason', 'Impact', 'Created_By']);
+    }
+
+    const adjId = `ADJ-${Date.now()}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    sheet.appendRow([adjId, today, season, type, crop, variety || '', originalPlan || '', newPlan || '', reason || '', impact || '', createdBy || '']);
+
+    return { success: true, adjustmentId: adjId, message: 'Adjustment recorded' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateSuccessionStatus(params) {
+  try {
+    const { batchId, status, notes } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Try PLANNING_2026, PLANNING_2025, or PLANTINGS
+    const sheetNames = ['PLANNING_2026', 'PLANNING_2025', 'PLANTINGS'];
+    let sheet = null;
+
+    for (const name of sheetNames) {
+      const s = ss.getSheetByName(name);
+      if (s) { sheet = s; break; }
+    }
+
+    if (!sheet) return { success: false, error: 'No planning sheet found' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Batch_ID');
+    const statusCol = headers.indexOf('Status');
+    const notesCol = headers.indexOf('Notes');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === batchId) {
+        if (status && statusCol !== -1) sheet.getRange(i + 1, statusCol + 1).setValue(status);
+        if (notes && notesCol !== -1) {
+          const existing = data[i][notesCol] || '';
+          sheet.getRange(i + 1, notesCol + 1).setValue(existing + (existing ? '\n' : '') + `[${new Date().toLocaleDateString()}] ${notes}`);
+        }
+        return { success: true, message: 'Status updated' };
+      }
+    }
+
+    return { success: false, error: 'Batch not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST-SEASON REVIEW
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getVarietyReviews(params) {
+  try {
+    const season = params.season || (new Date().getFullYear() - 1).toString();
+    const crop = params.crop;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('VARIETY_REVIEWS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('VARIETY_REVIEWS');
+      sheet.appendRow(['Review_ID', 'Season', 'Crop', 'Variety', 'Source', 'Performance_Rating', 'Yield_Rating', 'Disease_Resistance', 'Flavor_Quality', 'Market_Appeal', 'Grow_Again', 'Notes', 'Reviewed_By', 'Review_Date']);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let reviews = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    if (season) reviews = reviews.filter(r => r.Season == season);
+    if (crop) reviews = reviews.filter(r => r.Crop === crop);
+
+    // Get unique crops for dropdown
+    const crops = [...new Set(reviews.map(r => r.Crop))].sort();
+
+    return { success: true, reviews: reviews, crops: crops, season: season };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function saveVarietyReview(params) {
+  try {
+    const {
+      season, crop, variety, source, performanceRating, yieldRating,
+      diseaseResistance, flavorQuality, marketAppeal, growAgain, notes, reviewedBy
+    } = params;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('VARIETY_REVIEWS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('VARIETY_REVIEWS');
+      sheet.appendRow(['Review_ID', 'Season', 'Crop', 'Variety', 'Source', 'Performance_Rating', 'Yield_Rating', 'Disease_Resistance', 'Flavor_Quality', 'Market_Appeal', 'Grow_Again', 'Notes', 'Reviewed_By', 'Review_Date']);
+    }
+
+    const reviewId = `REV-${Date.now()}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    sheet.appendRow([
+      reviewId, season || new Date().getFullYear() - 1, crop, variety, source || '',
+      performanceRating || '', yieldRating || '', diseaseResistance || '',
+      flavorQuality || '', marketAppeal || '', growAgain || '', notes || '',
+      reviewedBy || '', today
+    ]);
+
+    return { success: true, reviewId: reviewId, message: 'Review saved' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getSeasonSummary(params) {
+  try {
+    const season = params.season || (new Date().getFullYear() - 1).toString();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get harvest data
+    const harvestSheet = ss.getSheetByName('HARVESTS') || ss.getSheetByName('HARVEST_LOG');
+    let harvests = [];
+    if (harvestSheet) {
+      const data = harvestSheet.getDataRange().getValues();
+      const headers = data[0];
+      harvests = data.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      }).filter(h => {
+        const date = new Date(h.Date || h.Harvest_Date);
+        return date.getFullYear().toString() === season;
+      });
+    }
+
+    // Get reviews
+    const reviewResult = getVarietyReviews({ season: season });
+    const reviews = reviewResult.success ? reviewResult.reviews : [];
+
+    // Get adjustments
+    const adjResult = getSeasonAdjustments({ season: season });
+    const adjustments = adjResult.success ? adjResult.adjustments : [];
+
+    // Calculate summaries
+    const cropTotals = {};
+    harvests.forEach(h => {
+      const crop = h.Crop;
+      if (!cropTotals[crop]) cropTotals[crop] = { quantity: 0, harvests: 0 };
+      cropTotals[crop].quantity += Number(h.Quantity) || 0;
+      cropTotals[crop].harvests++;
+    });
+
+    const topPerformers = reviews.filter(r => r.Grow_Again === 'Yes' && Number(r.Performance_Rating) >= 4);
+    const discontinue = reviews.filter(r => r.Grow_Again === 'No');
+
+    return {
+      success: true,
+      season: season,
+      harvestCount: harvests.length,
+      cropTotals: cropTotals,
+      reviewCount: reviews.length,
+      adjustmentCount: adjustments.length,
+      topPerformers: topPerformers,
+      discontinue: discontinue
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BED PREP CHECKLIST
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getBedPrepLog(params) {
+  try {
+    const { fieldId, season } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('BED_PREP_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('BED_PREP_LOG');
+      sheet.appendRow(['Prep_ID', 'Date', 'Season', 'Field_ID', 'Bed_IDs', 'Activity', 'Equipment_Used', 'Amendments', 'Amendment_Rate', 'Soil_Moisture', 'Notes', 'Completed_By', 'Hours']);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let logs = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    if (fieldId) logs = logs.filter(l => l.Field_ID === fieldId);
+    if (season) logs = logs.filter(l => l.Season == season);
+
+    logs.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+    return { success: true, logs: logs };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logBedPrep(params) {
+  try {
+    const {
+      fieldId, bedIds, activity, equipmentUsed, amendments,
+      amendmentRate, soilMoisture, notes, completedBy, hours
+    } = params;
+    const season = params.season || new Date().getFullYear().toString();
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('BED_PREP_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('BED_PREP_LOG');
+      sheet.appendRow(['Prep_ID', 'Date', 'Season', 'Field_ID', 'Bed_IDs', 'Activity', 'Equipment_Used', 'Amendments', 'Amendment_Rate', 'Soil_Moisture', 'Notes', 'Completed_By', 'Hours']);
+    }
+
+    const prepId = `BED-${Date.now()}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    sheet.appendRow([
+      prepId, today, season, fieldId, bedIds || '', activity || '',
+      equipmentUsed || '', amendments || '', amendmentRate || '',
+      soilMoisture || '', notes || '', completedBy || '', hours || ''
+    ]);
+
+    return { success: true, prepId: prepId, message: 'Bed prep logged' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getBedPrepStatus(params) {
+  try {
+    const season = params.season || new Date().getFullYear().toString();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get all beds
+    const bedsSheet = ss.getSheetByName('BEDS');
+    if (!bedsSheet) return { success: false, error: 'BEDS sheet not found' };
+
+    const bedsData = bedsSheet.getDataRange().getValues();
+    const bedsHeaders = bedsData[0];
+    const beds = bedsData.slice(1).map(row => {
+      const obj = {};
+      bedsHeaders.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    // Get bed prep logs
+    const logsResult = getBedPrepLog({ season: season });
+    const logs = logsResult.success ? logsResult.logs : [];
+
+    // Calculate status per bed
+    const bedStatus = {};
+    beds.forEach(bed => {
+      const bedId = bed.Bed_ID || bed.ID;
+      const bedLogs = logs.filter(l =>
+        l.Bed_IDs && (l.Bed_IDs === bedId || l.Bed_IDs.includes(bedId))
+      );
+
+      bedStatus[bedId] = {
+        bed: bed,
+        prepCount: bedLogs.length,
+        lastPrep: bedLogs.length > 0 ? bedLogs[0].Date : null,
+        activities: bedLogs.map(l => l.Activity)
+      };
+    });
+
+    const prepped = Object.values(bedStatus).filter(b => b.prepCount > 0).length;
+    const notPrepped = Object.values(bedStatus).filter(b => b.prepCount === 0).length;
+
+    return {
+      success: true,
+      season: season,
+      totalBeds: beds.length,
+      prepped: prepped,
+      notPrepped: notPrepped,
+      percentComplete: Math.round((prepped / beds.length) * 100),
+      bedStatus: bedStatus
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IRRIGATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getIrrigationZones(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('IRRIGATION_ZONES');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('IRRIGATION_ZONES');
+      sheet.appendRow(['Zone_ID', 'Zone_Name', 'Field_ID', 'Beds_Covered', 'System_Type', 'Emitter_Type', 'Emitter_Spacing_In', 'GPH_Per_Emitter', 'Line_Count', 'Total_GPH', 'Pressure_PSI', 'Filter_Type', 'Valve_Location', 'Notes', 'Install_Date', 'Last_Service']);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const zones = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    return { success: true, zones: zones };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function saveIrrigationZone(params) {
+  try {
+    const {
+      zoneId, zoneName, fieldId, bedsCovered, systemType, emitterType,
+      emitterSpacing, gphPerEmitter, lineCount, pressurePsi, filterType,
+      valveLocation, notes
+    } = params;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('IRRIGATION_ZONES');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('IRRIGATION_ZONES');
+      sheet.appendRow(['Zone_ID', 'Zone_Name', 'Field_ID', 'Beds_Covered', 'System_Type', 'Emitter_Type', 'Emitter_Spacing_In', 'GPH_Per_Emitter', 'Line_Count', 'Total_GPH', 'Pressure_PSI', 'Filter_Type', 'Valve_Location', 'Notes', 'Install_Date', 'Last_Service']);
+    }
+
+    // Calculate total GPH
+    const totalGPH = (Number(gphPerEmitter) || 0) * (Number(lineCount) || 1) * (100 / (Number(emitterSpacing) || 12));
+
+    const newZoneId = zoneId || `IRR-${Date.now()}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    // Check if updating existing
+    if (zoneId) {
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === zoneId) {
+          sheet.getRange(i + 1, 1, 1, 16).setValues([[
+            zoneId, zoneName, fieldId, bedsCovered, systemType, emitterType,
+            emitterSpacing, gphPerEmitter, lineCount, totalGPH, pressurePsi,
+            filterType, valveLocation, notes, data[i][14], today
+          ]]);
+          return { success: true, zoneId: zoneId, message: 'Zone updated' };
+        }
+      }
+    }
+
+    sheet.appendRow([
+      newZoneId, zoneName, fieldId, bedsCovered, systemType, emitterType,
+      emitterSpacing, gphPerEmitter, lineCount, totalGPH, pressurePsi,
+      filterType, valveLocation, notes, today, ''
+    ]);
+
+    return { success: true, zoneId: newZoneId, message: 'Zone created' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getWateringLog(params) {
+  try {
+    const { zoneId, startDate, endDate } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('WATERING_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('WATERING_LOG');
+      sheet.appendRow(['Log_ID', 'Date', 'Zone_ID', 'Start_Time', 'End_Time', 'Duration_Min', 'Gallons_Applied', 'Method', 'Crop_Stage', 'Soil_Moisture_Before', 'Soil_Moisture_After', 'Weather', 'Temp_F', 'Notes', 'Logged_By']);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let logs = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    if (zoneId) logs = logs.filter(l => l.Zone_ID === zoneId);
+    if (startDate) logs = logs.filter(l => new Date(l.Date) >= new Date(startDate));
+    if (endDate) logs = logs.filter(l => new Date(l.Date) <= new Date(endDate));
+
+    logs.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+    // Calculate totals
+    const totalGallons = logs.reduce((sum, l) => sum + (Number(l.Gallons_Applied) || 0), 0);
+    const totalMinutes = logs.reduce((sum, l) => sum + (Number(l.Duration_Min) || 0), 0);
+
+    return {
+      success: true,
+      logs: logs,
+      summary: {
+        totalEvents: logs.length,
+        totalGallons: totalGallons,
+        totalMinutes: totalMinutes,
+        totalHours: Math.round(totalMinutes / 60 * 10) / 10
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logWatering(params) {
+  try {
+    const {
+      zoneId, startTime, endTime, durationMin, method, cropStage,
+      soilMoistureBefore, soilMoistureAfter, weather, tempF, notes, loggedBy
+    } = params;
+    const date = params.date || new Date().toISOString().split('T')[0];
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('WATERING_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('WATERING_LOG');
+      sheet.appendRow(['Log_ID', 'Date', 'Zone_ID', 'Start_Time', 'End_Time', 'Duration_Min', 'Gallons_Applied', 'Method', 'Crop_Stage', 'Soil_Moisture_Before', 'Soil_Moisture_After', 'Weather', 'Temp_F', 'Notes', 'Logged_By']);
+    }
+
+    // Get zone info to calculate gallons
+    let gallonsApplied = 0;
+    const zonesResult = getIrrigationZones({});
+    if (zonesResult.success) {
+      const zone = zonesResult.zones.find(z => z.Zone_ID === zoneId);
+      if (zone && zone.Total_GPH && durationMin) {
+        gallonsApplied = Math.round((Number(zone.Total_GPH) * Number(durationMin) / 60) * 10) / 10;
+      }
+    }
+
+    const logId = `WTR-${Date.now()}`;
+
+    sheet.appendRow([
+      logId, date, zoneId, startTime || '', endTime || '', durationMin || '',
+      gallonsApplied, method || 'Drip', cropStage || '', soilMoistureBefore || '',
+      soilMoistureAfter || '', weather || '', tempF || '', notes || '', loggedBy || ''
+    ]);
+
+    return { success: true, logId: logId, gallonsApplied: gallonsApplied, message: 'Watering logged' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getIrrigationMaintenance(params) {
+  try {
+    const { zoneId } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('IRRIGATION_MAINTENANCE');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('IRRIGATION_MAINTENANCE');
+      sheet.appendRow(['Maint_ID', 'Date', 'Zone_ID', 'Type', 'Description', 'Parts_Used', 'Cost', 'Time_Min', 'Completed_By', 'Next_Due', 'Notes']);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let logs = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    if (zoneId) logs = logs.filter(l => l.Zone_ID === zoneId);
+
+    logs.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+    // Find overdue maintenance
+    const today = new Date();
+    const overdue = logs.filter(l => l.Next_Due && new Date(l.Next_Due) < today);
+
+    return { success: true, logs: logs, overdue: overdue };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function logIrrigationMaintenance(params) {
+  try {
+    const {
+      zoneId, type, description, partsUsed, cost, timeMin,
+      completedBy, nextDue, notes
+    } = params;
+    const date = params.date || new Date().toISOString().split('T')[0];
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('IRRIGATION_MAINTENANCE');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('IRRIGATION_MAINTENANCE');
+      sheet.appendRow(['Maint_ID', 'Date', 'Zone_ID', 'Type', 'Description', 'Parts_Used', 'Cost', 'Time_Min', 'Completed_By', 'Next_Due', 'Notes']);
+    }
+
+    const maintId = `MNT-${Date.now()}`;
+
+    sheet.appendRow([
+      maintId, date, zoneId || '', type || '', description || '',
+      partsUsed || '', cost || '', timeMin || '', completedBy || '',
+      nextDue || '', notes || ''
+    ]);
+
+    // Update zone last service date
+    if (zoneId) {
+      const zonesSheet = ss.getSheetByName('IRRIGATION_ZONES');
+      if (zonesSheet) {
+        const data = zonesSheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][0] === zoneId) {
+            zonesSheet.getRange(i + 1, 16).setValue(date); // Last_Service column
+            break;
+          }
+        }
+      }
+    }
+
+    return { success: true, maintId: maintId, message: 'Maintenance logged' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getIrrigationDashboard(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get zones
+    const zonesResult = getIrrigationZones({});
+    const zones = zonesResult.success ? zonesResult.zones : [];
+
+    // Get recent watering (last 7 days)
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const wateringResult = getWateringLog({ startDate: weekAgo.toISOString().split('T')[0] });
+    const recentWatering = wateringResult.success ? wateringResult.logs : [];
+
+    // Get maintenance
+    const maintResult = getIrrigationMaintenance({});
+    const overdue = maintResult.success ? maintResult.overdue : [];
+
+    // Calculate stats
+    const totalGPH = zones.reduce((sum, z) => sum + (Number(z.Total_GPH) || 0), 0);
+    const weekGallons = recentWatering.reduce((sum, w) => sum + (Number(w.Gallons_Applied) || 0), 0);
+
+    return {
+      success: true,
+      zoneCount: zones.length,
+      totalGPH: totalGPH,
+      weekWateringEvents: recentWatering.length,
+      weekGallonsApplied: weekGallons,
+      overdueMaintenanceCount: overdue.length,
+      overdueMaintenance: overdue,
+      zones: zones
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FARM INFRASTRUCTURE & EQUIPMENT LOCATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const INFRASTRUCTURE_TYPES = [
+  'Hydrant',
+  'Well',
+  'Pump Station',
+  'Water Tank',
+  'Tool Shed',
+  'Equipment Storage',
+  'Cooler/Cold Storage',
+  'Greenhouse',
+  'High Tunnel',
+  'Wash Station',
+  'Compost Area',
+  'Fuel Storage',
+  'Electrical Panel',
+  'Gate',
+  'Fence Post (Corner)',
+  'Property Marker',
+  'Weather Station',
+  'Other'
+];
+
+function getFarmInfrastructure(params) {
+  try {
+    const { type, fieldId } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('FARM_INFRASTRUCTURE');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('FARM_INFRASTRUCTURE');
+      sheet.appendRow([
+        'Item_ID', 'Type', 'Name', 'Description', 'Field_ID', 'GPS_Lat', 'GPS_Lng',
+        'GPS_Accuracy', 'Install_Date', 'Condition', 'Last_Inspection', 'Next_Maintenance',
+        'Photo_URL', 'Notes', 'Created_By', 'Created_At'
+      ]);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let items = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    if (type) items = items.filter(i => i.Type === type);
+    if (fieldId) items = items.filter(i => i.Field_ID === fieldId);
+
+    // Get counts by type
+    const typeCounts = {};
+    items.forEach(item => {
+      typeCounts[item.Type] = (typeCounts[item.Type] || 0) + 1;
+    });
+
+    return {
+      success: true,
+      items: items,
+      typeCounts: typeCounts,
+      availableTypes: INFRASTRUCTURE_TYPES
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function saveFarmInfrastructure(params) {
+  try {
+    const {
+      itemId, type, name, description, fieldId, gpsLat, gpsLng, gpsAccuracy,
+      installDate, condition, lastInspection, nextMaintenance, photoUrl, notes, createdBy
+    } = params;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('FARM_INFRASTRUCTURE');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('FARM_INFRASTRUCTURE');
+      sheet.appendRow([
+        'Item_ID', 'Type', 'Name', 'Description', 'Field_ID', 'GPS_Lat', 'GPS_Lng',
+        'GPS_Accuracy', 'Install_Date', 'Condition', 'Last_Inspection', 'Next_Maintenance',
+        'Photo_URL', 'Notes', 'Created_By', 'Created_At'
+      ]);
+    }
+
+    const now = new Date().toISOString();
+
+    // Update existing or create new
+    if (itemId) {
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === itemId) {
+          sheet.getRange(i + 1, 1, 1, 16).setValues([[
+            itemId, type, name, description || '', fieldId || '',
+            gpsLat || data[i][5], gpsLng || data[i][6], gpsAccuracy || data[i][7],
+            installDate || data[i][8], condition || data[i][9],
+            lastInspection || data[i][10], nextMaintenance || data[i][11],
+            photoUrl || data[i][12], notes || data[i][13],
+            data[i][14], data[i][15]
+          ]]);
+          return { success: true, itemId: itemId, message: 'Infrastructure updated' };
+        }
+      }
+    }
+
+    // Create new item
+    const newId = `INF-${Date.now()}`;
+    sheet.appendRow([
+      newId, type, name, description || '', fieldId || '',
+      gpsLat || '', gpsLng || '', gpsAccuracy || '',
+      installDate || '', condition || 'Good', '', '',
+      photoUrl || '', notes || '', createdBy || '', now
+    ]);
+
+    return { success: true, itemId: newId, message: 'Infrastructure added' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function deleteFarmInfrastructure(params) {
+  try {
+    const { itemId } = params;
+    if (!itemId) return { success: false, error: 'No itemId provided' };
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('FARM_INFRASTRUCTURE');
+    if (!sheet) return { success: false, error: 'Sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === itemId) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Infrastructure deleted' };
+      }
+    }
+
+    return { success: false, error: 'Item not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getInfrastructureMap(params) {
+  try {
+    const result = getFarmInfrastructure({});
+    if (!result.success) return result;
+
+    // Filter items with GPS coordinates
+    const mappedItems = result.items.filter(item =>
+      item.GPS_Lat && item.GPS_Lng &&
+      !isNaN(Number(item.GPS_Lat)) && !isNaN(Number(item.GPS_Lng))
+    );
+
+    // Group by type for map layers
+    const layers = {};
+    mappedItems.forEach(item => {
+      if (!layers[item.Type]) layers[item.Type] = [];
+      layers[item.Type].push({
+        id: item.Item_ID,
+        name: item.Name,
+        lat: Number(item.GPS_Lat),
+        lng: Number(item.GPS_Lng),
+        condition: item.Condition,
+        description: item.Description
+      });
+    });
+
+    // Get farm center
+    const farmCenter = GOOGLE_ROUTES_CONFIG.FARM_COORDS;
+
+    return {
+      success: true,
+      center: farmCenter,
+      totalItems: mappedItems.length,
+      layers: layers,
+      items: mappedItems
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================================================
+// BOUNDARY TRACING - Property Lines, Field Outlines, Zones
+// ============================================================================
+
+const BOUNDARY_TYPES = [
+  'Property Line',
+  'Field Outline',
+  'Growing Zone',
+  'Irrigation Zone',
+  'High Tunnel Area',
+  'Cover Crop Area',
+  'Buffer Zone',
+  'Wetland',
+  'Wooded Area',
+  'No-Spray Zone',
+  'Other'
+];
+
+function getBoundaries(params) {
+  try {
+    const { type } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('FARM_BOUNDARIES');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('FARM_BOUNDARIES');
+      sheet.appendRow([
+        'Boundary_ID', 'Type', 'Name', 'Description', 'Color',
+        'Coordinates', 'Area_SqFt', 'Perimeter_Ft', 'Acres',
+        'Created_By', 'Created_At', 'Updated_At'
+      ]);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let boundaries = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      // Parse coordinates from JSON string
+      if (obj.Coordinates) {
+        try {
+          obj.Coordinates = JSON.parse(obj.Coordinates);
+        } catch (e) {
+          obj.Coordinates = [];
+        }
+      }
+      return obj;
+    }).filter(b => b.Boundary_ID);
+
+    if (type) boundaries = boundaries.filter(b => b.Type === type);
+
+    // Get counts by type
+    const typeCounts = {};
+    boundaries.forEach(b => {
+      typeCounts[b.Type] = (typeCounts[b.Type] || 0) + 1;
+    });
+
+    return {
+      success: true,
+      boundaries: boundaries,
+      typeCounts: typeCounts,
+      availableTypes: BOUNDARY_TYPES
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function saveBoundary(params) {
+  try {
+    const {
+      boundaryId, type, name, description, color, coordinates, createdBy
+    } = params;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('FARM_BOUNDARIES');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('FARM_BOUNDARIES');
+      sheet.appendRow([
+        'Boundary_ID', 'Type', 'Name', 'Description', 'Color',
+        'Coordinates', 'Area_SqFt', 'Perimeter_Ft', 'Acres',
+        'Created_By', 'Created_At', 'Updated_At'
+      ]);
+    }
+
+    // Parse coordinates array
+    let coords = coordinates;
+    if (typeof coordinates === 'string') {
+      coords = JSON.parse(coordinates);
+    }
+
+    // Calculate area and perimeter if closed polygon
+    const areaStats = calculatePolygonStats(coords);
+
+    const now = new Date().toISOString();
+
+    if (boundaryId) {
+      // Update existing
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === boundaryId) {
+          sheet.getRange(i + 1, 1, 1, 12).setValues([[
+            boundaryId, type, name, description || '', color || '#3b82f6',
+            JSON.stringify(coords), areaStats.areaSqFt, areaStats.perimeterFt, areaStats.acres,
+            data[i][9], data[i][10], now
+          ]]);
+          return { success: true, boundaryId: boundaryId, message: 'Boundary updated', stats: areaStats };
+        }
+      }
+    }
+
+    // Create new
+    const newId = 'BND-' + Utilities.getUuid().substring(0, 8).toUpperCase();
+    sheet.appendRow([
+      newId, type, name, description || '', color || '#3b82f6',
+      JSON.stringify(coords), areaStats.areaSqFt, areaStats.perimeterFt, areaStats.acres,
+      createdBy || '', now, now
+    ]);
+
+    return { success: true, boundaryId: newId, message: 'Boundary created', stats: areaStats };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function deleteBoundary(params) {
+  try {
+    const { boundaryId } = params;
+    if (!boundaryId) return { success: false, error: 'Boundary ID required' };
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('FARM_BOUNDARIES');
+    if (!sheet) return { success: false, error: 'Sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === boundaryId) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Boundary deleted' };
+      }
+    }
+
+    return { success: false, error: 'Boundary not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// Calculate area and perimeter of polygon using Shoelace formula
+function calculatePolygonStats(coordinates) {
+  if (!coordinates || coordinates.length < 3) {
+    return { areaSqFt: 0, perimeterFt: 0, acres: 0 };
+  }
+
+  // Convert lat/lng to approximate feet (at ~40° latitude)
+  const feetPerDegreeLat = 364000; // ~111km per degree
+  const feetPerDegreeLng = 279000; // ~85km per degree at 40° latitude
+
+  const centerLat = coordinates.reduce((sum, c) => sum + c.lat, 0) / coordinates.length;
+
+  // Convert to local coordinates in feet
+  const localCoords = coordinates.map(c => ({
+    x: (c.lng - coordinates[0].lng) * feetPerDegreeLng,
+    y: (c.lat - coordinates[0].lat) * feetPerDegreeLat
+  }));
+
+  // Shoelace formula for area
+  let area = 0;
+  for (let i = 0; i < localCoords.length; i++) {
+    const j = (i + 1) % localCoords.length;
+    area += localCoords[i].x * localCoords[j].y;
+    area -= localCoords[j].x * localCoords[i].y;
+  }
+  area = Math.abs(area) / 2;
+
+  // Calculate perimeter
+  let perimeter = 0;
+  for (let i = 0; i < localCoords.length; i++) {
+    const j = (i + 1) % localCoords.length;
+    const dx = localCoords[j].x - localCoords[i].x;
+    const dy = localCoords[j].y - localCoords[i].y;
+    perimeter += Math.sqrt(dx * dx + dy * dy);
+  }
+
+  return {
+    areaSqFt: Math.round(area),
+    perimeterFt: Math.round(perimeter),
+    acres: Math.round(area / 43560 * 100) / 100
+  };
+}
+
+// ============================================================================
+// FIELD SCOUTING MAP DATA - For Employee App Pest/Disease Mapping
+// ============================================================================
+
+function getScoutingMapData(params) {
+  try {
+    const { startDate, endDate, type, severity } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('FIELD_SCOUTING');
+
+    if (!sheet) {
+      // Return empty if no scouting data yet
+      return {
+        success: true,
+        observations: [],
+        hotspots: [],
+        summary: { total: 0, byType: {}, bySeverity: {} }
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let observations = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    }).filter(o => o.Scout_ID && o.GPS_Lat && o.GPS_Lng);
+
+    // Filter by date range
+    if (startDate) {
+      const start = new Date(startDate);
+      observations = observations.filter(o => new Date(o.Date) >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      observations = observations.filter(o => new Date(o.Date) <= end);
+    }
+
+    // Filter by type and severity
+    if (type) observations = observations.filter(o => o.Observation_Type === type);
+    if (severity) observations = observations.filter(o => o.Severity === severity);
+
+    // Calculate hotspots (cluster nearby observations)
+    const hotspots = calculateHotspots(observations);
+
+    // Summary stats
+    const summary = {
+      total: observations.length,
+      byType: {},
+      bySeverity: {}
+    };
+
+    observations.forEach(o => {
+      summary.byType[o.Observation_Type] = (summary.byType[o.Observation_Type] || 0) + 1;
+      summary.bySeverity[o.Severity] = (summary.bySeverity[o.Severity] || 0) + 1;
+    });
+
+    return {
+      success: true,
+      observations: observations,
+      hotspots: hotspots,
+      summary: summary
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function calculateHotspots(observations) {
+  // Simple clustering - group observations within ~50ft of each other
+  const clusterRadius = 0.00015; // ~50ft in degrees
+  const hotspots = [];
+  const used = new Set();
+
+  observations.forEach((obs, i) => {
+    if (used.has(i)) return;
+
+    const cluster = [obs];
+    used.add(i);
+
+    observations.forEach((other, j) => {
+      if (used.has(j)) return;
+
+      const dist = Math.sqrt(
+        Math.pow(obs.GPS_Lat - other.GPS_Lat, 2) +
+        Math.pow(obs.GPS_Lng - other.GPS_Lng, 2)
+      );
+
+      if (dist < clusterRadius) {
+        cluster.push(other);
+        used.add(j);
+      }
+    });
+
+    if (cluster.length >= 2) {
+      // Calculate center
+      const center = {
+        lat: cluster.reduce((sum, c) => sum + Number(c.GPS_Lat), 0) / cluster.length,
+        lng: cluster.reduce((sum, c) => sum + Number(c.GPS_Lng), 0) / cluster.length
+      };
+
+      // Determine dominant type
+      const types = {};
+      cluster.forEach(c => types[c.Observation_Type] = (types[c.Observation_Type] || 0) + 1);
+      const dominantType = Object.entries(types).sort((a, b) => b[1] - a[1])[0][0];
+
+      // Highest severity
+      const severities = ['Critical', 'High', 'Medium', 'Low'];
+      let highestSeverity = 'Low';
+      for (const sev of severities) {
+        if (cluster.some(c => c.Severity === sev)) {
+          highestSeverity = sev;
+          break;
+        }
+      }
+
+      hotspots.push({
+        center: center,
+        count: cluster.length,
+        dominantType: dominantType,
+        highestSeverity: highestSeverity,
+        observations: cluster.map(c => c.Scout_ID)
+      });
+    }
+  });
+
+  return hotspots;
 }
 

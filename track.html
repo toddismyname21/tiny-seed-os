@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2d5a27">
+  <title>Track Your Delivery | Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y" async defer></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #2d5a27;
+      --primary-light: #4a7c43;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-elevated: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-logo {
+      font-size: 1.5rem;
+    }
+
+    .header-text h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .header-text small {
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Status Cards */
+    .status-section {
+      padding: 20px;
+    }
+
+    .status-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .status-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+
+    .status-icon.tracking { color: var(--primary-light); }
+    .status-icon.next { color: var(--warning); animation: pulse 2s infinite; }
+    .status-icon.delivered { color: var(--success); }
+    .status-icon.issue { color: var(--danger); }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .status-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .status-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    /* Stops Away Display */
+    .stops-display {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .stops-number {
+      font-size: 4rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stops-label {
+      font-size: 1.2rem;
+      margin-top: 8px;
+      opacity: 0.9;
+    }
+
+    /* ETA Card */
+    .eta-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .eta-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      color: var(--primary-light);
+    }
+
+    .eta-content {
+      flex: 1;
+    }
+
+    .eta-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .eta-value {
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+
+    /* Map Container */
+    .map-section {
+      flex: 1;
+      min-height: 300px;
+      position: relative;
+    }
+
+    #tracking-map {
+      width: 100%;
+      height: 100%;
+      min-height: 300px;
+    }
+
+    .map-overlay {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .driver-avatar {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .driver-info {
+      flex: 1;
+    }
+
+    .driver-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .driver-status {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .live-badge {
+      background: var(--success);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Delivery Complete */
+    .delivered-section {
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .delivered-icon {
+      font-size: 5rem;
+      color: var(--success);
+      margin-bottom: 20px;
+    }
+
+    .delivered-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .delivered-time {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      margin-bottom: 24px;
+    }
+
+    /* Enter Code Screen */
+    .code-entry {
+      padding: 40px 20px;
+      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .code-icon {
+      font-size: 4rem;
+      color: var(--primary-light);
+      margin-bottom: 24px;
+    }
+
+    .code-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .code-subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .code-input-wrapper {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .code-input {
+      width: 48px;
+      height: 56px;
+      background: var(--bg-card);
+      border: 2px solid var(--bg-elevated);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .code-input:focus {
+      outline: none;
+      border-color: var(--primary-light);
+    }
+
+    .track-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .track-btn:hover {
+      background: var(--primary-light);
+    }
+
+    .track-btn:disabled {
+      background: var(--bg-elevated);
+      cursor: not-allowed;
+    }
+
+    /* Error State */
+    .error-message {
+      background: var(--danger);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    /* Loading */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Footer */
+    .footer {
+      padding: 16px 20px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--bg-elevated);
+    }
+
+    .footer a {
+      color: var(--primary-light);
+      text-decoration: none;
+    }
+
+    /* Refresh indicator */
+    .refresh-indicator {
+      position: fixed;
+      top: 70px;
+      right: 16px;
+      background: var(--bg-card);
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+    }
+
+    .refresh-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+
+    /* Hidden */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-logo">🌱</div>
+    <div class="header-text">
+      <h1>Tiny Seed Farm</h1>
+      <small>Delivery Tracking</small>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Code Entry Screen -->
+    <div id="code-entry-screen" class="code-entry">
+      <div class="code-icon"><i class="fas fa-truck"></i></div>
+      <h2 class="code-title">Track Your Delivery</h2>
+      <p class="code-subtitle">Enter your 6-character tracking code</p>
+
+      <div class="code-input-wrapper">
+        <input type="text" class="code-input" maxlength="1" data-index="0" autofocus>
+        <input type="text" class="code-input" maxlength="1" data-index="1">
+        <input type="text" class="code-input" maxlength="1" data-index="2">
+        <input type="text" class="code-input" maxlength="1" data-index="3">
+        <input type="text" class="code-input" maxlength="1" data-index="4">
+        <input type="text" class="code-input" maxlength="1" data-index="5">
+      </div>
+
+      <button class="track-btn" onclick="startTracking()" id="track-btn">
+        <i class="fas fa-search"></i>
+        Track Delivery
+      </button>
+
+      <div class="error-message" id="error-message"></div>
+    </div>
+
+    <!-- Tracking Screen -->
+    <div id="tracking-screen" class="hidden">
+      <div class="status-section">
+        <!-- Status Card - Dynamic based on delivery status -->
+        <div class="status-card" id="status-card">
+          <div class="status-icon tracking" id="status-icon">
+            <i class="fas fa-truck"></i>
+          </div>
+          <div class="status-title" id="status-title">On The Way</div>
+          <div class="status-subtitle" id="status-subtitle">Your delivery is in progress</div>
+        </div>
+
+        <!-- Stops Away -->
+        <div class="stops-display" id="stops-display">
+          <div class="stops-number" id="stops-number">--</div>
+          <div class="stops-label" id="stops-label">stops away</div>
+        </div>
+
+        <!-- ETA Card -->
+        <div class="eta-card">
+          <div class="eta-icon"><i class="fas fa-clock"></i></div>
+          <div class="eta-content">
+            <div class="eta-label">Estimated Arrival</div>
+            <div class="eta-value" id="eta-value">Calculating...</div>
+          </div>
+        </div>
+
+        <!-- Delivery Info -->
+        <div class="eta-card">
+          <div class="eta-icon"><i class="fas fa-map-marker-alt"></i></div>
+          <div class="eta-content">
+            <div class="eta-label">Delivering To</div>
+            <div class="eta-value" id="delivery-address" style="font-size: 1rem;">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="map-section">
+        <div id="tracking-map"></div>
+        <div class="map-overlay" id="driver-overlay">
+          <div class="driver-avatar"><i class="fas fa-user"></i></div>
+          <div class="driver-info">
+            <div class="driver-name" id="driver-name">Driver</div>
+            <div class="driver-status" id="driver-update">Last update: --</div>
+          </div>
+          <div class="live-badge" id="live-badge">
+            <span class="refresh-dot"></span> LIVE
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delivered Screen -->
+    <div id="delivered-screen" class="delivered-section hidden">
+      <div class="delivered-icon"><i class="fas fa-check-circle"></i></div>
+      <h2 class="delivered-title">Delivered!</h2>
+      <p class="delivered-time" id="delivered-time">Your order was delivered</p>
+      <p style="color: var(--text-secondary);">Thank you for choosing Tiny Seed Farm!</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Fresh from <a href="#">Tiny Seed Farm</a></p>
+  </footer>
+
+  <div class="refresh-indicator" id="refresh-indicator">
+    <span class="refresh-dot"></span>
+    <span id="refresh-text">Updates every 15s</span>
+  </div>
+
+  <script>
+    // Configuration
+    const CONFIG = {
+      API_URL: 'https://script.google.com/macros/s/AKfycby3HP0KYGntO6kUqY3ySrZRgl3GlG82C63tNgd75oY8Ie9Ckngx7XmYQE0hQ6DQr-La/exec',
+      REFRESH_INTERVAL: 15000, // 15 seconds
+      FARM_CENTER: { lat: 40.7456217, lng: -80.1610431 }
+    };
+
+    let trackingCode = '';
+    let trackingMap = null;
+    let driverMarker = null;
+    let customerMarker = null;
+    let refreshInterval = null;
+    let lastData = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      setupCodeInputs();
+      checkUrlForCode();
+    });
+
+    // Code input handling
+    function setupCodeInputs() {
+      const inputs = document.querySelectorAll('.code-input');
+
+      inputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+          const value = e.target.value.toUpperCase();
+          e.target.value = value;
+
+          if (value && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+          }
+
+          updateTrackingCode();
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !e.target.value && index > 0) {
+            inputs[index - 1].focus();
+          }
+          if (e.key === 'Enter') {
+            startTracking();
+          }
+        });
+
+        input.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const paste = (e.clipboardData || window.clipboardData).getData('text').toUpperCase();
+          for (let i = 0; i < Math.min(paste.length, 6); i++) {
+            inputs[i].value = paste[i];
+          }
+          if (paste.length >= 6) {
+            inputs[5].focus();
+          }
+          updateTrackingCode();
+        });
+      });
+    }
+
+    function updateTrackingCode() {
+      const inputs = document.querySelectorAll('.code-input');
+      trackingCode = Array.from(inputs).map(i => i.value).join('');
+
+      document.getElementById('track-btn').disabled = trackingCode.length !== 6;
+    }
+
+    function checkUrlForCode() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code') || params.get('c');
+
+      if (code && code.length === 6) {
+        // Auto-fill code
+        const inputs = document.querySelectorAll('.code-input');
+        for (let i = 0; i < 6; i++) {
+          inputs[i].value = code[i].toUpperCase();
+        }
+        trackingCode = code.toUpperCase();
+        // Auto-start tracking
+        startTracking();
+      }
+    }
+
+    async function startTracking() {
+      if (trackingCode.length !== 6) return;
+
+      const btn = document.getElementById('track-btn');
+      btn.innerHTML = '<span class="loading-spinner"></span> Looking up...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getTrackingStatus&trackingCode=${trackingCode}`);
+        const data = await response.json();
+
+        if (data.success) {
+          lastData = data;
+          showTrackingScreen(data);
+
+          // Start auto-refresh
+          if (!refreshInterval) {
+            refreshInterval = setInterval(refreshTracking, CONFIG.REFRESH_INTERVAL);
+          }
+        } else {
+          showError(data.error || 'Invalid tracking code');
+          btn.innerHTML = '<i class="fas fa-search"></i> Track Delivery';
+          btn.disabled = false;
+        }
+      } catch (error) {
+        showError('Unable to connect. Please try again.');
+        btn.innerHTML = '<i class="fas fa-search"></i> Track Delivery';
+        btn.disabled = false;
+      }
+    }
+
+    async function refreshTracking() {
+      if (!trackingCode) return;
+
+      try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getTrackingStatus&trackingCode=${trackingCode}`);
+        const data = await response.json();
+
+        if (data.success) {
+          lastData = data;
+          updateTrackingDisplay(data);
+        }
+      } catch (error) {
+        console.error('Refresh error:', error);
+      }
+    }
+
+    function showTrackingScreen(data) {
+      document.getElementById('code-entry-screen').classList.add('hidden');
+      document.getElementById('tracking-screen').classList.remove('hidden');
+      document.getElementById('delivered-screen').classList.add('hidden');
+
+      // Check if delivered
+      if (data.deliveryStatus === 'delivered') {
+        showDeliveredScreen(data);
+        return;
+      }
+
+      updateTrackingDisplay(data);
+      initTrackingMap(data);
+    }
+
+    function updateTrackingDisplay(data) {
+      // Handle delivered status
+      if (data.deliveryStatus === 'delivered') {
+        showDeliveredScreen(data);
+        return;
+      }
+
+      // Update stops away
+      const stopsNumber = document.getElementById('stops-number');
+      const stopsLabel = document.getElementById('stops-label');
+      const stopsDisplay = document.getElementById('stops-display');
+
+      if (data.deliveryStatus === 'next_stop') {
+        stopsNumber.textContent = 'NEXT';
+        stopsLabel.textContent = 'You\'re next!';
+        stopsDisplay.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+      } else {
+        stopsNumber.textContent = data.stopsAway || '--';
+        stopsLabel.textContent = data.stopsAway === 1 ? 'stop away' : 'stops away';
+        stopsDisplay.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
+      }
+
+      // Update ETA
+      document.getElementById('eta-value').textContent = data.eta || 'Calculating...';
+
+      // Update address
+      if (data.stop) {
+        document.getElementById('delivery-address').textContent = data.stop.address || 'Your location';
+      }
+
+      // Update driver info
+      if (data.tracking) {
+        document.getElementById('driver-name').textContent = data.tracking.driverName || 'Your Driver';
+
+        const lastUpdated = new Date(data.tracking.lastUpdated);
+        const minutesAgo = Math.floor((Date.now() - lastUpdated) / 60000);
+        document.getElementById('driver-update').textContent =
+          minutesAgo < 1 ? 'Just now' : `${minutesAgo}m ago`;
+
+        // Update live badge visibility
+        const liveBadge = document.getElementById('live-badge');
+        if (data.tracking.status === 'active' && minutesAgo < 5) {
+          liveBadge.style.display = 'flex';
+        } else {
+          liveBadge.style.display = 'none';
+        }
+
+        // Update marker on map
+        if (trackingMap && data.tracking.currentLat && data.tracking.currentLng) {
+          updateDriverMarker(data.tracking);
+        }
+      }
+
+      // Update status card
+      updateStatusCard(data);
+    }
+
+    function updateStatusCard(data) {
+      const icon = document.getElementById('status-icon');
+      const title = document.getElementById('status-title');
+      const subtitle = document.getElementById('status-subtitle');
+
+      if (data.deliveryStatus === 'next_stop') {
+        icon.className = 'status-icon next';
+        icon.innerHTML = '<i class="fas fa-bell"></i>';
+        title.textContent = 'Almost There!';
+        subtitle.textContent = 'Your delivery is the next stop';
+      } else if (data.tracking?.status !== 'active') {
+        icon.className = 'status-icon';
+        icon.innerHTML = '<i class="fas fa-pause-circle"></i>';
+        title.textContent = 'Tracking Paused';
+        subtitle.textContent = 'Driver will resume shortly';
+      } else {
+        icon.className = 'status-icon tracking';
+        icon.innerHTML = '<i class="fas fa-truck"></i>';
+        title.textContent = 'On The Way';
+        subtitle.textContent = 'Your delivery is in progress';
+      }
+    }
+
+    function showDeliveredScreen(data) {
+      document.getElementById('code-entry-screen').classList.add('hidden');
+      document.getElementById('tracking-screen').classList.add('hidden');
+      document.getElementById('delivered-screen').classList.remove('hidden');
+      document.getElementById('refresh-indicator').classList.add('hidden');
+
+      if (data.stop?.completedAt) {
+        const time = new Date(data.stop.completedAt);
+        document.getElementById('delivered-time').textContent =
+          `Delivered at ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+      }
+
+      // Stop refreshing
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    }
+
+    function initTrackingMap(data) {
+      if (!window.google || !google.maps) {
+        setTimeout(() => initTrackingMap(data), 500);
+        return;
+      }
+
+      // Center on driver if available, otherwise farm
+      const center = (data.tracking?.currentLat && data.tracking?.currentLng)
+        ? { lat: Number(data.tracking.currentLat), lng: Number(data.tracking.currentLng) }
+        : CONFIG.FARM_CENTER;
+
+      trackingMap = new google.maps.Map(document.getElementById('tracking-map'), {
+        center: center,
+        zoom: 14,
+        mapTypeId: 'roadmap',
+        disableDefaultUI: true,
+        zoomControl: true,
+        styles: [
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+        ]
+      });
+
+      // Add driver marker
+      if (data.tracking?.currentLat && data.tracking?.currentLng) {
+        updateDriverMarker(data.tracking);
+      }
+
+      // Add customer location marker (if we have address geocoded)
+      // For now, we'll skip this as we'd need to geocode the address
+    }
+
+    function updateDriverMarker(tracking) {
+      const position = {
+        lat: Number(tracking.currentLat),
+        lng: Number(tracking.currentLng)
+      };
+
+      if (driverMarker) {
+        // Smoothly animate marker
+        driverMarker.setPosition(position);
+      } else {
+        // Create marker
+        driverMarker = new google.maps.Marker({
+          position: position,
+          map: trackingMap,
+          title: 'Delivery Driver',
+          icon: {
+            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            scale: 7,
+            fillColor: '#2d5a27',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+            rotation: tracking.heading || 0
+          }
+        });
+      }
+
+      // Update rotation if heading available
+      if (tracking.heading && driverMarker) {
+        driverMarker.setIcon({
+          ...driverMarker.getIcon(),
+          rotation: tracking.heading
+        });
+      }
+
+      // Pan to driver
+      trackingMap.panTo(position);
+    }
+
+    function showError(message) {
+      const errorEl = document.getElementById('error-message');
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+
+      setTimeout(() => {
+        errorEl.style.display = 'none';
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

@@ -487,6 +487,51 @@
             color: var(--warning);
         }
 
+        /* Delivery Count Badges */
+        .delivery-count-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .delivery-count-badge.csa {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #a78bfa;
+        }
+
+        .delivery-count-badge.csa.flower {
+            background: rgba(236, 72, 153, 0.15);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            color: #f472b6;
+        }
+
+        .delivery-count-badge.wholesale {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+
+        .delivery-count-badge .count-icon {
+            font-size: 24px;
+        }
+
+        .delivery-count-badge .count-number {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .delivery-count-badge .count-label {
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
         .stop-actions {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1180,6 +1225,27 @@
             to { transform: rotate(360deg); }
         }
 
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
         /* Delivery complete celebration */
         .celebration {
             position: fixed;
@@ -1586,7 +1652,8 @@
             route: {
                 stops: [],
                 isStarted: false,
-                currentStopIndex: -1
+                currentStopIndex: -1,
+                routeId: null
             },
             currentStop: null,
             deliveryPhoto: null,
@@ -1595,7 +1662,15 @@
             gpsLocation: null,
             signature: null,
             history: [],
-            isOnline: navigator.onLine
+            isOnline: navigator.onLine,
+            // Real-time tracking
+            tracking: {
+                active: false,
+                id: null,
+                watchId: null,
+                lastUpdate: null,
+                updateInterval: null
+            }
         };
 
         // ============================================
@@ -1873,16 +1948,26 @@
                     // Transform API response to app format
                     AppState.route.stops = result.stops.map(stop => ({
                         id: stop.Delivery_ID || stop.Stop_ID,
+                        orderId: stop.Order_ID,
                         customer: stop.Customer_Name,
-                        address: stop.Delivery_Address,
-                        phone: stop.Customer_Phone || '',
+                        address: stop.Delivery_Address || stop.Address,
+                        phone: stop.Customer_Phone || stop.Phone || '',
+                        email: stop.Customer_Email || '',
+                        customerType: stop.Customer_Type || 'Retail',
+                        company: stop.Customer_Company || '',
                         deliveryWindow: stop.Delivery_Window || 'Flexible',
                         eta: stop.ETA || '--:--',
                         items: stop.items || [],
                         notes: stop.Delivery_Notes || '',
                         lat: stop.GPS_Lat,
                         lng: stop.GPS_Lng,
-                        status: (stop.Status || 'pending').toLowerCase()
+                        status: (stop.Status || 'pending').toLowerCase(),
+                        // CSA specific
+                        boxCount: stop.Box_Count || 1,
+                        shareType: stop.Share_Type || 'Veggie',
+                        // Wholesale specific
+                        itemCount: stop.Item_Count || 0,
+                        totalUnits: stop.Total_Units || 0
                     }));
 
                     // Load delivery history
@@ -1943,6 +2028,8 @@
             // Check if route complete
             if (completed === total && total > 0) {
                 document.getElementById('celebration').classList.add('active');
+                // Stop tracking when route is complete
+                stopDeliveryTracking();
             }
 
             // Update settings stats
@@ -1981,6 +2068,36 @@
                 const isCurrent = index === currentIndex && AppState.route.isStarted;
                 const isCompleted = stop.status === 'delivered' || stop.status === 'issue';
 
+                // Determine customer type badge and count display
+                const typeColor = stop.customerType === 'CSA' ? '#8b5cf6' :
+                                  stop.customerType === 'Wholesale' ? '#3b82f6' : '#22c55e';
+                const typeBadge = stop.customerType && stop.customerType !== 'Retail' ?
+                    `<span style="background: ${typeColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${stop.customerType}</span>` : '';
+
+                // CSA box count or Wholesale item count
+                let countDisplay = '';
+                if (stop.customerType === 'CSA' && stop.boxCount) {
+                    const isFlower = stop.shareType && stop.shareType.toLowerCase().includes('flower');
+                    const icon = isFlower ? '&#x1F490;' : '&#x1F4E6;'; // 💐 for flower, 📦 for veggie
+                    const label = isFlower ? 'bouquet' : 'box';
+                    const badgeClass = isFlower ? 'csa flower' : 'csa';
+                    countDisplay = `
+                        <div class="delivery-count-badge ${badgeClass}">
+                            <span class="count-icon">${icon}</span>
+                            <span class="count-number">${stop.boxCount}</span>
+                            <span class="count-label">${label}${stop.boxCount > 1 ? 's' : ''}</span>
+                        </div>
+                    `;
+                } else if (stop.customerType === 'Wholesale' && stop.itemCount > 0) {
+                    countDisplay = `
+                        <div class="delivery-count-badge wholesale">
+                            <span class="count-icon">&#x1F4CB;</span>
+                            <span class="count-number">${stop.itemCount}</span>
+                            <span class="count-label">items (${stop.totalUnits} units)</span>
+                        </div>
+                    `;
+                }
+
                 html += `
                     <div class="stop-card ${isCurrent ? 'current' : ''} ${isCompleted ? 'completed' : ''}" data-stop-id="${stop.id}">
                         ${isCompleted ? `<div class="completed-badge">${stop.status === 'delivered' ? 'Delivered' : 'Issue'}</div>` : ''}
@@ -1988,7 +2105,7 @@
                         <div class="stop-header">
                             <div class="stop-number">${isCompleted ? '&#x2713;' : index + 1}</div>
                             <div class="stop-info">
-                                <div class="stop-customer">${stop.customer}</div>
+                                <div class="stop-customer">${stop.customer} ${typeBadge}</div>
                                 <div class="stop-address">${stop.address}</div>
                             </div>
                             <div class="stop-eta">
@@ -1997,12 +2114,14 @@
                             </div>
                         </div>
 
+                        ${countDisplay}
+
                         <div class="stop-items">
                             <div class="stop-items-title">Order Items</div>
                             ${stop.items.map(item => `
                                 <div class="stop-item">
-                                    <span class="stop-item-name">${item.name}</span>
-                                    <span class="stop-item-qty">${item.qty}</span>
+                                    <span class="stop-item-name">${item.name || item.Product_Name || 'Item'}</span>
+                                    <span class="stop-item-qty">${item.qty || item.Quantity || ''} ${item.Unit || ''}</span>
                                 </div>
                             `).join('')}
                         </div>
@@ -2097,12 +2216,308 @@
                 updateRouteStats();
                 renderStops();
 
+                // Start real-time tracking
+                startDeliveryTracking();
+
                 // Auto-open navigation to first stop if enabled
                 const firstPending = AppState.route.stops.find(s => s.status === 'pending');
                 if (firstPending) {
                     // Could auto-open maps here
                 }
             }
+        }
+
+        // ============================================
+        // REAL-TIME DELIVERY TRACKING
+        // ============================================
+        const TRACKING_API_URL = 'https://script.google.com/macros/s/AKfycby3HP0KYGntO6kUqY3ySrZRgl3GlG82C63tNgd75oY8Ie9Ckngx7XmYQE0hQ6DQr-La/exec';
+
+        async function startDeliveryTracking() {
+            if (AppState.tracking.active) return;
+
+            try {
+                // Start tracking session on server
+                const routeId = AppState.route.routeId || 'RTE-' + Date.now();
+                AppState.route.routeId = routeId;
+
+                const params = new URLSearchParams({
+                    action: 'startDeliveryTracking',
+                    routeId: routeId,
+                    driverId: AppState.driver?.id || '',
+                    driverName: AppState.driver?.name || 'Driver'
+                });
+
+                const response = await fetch(`${TRACKING_API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    AppState.tracking.active = true;
+                    AppState.tracking.id = result.trackingId;
+
+                    // Start GPS watching
+                    if (navigator.geolocation) {
+                        AppState.tracking.watchId = navigator.geolocation.watchPosition(
+                            handlePositionUpdate,
+                            handlePositionError,
+                            { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+                        );
+                    }
+
+                    // Also send updates every 30 seconds as backup
+                    AppState.tracking.updateInterval = setInterval(sendLocationUpdate, 30000);
+
+                    console.log('Tracking started:', result.trackingId);
+                    showTrackingIndicator(true);
+
+                    // Send tracking notifications to all customers on the route
+                    sendRouteStartNotifications(routeId, result.trackingId);
+                } else {
+                    console.error('Failed to start tracking:', result.error);
+                }
+            } catch (error) {
+                console.error('Error starting tracking:', error);
+            }
+        }
+
+        function handlePositionUpdate(position) {
+            const { latitude, longitude, heading, speed } = position.coords;
+
+            // Update local state
+            AppState.gpsLocation = { lat: latitude, lng: longitude };
+
+            // Throttle updates to server (max once per 15 seconds)
+            const now = Date.now();
+            if (!AppState.tracking.lastUpdate || now - AppState.tracking.lastUpdate > 15000) {
+                sendLocationToServer(latitude, longitude, heading, speed);
+                AppState.tracking.lastUpdate = now;
+            }
+        }
+
+        function handlePositionError(error) {
+            console.warn('GPS error:', error.message);
+        }
+
+        async function sendLocationUpdate() {
+            if (!AppState.tracking.active || !AppState.gpsLocation) return;
+
+            const { lat, lng } = AppState.gpsLocation;
+            await sendLocationToServer(lat, lng);
+        }
+
+        async function sendLocationToServer(lat, lng, heading, speed) {
+            if (!AppState.tracking.active) return;
+
+            try {
+                // Calculate current stop index
+                const currentStopIndex = AppState.route.stops.findIndex(s => s.status === 'pending');
+
+                const params = new URLSearchParams({
+                    action: 'updateDriverLocation',
+                    trackingId: AppState.tracking.id,
+                    routeId: AppState.route.routeId,
+                    lat: lat.toFixed(6),
+                    lng: lng.toFixed(6),
+                    currentStopIndex: currentStopIndex >= 0 ? currentStopIndex : AppState.route.stops.length,
+                    heading: heading || '',
+                    speed: speed || ''
+                });
+
+                await fetch(`${TRACKING_API_URL}?${params.toString()}`);
+            } catch (error) {
+                console.error('Error sending location:', error);
+            }
+        }
+
+        async function stopDeliveryTracking() {
+            if (!AppState.tracking.active) return;
+
+            try {
+                // Stop GPS watching
+                if (AppState.tracking.watchId) {
+                    navigator.geolocation.clearWatch(AppState.tracking.watchId);
+                    AppState.tracking.watchId = null;
+                }
+
+                // Stop interval
+                if (AppState.tracking.updateInterval) {
+                    clearInterval(AppState.tracking.updateInterval);
+                    AppState.tracking.updateInterval = null;
+                }
+
+                // Notify server
+                const params = new URLSearchParams({
+                    action: 'stopDeliveryTracking',
+                    trackingId: AppState.tracking.id
+                });
+
+                await fetch(`${TRACKING_API_URL}?${params.toString()}`);
+
+                AppState.tracking.active = false;
+                AppState.tracking.id = null;
+
+                showTrackingIndicator(false);
+                console.log('Tracking stopped');
+            } catch (error) {
+                console.error('Error stopping tracking:', error);
+            }
+        }
+
+        function showTrackingIndicator(active) {
+            // Add or update tracking indicator in header
+            let indicator = document.getElementById('tracking-indicator');
+
+            if (active) {
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.id = 'tracking-indicator';
+                    indicator.innerHTML = '<span style="animation: blink 1.5s infinite;">●</span> LIVE';
+                    indicator.style.cssText = `
+                        position: fixed;
+                        top: 10px;
+                        right: 10px;
+                        background: #22c55e;
+                        color: white;
+                        padding: 4px 10px;
+                        border-radius: 20px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        z-index: 9999;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                    `;
+                    document.body.appendChild(indicator);
+                }
+                indicator.style.display = 'flex';
+            } else if (indicator) {
+                indicator.style.display = 'none';
+            }
+        }
+
+        function getTrackingLink(stopId) {
+            // Find the stop's tracking code
+            const stop = AppState.route.stops.find(s => s.id === stopId);
+            if (stop && stop.trackingCode) {
+                return `${window.location.origin}/track.html?code=${stop.trackingCode}`;
+            }
+            return null;
+        }
+
+        async function shareTrackingLink(stopId) {
+            const link = getTrackingLink(stopId);
+            if (!link) {
+                alert('Tracking link not available for this stop');
+                return;
+            }
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Track Your Delivery',
+                        text: 'Track your Tiny Seed Farm delivery in real-time!',
+                        url: link
+                    });
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        copyToClipboard(link);
+                    }
+                }
+            } else {
+                copyToClipboard(link);
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Tracking link copied to clipboard!');
+            }).catch(() => {
+                prompt('Copy this tracking link:', text);
+            });
+        }
+
+        // ============================================
+        // DELIVERY NOTIFICATIONS
+        // ============================================
+        async function sendRouteStartNotifications(routeId, trackingId) {
+            try {
+                const params = new URLSearchParams({
+                    action: 'sendRouteStartNotifications',
+                    routeId: routeId,
+                    trackingId: trackingId
+                });
+
+                const response = await fetch(`${TRACKING_API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Route start notifications sent:', result.message);
+                    showNotificationToast(`Tracking SMS sent to ${result.results?.length || 0} customers`);
+                } else {
+                    console.error('Failed to send notifications:', result.error);
+                }
+            } catch (error) {
+                console.error('Error sending route notifications:', error);
+            }
+        }
+
+        async function sendDeliveredNotification(stop) {
+            try {
+                const params = new URLSearchParams({
+                    action: 'sendDeliveredNotification',
+                    stopId: stop.id || '',
+                    orderId: stop.orderId || '',
+                    customerName: stop.customer || '',
+                    phone: stop.phone || '',
+                    email: stop.email || '',
+                    customerType: stop.customerType || '',
+                    boxCount: stop.boxCount || 1,
+                    shareType: stop.shareType || '',
+                    itemCount: stop.itemCount || stop.items?.length || 0
+                });
+
+                const response = await fetch(`${TRACKING_API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Delivered notification sent:', result.message);
+                } else {
+                    console.error('Failed to send delivered notification:', result.error);
+                }
+            } catch (error) {
+                console.error('Error sending delivered notification:', error);
+            }
+        }
+
+        function showNotificationToast(message) {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast';
+            toast.innerHTML = `<span>&#x2709;</span> ${message}`;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #22c55e;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideUp 0.3s ease-out;
+            `;
+            document.body.appendChild(toast);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
 
         function openNavigation(address) {
@@ -2329,6 +2744,9 @@
             const stop = AppState.route.stops.find(s => s.id === AppState.currentStop.id);
             if (stop) {
                 stop.status = 'delivered';
+
+                // Send delivered notification to customer
+                sendDeliveredNotification(stop);
             }
 
             // Add to history

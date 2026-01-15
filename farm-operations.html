@@ -1,0 +1,2405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farm Operations | Tiny Seed OS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y&callback=initMap" async defer></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #2d5a27;
+      --primary-light: #4a7c43;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-elevated: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-warning { background: var(--warning); color: black; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-sm { padding: 6px 12px; font-size: 0.875rem; }
+
+    .tabs {
+      display: flex;
+      background: var(--bg-card);
+      padding: 10px;
+      gap: 5px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--bg-elevated);
+    }
+
+    .tab {
+      padding: 12px 20px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 8px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .tab:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .tab.active { background: var(--primary); color: white; }
+
+    .content {
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--bg-elevated);
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-elevated);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--success);
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .checklist-category {
+      margin-bottom: 20px;
+    }
+
+    .category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .category-header:hover { background: #3d4f66; }
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--bg-elevated);
+    }
+
+    .checklist-item:last-child { border-bottom: none; }
+
+    .checkbox {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .checkbox.checked {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .checkbox.checked::after {
+      content: '\f00c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      color: white;
+      font-size: 12px;
+    }
+
+    .item-text { flex: 1; }
+    .item-text.completed { text-decoration: line-through; color: var(--text-secondary); }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--bg-elevated);
+      border-radius: 8px;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    select.form-control {
+      cursor: pointer;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--bg-elevated);
+    }
+
+    th {
+      background: var(--bg-elevated);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tr:hover { background: rgba(255,255,255,0.03); }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-success { background: rgba(34,197,94,0.2); color: var(--success); }
+    .badge-warning { background: rgba(245,158,11,0.2); color: var(--warning); }
+    .badge-danger { background: rgba(239,68,68,0.2); color: var(--danger); }
+    .badge-info { background: rgba(59,130,246,0.2); color: var(--info); }
+
+    .rating {
+      display: flex;
+      gap: 5px;
+    }
+
+    .rating-star {
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+
+    .rating-star.filled { color: var(--warning); }
+
+    .map-container {
+      height: 500px;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    /* Boundary Tracing Styles */
+    .trace-indicator {
+      width: 20px;
+      height: 20px;
+      background: var(--danger);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .color-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: var(--bg-elevated);
+    }
+
+    .color-option:hover {
+      background: var(--bg-card);
+    }
+
+    .color-option input {
+      display: none;
+    }
+
+    .color-option span {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 2px solid transparent;
+    }
+
+    .color-option input:checked + span {
+      border-color: white;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .boundary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .boundary-item:hover {
+      background: var(--bg-card);
+    }
+
+    .boundary-color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .map-placeholder {
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .infrastructure-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .infra-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      border-bottom: 1px solid var(--bg-elevated);
+      cursor: pointer;
+    }
+
+    .infra-item:hover { background: var(--bg-elevated); }
+
+    .infra-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary);
+    }
+
+    .infra-details { flex: 1; }
+    .infra-name { font-weight: 600; }
+    .infra-type { font-size: 0.875rem; color: var(--text-secondary); }
+
+    .gps-btn {
+      background: var(--info);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gps-btn:hover { background: #2563eb; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--bg-elevated);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-body { padding: 20px; }
+
+    .modal-footer {
+      padding: 20px;
+      border-top: 1px solid var(--bg-elevated);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid var(--bg-elevated);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
+      .tabs { flex-wrap: nowrap; }
+      .tab { padding: 10px 15px; font-size: 0.875rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1><i class="fas fa-tractor"></i> Farm Operations</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="location.href='index.html'">
+        <i class="fas fa-home"></i> Dashboard
+      </button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('planning')">
+      <i class="fas fa-clipboard-check"></i> Pre-Season Planning
+    </button>
+    <button class="tab" onclick="switchTab('adjustments')">
+      <i class="fas fa-exchange-alt"></i> Season Adjustments
+    </button>
+    <button class="tab" onclick="switchTab('reviews')">
+      <i class="fas fa-star"></i> Variety Reviews
+    </button>
+    <button class="tab" onclick="switchTab('bedprep')">
+      <i class="fas fa-seedling"></i> Bed Prep
+    </button>
+    <button class="tab" onclick="switchTab('irrigation')">
+      <i class="fas fa-tint"></i> Irrigation
+    </button>
+    <button class="tab" onclick="switchTab('infrastructure')">
+      <i class="fas fa-map-marker-alt"></i> Infrastructure Map
+    </button>
+  </div>
+
+  <div class="content">
+    <!-- PRE-SEASON PLANNING -->
+    <div id="planning-panel" class="tab-panel active">
+      <div class="stats-grid" id="planning-stats"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Planning Checklist - <span id="planning-season">2026</span></h2>
+          <button class="btn btn-primary btn-sm" onclick="createNewSeasonChecklist()">
+            <i class="fas fa-plus"></i> New Season
+          </button>
+        </div>
+        <div id="planning-checklist"></div>
+      </div>
+    </div>
+
+    <!-- SEASON ADJUSTMENTS -->
+    <div id="adjustments-panel" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Season Adjustments</h2>
+          <button class="btn btn-primary btn-sm" onclick="openAdjustmentModal()">
+            <i class="fas fa-plus"></i> Add Adjustment
+          </button>
+        </div>
+        <div id="adjustments-summary" class="stats-grid"></div>
+        <div class="table-container">
+          <table id="adjustments-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Crop</th>
+                <th>Variety</th>
+                <th>Reason</th>
+                <th>Impact</th>
+              </tr>
+            </thead>
+            <tbody id="adjustments-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VARIETY REVIEWS -->
+    <div id="reviews-panel" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Variety Reviews</h2>
+          <button class="btn btn-primary btn-sm" onclick="openReviewModal()">
+            <i class="fas fa-plus"></i> Add Review
+          </button>
+        </div>
+        <div class="form-row" style="margin-bottom: 20px;">
+          <div class="form-group">
+            <label>Season</label>
+            <select class="form-control" id="review-season-filter" onchange="loadVarietyReviews()">
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Crop</label>
+            <select class="form-control" id="review-crop-filter" onchange="loadVarietyReviews()">
+              <option value="">All Crops</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Crop</th>
+                <th>Variety</th>
+                <th>Performance</th>
+                <th>Yield</th>
+                <th>Disease</th>
+                <th>Flavor</th>
+                <th>Market</th>
+                <th>Grow Again?</th>
+              </tr>
+            </thead>
+            <tbody id="reviews-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BED PREP -->
+    <div id="bedprep-panel" class="tab-panel">
+      <div class="stats-grid" id="bedprep-stats"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Bed Prep Log</h2>
+          <button class="btn btn-primary btn-sm" onclick="openBedPrepModal()">
+            <i class="fas fa-plus"></i> Log Bed Prep
+          </button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Field</th>
+                <th>Beds</th>
+                <th>Activity</th>
+                <th>Equipment</th>
+                <th>Amendments</th>
+                <th>Hours</th>
+              </tr>
+            </thead>
+            <tbody id="bedprep-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- IRRIGATION -->
+    <div id="irrigation-panel" class="tab-panel">
+      <div class="stats-grid" id="irrigation-stats"></div>
+
+      <div class="tabs" style="margin-bottom: 20px; background: var(--bg-elevated);">
+        <button class="tab active" onclick="switchIrrigationTab('zones')">Zones</button>
+        <button class="tab" onclick="switchIrrigationTab('watering')">Watering Log</button>
+        <button class="tab" onclick="switchIrrigationTab('maintenance')">Maintenance</button>
+      </div>
+
+      <div id="irrigation-zones" class="card">
+        <div class="card-header">
+          <h2 class="card-title">Irrigation Zones</h2>
+          <button class="btn btn-primary btn-sm" onclick="openZoneModal()">
+            <i class="fas fa-plus"></i> Add Zone
+          </button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Zone</th>
+                <th>Field</th>
+                <th>System</th>
+                <th>Emitter</th>
+                <th>GPH</th>
+                <th>Last Service</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="zones-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="irrigation-watering" class="card" style="display:none;">
+        <div class="card-header">
+          <h2 class="card-title">Watering Log</h2>
+          <button class="btn btn-primary btn-sm" onclick="openWateringModal()">
+            <i class="fas fa-plus"></i> Log Watering
+          </button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Zone</th>
+                <th>Duration</th>
+                <th>Gallons</th>
+                <th>Method</th>
+                <th>Weather</th>
+              </tr>
+            </thead>
+            <tbody id="watering-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="irrigation-maintenance" class="card" style="display:none;">
+        <div class="card-header">
+          <h2 class="card-title">Maintenance Log</h2>
+          <button class="btn btn-primary btn-sm" onclick="openMaintenanceModal()">
+            <i class="fas fa-plus"></i> Log Maintenance
+          </button>
+        </div>
+        <div id="overdue-maintenance"></div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Zone</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Parts</th>
+                <th>Cost</th>
+                <th>Next Due</th>
+              </tr>
+            </thead>
+            <tbody id="maintenance-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFRASTRUCTURE MAP -->
+    <div id="infrastructure-panel" class="tab-panel">
+      <div class="stats-grid" id="infrastructure-stats"></div>
+
+      <!-- Boundary Tracing Panel -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <h2 class="card-title"><i class="fas fa-draw-polygon"></i> Boundary Tracing</h2>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-success btn-sm" id="start-trace-btn" onclick="startBoundaryTrace()">
+              <i class="fas fa-play"></i> Start Walking
+            </button>
+            <button class="btn btn-danger btn-sm" id="stop-trace-btn" onclick="stopBoundaryTrace()" style="display: none;">
+              <i class="fas fa-stop"></i> Stop & Save
+            </button>
+          </div>
+        </div>
+        <div id="trace-status" style="display: none; padding: 15px; background: var(--bg-elevated); border-radius: 8px; margin-top: 10px;">
+          <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+            <div class="trace-indicator"></div>
+            <div>
+              <strong>Recording GPS Points...</strong>
+              <div style="color: var(--text-secondary); font-size: 0.875rem;">
+                Walk the boundary slowly. Points captured every 3 seconds.
+              </div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
+            <div class="stat-card" style="text-align: center;">
+              <div class="stat-value" id="trace-points">0</div>
+              <div class="stat-label">Points</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+              <div class="stat-value" id="trace-distance">0 ft</div>
+              <div class="stat-label">Distance</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+              <div class="stat-value" id="trace-accuracy">--</div>
+              <div class="stat-label">GPS Accuracy</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saved Boundaries List -->
+        <div style="margin-top: 15px;">
+          <h4 style="margin-bottom: 10px; color: var(--text-secondary);">Saved Boundaries</h4>
+          <div id="boundaries-list" style="max-height: 200px; overflow-y: auto;"></div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 350px; gap: 20px;">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Farm Infrastructure Map</h2>
+          </div>
+          <div class="map-container" id="infrastructure-map"></div>
+          <div class="map-controls" style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-secondary" onclick="centerMapOnFarm()"><i class="fas fa-home"></i> Center on Farm</button>
+            <button class="btn btn-sm btn-secondary" onclick="showMyLocation()"><i class="fas fa-crosshairs"></i> My Location</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleMapType()"><i class="fas fa-layer-group"></i> Toggle Satellite</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleBoundaries()"><i class="fas fa-vector-square"></i> Toggle Boundaries</button>
+            <select class="form-control" style="width: auto; padding: 6px 12px;" id="map-layer-filter" onchange="filterMapMarkers()">
+              <option value="">Show All</option>
+              <option value="Hydrant">Hydrants Only</option>
+              <option value="Equipment Storage">Storage Only</option>
+              <option value="Greenhouse">Greenhouses Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Infrastructure Items</h2>
+            <button class="btn btn-primary btn-sm" onclick="openInfrastructureModal()">
+              <i class="fas fa-plus"></i> Add
+            </button>
+          </div>
+          <div class="form-group">
+            <select class="form-control" id="infra-type-filter" onchange="loadInfrastructure()">
+              <option value="">All Types</option>
+            </select>
+          </div>
+          <div class="infrastructure-list" id="infrastructure-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Adjustment Modal -->
+  <div class="modal-overlay" id="adjustment-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Record Season Adjustment</h3>
+        <button class="close-btn" onclick="closeModal('adjustment-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Type *</label>
+            <select class="form-control" id="adj-type">
+              <option value="Add">Add Succession</option>
+              <option value="Cancel">Cancel Planting</option>
+              <option value="Change">Change Plan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Crop *</label>
+            <input type="text" class="form-control" id="adj-crop" placeholder="e.g., Tomatoes">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Variety</label>
+          <input type="text" class="form-control" id="adj-variety" placeholder="e.g., Cherokee Purple">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Original Plan</label>
+            <input type="text" class="form-control" id="adj-original" placeholder="e.g., 4 successions">
+          </div>
+          <div class="form-group">
+            <label>New Plan</label>
+            <input type="text" class="form-control" id="adj-new" placeholder="e.g., 6 successions">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Reason *</label>
+          <textarea class="form-control" id="adj-reason" rows="2" placeholder="Why are you making this adjustment?"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Impact</label>
+          <input type="text" class="form-control" id="adj-impact" placeholder="e.g., +50 lbs expected yield">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('adjustment-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAdjustment()">Save Adjustment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div class="modal-overlay" id="review-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Variety Review</h3>
+        <button class="close-btn" onclick="closeModal('review-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Season *</label>
+            <select class="form-control" id="rev-season">
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Crop *</label>
+            <input type="text" class="form-control" id="rev-crop" placeholder="e.g., Tomatoes">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Variety *</label>
+            <input type="text" class="form-control" id="rev-variety" placeholder="e.g., San Marzano">
+          </div>
+          <div class="form-group">
+            <label>Source</label>
+            <input type="text" class="form-control" id="rev-source" placeholder="e.g., Johnny's Seeds">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Performance (1-5)</label>
+            <select class="form-control" id="rev-performance">
+              <option value="5">5 - Excellent</option>
+              <option value="4">4 - Good</option>
+              <option value="3">3 - Average</option>
+              <option value="2">2 - Poor</option>
+              <option value="1">1 - Terrible</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Yield (1-5)</label>
+            <select class="form-control" id="rev-yield">
+              <option value="5">5 - Excellent</option>
+              <option value="4">4 - Good</option>
+              <option value="3">3 - Average</option>
+              <option value="2">2 - Poor</option>
+              <option value="1">1 - Terrible</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Disease Resistance (1-5)</label>
+            <select class="form-control" id="rev-disease">
+              <option value="5">5 - Excellent</option>
+              <option value="4">4 - Good</option>
+              <option value="3">3 - Average</option>
+              <option value="2">2 - Poor</option>
+              <option value="1">1 - Terrible</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Flavor Quality (1-5)</label>
+            <select class="form-control" id="rev-flavor">
+              <option value="5">5 - Excellent</option>
+              <option value="4">4 - Good</option>
+              <option value="3">3 - Average</option>
+              <option value="2">2 - Poor</option>
+              <option value="1">1 - Terrible</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Market Appeal (1-5)</label>
+            <select class="form-control" id="rev-market">
+              <option value="5">5 - Excellent</option>
+              <option value="4">4 - Good</option>
+              <option value="3">3 - Average</option>
+              <option value="2">2 - Poor</option>
+              <option value="1">1 - Terrible</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Grow Again?</label>
+            <select class="form-control" id="rev-growagain">
+              <option value="Yes">Yes</option>
+              <option value="Maybe">Maybe</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea class="form-control" id="rev-notes" rows="3" placeholder="Any additional observations..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('review-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveReview()">Save Review</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bed Prep Modal -->
+  <div class="modal-overlay" id="bedprep-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Log Bed Prep</h3>
+        <button class="close-btn" onclick="closeModal('bedprep-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Field *</label>
+            <input type="text" class="form-control" id="bp-field" placeholder="e.g., Field A">
+          </div>
+          <div class="form-group">
+            <label>Bed IDs</label>
+            <input type="text" class="form-control" id="bp-beds" placeholder="e.g., A1, A2, A3">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Activity *</label>
+          <select class="form-control" id="bp-activity">
+            <option value="Tillage">Tillage</option>
+            <option value="Bed Forming">Bed Forming</option>
+            <option value="Amendment Application">Amendment Application</option>
+            <option value="Cover Crop Termination">Cover Crop Termination</option>
+            <option value="Tarping">Tarping</option>
+            <option value="Flail Mowing">Flail Mowing</option>
+            <option value="Broadforking">Broadforking</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Equipment Used</label>
+            <input type="text" class="form-control" id="bp-equipment" placeholder="e.g., BCS Tiller">
+          </div>
+          <div class="form-group">
+            <label>Hours</label>
+            <input type="number" class="form-control" id="bp-hours" step="0.5" placeholder="e.g., 2.5">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Amendments</label>
+            <input type="text" class="form-control" id="bp-amendments" placeholder="e.g., Compost, Lime">
+          </div>
+          <div class="form-group">
+            <label>Rate</label>
+            <input type="text" class="form-control" id="bp-rate" placeholder="e.g., 2 tons/acre">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Soil Moisture</label>
+          <select class="form-control" id="bp-moisture">
+            <option value="">Select...</option>
+            <option value="Dry">Dry</option>
+            <option value="Ideal">Ideal</option>
+            <option value="Moist">Moist</option>
+            <option value="Wet">Wet - Borderline</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea class="form-control" id="bp-notes" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('bedprep-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveBedPrep()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Infrastructure Modal -->
+  <div class="modal-overlay" id="infrastructure-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Infrastructure Item</h3>
+        <button class="close-btn" onclick="closeModal('infrastructure-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Type *</label>
+            <select class="form-control" id="inf-type">
+              <option value="Hydrant">Hydrant</option>
+              <option value="Well">Well</option>
+              <option value="Pump Station">Pump Station</option>
+              <option value="Water Tank">Water Tank</option>
+              <option value="Tool Shed">Tool Shed</option>
+              <option value="Equipment Storage">Equipment Storage</option>
+              <option value="Cooler/Cold Storage">Cooler/Cold Storage</option>
+              <option value="Greenhouse">Greenhouse</option>
+              <option value="High Tunnel">High Tunnel</option>
+              <option value="Wash Station">Wash Station</option>
+              <option value="Compost Area">Compost Area</option>
+              <option value="Fuel Storage">Fuel Storage</option>
+              <option value="Gate">Gate</option>
+              <option value="Weather Station">Weather Station</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Name *</label>
+            <input type="text" class="form-control" id="inf-name" placeholder="e.g., North Field Hydrant">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" class="form-control" id="inf-description" placeholder="e.g., 3/4 inch brass hydrant">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Field</label>
+            <input type="text" class="form-control" id="inf-field" placeholder="e.g., Field A">
+          </div>
+          <div class="form-group">
+            <label>Condition</label>
+            <select class="form-control" id="inf-condition">
+              <option value="Good">Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Needs Repair">Needs Repair</option>
+              <option value="Out of Service">Out of Service</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>GPS Location</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="text" class="form-control" id="inf-lat" placeholder="Latitude" readonly>
+            <input type="text" class="form-control" id="inf-lng" placeholder="Longitude" readonly>
+            <button class="gps-btn" onclick="captureInfrastructureGPS()">
+              <i class="fas fa-crosshairs"></i> Get GPS
+            </button>
+          </div>
+          <small style="color: var(--text-secondary);">Stand at the location and click "Get GPS"</small>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea class="form-control" id="inf-notes" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('infrastructure-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveInfrastructure()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Boundary Save Modal -->
+  <div class="modal-overlay" id="boundary-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Save Boundary</h3>
+        <button class="close-btn" onclick="closeModal('boundary-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Type *</label>
+            <select class="form-control" id="bnd-type">
+              <option value="Property Line">Property Line</option>
+              <option value="Field Outline">Field Outline</option>
+              <option value="Growing Zone">Growing Zone</option>
+              <option value="Irrigation Zone">Irrigation Zone</option>
+              <option value="High Tunnel Area">High Tunnel Area</option>
+              <option value="Cover Crop Area">Cover Crop Area</option>
+              <option value="Buffer Zone">Buffer Zone</option>
+              <option value="Wetland">Wetland</option>
+              <option value="Wooded Area">Wooded Area</option>
+              <option value="No-Spray Zone">No-Spray Zone</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Name *</label>
+            <input type="text" class="form-control" id="bnd-name" placeholder="e.g., North Field, Property East Border">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" class="form-control" id="bnd-description" placeholder="e.g., Main growing area for tomatoes">
+        </div>
+        <div class="form-group">
+          <label>Color</label>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <label class="color-option"><input type="radio" name="bnd-color" value="#ef4444" checked><span style="background: #ef4444;"></span> Red</label>
+            <label class="color-option"><input type="radio" name="bnd-color" value="#f97316"><span style="background: #f97316;"></span> Orange</label>
+            <label class="color-option"><input type="radio" name="bnd-color" value="#eab308"><span style="background: #eab308;"></span> Yellow</label>
+            <label class="color-option"><input type="radio" name="bnd-color" value="#22c55e"><span style="background: #22c55e;"></span> Green</label>
+            <label class="color-option"><input type="radio" name="bnd-color" value="#3b82f6"><span style="background: #3b82f6;"></span> Blue</label>
+            <label class="color-option"><input type="radio" name="bnd-color" value="#8b5cf6"><span style="background: #8b5cf6;"></span> Purple</label>
+          </div>
+        </div>
+        <div style="background: var(--bg-elevated); padding: 15px; border-radius: 8px; margin-top: 10px;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+            <div>
+              <div style="font-size: 1.5rem; font-weight: 600;" id="bnd-points-count">0</div>
+              <div style="color: var(--text-secondary); font-size: 0.875rem;">Points</div>
+            </div>
+            <div>
+              <div style="font-size: 1.5rem; font-weight: 600;" id="bnd-area-calc">-- sq ft</div>
+              <div style="color: var(--text-secondary); font-size: 0.875rem;">Area</div>
+            </div>
+            <div>
+              <div style="font-size: 1.5rem; font-weight: 600;" id="bnd-perimeter-calc">-- ft</div>
+              <div style="color: var(--text-secondary); font-size: 0.875rem;">Perimeter</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="discardBoundary()">Discard</button>
+        <button class="btn btn-primary" onclick="saveBoundaryData()">Save Boundary</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Watering Modal -->
+  <div class="modal-overlay" id="watering-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Log Watering Event</h3>
+        <button class="close-btn" onclick="closeModal('watering-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Zone *</label>
+            <select class="form-control" id="wtr-zone"></select>
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" class="form-control" id="wtr-date">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Duration (minutes) *</label>
+            <input type="number" class="form-control" id="wtr-duration" placeholder="e.g., 60">
+          </div>
+          <div class="form-group">
+            <label>Method</label>
+            <select class="form-control" id="wtr-method">
+              <option value="Drip">Drip</option>
+              <option value="Overhead">Overhead</option>
+              <option value="Hand Watering">Hand Watering</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Weather</label>
+            <select class="form-control" id="wtr-weather">
+              <option value="">Select...</option>
+              <option value="Sunny">Sunny</option>
+              <option value="Cloudy">Cloudy</option>
+              <option value="Overcast">Overcast</option>
+              <option value="Light Rain">Light Rain</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Temperature (F)</label>
+            <input type="number" class="form-control" id="wtr-temp" placeholder="e.g., 75">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea class="form-control" id="wtr-notes" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('watering-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveWatering()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec';
+
+    // Tab switching
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+      event.target.classList.add('active');
+      document.getElementById(`${tabName}-panel`).classList.add('active');
+
+      // Load data for the tab
+      switch(tabName) {
+        case 'planning': loadPlanningChecklist(); break;
+        case 'adjustments': loadAdjustments(); break;
+        case 'reviews': loadVarietyReviews(); break;
+        case 'bedprep': loadBedPrep(); break;
+        case 'irrigation': loadIrrigationDashboard(); break;
+        case 'infrastructure': loadInfrastructure(); break;
+      }
+    }
+
+    function switchIrrigationTab(subTab) {
+      document.querySelectorAll('#irrigation-panel .tabs .tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.getElementById('irrigation-zones').style.display = subTab === 'zones' ? 'block' : 'none';
+      document.getElementById('irrigation-watering').style.display = subTab === 'watering' ? 'block' : 'none';
+      document.getElementById('irrigation-maintenance').style.display = subTab === 'maintenance' ? 'block' : 'none';
+    }
+
+    // API calls
+    async function apiCall(action, params = {}) {
+      const url = new URL(API_URL);
+      url.searchParams.append('action', action);
+      Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+
+      const response = await fetch(url);
+      return await response.json();
+    }
+
+    // Modal functions
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function openAdjustmentModal() { openModal('adjustment-modal'); }
+    function openReviewModal() { openModal('review-modal'); }
+    function openBedPrepModal() { openModal('bedprep-modal'); }
+    function openInfrastructureModal() { openModal('infrastructure-modal'); }
+    function openZoneModal() { alert('Zone modal - coming soon'); }
+    function openMaintenanceModal() { alert('Maintenance modal - coming soon'); }
+
+    async function openWateringModal() {
+      // Load zones into dropdown
+      const result = await apiCall('getIrrigationZones');
+      const select = document.getElementById('wtr-zone');
+      select.innerHTML = '<option value="">Select Zone...</option>';
+      if (result.success && result.zones) {
+        result.zones.forEach(z => {
+          select.innerHTML += `<option value="${z.Zone_ID}">${z.Zone_Name || z.Zone_ID}</option>`;
+        });
+      }
+      document.getElementById('wtr-date').value = new Date().toISOString().split('T')[0];
+      openModal('watering-modal');
+    }
+
+    // Load functions
+    async function loadPlanningChecklist() {
+      const result = await apiCall('getPlanningProgress', { season: '2026' });
+
+      if (result.success) {
+        document.getElementById('planning-stats').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value">${result.percentComplete}%</div>
+            <div class="stat-label">Complete</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: ${result.percentComplete}%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.complete}</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.inProgress}</div>
+            <div class="stat-label">In Progress</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.pending}</div>
+            <div class="stat-label">Pending</div>
+          </div>
+        `;
+      }
+
+      const checklistResult = await apiCall('getPlanningChecklist', { season: '2026' });
+      if (checklistResult.success) {
+        let html = '';
+        Object.keys(checklistResult.byCategory).forEach(category => {
+          const tasks = checklistResult.byCategory[category];
+          const complete = tasks.filter(t => t.Status === 'Complete').length;
+
+          html += `
+            <div class="checklist-category">
+              <div class="category-header">
+                <span><i class="fas fa-folder"></i> ${category}</span>
+                <span class="badge ${complete === tasks.length ? 'badge-success' : 'badge-info'}">${complete}/${tasks.length}</span>
+              </div>
+              <div class="checklist-items">
+          `;
+
+          tasks.forEach(task => {
+            html += `
+              <div class="checklist-item">
+                <div class="checkbox ${task.Status === 'Complete' ? 'checked' : ''}"
+                     onclick="togglePlanningTask('${task.Task_ID}', '${task.Status}')"></div>
+                <span class="item-text ${task.Status === 'Complete' ? 'completed' : ''}">${task.Task}</span>
+              </div>
+            `;
+          });
+
+          html += '</div></div>';
+        });
+
+        document.getElementById('planning-checklist').innerHTML = html;
+      }
+    }
+
+    async function togglePlanningTask(taskId, currentStatus) {
+      const newStatus = currentStatus === 'Complete' ? 'Pending' : 'Complete';
+      await apiCall('updatePlanningTask', { taskId, status: newStatus });
+      loadPlanningChecklist();
+    }
+
+    async function loadAdjustments() {
+      const result = await apiCall('getSeasonAdjustments', { season: '2026' });
+
+      if (result.success) {
+        document.getElementById('adjustments-summary').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value" style="color: var(--success);">${result.summary.adds}</div>
+            <div class="stat-label">Additions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color: var(--danger);">${result.summary.cancels}</div>
+            <div class="stat-label">Cancellations</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color: var(--warning);">${result.summary.changes}</div>
+            <div class="stat-label">Changes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.summary.total}</div>
+            <div class="stat-label">Total Adjustments</div>
+          </div>
+        `;
+
+        const tbody = document.getElementById('adjustments-body');
+        if (result.adjustments.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No adjustments recorded</td></tr>';
+        } else {
+          tbody.innerHTML = result.adjustments.map(a => `
+            <tr>
+              <td>${a.Date}</td>
+              <td><span class="badge ${a.Type === 'Add' ? 'badge-success' : a.Type === 'Cancel' ? 'badge-danger' : 'badge-warning'}">${a.Type}</span></td>
+              <td>${a.Crop}</td>
+              <td>${a.Variety || '-'}</td>
+              <td>${a.Reason}</td>
+              <td>${a.Impact || '-'}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+
+    async function saveAdjustment() {
+      const result = await apiCall('addSeasonAdjustment', {
+        type: document.getElementById('adj-type').value,
+        crop: document.getElementById('adj-crop').value,
+        variety: document.getElementById('adj-variety').value,
+        originalPlan: document.getElementById('adj-original').value,
+        newPlan: document.getElementById('adj-new').value,
+        reason: document.getElementById('adj-reason').value,
+        impact: document.getElementById('adj-impact').value,
+        season: '2026'
+      });
+
+      if (result.success) {
+        closeModal('adjustment-modal');
+        loadAdjustments();
+      } else {
+        alert('Error: ' + result.error);
+      }
+    }
+
+    async function loadVarietyReviews() {
+      const season = document.getElementById('review-season-filter').value;
+      const crop = document.getElementById('review-crop-filter').value;
+
+      const result = await apiCall('getVarietyReviews', { season, crop });
+
+      if (result.success) {
+        const tbody = document.getElementById('reviews-body');
+        if (result.reviews.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No reviews yet</td></tr>';
+        } else {
+          tbody.innerHTML = result.reviews.map(r => `
+            <tr>
+              <td>${r.Crop}</td>
+              <td>${r.Variety}</td>
+              <td>${renderStars(r.Performance_Rating)}</td>
+              <td>${renderStars(r.Yield_Rating)}</td>
+              <td>${renderStars(r.Disease_Resistance)}</td>
+              <td>${renderStars(r.Flavor_Quality)}</td>
+              <td>${renderStars(r.Market_Appeal)}</td>
+              <td><span class="badge ${r.Grow_Again === 'Yes' ? 'badge-success' : r.Grow_Again === 'No' ? 'badge-danger' : 'badge-warning'}">${r.Grow_Again}</span></td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+
+    function renderStars(rating) {
+      const filled = parseInt(rating) || 0;
+      let html = '';
+      for (let i = 1; i <= 5; i++) {
+        html += `<i class="fas fa-star" style="color: ${i <= filled ? 'var(--warning)' : 'var(--bg-elevated)'}; font-size: 0.8rem;"></i>`;
+      }
+      return html;
+    }
+
+    async function saveReview() {
+      const result = await apiCall('saveVarietyReview', {
+        season: document.getElementById('rev-season').value,
+        crop: document.getElementById('rev-crop').value,
+        variety: document.getElementById('rev-variety').value,
+        source: document.getElementById('rev-source').value,
+        performanceRating: document.getElementById('rev-performance').value,
+        yieldRating: document.getElementById('rev-yield').value,
+        diseaseResistance: document.getElementById('rev-disease').value,
+        flavorQuality: document.getElementById('rev-flavor').value,
+        marketAppeal: document.getElementById('rev-market').value,
+        growAgain: document.getElementById('rev-growagain').value,
+        notes: document.getElementById('rev-notes').value
+      });
+
+      if (result.success) {
+        closeModal('review-modal');
+        loadVarietyReviews();
+      } else {
+        alert('Error: ' + result.error);
+      }
+    }
+
+    async function loadBedPrep() {
+      const statusResult = await apiCall('getBedPrepStatus', { season: '2026' });
+
+      if (statusResult.success) {
+        document.getElementById('bedprep-stats').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value">${statusResult.percentComplete}%</div>
+            <div class="stat-label">Beds Prepped</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: ${statusResult.percentComplete}%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${statusResult.prepped}</div>
+            <div class="stat-label">Prepped</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${statusResult.notPrepped}</div>
+            <div class="stat-label">Not Prepped</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${statusResult.totalBeds}</div>
+            <div class="stat-label">Total Beds</div>
+          </div>
+        `;
+      }
+
+      const logsResult = await apiCall('getBedPrepLog', { season: '2026' });
+      if (logsResult.success) {
+        const tbody = document.getElementById('bedprep-body');
+        if (logsResult.logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No bed prep logged</td></tr>';
+        } else {
+          tbody.innerHTML = logsResult.logs.map(l => `
+            <tr>
+              <td>${l.Date}</td>
+              <td>${l.Field_ID}</td>
+              <td>${l.Bed_IDs || '-'}</td>
+              <td>${l.Activity}</td>
+              <td>${l.Equipment_Used || '-'}</td>
+              <td>${l.Amendments || '-'}</td>
+              <td>${l.Hours || '-'}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+
+    async function saveBedPrep() {
+      const result = await apiCall('logBedPrep', {
+        fieldId: document.getElementById('bp-field').value,
+        bedIds: document.getElementById('bp-beds').value,
+        activity: document.getElementById('bp-activity').value,
+        equipmentUsed: document.getElementById('bp-equipment').value,
+        hours: document.getElementById('bp-hours').value,
+        amendments: document.getElementById('bp-amendments').value,
+        amendmentRate: document.getElementById('bp-rate').value,
+        soilMoisture: document.getElementById('bp-moisture').value,
+        notes: document.getElementById('bp-notes').value
+      });
+
+      if (result.success) {
+        closeModal('bedprep-modal');
+        loadBedPrep();
+      } else {
+        alert('Error: ' + result.error);
+      }
+    }
+
+    async function loadIrrigationDashboard() {
+      const result = await apiCall('getIrrigationDashboard');
+
+      if (result.success) {
+        document.getElementById('irrigation-stats').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value">${result.zoneCount}</div>
+            <div class="stat-label">Zones</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.totalGPH}</div>
+            <div class="stat-label">Total GPH</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.weekWateringEvents}</div>
+            <div class="stat-label">This Week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color: ${result.overdueMaintenanceCount > 0 ? 'var(--danger)' : 'var(--success)'};">${result.overdueMaintenanceCount}</div>
+            <div class="stat-label">Overdue Maint.</div>
+          </div>
+        `;
+
+        // Load zones table
+        const tbody = document.getElementById('zones-body');
+        if (result.zones.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No irrigation zones configured</td></tr>';
+        } else {
+          tbody.innerHTML = result.zones.map(z => `
+            <tr>
+              <td>${z.Zone_Name || z.Zone_ID}</td>
+              <td>${z.Field_ID || '-'}</td>
+              <td>${z.System_Type || '-'}</td>
+              <td>${z.Emitter_Type || '-'}</td>
+              <td>${z.Total_GPH || '-'}</td>
+              <td>${z.Last_Service || 'Never'}</td>
+              <td><button class="btn btn-sm btn-secondary">Edit</button></td>
+            </tr>
+          `).join('');
+        }
+      }
+
+      // Load watering log
+      const wateringResult = await apiCall('getWateringLog');
+      if (wateringResult.success) {
+        const tbody = document.getElementById('watering-body');
+        if (wateringResult.logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No watering events logged</td></tr>';
+        } else {
+          tbody.innerHTML = wateringResult.logs.slice(0, 20).map(w => `
+            <tr>
+              <td>${w.Date}</td>
+              <td>${w.Zone_ID}</td>
+              <td>${w.Duration_Min} min</td>
+              <td>${w.Gallons_Applied} gal</td>
+              <td>${w.Method}</td>
+              <td>${w.Weather || '-'}</td>
+            </tr>
+          `).join('');
+        }
+      }
+
+      // Load maintenance
+      const maintResult = await apiCall('getIrrigationMaintenance');
+      if (maintResult.success) {
+        if (maintResult.overdue.length > 0) {
+          document.getElementById('overdue-maintenance').innerHTML = `
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+              <strong style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> ${maintResult.overdue.length} Overdue Maintenance Items</strong>
+            </div>
+          `;
+        }
+
+        const tbody = document.getElementById('maintenance-body');
+        if (maintResult.logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No maintenance logged</td></tr>';
+        } else {
+          tbody.innerHTML = maintResult.logs.slice(0, 20).map(m => `
+            <tr>
+              <td>${m.Date}</td>
+              <td>${m.Zone_ID || '-'}</td>
+              <td>${m.Type}</td>
+              <td>${m.Description}</td>
+              <td>${m.Parts_Used || '-'}</td>
+              <td>${m.Cost ? '$' + m.Cost : '-'}</td>
+              <td>${m.Next_Due || '-'}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+
+    async function saveWatering() {
+      const result = await apiCall('logWatering', {
+        zoneId: document.getElementById('wtr-zone').value,
+        date: document.getElementById('wtr-date').value,
+        durationMin: document.getElementById('wtr-duration').value,
+        method: document.getElementById('wtr-method').value,
+        weather: document.getElementById('wtr-weather').value,
+        tempF: document.getElementById('wtr-temp').value,
+        notes: document.getElementById('wtr-notes').value
+      });
+
+      if (result.success) {
+        closeModal('watering-modal');
+        loadIrrigationDashboard();
+        alert(`Logged: ${result.gallonsApplied} gallons applied`);
+      } else {
+        alert('Error: ' + result.error);
+      }
+    }
+
+    function getInfraIcon(type) {
+      const icons = {
+        'Hydrant': 'fa-faucet',
+        'Well': 'fa-water',
+        'Pump Station': 'fa-cogs',
+        'Water Tank': 'fa-box',
+        'Tool Shed': 'fa-warehouse',
+        'Equipment Storage': 'fa-warehouse',
+        'Cooler/Cold Storage': 'fa-snowflake',
+        'Greenhouse': 'fa-leaf',
+        'High Tunnel': 'fa-tent',
+        'Wash Station': 'fa-shower',
+        'Compost Area': 'fa-recycle',
+        'Gate': 'fa-door-open',
+        'Weather Station': 'fa-cloud-sun'
+      };
+      return icons[type] || 'fa-map-marker-alt';
+    }
+
+    function captureInfrastructureGPS() {
+      if (!navigator.geolocation) {
+        alert('GPS not supported on this device');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          document.getElementById('inf-lat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('inf-lng').value = pos.coords.longitude.toFixed(6);
+        },
+        (err) => {
+          alert('Could not get GPS: ' + err.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    async function saveInfrastructure() {
+      const result = await apiCall('saveFarmInfrastructure', {
+        type: document.getElementById('inf-type').value,
+        name: document.getElementById('inf-name').value,
+        description: document.getElementById('inf-description').value,
+        fieldId: document.getElementById('inf-field').value,
+        condition: document.getElementById('inf-condition').value,
+        gpsLat: document.getElementById('inf-lat').value,
+        gpsLng: document.getElementById('inf-lng').value,
+        notes: document.getElementById('inf-notes').value
+      });
+
+      if (result.success) {
+        closeModal('infrastructure-modal');
+        loadInfrastructure();
+      } else {
+        alert('Error: ' + result.error);
+      }
+    }
+
+    async function createNewSeasonChecklist() {
+      const season = prompt('Enter season year:', new Date().getFullYear().toString());
+      if (season) {
+        const result = await apiCall('createPlanningChecklist', { season });
+        if (result.success) {
+          alert(result.message);
+          loadPlanningChecklist();
+        } else {
+          alert('Error: ' + result.error);
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GOOGLE MAPS INTEGRATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let farmMap = null;
+    let mapMarkers = [];
+    let allInfrastructureItems = [];
+    let myLocationMarker = null;
+
+    // Farm center coordinates (257 Zeigler Rd, Rochester, PA)
+    const FARM_CENTER = { lat: 40.7456217, lng: -80.1610431 };
+
+    // Marker colors by infrastructure type
+    const MARKER_COLORS = {
+      'Hydrant': '#3b82f6',       // Blue
+      'Well': '#06b6d4',          // Cyan
+      'Pump Station': '#8b5cf6',  // Purple
+      'Water Tank': '#0ea5e9',    // Sky blue
+      'Tool Shed': '#f59e0b',     // Amber
+      'Equipment Storage': '#f97316', // Orange
+      'Cooler/Cold Storage': '#06b6d4', // Cyan
+      'Greenhouse': '#22c55e',    // Green
+      'High Tunnel': '#84cc16',   // Lime
+      'Wash Station': '#14b8a6',  // Teal
+      'Compost Area': '#a3e635',  // Yellow-green
+      'Fuel Storage': '#ef4444',  // Red
+      'Gate': '#6b7280',          // Gray
+      'Weather Station': '#fbbf24', // Yellow
+      'Other': '#9ca3af'          // Gray
+    };
+
+    function initMap() {
+      // Initialize Google Map centered on farm
+      farmMap = new google.maps.Map(document.getElementById('infrastructure-map'), {
+        center: FARM_CENTER,
+        zoom: 17,
+        mapTypeId: 'hybrid', // Satellite with labels
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+        styles: [
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] }
+        ]
+      });
+
+      // Add farm center marker
+      new google.maps.Marker({
+        position: FARM_CENTER,
+        map: farmMap,
+        title: 'Tiny Seed Farm - 257 Zeigler Rd',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: '#2d5a27',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        }
+      });
+
+      // Add click listener to get coordinates
+      farmMap.addListener('click', (e) => {
+        console.log('Clicked:', e.latLng.lat(), e.latLng.lng());
+      });
+    }
+
+    function addInfrastructureMarkers(items) {
+      // Clear existing markers
+      mapMarkers.forEach(m => m.setMap(null));
+      mapMarkers = [];
+
+      // Store items for filtering
+      allInfrastructureItems = items;
+
+      // Add markers for items with GPS
+      items.forEach(item => {
+        if (item.GPS_Lat && item.GPS_Lng) {
+          const lat = parseFloat(item.GPS_Lat);
+          const lng = parseFloat(item.GPS_Lng);
+
+          if (!isNaN(lat) && !isNaN(lng)) {
+            const color = MARKER_COLORS[item.Type] || '#9ca3af';
+
+            const marker = new google.maps.Marker({
+              position: { lat, lng },
+              map: farmMap,
+              title: item.Name,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: color,
+                fillOpacity: 0.9,
+                strokeColor: '#ffffff',
+                strokeWeight: 2
+              }
+            });
+
+            // Info window on click
+            const infoWindow = new google.maps.InfoWindow({
+              content: `
+                <div style="color: #333; padding: 5px;">
+                  <strong>${item.Name}</strong><br>
+                  <span style="color: #666;">${item.Type}</span><br>
+                  ${item.Description ? `<span>${item.Description}</span><br>` : ''}
+                  <span style="color: ${item.Condition === 'Good' ? 'green' : item.Condition === 'Needs Repair' ? 'red' : 'orange'};">
+                    ${item.Condition}
+                  </span>
+                </div>
+              `
+            });
+
+            marker.addListener('click', () => {
+              infoWindow.open(farmMap, marker);
+            });
+
+            marker.infraType = item.Type;
+            mapMarkers.push(marker);
+          }
+        }
+      });
+    }
+
+    function centerMapOnFarm() {
+      if (farmMap) {
+        farmMap.setCenter(FARM_CENTER);
+        farmMap.setZoom(17);
+      }
+    }
+
+    function showMyLocation() {
+      if (!navigator.geolocation) {
+        alert('GPS not supported');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const myPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
+          // Remove old marker
+          if (myLocationMarker) myLocationMarker.setMap(null);
+
+          // Add new marker
+          myLocationMarker = new google.maps.Marker({
+            position: myPos,
+            map: farmMap,
+            title: 'Your Location',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: '#ef4444',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3
+            },
+            animation: google.maps.Animation.DROP
+          });
+
+          farmMap.setCenter(myPos);
+          farmMap.setZoom(18);
+        },
+        (err) => {
+          alert('Could not get location: ' + err.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    function toggleMapType() {
+      if (farmMap) {
+        const current = farmMap.getMapTypeId();
+        farmMap.setMapTypeId(current === 'hybrid' ? 'roadmap' : 'hybrid');
+      }
+    }
+
+    function filterMapMarkers() {
+      const filterType = document.getElementById('map-layer-filter').value;
+
+      mapMarkers.forEach(marker => {
+        if (filterType === '' || marker.infraType === filterType) {
+          marker.setMap(farmMap);
+        } else {
+          marker.setMap(null);
+        }
+      });
+    }
+
+    // Update loadInfrastructure to also load map markers
+    const originalLoadInfrastructure = loadInfrastructure;
+    loadInfrastructure = async function() {
+      const result = await apiCall('getFarmInfrastructure');
+
+      if (result.success) {
+        // Update type filter
+        const filter = document.getElementById('infra-type-filter');
+        const currentValue = filter.value;
+        filter.innerHTML = '<option value="">All Types</option>';
+        result.availableTypes.forEach(t => {
+          const count = result.typeCounts[t] || 0;
+          filter.innerHTML += `<option value="${t}">${t} (${count})</option>`;
+        });
+        filter.value = currentValue;
+
+        // Update map filter dropdown
+        const mapFilter = document.getElementById('map-layer-filter');
+        mapFilter.innerHTML = '<option value="">Show All</option>';
+        result.availableTypes.forEach(t => {
+          if (result.typeCounts[t] > 0) {
+            mapFilter.innerHTML += `<option value="${t}">${t}</option>`;
+          }
+        });
+
+        // Stats
+        document.getElementById('infrastructure-stats').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value">${result.items.length}</div>
+            <div class="stat-label">Total Items</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.typeCounts['Hydrant'] || 0}</div>
+            <div class="stat-label">Hydrants</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.items.filter(i => i.GPS_Lat && i.GPS_Lng).length}</div>
+            <div class="stat-label">GPS Tagged</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${result.items.filter(i => i.Condition === 'Needs Repair').length}</div>
+            <div class="stat-label">Need Repair</div>
+          </div>
+        `;
+
+        // Add markers to map
+        if (farmMap) {
+          addInfrastructureMarkers(result.items);
+        }
+
+        // List
+        const list = document.getElementById('infrastructure-list');
+        const typeFilter = document.getElementById('infra-type-filter').value;
+        let items = result.items;
+        if (typeFilter) items = items.filter(i => i.Type === typeFilter);
+
+        if (items.length === 0) {
+          list.innerHTML = '<div class="empty-state"><i class="fas fa-map-marker-alt"></i><p>No infrastructure items</p></div>';
+        } else {
+          list.innerHTML = items.map(i => `
+            <div class="infra-item" onclick="zoomToInfrastructure(${i.GPS_Lat || 0}, ${i.GPS_Lng || 0}, '${i.Name}')">
+              <div class="infra-icon" style="background: ${MARKER_COLORS[i.Type] || '#9ca3af'};"><i class="fas ${getInfraIcon(i.Type)}"></i></div>
+              <div class="infra-details">
+                <div class="infra-name">${i.Name}</div>
+                <div class="infra-type">${i.Type} ${i.GPS_Lat ? '<i class="fas fa-map-pin" style="color: var(--success);"></i>' : ''}</div>
+              </div>
+              <span class="badge ${i.Condition === 'Good' ? 'badge-success' : i.Condition === 'Needs Repair' ? 'badge-danger' : 'badge-warning'}">${i.Condition}</span>
+            </div>
+          `).join('');
+        }
+      }
+    };
+
+    function zoomToInfrastructure(lat, lng, name) {
+      if (lat && lng && farmMap) {
+        farmMap.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+        farmMap.setZoom(19);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BOUNDARY TRACING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let isTracing = false;
+    let tracePoints = [];
+    let traceWatchId = null;
+    let tracePath = null;
+    let traceMarkers = [];
+    let savedBoundaries = [];
+    let boundaryPolygons = [];
+    let boundariesVisible = true;
+
+    function startBoundaryTrace() {
+      if (!navigator.geolocation) {
+        alert('GPS not supported on this device');
+        return;
+      }
+
+      // Clear previous trace
+      tracePoints = [];
+      clearTraceVisuals();
+
+      isTracing = true;
+      document.getElementById('start-trace-btn').style.display = 'none';
+      document.getElementById('stop-trace-btn').style.display = 'flex';
+      document.getElementById('trace-status').style.display = 'block';
+      document.getElementById('trace-points').textContent = '0';
+      document.getElementById('trace-distance').textContent = '0 ft';
+
+      // Start continuous GPS tracking
+      traceWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const point = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+          };
+
+          // Only add point if it's far enough from the last one (reduce noise)
+          if (tracePoints.length === 0 || getDistanceFeet(tracePoints[tracePoints.length - 1], point) > 10) {
+            tracePoints.push(point);
+            updateTraceVisuals();
+            document.getElementById('trace-points').textContent = tracePoints.length;
+            document.getElementById('trace-distance').textContent = calculateTraceDistance() + ' ft';
+          }
+
+          document.getElementById('trace-accuracy').textContent = Math.round(pos.coords.accuracy) + 'm';
+        },
+        (err) => {
+          console.error('GPS Error:', err);
+          document.getElementById('trace-accuracy').textContent = 'Error';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function stopBoundaryTrace() {
+      isTracing = false;
+      if (traceWatchId) {
+        navigator.geolocation.clearWatch(traceWatchId);
+        traceWatchId = null;
+      }
+
+      document.getElementById('start-trace-btn').style.display = 'flex';
+      document.getElementById('stop-trace-btn').style.display = 'none';
+      document.getElementById('trace-status').style.display = 'none';
+
+      if (tracePoints.length < 3) {
+        alert('Need at least 3 points to create a boundary. Please trace a larger area.');
+        clearTraceVisuals();
+        return;
+      }
+
+      // Calculate and display stats in modal
+      const stats = calculatePolygonStats(tracePoints);
+      document.getElementById('bnd-points-count').textContent = tracePoints.length;
+      document.getElementById('bnd-area-calc').textContent = formatNumber(stats.areaSqFt) + ' sq ft';
+      document.getElementById('bnd-perimeter-calc').textContent = formatNumber(stats.perimeterFt) + ' ft';
+
+      // Open save modal
+      openModal('boundary-modal');
+    }
+
+    function clearTraceVisuals() {
+      if (tracePath) {
+        tracePath.setMap(null);
+        tracePath = null;
+      }
+      traceMarkers.forEach(m => m.setMap(null));
+      traceMarkers = [];
+    }
+
+    function updateTraceVisuals() {
+      if (!farmMap) return;
+
+      // Update or create path
+      const pathCoords = tracePoints.map(p => ({ lat: p.lat, lng: p.lng }));
+
+      if (tracePath) {
+        tracePath.setPath(pathCoords);
+      } else {
+        tracePath = new google.maps.Polyline({
+          path: pathCoords,
+          geodesic: true,
+          strokeColor: '#ef4444',
+          strokeOpacity: 1.0,
+          strokeWeight: 3,
+          map: farmMap
+        });
+      }
+
+      // Add marker for latest point
+      if (tracePoints.length > 0) {
+        const latest = tracePoints[tracePoints.length - 1];
+        const marker = new google.maps.Marker({
+          position: { lat: latest.lat, lng: latest.lng },
+          map: farmMap,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 6,
+            fillColor: '#ef4444',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+          }
+        });
+        traceMarkers.push(marker);
+
+        // Center map on latest point
+        farmMap.panTo({ lat: latest.lat, lng: latest.lng });
+      }
+    }
+
+    function getDistanceFeet(p1, p2) {
+      const R = 20902231; // Earth radius in feet
+      const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+      const dLng = (p2.lng - p1.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function calculateTraceDistance() {
+      let total = 0;
+      for (let i = 1; i < tracePoints.length; i++) {
+        total += getDistanceFeet(tracePoints[i-1], tracePoints[i]);
+      }
+      return Math.round(total);
+    }
+
+    function calculatePolygonStats(coords) {
+      if (!coords || coords.length < 3) {
+        return { areaSqFt: 0, perimeterFt: 0, acres: 0 };
+      }
+
+      // Convert to local feet coordinates
+      const feetPerDegreeLat = 364000;
+      const feetPerDegreeLng = 279000;
+
+      const localCoords = coords.map(c => ({
+        x: (c.lng - coords[0].lng) * feetPerDegreeLng,
+        y: (c.lat - coords[0].lat) * feetPerDegreeLat
+      }));
+
+      // Shoelace formula for area
+      let area = 0;
+      for (let i = 0; i < localCoords.length; i++) {
+        const j = (i + 1) % localCoords.length;
+        area += localCoords[i].x * localCoords[j].y;
+        area -= localCoords[j].x * localCoords[i].y;
+      }
+      area = Math.abs(area) / 2;
+
+      // Perimeter
+      let perimeter = 0;
+      for (let i = 0; i < localCoords.length; i++) {
+        const j = (i + 1) % localCoords.length;
+        const dx = localCoords[j].x - localCoords[i].x;
+        const dy = localCoords[j].y - localCoords[i].y;
+        perimeter += Math.sqrt(dx * dx + dy * dy);
+      }
+
+      return {
+        areaSqFt: Math.round(area),
+        perimeterFt: Math.round(perimeter),
+        acres: Math.round(area / 43560 * 100) / 100
+      };
+    }
+
+    function formatNumber(num) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    async function saveBoundaryData() {
+      const name = document.getElementById('bnd-name').value.trim();
+      if (!name) {
+        alert('Please enter a name for this boundary');
+        return;
+      }
+
+      const colorRadio = document.querySelector('input[name="bnd-color"]:checked');
+
+      const result = await apiCall('saveBoundary', {
+        type: document.getElementById('bnd-type').value,
+        name: name,
+        description: document.getElementById('bnd-description').value,
+        color: colorRadio ? colorRadio.value : '#3b82f6',
+        coordinates: JSON.stringify(tracePoints)
+      });
+
+      if (result.success) {
+        closeModal('boundary-modal');
+        clearTraceVisuals();
+        tracePoints = [];
+        loadBoundaries();
+        alert(`Boundary saved!\nArea: ${formatNumber(result.stats.areaSqFt)} sq ft (${result.stats.acres} acres)\nPerimeter: ${formatNumber(result.stats.perimeterFt)} ft`);
+      } else {
+        alert('Error saving boundary: ' + result.error);
+      }
+    }
+
+    function discardBoundary() {
+      closeModal('boundary-modal');
+      clearTraceVisuals();
+      tracePoints = [];
+    }
+
+    async function loadBoundaries() {
+      const result = await apiCall('getBoundaries');
+
+      if (result.success) {
+        savedBoundaries = result.boundaries;
+
+        // Update list
+        const list = document.getElementById('boundaries-list');
+        if (savedBoundaries.length === 0) {
+          list.innerHTML = `
+            <div style="background: linear-gradient(135deg, var(--primary), var(--primary-light)); padding: 20px; border-radius: 12px; margin-bottom: 10px;">
+              <h4 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-hiking"></i> Onboarding: Map Your Farm
+              </h4>
+              <p style="margin: 0 0 15px 0; font-size: 0.9rem; opacity: 0.9;">
+                Walk your property lines and field borders to create accurate boundaries. This data is used for:
+              </p>
+              <ul style="margin: 0 0 15px 0; padding-left: 20px; font-size: 0.85rem;">
+                <li>Accurate acreage calculations</li>
+                <li>Crop planning by field</li>
+                <li>Pest/disease tracking by zone</li>
+                <li>Irrigation zone mapping</li>
+              </ul>
+              <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; font-size: 0.85rem;">
+                <strong>Suggested order:</strong><br>
+                1. Property Line (walk the entire perimeter)<br>
+                2. Field Outlines (each growing area)<br>
+                3. High Tunnels / Greenhouses<br>
+                4. Irrigation Zones
+              </div>
+            </div>
+            <div style="color: var(--text-secondary); text-align: center; padding: 10px;">
+              <i class="fas fa-arrow-up"></i> Click "Start Walking" above to begin
+            </div>
+          `;
+        } else {
+          list.innerHTML = savedBoundaries.map(b => `
+            <div class="boundary-item" onclick="zoomToBoundary('${b.Boundary_ID}')">
+              <div style="display: flex; align-items: center;">
+                <div class="boundary-color-dot" style="background: ${b.Color || '#3b82f6'};"></div>
+                <div>
+                  <div style="font-weight: 500;">${b.Name}</div>
+                  <div style="font-size: 0.75rem; color: var(--text-secondary);">${b.Type} • ${b.Acres || '?'} acres</div>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteBoundaryItem('${b.Boundary_ID}')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          `).join('');
+        }
+
+        // Draw polygons on map
+        if (farmMap) {
+          renderBoundaryPolygons();
+        }
+      }
+    }
+
+    function renderBoundaryPolygons() {
+      // Clear existing
+      boundaryPolygons.forEach(p => p.setMap(null));
+      boundaryPolygons = [];
+
+      savedBoundaries.forEach(b => {
+        if (b.Coordinates && b.Coordinates.length >= 3) {
+          const polygon = new google.maps.Polygon({
+            paths: b.Coordinates.map(c => ({ lat: c.lat, lng: c.lng })),
+            strokeColor: b.Color || '#3b82f6',
+            strokeOpacity: 0.9,
+            strokeWeight: 3,
+            fillColor: b.Color || '#3b82f6',
+            fillOpacity: 0.2,
+            map: boundariesVisible ? farmMap : null
+          });
+
+          // Info window on click
+          polygon.addListener('click', (e) => {
+            const infoWindow = new google.maps.InfoWindow({
+              content: `<div style="color: #333; padding: 5px;">
+                <strong>${b.Name}</strong><br>
+                ${b.Type}<br>
+                ${b.Acres || '?'} acres (${formatNumber(b.Area_SqFt || 0)} sq ft)<br>
+                Perimeter: ${formatNumber(b.Perimeter_Ft || 0)} ft
+              </div>`,
+              position: e.latLng
+            });
+            infoWindow.open(farmMap);
+          });
+
+          polygon.boundaryId = b.Boundary_ID;
+          boundaryPolygons.push(polygon);
+        }
+      });
+    }
+
+    function toggleBoundaries() {
+      boundariesVisible = !boundariesVisible;
+      boundaryPolygons.forEach(p => p.setMap(boundariesVisible ? farmMap : null));
+    }
+
+    function zoomToBoundary(boundaryId) {
+      const boundary = savedBoundaries.find(b => b.Boundary_ID === boundaryId);
+      if (boundary && boundary.Coordinates && boundary.Coordinates.length > 0 && farmMap) {
+        // Calculate bounds
+        const bounds = new google.maps.LatLngBounds();
+        boundary.Coordinates.forEach(c => bounds.extend({ lat: c.lat, lng: c.lng }));
+        farmMap.fitBounds(bounds, 50);
+      }
+    }
+
+    async function deleteBoundaryItem(boundaryId) {
+      if (!confirm('Delete this boundary?')) return;
+
+      const result = await apiCall('deleteBoundary', { boundaryId });
+      if (result.success) {
+        loadBoundaries();
+      } else {
+        alert('Error: ' + result.error);
+      }
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPlanningChecklist();
+      loadBoundaries();
+    });
+  </script>
+</body>
+</html>
