@@ -2711,6 +2711,7 @@
                     <label class="form-label">Category</label>
                     <select class="form-input" id="marketingSpendCategory">
                         <option value="social_ads">Social Media Ads</option>
+                        <option value="sms">SMS/Twilio</option>
                         <option value="subscription">Subscriptions (Ayrshare, etc)</option>
                         <option value="print">Print Materials</option>
                         <option value="photography">Photography/Content</option>
@@ -3443,7 +3444,8 @@
                 'print': 'fa-print',
                 'photography': 'fa-camera',
                 'events': 'fa-calendar-alt',
-                'direct_mail': 'fa-envelope'
+                'direct_mail': 'fa-envelope',
+                'sms': 'fa-sms'
             };
             return icons[category] || 'fa-receipt';
         }
@@ -3455,7 +3457,8 @@
                 'print': '#2ecc71',
                 'photography': '#9b59b6',
                 'events': '#e67e22',
-                'direct_mail': '#3498db'
+                'direct_mail': '#3498db',
+                'sms': '#2a9d8f'
             };
             return colors[category] || '#95a5a6';
         }

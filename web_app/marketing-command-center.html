@@ -2371,6 +2371,90 @@
         </div>
     </div>
 
+    <!-- SMS MARKETING MODAL -->
+    <div class="modal-overlay" id="smsModal">
+        <div class="modal" style="max-width: 550px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--success) 0%, var(--teal) 100%);">
+                <h2><i class="fas fa-sms"></i> SMS Marketing Blast</h2>
+                <button class="modal-close" onclick="closeSMSModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: rgba(42, 157, 143, 0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem;">
+                    <i class="fas fa-info-circle" style="color: var(--success);"></i>
+                    <strong>Twilio Connected:</strong> +1 (412) 866-2259
+                    <span style="float: right; color: var(--text-secondary);">~$0.0079/SMS</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Recipient List</label>
+                    <select class="form-input" id="smsRecipientList">
+                        <option value="vip">VIP Customers (487 subscribers)</option>
+                        <option value="csa">CSA Members (156 active)</option>
+                        <option value="wholesale">Wholesale/Restaurant (23 contacts)</option>
+                        <option value="market">Farmer's Market Signups (312)</option>
+                        <option value="all">All Subscribers (892)</option>
+                        <option value="custom">Custom List...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Message <span style="font-size: 0.75rem; color: var(--text-secondary);">(160 chars = 1 SMS segment)</span></label>
+                    <textarea class="form-input" id="smsMessage" rows="4" maxlength="320" placeholder="Fresh harvest alert! 🥬 Just picked: heirloom tomatoes, sweet corn, and basil. Reply STOP to unsubscribe." oninput="updateSMSCount()"></textarea>
+                    <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.8rem;">
+                        <span id="smsCharCount" style="color: var(--text-secondary);">0/160 characters</span>
+                        <span id="smsSegments" style="color: var(--success);">1 segment</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Quick Templates</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <button class="btn btn-sm btn-secondary" onclick="useSMSTemplate('harvest')">🥬 Fresh Harvest</button>
+                        <button class="btn btn-sm btn-secondary" onclick="useSMSTemplate('market')">🏪 Market Day</button>
+                        <button class="btn btn-sm btn-secondary" onclick="useSMSTemplate('csa')">📦 CSA Pickup</button>
+                        <button class="btn btn-sm btn-secondary" onclick="useSMSTemplate('flash')">⚡ Flash Sale</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Send Options</label>
+                    <div style="display: flex; gap: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="smsTiming" value="now" checked>
+                            <span>Send Now</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="smsTiming" value="schedule">
+                            <span>Schedule</span>
+                        </label>
+                    </div>
+                    <input type="datetime-local" class="form-input" id="smsScheduleTime" style="margin-top: 0.5rem; display: none;">
+                </div>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Recipients:</span>
+                        <span id="smsRecipientCount">487</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Estimated Cost:</span>
+                        <span id="smsCost" style="color: var(--warning);">$3.85</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Marketing Budget:</span>
+                        <span style="color: var(--success);">$373 remaining</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSMSModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="sendSMSCampaign()" style="background: linear-gradient(135deg, var(--success) 0%, var(--teal) 100%);">
+                    <i class="fas fa-paper-plane"></i> Send SMS Blast
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- JAVASCRIPT -->
     <script>
         // ═══════════════════════════════════════════════════════════════════════════
@@ -2935,7 +3019,127 @@
         }
 
         function sendSMSBlast() {
-            showToast('Opening SMS composer...', 'info');
+            document.getElementById('smsModal').classList.add('active');
+            updateSMSCount();
+            updateSMSCost();
+
+            // Setup timing toggle
+            document.querySelectorAll('input[name="smsTiming"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    document.getElementById('smsScheduleTime').style.display =
+                        e.target.value === 'schedule' ? 'block' : 'none';
+                });
+            });
+
+            // Setup recipient list change
+            document.getElementById('smsRecipientList').addEventListener('change', updateSMSCost);
+        }
+
+        function closeSMSModal() {
+            document.getElementById('smsModal').classList.remove('active');
+        }
+
+        function updateSMSCount() {
+            const message = document.getElementById('smsMessage').value;
+            const charCount = message.length;
+            const segments = Math.ceil(charCount / 160) || 1;
+
+            document.getElementById('smsCharCount').textContent = `${charCount}/160 characters`;
+            document.getElementById('smsSegments').textContent = `${segments} segment${segments > 1 ? 's' : ''}`;
+            document.getElementById('smsSegments').style.color = segments > 1 ? 'var(--warning)' : 'var(--success)';
+
+            updateSMSCost();
+        }
+
+        function updateSMSCost() {
+            const recipientCounts = {
+                'vip': 487,
+                'csa': 156,
+                'wholesale': 23,
+                'market': 312,
+                'all': 892,
+                'custom': 0
+            };
+
+            const list = document.getElementById('smsRecipientList').value;
+            const recipients = recipientCounts[list] || 0;
+            const message = document.getElementById('smsMessage').value;
+            const segments = Math.ceil(message.length / 160) || 1;
+            const costPerSMS = 0.0079;
+            const totalCost = (recipients * segments * costPerSMS).toFixed(2);
+
+            document.getElementById('smsRecipientCount').textContent = recipients;
+            document.getElementById('smsCost').textContent = `$${totalCost}`;
+        }
+
+        function useSMSTemplate(type) {
+            const templates = {
+                'harvest': '🥬 FRESH HARVEST! Just picked today: heirloom tomatoes, sweet corn, basil & more! Order now for delivery or market pickup. TinySeedFarm.com Reply STOP to opt out',
+                'market': '🏪 See you TODAY at the farmers market! Fresh produce, seasonal specials & your favorites. East Liberty 9am-1pm. Reply STOP to opt out',
+                'csa': '📦 CSA REMINDER: Your box is ready for pickup today 3-7pm! This week: tomatoes, peppers, zucchini, herbs. Reply STOP to opt out',
+                'flash': '⚡ FLASH SALE! 25% off all greens today only. Too much rain = happy lettuce! Order by 2pm for same-day. Code: GREENS25. Reply STOP to opt out'
+            };
+
+            document.getElementById('smsMessage').value = templates[type] || '';
+            updateSMSCount();
+        }
+
+        async function sendSMSCampaign() {
+            const list = document.getElementById('smsRecipientList').value;
+            const message = document.getElementById('smsMessage').value;
+            const timing = document.querySelector('input[name="smsTiming"]:checked').value;
+            const scheduleTime = document.getElementById('smsScheduleTime').value;
+
+            if (!message.trim()) {
+                showToast('Please enter a message', 'error');
+                return;
+            }
+
+            // Confirm send
+            const recipientCount = document.getElementById('smsRecipientCount').textContent;
+            const cost = document.getElementById('smsCost').textContent;
+
+            if (!confirm(`Send SMS to ${recipientCount} recipients?\nEstimated cost: ${cost}`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'sendSMSCampaign',
+                        list: list,
+                        message: message,
+                        scheduleTime: timing === 'schedule' ? scheduleTime : null
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`SMS campaign sent to ${result.sent || recipientCount} recipients!`, 'success');
+                    closeSMSModal();
+
+                    // Log to marketing spend
+                    await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({
+                            action: 'logMarketingSpend',
+                            category: 'sms',
+                            description: `SMS Blast - ${list} list`,
+                            amount: parseFloat(cost.replace('$', '')),
+                            date: new Date().toISOString().split('T')[0]
+                        })
+                    });
+                } else {
+                    showToast(result.error || 'Failed to send SMS campaign', 'error');
+                }
+            } catch (error) {
+                console.error('SMS Campaign Error:', error);
+                showToast('Error sending SMS campaign', 'error');
+            }
         }
 
         function openEmailComposer() {
