@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
     <style>
         :root {
             --primary: #2d5a27;
@@ -1441,9 +1442,14 @@
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-university"></i> Bank Accounts</h3>
-                        <button class="btn btn-primary btn-sm" onclick="openModal('addAccountModal')">
-                            <i class="fas fa-plus"></i> Add Account
-                        </button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-success btn-sm" onclick="connectBankWithPlaid()" id="plaidConnectBtn">
+                                <i class="fas fa-link"></i> Connect Bank
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="openModal('addAccountModal')">
+                                <i class="fas fa-plus"></i> Add Manual
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="account-card checking">
@@ -2662,7 +2668,7 @@
         // =============================================
         const API_CONFIG = {
             sheetId: '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc',
-            apiUrl: '' // Set your deployed Apps Script URL here
+            apiUrl: 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec'
         };
 
         async function fetchFromSheet(endpoint, params = {}) {
@@ -2777,6 +2783,205 @@
         }
 
         // =============================================
+        // PLAID BANK CONNECTION
+        // =============================================
+        let plaidHandler = null;
+
+        async function connectBankWithPlaid() {
+            const btn = document.getElementById('plaidConnectBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+            btn.disabled = true;
+
+            try {
+                // Get link token from our Apps Script backend
+                const response = await fetchFromSheet('createPlaidLinkToken');
+
+                if (!response || !response.success) {
+                    throw new Error(response?.error || 'Failed to create link token');
+                }
+
+                // Initialize Plaid Link
+                plaidHandler = Plaid.create({
+                    token: response.linkToken,
+                    onSuccess: async (publicToken, metadata) => {
+                        console.log('Plaid Link Success!', metadata);
+                        await handlePlaidSuccess(publicToken, metadata);
+                    },
+                    onExit: (err, metadata) => {
+                        console.log('Plaid Link Exit', err, metadata);
+                        btn.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
+                        btn.disabled = false;
+                        if (err) {
+                            showNotification('Bank connection cancelled', 'warning');
+                        }
+                    },
+                    onEvent: (eventName, metadata) => {
+                        console.log('Plaid Event:', eventName, metadata);
+                    }
+                });
+
+                // Open Plaid Link
+                plaidHandler.open();
+
+            } catch (error) {
+                console.error('Plaid Error:', error);
+                showNotification('Failed to connect: ' + error.message, 'error');
+                btn.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
+                btn.disabled = false;
+            }
+        }
+
+        async function handlePlaidSuccess(publicToken, metadata) {
+            const btn = document.getElementById('plaidConnectBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing accounts...';
+
+            try {
+                // Exchange public token for access token via our backend
+                const exchangeResult = await saveToSheet('exchangePlaidPublicToken', {
+                    publicToken: publicToken,
+                    institutionId: metadata.institution.institution_id,
+                    institutionName: metadata.institution.name,
+                    accounts: metadata.accounts
+                });
+
+                if (!exchangeResult || !exchangeResult.success) {
+                    throw new Error(exchangeResult?.error || 'Failed to exchange token');
+                }
+
+                showNotification(`Connected to ${metadata.institution.name}!`, 'success');
+
+                // Refresh the accounts display
+                await loadConnectedAccounts();
+
+                btn.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
+                btn.disabled = false;
+
+            } catch (error) {
+                console.error('Token Exchange Error:', error);
+                showNotification('Failed to save connection: ' + error.message, 'error');
+                btn.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
+                btn.disabled = false;
+            }
+        }
+
+        async function loadConnectedAccounts() {
+            try {
+                const accounts = await fetchFromSheet('getPlaidAccounts');
+
+                if (accounts && accounts.success && accounts.accounts) {
+                    displayPlaidAccounts(accounts.accounts);
+                }
+            } catch (error) {
+                console.error('Failed to load accounts:', error);
+            }
+        }
+
+        function displayPlaidAccounts(accounts) {
+            const cardBody = document.querySelector('.card:has(.fa-university) .card-body');
+            if (!cardBody) return;
+
+            // Find or create the connected accounts section
+            let connectedSection = document.getElementById('plaidAccountsSection');
+            if (!connectedSection) {
+                connectedSection = document.createElement('div');
+                connectedSection.id = 'plaidAccountsSection';
+                connectedSection.innerHTML = '<h4 style="margin: 1rem 0 0.5rem; font-size: 0.85rem; color: var(--text-secondary);"><i class="fas fa-check-circle" style="color: var(--success);"></i> Connected via Plaid</h4>';
+                cardBody.insertBefore(connectedSection, cardBody.firstChild);
+            }
+
+            // Clear existing accounts (except header)
+            const header = connectedSection.querySelector('h4');
+            connectedSection.innerHTML = '';
+            connectedSection.appendChild(header);
+
+            // Add each account
+            accounts.forEach(account => {
+                const accountDiv = document.createElement('div');
+                accountDiv.className = 'account-card ' + (account.subtype || 'checking');
+
+                const iconMap = {
+                    'checking': 'fa-money-check-alt',
+                    'savings': 'fa-piggy-bank',
+                    'credit card': 'fa-credit-card',
+                    'loan': 'fa-file-invoice-dollar',
+                    'investment': 'fa-chart-line'
+                };
+                const icon = iconMap[account.subtype] || 'fa-university';
+                const iconColor = account.subtype === 'credit card' ? 'var(--danger)' :
+                                  account.subtype === 'savings' ? 'var(--success)' : 'var(--info)';
+
+                accountDiv.innerHTML = `
+                    <div class="account-icon" style="color: ${iconColor};">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div class="account-info">
+                        <div class="account-name">${account.name}</div>
+                        <div class="account-type">${account.institution} - ****${account.mask || '----'}</div>
+                    </div>
+                    <div class="account-balance">
+                        <div class="amount" style="color: ${account.subtype === 'credit card' ? 'var(--danger)' : 'var(--success)'};">
+                            $${Math.abs(account.balance_current || 0).toLocaleString()}
+                        </div>
+                        <div class="label">${account.subtype === 'credit card' ? 'Owed' : 'Available'}</div>
+                    </div>
+                `;
+                connectedSection.appendChild(accountDiv);
+            });
+        }
+
+        async function refreshPlaidBalances() {
+            showNotification('Refreshing balances...', 'info');
+
+            try {
+                const result = await fetchFromSheet('refreshPlaidBalances');
+                if (result && result.success) {
+                    await loadConnectedAccounts();
+                    showNotification('Balances updated!', 'success');
+                }
+            } catch (error) {
+                showNotification('Failed to refresh: ' + error.message, 'error');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element if it doesn't exist
+            let notification = document.getElementById('notification');
+            if (!notification) {
+                notification = document.createElement('div');
+                notification.id = 'notification';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 80px;
+                    right: 20px;
+                    padding: 1rem 1.5rem;
+                    border-radius: 8px;
+                    font-weight: 500;
+                    z-index: 1000;
+                    transform: translateX(150%);
+                    transition: transform 0.3s ease;
+                    max-width: 350px;
+                `;
+                document.body.appendChild(notification);
+            }
+
+            const colors = {
+                success: { bg: 'var(--success)', icon: 'fa-check-circle' },
+                error: { bg: 'var(--danger)', icon: 'fa-exclamation-circle' },
+                warning: { bg: 'var(--warning)', icon: 'fa-exclamation-triangle' },
+                info: { bg: 'var(--info)', icon: 'fa-info-circle' }
+            };
+
+            const config = colors[type] || colors.info;
+            notification.style.background = config.bg;
+            notification.innerHTML = `<i class="fas ${config.icon}"></i> ${message}`;
+            notification.style.transform = 'translateX(0)';
+
+            setTimeout(() => {
+                notification.style.transform = 'translateX(150%)';
+            }, 4000);
+        }
+
+        // =============================================
         // INITIALIZE
         // =============================================
         document.addEventListener('DOMContentLoaded', () => {
@@ -2785,6 +2990,11 @@
             // Check for API connection
             if (!API_CONFIG.apiUrl) {
                 console.log('Running in demo mode - configure API URL for live data');
+            }
+
+            // Load connected Plaid accounts if API is configured
+            if (API_CONFIG.apiUrl) {
+                loadConnectedAccounts();
             }
         });
     </script>
