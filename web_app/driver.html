@@ -1389,25 +1389,26 @@
                 <p class="login-subtitle">Enter your 4-digit PIN to start</p>
 
                 <div class="pin-display">
-                    <div class="pin-dot" id="pin1"></div>
-                    <div class="pin-dot" id="pin2"></div>
-                    <div class="pin-dot" id="pin3"></div>
-                    <div class="pin-dot" id="pin4"></div>
+                    <div class="pin-dot" id="pin1" style="width:20px;height:20px;border-radius:50%;background:#334155;border:2px solid #475569;display:inline-block;margin:0 8px;"></div>
+                    <div class="pin-dot" id="pin2" style="width:20px;height:20px;border-radius:50%;background:#334155;border:2px solid #475569;display:inline-block;margin:0 8px;"></div>
+                    <div class="pin-dot" id="pin3" style="width:20px;height:20px;border-radius:50%;background:#334155;border:2px solid #475569;display:inline-block;margin:0 8px;"></div>
+                    <div class="pin-dot" id="pin4" style="width:20px;height:20px;border-radius:50%;background:#334155;border:2px solid #475569;display:inline-block;margin:0 8px;"></div>
                 </div>
+                <div id="pinDebug" style="color:#22c55e;font-size:28px;margin:16px 0;font-family:monospace;letter-spacing:8px;">____</div>
 
                 <div class="pin-pad">
-                    <button type="button" class="pin-btn" onclick="enterPin(1)">1</button>
-                    <button type="button" class="pin-btn" onclick="enterPin(2)">2</button>
-                    <button type="button" class="pin-btn" onclick="enterPin(3)">3</button>
-                    <button type="button" class="pin-btn" onclick="enterPin(4)">4</button>
-                    <button type="button" class="pin-btn" onclick="enterPin(5)">5</button>
-                    <button type="button" class="pin-btn" onclick="enterPin(6)">6</button>
-                    <button type="button" class="pin-btn" onclick="enterPin(7)">7</button>
-                    <button type="button" class="pin-btn" onclick="enterPin(8)">8</button>
-                    <button type="button" class="pin-btn" onclick="enterPin(9)">9</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('1');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">1</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('2');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">2</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('3');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">3</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('4');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">4</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('5');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">5</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('6');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">6</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('7');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">7</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('8');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">8</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('9');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">9</button>
                     <button type="button" class="pin-btn action"></button>
-                    <button type="button" class="pin-btn" onclick="enterPin(0)">0</button>
-                    <button type="button" class="pin-btn action" onclick="clearPin()">&#x232B;</button>
+                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('0');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">0</button>
+                    <button type="button" class="pin-btn action" onclick="window.pinValue=(window.pinValue||'').slice(0,-1);document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';">&#x232B;</button>
                 </div>
 
                 <div class="login-error" id="loginError"></div>
@@ -1894,16 +1895,17 @@
         }
 
         async function validatePin() {
+            var pin = window.pinValue || AppState.pin || '';
             try {
                 // Call API to authenticate driver
-                const result = await api.authenticateDriver(AppState.pin);
+                var result = await api.authenticateDriver(pin);
 
                 if (result.success && result.driver) {
                     AppState.driver = {
                         id: result.driver.Driver_ID,
                         name: result.driver.Driver_Name,
-                        pin: AppState.pin,
-                        initials: result.driver.Driver_Name.split(' ').map(n => n[0]).join('')
+                        pin: pin,
+                        initials: result.driver.Driver_Name.split(' ').map(function(n) { return n[0]; }).join('')
                     };
                     AppState.isLoggedIn = true;
 
@@ -1920,7 +1922,7 @@
             } catch (error) {
                 console.error('Authentication error:', error);
                 // Fallback to sample drivers for demo/offline mode
-                const driver = SAMPLE_DRIVERS.find(d => d.pin === AppState.pin);
+                var driver = SAMPLE_DRIVERS.find(function(d) { return d.pin === pin; });
                 if (driver) {
                     AppState.driver = driver;
                     AppState.isLoggedIn = true;
@@ -1938,14 +1940,13 @@
 
         function showLoginError(message) {
             document.getElementById('loginError').textContent = message;
+            window.pinValue = '';
             AppState.pin = '';
-            updatePinDisplay();
-
-            // Shake animation
-            document.querySelector('.pin-display').style.animation = 'shake 0.3s';
-            setTimeout(() => {
-                document.querySelector('.pin-display').style.animation = '';
-            }, 300);
+            document.getElementById('pinDebug').textContent = '____';
+            document.getElementById('pin1').style.background = '#334155';
+            document.getElementById('pin2').style.background = '#334155';
+            document.getElementById('pin3').style.background = '#334155';
+            document.getElementById('pin4').style.background = '#334155';
         }
 
         function logout() {
@@ -1953,13 +1954,18 @@
             AppState.isLoggedIn = false;
             AppState.driver = null;
             AppState.pin = '';
+            window.pinValue = '';
             AppState.route = { stops: [], isStarted: false, currentStopIndex: -1 };
 
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('appHeader').style.display = 'none';
             document.getElementById('bottomNav').style.display = 'none';
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            updatePinDisplay();
+            document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+            document.getElementById('pinDebug').textContent = '____';
+            document.getElementById('pin1').style.background = '#334155';
+            document.getElementById('pin2').style.background = '#334155';
+            document.getElementById('pin3').style.background = '#334155';
+            document.getElementById('pin4').style.background = '#334155';
         }
 
         function showApp() {
