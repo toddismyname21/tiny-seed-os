@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed Wealth Builder - Investment Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --info: #4361ee;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+            --gold: #ffd700;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--success) 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--success) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1.25rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-badge.normal {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-badge.cautionary {
+            background: rgba(233, 196, 106, 0.2);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .status-badge.elevated {
+            background: rgba(244, 162, 97, 0.2);
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+        }
+
+        .status-badge.critical {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        /* Quick Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-icon.green { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .stat-icon.blue { background: rgba(67, 97, 238, 0.2); color: var(--info); }
+        .stat-icon.gold { background: rgba(255, 215, 0, 0.2); color: var(--gold); }
+        .stat-icon.orange { background: rgba(244, 162, 97, 0.2); color: var(--secondary); }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-change.positive { color: var(--success); }
+        .stat-change.negative { color: var(--danger); }
+
+        /* Main Grid Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-header h3 i {
+            color: var(--primary-light);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Allocation Chart Section */
+        .allocation-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .allocation-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+        }
+
+        .legend-item-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-ticker {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .legend-percent {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Season Indicator */
+        .season-section {
+            margin-bottom: 2rem;
+        }
+
+        .season-timeline {
+            display: flex;
+            gap: 0;
+            margin-top: 1rem;
+        }
+
+        .season-block {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .season-block:first-child {
+            border-radius: 12px 0 0 12px;
+        }
+
+        .season-block:last-child {
+            border-radius: 0 12px 12px 0;
+        }
+
+        .season-block.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-color: var(--primary-light);
+        }
+
+        .season-block.active::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid var(--primary-light);
+        }
+
+        .season-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .season-months {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .season-multiplier {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .season-multiplier.high { color: var(--success); }
+        .season-multiplier.medium { color: var(--warning); }
+        .season-multiplier.low { color: var(--danger); }
+
+        /* Growth Signal Panel */
+        .signal-panel {
+            background: linear-gradient(135deg, var(--bg-light) 0%, var(--bg-card) 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .signal-mode {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .signal-mode-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .signal-mode-badge.offensive {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .signal-mode-badge.defensive {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        .momentum-assets {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .asset-chip {
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .asset-chip .score {
+            color: var(--success);
+            font-size: 0.75rem;
+        }
+
+        /* Action Items */
+        .action-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .action-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .action-priority {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .action-content {
+            flex: 1;
+        }
+
+        .action-category {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .action-description {
+            font-weight: 500;
+        }
+
+        /* Trade Table */
+        .trade-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .trade-table th,
+        .trade-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .trade-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .trade-table tr:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .trade-action {
+            padding: 0.3rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .trade-action.buy {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .trade-action.sell {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        /* Risk Gauge */
+        .risk-gauge-container {
+            text-align: center;
+            padding: 1rem 0;
+        }
+
+        .risk-gauge {
+            position: relative;
+            width: 200px;
+            height: 100px;
+            margin: 0 auto 1rem;
+        }
+
+        .gauge-background {
+            position: absolute;
+            width: 200px;
+            height: 100px;
+            border-radius: 100px 100px 0 0;
+            background: linear-gradient(90deg,
+                var(--success) 0%,
+                var(--warning) 50%,
+                var(--danger) 100%);
+            overflow: hidden;
+        }
+
+        .gauge-mask {
+            position: absolute;
+            bottom: 0;
+            left: 10px;
+            width: 180px;
+            height: 90px;
+            background: var(--bg-card);
+            border-radius: 90px 90px 0 0;
+        }
+
+        .gauge-needle {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            height: 80px;
+            background: white;
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotate(var(--needle-angle, -60deg));
+            border-radius: 2px;
+            transition: transform 0.5s ease;
+        }
+
+        .gauge-center {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .risk-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .risk-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Emergency Fund Progress */
+        .progress-container {
+            margin-top: 1rem;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.good { background: var(--success); }
+        .progress-fill.adequate { background: var(--warning); }
+        .progress-fill.critical { background: var(--danger); }
+
+        /* Annual Schedule */
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 0.5rem;
+        }
+
+        .schedule-month {
+            text-align: center;
+            padding: 0.75rem 0.25rem;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .schedule-month.harvest { background: rgba(42, 157, 143, 0.2); border: 1px solid var(--success); }
+        .schedule-month.planting { background: rgba(233, 196, 106, 0.2); border: 1px solid var(--warning); }
+        .schedule-month.winter { background: rgba(230, 57, 70, 0.1); border: 1px solid rgba(230, 57, 70, 0.3); }
+        .schedule-month.current { box-shadow: 0 0 0 2px var(--primary-light); }
+
+        .month-abbrev {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .month-amount {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Algorithm Spec Section */
+        .spec-section {
+            margin-top: 2rem;
+        }
+
+        .spec-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .spec-tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .spec-tab:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .spec-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .spec-content {
+            display: none;
+        }
+
+        .spec-content.active {
+            display: block;
+        }
+
+        pre {
+            background: #0d1117;
+            padding: 1.5rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+
+        .code-comment { color: #8b949e; }
+        .code-keyword { color: #ff7b72; }
+        .code-string { color: #a5d6ff; }
+        .code-number { color: #79c0ff; }
+        .code-function { color: #d2a8ff; }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(45, 90, 39, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Back Link */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-bottom: 1rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--primary-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-seedling"></i>
+                </div>
+                <div class="header-title">
+                    <h1>Tiny Seed Wealth Builder</h1>
+                    <p>Proprietary Investment Algorithm v1.0</p>
+                </div>
+            </div>
+            <div class="status-badge normal" id="risk-status">
+                <i class="fas fa-shield-alt"></i>
+                <span>NORMAL RISK</span>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-label">Portfolio Value</div>
+                        <div class="stat-value" id="portfolio-value">$47,250</div>
+                    </div>
+                    <div class="stat-icon green">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                </div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+5.2% this year</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-label">This Month's Contribution</div>
+                        <div class="stat-value" id="monthly-contribution">$1,500</div>
+                    </div>
+                    <div class="stat-icon blue">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-change positive">
+                    <span>Harvest Season (1.5x)</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-label">Growth Mode</div>
+                        <div class="stat-value" id="growth-mode">OFFENSIVE</div>
+                    </div>
+                    <div class="stat-icon gold">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="stat-change">
+                    <span>QQQ + MTUM leading</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-label">Emergency Reserve</div>
+                        <div class="stat-value" id="emergency-months">8.2 mo</div>
+                    </div>
+                    <div class="stat-icon orange">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span>$65,600 of $96,000</span>
+                        <span>68%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill good" style="width: 68%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="main-grid">
+            <!-- Left Column -->
+            <div>
+                <!-- Allocation Chart -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> Target Allocation</h3>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">75% Safe / 25% Growth</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="allocation-container">
+                            <div class="chart-wrapper">
+                                <canvas id="allocationChart"></canvas>
+                            </div>
+                            <div class="allocation-legend" id="allocation-legend">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Growth Signal Panel -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bolt"></i> Growth Strategy Signal</h3>
+                        <span class="signal-mode-badge offensive" id="signal-badge">OFFENSIVE</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="signal-panel">
+                            <div class="signal-header">
+                                <div class="signal-mode">
+                                    <span>Dual Momentum + Factor Tilt</span>
+                                </div>
+                            </div>
+                            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
+                                Top 2 assets by composite momentum, filtered by absolute momentum vs cash.
+                            </p>
+                            <div class="momentum-assets" id="momentum-assets">
+                                <div class="asset-chip">
+                                    <span>QQQ</span>
+                                    <span class="score">+18.4%</span>
+                                </div>
+                                <div class="asset-chip">
+                                    <span>MTUM</span>
+                                    <span class="score">+15.2%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+                            MOMENTUM SCORES (12-Month)
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <div class="asset-chip" style="justify-content: space-between;">
+                                <span>QQQ</span>
+                                <span style="color: var(--success);">+18.4%</span>
+                            </div>
+                            <div class="asset-chip" style="justify-content: space-between;">
+                                <span>MTUM</span>
+                                <span style="color: var(--success);">+15.2%</span>
+                            </div>
+                            <div class="asset-chip" style="justify-content: space-between;">
+                                <span>VUG</span>
+                                <span style="color: var(--success);">+12.1%</span>
+                            </div>
+                            <div class="asset-chip" style="justify-content: space-between;">
+                                <span>VBK</span>
+                                <span style="color: var(--warning);">+8.3%</span>
+                            </div>
+                            <div class="asset-chip" style="justify-content: space-between;">
+                                <span>SHY (Cash)</span>
+                                <span style="color: var(--text-secondary);">+4.2%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trades Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-exchange-alt"></i> Recommended Trades</h3>
+                        <button class="btn btn-primary btn-sm">
+                            <i class="fas fa-play"></i> Execute All
+                        </button>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="trade-table">
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>Ticker</th>
+                                    <th>Amount</th>
+                                    <th>Reason</th>
+                                    <th>Tax Note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-body">
+                                <tr>
+                                    <td><span class="trade-action buy">BUY</span></td>
+                                    <td>TIP</td>
+                                    <td>$425</td>
+                                    <td>Contribution rebalancing</td>
+                                    <td><i class="fas fa-check-circle" style="color: var(--success);"></i> Efficient</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="trade-action buy">BUY</span></td>
+                                    <td>QQQ</td>
+                                    <td>$375</td>
+                                    <td>Growth allocation</td>
+                                    <td><i class="fas fa-check-circle" style="color: var(--success);"></i> Efficient</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="trade-action buy">BUY</span></td>
+                                    <td>VTI</td>
+                                    <td>$350</td>
+                                    <td>Contribution rebalancing</td>
+                                    <td><i class="fas fa-check-circle" style="color: var(--success);"></i> Efficient</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="trade-action buy">BUY</span></td>
+                                    <td>MTUM</td>
+                                    <td>$350</td>
+                                    <td>Growth allocation</td>
+                                    <td><i class="fas fa-check-circle" style="color: var(--success);"></i> Efficient</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div>
+                <!-- Risk Gauge -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tachometer-alt"></i> Risk Monitor</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="risk-gauge-container">
+                            <div class="risk-gauge">
+                                <div class="gauge-background"></div>
+                                <div class="gauge-mask"></div>
+                                <div class="gauge-needle" id="risk-needle" style="--needle-angle: -45deg;"></div>
+                                <div class="gauge-center"></div>
+                            </div>
+                            <div class="risk-value" id="drawdown-value">3.2%</div>
+                            <div class="risk-label">Current Drawdown</div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
+                            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                                <div style="font-size: 1.25rem; font-weight: 700;">12.4%</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Volatility (Ann.)</div>
+                            </div>
+                            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                                <div style="font-size: 1.25rem; font-weight: 700;">15%</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Max Drawdown Limit</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(42, 157, 143, 0.1); border-radius: 8px; border-left: 3px solid var(--success);">
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">
+                                <i class="fas fa-check-circle" style="color: var(--success);"></i> All Clear
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                Drawdown within tolerance. Continue with offensive growth strategy.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Season Calendar -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-alt"></i> Seasonal Contributions</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="season-timeline">
+                            <div class="season-block">
+                                <div class="season-name">Winter</div>
+                                <div class="season-months">Nov-Feb</div>
+                                <div class="season-multiplier low">0.25x</div>
+                            </div>
+                            <div class="season-block">
+                                <div class="season-name">Planting</div>
+                                <div class="season-months">Mar-May</div>
+                                <div class="season-multiplier medium">0.75x</div>
+                            </div>
+                            <div class="season-block active">
+                                <div class="season-name">Harvest</div>
+                                <div class="season-months">Jun-Oct</div>
+                                <div class="season-multiplier high">1.5x</div>
+                            </div>
+                        </div>
+
+                        <h4 style="margin: 1.5rem 0 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+                            2026 CONTRIBUTION SCHEDULE
+                        </h4>
+                        <div class="schedule-grid">
+                            <div class="schedule-month winter current">
+                                <div class="month-abbrev">Jan</div>
+                                <div class="month-amount">$250</div>
+                            </div>
+                            <div class="schedule-month winter">
+                                <div class="month-abbrev">Feb</div>
+                                <div class="month-amount">$250</div>
+                            </div>
+                            <div class="schedule-month planting">
+                                <div class="month-abbrev">Mar</div>
+                                <div class="month-amount">$750</div>
+                            </div>
+                            <div class="schedule-month planting">
+                                <div class="month-abbrev">Apr</div>
+                                <div class="month-amount">$750</div>
+                            </div>
+                            <div class="schedule-month planting">
+                                <div class="month-abbrev">May</div>
+                                <div class="month-amount">$750</div>
+                            </div>
+                            <div class="schedule-month harvest">
+                                <div class="month-abbrev">Jun</div>
+                                <div class="month-amount">$1.5k</div>
+                            </div>
+                            <div class="schedule-month harvest">
+                                <div class="month-abbrev">Jul</div>
+                                <div class="month-amount">$1.5k</div>
+                            </div>
+                            <div class="schedule-month harvest">
+                                <div class="month-abbrev">Aug</div>
+                                <div class="month-amount">$1.5k</div>
+                            </div>
+                            <div class="schedule-month harvest">
+                                <div class="month-abbrev">Sep</div>
+                                <div class="month-amount">$1.5k</div>
+                            </div>
+                            <div class="schedule-month harvest">
+                                <div class="month-abbrev">Oct</div>
+                                <div class="month-amount">$1.5k</div>
+                            </div>
+                            <div class="schedule-month winter">
+                                <div class="month-abbrev">Nov</div>
+                                <div class="month-amount">$250</div>
+                            </div>
+                            <div class="schedule-month winter">
+                                <div class="month-abbrev">Dec</div>
+                                <div class="month-amount">$250</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                Annual Total (Base: $1,000/mo)
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: 700;">$10,500</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Items -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tasks"></i> Action Items</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="action-list">
+                            <div class="action-item">
+                                <div class="action-priority">1</div>
+                                <div class="action-content">
+                                    <div class="action-category">Contribution</div>
+                                    <div class="action-description">Contribute $1,500 (Harvest season 1.5x)</div>
+                                </div>
+                            </div>
+                            <div class="action-item">
+                                <div class="action-priority">2</div>
+                                <div class="action-content">
+                                    <div class="action-category">Rebalancing</div>
+                                    <div class="action-description">Execute 4 contribution-based trades</div>
+                                </div>
+                            </div>
+                            <div class="action-item">
+                                <div class="action-priority">3</div>
+                                <div class="action-content">
+                                    <div class="action-category">Review</div>
+                                    <div class="action-description">Monitor QQQ and MTUM momentum signals</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Algorithm Specification Section -->
+        <div class="spec-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-code"></i> Algorithm Specification</h3>
+                </div>
+                <div class="card-body">
+                    <div class="spec-tabs">
+                        <button class="spec-tab active" onclick="showSpec('overview')">Overview</button>
+                        <button class="spec-tab" onclick="showSpec('safe')">Safe Strategy</button>
+                        <button class="spec-tab" onclick="showSpec('growth')">Growth Strategy</button>
+                        <button class="spec-tab" onclick="showSpec('pseudocode')">Pseudocode</button>
+                        <button class="spec-tab" onclick="showSpec('signals')">Signal Formulas</button>
+                    </div>
+
+                    <div id="spec-overview" class="spec-content active">
+                        <h4 style="margin-bottom: 1rem;">Dual Allocation Investment System</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+                            <div style="padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px; border: 1px solid rgba(42, 157, 143, 0.3);">
+                                <h5 style="color: var(--success); margin-bottom: 1rem;">
+                                    <i class="fas fa-shield-alt"></i> SAFE ALLOCATION (75%)
+                                </h5>
+                                <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>Strategy:</strong> Modified All-Weather</li>
+                                    <li><strong>Expected Return:</strong> 5-7% annually</li>
+                                    <li><strong>Max Drawdown:</strong> 12-15%</li>
+                                    <li><strong>Volatility:</strong> 7-10%</li>
+                                    <li><strong>Sharpe Ratio:</strong> 0.65-0.75</li>
+                                </ul>
+                            </div>
+                            <div style="padding: 1.5rem; background: rgba(244, 162, 97, 0.1); border-radius: 12px; border: 1px solid rgba(244, 162, 97, 0.3);">
+                                <h5 style="color: var(--secondary); margin-bottom: 1rem;">
+                                    <i class="fas fa-rocket"></i> GROWTH ALLOCATION (25%)
+                                </h5>
+                                <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>Strategy:</strong> Dual Momentum + Factor Tilt</li>
+                                    <li><strong>Expected Return:</strong> 8-15% annually</li>
+                                    <li><strong>Max Drawdown:</strong> 20-30%</li>
+                                    <li><strong>Volatility:</strong> 15-20%</li>
+                                    <li><strong>Sharpe Ratio:</strong> 0.55-0.70</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <h4 style="margin: 2rem 0 1rem;">Blended Portfolio Expectations</h4>
+                        <div style="padding: 1.5rem; background: rgba(255,255,255,0.03); border-radius: 12px;">
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;">
+                                <div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">6-9%</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Annual Return</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--warning);">15-18%</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Max Drawdown</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--info);">9-12%</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Volatility</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-light);">0.60</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Sharpe Ratio</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="spec-safe" class="spec-content">
+                        <h4 style="margin-bottom: 1rem;">Safe Strategy: Modified All-Weather</h4>
+                        <table class="trade-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Name</th>
+                                    <th>Allocation</th>
+                                    <th>Category</th>
+                                    <th>Role</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>VTI</strong></td>
+                                    <td>Vanguard Total Stock Market</td>
+                                    <td>20%</td>
+                                    <td>US Equity</td>
+                                    <td>Growth engine, inflation hedge</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>VXUS</strong></td>
+                                    <td>Vanguard Total Int'l Stock</td>
+                                    <td>10%</td>
+                                    <td>Int'l Equity</td>
+                                    <td>Diversification, currency hedge</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>BND</strong></td>
+                                    <td>Vanguard Total Bond Market</td>
+                                    <td>20%</td>
+                                    <td>US Bonds</td>
+                                    <td>Deflation hedge, stability</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>TIP</strong></td>
+                                    <td>iShares TIPS Bond</td>
+                                    <td>15%</td>
+                                    <td>TIPS</td>
+                                    <td>Inflation protection</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>GOVT</strong></td>
+                                    <td>iShares U.S. Treasury Bond</td>
+                                    <td>10%</td>
+                                    <td>Treasuries</td>
+                                    <td>Flight to safety, deflation hedge</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>GLD</strong></td>
+                                    <td>SPDR Gold Shares</td>
+                                    <td>7.5%</td>
+                                    <td>Gold</td>
+                                    <td>Crisis hedge, inflation protection</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>DBC</strong></td>
+                                    <td>Invesco DB Commodity Index</td>
+                                    <td>5%</td>
+                                    <td>Commodities</td>
+                                    <td>Inflation hedge, farm input correlation</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>SHY</strong></td>
+                                    <td>iShares 1-3 Year Treasury</td>
+                                    <td>10%</td>
+                                    <td>Short-Term</td>
+                                    <td>Liquidity, emergency access</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4 style="margin: 2rem 0 1rem;">Rebalancing Rules</h4>
+                        <ul style="line-height: 2; font-size: 0.9rem;">
+                            <li><strong>Threshold:</strong> Rebalance when any position drifts 5% from target</li>
+                            <li><strong>Frequency:</strong> At least quarterly, or when threshold triggers</li>
+                            <li><strong>Priority:</strong> Use new contributions first (tax-efficient)</li>
+                            <li><strong>Order:</strong> SHY > BND > GOVT > TIP > VTI > VXUS > GLD > DBC</li>
+                        </ul>
+                    </div>
+
+                    <div id="spec-growth" class="spec-content">
+                        <h4 style="margin-bottom: 1rem;">Growth Strategy: Dual Momentum + Factor Tilt</h4>
+
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+                            <div style="padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px;">
+                                <h5 style="color: var(--success); margin-bottom: 1rem;">Offensive Holdings</h5>
+                                <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>QQQ</strong> - Nasdaq-100 (up to 35%)</li>
+                                    <li><strong>VUG</strong> - Vanguard Growth (up to 25%)</li>
+                                    <li><strong>MTUM</strong> - Momentum Factor (up to 25%)</li>
+                                    <li><strong>VBK</strong> - Small-Cap Growth (up to 15%)</li>
+                                </ul>
+                            </div>
+                            <div style="padding: 1.5rem; background: rgba(230, 57, 70, 0.1); border-radius: 12px;">
+                                <h5 style="color: var(--danger); margin-bottom: 1rem;">Defensive Holdings</h5>
+                                <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>SHY</strong> - 1-3 Year Treasury (100%)</li>
+                                    <li><strong>BIL</strong> - 1-3 Month T-Bill (alternate)</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <h4 style="margin-bottom: 1rem;">Signal Generation Rules</h4>
+                        <ol style="line-height: 2; font-size: 0.9rem;">
+                            <li>Calculate <strong>composite momentum</strong> for each offensive asset using 1, 3, 6, and 12-month returns (equal weighted)</li>
+                            <li>Rank assets by composite momentum score</li>
+                            <li>Select <strong>top 2</strong> assets by relative momentum</li>
+                            <li>Apply <strong>absolute momentum filter</strong>: each selected asset must have 12-month return > SHY return</li>
+                            <li>If no assets pass, go <strong>100% defensive</strong> (SHY)</li>
+                            <li>If 1+ assets pass, allocate <strong>equally</strong> among passing assets</li>
+                        </ol>
+
+                        <h4 style="margin: 2rem 0 1rem;">Defensive Triggers</h4>
+                        <div style="padding: 1.5rem; background: rgba(255,255,255,0.03); border-radius: 12px;">
+                            <ul style="list-style: none; font-size: 0.9rem; line-height: 2;">
+                                <li><i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 0.5rem;"></i>
+                                    <strong>Growth drawdown >= 10%:</strong> Move to defensive</li>
+                                <li><i class="fas fa-exclamation-circle" style="color: var(--danger); margin-right: 0.5rem;"></i>
+                                    <strong>Portfolio drawdown >= 15%:</strong> Full defensive override</li>
+                                <li><i class="fas fa-chart-area" style="color: var(--warning); margin-right: 0.5rem;"></i>
+                                    <strong>Volatility >= 25%:</strong> Reduce growth exposure by 25%</li>
+                                <li><i class="fas fa-check-circle" style="color: var(--success); margin-right: 0.5rem;"></i>
+                                    <strong>Recovery >= 5%:</strong> Consider resuming offensive</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div id="spec-pseudocode" class="spec-content">
+                        <h4 style="margin-bottom: 1rem;">Complete Algorithm Pseudocode</h4>
+                        <pre><code><span class="code-function">MONTHLY_INVESTMENT_DECISION</span>(portfolio_data):
+
+    <span class="code-comment">// PHASE 1: SAFETY CHECKS</span>
+    emergency_status = <span class="code-function">CHECK_EMERGENCY_RESERVE</span>(current_reserve, monthly_expenses)
+    <span class="code-keyword">IF</span> emergency_status == <span class="code-string">"CRITICAL"</span>:
+        <span class="code-keyword">RETURN</span> { action: <span class="code-string">"FUND_EMERGENCY_RESERVE"</span>, amount: full_contribution }
+
+    <span class="code-comment">// PHASE 2: SEASONAL ADJUSTMENT</span>
+    current_season = <span class="code-function">GET_FARM_SEASON</span>(current_date)
+    contribution = base_contribution * SEASON_MULTIPLIER[current_season]
+    <span class="code-comment">// Harvest (Jun-Oct): 1.5x | Planting (Mar-May): 0.75x | Winter (Nov-Feb): 0.25x</span>
+
+    <span class="code-comment">// PHASE 3: RISK ASSESSMENT</span>
+    drawdown = (peak_value - current_value) / peak_value
+    volatility = <span class="code-function">CALCULATE_ROLLING_VOLATILITY</span>(daily_returns, <span class="code-number">21</span>_days)
+
+    <span class="code-keyword">IF</span> drawdown >= <span class="code-number">0.15</span>:
+        risk_status = <span class="code-string">"CRITICAL"</span>
+        growth_mode = <span class="code-string">"DEFENSIVE"</span>  <span class="code-comment">// Override momentum</span>
+    <span class="code-keyword">ELSE IF</span> drawdown >= <span class="code-number">0.10</span>:
+        risk_status = <span class="code-string">"ELEVATED"</span>
+        growth_mode = <span class="code-string">"DEFENSIVE"</span>
+    <span class="code-keyword">ELSE</span>:
+        risk_status = <span class="code-string">"NORMAL"</span>
+        growth_mode = <span class="code-function">CALCULATE_MOMENTUM_SIGNAL</span>()
+
+    <span class="code-comment">// PHASE 4: MOMENTUM SIGNAL (if not overridden)</span>
+    <span class="code-keyword">IF</span> growth_mode != <span class="code-string">"DEFENSIVE"</span>:
+        <span class="code-keyword">FOR EACH</span> asset <span class="code-keyword">IN</span> [QQQ, VUG, MTUM, VBK]:
+            momentum_score[asset] = <span class="code-function">COMPOSITE_MOMENTUM</span>(
+                weights: [<span class="code-number">0.25</span>, <span class="code-number">0.25</span>, <span class="code-number">0.25</span>, <span class="code-number">0.25</span>],
+                lookbacks: [<span class="code-number">1</span>, <span class="code-number">3</span>, <span class="code-number">6</span>, <span class="code-number">12</span> months]
+            )
+
+        top_assets = <span class="code-function">TOP_N</span>(momentum_score, n=<span class="code-number">2</span>)
+        cash_return = <span class="code-function">MOMENTUM</span>(SHY, <span class="code-number">12</span>_months)
+
+        passing_assets = <span class="code-function">FILTER</span>(top_assets, <span class="code-keyword">WHERE</span> momentum > cash_return)
+
+        <span class="code-keyword">IF</span> passing_assets.empty:
+            growth_mode = <span class="code-string">"DEFENSIVE"</span>
+            growth_holdings = { SHY: <span class="code-number">100%</span> }
+        <span class="code-keyword">ELSE</span>:
+            growth_mode = <span class="code-string">"OFFENSIVE"</span>
+            growth_holdings = <span class="code-function">EQUAL_WEIGHT</span>(passing_assets)
+
+    <span class="code-comment">// PHASE 5: BUILD TARGET ALLOCATION</span>
+    target_allocation = {}
+
+    <span class="code-comment">// Safe portion (75%)</span>
+    target_allocation += SAFE_STRATEGY * <span class="code-number">0.75</span>
+    <span class="code-comment">//   VTI:  15.0%  | VXUS: 7.5%  | BND:  15.0%</span>
+    <span class="code-comment">//   TIP:  11.25% | GOVT: 7.5%  | GLD:  5.625%</span>
+    <span class="code-comment">//   DBC:  3.75%  | SHY:  7.5%</span>
+
+    <span class="code-comment">// Growth portion (25%)</span>
+    target_allocation += growth_holdings * <span class="code-number">0.25</span>
+
+    <span class="code-comment">// PHASE 6: REBALANCING</span>
+    drift = <span class="code-function">CALCULATE_DRIFT</span>(current_holdings, target_allocation)
+
+    <span class="code-keyword">IF</span> max(drift) >= <span class="code-number">0.05</span> <span class="code-keyword">OR</span> new_contribution > <span class="code-number">0</span>:
+        <span class="code-comment">// Step A: Use contribution to buy underweight (tax-efficient)</span>
+        underweight = <span class="code-function">SORT_BY</span>(drift, ascending=<span class="code-keyword">true</span>)
+        <span class="code-keyword">FOR EACH</span> position <span class="code-keyword">IN</span> underweight <span class="code-keyword">WHERE</span> drift < <span class="code-number">0</span>:
+            buy_amount = <span class="code-function">MIN</span>(position.shortfall, remaining_contribution)
+            <span class="code-function">ADD_TRADE</span>(BUY, position, buy_amount)
+            remaining_contribution -= buy_amount
+
+        <span class="code-comment">// Step B: If still drifted, sell/buy (less tax-efficient)</span>
+        <span class="code-keyword">IF</span> still_needs_rebalancing:
+            <span class="code-keyword">FOR EACH</span> overweight_position:
+                <span class="code-function">ADD_TRADE</span>(SELL, position, excess_amount)
+            <span class="code-keyword">FOR EACH</span> underweight_position:
+                <span class="code-function">ADD_TRADE</span>(BUY, position, shortfall_amount)
+
+    <span class="code-comment">// PHASE 7: RETURN DECISION</span>
+    <span class="code-keyword">RETURN</span> {
+        contribution_amount: contribution,
+        trades: generated_trades,
+        growth_mode: growth_mode,
+        risk_status: risk_status,
+        action_items: prioritized_actions
+    }</code></pre>
+                    </div>
+
+                    <div id="spec-signals" class="spec-content">
+                        <h4 style="margin-bottom: 1rem;">Signal Calculation Formulas</h4>
+
+                        <div style="margin-bottom: 2rem;">
+                            <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">1. Simple Momentum Score</h5>
+                            <pre><code>momentum = (current_price - past_price) / past_price
+
+<span class="code-comment">// Example: 12-month momentum for QQQ</span>
+momentum_12m = (price_today - price_252_days_ago) / price_252_days_ago</code></pre>
+                        </div>
+
+                        <div style="margin-bottom: 2rem;">
+                            <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">2. Composite Momentum Score</h5>
+                            <pre><code><span class="code-comment">// Multi-timeframe weighted average</span>
+composite_momentum =
+    <span class="code-number">0.25</span> * momentum_1m +
+    <span class="code-number">0.25</span> * momentum_3m +
+    <span class="code-number">0.25</span> * momentum_6m +
+    <span class="code-number">0.25</span> * momentum_12m</code></pre>
+                        </div>
+
+                        <div style="margin-bottom: 2rem;">
+                            <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">3. Drawdown Calculation</h5>
+                            <pre><code>drawdown = (peak_value - current_value) / peak_value
+
+<span class="code-comment">// Peak value = highest portfolio value achieved</span>
+<span class="code-comment">// Track separately for total portfolio and growth allocation</span></code></pre>
+                        </div>
+
+                        <div style="margin-bottom: 2rem;">
+                            <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">4. Rolling Volatility (Annualized)</h5>
+                            <pre><code><span class="code-comment">// Daily returns over 21 trading days</span>
+daily_returns = [(price[t] - price[t-1]) / price[t-1] for t in range(21)]
+
+mean = sum(daily_returns) / 21
+variance = sum((r - mean)^2 for r in daily_returns) / 21
+daily_stddev = sqrt(variance)
+
+<span class="code-comment">// Annualize using sqrt(252)</span>
+annual_volatility = daily_stddev * sqrt(252)</code></pre>
+                        </div>
+
+                        <div style="margin-bottom: 2rem;">
+                            <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">5. Absolute Momentum Filter</h5>
+                            <pre><code><span class="code-comment">// Asset must beat cash to pass</span>
+passes_filter = asset_momentum_12m > cash_momentum_12m
+
+<span class="code-comment">// Cash benchmark: SHY (1-3 Year Treasury)</span>
+<span class="code-keyword">IF</span> asset_return_12m > SHY_return_12m:
+    <span class="code-keyword">INCLUDE</span> in offensive holdings
+<span class="code-keyword">ELSE</span>:
+    <span class="code-keyword">EXCLUDE</span> from holdings</code></pre>
+                        </div>
+
+                        <div>
+                            <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">6. Allocation Drift</h5>
+                            <pre><code><span class="code-comment">// For each position</span>
+current_percent = position_value / total_portfolio_value
+target_percent = target_allocation[ticker]
+drift = current_percent - target_percent
+
+<span class="code-comment">// Rebalance trigger</span>
+<span class="code-keyword">IF</span> abs(drift) >= <span class="code-number">0.05</span>:  <span class="code-comment">// 5% threshold</span>
+    needs_rebalancing = <span class="code-keyword">TRUE</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div>
+                <strong>Tiny Seed Wealth Builder</strong> v1.0.0 | Last Updated: January 15, 2026
+            </div>
+            <div>
+                <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+                For educational purposes only. Consult a financial advisor.
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the algorithm -->
+    <script src="investment_algorithm.js"></script>
+
+    <script>
+        // Allocation Chart
+        const allocationData = [
+            { ticker: 'VTI', percent: 15.0, color: '#2a9d8f', category: 'Safe' },
+            { ticker: 'VXUS', percent: 7.5, color: '#264653', category: 'Safe' },
+            { ticker: 'BND', percent: 15.0, color: '#4361ee', category: 'Safe' },
+            { ticker: 'TIP', percent: 11.25, color: '#3a86ff', category: 'Safe' },
+            { ticker: 'GOVT', percent: 7.5, color: '#8338ec', category: 'Safe' },
+            { ticker: 'GLD', percent: 5.625, color: '#ffd700', category: 'Safe' },
+            { ticker: 'DBC', percent: 3.75, color: '#fb8500', category: 'Safe' },
+            { ticker: 'SHY', percent: 7.5, color: '#90be6d', category: 'Safe' },
+            { ticker: 'QQQ', percent: 12.5, color: '#f4a261', category: 'Growth' },
+            { ticker: 'MTUM', percent: 12.5, color: '#e76f51', category: 'Growth' }
+        ];
+
+        const ctx = document.getElementById('allocationChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: allocationData.map(d => d.ticker),
+                datasets: [{
+                    data: allocationData.map(d => d.percent),
+                    backgroundColor: allocationData.map(d => d.color),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Populate legend
+        const legendContainer = document.getElementById('allocation-legend');
+        allocationData.forEach(item => {
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            legendItem.innerHTML = `
+                <div class="legend-item-left">
+                    <div class="legend-color" style="background: ${item.color};"></div>
+                    <span class="legend-ticker">${item.ticker}</span>
+                </div>
+                <span class="legend-percent">${item.percent}%</span>
+            `;
+            legendContainer.appendChild(legendItem);
+        });
+
+        // Tab switching
+        function showSpec(specId) {
+            document.querySelectorAll('.spec-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.spec-tab').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            document.getElementById('spec-' + specId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Update needle based on current drawdown
+        function updateRiskNeedle(drawdownPercent) {
+            // Convert drawdown (0-20%) to angle (-90 to 90 degrees)
+            const maxDrawdown = 20;
+            const angle = (drawdownPercent / maxDrawdown) * 180 - 90;
+            document.getElementById('risk-needle').style.setProperty('--needle-angle', angle + 'deg');
+        }
+
+        // Initialize with 3.2% drawdown
+        updateRiskNeedle(3.2);
+    </script>
+</body>
+</html>
