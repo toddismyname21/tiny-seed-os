@@ -234,8 +234,8 @@ function doGet(e) {
         return jsonResponse(getDeliveryHistory(e.parameter));
       case 'completeDelivery':
         return jsonResponse(completeDelivery(e.parameter));
-      case 'reportDeliveryIssue':
-        return jsonResponse(reportDeliveryIssue(e.parameter));
+      case 'logDeliveryIssue':
+        return jsonResponse(logDeliveryIssue(e.parameter));
 
       // ============ TIME CLOCK ============
       case 'clockIn':
@@ -2078,7 +2078,6 @@ function getHarvestsByDateRange(start, end) {
   }
 }
 function getWeatherData() { return jsonResponse({success: false, message: 'Not implemented'}); }
-function getCSAMembers() { return jsonResponse({success: false, message: 'Not implemented'}); }
 function getFinancials() { return jsonResponse({success: false, message: 'Not implemented'}); }
   function updatePlanting(params) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -7153,10 +7152,10 @@ function completeDelivery(params) {
 }
 
 /**
- * Log a delivery issue
+ * Log a delivery issue to DELIVERY_LOG sheet (used by GET requests)
  * @param {Object} params - { deliveryId, customer, timestamp, driverId, issueType, notes, photo }
  */
-function reportDeliveryIssue(params) {
+function logDeliveryIssue(params) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -9505,10 +9504,6 @@ function getOrCreateEmployeeSheet(sheetName) {
   return sheet;
 }
 
-function generateId(prefix) {
-  return prefix + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase();
-}
-
 // ============================================
 // EMPLOYEE AUTHENTICATION
 // ============================================
@@ -9780,7 +9775,7 @@ function clockOut(params) {
 function isInGeofence(lat, lng) {
   if (!lat || !lng) return true; // Allow if no GPS
 
-  const distance = haversineDistance(
+  const distance = haversineDistanceMeters(
     parseFloat(lat), parseFloat(lng),
     FARM_GEOFENCE.lat, FARM_GEOFENCE.lng
   );
@@ -9788,7 +9783,7 @@ function isInGeofence(lat, lng) {
   return distance <= FARM_GEOFENCE.radiusMeters;
 }
 
-function haversineDistance(lat1, lon1, lat2, lon2) {
+function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000; // Earth's radius in meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -13240,8 +13235,8 @@ function calculateHotspots(observations) {
 // Version: 1.0.0
 
 const FINANCIAL_CONFIG = {
-    // Financial sheet ID (can be same as production or separate)
-    SHEET_ID: CONFIG?.PRODUCTION_SHEET_ID || '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc',
+    // Financial sheet ID - uses same spreadsheet as main app
+    SHEET_ID: SPREADSHEET_ID,
 
     // Tab names for financial data
     TABS: {
