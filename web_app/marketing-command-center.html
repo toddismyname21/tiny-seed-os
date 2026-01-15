@@ -6,6 +6,7 @@
     <title>Tiny Seed Marketing Command Center</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="auth-guard.js" data-required-role="Manager"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -474,6 +475,97 @@
 
         .ai-caption-btn:hover {
             background: rgba(155, 89, 182, 0.3);
+        }
+
+        /* Schedule & Draft Controls */
+        .post-controls {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+        .schedule-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(67, 97, 238, 0.1);
+            border: 1px solid var(--info);
+            border-radius: 8px;
+            color: var(--info);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .schedule-toggle:hover {
+            background: rgba(67, 97, 238, 0.2);
+        }
+
+        .schedule-toggle.active {
+            background: rgba(67, 97, 238, 0.3);
+            font-weight: 600;
+        }
+
+        .schedule-datetime {
+            display: none;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+        .schedule-datetime.visible {
+            display: block;
+        }
+
+        .draft-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(141, 153, 174, 0.2);
+            border: 1px solid var(--text-secondary);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .draft-btn:hover {
+            background: rgba(141, 153, 174, 0.3);
+            color: var(--text-primary);
+        }
+
+        .draft-btn.has-draft {
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        /* Character Count */
+        .char-count {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 0.25rem;
+        }
+
+        .char-count span {
+            padding: 0.2rem 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+        }
+
+        .char-count span.over-limit {
+            color: var(--danger);
+            background: rgba(220, 53, 69, 0.2);
         }
 
         .platform-toggles {
@@ -1478,10 +1570,28 @@
                         </button>
 
                         <div>
-                            <textarea class="caption-input" id="captionInput" placeholder="What's happening on the farm?"></textarea>
-                            <button class="ai-caption-btn" onclick="generateAICaption()">
-                                <i class="fas fa-magic"></i> AI Generate Caption
-                            </button>
+                            <textarea class="caption-input" id="captionInput" placeholder="What's happening on the farm?" oninput="updateCharCount()"></textarea>
+                            <div class="char-count" id="charCount">
+                                <span id="charTiktok"><i class="fab fa-tiktok"></i> 0/2200</span>
+                                <span id="charInsta"><i class="fab fa-instagram"></i> 0/2200</span>
+                                <span id="charFb"><i class="fab fa-facebook"></i> 0/63206</span>
+                                <span id="charYt"><i class="fab fa-youtube"></i> 0/5000</span>
+                            </div>
+                            <div class="post-controls">
+                                <button class="ai-caption-btn" onclick="generateAICaption()">
+                                    <i class="fas fa-magic"></i> AI Caption
+                                </button>
+                                <button class="schedule-toggle" id="scheduleToggle" onclick="toggleScheduleMode()">
+                                    <i class="fas fa-clock"></i> Schedule Post
+                                </button>
+                                <input type="datetime-local" class="schedule-datetime" id="scheduleDateTime">
+                                <button class="draft-btn" id="draftBtn" onclick="saveDraft()">
+                                    <i class="fas fa-save"></i> Save Draft
+                                </button>
+                                <button class="draft-btn" id="loadDraftBtn" onclick="loadDraft()" style="display: none;">
+                                    <i class="fas fa-file-import"></i> Load Draft
+                                </button>
+                            </div>
                         </div>
 
                         <div>
@@ -2598,36 +2708,260 @@
 
         document.getElementById('captionInput').addEventListener('input', updateBlastButton);
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CHARACTER COUNT
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const charLimits = {
+            tiktok: 2200,
+            instagram: 2200,
+            facebook: 63206,
+            youtube: 5000,
+            pinterest: 500
+        };
+
+        function updateCharCount() {
+            const text = document.getElementById('captionInput').value;
+            const len = text.length;
+
+            // Update each platform count
+            const platforms = [
+                { id: 'charTiktok', icon: 'fab fa-tiktok', limit: charLimits.tiktok },
+                { id: 'charInsta', icon: 'fab fa-instagram', limit: charLimits.instagram },
+                { id: 'charFb', icon: 'fab fa-facebook', limit: charLimits.facebook },
+                { id: 'charYt', icon: 'fab fa-youtube', limit: charLimits.youtube }
+            ];
+
+            platforms.forEach(p => {
+                const el = document.getElementById(p.id);
+                if (el) {
+                    el.innerHTML = `<i class="${p.icon}"></i> ${len}/${p.limit}`;
+                    if (len > p.limit) {
+                        el.classList.add('over-limit');
+                    } else {
+                        el.classList.remove('over-limit');
+                    }
+                }
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SCHEDULE MODE
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let isScheduled = false;
+
+        function toggleScheduleMode() {
+            isScheduled = !isScheduled;
+            const toggle = document.getElementById('scheduleToggle');
+            const datetime = document.getElementById('scheduleDateTime');
+            const blastBtn = document.getElementById('blastBtn');
+
+            if (isScheduled) {
+                toggle.classList.add('active');
+                toggle.innerHTML = '<i class="fas fa-clock"></i> Scheduled';
+                datetime.classList.add('visible');
+                blastBtn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULE POST';
+
+                // Default to tomorrow at 9am
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(9, 0, 0, 0);
+                datetime.value = tomorrow.toISOString().slice(0, 16);
+            } else {
+                toggle.classList.remove('active');
+                toggle.innerHTML = '<i class="fas fa-clock"></i> Schedule Post';
+                datetime.classList.remove('visible');
+                blastBtn.innerHTML = '<i class="fas fa-paper-plane"></i> PUBLISH ALL';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DRAFT SAVING
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const DRAFT_KEY = 'tinyseed_post_draft';
+
+        function saveDraft() {
+            const caption = document.getElementById('captionInput').value;
+            const scheduleTime = document.getElementById('scheduleDateTime').value;
+
+            if (!caption.trim()) {
+                showToast('Nothing to save!', 'warning');
+                return;
+            }
+
+            const draft = {
+                caption: caption,
+                platforms: selectedPlatforms,
+                isScheduled: isScheduled,
+                scheduleTime: scheduleTime,
+                savedAt: new Date().toISOString()
+            };
+
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            showToast('Draft saved!', 'success');
+
+            // Update button to show draft exists
+            document.getElementById('draftBtn').classList.add('has-draft');
+        }
+
+        function loadDraft() {
+            const saved = localStorage.getItem(DRAFT_KEY);
+            if (!saved) {
+                showToast('No draft found', 'warning');
+                return;
+            }
+
+            try {
+                const draft = JSON.parse(saved);
+
+                // Load caption
+                document.getElementById('captionInput').value = draft.caption || '';
+                updateCharCount();
+                updateBlastButton();
+
+                // Load schedule mode
+                if (draft.isScheduled && !isScheduled) {
+                    toggleScheduleMode();
+                }
+                if (draft.scheduleTime) {
+                    document.getElementById('scheduleDateTime').value = draft.scheduleTime;
+                }
+
+                // Load platform selections
+                if (draft.platforms) {
+                    // Reset all toggles first
+                    document.querySelectorAll('.platform-toggle').forEach(el => {
+                        el.classList.remove('active');
+                    });
+                    selectedPlatforms = [];
+
+                    // Set saved platforms
+                    draft.platforms.forEach(platform => {
+                        const toggle = document.querySelector(`.platform-toggle[onclick*="'${platform}'"]`);
+                        if (toggle) {
+                            toggle.classList.add('active');
+                            selectedPlatforms.push(platform);
+                        }
+                    });
+                }
+
+                const savedTime = new Date(draft.savedAt).toLocaleString();
+                showToast(`Draft loaded (saved ${savedTime})`, 'success');
+
+            } catch (e) {
+                showToast('Error loading draft', 'error');
+                console.error('Draft load error:', e);
+            }
+        }
+
+        function deleteDraft() {
+            localStorage.removeItem(DRAFT_KEY);
+            document.getElementById('draftBtn').classList.remove('has-draft');
+            document.getElementById('loadDraftBtn').style.display = 'none';
+        }
+
+        function checkForDraft() {
+            const saved = localStorage.getItem(DRAFT_KEY);
+            if (saved) {
+                document.getElementById('draftBtn').classList.add('has-draft');
+                document.getElementById('loadDraftBtn').style.display = 'flex';
+            }
+        }
+
+        // Check for drafts on page load
+        checkForDraft();
+
         async function publishAll() {
             const btn = document.getElementById('blastBtn');
             const timer = document.getElementById('postTimer');
             const startTime = Date.now();
+            const caption = document.getElementById('captionInput').value;
+            const scheduleTime = isScheduled ? document.getElementById('scheduleDateTime').value : null;
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+            btn.innerHTML = isScheduled
+                ? '<i class="fas fa-spinner fa-spin"></i> Scheduling...'
+                : '<i class="fas fa-spinner fa-spin"></i> Publishing...';
             timer.innerHTML = '<i class="fas fa-stopwatch"></i> Working...';
 
-            // Simulate publishing to multiple platforms
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Filter social platforms (exclude appfeed, sms which are internal)
+            const socialPlatforms = selectedPlatforms.filter(p =>
+                ['tiktok', 'instagram', 'facebook', 'youtube', 'pinterest', 'threads'].includes(p)
+            );
 
-            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-            timer.innerHTML = `<i class="fas fa-check"></i> ${elapsed}s`;
-            timer.style.background = 'var(--success)';
+            try {
+                // Call Ayrshare API if we have social platforms
+                if (socialPlatforms.length > 0) {
+                    const response = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'publishSocialPost',
+                            caption: caption,
+                            platforms: socialPlatforms,
+                            scheduleDate: scheduleTime ? new Date(scheduleTime).toISOString() : null
+                        })
+                    });
+                    const result = await response.json();
 
-            btn.innerHTML = '<i class="fas fa-check"></i> PUBLISHED!';
+                    if (!result.success) {
+                        throw new Error(result.error || 'Failed to publish');
+                    }
+                }
 
-            showToast(`Posted to ${selectedPlatforms.length} platforms in ${elapsed} seconds!`, 'success');
+                // Handle app feed separately (our internal system)
+                if (selectedPlatforms.includes('appfeed')) {
+                    // Post to our app feed
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'postToAppFeed',
+                            content: caption
+                        })
+                    });
+                }
 
-            // Log to marketing spend
-            logMarketingActivity('social_post', {
-                platforms: selectedPlatforms,
-                time: elapsed,
-                caption: document.getElementById('captionInput').value.substring(0, 50)
-            });
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                timer.innerHTML = `<i class="fas fa-check"></i> ${elapsed}s`;
+                timer.style.background = 'var(--success)';
+
+                if (isScheduled) {
+                    const scheduleDate = new Date(scheduleTime);
+                    btn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULED!';
+                    showToast(`Scheduled for ${scheduleDate.toLocaleString()} on ${selectedPlatforms.length} platforms!`, 'success');
+                } else {
+                    btn.innerHTML = '<i class="fas fa-check"></i> PUBLISHED!';
+                    showToast(`Posted to ${selectedPlatforms.length} platforms in ${elapsed} seconds!`, 'success');
+                }
+
+                // Log to marketing spend
+                logMarketingActivity('social_post', {
+                    platforms: selectedPlatforms,
+                    time: elapsed,
+                    caption: caption.substring(0, 50),
+                    scheduled: isScheduled,
+                    scheduleTime: scheduleTime
+                });
+
+                // Delete draft after successful publish
+                deleteDraft();
+
+            } catch (error) {
+                console.error('Publish error:', error);
+                showToast('Error: ' + error.message, 'error');
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> FAILED';
+                timer.innerHTML = '<i class="fas fa-times"></i> Error';
+                timer.style.background = 'var(--danger)';
+            }
 
             // Reset after 3 seconds
             setTimeout(() => {
-                btn.innerHTML = '<i class="fas fa-paper-plane"></i> PUBLISH ALL';
+                btn.innerHTML = isScheduled
+                    ? '<i class="fas fa-calendar-check"></i> SCHEDULE POST'
+                    : '<i class="fas fa-paper-plane"></i> PUBLISH ALL';
                 timer.innerHTML = '<i class="fas fa-stopwatch"></i> Ready';
                 timer.style.background = 'var(--success)';
                 selectedFile = null;
@@ -2636,7 +2970,10 @@
                 document.getElementById('uploadText').textContent = 'Drop media here or tap to upload';
                 document.getElementById('uploadSubtext').textContent = 'Photos and videos up to 100MB';
                 document.getElementById('captionInput').value = '';
+                updateCharCount();
                 updateBlastButton();
+                // Reset schedule mode
+                if (isScheduled) toggleScheduleMode();
             }, 3000);
         }
 

@@ -80,6 +80,10 @@ function doGet(e) {
         return jsonResponse(validateSession(e.parameter));
       case 'getUsers':
         return jsonResponse(getUsers(e.parameter));
+      case 'getActiveSessions':
+        return jsonResponse(getActiveSessions(e.parameter));
+      case 'getAuditLog':
+        return jsonResponse(getAuditLog(e.parameter));
 
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
@@ -96,7 +100,7 @@ function doGet(e) {
       case 'getGreenhouseSeedings':
         return getGreenhouseSeedings();
       case 'getSeedInventory':
-        return getSeedInventory();
+        return jsonResponse(getSeedInventory(e.parameter));
       case 'getFieldTasks':
         return getFieldTasks();
       case 'getDTMLearningData':
@@ -134,6 +138,8 @@ function doGet(e) {
         return getHarvestsByDateRange(e.parameter.start, e.parameter.end);
       case 'getWeather':
         return getWeatherData();
+      case 'getWeatherSummary':
+        return jsonResponse(getWeatherSummary(e.parameter));
       case 'getCSAMembers':
         return getCSAMembers();
       case 'getFinancials':
@@ -539,6 +545,10 @@ function doGet(e) {
         return jsonResponse(checkRotationCompatibility(e.parameter.previousCrop, e.parameter.nextCrop));
       case 'populateFieldDaysData':
         return jsonResponse(populateFieldDaysData());
+      case 'getSeasonalDTMInfo':
+        return jsonResponse(getSeasonalDTMInfo(e.parameter));
+      case 'getLearnedDTM':
+        return jsonResponse(getLearnedDTM(e.parameter));
 
       // ============ FIELD PLAN ADVISOR ============
       case 'analyzeFieldPlan':
@@ -561,6 +571,10 @@ function doGet(e) {
         return jsonResponse(getOptimalBedAssignments(e.parameter));
       case 'applyOptimalAssignments':
         return jsonResponse(applyOptimalAssignments(e.parameter));
+      case 'assignPlantingsToField':
+        return jsonResponse(assignPlantingsToField(e.parameter));
+      case 'getAvailableFields':
+        return jsonResponse(getAvailableFields(e.parameter));
 
       // ============ MARKETING MODULE ============
       case 'getFarmPics':
@@ -579,6 +593,54 @@ function doGet(e) {
         return jsonResponse(getMarketingAnalytics(e.parameter));
       case 'getSocialConnections':
         return jsonResponse(getSocialConnections(e.parameter));
+      case 'publishSocialPost':
+        return jsonResponse(publishToSocial(payload));
+      case 'checkAyrshareStatus':
+        return jsonResponse(checkAyrshareStatus());
+
+      // ============ SEED INVENTORY & TRACEABILITY ============
+      case 'initSeedInventory':
+        return jsonResponse(initSeedInventorySheet());
+      case 'getSeedByQR':
+        return jsonResponse(getSeedByQR(e.parameter.seedLotId));
+      case 'getSeedUsageHistory':
+        return jsonResponse(getSeedUsageHistory(e.parameter.seedLotId));
+      case 'getLowStockSeeds':
+        return jsonResponse(getLowStockSeeds());
+      case 'getSeedLabelData':
+        return jsonResponse(getSeedLabelData(e.parameter.seedLotId));
+
+      // ============ SHOPIFY & QUICKBOOKS INTEGRATION ============
+      case 'getIntegrationStatus':
+        return jsonResponse(getIntegrationStatus());
+      case 'setupIntegrationSheets':
+        return jsonResponse(setupIntegrationSheets());
+
+      // Shopify
+      case 'getShopifyAuthUrl':
+        return jsonResponse({ success: true, url: getShopifyAuthorizationUrl() });
+      case 'testShopifyConnection':
+        return jsonResponse(testShopifyConnection());
+      case 'syncShopifyOrders':
+        return jsonResponse(syncShopifyOrders(e.parameter));
+      case 'syncShopifyProducts':
+        return jsonResponse(syncShopifyProducts());
+      case 'getShopifyOrder':
+        return jsonResponse(getShopifyOrder(e.parameter.orderId));
+
+      // QuickBooks
+      case 'getQuickBooksAuthUrl':
+        return jsonResponse({ success: true, url: getQuickBooksAuthorizationUrl() });
+      case 'testQuickBooksConnection':
+        return jsonResponse(testQuickBooksConnection());
+      case 'disconnectQuickBooks':
+        return jsonResponse(disconnectQuickBooks());
+      case 'syncQuickBooksCustomers':
+        return jsonResponse(syncQuickBooksCustomers());
+      case 'createInvoiceFromOrder':
+        return jsonResponse(createInvoiceFromOrder(e.parameter.orderId, e.parameter.orderType));
+      case 'syncShopifyOrderToQuickBooks':
+        return jsonResponse(syncShopifyOrderToQuickBooks(e.parameter.shopifyOrderId));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -603,7 +665,21 @@ function doPost(e) {
         return saveSuccessionPlan(data.plan);
       case 'completeTask':
         return completeTask(data.taskId, data.completedBy, data.notes);
-      
+
+      // ============ USER MANAGEMENT ============
+      case 'createUser':
+        return jsonResponse(createUser(data));
+      case 'updateUser':
+        return jsonResponse(updateUser(data));
+      case 'deactivateUser':
+        return jsonResponse(deactivateUser(data));
+      case 'resetUserPin':
+        return jsonResponse(resetUserPin(data));
+      case 'forceLogout':
+        return jsonResponse(forceLogout(data));
+      case 'logAdminAction':
+        return jsonResponse(logAdminAction(data));
+
       // ============ LEGACY POST ENDPOINTS ============
       case 'addPlanting':
         return addPlanting(data.planting);
@@ -781,6 +857,20 @@ function doPost(e) {
         return jsonResponse(logMarketingSpend(data));
       case 'logMarketingActivity':
         return jsonResponse(logMarketingActivity(data));
+
+      // ============ SEED INVENTORY & TRACEABILITY ============
+      case 'addSeedLot':
+        return jsonResponse(addSeedLot(data));
+      case 'useSeedFromLot':
+        return jsonResponse(useSeedFromLot(data));
+
+      // ============ SHOPIFY & QUICKBOOKS INTEGRATION ============
+      case 'shopifyWebhook':
+        return jsonResponse(handleShopifyWebhook(e));
+      case 'createQuickBooksInvoice':
+        return jsonResponse(createQuickBooksInvoice(data));
+      case 'createQuickBooksCustomer':
+        return jsonResponse(createQuickBooksCustomer(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -1020,6 +1110,359 @@ function createUser(data) {
     sheet.appendRow(newRow);
 
     return { success: true, userId: userId, message: 'User created successfully' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateUser(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'USERS sheet not found' };
+    }
+
+    if (!data.userId) {
+      return { success: false, error: 'userId is required' };
+    }
+
+    // Find user row
+    const dataRange = sheet.getDataRange().getValues();
+    let userRowIndex = -1;
+    for (let i = 1; i < dataRange.length; i++) {
+      if (dataRange[i][0] === data.userId) {
+        userRowIndex = i + 1; // 1-indexed for sheet
+        break;
+      }
+    }
+
+    if (userRowIndex === -1) {
+      return { success: false, error: 'User not found: ' + data.userId };
+    }
+
+    // Update allowed fields
+    if (data.fullName !== undefined) {
+      sheet.getRange(userRowIndex, 4).setValue(data.fullName);
+    }
+    if (data.email !== undefined) {
+      sheet.getRange(userRowIndex, 5).setValue(data.email);
+    }
+    if (data.role !== undefined) {
+      if (!USER_ROLES[data.role]) {
+        return { success: false, error: 'Invalid role: ' + data.role };
+      }
+      sheet.getRange(userRowIndex, 6).setValue(data.role);
+    }
+
+    return { success: true, message: 'User updated successfully' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function deactivateUser(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'USERS sheet not found' };
+    }
+
+    if (!data.userId) {
+      return { success: false, error: 'userId is required' };
+    }
+
+    // Find user row
+    const dataRange = sheet.getDataRange().getValues();
+    let userRowIndex = -1;
+    for (let i = 1; i < dataRange.length; i++) {
+      if (dataRange[i][0] === data.userId) {
+        userRowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (userRowIndex === -1) {
+      return { success: false, error: 'User not found: ' + data.userId };
+    }
+
+    // Set Is_Active to false
+    sheet.getRange(userRowIndex, 7).setValue(false);
+
+    return { success: true, message: 'User deactivated successfully' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function resetUserPin(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'USERS sheet not found' };
+    }
+
+    if (!data.userId) {
+      return { success: false, error: 'userId is required' };
+    }
+
+    // Find user row
+    const dataRange = sheet.getDataRange().getValues();
+    let userRowIndex = -1;
+    for (let i = 1; i < dataRange.length; i++) {
+      if (dataRange[i][0] === data.userId) {
+        userRowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (userRowIndex === -1) {
+      return { success: false, error: 'User not found: ' + data.userId };
+    }
+
+    // Generate new 4-digit PIN
+    const newPin = String(Math.floor(1000 + Math.random() * 9000));
+    sheet.getRange(userRowIndex, 3).setValue(newPin);
+
+    return { success: true, newPin: newPin, message: 'PIN reset successfully' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SESSION MANAGEMENT SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SESSIONS_SHEET_NAME = 'SESSIONS';
+const SESSIONS_HEADERS = [
+  'Session_ID', 'User_ID', 'Token', 'Login_Time', 'Last_Activity', 'IP_Address', 'Device'
+];
+
+function createSessionsSheet(ss) {
+  const sheet = ss.insertSheet(SESSIONS_SHEET_NAME);
+  sheet.getRange(1, 1, 1, SESSIONS_HEADERS.length).setValues([SESSIONS_HEADERS]);
+  const headerRange = sheet.getRange(1, 1, 1, SESSIONS_HEADERS.length);
+  headerRange.setBackground('#1a73e8');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+function getActiveSessions(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SESSIONS_SHEET_NAME);
+
+    if (!sheet) {
+      sheet = createSessionsSheet(ss);
+      return { success: true, sessions: [], message: 'No active sessions' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return { success: true, sessions: [], message: 'No active sessions' };
+    }
+
+    const headers = data[0];
+    const sessions = [];
+    const now = new Date();
+    const sessionTimeout = 24 * 60 * 60 * 1000; // 24 hours
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const lastActivity = new Date(row[4]);
+
+      // Only include sessions active within timeout period
+      if (now - lastActivity < sessionTimeout) {
+        const session = {};
+        headers.forEach((h, idx) => session[h] = row[idx]);
+        // Don't expose full token
+        session.Token = session.Token ? '***' + session.Token.slice(-4) : '';
+        sessions.push(session);
+      }
+    }
+
+    return { success: true, sessions: sessions, count: sessions.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function forceLogout(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SESSIONS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'SESSIONS sheet not found' };
+    }
+
+    if (!data.sessionId && !data.userId) {
+      return { success: false, error: 'sessionId or userId required' };
+    }
+
+    const dataRange = sheet.getDataRange().getValues();
+    const rowsToDelete = [];
+
+    for (let i = dataRange.length - 1; i >= 1; i--) {
+      const row = dataRange[i];
+      if (data.sessionId && row[0] === data.sessionId) {
+        rowsToDelete.push(i + 1);
+      } else if (data.userId && row[1] === data.userId) {
+        rowsToDelete.push(i + 1);
+      }
+    }
+
+    // Delete from bottom up to preserve row indices
+    rowsToDelete.forEach(rowNum => sheet.deleteRow(rowNum));
+
+    return {
+      success: true,
+      message: `Logged out ${rowsToDelete.length} session(s)`,
+      sessionsRemoved: rowsToDelete.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function createSession(userId, device, ipAddress) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SESSIONS_SHEET_NAME);
+
+    if (!sheet) {
+      sheet = createSessionsSheet(ss);
+    }
+
+    const sessionId = 'SES-' + Date.now();
+    const token = Utilities.getUuid();
+    const now = new Date().toISOString();
+
+    sheet.appendRow([
+      sessionId,
+      userId,
+      token,
+      now,
+      now,
+      ipAddress || '',
+      device || 'Unknown'
+    ]);
+
+    return { success: true, sessionId: sessionId, token: token };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUDIT LOG SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+const AUDIT_LOG_SHEET_NAME = 'AUDIT_LOG';
+const AUDIT_LOG_HEADERS = [
+  'Log_ID', 'Timestamp', 'User_ID', 'Action', 'Target_Type', 'Target_ID', 'Details', 'IP_Address'
+];
+
+function createAuditLogSheet(ss) {
+  const sheet = ss.insertSheet(AUDIT_LOG_SHEET_NAME);
+  sheet.getRange(1, 1, 1, AUDIT_LOG_HEADERS.length).setValues([AUDIT_LOG_HEADERS]);
+  const headerRange = sheet.getRange(1, 1, 1, AUDIT_LOG_HEADERS.length);
+  headerRange.setBackground('#d32f2f');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+function logAdminAction(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(AUDIT_LOG_SHEET_NAME);
+
+    if (!sheet) {
+      sheet = createAuditLogSheet(ss);
+    }
+
+    const logId = 'LOG-' + Date.now();
+    const timestamp = new Date().toISOString();
+
+    sheet.appendRow([
+      logId,
+      timestamp,
+      data.userId || 'SYSTEM',
+      data.action || 'UNKNOWN',
+      data.targetType || '',
+      data.targetId || '',
+      data.details || '',
+      data.ipAddress || ''
+    ]);
+
+    return { success: true, logId: logId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getAuditLog(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(AUDIT_LOG_SHEET_NAME);
+
+    if (!sheet) {
+      sheet = createAuditLogSheet(ss);
+      return { success: true, logs: [], message: 'No audit logs yet' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return { success: true, logs: [], message: 'No audit logs yet' };
+    }
+
+    const headers = data[0];
+    let logs = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const log = {};
+      headers.forEach((h, idx) => log[h] = data[i][idx]);
+      logs.push(log);
+    }
+
+    // Filter by userId if provided
+    if (params && params.userId) {
+      logs = logs.filter(l => l.User_ID === params.userId);
+    }
+
+    // Filter by action if provided
+    if (params && params.action) {
+      logs = logs.filter(l => l.Action === params.action);
+    }
+
+    // Filter by date range if provided
+    if (params && params.startDate) {
+      const start = new Date(params.startDate);
+      logs = logs.filter(l => new Date(l.Timestamp) >= start);
+    }
+    if (params && params.endDate) {
+      const end = new Date(params.endDate);
+      logs = logs.filter(l => new Date(l.Timestamp) <= end);
+    }
+
+    // Sort by timestamp descending (most recent first)
+    logs.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
+    // Limit results
+    const limit = (params && params.limit) ? parseInt(params.limit) : 100;
+    logs = logs.slice(0, limit);
+
+    return { success: true, logs: logs, count: logs.length };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
@@ -1810,51 +2253,526 @@ function getGreenhouseSeedings() {
   }
 }
 
-function getSeedInventory() {
+// ═══════════════════════════════════════════════════════════════════════════
+// SEED INVENTORY & QR TRACEABILITY SYSTEM
+// Tracks seeds from packet to planting with full chain of custody
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * SEED_INVENTORY Schema:
+ * - Seed_Lot_ID: Unique identifier (auto-generated, becomes QR code content)
+ * - QR_Code_URL: URL to QR code image for printing
+ * - Crop: Crop name (e.g., "Tomato")
+ * - Variety: Variety name (e.g., "Early Girl")
+ * - Supplier: Seed company name
+ * - Supplier_Lot: Original lot number from supplier (for traceability)
+ * - Quantity_Original: Amount received
+ * - Quantity_Remaining: Current amount on hand
+ * - Unit: seeds, grams, oz, packet
+ * - Germination_Rate: Percentage (e.g., 92)
+ * - Germ_Test_Date: Date germination was tested
+ * - Pack_Date: Date seed was packed
+ * - Expiration_Date: Best-by date
+ * - Organic_Certified: Yes/No
+ * - Certifier: Organic certifier name
+ * - Seed_Treatment: Treated, Untreated, Pelleted, Primed
+ * - Purchase_Date: Date received
+ * - Purchase_Price: Cost
+ * - Storage_Location: Where it's stored
+ * - Notes: Any additional notes
+ * - Status: Active, Low, Empty, Expired
+ * - Created_At: Timestamp
+ * - Last_Used: Last time seeds were taken from this lot
+ */
+
+const SEED_INVENTORY_HEADERS = [
+  'Seed_Lot_ID', 'QR_Code_URL', 'Crop', 'Variety', 'Supplier', 'Supplier_Lot',
+  'Quantity_Original', 'Quantity_Remaining', 'Unit', 'Germination_Rate', 'Germ_Test_Date',
+  'Pack_Date', 'Expiration_Date', 'Organic_Certified', 'Certifier', 'Seed_Treatment',
+  'Purchase_Date', 'Purchase_Price', 'Storage_Location', 'Notes', 'Status',
+  'Created_At', 'Last_Used'
+];
+
+/**
+ * Initialize or get SEED_INVENTORY sheet
+ */
+function initSeedInventorySheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('SEED_INVENTORY');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('SEED_INVENTORY');
+    sheet.appendRow(SEED_INVENTORY_HEADERS);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, SEED_INVENTORY_HEADERS.length)
+      .setFontWeight('bold')
+      .setBackground('#4a7c59');
+
+    // Set column widths for readability
+    sheet.setColumnWidth(1, 150); // Seed_Lot_ID
+    sheet.setColumnWidth(2, 200); // QR_Code_URL
+    sheet.setColumnWidth(3, 120); // Crop
+    sheet.setColumnWidth(4, 150); // Variety
+  }
+
+  return sheet;
+}
+
+/**
+ * Generate a unique Seed Lot ID
+ * Format: S-{CROP_CODE}-{YYMMDD}-{SEQ}
+ * Example: S-TOM-250115-001
+ */
+function generateSeedLotId(crop) {
+  const cropCode = String(crop).substring(0, 3).toUpperCase();
+  const dateCode = Utilities.formatDate(new Date(), 'GMT', 'yyMMdd');
+  const seq = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+  return `S-${cropCode}-${dateCode}-${seq}`;
+}
+
+/**
+ * Generate QR code URL for a seed lot
+ * Uses QuickChart.io (free, no API key needed)
+ */
+function generateSeedQRCode(seedLotId) {
+  // Full URL so any phone camera can scan and open tracking page directly
+  const trackingUrl = `https://tinyseedfarm.github.io/TIny_Seed_OS/seed_track.html?id=${seedLotId}`;
+  const data = encodeURIComponent(trackingUrl);
+  // Size 200x200 is good for 1" labels
+  return `https://quickchart.io/chart?cht=qr&chs=200x200&chl=${data}&choe=UTF-8`;
+}
+
+/**
+ * Add a new seed lot to inventory
+ * Called when scanning/entering a new seed packet
+ */
+function addSeedLot(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let invSheet = ss.getSheetByName('SEED_INVENTORY');
-    
-    if (!invSheet) {
-      return jsonResponse({
+    if (!data.crop) {
+      return { success: false, error: 'Crop name is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = initSeedInventorySheet();
+
+    // Generate unique lot ID and QR code
+    const seedLotId = generateSeedLotId(data.crop);
+    const qrCodeUrl = generateSeedQRCode(seedLotId);
+
+    // Normalize parameters (accept both camelCase and snake_case)
+    const quantity = data.quantity || data.quantity_original || 0;
+    const supplier = data.supplier || data.vendor || '';
+    const supplierLot = data.supplierLot || data.supplier_lot || data.lotNumber || '';
+    const germRate = data.germinationRate || data.germination_rate || data.germRate || '';
+    const germTestDate = data.germTestDate || data.germ_test_date || '';
+    const packDate = data.packDate || data.pack_date || '';
+    const expDate = data.expirationDate || data.expiration_date || '';
+    const organic = data.organicCertified || data.organic_certified || data.organic || 'No';
+    const organicStr = (organic === true || organic === 'true' || organic === 'Yes' || organic === 'yes') ? 'Yes' : 'No';
+
+    // Calculate initial status
+    let status = 'Active';
+    if (expDate) {
+      const expDateObj = new Date(expDate);
+      if (expDateObj < new Date()) status = 'Expired';
+    }
+
+    // Build row data
+    const rowData = [
+      seedLotId,
+      qrCodeUrl,
+      data.crop || '',
+      data.variety || '',
+      supplier,
+      supplierLot,
+      quantity,
+      quantity, // Remaining starts same as original
+      data.unit || 'seeds',
+      germRate,
+      germTestDate,
+      packDate,
+      expDate,
+      organicStr,
+      data.certifier || '',
+      data.seedTreatment || data.seed_treatment || 'Untreated',
+      data.purchaseDate || data.purchase_date || new Date(),
+      data.purchasePrice || data.purchase_price || '',
+      data.storageLocation || data.storage_location || '',
+      data.notes || '',
+      status,
+      new Date(),
+      ''
+    ];
+
+    sheet.appendRow(rowData);
+
+    return {
+      success: true,
+      message: 'Seed lot added to inventory',
+      seedLotId: seedLotId,
+      qrCodeUrl: qrCodeUrl,
+      data: {
+        seedLotId: seedLotId,
+        crop: data.crop,
+        variety: data.variety,
+        quantity: data.quantity,
+        unit: data.unit
+      }
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get full seed inventory with filtering options
+ */
+function getSeedInventory(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SEED_INVENTORY');
+
+    if (!sheet) {
+      return {
         success: true,
         data: [],
-        message: 'No seed inventory sheet found - using demo data'
-      });
+        message: 'No seed inventory yet - add your first seed lot!'
+      };
     }
-    
-    const data = invSheet.getDataRange().getValues();
+
+    const data = sheet.getDataRange().getValues();
     if (data.length < 2) {
-      return jsonResponse({
+      return {
         success: true,
         data: [],
         message: 'Seed inventory is empty'
-      });
+      };
     }
-    
+
     const headers = data[0];
     const rows = data.slice(1);
-    
-    const inventory = rows.map((row, index) => {
-      const obj = { id: index + 1 };
+
+    let inventory = rows.map((row, index) => {
+      const obj = { rowIndex: index + 2 }; // 1-indexed + header row
       headers.forEach((header, i) => {
         obj[header] = row[i];
       });
       return obj;
-    }).filter(item => item.Crop || item.crop);
-    
-    return jsonResponse({
+    });
+
+    // Apply filters if provided
+    if (params) {
+      if (params.crop) {
+        inventory = inventory.filter(item =>
+          String(item.Crop).toLowerCase().includes(String(params.crop).toLowerCase())
+        );
+      }
+      if (params.status) {
+        inventory = inventory.filter(item => item.Status === params.status);
+      }
+      if (params.organic === 'true' || params.organic === true) {
+        inventory = inventory.filter(item =>
+          String(item.Organic_Certified).toLowerCase() === 'yes'
+        );
+      }
+      if (params.hasStock === 'true' || params.hasStock === true) {
+        inventory = inventory.filter(item =>
+          Number(item.Quantity_Remaining) > 0
+        );
+      }
+    }
+
+    return {
       success: true,
       data: inventory,
       count: inventory.length,
       timestamp: new Date().toISOString()
-    });
-    
+    };
+
   } catch (error) {
-    return jsonResponse({
-      success: false,
-      error: error.toString()
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get seed lot by QR code (Seed_Lot_ID)
+ * This is the primary lookup when scanning QR codes
+ */
+function getSeedByQR(seedLotId) {
+  try {
+    if (!seedLotId) {
+      return { success: false, error: 'Seed Lot ID required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('SEED_INVENTORY');
+
+    if (!sheet) {
+      return { success: false, error: 'Seed inventory not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const lotIdCol = headers.indexOf('Seed_Lot_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][lotIdCol]).trim() === String(seedLotId).trim()) {
+        const seed = { rowIndex: i + 1 };
+        headers.forEach((header, idx) => {
+          seed[header] = data[i][idx];
+        });
+
+        return {
+          success: true,
+          found: true,
+          seed: seed
+        };
+      }
+    }
+
+    return {
+      success: true,
+      found: false,
+      message: 'Seed lot not found: ' + seedLotId
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Use seeds from inventory (when seeding/planting)
+ * Links seed lot to planting record for traceability
+ */
+function useSeedFromLot(params) {
+  try {
+    const { seedLotId, quantityUsed, batchId, notes } = params;
+
+    if (!seedLotId || !quantityUsed) {
+      return { success: false, error: 'Seed Lot ID and quantity required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('SEED_INVENTORY');
+
+    if (!sheet) {
+      return { success: false, error: 'Seed inventory not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const lotIdCol = headers.indexOf('Seed_Lot_ID');
+    const remainingCol = headers.indexOf('Quantity_Remaining');
+    const statusCol = headers.indexOf('Status');
+    const lastUsedCol = headers.indexOf('Last_Used');
+
+    // Find the seed lot
+    let rowIndex = -1;
+    let currentRemaining = 0;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][lotIdCol]).trim() === String(seedLotId).trim()) {
+        rowIndex = i + 1; // 1-indexed for sheet
+        currentRemaining = Number(data[i][remainingCol]) || 0;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'Seed lot not found: ' + seedLotId };
+    }
+
+    // Check if enough seeds available
+    const used = Number(quantityUsed);
+    if (used > currentRemaining) {
+      return {
+        success: false,
+        error: `Not enough seeds. Available: ${currentRemaining}, Requested: ${used}`
+      };
+    }
+
+    // Update remaining quantity
+    const newRemaining = currentRemaining - used;
+    sheet.getRange(rowIndex, remainingCol + 1).setValue(newRemaining);
+    sheet.getRange(rowIndex, lastUsedCol + 1).setValue(new Date());
+
+    // Update status if low or empty
+    let newStatus = 'Active';
+    if (newRemaining === 0) {
+      newStatus = 'Empty';
+    } else if (newRemaining < (currentRemaining * 0.2)) {
+      newStatus = 'Low';
+    }
+    sheet.getRange(rowIndex, statusCol + 1).setValue(newStatus);
+
+    // Log the usage in SEED_USAGE_LOG for traceability
+    logSeedUsage({
+      seedLotId: seedLotId,
+      quantityUsed: used,
+      batchId: batchId || '',
+      notes: notes || '',
+      usedAt: new Date()
     });
+
+    return {
+      success: true,
+      message: `Used ${used} seeds from lot ${seedLotId}`,
+      previousQuantity: currentRemaining,
+      newQuantity: newRemaining,
+      status: newStatus,
+      linkedBatchId: batchId || null
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log seed usage for traceability
+ * Creates a complete audit trail from seed lot to planting
+ */
+function logSeedUsage(usage) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let logSheet = ss.getSheetByName('SEED_USAGE_LOG');
+
+    if (!logSheet) {
+      logSheet = ss.insertSheet('SEED_USAGE_LOG');
+      logSheet.appendRow([
+        'Usage_ID', 'Seed_Lot_ID', 'Quantity_Used', 'Batch_ID',
+        'Used_By', 'Used_At', 'Notes'
+      ]);
+      logSheet.setFrozenRows(1);
+      logSheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#4a7c59');
+    }
+
+    const usageId = 'USE-' + Utilities.formatDate(new Date(), 'GMT', 'yyyyMMdd-HHmmss');
+
+    logSheet.appendRow([
+      usageId,
+      usage.seedLotId,
+      usage.quantityUsed,
+      usage.batchId || '',
+      usage.usedBy || '',
+      usage.usedAt || new Date(),
+      usage.notes || ''
+    ]);
+
+    return { success: true, usageId: usageId };
+
+  } catch (error) {
+    Logger.log('Error logging seed usage: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get seed usage history for a lot (traceability)
+ */
+function getSeedUsageHistory(seedLotId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName('SEED_USAGE_LOG');
+
+    if (!logSheet) {
+      return { success: true, data: [], message: 'No usage history yet' };
+    }
+
+    const data = logSheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return { success: true, data: [], message: 'No usage records' };
+    }
+
+    const headers = data[0];
+    const lotIdCol = headers.indexOf('Seed_Lot_ID');
+
+    const history = [];
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][lotIdCol]).trim() === String(seedLotId).trim()) {
+        const record = {};
+        headers.forEach((header, idx) => {
+          record[header] = data[i][idx];
+        });
+        history.push(record);
+      }
+    }
+
+    return {
+      success: true,
+      seedLotId: seedLotId,
+      usageCount: history.length,
+      history: history
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get low stock alerts
+ */
+function getLowStockSeeds() {
+  try {
+    const result = getSeedInventory({ status: 'Low' });
+    if (!result.success) return result;
+
+    const empty = getSeedInventory({ status: 'Empty' });
+
+    return {
+      success: true,
+      lowStock: result.data,
+      empty: empty.data || [],
+      alerts: [
+        ...result.data.map(s => ({
+          type: 'LOW',
+          message: `${s.Crop} - ${s.Variety}: Only ${s.Quantity_Remaining} ${s.Unit} remaining`
+        })),
+        ...(empty.data || []).map(s => ({
+          type: 'EMPTY',
+          message: `${s.Crop} - ${s.Variety}: OUT OF STOCK`
+        }))
+      ]
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate printable label data for a seed lot
+ * Returns data formatted for label printing
+ */
+function getSeedLabelData(seedLotId) {
+  try {
+    const result = getSeedByQR(seedLotId);
+    if (!result.success || !result.found) {
+      return result;
+    }
+
+    const seed = result.seed;
+
+    return {
+      success: true,
+      label: {
+        qrCodeUrl: seed.QR_Code_URL,
+        seedLotId: seed.Seed_Lot_ID,
+        crop: seed.Crop,
+        variety: seed.Variety,
+        supplier: seed.Supplier,
+        organic: seed.Organic_Certified === 'Yes' ? 'ORG' : '',
+        germRate: seed.Germination_Rate ? seed.Germination_Rate + '%' : '',
+        expiration: seed.Expiration_Date,
+        // For human-readable backup if QR fails
+        shortCode: seed.Seed_Lot_ID.split('-').slice(-2).join('-')
+      }
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
   }
 }
 
@@ -2261,7 +3179,340 @@ function deletePlantingById(batchId) {
 }
 function bulkAddPlantings(plantings) { return jsonResponse({success: false, message: 'Not implemented'}); }
 function addTask(task) { return jsonResponse({success: false, message: 'Not implemented'}); }
-function recordHarvest(harvest) { return jsonResponse({success: false, message: 'Not implemented'}); }
+
+/**
+ * Record a harvest and capture DTM learning data
+ * This is the core data collection for the learning system
+ *
+ * @param {Object} harvest - Harvest record
+ * @param {string} harvest.batchId - The batch ID from PLANNING_2026
+ * @param {string} harvest.harvestDate - Date of harvest (YYYY-MM-DD or Date object)
+ * @param {number} harvest.quantity - Amount harvested
+ * @param {string} harvest.unit - Unit (lbs, bunches, etc)
+ * @param {string} harvest.quality - Quality rating (A, B, C)
+ * @param {string} harvest.notes - Any notes about the harvest
+ * @param {string} harvest.harvestedBy - Who recorded the harvest
+ */
+function recordHarvest(harvest) {
+  try {
+    if (!harvest || !harvest.batchId) {
+      return jsonResponse({ success: false, error: 'Batch ID required' });
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // 1. Look up the original planting from PLANNING_2026
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+    if (!planSheet) {
+      return jsonResponse({ success: false, error: 'PLANNING_2026 sheet not found' });
+    }
+
+    const planData = planSheet.getDataRange().getValues();
+    const planHeaders = planData[0];
+
+    // Find column indices - handle both transplant and direct seed crops
+    const batchCol = planHeaders.indexOf('Batch_ID');
+    const cropCol = planHeaders.indexOf('Crop');
+    const varietyCol = planHeaders.indexOf('Variety');
+    const methodCol = planHeaders.indexOf('Planting_Method');
+    const bedCol = planHeaders.indexOf('Target_Bed_ID');
+    const dtmCol = planHeaders.indexOf('DTM') !== -1 ? planHeaders.indexOf('DTM') : planHeaders.indexOf('DTM_Average');
+
+    // Date columns - actual dates take priority over planned
+    const actTransplantCol = planHeaders.indexOf('Act_Transplant');
+    const planTransplantCol = planHeaders.indexOf('Plan_Transplant');
+    const actFieldSowCol = planHeaders.indexOf('Act_Field_Sow');
+    const planFieldSowCol = planHeaders.indexOf('Plan_Field_Sow');
+
+    // Find the planting record
+    let plantingRow = null;
+    let plantingRowIndex = -1;
+    for (let i = 1; i < planData.length; i++) {
+      if (String(planData[i][batchCol]).trim() === String(harvest.batchId).trim()) {
+        plantingRow = planData[i];
+        plantingRowIndex = i;
+        break;
+      }
+    }
+
+    if (!plantingRow) {
+      return jsonResponse({ success: false, error: 'Batch ID not found in PLANNING_2026: ' + harvest.batchId });
+    }
+
+    // Extract planting data
+    const crop = plantingRow[cropCol] || '';
+    const variety = varietyCol >= 0 ? (plantingRow[varietyCol] || '') : '';
+    const plantingMethod = methodCol >= 0 ? String(plantingRow[methodCol]).toLowerCase() : '';
+    const bedId = bedCol >= 0 ? (plantingRow[bedCol] || '') : '';
+    const predictedDTM = dtmCol >= 0 ? (Number(plantingRow[dtmCol]) || 0) : 0;
+
+    // Get field date based on planting method
+    // For transplants: use Act_Transplant or Plan_Transplant
+    // For direct seed: use Act_Field_Sow or Plan_Field_Sow
+    let fieldDate = null;
+    if (plantingMethod.includes('direct') || plantingMethod.includes('seed')) {
+      // Direct seed - use field sow date
+      fieldDate = (actFieldSowCol >= 0 && plantingRow[actFieldSowCol]) ? plantingRow[actFieldSowCol] :
+                  (planFieldSowCol >= 0 ? plantingRow[planFieldSowCol] : null);
+    } else {
+      // Transplant - use transplant date
+      fieldDate = (actTransplantCol >= 0 && plantingRow[actTransplantCol]) ? plantingRow[actTransplantCol] :
+                  (planTransplantCol >= 0 ? plantingRow[planTransplantCol] : null);
+    }
+
+    // Fallback: try any available date
+    if (!fieldDate) {
+      fieldDate = (actTransplantCol >= 0 && plantingRow[actTransplantCol]) ? plantingRow[actTransplantCol] :
+                  (planTransplantCol >= 0 && plantingRow[planTransplantCol]) ? plantingRow[planTransplantCol] :
+                  (actFieldSowCol >= 0 && plantingRow[actFieldSowCol]) ? plantingRow[actFieldSowCol] :
+                  (planFieldSowCol >= 0 ? plantingRow[planFieldSowCol] : null);
+    }
+
+    // 2. Calculate actual DTM (days from field date to harvest)
+    if (!fieldDate) {
+      return jsonResponse({ success: false, error: 'No field date found for batch ' + harvest.batchId + '. Check Plan_Transplant, Act_Transplant, Plan_Field_Sow, or Act_Field_Sow columns.' });
+    }
+
+    const harvestDateObj = harvest.harvestDate instanceof Date ? harvest.harvestDate : new Date(harvest.harvestDate);
+    const fieldDateObj = fieldDate instanceof Date ? fieldDate : new Date(fieldDate);
+
+    if (isNaN(harvestDateObj.getTime()) || isNaN(fieldDateObj.getTime())) {
+      return jsonResponse({ success: false, error: 'Invalid dates. Field date: ' + fieldDate + ', Harvest: ' + harvest.harvestDate });
+    }
+
+    const actualDTM = Math.round((harvestDateObj - fieldDateObj) / (1000 * 60 * 60 * 24));
+
+    // 3. Determine the season based on field date
+    const month = fieldDateObj.getMonth() + 1;
+    const day = fieldDateObj.getDate();
+    let season = 'Summer';
+
+    if (month >= 3 && month <= 4) season = 'EarlySpring';
+    else if (month === 5) season = 'LateSpring';
+    else if (month >= 6 && (month < 8 || (month === 8 && day <= 15))) season = 'Summer';
+    else if ((month === 8 && day > 15) || (month === 9 && day <= 15)) season = 'LateSummer';
+    else if ((month === 9 && day > 15) || month === 10) season = 'Fall';
+    else if (month === 11) season = 'LateFall';
+    else season = 'EarlySpring'; // Winter months
+
+    // 4. Get weather data for the crop's lifecycle (field date to harvest)
+    const weatherSummary = getWeatherSummaryForPeriod(fieldDateObj, harvestDateObj);
+    const totalGDD = weatherSummary.hasData ? weatherSummary.totalGDD : '';
+    const avgTemp = weatherSummary.hasData ? weatherSummary.avgTemp : '';
+    const totalPrecip = weatherSummary.hasData ? weatherSummary.totalPrecip : '';
+    const frostDays = weatherSummary.hasData ? weatherSummary.frostDays : '';
+
+    // 5. Get or create DTM_LEARNING sheet with weather columns
+    let dtmSheet = ss.getSheetByName('DTM_LEARNING');
+    if (!dtmSheet) {
+      dtmSheet = ss.insertSheet('DTM_LEARNING');
+      dtmSheet.appendRow([
+        'Record_ID', 'Batch_ID', 'Crop', 'Variety', 'Bed_ID', 'Planting_Method',
+        'Field_Date', 'Harvest_Date', 'Actual_DTM', 'Predicted_DTM', 'Variance',
+        'Season', 'Total_GDD', 'Avg_Temp_F', 'Total_Precip_In', 'Frost_Days',
+        'Quantity', 'Unit', 'Quality', 'Notes',
+        'Recorded_By', 'Recorded_At'
+      ]);
+      dtmSheet.setFrozenRows(1);
+    }
+
+    // 6. Generate record ID and add the learning record with weather
+    const recordId = 'DTM-' + Utilities.formatDate(new Date(), 'GMT', 'yyyyMMdd-HHmmss');
+    const variance = predictedDTM > 0 ? actualDTM - predictedDTM : 0;
+
+    dtmSheet.appendRow([
+      recordId,
+      harvest.batchId,
+      crop,
+      variety,
+      bedId,
+      plantingMethod || 'Unknown',
+      fieldDateObj,
+      harvestDateObj,
+      actualDTM,
+      predictedDTM,
+      variance,
+      season,
+      totalGDD,
+      avgTemp,
+      totalPrecip,
+      frostDays,
+      harvest.quantity || '',
+      harvest.unit || '',
+      harvest.quality || '',
+      harvest.notes || '',
+      harvest.harvestedBy || '',
+      new Date()
+    ]);
+
+    // 6. Also record in HARVESTS sheet if it exists (for harvest tracking)
+    let harvestSheet = ss.getSheetByName('HARVESTS');
+    if (!harvestSheet) {
+      harvestSheet = ss.insertSheet('HARVESTS');
+      harvestSheet.appendRow([
+        'Harvest_ID', 'Batch_ID', 'Crop', 'Variety', 'Bed_ID',
+        'Harvest_Date', 'Quantity', 'Unit', 'Quality', 'Notes',
+        'Harvested_By', 'Recorded_At'
+      ]);
+      harvestSheet.setFrozenRows(1);
+    }
+
+    const harvestId = 'HRV-' + Utilities.formatDate(new Date(), 'GMT', 'yyyyMMdd-HHmmss');
+    harvestSheet.appendRow([
+      harvestId,
+      harvest.batchId,
+      crop,
+      variety,
+      bedId,
+      harvestDateObj,
+      harvest.quantity || '',
+      harvest.unit || '',
+      harvest.quality || '',
+      harvest.notes || '',
+      harvest.harvestedBy || '',
+      new Date()
+    ]);
+
+    return jsonResponse({
+      success: true,
+      message: 'Harvest recorded with DTM and weather data captured',
+      data: {
+        harvestId: harvestId,
+        dtmRecordId: recordId,
+        crop: crop,
+        variety: variety,
+        actualDTM: actualDTM,
+        predictedDTM: predictedDTM,
+        variance: variance,
+        season: season,
+        weather: weatherSummary.hasData ? {
+          totalGDD: totalGDD,
+          avgTemp: avgTemp,
+          totalPrecip: totalPrecip,
+          frostDays: frostDays
+        } : null
+      }
+    });
+
+  } catch (error) {
+    return jsonResponse({ success: false, error: error.toString() });
+  }
+}
+
+/**
+ * Get learned DTM predictions based on historical data
+ * This is the output of the learning system - real data-driven predictions
+ *
+ * @param {Object} params
+ * @param {string} params.crop - Crop name
+ * @param {string} params.variety - Optional variety name
+ * @param {string} params.season - Optional season filter
+ * @returns {Object} Learned DTM statistics
+ */
+function getLearnedDTM(params) {
+  try {
+    const crop = params.crop || params.cropName;
+    if (!crop) {
+      return { success: false, error: 'Crop name required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const dtmSheet = ss.getSheetByName('DTM_LEARNING');
+
+    if (!dtmSheet || dtmSheet.getLastRow() < 2) {
+      return {
+        success: true,
+        hasData: false,
+        message: 'No learning data yet for ' + crop,
+        predictions: null
+      };
+    }
+
+    const data = dtmSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const cropCol = headers.indexOf('Crop');
+    const varietyCol = headers.indexOf('Variety');
+    const actualDTMCol = headers.indexOf('Actual_DTM');
+    const seasonCol = headers.indexOf('Season');
+
+    // Filter to matching records
+    const matches = [];
+    for (let i = 1; i < data.length; i++) {
+      const rowCrop = String(data[i][cropCol]).toLowerCase().trim();
+      if (rowCrop === String(crop).toLowerCase().trim()) {
+        // Check variety filter if provided
+        if (params.variety) {
+          const rowVariety = String(data[i][varietyCol]).toLowerCase().trim();
+          if (rowVariety !== String(params.variety).toLowerCase().trim()) continue;
+        }
+        // Check season filter if provided
+        if (params.season) {
+          const rowSeason = String(data[i][seasonCol]).trim();
+          if (rowSeason !== params.season) continue;
+        }
+
+        matches.push({
+          actualDTM: Number(data[i][actualDTMCol]) || 0,
+          season: data[i][seasonCol],
+          variety: data[i][varietyCol]
+        });
+      }
+    }
+
+    if (matches.length === 0) {
+      return {
+        success: true,
+        hasData: false,
+        message: 'No learning data for ' + crop + (params.variety ? ' (' + params.variety + ')' : ''),
+        predictions: null
+      };
+    }
+
+    // Calculate statistics
+    const dtmValues = matches.map(m => m.actualDTM).filter(v => v > 0);
+    const avgDTM = Math.round(dtmValues.reduce((a, b) => a + b, 0) / dtmValues.length);
+    const minDTM = Math.min(...dtmValues);
+    const maxDTM = Math.max(...dtmValues);
+
+    // Group by season
+    const bySeason = {};
+    matches.forEach(m => {
+      if (!bySeason[m.season]) bySeason[m.season] = [];
+      if (m.actualDTM > 0) bySeason[m.season].push(m.actualDTM);
+    });
+
+    const seasonalPredictions = {};
+    for (const season in bySeason) {
+      const vals = bySeason[season];
+      seasonalPredictions[season] = {
+        avgDTM: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length),
+        samples: vals.length,
+        min: Math.min(...vals),
+        max: Math.max(...vals)
+      };
+    }
+
+    return {
+      success: true,
+      hasData: true,
+      crop: crop,
+      variety: params.variety || 'all',
+      predictions: {
+        overall: {
+          avgDTM: avgDTM,
+          minDTM: minDTM,
+          maxDTM: maxDTM,
+          samples: dtmValues.length
+        },
+        bySeason: seasonalPredictions
+      }
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // YOUR EXISTING MENU & PRODUCTION FUNCTIONS CONTINUE BELOW
@@ -3990,6 +5241,134 @@ function logDailyWeather() {
   } catch (e) {
     console.error("Weather Fetch Failed: " + e.toString());
   }
+}
+
+/**
+ * Get weather summary for a crop's lifecycle (transplant to harvest)
+ * Used by the DTM learning system to correlate weather with growth rates
+ *
+ * @param {Date|string} startDate - Start of period (typically transplant date)
+ * @param {Date|string} endDate - End of period (typically harvest date)
+ * @returns {Object} Weather summary { totalGDD, avgMaxTemp, avgMinTemp, totalPrecip, frostDays, daysWithData }
+ */
+function getWeatherSummaryForPeriod(startDate, endDate) {
+  try {
+    const start = startDate instanceof Date ? startDate : new Date(startDate);
+    const end = endDate instanceof Date ? endDate : new Date(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return { success: false, error: 'Invalid dates' };
+    }
+
+    // Format dates for API
+    const startStr = Utilities.formatDate(start, 'GMT', 'yyyy-MM-dd');
+    const endStr = Utilities.formatDate(end, 'GMT', 'yyyy-MM-dd');
+
+    // First try to get data from LOG_Weather sheet (faster, no API call)
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName('LOG_Weather');
+
+    let weatherData = [];
+
+    if (logSheet && logSheet.getLastRow() > 1) {
+      // Try to get data from local log first
+      const logData = logSheet.getDataRange().getValues();
+      const headers = logData[0];
+      const dateCol = headers.indexOf('Date');
+      const maxCol = headers.indexOf('Max_Temp_F');
+      const minCol = headers.indexOf('Min_Temp_F');
+      const precipCol = headers.indexOf('Precip_Inch');
+      const gddCol = headers.indexOf('Growing_Degree_Days');
+
+      for (let i = 1; i < logData.length; i++) {
+        const rowDate = logData[i][dateCol] instanceof Date ? logData[i][dateCol] : new Date(logData[i][dateCol]);
+        if (rowDate >= start && rowDate <= end) {
+          weatherData.push({
+            date: rowDate,
+            maxTemp: Number(logData[i][maxCol]) || 0,
+            minTemp: Number(logData[i][minCol]) || 0,
+            precip: Number(logData[i][precipCol]) || 0,
+            gdd: Number(logData[i][gddCol]) || 0
+          });
+        }
+      }
+    }
+
+    // If we don't have enough local data, fetch from Open-Meteo API
+    const expectedDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    if (weatherData.length < expectedDays * 0.8) {
+      // Fetch from API - need at least 80% coverage
+      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${FARM_CONFIG.LAT}&longitude=${FARM_CONFIG.LONG}&start_date=${startStr}&end_date=${endStr}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=${encodeURIComponent(FARM_CONFIG.TIMEZONE)}`;
+
+      try {
+        const response = UrlFetchApp.fetch(url);
+        const data = JSON.parse(response.getContentText());
+
+        if (data.daily && data.daily.time) {
+          weatherData = data.daily.time.map((dateStr, i) => ({
+            date: new Date(dateStr),
+            maxTemp: data.daily.temperature_2m_max[i] || 0,
+            minTemp: data.daily.temperature_2m_min[i] || 0,
+            precip: data.daily.precipitation_sum[i] || 0,
+            gdd: Math.max(0, ((data.daily.temperature_2m_max[i] + data.daily.temperature_2m_min[i]) / 2) - 50)
+          }));
+        }
+      } catch (apiError) {
+        Logger.log('Weather API error: ' + apiError.toString());
+        // Continue with whatever local data we have
+      }
+    }
+
+    if (weatherData.length === 0) {
+      return {
+        success: true,
+        hasData: false,
+        message: 'No weather data available for this period'
+      };
+    }
+
+    // Calculate summary statistics
+    let totalGDD = 0;
+    let totalMaxTemp = 0;
+    let totalMinTemp = 0;
+    let totalPrecip = 0;
+    let frostDays = 0;
+
+    weatherData.forEach(day => {
+      totalGDD += day.gdd;
+      totalMaxTemp += day.maxTemp;
+      totalMinTemp += day.minTemp;
+      totalPrecip += day.precip;
+      if (day.minTemp < 32) frostDays++;
+    });
+
+    const daysWithData = weatherData.length;
+
+    return {
+      success: true,
+      hasData: true,
+      totalGDD: Math.round(totalGDD),
+      avgMaxTemp: Math.round((totalMaxTemp / daysWithData) * 10) / 10,
+      avgMinTemp: Math.round((totalMinTemp / daysWithData) * 10) / 10,
+      avgTemp: Math.round(((totalMaxTemp + totalMinTemp) / (daysWithData * 2)) * 10) / 10,
+      totalPrecip: Math.round(totalPrecip * 100) / 100,
+      frostDays: frostDays,
+      daysWithData: daysWithData,
+      startDate: startStr,
+      endDate: endStr
+    };
+
+  } catch (error) {
+    Logger.log('getWeatherSummaryForPeriod error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * API endpoint to get weather summary for a period
+ */
+function getWeatherSummary(params) {
+  return getWeatherSummaryForPeriod(params.startDate, params.endDate);
 }
 
 function updateTrayDropdowns() {
@@ -15570,10 +16949,34 @@ function testPlaidConnection() {
 
 // Ayrshare API Configuration
 const AYRSHARE_CONFIG = {
-    API_KEY: '', // Add your Ayrshare API key here
     BASE_URL: 'https://app.ayrshare.com/api',
-    ENABLED: false // Set to true once API key is configured
+    get API_KEY() {
+        return PropertiesService.getScriptProperties().getProperty('AYRSHARE_API_KEY') || '';
+    },
+    get ENABLED() {
+        return !!this.API_KEY;
+    }
 };
+
+/**
+ * Store Ayrshare API key securely - RUN THIS ONCE in Apps Script editor
+ * After running, delete or comment out the key for security
+ */
+function storeAyrshareApiKey() {
+    const key = '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F';
+    PropertiesService.getScriptProperties().setProperty('AYRSHARE_API_KEY', key);
+    Logger.log('Ayrshare API key stored securely!');
+    return { success: true, message: 'API key stored' };
+}
+
+/**
+ * Check if Ayrshare is configured
+ */
+function checkAyrshareStatus() {
+    const hasKey = !!AYRSHARE_CONFIG.API_KEY;
+    Logger.log('Ayrshare configured: ' + hasKey);
+    return { configured: hasKey };
+}
 
 // Marketing Sheet Names
 const MARKETING_SHEETS = {
@@ -16357,15 +17760,15 @@ function getSocialConnections(params) {
             sheet = ss.insertSheet(MARKETING_SHEETS.SOCIAL_CONNECTIONS);
             sheet.appendRow(['Platform', 'Account', 'Status', 'Followers', 'Connected_At', 'Last_Post']);
 
-            // Default platforms - ordered by engagement priority (TikTok first)
+            // All platforms connected via Ayrshare - ordered by engagement priority
             const platforms = [
-                ['tiktok', '', 'disconnected', 0, '', ''],  // 2.80% engagement - highest!
-                ['instagram', '@tinyseedfarm', 'connected', 2847, '', ''],  // 0.50% (+38% for ag)
-                ['facebook', 'Tiny Seed Farm', 'connected', 1523, '', ''],  // 0.20% - best for 40+
-                ['youtube', '', 'disconnected', 0, '', ''],  // Long-form evergreen content
-                ['pinterest', '', 'disconnected', 0, '', ''],  // High intent - recipe/garden pins
-                ['threads', '', 'disconnected', 0, '', ''],  // Instagram companion
-                ['ayrshare', '', AYRSHARE_CONFIG.ENABLED ? 'active' : 'not_configured', 0, '', '']
+                ['tiktok', '@TinySeedEnergy', 'connected', 0, '2026-01-15', ''],  // 2.80% engagement - highest!
+                ['instagram', '@tinyseedfarm', 'connected', 2847, '2026-01-15', ''],  // 0.50% (+38% for ag)
+                ['facebook', 'Tiny Seed Farm', 'connected', 1523, '2026-01-15', ''],  // 0.20% - best for 40+
+                ['youtube', 'Tiny Seed Farm', 'connected', 0, '2026-01-15', ''],  // Long-form evergreen content
+                ['pinterest', 'tinyseedfarm', 'connected', 0, '2026-01-15', ''],  // High intent - recipe/garden pins
+                ['threads', '@tinyseedfarm', 'connected', 0, '2026-01-15', ''],  // Instagram companion (via IG)
+                ['ayrshare', 'Tiny Seed Farm', AYRSHARE_CONFIG.ENABLED ? 'active' : 'not_configured', 0, '2026-01-15', '']
             ];
 
             platforms.forEach(p => sheet.appendRow(p));
@@ -16436,5 +17839,954 @@ function testMarketingModule() {
     Logger.log('Analytics: ' + JSON.stringify(analyticsResult));
 
     Logger.log('=== Marketing Module Tests Complete ===');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY & QUICKBOOKS INTEGRATION MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// SETUP INSTRUCTIONS:
+// 1. Add OAuth2 library: Resources → Libraries → Add: 1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF
+// 2. Create Shopify Custom App at: https://admin.shopify.com/store/{store}/settings/apps/development
+// 3. Create QuickBooks App at: https://developer.intuit.com/app/developer/qbo/docs/get-started
+// 4. Replace credentials below with your actual values
+// 5. Run setupIntegrationSheets() to create required sheets
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTEGRATION CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SHOPIFY_CONFIG = {
+  // Replace with your Shopify store credentials
+  STORE_NAME: 'YOUR_STORE_NAME',           // e.g., 'tiny-seed-farm'
+  API_KEY: 'YOUR_SHOPIFY_API_KEY',
+  API_SECRET: 'YOUR_SHOPIFY_API_SECRET',
+  ACCESS_TOKEN: 'YOUR_SHOPIFY_ACCESS_TOKEN', // For private apps
+  API_VERSION: '2024-01',
+  SCOPES: 'read_products,write_products,read_orders,write_orders,read_inventory,write_inventory,read_customers',
+  ENABLED: false  // Set to true after configuring credentials
+};
+
+const QUICKBOOKS_CONFIG = {
+  // Replace with your QuickBooks credentials
+  CLIENT_ID: 'YOUR_QB_CLIENT_ID',
+  CLIENT_SECRET: 'YOUR_QB_CLIENT_SECRET',
+  COMPANY_ID: 'YOUR_QB_COMPANY_ID',        // Also called Realm ID
+  ENVIRONMENT: 'sandbox',                   // 'sandbox' or 'production'
+  SCOPES: 'com.intuit.quickbooks.accounting',
+  ENABLED: false  // Set to true after configuring credentials
+};
+
+// OAuth2 URLs
+const OAUTH_URLS = {
+  SHOPIFY: {
+    AUTH: (shop) => `https://${shop}.myshopify.com/admin/oauth/authorize`,
+    TOKEN: (shop) => `https://${shop}.myshopify.com/admin/oauth/access_token`,
+    API: (shop, version) => `https://${shop}.myshopify.com/admin/api/${version}`
+  },
+  QUICKBOOKS: {
+    AUTH: 'https://appcenter.intuit.com/connect/oauth2',
+    TOKEN: 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer',
+    API_SANDBOX: 'https://sandbox-quickbooks.api.intuit.com/v3/company',
+    API_PRODUCTION: 'https://quickbooks.api.intuit.com/v3/company'
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTEGRATION SHEETS SETUP
+// ═══════════════════════════════════════════════════════════════════════════
+
+function setupIntegrationSheets() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Shopify Orders Sheet
+  createTabIfNotExists(ss, 'SHOPIFY_Orders', [
+    'Order_ID', 'Shopify_Order_Number', 'Created_At', 'Customer_Name', 'Customer_Email',
+    'Total_Price', 'Subtotal', 'Total_Tax', 'Currency', 'Financial_Status', 'Fulfillment_Status',
+    'Shipping_Address', 'Line_Items_JSON', 'Synced_To_QB', 'QB_Invoice_ID', 'Last_Updated'
+  ], '#e1f5fe');
+
+  // Shopify Products Sheet
+  createTabIfNotExists(ss, 'SHOPIFY_Products', [
+    'Product_ID', 'Title', 'Handle', 'Vendor', 'Product_Type', 'Status',
+    'Variant_ID', 'Variant_Title', 'SKU', 'Price', 'Inventory_Qty',
+    'Synced_From_Farm', 'Farm_Crop_ID', 'Last_Updated'
+  ], '#e8f5e9');
+
+  // QuickBooks Customers Sheet
+  createTabIfNotExists(ss, 'QB_Customers', [
+    'Customer_ID', 'QB_Customer_ID', 'Display_Name', 'Company_Name', 'Email', 'Phone',
+    'Billing_Address', 'Balance', 'Active', 'Created_At', 'Last_Synced'
+  ], '#fff3e0');
+
+  // QuickBooks Invoices Sheet
+  createTabIfNotExists(ss, 'QB_Invoices', [
+    'Invoice_ID', 'QB_Invoice_ID', 'Doc_Number', 'Customer_ID', 'Customer_Name',
+    'Total_Amount', 'Balance', 'Due_Date', 'Status', 'Line_Items_JSON',
+    'Source_Order_ID', 'Source_Type', 'Created_At', 'Last_Synced'
+  ], '#fce4ec');
+
+  // Integration Log Sheet
+  createTabIfNotExists(ss, 'INTEGRATION_Log', [
+    'Timestamp', 'Service', 'Action', 'Status', 'Details', 'Error_Message'
+  ], '#f3e5f5');
+
+  // OAuth Tokens Sheet (for storing tokens securely)
+  createTabIfNotExists(ss, 'SYS_OAuthTokens', [
+    'Service', 'Access_Token', 'Refresh_Token', 'Token_Type', 'Expires_At', 'Scope', 'Last_Refreshed'
+  ], '#eceff1');
+
+  return { success: true, message: 'Integration sheets created successfully' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY INTEGRATION - OAuth2 Service
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getShopifyOAuthService() {
+  // Note: For private apps, you can use the access token directly
+  // This OAuth flow is for public/custom apps that need user authorization
+  return OAuth2.createService('Shopify')
+    .setAuthorizationBaseUrl(OAUTH_URLS.SHOPIFY.AUTH(SHOPIFY_CONFIG.STORE_NAME))
+    .setTokenUrl(OAUTH_URLS.SHOPIFY.TOKEN(SHOPIFY_CONFIG.STORE_NAME))
+    .setClientId(SHOPIFY_CONFIG.API_KEY)
+    .setClientSecret(SHOPIFY_CONFIG.API_SECRET)
+    .setCallbackFunction('shopifyAuthCallback')
+    .setPropertyStore(PropertiesService.getUserProperties())
+    .setScope(SHOPIFY_CONFIG.SCOPES)
+    .setParam('grant_options[]', 'per-user');
+}
+
+function shopifyAuthCallback(request) {
+  const service = getShopifyOAuthService();
+  const authorized = service.handleCallback(request);
+  if (authorized) {
+    logIntegration('Shopify', 'OAuth', 'SUCCESS', 'Authorization successful');
+    return HtmlService.createHtmlOutput('Shopify authorization successful! You can close this tab.');
+  } else {
+    logIntegration('Shopify', 'OAuth', 'FAILED', 'Authorization failed');
+    return HtmlService.createHtmlOutput('Shopify authorization failed. Please try again.');
+  }
+}
+
+function getShopifyAuthorizationUrl() {
+  return getShopifyOAuthService().getAuthorizationUrl();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY API CALLS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function shopifyApiCall(endpoint, method = 'GET', payload = null) {
+  if (!SHOPIFY_CONFIG.ENABLED) {
+    return { success: false, error: 'Shopify integration is not enabled. Set SHOPIFY_CONFIG.ENABLED = true' };
+  }
+
+  const baseUrl = OAUTH_URLS.SHOPIFY.API(SHOPIFY_CONFIG.STORE_NAME, SHOPIFY_CONFIG.API_VERSION);
+  const url = `${baseUrl}/${endpoint}`;
+
+  const options = {
+    method: method,
+    headers: {
+      'X-Shopify-Access-Token': SHOPIFY_CONFIG.ACCESS_TOKEN,
+      'Content-Type': 'application/json'
+    },
+    muteHttpExceptions: true
+  };
+
+  if (payload && (method === 'POST' || method === 'PUT')) {
+    options.payload = JSON.stringify(payload);
+  }
+
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (responseCode >= 200 && responseCode < 300) {
+      logIntegration('Shopify', endpoint, 'SUCCESS', `${method} request successful`);
+      return { success: true, data: JSON.parse(responseText) };
+    } else {
+      logIntegration('Shopify', endpoint, 'FAILED', `HTTP ${responseCode}: ${responseText}`);
+      return { success: false, error: `HTTP ${responseCode}`, details: responseText };
+    }
+  } catch (error) {
+    logIntegration('Shopify', endpoint, 'ERROR', error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY ORDERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function syncShopifyOrders(params = {}) {
+  const limit = params.limit || 50;
+  const status = params.status || 'any';
+
+  const result = shopifyApiCall(`orders.json?limit=${limit}&status=${status}`);
+
+  if (!result.success) return result;
+
+  const orders = result.data.orders || [];
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('SHOPIFY_Orders');
+
+  let synced = 0;
+
+  orders.forEach(order => {
+    // Check if order already exists
+    const existingRow = findRowByValue(sheet, 1, order.id.toString());
+
+    const rowData = [
+      order.id,
+      order.order_number,
+      order.created_at,
+      order.customer ? `${order.customer.first_name} ${order.customer.last_name}` : 'Guest',
+      order.customer ? order.customer.email : '',
+      order.total_price,
+      order.subtotal_price,
+      order.total_tax,
+      order.currency,
+      order.financial_status,
+      order.fulfillment_status || 'unfulfilled',
+      order.shipping_address ? formatAddress(order.shipping_address) : '',
+      JSON.stringify(order.line_items),
+      'No',
+      '',
+      new Date().toISOString()
+    ];
+
+    if (existingRow > 0) {
+      sheet.getRange(existingRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+      synced++;
+    }
+  });
+
+  logIntegration('Shopify', 'syncOrders', 'SUCCESS', `Synced ${synced} new orders, updated ${orders.length - synced}`);
+
+  return {
+    success: true,
+    message: `Synced ${orders.length} orders from Shopify`,
+    newOrders: synced,
+    updatedOrders: orders.length - synced
+  };
+}
+
+function getShopifyOrder(orderId) {
+  return shopifyApiCall(`orders/${orderId}.json`);
+}
+
+function updateShopifyOrderFulfillment(orderId, trackingNumber, trackingCompany) {
+  const payload = {
+    fulfillment: {
+      tracking_number: trackingNumber,
+      tracking_company: trackingCompany,
+      notify_customer: true
+    }
+  };
+
+  return shopifyApiCall(`orders/${orderId}/fulfillments.json`, 'POST', payload);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY PRODUCTS & INVENTORY
+// ═══════════════════════════════════════════════════════════════════════════
+
+function syncShopifyProducts() {
+  const result = shopifyApiCall('products.json?limit=250');
+
+  if (!result.success) return result;
+
+  const products = result.data.products || [];
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('SHOPIFY_Products');
+
+  // Clear existing data (except header)
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+  }
+
+  const rows = [];
+  products.forEach(product => {
+    product.variants.forEach(variant => {
+      rows.push([
+        product.id,
+        product.title,
+        product.handle,
+        product.vendor,
+        product.product_type,
+        product.status,
+        variant.id,
+        variant.title,
+        variant.sku,
+        variant.price,
+        variant.inventory_quantity,
+        'No',
+        '',
+        new Date().toISOString()
+      ]);
+    });
+  });
+
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
+
+  logIntegration('Shopify', 'syncProducts', 'SUCCESS', `Synced ${products.length} products with ${rows.length} variants`);
+
+  return {
+    success: true,
+    message: `Synced ${products.length} products with ${rows.length} variants`,
+    products: products.length,
+    variants: rows.length
+  };
+}
+
+function updateShopifyInventory(inventoryItemId, locationId, quantity) {
+  const payload = {
+    location_id: locationId,
+    inventory_item_id: inventoryItemId,
+    available: quantity
+  };
+
+  return shopifyApiCall('inventory_levels/set.json', 'POST', payload);
+}
+
+function syncFarmInventoryToShopify() {
+  // Get farm inventory from REF_Crops
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const cropsSheet = ss.getSheetByName('REF_Crops');
+  const shopifySheet = ss.getSheetByName('SHOPIFY_Products');
+
+  if (!cropsSheet || !shopifySheet) {
+    return { success: false, error: 'Required sheets not found' };
+  }
+
+  // Get product mapping (Farm Crop ID → Shopify Variant ID)
+  const shopifyData = shopifySheet.getDataRange().getValues();
+  const productMap = {};
+
+  for (let i = 1; i < shopifyData.length; i++) {
+    const farmCropId = shopifyData[i][12]; // Farm_Crop_ID column
+    const variantId = shopifyData[i][6];   // Variant_ID column
+    if (farmCropId) {
+      productMap[farmCropId] = variantId;
+    }
+  }
+
+  // TODO: Get inventory quantities from LOG_Inventory and update Shopify
+  // This requires location ID from Shopify
+
+  return {
+    success: true,
+    message: 'Inventory sync placeholder - requires Shopify location ID configuration',
+    mappedProducts: Object.keys(productMap).length
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUICKBOOKS INTEGRATION - OAuth2 Service
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getQuickBooksOAuthService() {
+  return OAuth2.createService('QuickBooks')
+    .setAuthorizationBaseUrl(OAUTH_URLS.QUICKBOOKS.AUTH)
+    .setTokenUrl(OAUTH_URLS.QUICKBOOKS.TOKEN)
+    .setClientId(QUICKBOOKS_CONFIG.CLIENT_ID)
+    .setClientSecret(QUICKBOOKS_CONFIG.CLIENT_SECRET)
+    .setCallbackFunction('quickBooksAuthCallback')
+    .setPropertyStore(PropertiesService.getUserProperties())
+    .setScope(QUICKBOOKS_CONFIG.SCOPES)
+    .setParam('response_type', 'code')
+    .setTokenHeaders({
+      'Authorization': 'Basic ' + Utilities.base64Encode(QUICKBOOKS_CONFIG.CLIENT_ID + ':' + QUICKBOOKS_CONFIG.CLIENT_SECRET)
+    });
+}
+
+function quickBooksAuthCallback(request) {
+  const service = getQuickBooksOAuthService();
+  const authorized = service.handleCallback(request);
+
+  if (authorized) {
+    // Store the realmId (company ID) from the callback
+    const realmId = request.parameter.realmId;
+    if (realmId) {
+      PropertiesService.getUserProperties().setProperty('QB_REALM_ID', realmId);
+    }
+    logIntegration('QuickBooks', 'OAuth', 'SUCCESS', 'Authorization successful');
+    return HtmlService.createHtmlOutput('QuickBooks authorization successful! You can close this tab.');
+  } else {
+    logIntegration('QuickBooks', 'OAuth', 'FAILED', 'Authorization failed');
+    return HtmlService.createHtmlOutput('QuickBooks authorization failed. Please try again.');
+  }
+}
+
+function getQuickBooksAuthorizationUrl() {
+  return getQuickBooksOAuthService().getAuthorizationUrl();
+}
+
+function disconnectQuickBooks() {
+  getQuickBooksOAuthService().reset();
+  PropertiesService.getUserProperties().deleteProperty('QB_REALM_ID');
+  logIntegration('QuickBooks', 'Disconnect', 'SUCCESS', 'Disconnected from QuickBooks');
+  return { success: true, message: 'Disconnected from QuickBooks' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUICKBOOKS API CALLS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function quickBooksApiCall(endpoint, method = 'GET', payload = null) {
+  if (!QUICKBOOKS_CONFIG.ENABLED) {
+    return { success: false, error: 'QuickBooks integration is not enabled. Set QUICKBOOKS_CONFIG.ENABLED = true' };
+  }
+
+  const service = getQuickBooksOAuthService();
+
+  if (!service.hasAccess()) {
+    return {
+      success: false,
+      error: 'Not authorized with QuickBooks',
+      authUrl: getQuickBooksAuthorizationUrl()
+    };
+  }
+
+  const companyId = PropertiesService.getUserProperties().getProperty('QB_REALM_ID') || QUICKBOOKS_CONFIG.COMPANY_ID;
+  const baseUrl = QUICKBOOKS_CONFIG.ENVIRONMENT === 'production'
+    ? OAUTH_URLS.QUICKBOOKS.API_PRODUCTION
+    : OAUTH_URLS.QUICKBOOKS.API_SANDBOX;
+
+  const url = `${baseUrl}/${companyId}/${endpoint}`;
+
+  const options = {
+    method: method,
+    headers: {
+      'Authorization': 'Bearer ' + service.getAccessToken(),
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    muteHttpExceptions: true
+  };
+
+  if (payload && (method === 'POST' || method === 'PUT')) {
+    options.payload = JSON.stringify(payload);
+  }
+
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (responseCode >= 200 && responseCode < 300) {
+      logIntegration('QuickBooks', endpoint, 'SUCCESS', `${method} request successful`);
+      return { success: true, data: JSON.parse(responseText) };
+    } else if (responseCode === 401) {
+      // Token expired, try to refresh
+      service.refresh();
+      return quickBooksApiCall(endpoint, method, payload); // Retry once
+    } else {
+      logIntegration('QuickBooks', endpoint, 'FAILED', `HTTP ${responseCode}: ${responseText}`);
+      return { success: false, error: `HTTP ${responseCode}`, details: responseText };
+    }
+  } catch (error) {
+    logIntegration('QuickBooks', endpoint, 'ERROR', error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUICKBOOKS CUSTOMERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function syncQuickBooksCustomers() {
+  const result = quickBooksApiCall('query?query=' + encodeURIComponent('SELECT * FROM Customer MAXRESULTS 1000'));
+
+  if (!result.success) return result;
+
+  const customers = result.data.QueryResponse?.Customer || [];
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('QB_Customers');
+
+  // Clear existing data (except header)
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+  }
+
+  const rows = customers.map(customer => [
+    '', // Internal ID - will be linked later
+    customer.Id,
+    customer.DisplayName,
+    customer.CompanyName || '',
+    customer.PrimaryEmailAddr?.Address || '',
+    customer.PrimaryPhone?.FreeFormNumber || '',
+    formatQBAddress(customer.BillAddr),
+    customer.Balance || 0,
+    customer.Active,
+    customer.MetaData?.CreateTime || '',
+    new Date().toISOString()
+  ]);
+
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
+
+  logIntegration('QuickBooks', 'syncCustomers', 'SUCCESS', `Synced ${customers.length} customers`);
+
+  return {
+    success: true,
+    message: `Synced ${customers.length} customers from QuickBooks`,
+    customers: customers.length
+  };
+}
+
+function createQuickBooksCustomer(customerData) {
+  const payload = {
+    DisplayName: customerData.displayName || customerData.name,
+    CompanyName: customerData.companyName || '',
+    PrimaryEmailAddr: customerData.email ? { Address: customerData.email } : undefined,
+    PrimaryPhone: customerData.phone ? { FreeFormNumber: customerData.phone } : undefined,
+    BillAddr: customerData.address ? {
+      Line1: customerData.address.line1 || customerData.address,
+      City: customerData.address.city || '',
+      CountrySubDivisionCode: customerData.address.state || '',
+      PostalCode: customerData.address.zip || ''
+    } : undefined
+  };
+
+  const result = quickBooksApiCall('customer', 'POST', payload);
+
+  if (result.success) {
+    logIntegration('QuickBooks', 'createCustomer', 'SUCCESS', `Created customer: ${customerData.displayName || customerData.name}`);
+  }
+
+  return result;
+}
+
+function findOrCreateQBCustomer(customerData) {
+  // First, try to find existing customer by email
+  if (customerData.email) {
+    const searchResult = quickBooksApiCall('query?query=' + encodeURIComponent(
+      `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${customerData.email}'`
+    ));
+
+    if (searchResult.success && searchResult.data.QueryResponse?.Customer?.length > 0) {
+      return { success: true, customer: searchResult.data.QueryResponse.Customer[0], existing: true };
+    }
+  }
+
+  // Not found, create new customer
+  const createResult = createQuickBooksCustomer(customerData);
+  if (createResult.success) {
+    return { success: true, customer: createResult.data.Customer, existing: false };
+  }
+
+  return createResult;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUICKBOOKS INVOICES
+// ═══════════════════════════════════════════════════════════════════════════
+
+function createQuickBooksInvoice(invoiceData) {
+  // invoiceData should contain:
+  // - customerId (QB Customer ID)
+  // - lineItems: [{ description, quantity, unitPrice, amount }]
+  // - dueDate (optional)
+  // - memo (optional)
+
+  const lineItems = invoiceData.lineItems.map((item, index) => ({
+    Id: (index + 1).toString(),
+    LineNum: index + 1,
+    Amount: item.amount || (item.quantity * item.unitPrice),
+    DetailType: 'SalesItemLineDetail',
+    SalesItemLineDetail: {
+      ItemRef: item.itemRef || { value: '1', name: 'Services' }, // Default to Services
+      Qty: item.quantity || 1,
+      UnitPrice: item.unitPrice || item.amount
+    },
+    Description: item.description || item.name
+  }));
+
+  const payload = {
+    CustomerRef: {
+      value: invoiceData.customerId.toString()
+    },
+    Line: lineItems,
+    DueDate: invoiceData.dueDate || getDatePlusDays(30),
+    PrivateNote: invoiceData.memo || `Order from Tiny Seed Farm - ${new Date().toISOString()}`
+  };
+
+  const result = quickBooksApiCall('invoice', 'POST', payload);
+
+  if (result.success) {
+    // Save to our tracking sheet
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('QB_Invoices');
+
+    const invoice = result.data.Invoice;
+    sheet.appendRow([
+      generateId('INV'),
+      invoice.Id,
+      invoice.DocNumber,
+      invoiceData.customerId,
+      invoiceData.customerName || '',
+      invoice.TotalAmt,
+      invoice.Balance,
+      invoice.DueDate,
+      'Pending',
+      JSON.stringify(invoiceData.lineItems),
+      invoiceData.sourceOrderId || '',
+      invoiceData.sourceType || 'Manual',
+      new Date().toISOString(),
+      new Date().toISOString()
+    ]);
+
+    logIntegration('QuickBooks', 'createInvoice', 'SUCCESS', `Created invoice ${invoice.DocNumber} for $${invoice.TotalAmt}`);
+  }
+
+  return result;
+}
+
+function createInvoiceFromOrder(orderId, orderType = 'Sales') {
+  // Get order from SALES_Orders sheet
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ordersSheet = ss.getSheetByName('SALES_Orders');
+  const orderItemsSheet = ss.getSheetByName('SALES_OrderItems');
+
+  if (!ordersSheet || !orderItemsSheet) {
+    return { success: false, error: 'Order sheets not found' };
+  }
+
+  // Find the order
+  const ordersData = ordersSheet.getDataRange().getValues();
+  const headers = ordersData[0];
+  let order = null;
+  let orderRow = -1;
+
+  for (let i = 1; i < ordersData.length; i++) {
+    if (ordersData[i][0] === orderId) {
+      order = {};
+      headers.forEach((h, idx) => order[h] = ordersData[i][idx]);
+      orderRow = i + 1;
+      break;
+    }
+  }
+
+  if (!order) {
+    return { success: false, error: `Order ${orderId} not found` };
+  }
+
+  // Get order items
+  const itemsData = orderItemsSheet.getDataRange().getValues();
+  const itemHeaders = itemsData[0];
+  const lineItems = [];
+
+  for (let i = 1; i < itemsData.length; i++) {
+    if (itemsData[i][1] === orderId) { // Order_ID column
+      const item = {};
+      itemHeaders.forEach((h, idx) => item[h] = itemsData[i][idx]);
+      lineItems.push({
+        description: `${item.Product_Name} - ${item.Variety || ''}`.trim(),
+        quantity: item.Quantity || 1,
+        unitPrice: item.Unit_Price || 0,
+        amount: item.Line_Total || (item.Quantity * item.Unit_Price)
+      });
+    }
+  }
+
+  if (lineItems.length === 0) {
+    return { success: false, error: 'No line items found for order' };
+  }
+
+  // Find or create QB customer
+  const customerResult = findOrCreateQBCustomer({
+    displayName: order.Customer_Name,
+    email: order.Customer_Email || '',
+    phone: order.Customer_Phone || ''
+  });
+
+  if (!customerResult.success) {
+    return { success: false, error: 'Failed to find/create customer in QuickBooks', details: customerResult };
+  }
+
+  // Create the invoice
+  const invoiceResult = createQuickBooksInvoice({
+    customerId: customerResult.customer.Id,
+    customerName: order.Customer_Name,
+    lineItems: lineItems,
+    sourceOrderId: orderId,
+    sourceType: orderType,
+    memo: `Order ${orderId} - ${order.Customer_Type || 'Direct'}`
+  });
+
+  return invoiceResult;
+}
+
+function syncShopifyOrderToQuickBooks(shopifyOrderId) {
+  // Get Shopify order from our sheet
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('SHOPIFY_Orders');
+  const data = sheet.getDataRange().getValues();
+
+  let order = null;
+  let orderRow = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === shopifyOrderId.toString()) {
+      order = {
+        id: data[i][0],
+        orderNumber: data[i][1],
+        customerName: data[i][3],
+        customerEmail: data[i][4],
+        totalPrice: data[i][5],
+        lineItems: JSON.parse(data[i][12] || '[]')
+      };
+      orderRow = i + 1;
+      break;
+    }
+  }
+
+  if (!order) {
+    return { success: false, error: `Shopify order ${shopifyOrderId} not found in local sheet` };
+  }
+
+  // Check if already synced
+  if (data[orderRow - 1][13] === 'Yes') {
+    return { success: false, error: 'Order already synced to QuickBooks' };
+  }
+
+  // Find or create customer
+  const customerResult = findOrCreateQBCustomer({
+    displayName: order.customerName,
+    email: order.customerEmail
+  });
+
+  if (!customerResult.success) {
+    return customerResult;
+  }
+
+  // Create invoice
+  const lineItems = order.lineItems.map(item => ({
+    description: item.title || item.name,
+    quantity: item.quantity,
+    unitPrice: parseFloat(item.price),
+    amount: parseFloat(item.price) * item.quantity
+  }));
+
+  const invoiceResult = createQuickBooksInvoice({
+    customerId: customerResult.customer.Id,
+    customerName: order.customerName,
+    lineItems: lineItems,
+    sourceOrderId: order.id,
+    sourceType: 'Shopify'
+  });
+
+  if (invoiceResult.success) {
+    // Mark as synced in Shopify orders sheet
+    sheet.getRange(orderRow, 14).setValue('Yes'); // Synced_To_QB
+    sheet.getRange(orderRow, 15).setValue(invoiceResult.data.Invoice.Id); // QB_Invoice_ID
+  }
+
+  return invoiceResult;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTEGRATION UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+function logIntegration(service, action, status, details) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('INTEGRATION_Log');
+    if (sheet) {
+      sheet.appendRow([
+        new Date().toISOString(),
+        service,
+        action,
+        status,
+        details,
+        status === 'ERROR' || status === 'FAILED' ? details : ''
+      ]);
+    }
+  } catch (e) {
+    console.error('Failed to log integration:', e);
+  }
+}
+
+function formatAddress(addr) {
+  if (!addr) return '';
+  return [addr.address1, addr.address2, addr.city, addr.province, addr.zip, addr.country]
+    .filter(Boolean)
+    .join(', ');
+}
+
+function formatQBAddress(addr) {
+  if (!addr) return '';
+  return [addr.Line1, addr.Line2, addr.City, addr.CountrySubDivisionCode, addr.PostalCode]
+    .filter(Boolean)
+    .join(', ');
+}
+
+function getDatePlusDays(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+}
+
+function findRowByValue(sheet, column, value) {
+  const data = sheet.getRange(1, column, sheet.getLastRow()).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][0].toString() === value.toString()) {
+      return i + 1;
+    }
+  }
+  return -1;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTEGRATION STATUS & TESTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getIntegrationStatus() {
+  const shopifyService = SHOPIFY_CONFIG.ENABLED ? 'Enabled' : 'Disabled';
+  const qbService = getQuickBooksOAuthService();
+
+  return {
+    success: true,
+    shopify: {
+      enabled: SHOPIFY_CONFIG.ENABLED,
+      configured: SHOPIFY_CONFIG.ACCESS_TOKEN !== 'YOUR_SHOPIFY_ACCESS_TOKEN',
+      store: SHOPIFY_CONFIG.STORE_NAME
+    },
+    quickbooks: {
+      enabled: QUICKBOOKS_CONFIG.ENABLED,
+      configured: QUICKBOOKS_CONFIG.CLIENT_ID !== 'YOUR_QB_CLIENT_ID',
+      connected: qbService.hasAccess(),
+      authUrl: !qbService.hasAccess() ? getQuickBooksAuthorizationUrl() : null,
+      environment: QUICKBOOKS_CONFIG.ENVIRONMENT
+    }
+  };
+}
+
+function testShopifyConnection() {
+  if (!SHOPIFY_CONFIG.ENABLED) {
+    return { success: false, error: 'Shopify not enabled' };
+  }
+
+  const result = shopifyApiCall('shop.json');
+  return result;
+}
+
+function testQuickBooksConnection() {
+  if (!QUICKBOOKS_CONFIG.ENABLED) {
+    return { success: false, error: 'QuickBooks not enabled' };
+  }
+
+  const result = quickBooksApiCall('companyinfo/' + (PropertiesService.getUserProperties().getProperty('QB_REALM_ID') || QUICKBOOKS_CONFIG.COMPANY_ID));
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WEBHOOK HANDLERS (for Shopify webhooks)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function handleShopifyWebhook(e) {
+  try {
+    const topic = e.parameter.topic || 'unknown';
+    const payload = JSON.parse(e.postData.contents);
+
+    logIntegration('Shopify', `Webhook: ${topic}`, 'RECEIVED', JSON.stringify(payload).substring(0, 500));
+
+    switch (topic) {
+      case 'orders/create':
+      case 'orders/updated':
+        return handleShopifyOrderWebhook(payload);
+      case 'products/update':
+        return handleShopifyProductWebhook(payload);
+      default:
+        return { success: true, message: `Webhook ${topic} received but not handled` };
+    }
+  } catch (error) {
+    logIntegration('Shopify', 'Webhook', 'ERROR', error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function handleShopifyOrderWebhook(order) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('SHOPIFY_Orders');
+
+  const existingRow = findRowByValue(sheet, 1, order.id.toString());
+
+  const rowData = [
+    order.id,
+    order.order_number,
+    order.created_at,
+    order.customer ? `${order.customer.first_name} ${order.customer.last_name}` : 'Guest',
+    order.customer ? order.customer.email : '',
+    order.total_price,
+    order.subtotal_price,
+    order.total_tax,
+    order.currency,
+    order.financial_status,
+    order.fulfillment_status || 'unfulfilled',
+    order.shipping_address ? formatAddress(order.shipping_address) : '',
+    JSON.stringify(order.line_items),
+    'No',
+    '',
+    new Date().toISOString()
+  ];
+
+  if (existingRow > 0) {
+    sheet.getRange(existingRow, 1, 1, rowData.length).setValues([rowData]);
+  } else {
+    sheet.appendRow(rowData);
+  }
+
+  logIntegration('Shopify', 'OrderWebhook', 'SUCCESS', `Processed order ${order.order_number}`);
+
+  return { success: true, message: `Order ${order.order_number} processed` };
+}
+
+function handleShopifyProductWebhook(product) {
+  // Sync single product update
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('SHOPIFY_Products');
+
+  product.variants.forEach(variant => {
+    const existingRow = findRowByValue(sheet, 7, variant.id.toString()); // Variant_ID column
+
+    const rowData = [
+      product.id,
+      product.title,
+      product.handle,
+      product.vendor,
+      product.product_type,
+      product.status,
+      variant.id,
+      variant.title,
+      variant.sku,
+      variant.price,
+      variant.inventory_quantity,
+      'No',
+      '',
+      new Date().toISOString()
+    ];
+
+    if (existingRow > 0) {
+      sheet.getRange(existingRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+  });
+
+  logIntegration('Shopify', 'ProductWebhook', 'SUCCESS', `Processed product ${product.title}`);
+
+  return { success: true, message: `Product ${product.title} processed` };
 }
 
