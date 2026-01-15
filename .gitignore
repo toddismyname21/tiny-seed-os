@@ -40,3 +40,6 @@ package-lock.json
 # Temporary files
 *.tmp
 *.temp
+data-2026-01-12-20-27-23-batch-0000*
+claude_export/
+*.zip

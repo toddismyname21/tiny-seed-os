@@ -505,6 +505,59 @@ function doGet(e) {
       case 'getFinancialSettings':
         return jsonResponse(getFinancialSettings(e.parameter));
 
+      // ============ PLAID - BANK CONNECTION ============
+      case 'createPlaidLinkToken':
+        return jsonResponse(createPlaidLinkToken(e.parameter));
+      case 'getPlaidItems':
+        return jsonResponse(getPlaidItems());
+      case 'getPlaidAccounts':
+        return jsonResponse(getPlaidAccounts(e.parameter));
+      case 'refreshPlaidBalances':
+        return jsonResponse(refreshPlaidBalances(e.parameter));
+      case 'getPlaidTransactions':
+        return jsonResponse(getPlaidTransactions(e.parameter));
+      case 'exchangePlaidPublicToken':
+        // Handle via GET to avoid CORS preflight issues from browser
+        const exchangeData = {
+          publicToken: e.parameter.publicToken,
+          institutionId: e.parameter.institutionId,
+          institutionName: e.parameter.institutionName,
+          accounts: JSON.parse(e.parameter.accounts || '[]')
+        };
+        return jsonResponse(exchangePlaidPublicToken(exchangeData));
+
+      // ============ CROP ROTATION & FIELD TIME ============
+      case 'getFieldTimeGroups':
+        return jsonResponse(getFieldTimeGroups(e.parameter));
+      case 'getRotationRecommendations':
+        return jsonResponse(getRotationRecommendations(e.parameter));
+      case 'suggestBedForCrop':
+        return jsonResponse(suggestBedForCrop(e.parameter));
+      case 'canPlantInBed':
+        return jsonResponse(canPlantInBed(e.parameter.cropName, e.parameter.bedId));
+      case 'checkRotationCompatibility':
+        return jsonResponse(checkRotationCompatibility(e.parameter.previousCrop, e.parameter.nextCrop));
+      case 'populateFieldDaysData':
+        return jsonResponse(populateFieldDaysData());
+
+      // ============ MARKETING MODULE ============
+      case 'getFarmPics':
+        return jsonResponse(getFarmPics(e.parameter));
+      case 'getEmployeeFarmPics':
+        return jsonResponse(getEmployeeFarmPics(e.parameter));
+      case 'getMarketingCampaigns':
+        return jsonResponse(getMarketingCampaigns(e.parameter));
+      case 'getScheduledPosts':
+        return jsonResponse(getScheduledPosts(e.parameter));
+      case 'getMarketingBudget':
+        return jsonResponse(getMarketingBudget(e.parameter));
+      case 'getMarketingSpend':
+        return jsonResponse(getMarketingSpend(e.parameter));
+      case 'getMarketingAnalytics':
+        return jsonResponse(getMarketingAnalytics(e.parameter));
+      case 'getSocialConnections':
+        return jsonResponse(getSocialConnections(e.parameter));
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -682,6 +735,30 @@ function doPost(e) {
         return jsonResponse(saveFinancialSettings(data));
       case 'createFinancialSheets':
         return jsonResponse(createFinancialSheets());
+
+      // ============ PLAID - BANK CONNECTION ============
+      case 'exchangePlaidPublicToken':
+        return jsonResponse(exchangePlaidPublicToken(data));
+      case 'disconnectPlaidItem':
+        return jsonResponse(disconnectPlaidItem(data));
+
+      // ============ MARKETING MODULE ============
+      case 'submitFarmPic':
+        return jsonResponse(submitFarmPic(data));
+      case 'approveFarmPic':
+        return jsonResponse(approveFarmPic(data));
+      case 'publishToSocial':
+        return jsonResponse(publishToSocial(data));
+      case 'schedulePost':
+        return jsonResponse(schedulePost(data));
+      case 'createCampaign':
+        return jsonResponse(createCampaign(data));
+      case 'updateCampaign':
+        return jsonResponse(updateCampaign(data));
+      case 'logMarketingSpend':
+        return jsonResponse(logMarketingSpend(data));
+      case 'logMarketingActivity':
+        return jsonResponse(logMarketingActivity(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -14921,5 +14998,1418 @@ function testFinancialModule() {
     Logger.log('Dashboard: ' + JSON.stringify(dashboardResult));
 
     Logger.log('Financial Module tests completed!');
+}
+
+// =============================================================================
+// PLAID INTEGRATION - Bank Account Connection
+// =============================================================================
+// Connect real bank accounts via Plaid Link
+// Sandbox mode for testing, switch to development/production when ready
+
+const PLAID_CONFIG = {
+    CLIENT_ID: '69690f5d01c8e8001d439007',
+    SECRET: '65ccc418aad5af30d15744b05de1d5',
+    ENV: 'sandbox', // Change to 'development' or 'production' when ready
+    BASE_URL: 'https://sandbox.plaid.com', // Change for production
+    PRODUCTS: ['transactions', 'auth'],
+    COUNTRY_CODES: ['US'],
+    LANGUAGE: 'en'
+};
+
+/**
+ * Create a Plaid Link token for the frontend
+ * This is the first step - generates a token to initialize Plaid Link
+ */
+function createPlaidLinkToken(params) {
+    try {
+        const payload = {
+            client_id: PLAID_CONFIG.CLIENT_ID,
+            secret: PLAID_CONFIG.SECRET,
+            user: {
+                client_user_id: params.userId || 'tiny-seed-user-1'
+            },
+            client_name: 'Tiny Seed Farm',
+            products: PLAID_CONFIG.PRODUCTS,
+            country_codes: PLAID_CONFIG.COUNTRY_CODES,
+            language: PLAID_CONFIG.LANGUAGE
+        };
+
+        const options = {
+            method: 'post',
+            contentType: 'application/json',
+            payload: JSON.stringify(payload),
+            muteHttpExceptions: true
+        };
+
+        const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/link/token/create', options);
+        const result = JSON.parse(response.getContentText());
+
+        if (result.link_token) {
+            return {
+                success: true,
+                linkToken: result.link_token,
+                expiration: result.expiration
+            };
+        } else {
+            return {
+                success: false,
+                error: result.error_message || 'Failed to create link token',
+                details: result
+            };
+        }
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Exchange public token for access token
+ * Called after user successfully links their bank in Plaid Link
+ */
+function exchangePlaidPublicToken(params) {
+    try {
+        const payload = {
+            client_id: PLAID_CONFIG.CLIENT_ID,
+            secret: PLAID_CONFIG.SECRET,
+            public_token: params.publicToken
+        };
+
+        const options = {
+            method: 'post',
+            contentType: 'application/json',
+            payload: JSON.stringify(payload),
+            muteHttpExceptions: true
+        };
+
+        const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/item/public_token/exchange', options);
+        const result = JSON.parse(response.getContentText());
+
+        if (result.access_token) {
+            // Save the access token and item_id to our sheet
+            savePlaidItem({
+                accessToken: result.access_token,
+                itemId: result.item_id,
+                institutionName: params.institutionName || 'Unknown Bank'
+            });
+
+            // Immediately fetch accounts
+            const accounts = getPlaidAccounts({ accessToken: result.access_token });
+
+            return {
+                success: true,
+                itemId: result.item_id,
+                accounts: accounts.data || []
+            };
+        } else {
+            return {
+                success: false,
+                error: result.error_message || 'Failed to exchange token',
+                details: result
+            };
+        }
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Save Plaid item (connected bank) to our sheet
+ */
+function savePlaidItem(params) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('PLAID_ITEMS');
+
+    if (!sheet) {
+        sheet = ss.insertSheet('PLAID_ITEMS');
+        sheet.appendRow(['Item_ID', 'Access_Token', 'Institution', 'Status', 'Connected_At', 'Last_Sync']);
+        sheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#1a472a').setFontColor('#ffffff');
+        sheet.setFrozenRows(1);
+        // Hide the access token column for security
+        sheet.hideColumns(2);
+    }
+
+    sheet.appendRow([
+        params.itemId,
+        params.accessToken,
+        params.institutionName,
+        'Active',
+        new Date().toISOString(),
+        new Date().toISOString()
+    ]);
+
+    return { success: true };
+}
+
+/**
+ * Get all Plaid items (connected banks)
+ */
+function getPlaidItems() {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('PLAID_ITEMS');
+
+    if (!sheet) {
+        return { success: true, data: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const items = [];
+
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row[0]) continue;
+
+        items.push({
+            itemId: row[0],
+            institution: row[2],
+            status: row[3],
+            connectedAt: row[4],
+            lastSync: row[5]
+        });
+    }
+
+    return { success: true, data: items, count: items.length };
+}
+
+/**
+ * Get accounts from Plaid for a specific item or all items
+ */
+function getPlaidAccounts(params) {
+    try {
+        let accessToken = params.accessToken;
+
+        // If no access token provided, get from our stored items
+        if (!accessToken && params.itemId) {
+            const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+            const sheet = ss.getSheetByName('PLAID_ITEMS');
+            if (sheet) {
+                const data = sheet.getDataRange().getValues();
+                for (let i = 1; i < data.length; i++) {
+                    if (data[i][0] === params.itemId) {
+                        accessToken = data[i][1];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!accessToken) {
+            return { success: false, error: 'No access token available' };
+        }
+
+        const payload = {
+            client_id: PLAID_CONFIG.CLIENT_ID,
+            secret: PLAID_CONFIG.SECRET,
+            access_token: accessToken
+        };
+
+        const options = {
+            method: 'post',
+            contentType: 'application/json',
+            payload: JSON.stringify(payload),
+            muteHttpExceptions: true
+        };
+
+        const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/accounts/get', options);
+        const result = JSON.parse(response.getContentText());
+
+        if (result.accounts) {
+            // Save/update accounts in our sheet
+            result.accounts.forEach(account => {
+                syncPlaidAccountToSheet(account, result.item.institution_id);
+            });
+
+            return {
+                success: true,
+                data: result.accounts.map(a => ({
+                    accountId: a.account_id,
+                    name: a.name,
+                    officialName: a.official_name,
+                    type: a.type,
+                    subtype: a.subtype,
+                    mask: a.mask,
+                    currentBalance: a.balances.current,
+                    availableBalance: a.balances.available,
+                    limit: a.balances.limit,
+                    isoCurrencyCode: a.balances.iso_currency_code
+                })),
+                institution: result.item.institution_id
+            };
+        } else {
+            return { success: false, error: result.error_message || 'Failed to get accounts' };
+        }
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Sync a Plaid account to our FIN_BANK_ACCOUNTS sheet
+ */
+function syncPlaidAccountToSheet(account, institutionId) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(FINANCIAL_CONFIG.TABS.BANK_ACCOUNTS);
+
+    if (!sheet) return;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const accountIdCol = headers.indexOf('Account_ID');
+
+    // Check if account already exists
+    for (let i = 1; i < data.length; i++) {
+        if (data[i][accountIdCol] === account.account_id) {
+            // Update existing account
+            const balanceCol = headers.indexOf('Current_Balance');
+            const availableCol = headers.indexOf('Available_Balance');
+            const updatedCol = headers.indexOf('Updated_At');
+
+            if (balanceCol >= 0) sheet.getRange(i + 1, balanceCol + 1).setValue(account.balances.current);
+            if (availableCol >= 0) sheet.getRange(i + 1, availableCol + 1).setValue(account.balances.available);
+            if (updatedCol >= 0) sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+
+            return;
+        }
+    }
+
+    // Add new account
+    const now = new Date().toISOString();
+    sheet.appendRow([
+        account.account_id,
+        account.name || account.official_name,
+        account.type.charAt(0).toUpperCase() + account.type.slice(1),
+        institutionId || 'Plaid',
+        account.mask || '',
+        account.balances.current || 0,
+        account.balances.available || account.balances.current || 0,
+        0, // APY
+        'Active',
+        false, // Is Primary
+        'Connected via Plaid',
+        now,
+        now
+    ]);
+}
+
+/**
+ * Get balances for all connected accounts
+ */
+function refreshPlaidBalances(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const itemsSheet = ss.getSheetByName('PLAID_ITEMS');
+
+        if (!itemsSheet) {
+            return { success: false, error: 'No connected banks found' };
+        }
+
+        const items = itemsSheet.getDataRange().getValues();
+        const results = [];
+
+        for (let i = 1; i < items.length; i++) {
+            if (items[i][3] !== 'Active') continue;
+
+            const accessToken = items[i][1];
+            const accounts = getPlaidAccounts({ accessToken: accessToken });
+
+            if (accounts.success) {
+                results.push({
+                    institution: items[i][2],
+                    accounts: accounts.data
+                });
+
+                // Update last sync time
+                itemsSheet.getRange(i + 1, 6).setValue(new Date().toISOString());
+            }
+        }
+
+        return {
+            success: true,
+            data: results,
+            syncedAt: new Date().toISOString()
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get transactions from Plaid
+ */
+function getPlaidTransactions(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const itemsSheet = ss.getSheetByName('PLAID_ITEMS');
+
+        if (!itemsSheet) {
+            return { success: false, error: 'No connected banks found' };
+        }
+
+        const items = itemsSheet.getDataRange().getValues();
+        const allTransactions = [];
+
+        // Default to last 30 days
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - (params.days || 30));
+
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+
+        for (let i = 1; i < items.length; i++) {
+            if (items[i][3] !== 'Active') continue;
+
+            const accessToken = items[i][1];
+
+            const payload = {
+                client_id: PLAID_CONFIG.CLIENT_ID,
+                secret: PLAID_CONFIG.SECRET,
+                access_token: accessToken,
+                start_date: startDateStr,
+                end_date: endDateStr,
+                options: {
+                    count: params.count || 100,
+                    offset: params.offset || 0
+                }
+            };
+
+            const options = {
+                method: 'post',
+                contentType: 'application/json',
+                payload: JSON.stringify(payload),
+                muteHttpExceptions: true
+            };
+
+            const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/transactions/get', options);
+            const result = JSON.parse(response.getContentText());
+
+            if (result.transactions) {
+                // Save transactions to sheet
+                result.transactions.forEach(txn => {
+                    savePlaidTransaction(txn);
+                    allTransactions.push({
+                        transactionId: txn.transaction_id,
+                        accountId: txn.account_id,
+                        date: txn.date,
+                        name: txn.name,
+                        merchantName: txn.merchant_name,
+                        amount: txn.amount,
+                        category: txn.category ? txn.category.join(' > ') : '',
+                        pending: txn.pending
+                    });
+                });
+            }
+        }
+
+        return {
+            success: true,
+            data: allTransactions,
+            count: allTransactions.length
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Save a Plaid transaction to our sheet
+ */
+function savePlaidTransaction(txn) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(FINANCIAL_CONFIG.TABS.TRANSACTIONS);
+
+    if (!sheet) return;
+
+    // Check if transaction already exists
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === txn.transaction_id) return; // Already exists
+    }
+
+    sheet.appendRow([
+        txn.transaction_id,
+        txn.date,
+        txn.account_id,
+        txn.amount > 0 ? 'Debit' : 'Credit',
+        txn.category ? txn.category[0] : 'Uncategorized',
+        txn.name,
+        Math.abs(txn.amount),
+        '', // Balance after
+        'Plaid',
+        txn.merchant_name || '',
+        txn.category ? txn.category.join(',') : '',
+        '',
+        new Date().toISOString()
+    ]);
+
+    // Check for round-up opportunity (sales transactions)
+    if (txn.amount > 0 && !txn.pending) {
+        const roundUp = calculateRoundUpAmount(txn.amount);
+        if (roundUp > 0 && roundUp < 1) {
+            saveRoundUp({
+                amount: txn.amount,
+                source: 'Plaid-' + txn.merchant_name,
+                description: txn.name
+            });
+        }
+    }
+}
+
+/**
+ * Disconnect a Plaid item
+ */
+function disconnectPlaidItem(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('PLAID_ITEMS');
+
+        if (!sheet) {
+            return { success: false, error: 'No items sheet found' };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][0] === params.itemId) {
+                // Mark as disconnected
+                sheet.getRange(i + 1, 4).setValue('Disconnected');
+                return { success: true, message: 'Bank disconnected' };
+            }
+        }
+
+        return { success: false, error: 'Item not found' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get institution info from Plaid
+ */
+function getPlaidInstitution(params) {
+    try {
+        const payload = {
+            client_id: PLAID_CONFIG.CLIENT_ID,
+            secret: PLAID_CONFIG.SECRET,
+            institution_id: params.institutionId,
+            country_codes: PLAID_CONFIG.COUNTRY_CODES
+        };
+
+        const options = {
+            method: 'post',
+            contentType: 'application/json',
+            payload: JSON.stringify(payload),
+            muteHttpExceptions: true
+        };
+
+        const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/institutions/get_by_id', options);
+        const result = JSON.parse(response.getContentText());
+
+        if (result.institution) {
+            return {
+                success: true,
+                data: {
+                    name: result.institution.name,
+                    logo: result.institution.logo,
+                    primaryColor: result.institution.primary_color,
+                    url: result.institution.url
+                }
+            };
+        } else {
+            return { success: false, error: result.error_message };
+        }
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Test Plaid connection
+ */
+function testPlaidConnection() {
+    Logger.log('Testing Plaid connection...');
+
+    // Test creating a link token
+    const linkResult = createPlaidLinkToken({ userId: 'test-user' });
+    Logger.log('Link Token: ' + JSON.stringify(linkResult));
+
+    if (linkResult.success) {
+        Logger.log('Plaid connection successful!');
+        Logger.log('Link Token: ' + linkResult.linkToken.substring(0, 50) + '...');
+    } else {
+        Logger.log('Plaid connection failed: ' + linkResult.error);
+    }
+
+    return linkResult;
+}
+
+// =============================================================================
+// MARKETING MODULE - COMPLETE IMPLEMENTATION
+// =============================================================================
+
+// Ayrshare API Configuration
+const AYRSHARE_CONFIG = {
+    API_KEY: '', // Add your Ayrshare API key here
+    BASE_URL: 'https://app.ayrshare.com/api',
+    ENABLED: false // Set to true once API key is configured
+};
+
+// Marketing Sheet Names
+const MARKETING_SHEETS = {
+    FARM_PICS: 'MARKETING_FarmPics',
+    CAMPAIGNS: 'MARKETING_Campaigns',
+    SCHEDULED_POSTS: 'MARKETING_ScheduledPosts',
+    POST_HISTORY: 'MARKETING_PostHistory',
+    BUDGET: 'MARKETING_Budget',
+    SPEND: 'MARKETING_Spend',
+    SOCIAL_CONNECTIONS: 'MARKETING_SocialConnections'
+};
+
+// =============================================================================
+// FARM PICS FUNCTIONS
+// =============================================================================
+
+/**
+ * Submit a farm pic from employee app
+ */
+function submitFarmPic(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName(MARKETING_SHEETS.FARM_PICS);
+
+        if (!sheet) {
+            sheet = ss.insertSheet(MARKETING_SHEETS.FARM_PICS);
+            sheet.appendRow([
+                'Pic_ID', 'Employee_ID', 'Employee_Name', 'Category', 'Caption',
+                'Image_URL', 'Thumbnail_URL', 'Status', 'Submitted_At', 'Approved_At',
+                'Approved_By', 'Used_In_Post', 'Notes'
+            ]);
+        }
+
+        const picId = 'FP_' + Date.now();
+
+        // If image data is provided, save to Google Drive
+        let imageUrl = '';
+        let thumbnailUrl = '';
+
+        if (data.imageData && data.imageData.startsWith('data:image')) {
+            const saved = saveImageToDrive(data.imageData, picId);
+            if (saved.success) {
+                imageUrl = saved.url;
+                thumbnailUrl = saved.thumbnailUrl;
+            }
+        }
+
+        sheet.appendRow([
+            picId,
+            data.employeeId || '',
+            data.employeeName || '',
+            data.category || 'general',
+            data.caption || '',
+            imageUrl,
+            thumbnailUrl,
+            'new', // Status: new, approved, rejected, used
+            data.timestamp || new Date().toISOString(),
+            '',
+            '',
+            '',
+            ''
+        ]);
+
+        return {
+            success: true,
+            picId: picId,
+            message: 'Photo submitted for marketing review!'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Save image to Google Drive and return URLs
+ */
+function saveImageToDrive(base64Data, picId) {
+    try {
+        // Create or get Marketing folder
+        let folder;
+        const folders = DriveApp.getFoldersByName('Tiny Seed Marketing');
+        if (folders.hasNext()) {
+            folder = folders.next();
+        } else {
+            folder = DriveApp.createFolder('Tiny Seed Marketing');
+        }
+
+        // Extract base64 content
+        const contentType = base64Data.match(/data:([^;]+);/)[1];
+        const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, '');
+        const blob = Utilities.newBlob(Utilities.base64Decode(base64Content), contentType, picId + '.jpg');
+
+        const file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+        const fileId = file.getId();
+        const url = 'https://drive.google.com/uc?id=' + fileId;
+        const thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w200';
+
+        return { success: true, url: url, thumbnailUrl: thumbnailUrl, fileId: fileId };
+    } catch (error) {
+        Logger.log('Error saving image to Drive: ' + error);
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get all farm pics (for marketing dashboard)
+ */
+function getFarmPics(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName(MARKETING_SHEETS.FARM_PICS);
+
+        if (!sheet) {
+            return { success: true, farmPics: [] };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        if (data.length <= 1) {
+            return { success: true, farmPics: [] };
+        }
+
+        const headers = data[0];
+        let pics = data.slice(1).map(row => {
+            const pic = {};
+            headers.forEach((h, i) => pic[h] = row[i]);
+            return pic;
+        });
+
+        // Filter by status if provided
+        if (params.status) {
+            pics = pics.filter(p => p.Status === params.status);
+        }
+
+        // Filter by category if provided
+        if (params.category) {
+            pics = pics.filter(p => p.Category === params.category);
+        }
+
+        // Sort by date descending
+        pics.sort((a, b) => new Date(b.Submitted_At) - new Date(a.Submitted_At));
+
+        return { success: true, farmPics: pics };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get farm pics submitted by a specific employee
+ */
+function getEmployeeFarmPics(params) {
+    try {
+        const result = getFarmPics({});
+        if (!result.success) return result;
+
+        const employeePics = result.farmPics.filter(p =>
+            p.Employee_ID === params.employeeId
+        ).slice(0, 10); // Last 10 submissions
+
+        return { success: true, farmPics: employeePics };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Approve or reject a farm pic
+ */
+function approveFarmPic(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName(MARKETING_SHEETS.FARM_PICS);
+
+        if (!sheet) {
+            return { success: false, error: 'Farm pics sheet not found' };
+        }
+
+        const dataRange = sheet.getDataRange().getValues();
+        const headers = dataRange[0];
+        const picIdCol = headers.indexOf('Pic_ID');
+        const statusCol = headers.indexOf('Status');
+        const approvedAtCol = headers.indexOf('Approved_At');
+        const approvedByCol = headers.indexOf('Approved_By');
+
+        for (let i = 1; i < dataRange.length; i++) {
+            if (dataRange[i][picIdCol] === data.picId) {
+                sheet.getRange(i + 1, statusCol + 1).setValue(data.approved ? 'approved' : 'rejected');
+                sheet.getRange(i + 1, approvedAtCol + 1).setValue(new Date().toISOString());
+                sheet.getRange(i + 1, approvedByCol + 1).setValue(data.approvedBy || 'Admin');
+
+                return { success: true, message: data.approved ? 'Photo approved!' : 'Photo rejected' };
+            }
+        }
+
+        return { success: false, error: 'Photo not found' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// SOCIAL MEDIA POSTING FUNCTIONS
+// =============================================================================
+
+/**
+ * Publish to social media via Ayrshare API
+ */
+function publishToSocial(data) {
+    try {
+        if (!AYRSHARE_CONFIG.ENABLED || !AYRSHARE_CONFIG.API_KEY) {
+            // Demo mode - log the post
+            return logDemoPost(data);
+        }
+
+        const payload = {
+            post: data.caption || data.post,
+            platforms: data.platforms || ['instagram', 'facebook']
+        };
+
+        // Add media if provided
+        if (data.mediaUrls && data.mediaUrls.length > 0) {
+            payload.mediaUrls = data.mediaUrls;
+        }
+
+        // Add scheduling if provided
+        if (data.scheduleDate) {
+            payload.scheduleDate = data.scheduleDate;
+        }
+
+        const options = {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + AYRSHARE_CONFIG.API_KEY,
+                'Content-Type': 'application/json'
+            },
+            payload: JSON.stringify(payload),
+            muteHttpExceptions: true
+        };
+
+        const response = UrlFetchApp.fetch(AYRSHARE_CONFIG.BASE_URL + '/post', options);
+        const result = JSON.parse(response.getContentText());
+
+        // Log the post
+        logPostHistory({
+            platforms: data.platforms,
+            caption: data.caption,
+            mediaUrls: data.mediaUrls,
+            response: result,
+            timestamp: new Date().toISOString()
+        });
+
+        if (result.status === 'success' || result.id) {
+            return {
+                success: true,
+                postId: result.id,
+                message: 'Posted successfully to ' + data.platforms.join(', ')
+            };
+        } else {
+            return { success: false, error: result.message || 'Failed to post' };
+        }
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Log demo post (when Ayrshare is not configured)
+ */
+function logDemoPost(data) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(MARKETING_SHEETS.POST_HISTORY);
+
+    if (!sheet) {
+        sheet = ss.insertSheet(MARKETING_SHEETS.POST_HISTORY);
+        sheet.appendRow([
+            'Post_ID', 'Platforms', 'Caption', 'Media_URLs', 'Status',
+            'Posted_At', 'Engagement', 'Notes'
+        ]);
+    }
+
+    const postId = 'DEMO_' + Date.now();
+
+    sheet.appendRow([
+        postId,
+        (data.platforms || []).join(', '),
+        data.caption || data.post || '',
+        (data.mediaUrls || []).join(', '),
+        'demo', // Would be 'published' with real API
+        new Date().toISOString(),
+        '',
+        'Demo mode - Ayrshare not configured'
+    ]);
+
+    return {
+        success: true,
+        postId: postId,
+        message: 'Post logged (demo mode - configure Ayrshare API key for live posting)',
+        demo: true
+    };
+}
+
+/**
+ * Log post to history
+ */
+function logPostHistory(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName(MARKETING_SHEETS.POST_HISTORY);
+
+        if (!sheet) {
+            sheet = ss.insertSheet(MARKETING_SHEETS.POST_HISTORY);
+            sheet.appendRow([
+                'Post_ID', 'Platforms', 'Caption', 'Media_URLs', 'Status',
+                'Posted_At', 'Engagement', 'Notes'
+            ]);
+        }
+
+        const postId = data.response?.id || 'POST_' + Date.now();
+
+        sheet.appendRow([
+            postId,
+            (data.platforms || []).join(', '),
+            data.caption || '',
+            (data.mediaUrls || []).join(', '),
+            data.response?.status || 'published',
+            data.timestamp || new Date().toISOString(),
+            '',
+            JSON.stringify(data.response || {}).substring(0, 500)
+        ]);
+
+        return { success: true };
+    } catch (error) {
+        Logger.log('Error logging post history: ' + error);
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Schedule a post for later
+ */
+function schedulePost(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName(MARKETING_SHEETS.SCHEDULED_POSTS);
+
+        if (!sheet) {
+            sheet = ss.insertSheet(MARKETING_SHEETS.SCHEDULED_POSTS);
+            sheet.appendRow([
+                'Schedule_ID', 'Platforms', 'Caption', 'Media_URLs', 'Scheduled_For',
+                'Status', 'Created_At', 'Created_By', 'Campaign_ID'
+            ]);
+        }
+
+        const scheduleId = 'SCH_' + Date.now();
+
+        sheet.appendRow([
+            scheduleId,
+            (data.platforms || []).join(', '),
+            data.caption || '',
+            (data.mediaUrls || []).join(', '),
+            data.scheduledFor || '',
+            'scheduled',
+            new Date().toISOString(),
+            data.createdBy || 'Admin',
+            data.campaignId || ''
+        ]);
+
+        return {
+            success: true,
+            scheduleId: scheduleId,
+            message: 'Post scheduled for ' + data.scheduledFor
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get scheduled posts
+ */
+function getScheduledPosts(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName(MARKETING_SHEETS.SCHEDULED_POSTS);
+
+        if (!sheet) {
+            return { success: true, scheduledPosts: [] };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        if (data.length <= 1) {
+            return { success: true, scheduledPosts: [] };
+        }
+
+        const headers = data[0];
+        let posts = data.slice(1).map(row => {
+            const post = {};
+            headers.forEach((h, i) => post[h] = row[i]);
+            return post;
+        });
+
+        // Filter by status if provided
+        if (params.status) {
+            posts = posts.filter(p => p.Status === params.status);
+        }
+
+        return { success: true, scheduledPosts: posts };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// CAMPAIGN MANAGEMENT
+// =============================================================================
+
+/**
+ * Create a marketing campaign
+ */
+function createCampaign(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName(MARKETING_SHEETS.CAMPAIGNS);
+
+        if (!sheet) {
+            sheet = ss.insertSheet(MARKETING_SHEETS.CAMPAIGNS);
+            sheet.appendRow([
+                'Campaign_ID', 'Name', 'Type', 'Status', 'Start_Date', 'End_Date',
+                'Budget', 'Spent', 'Channels', 'Target_Audience', 'Goals',
+                'Created_At', 'Created_By', 'Notes'
+            ]);
+        }
+
+        const campaignId = 'CMP_' + Date.now();
+
+        sheet.appendRow([
+            campaignId,
+            data.name || '',
+            data.type || 'general',
+            'draft',
+            data.startDate || '',
+            data.endDate || '',
+            data.budget || 0,
+            0,
+            (data.channels || []).join(', '),
+            data.targetAudience || '',
+            data.goals || '',
+            new Date().toISOString(),
+            data.createdBy || 'Admin',
+            data.notes || ''
+        ]);
+
+        return {
+            success: true,
+            campaignId: campaignId,
+            message: 'Campaign created!'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Update campaign status or details
+ */
+function updateCampaign(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName(MARKETING_SHEETS.CAMPAIGNS);
+
+        if (!sheet) {
+            return { success: false, error: 'Campaigns sheet not found' };
+        }
+
+        const dataRange = sheet.getDataRange().getValues();
+        const headers = dataRange[0];
+        const idCol = headers.indexOf('Campaign_ID');
+
+        for (let i = 1; i < dataRange.length; i++) {
+            if (dataRange[i][idCol] === data.campaignId) {
+                // Update each provided field
+                Object.keys(data).forEach(key => {
+                    const colIndex = headers.indexOf(key);
+                    if (colIndex > -1 && key !== 'campaignId') {
+                        sheet.getRange(i + 1, colIndex + 1).setValue(data[key]);
+                    }
+                });
+
+                return { success: true, message: 'Campaign updated!' };
+            }
+        }
+
+        return { success: false, error: 'Campaign not found' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get marketing campaigns
+ */
+function getMarketingCampaigns(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName(MARKETING_SHEETS.CAMPAIGNS);
+
+        if (!sheet) {
+            return { success: true, campaigns: [] };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        if (data.length <= 1) {
+            return { success: true, campaigns: [] };
+        }
+
+        const headers = data[0];
+        let campaigns = data.slice(1).map(row => {
+            const campaign = {};
+            headers.forEach((h, i) => campaign[h] = row[i]);
+            return campaign;
+        });
+
+        // Filter by status if provided
+        if (params.status) {
+            campaigns = campaigns.filter(c => c.Status === params.status);
+        }
+
+        return { success: true, campaigns: campaigns };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// BUDGET & SPEND TRACKING
+// =============================================================================
+
+/**
+ * Get marketing budget
+ */
+function getMarketingBudget(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName(MARKETING_SHEETS.BUDGET);
+
+        if (!sheet) {
+            // Create with default values
+            sheet = ss.insertSheet(MARKETING_SHEETS.BUDGET);
+            sheet.appendRow(['Month', 'Year', 'Allocated', 'Spent', 'Remaining', 'Fund_Balance']);
+
+            const now = new Date();
+            sheet.appendRow([
+                now.getMonth() + 1,
+                now.getFullYear(),
+                1000, // Default monthly allocation
+                0,
+                1000,
+                2340 // Default fund balance
+            ]);
+        }
+
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const currentMonth = data[data.length - 1]; // Latest row
+
+        const budget = {};
+        headers.forEach((h, i) => budget[h] = currentMonth[i]);
+
+        return {
+            success: true,
+            budget: {
+                month: budget.Month,
+                year: budget.Year,
+                allocated: budget.Allocated || 1000,
+                spent: budget.Spent || 0,
+                remaining: budget.Remaining || 1000,
+                fundBalance: budget.Fund_Balance || 0
+            }
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Log marketing spend
+ */
+function logMarketingSpend(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName(MARKETING_SHEETS.SPEND);
+
+        if (!sheet) {
+            sheet = ss.insertSheet(MARKETING_SHEETS.SPEND);
+            sheet.appendRow([
+                'Spend_ID', 'Category', 'Vendor', 'Amount', 'Date',
+                'Campaign_ID', 'Description', 'ROI', 'Created_At'
+            ]);
+        }
+
+        const spendId = 'SPD_' + Date.now();
+
+        sheet.appendRow([
+            spendId,
+            data.category || 'general',
+            data.vendor || '',
+            data.amount || 0,
+            data.date || new Date().toISOString().split('T')[0],
+            data.campaignId || '',
+            data.description || '',
+            data.roi || '',
+            new Date().toISOString()
+        ]);
+
+        // Update budget spent amount
+        updateBudgetSpent(data.amount || 0);
+
+        return {
+            success: true,
+            spendId: spendId,
+            message: 'Spend logged!'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Update budget spent amount
+ */
+function updateBudgetSpent(amount) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName(MARKETING_SHEETS.BUDGET);
+
+        if (!sheet) return;
+
+        const lastRow = sheet.getLastRow();
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        const spentCol = headers.indexOf('Spent') + 1;
+        const remainingCol = headers.indexOf('Remaining') + 1;
+        const allocatedCol = headers.indexOf('Allocated') + 1;
+
+        const currentSpent = sheet.getRange(lastRow, spentCol).getValue() || 0;
+        const allocated = sheet.getRange(lastRow, allocatedCol).getValue() || 1000;
+
+        const newSpent = currentSpent + amount;
+        sheet.getRange(lastRow, spentCol).setValue(newSpent);
+        sheet.getRange(lastRow, remainingCol).setValue(allocated - newSpent);
+    } catch (error) {
+        Logger.log('Error updating budget: ' + error);
+    }
+}
+
+/**
+ * Get marketing spend history
+ */
+function getMarketingSpend(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName(MARKETING_SHEETS.SPEND);
+
+        if (!sheet) {
+            return { success: true, spend: [] };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        if (data.length <= 1) {
+            return { success: true, spend: [] };
+        }
+
+        const headers = data[0];
+        let spend = data.slice(1).map(row => {
+            const item = {};
+            headers.forEach((h, i) => item[h] = row[i]);
+            return item;
+        });
+
+        // Filter by month/year if provided
+        if (params.month && params.year) {
+            spend = spend.filter(s => {
+                const date = new Date(s.Date);
+                return date.getMonth() + 1 === parseInt(params.month) &&
+                       date.getFullYear() === parseInt(params.year);
+            });
+        }
+
+        return { success: true, spend: spend };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Log marketing activity (general)
+ */
+function logMarketingActivity(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName('MARKETING_ActivityLog');
+
+        if (!sheet) {
+            sheet = ss.insertSheet('MARKETING_ActivityLog');
+            sheet.appendRow(['Activity_ID', 'Type', 'Data', 'Timestamp', 'User']);
+        }
+
+        sheet.appendRow([
+            'ACT_' + Date.now(),
+            data.type || 'general',
+            JSON.stringify(data.data || {}),
+            data.timestamp || new Date().toISOString(),
+            data.user || 'system'
+        ]);
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// ANALYTICS & SOCIAL CONNECTIONS
+// =============================================================================
+
+/**
+ * Get marketing analytics
+ */
+function getMarketingAnalytics(params) {
+    try {
+        // Calculate analytics from various sources
+        const farmPics = getFarmPics({});
+        const campaigns = getMarketingCampaigns({});
+        const spend = getMarketingSpend({});
+        const budget = getMarketingBudget({});
+
+        const analytics = {
+            farmPics: {
+                total: farmPics.success ? farmPics.farmPics.length : 0,
+                new: farmPics.success ? farmPics.farmPics.filter(p => p.Status === 'new').length : 0,
+                approved: farmPics.success ? farmPics.farmPics.filter(p => p.Status === 'approved').length : 0,
+                used: farmPics.success ? farmPics.farmPics.filter(p => p.Status === 'used').length : 0
+            },
+            campaigns: {
+                total: campaigns.success ? campaigns.campaigns.length : 0,
+                active: campaigns.success ? campaigns.campaigns.filter(c => c.Status === 'active').length : 0,
+                completed: campaigns.success ? campaigns.campaigns.filter(c => c.Status === 'completed').length : 0
+            },
+            budget: budget.success ? budget.budget : { allocated: 0, spent: 0, remaining: 0 },
+            spend: {
+                total: spend.success ? spend.spend.reduce((sum, s) => sum + (s.Amount || 0), 0) : 0,
+                byCategory: {}
+            }
+        };
+
+        // Calculate spend by category
+        if (spend.success) {
+            spend.spend.forEach(s => {
+                const cat = s.Category || 'other';
+                analytics.spend.byCategory[cat] = (analytics.spend.byCategory[cat] || 0) + (s.Amount || 0);
+            });
+        }
+
+        return { success: true, analytics: analytics };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get social media connections status
+ */
+function getSocialConnections(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName(MARKETING_SHEETS.SOCIAL_CONNECTIONS);
+
+        if (!sheet) {
+            // Create with default platforms
+            sheet = ss.insertSheet(MARKETING_SHEETS.SOCIAL_CONNECTIONS);
+            sheet.appendRow(['Platform', 'Account', 'Status', 'Followers', 'Connected_At', 'Last_Post']);
+
+            // Default platforms
+            const platforms = [
+                ['instagram', '@tinyseedfarm', 'connected', 2847, '', ''],
+                ['facebook', 'Tiny Seed Farm', 'connected', 1523, '', ''],
+                ['tiktok', '', 'disconnected', 0, '', ''],
+                ['ayrshare', '', AYRSHARE_CONFIG.ENABLED ? 'active' : 'not_configured', 0, '', '']
+            ];
+
+            platforms.forEach(p => sheet.appendRow(p));
+        }
+
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const connections = data.slice(1).map(row => {
+            const conn = {};
+            headers.forEach((h, i) => conn[h] = row[i]);
+            return conn;
+        });
+
+        return {
+            success: true,
+            connections: connections,
+            ayrshareEnabled: AYRSHARE_CONFIG.ENABLED
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Test Marketing Module
+ */
+function testMarketingModule() {
+    Logger.log('=== Testing Marketing Module ===');
+
+    // Test Farm Pics
+    const submitResult = submitFarmPic({
+        employeeId: 'EMP001',
+        employeeName: 'Test User',
+        category: 'harvest',
+        caption: 'Beautiful tomatoes!',
+        timestamp: new Date().toISOString()
+    });
+    Logger.log('Submit Farm Pic: ' + JSON.stringify(submitResult));
+
+    // Test Get Farm Pics
+    const picsResult = getFarmPics({});
+    Logger.log('Get Farm Pics: ' + JSON.stringify(picsResult));
+
+    // Test Create Campaign
+    const campaignResult = createCampaign({
+        name: 'Test Campaign',
+        type: 'social',
+        budget: 500,
+        channels: ['instagram', 'facebook']
+    });
+    Logger.log('Create Campaign: ' + JSON.stringify(campaignResult));
+
+    // Test Budget
+    const budgetResult = getMarketingBudget({});
+    Logger.log('Get Budget: ' + JSON.stringify(budgetResult));
+
+    // Test Log Spend
+    const spendResult = logMarketingSpend({
+        category: 'social_ads',
+        vendor: 'Meta',
+        amount: 100,
+        description: 'Test ad spend'
+    });
+    Logger.log('Log Spend: ' + JSON.stringify(spendResult));
+
+    // Test Analytics
+    const analyticsResult = getMarketingAnalytics({});
+    Logger.log('Analytics: ' + JSON.stringify(analyticsResult));
+
+    Logger.log('=== Marketing Module Tests Complete ===');
 }
 

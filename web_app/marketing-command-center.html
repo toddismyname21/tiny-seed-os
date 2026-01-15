@@ -1,0 +1,2810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed Marketing Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --info: #4361ee;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+            --gold: #ffd700;
+            --purple: #9b59b6;
+            --teal: #1abc9c;
+            --instagram: #E1306C;
+            --facebook: #4267B2;
+            --tiktok: #000000;
+            --twitter: #1DA1F2;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ============================================= */
+        /* NAVIGATION */
+        /* ============================================= */
+        .top-nav {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-logo {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-back {
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .nav-back:hover {
+            color: var(--text-primary);
+        }
+
+        /* ============================================= */
+        /* ACCESS CONTROL BANNER */
+        /* ============================================= */
+        .access-banner {
+            background: linear-gradient(90deg, var(--purple) 0%, var(--instagram) 100%);
+            padding: 0.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .access-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .access-user {
+            opacity: 0.9;
+        }
+
+        /* ============================================= */
+        /* TAB NAVIGATION */
+        /* ============================================= */
+        .tab-nav {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 0;
+            padding: 0 2rem;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--instagram);
+            border-bottom-color: var(--instagram);
+        }
+
+        .tab-btn .badge {
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .tab-btn .badge.new { background: var(--instagram); color: white; }
+        .tab-btn .badge.pending { background: var(--warning); color: #000; }
+
+        /* ============================================= */
+        /* MAIN CONTENT */
+        /* ============================================= */
+        .main-content {
+            padding: 2rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ============================================= */
+        /* STATS GRID */
+        /* ============================================= */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-icon.instagram { background: rgba(225, 48, 108, 0.2); color: var(--instagram); }
+        .stat-icon.facebook { background: rgba(66, 103, 178, 0.2); color: var(--facebook); }
+        .stat-icon.tiktok { background: rgba(255, 255, 255, 0.1); color: white; }
+        .stat-icon.green { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .stat-icon.gold { background: rgba(255, 215, 0, 0.2); color: var(--gold); }
+        .stat-icon.purple { background: rgba(155, 89, 182, 0.2); color: var(--purple); }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .stat-change {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .stat-change.positive { color: var(--success); }
+        .stat-change.negative { color: var(--danger); }
+
+        /* ============================================= */
+        /* CARDS */
+        /* ============================================= */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-header h3 i {
+            color: var(--instagram);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* ============================================= */
+        /* FIELD MODE - QUICK POST */
+        /* ============================================= */
+        .field-mode-container {
+            background: linear-gradient(135deg, var(--bg-light) 0%, var(--bg-card) 100%);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 2px dashed var(--instagram);
+        }
+
+        .field-mode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .field-mode-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .field-mode-title h2 {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--instagram) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .field-mode-title .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .timer-badge {
+            background: var(--success);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .field-mode-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .field-mode-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--instagram);
+            background: rgba(225, 48, 108, 0.1);
+        }
+
+        .upload-zone i {
+            font-size: 3rem;
+            color: var(--instagram);
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-zone p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .upload-preview {
+            display: none;
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .upload-preview.visible {
+            display: block;
+        }
+
+        .post-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .voice-note-btn {
+            background: linear-gradient(135deg, var(--purple) 0%, var(--instagram) 100%);
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .voice-note-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .voice-note-btn.recording {
+            background: var(--danger);
+            animation: pulse-recording 1s infinite;
+        }
+
+        @keyframes pulse-recording {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .caption-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 1rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            resize: vertical;
+        }
+
+        .caption-input:focus {
+            outline: none;
+            border-color: var(--instagram);
+        }
+
+        .ai-caption-btn {
+            background: rgba(155, 89, 182, 0.2);
+            border: 1px solid var(--purple);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: var(--purple);
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ai-caption-btn:hover {
+            background: rgba(155, 89, 182, 0.3);
+        }
+
+        .platform-toggles {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .platform-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .platform-toggle.active {
+            border-color: var(--success);
+            background: rgba(42, 157, 143, 0.1);
+        }
+
+        .platform-toggle.active .toggle-check {
+            background: var(--success);
+        }
+
+        .toggle-check {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .blast-btn {
+            background: linear-gradient(135deg, var(--success) 0%, var(--primary) 100%);
+            border: none;
+            padding: 1.25rem 2rem;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .blast-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(42, 157, 143, 0.4);
+        }
+
+        .blast-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ============================================= */
+        /* FARM PICS GALLERY */
+        /* ============================================= */
+        .gallery-filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: var(--instagram);
+            border-color: var(--instagram);
+            color: white;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .gallery-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 1;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.02);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-item-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        }
+
+        .gallery-item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .gallery-item-author {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .gallery-item-author img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+
+        .gallery-item-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .gallery-item-status.new { background: var(--instagram); }
+        .gallery-item-status.approved { background: var(--success); }
+        .gallery-item-status.used { background: var(--purple); }
+
+        .gallery-item-actions {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .gallery-item:hover .gallery-item-actions {
+            opacity: 1;
+        }
+
+        .gallery-action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .gallery-action-btn.approve { background: var(--success); color: white; }
+        .gallery-action-btn.use { background: var(--instagram); color: white; }
+        .gallery-action-btn.delete { background: var(--danger); color: white; }
+
+        /* ============================================= */
+        /* SOCIAL CONNECTIONS */
+        /* ============================================= */
+        .connections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .connection-card {
+            background: var(--bg-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .connection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .connection-platform {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .connection-platform i {
+            font-size: 1.5rem;
+        }
+
+        .connection-platform.instagram i { color: var(--instagram); }
+        .connection-platform.facebook i { color: var(--facebook); }
+        .connection-platform.tiktok i { color: white; }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .connection-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .connection-status .dot.connected { background: var(--success); }
+        .connection-status .dot.disconnected { background: var(--danger); }
+
+        .connection-stats {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .connection-stat {
+            text-align: center;
+        }
+
+        .connection-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .connection-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .connection-btn {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .connection-btn.connect {
+            background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);
+            color: white;
+        }
+
+        .connection-btn.disconnect {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        /* ============================================= */
+        /* CAMPAIGNS */
+        /* ============================================= */
+        .campaign-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .campaign-item {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+        }
+
+        .campaign-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .campaign-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .campaign-icon.active { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .campaign-icon.scheduled { background: rgba(67, 97, 238, 0.2); color: var(--info); }
+        .campaign-icon.draft { background: rgba(141, 153, 174, 0.2); color: var(--text-secondary); }
+        .campaign-icon.completed { background: rgba(155, 89, 182, 0.2); color: var(--purple); }
+
+        .campaign-details h4 {
+            margin-bottom: 0.25rem;
+        }
+
+        .campaign-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .campaign-stats {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .campaign-stat {
+            text-align: center;
+        }
+
+        .campaign-stat-value {
+            font-weight: 700;
+        }
+
+        .campaign-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* ============================================= */
+        /* FINANCIAL INTEGRATION */
+        /* ============================================= */
+        .budget-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .budget-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .budget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .budget-header h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .budget-header h4 i {
+            color: var(--gold);
+        }
+
+        .budget-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .budget-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .budget-progress {
+            margin-top: 1rem;
+        }
+
+        .budget-progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .budget-progress-bar {
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .budget-progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s;
+        }
+
+        .spend-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .spend-table th,
+        .spend-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .spend-table th {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .spend-category {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spend-category-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .roi-card {
+            background: linear-gradient(135deg, var(--success) 0%, var(--primary) 100%);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .roi-value {
+            font-size: 3rem;
+            font-weight: 800;
+        }
+
+        .roi-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        /* ============================================= */
+        /* SCHEDULED POSTS */
+        /* ============================================= */
+        .schedule-calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .schedule-day {
+            background: var(--bg-light);
+            border-radius: 8px;
+            padding: 0.75rem;
+            min-height: 100px;
+            border: 1px solid var(--border);
+        }
+
+        .schedule-day-header {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .schedule-day-number {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .schedule-post {
+            background: rgba(225, 48, 108, 0.2);
+            border-left: 3px solid var(--instagram);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* ============================================= */
+        /* BUTTONS */
+        /* ============================================= */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(225, 48, 108, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        /* ============================================= */
+        /* MODALS */
+        /* ============================================= */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        /* ============================================= */
+        /* FORM ELEMENTS */
+        /* ============================================= */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--instagram);
+        }
+
+        /* ============================================= */
+        /* CHARTS */
+        /* ============================================= */
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* ============================================= */
+        /* RESPONSIVE */
+        /* ============================================= */
+        @media (max-width: 768px) {
+            .top-nav {
+                padding: 0.75rem 1rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .field-mode-content {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* ============================================= */
+        /* TOAST NOTIFICATIONS */
+        /* ============================================= */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--info); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ACCESS CONTROL BANNER -->
+    <div class="access-banner">
+        <div class="access-badge">
+            <i class="fas fa-shield-alt"></i>
+            <span>Marketing Team Access</span>
+        </div>
+        <div class="access-user">
+            <i class="fas fa-user-circle"></i>
+            <span id="currentUser">Admin</span>
+        </div>
+    </div>
+
+    <!-- TOP NAVIGATION -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <div class="nav-logo">
+                <i class="fas fa-bullhorn"></i>
+            </div>
+            <div>
+                <div class="nav-title">Marketing Command Center</div>
+                <div class="nav-subtitle">Root System v2.0</div>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <a href="financial-dashboard.html" class="nav-back">
+                <i class="fas fa-chart-line"></i> Financial
+            </a>
+            <a href="index.html" class="nav-back">
+                <i class="fas fa-home"></i> Hub
+            </a>
+        </div>
+    </nav>
+
+    <!-- TAB NAVIGATION -->
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('dashboard')">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </button>
+        <button class="tab-btn" onclick="switchTab('fieldmode')">
+            <i class="fas fa-bolt"></i> Field Mode
+        </button>
+        <button class="tab-btn" onclick="switchTab('farmpics')">
+            <i class="fas fa-images"></i> Farm Pics
+            <span class="badge new" id="newPicsBadge">5</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('campaigns')">
+            <i class="fas fa-flag"></i> Campaigns
+        </button>
+        <button class="tab-btn" onclick="switchTab('schedule')">
+            <i class="fas fa-calendar-alt"></i> Schedule
+        </button>
+        <button class="tab-btn" onclick="switchTab('connections')">
+            <i class="fas fa-plug"></i> Connections
+        </button>
+        <button class="tab-btn" onclick="switchTab('budget')">
+            <i class="fas fa-dollar-sign"></i> Budget
+        </button>
+        <button class="tab-btn" onclick="switchTab('analytics')">
+            <i class="fas fa-chart-bar"></i> Analytics
+        </button>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+        <!-- DASHBOARD TAB -->
+        <div id="dashboardTab" class="tab-content active">
+            <!-- Quick Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon instagram">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">2,847</div>
+                    <div class="stat-label">Instagram Followers</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +124 this week
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon facebook">
+                            <i class="fab fa-facebook"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">1,523</div>
+                    <div class="stat-label">Facebook Followers</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +45 this week
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon green">
+                            <i class="fas fa-envelope-open"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">42.3%</div>
+                    <div class="stat-label">Email Open Rate</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +5.2% vs avg
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-sms"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">28.7%</div>
+                    <div class="stat-label">SMS Conversion</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> Above 21% target
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon gold">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">$847</div>
+                    <div class="stat-label">Marketing Spend (MTD)</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-minus"></i> $153 remaining
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon green">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">18.5x</div>
+                    <div class="stat-label">Marketing ROI</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> Excellent
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                </div>
+                <div class="card-body" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="switchTab('fieldmode')">
+                        <i class="fas fa-camera"></i> Field Mode Post
+                    </button>
+                    <button class="btn btn-secondary" onclick="openCampaignModal()">
+                        <i class="fas fa-plus"></i> New Campaign
+                    </button>
+                    <button class="btn btn-secondary" onclick="switchTab('farmpics')">
+                        <i class="fas fa-images"></i> Review Farm Pics (5)
+                    </button>
+                    <button class="btn btn-secondary" onclick="sendSMSBlast()">
+                        <i class="fas fa-paper-plane"></i> SMS Blast
+                    </button>
+                    <button class="btn btn-secondary" onclick="openEmailComposer()">
+                        <i class="fas fa-envelope"></i> Send Newsletter
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Activity & Pending Items -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clock"></i> Recent Posts</h3>
+                        <button class="btn btn-sm btn-secondary">View All</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="campaign-list">
+                            <div class="campaign-item">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon active">
+                                        <i class="fab fa-instagram"></i>
+                                    </div>
+                                    <div class="campaign-details">
+                                        <h4>Fresh tomatoes harvest!</h4>
+                                        <div class="campaign-meta">
+                                            <span>2 hours ago</span>
+                                            <span>IG, FB, TikTok</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="campaign-stats">
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">234</div>
+                                        <div class="campaign-stat-label">Likes</div>
+                                    </div>
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">18</div>
+                                        <div class="campaign-stat-label">Comments</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="campaign-item">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon completed">
+                                        <i class="fas fa-envelope"></i>
+                                    </div>
+                                    <div class="campaign-details">
+                                        <h4>Weekly Newsletter</h4>
+                                        <div class="campaign-meta">
+                                            <span>Yesterday</span>
+                                            <span>487 recipients</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="campaign-stats">
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">42%</div>
+                                        <div class="campaign-stat-label">Opened</div>
+                                    </div>
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">12%</div>
+                                        <div class="campaign-stat-label">Clicked</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tasks"></i> Pending Approvals</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="campaign-list">
+                            <div class="campaign-item">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon scheduled">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                    <div class="campaign-details">
+                                        <h4>5 New Farm Pics</h4>
+                                        <div class="campaign-meta">
+                                            <span>From: Maria, Jake, Lisa</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-primary" onclick="switchTab('farmpics')">Review</button>
+                            </div>
+                            <div class="campaign-item">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon draft">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <div class="campaign-details">
+                                        <h4>Surplus Tomato Email</h4>
+                                        <div class="campaign-meta">
+                                            <span>Auto-generated from inventory</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-primary" onclick="approveSurplusEmail()">Approve</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FIELD MODE TAB -->
+        <div id="fieldmodeTab" class="tab-content">
+            <div class="field-mode-container">
+                <div class="field-mode-header">
+                    <div class="field-mode-title">
+                        <div>
+                            <h2><i class="fas fa-bolt"></i> Field Mode</h2>
+                            <div class="subtitle">Capture & Blast in 45 seconds</div>
+                        </div>
+                    </div>
+                    <div class="timer-badge" id="postTimer">
+                        <i class="fas fa-stopwatch"></i> Ready
+                    </div>
+                </div>
+
+                <div class="field-mode-content">
+                    <!-- Upload Zone -->
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" accept="image/*,video/*" style="display: none" onchange="handleFileSelect(event)">
+                        <img id="uploadPreview" class="upload-preview" src="" alt="Preview">
+                        <i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
+                        <h4 id="uploadText">Drop media here or tap to upload</h4>
+                        <p id="uploadSubtext">Photos and videos up to 100MB</p>
+                    </div>
+
+                    <!-- Post Form -->
+                    <div class="post-form">
+                        <button class="voice-note-btn" id="voiceNoteBtn" onclick="toggleVoiceRecording()">
+                            <i class="fas fa-microphone"></i>
+                            <span>Record Voice Note</span>
+                        </button>
+
+                        <div>
+                            <textarea class="caption-input" id="captionInput" placeholder="What's happening on the farm?"></textarea>
+                            <button class="ai-caption-btn" onclick="generateAICaption()">
+                                <i class="fas fa-magic"></i> AI Generate Caption
+                            </button>
+                        </div>
+
+                        <div>
+                            <label style="font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Publish to:</label>
+                            <div class="platform-toggles">
+                                <div class="platform-toggle active" onclick="togglePlatform(this, 'instagram')">
+                                    <i class="fab fa-instagram" style="color: var(--instagram);"></i>
+                                    <span>Instagram</span>
+                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                </div>
+                                <div class="platform-toggle active" onclick="togglePlatform(this, 'facebook')">
+                                    <i class="fab fa-facebook" style="color: var(--facebook);"></i>
+                                    <span>Facebook</span>
+                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                </div>
+                                <div class="platform-toggle active" onclick="togglePlatform(this, 'tiktok')">
+                                    <i class="fab fa-tiktok"></i>
+                                    <span>TikTok</span>
+                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                </div>
+                                <div class="platform-toggle active" onclick="togglePlatform(this, 'appfeed')">
+                                    <i class="fas fa-mobile-alt" style="color: var(--success);"></i>
+                                    <span>App Feed</span>
+                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                </div>
+                                <div class="platform-toggle" onclick="togglePlatform(this, 'sms')">
+                                    <i class="fas fa-sms" style="color: var(--purple);"></i>
+                                    <span>SMS VIPs</span>
+                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="blast-btn" id="blastBtn" onclick="publishAll()" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                            PUBLISH ALL
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Harvest Button -->
+            <div class="card" style="background: linear-gradient(135deg, var(--danger) 0%, var(--accent) 100%);">
+                <div class="card-body" style="text-align: center;">
+                    <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-exclamation-triangle"></i> Emergency Harvest Alert</h3>
+                    <p style="margin-bottom: 1rem; opacity: 0.9;">Send immediate push notification to all users</p>
+                    <button class="btn" style="background: white; color: var(--danger); font-weight: 700;" onclick="triggerEmergencyHarvest()">
+                        <i class="fas fa-bell"></i> TRIGGER EMERGENCY ALERT
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FARM PICS TAB -->
+        <div id="farmpicsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-images"></i> Farm Pics Library</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm btn-secondary" onclick="approveAllPics()">
+                            <i class="fas fa-check-double"></i> Approve All New
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="gallery-filters">
+                        <button class="filter-btn active" onclick="filterGallery('all', this)">All</button>
+                        <button class="filter-btn" onclick="filterGallery('new', this)">
+                            New <span style="background: var(--instagram); padding: 0.1rem 0.4rem; border-radius: 10px; font-size: 0.7rem; margin-left: 0.25rem;">5</span>
+                        </button>
+                        <button class="filter-btn" onclick="filterGallery('approved', this)">Approved</button>
+                        <button class="filter-btn" onclick="filterGallery('used', this)">Used</button>
+                        <button class="filter-btn" onclick="filterGallery('greenhouse', this)">Greenhouse</button>
+                        <button class="filter-btn" onclick="filterGallery('harvest', this)">Harvest</button>
+                        <button class="filter-btn" onclick="filterGallery('team', this)">Team</button>
+                    </div>
+
+                    <div class="gallery-grid" id="farmPicsGallery">
+                        <!-- Gallery items will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAMPAIGNS TAB -->
+        <div id="campaignsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-flag"></i> Marketing Campaigns</h3>
+                    <button class="btn btn-primary" onclick="openCampaignModal()">
+                        <i class="fas fa-plus"></i> New Campaign
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="campaign-list" id="campaignList">
+                        <!-- Campaigns will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCHEDULE TAB -->
+        <div id="scheduleTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-calendar-alt"></i> Content Calendar</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm btn-secondary" onclick="previousWeek()">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="calendarWeek" style="padding: 0.5rem 1rem;">Jan 13 - Jan 19, 2026</span>
+                        <button class="btn btn-sm btn-secondary" onclick="nextWeek()">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="schedule-calendar" id="scheduleCalendar">
+                        <!-- Calendar will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONNECTIONS TAB -->
+        <div id="connectionsTab" class="tab-content">
+            <div class="connections-grid">
+                <div class="connection-card">
+                    <div class="connection-header">
+                        <div class="connection-platform instagram">
+                            <i class="fab fa-instagram"></i>
+                            <div>
+                                <div style="font-weight: 600;">Instagram</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">@tinyseedfarm</div>
+                            </div>
+                        </div>
+                        <div class="connection-status">
+                            <div class="dot connected"></div>
+                            Connected
+                        </div>
+                    </div>
+                    <div class="connection-stats">
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">2,847</div>
+                            <div class="connection-stat-label">Followers</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">4.2%</div>
+                            <div class="connection-stat-label">Engagement</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">156</div>
+                            <div class="connection-stat-label">Posts</div>
+                        </div>
+                    </div>
+                    <button class="connection-btn disconnect">Disconnect</button>
+                </div>
+
+                <div class="connection-card">
+                    <div class="connection-header">
+                        <div class="connection-platform facebook">
+                            <i class="fab fa-facebook"></i>
+                            <div>
+                                <div style="font-weight: 600;">Facebook</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Tiny Seed Farm</div>
+                            </div>
+                        </div>
+                        <div class="connection-status">
+                            <div class="dot connected"></div>
+                            Connected
+                        </div>
+                    </div>
+                    <div class="connection-stats">
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">1,523</div>
+                            <div class="connection-stat-label">Followers</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">3.1%</div>
+                            <div class="connection-stat-label">Engagement</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">89</div>
+                            <div class="connection-stat-label">Posts</div>
+                        </div>
+                    </div>
+                    <button class="connection-btn disconnect">Disconnect</button>
+                </div>
+
+                <div class="connection-card">
+                    <div class="connection-header">
+                        <div class="connection-platform tiktok">
+                            <i class="fab fa-tiktok"></i>
+                            <div>
+                                <div style="font-weight: 600;">TikTok</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Not connected</div>
+                            </div>
+                        </div>
+                        <div class="connection-status">
+                            <div class="dot disconnected"></div>
+                            Disconnected
+                        </div>
+                    </div>
+                    <div class="connection-stats">
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">--</div>
+                            <div class="connection-stat-label">Followers</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">--</div>
+                            <div class="connection-stat-label">Engagement</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">--</div>
+                            <div class="connection-stat-label">Videos</div>
+                        </div>
+                    </div>
+                    <button class="connection-btn connect" onclick="connectTikTok()">Connect TikTok</button>
+                </div>
+
+                <div class="connection-card">
+                    <div class="connection-header">
+                        <div class="connection-platform" style="color: var(--purple);">
+                            <i class="fas fa-robot"></i>
+                            <div>
+                                <div style="font-weight: 600;">Ayrshare</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Multi-platform API</div>
+                            </div>
+                        </div>
+                        <div class="connection-status">
+                            <div class="dot connected"></div>
+                            Active
+                        </div>
+                    </div>
+                    <div class="connection-stats">
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">3</div>
+                            <div class="connection-stat-label">Platforms</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">247</div>
+                            <div class="connection-stat-label">Posts/mo</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">$25</div>
+                            <div class="connection-stat-label">Cost/mo</div>
+                        </div>
+                    </div>
+                    <button class="connection-btn disconnect">Manage</button>
+                </div>
+
+                <div class="connection-card">
+                    <div class="connection-header">
+                        <div class="connection-platform" style="color: var(--success);">
+                            <i class="fas fa-sms"></i>
+                            <div>
+                                <div style="font-weight: 600;">Twilio SMS</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">VIP Notifications</div>
+                            </div>
+                        </div>
+                        <div class="connection-status">
+                            <div class="dot connected"></div>
+                            Active
+                        </div>
+                    </div>
+                    <div class="connection-stats">
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">487</div>
+                            <div class="connection-stat-label">Subscribers</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">28.7%</div>
+                            <div class="connection-stat-label">Conv Rate</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">$50</div>
+                            <div class="connection-stat-label">Cost/mo</div>
+                        </div>
+                    </div>
+                    <button class="connection-btn disconnect">Manage</button>
+                </div>
+
+                <div class="connection-card">
+                    <div class="connection-header">
+                        <div class="connection-platform" style="color: var(--info);">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <div style="font-weight: 600;">Klaviyo</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Email Marketing</div>
+                            </div>
+                        </div>
+                        <div class="connection-status">
+                            <div class="dot disconnected"></div>
+                            Not Setup
+                        </div>
+                    </div>
+                    <div class="connection-stats">
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">--</div>
+                            <div class="connection-stat-label">Subscribers</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">--</div>
+                            <div class="connection-stat-label">Open Rate</div>
+                        </div>
+                        <div class="connection-stat">
+                            <div class="connection-stat-value">$45</div>
+                            <div class="connection-stat-label">Est. Cost</div>
+                        </div>
+                    </div>
+                    <button class="connection-btn connect">Setup Klaviyo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BUDGET TAB -->
+        <div id="budgetTab" class="tab-content">
+            <div class="budget-overview">
+                <div class="budget-card">
+                    <div class="budget-header">
+                        <h4><i class="fas fa-wallet"></i> Marketing Budget</h4>
+                        <button class="btn btn-sm btn-secondary" onclick="openBudgetSettings()">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    <div class="budget-amount">$1,000</div>
+                    <div class="budget-subtitle">Monthly Allocation</div>
+                    <div class="budget-progress">
+                        <div class="budget-progress-header">
+                            <span>Spent: $847</span>
+                            <span>Remaining: $153</span>
+                        </div>
+                        <div class="budget-progress-bar">
+                            <div class="budget-progress-fill" style="width: 84.7%; background: linear-gradient(90deg, var(--success), var(--warning));"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="budget-card">
+                    <div class="budget-header">
+                        <h4><i class="fas fa-piggy-bank"></i> Dedicated Account</h4>
+                        <span style="color: var(--success); font-size: 0.85rem;">
+                            <i class="fas fa-link"></i> Linked to Financial Center
+                        </span>
+                    </div>
+                    <div class="budget-amount">$2,340</div>
+                    <div class="budget-subtitle">Marketing Fund Balance</div>
+                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Auto-deposit (5% of revenue)</span>
+                            <span style="color: var(--success);">+$156 this week</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Round-up contributions</span>
+                            <span style="color: var(--success);">+$23 this week</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="roi-card">
+                    <div class="roi-value">18.5x</div>
+                    <div class="roi-label">Return on Marketing Investment</div>
+                    <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">
+                        $847 spent → $15,670 attributed revenue
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-receipt"></i> Spending Breakdown</h3>
+                    <select class="form-input" style="width: auto;">
+                        <option>January 2026</option>
+                        <option>December 2025</option>
+                        <option>November 2025</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <table class="spend-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Vendor</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                                <th>ROI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="spend-category">
+                                        <div class="spend-category-dot" style="background: var(--instagram);"></div>
+                                        Social Ads
+                                    </div>
+                                </td>
+                                <td>Meta Ads</td>
+                                <td>$350.00</td>
+                                <td>Jan 10, 2026</td>
+                                <td style="color: var(--success);">24.5x</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="spend-category">
+                                        <div class="spend-category-dot" style="background: var(--purple);"></div>
+                                        Direct Mail
+                                    </div>
+                                </td>
+                                <td>Lob.com</td>
+                                <td>$156.00</td>
+                                <td>Jan 8, 2026</td>
+                                <td style="color: var(--success);">8.2x</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="spend-category">
+                                        <div class="spend-category-dot" style="background: var(--success);"></div>
+                                        SMS
+                                    </div>
+                                </td>
+                                <td>Twilio</td>
+                                <td>$50.00</td>
+                                <td>Jan 1, 2026</td>
+                                <td style="color: var(--success);">32.1x</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="spend-category">
+                                        <div class="spend-category-dot" style="background: var(--info);"></div>
+                                        Email
+                                    </div>
+                                </td>
+                                <td>Klaviyo</td>
+                                <td>$45.00</td>
+                                <td>Jan 1, 2026</td>
+                                <td style="color: var(--success);">18.9x</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="spend-category">
+                                        <div class="spend-category-dot" style="background: var(--secondary);"></div>
+                                        Subscriptions
+                                    </div>
+                                </td>
+                                <td>Ayrshare</td>
+                                <td>$25.00</td>
+                                <td>Jan 1, 2026</td>
+                                <td style="color: var(--text-secondary);">--</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="spend-category">
+                                        <div class="spend-category-dot" style="background: var(--gold);"></div>
+                                        Booth/Signage
+                                    </div>
+                                </td>
+                                <td>Vistaprint</td>
+                                <td>$221.00</td>
+                                <td>Jan 5, 2026</td>
+                                <td style="color: var(--text-secondary);">--</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: 700;">
+                                <td colspan="2">Total</td>
+                                <td>$847.00</td>
+                                <td></td>
+                                <td style="color: var(--success);">18.5x avg</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> Spend by Channel</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="spendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> ROI Trend</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="roiChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALYTICS TAB -->
+        <div id="analyticsTab" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon green">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">45.2K</div>
+                    <div class="stat-label">Total Reach (30 days)</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +23% vs last month
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">3,847</div>
+                    <div class="stat-label">Total Engagements</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +18% vs last month
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon gold">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">124</div>
+                    <div class="stat-label">New Customers (attributed)</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +45 this week
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon instagram">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">$15,670</div>
+                    <div class="stat-label">Attributed Revenue</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> +$4,230 this week
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-area"></i> Engagement Over Time</h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="engagementChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-trophy"></i> Top Performing Content</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="campaign-list">
+                            <div class="campaign-item">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon" style="background: rgba(225, 48, 108, 0.2);">
+                                        <i class="fas fa-video" style="color: var(--instagram);"></i>
+                                    </div>
+                                    <div class="campaign-details">
+                                        <h4>"First tomatoes of the season!"</h4>
+                                        <div class="campaign-meta">
+                                            <span>Reel</span>
+                                            <span>Jan 8</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="campaign-stats">
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">12.4K</div>
+                                        <div class="campaign-stat-label">Views</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="campaign-item">
+                                <div class="campaign-info">
+                                    <div class="campaign-icon" style="background: rgba(66, 103, 178, 0.2);">
+                                        <i class="fas fa-image" style="color: var(--facebook);"></i>
+                                    </div>
+                                    <div class="campaign-details">
+                                        <h4>"Team harvest day"</h4>
+                                        <div class="campaign-meta">
+                                            <span>Photo</span>
+                                            <span>Jan 5</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="campaign-stats">
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">847</div>
+                                        <div class="campaign-stat-label">Likes</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-funnel-dollar"></i> Conversion Funnel</h3>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Impressions</span>
+                                    <span>45,200</span>
+                                </div>
+                                <div class="budget-progress-bar">
+                                    <div class="budget-progress-fill" style="width: 100%; background: var(--info);"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Clicks</span>
+                                    <span>3,847 (8.5%)</span>
+                                </div>
+                                <div class="budget-progress-bar">
+                                    <div class="budget-progress-fill" style="width: 8.5%; background: var(--purple);"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Signups</span>
+                                    <span>487 (12.7%)</span>
+                                </div>
+                                <div class="budget-progress-bar">
+                                    <div class="budget-progress-fill" style="width: 12.7%; background: var(--warning);"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Purchases</span>
+                                    <span>124 (25.5%)</span>
+                                </div>
+                                <div class="budget-progress-bar">
+                                    <div class="budget-progress-fill" style="width: 25.5%; background: var(--success);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- CAMPAIGN MODAL -->
+    <div class="modal-overlay" id="campaignModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Create Campaign</h2>
+                <button class="modal-close" onclick="closeCampaignModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Campaign Name</label>
+                    <input type="text" class="form-input" placeholder="e.g., Spring CSA Launch">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Campaign Type</label>
+                    <select class="form-input">
+                        <option>Product Launch</option>
+                        <option>Flash Sale</option>
+                        <option>Seasonal Promotion</option>
+                        <option>CSA Recruitment</option>
+                        <option>Event</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Budget</label>
+                    <input type="number" class="form-input" placeholder="$0.00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Channels</label>
+                    <div class="platform-toggles">
+                        <div class="platform-toggle active">
+                            <i class="fab fa-instagram" style="color: var(--instagram);"></i>
+                            <span>Instagram</span>
+                        </div>
+                        <div class="platform-toggle active">
+                            <i class="fab fa-facebook" style="color: var(--facebook);"></i>
+                            <span>Facebook</span>
+                        </div>
+                        <div class="platform-toggle">
+                            <i class="fas fa-envelope" style="color: var(--info);"></i>
+                            <span>Email</span>
+                        </div>
+                        <div class="platform-toggle">
+                            <i class="fas fa-sms" style="color: var(--success);"></i>
+                            <span>SMS</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCampaignModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createCampaign()">Create Campaign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════════
+        // API CONFIGURATION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // TAB NAVIGATION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function switchTab(tabId) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.tab-btn').classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId + 'Tab').classList.add('active');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FIELD MODE FUNCTIONALITY
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let selectedFile = null;
+        let selectedPlatforms = ['instagram', 'facebook', 'tiktok', 'appfeed'];
+        let isRecording = false;
+        let mediaRecorder = null;
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('uploadPreview');
+                    preview.src = e.target.result;
+                    preview.classList.add('visible');
+                    document.getElementById('uploadIcon').style.display = 'none';
+                    document.getElementById('uploadText').textContent = file.name;
+                    document.getElementById('uploadSubtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                    updateBlastButton();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Drag and drop
+        const uploadZone = document.getElementById('uploadZone');
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                document.getElementById('fileInput').files = e.dataTransfer.files;
+                handleFileSelect({ target: { files: [file] } });
+            }
+        });
+
+        function togglePlatform(element, platform) {
+            element.classList.toggle('active');
+            if (element.classList.contains('active')) {
+                selectedPlatforms.push(platform);
+            } else {
+                selectedPlatforms = selectedPlatforms.filter(p => p !== platform);
+            }
+        }
+
+        async function toggleVoiceRecording() {
+            const btn = document.getElementById('voiceNoteBtn');
+
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    const chunks = [];
+
+                    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                    mediaRecorder.onstop = async () => {
+                        const blob = new Blob(chunks, { type: 'audio/webm' });
+                        // Here we would send to Whisper API for transcription
+                        showToast('Voice note recorded! AI transcription coming...', 'success');
+                        // Simulate AI transcription
+                        setTimeout(() => {
+                            document.getElementById('captionInput').value =
+                                "Fresh tomatoes just came in! These beauties are ready for your salsa weekend. Come grab them while they last!";
+                        }, 1500);
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.classList.add('recording');
+                    btn.querySelector('span').textContent = 'Recording... Tap to stop';
+                } catch (err) {
+                    showToast('Could not access microphone', 'error');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.classList.remove('recording');
+                btn.querySelector('span').textContent = 'Record Voice Note';
+            }
+        }
+
+        async function generateAICaption() {
+            showToast('Generating AI caption...', 'info');
+            // Simulate AI caption generation
+            setTimeout(() => {
+                const captions = [
+                    "Fresh from the field! These gorgeous tomatoes are peak season perfection. Limited quantities available - order now before they're gone! 🍅",
+                    "Nature's candy is here! Our heirloom tomatoes are bursting with flavor. Perfect for your weekend cooking adventures.",
+                    "Straight from our hands to your table. These beauties were picked this morning and are ready to make your recipes shine!"
+                ];
+                document.getElementById('captionInput').value = captions[Math.floor(Math.random() * captions.length)];
+                showToast('Caption generated!', 'success');
+                updateBlastButton();
+            }, 1000);
+        }
+
+        function updateBlastButton() {
+            const btn = document.getElementById('blastBtn');
+            const hasFile = selectedFile !== null;
+            const hasCaption = document.getElementById('captionInput').value.trim().length > 0;
+            const hasPlatforms = selectedPlatforms.length > 0;
+
+            btn.disabled = !(hasFile && hasCaption && hasPlatforms);
+        }
+
+        document.getElementById('captionInput').addEventListener('input', updateBlastButton);
+
+        async function publishAll() {
+            const btn = document.getElementById('blastBtn');
+            const timer = document.getElementById('postTimer');
+            const startTime = Date.now();
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+            timer.innerHTML = '<i class="fas fa-stopwatch"></i> Working...';
+
+            // Simulate publishing to multiple platforms
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            timer.innerHTML = `<i class="fas fa-check"></i> ${elapsed}s`;
+            timer.style.background = 'var(--success)';
+
+            btn.innerHTML = '<i class="fas fa-check"></i> PUBLISHED!';
+
+            showToast(`Posted to ${selectedPlatforms.length} platforms in ${elapsed} seconds!`, 'success');
+
+            // Log to marketing spend
+            logMarketingActivity('social_post', {
+                platforms: selectedPlatforms,
+                time: elapsed,
+                caption: document.getElementById('captionInput').value.substring(0, 50)
+            });
+
+            // Reset after 3 seconds
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> PUBLISH ALL';
+                timer.innerHTML = '<i class="fas fa-stopwatch"></i> Ready';
+                timer.style.background = 'var(--success)';
+                selectedFile = null;
+                document.getElementById('uploadPreview').classList.remove('visible');
+                document.getElementById('uploadIcon').style.display = 'block';
+                document.getElementById('uploadText').textContent = 'Drop media here or tap to upload';
+                document.getElementById('uploadSubtext').textContent = 'Photos and videos up to 100MB';
+                document.getElementById('captionInput').value = '';
+                updateBlastButton();
+            }, 3000);
+        }
+
+        function triggerEmergencyHarvest() {
+            if (confirm('This will send an IMMEDIATE push notification to ALL users. Are you sure?')) {
+                showToast('Emergency harvest alert sent to all users!', 'success');
+                logMarketingActivity('emergency_alert', { timestamp: new Date().toISOString() });
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FARM PICS GALLERY
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const farmPicsData = [
+            { id: 1, url: 'https://images.unsplash.com/photo-1592838064575-70ed626d3a0e?w=400', author: 'Maria', status: 'new', category: 'harvest', date: 'Today' },
+            { id: 2, url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400', author: 'Jake', status: 'new', category: 'greenhouse', date: 'Today' },
+            { id: 3, url: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400', author: 'Lisa', status: 'new', category: 'harvest', date: 'Yesterday' },
+            { id: 4, url: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400', author: 'Maria', status: 'new', category: 'team', date: 'Yesterday' },
+            { id: 5, url: 'https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=400', author: 'Jake', status: 'new', category: 'harvest', date: '2 days ago' },
+            { id: 6, url: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=400', author: 'Admin', status: 'approved', category: 'greenhouse', date: '3 days ago' },
+            { id: 7, url: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400', author: 'Lisa', status: 'approved', category: 'harvest', date: '4 days ago' },
+            { id: 8, url: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=400', author: 'Maria', status: 'used', category: 'team', date: '5 days ago' },
+            { id: 9, url: 'https://images.unsplash.com/photo-1595855759920-86582396756a?w=400', author: 'Jake', status: 'used', category: 'harvest', date: '1 week ago' },
+        ];
+
+        function renderFarmPics(filter = 'all') {
+            const gallery = document.getElementById('farmPicsGallery');
+            let filtered = farmPicsData;
+
+            if (filter !== 'all') {
+                if (['new', 'approved', 'used'].includes(filter)) {
+                    filtered = farmPicsData.filter(pic => pic.status === filter);
+                } else {
+                    filtered = farmPicsData.filter(pic => pic.category === filter);
+                }
+            }
+
+            gallery.innerHTML = filtered.map(pic => `
+                <div class="gallery-item" data-id="${pic.id}">
+                    <img src="${pic.url}" alt="Farm pic by ${pic.author}">
+                    <div class="gallery-item-overlay">
+                        <div class="gallery-item-meta">
+                            <div class="gallery-item-author">
+                                <i class="fas fa-user-circle"></i>
+                                ${pic.author}
+                            </div>
+                            <span class="gallery-item-status ${pic.status}">${pic.status}</span>
+                        </div>
+                    </div>
+                    <div class="gallery-item-actions">
+                        ${pic.status === 'new' ? `
+                            <button class="gallery-action-btn approve" onclick="approvePic(${pic.id})" title="Approve">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        ` : ''}
+                        <button class="gallery-action-btn use" onclick="usePicInPost(${pic.id})" title="Use in post">
+                            <i class="fas fa-share"></i>
+                        </button>
+                        <button class="gallery-action-btn delete" onclick="deletePic(${pic.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterGallery(filter, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderFarmPics(filter);
+        }
+
+        function approvePic(id) {
+            const pic = farmPicsData.find(p => p.id === id);
+            if (pic) {
+                pic.status = 'approved';
+                renderFarmPics();
+                updateNewPicsBadge();
+                showToast('Photo approved!', 'success');
+            }
+        }
+
+        function approveAllPics() {
+            farmPicsData.forEach(pic => {
+                if (pic.status === 'new') pic.status = 'approved';
+            });
+            renderFarmPics();
+            updateNewPicsBadge();
+            showToast('All new photos approved!', 'success');
+        }
+
+        function usePicInPost(id) {
+            const pic = farmPicsData.find(p => p.id === id);
+            if (pic) {
+                pic.status = 'used';
+                switchTab('fieldmode');
+                // Simulate loading the image
+                const preview = document.getElementById('uploadPreview');
+                preview.src = pic.url;
+                preview.classList.add('visible');
+                document.getElementById('uploadIcon').style.display = 'none';
+                document.getElementById('uploadText').textContent = 'Farm pic by ' + pic.author;
+                selectedFile = { name: 'farm_pic_' + id + '.jpg' }; // Fake file object
+                updateBlastButton();
+                showToast('Photo loaded into Field Mode!', 'info');
+            }
+        }
+
+        function deletePic(id) {
+            if (confirm('Delete this photo?')) {
+                const index = farmPicsData.findIndex(p => p.id === id);
+                if (index > -1) {
+                    farmPicsData.splice(index, 1);
+                    renderFarmPics();
+                    updateNewPicsBadge();
+                    showToast('Photo deleted', 'info');
+                }
+            }
+        }
+
+        function updateNewPicsBadge() {
+            const newCount = farmPicsData.filter(p => p.status === 'new').length;
+            document.getElementById('newPicsBadge').textContent = newCount;
+            document.getElementById('newPicsBadge').style.display = newCount > 0 ? 'inline' : 'none';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CAMPAIGNS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const campaignsData = [
+            { id: 1, name: 'Spring CSA Launch', type: 'CSA Recruitment', status: 'active', startDate: 'Jan 15', endDate: 'Feb 28', budget: 500, spent: 234, reach: 12400, conversions: 45 },
+            { id: 2, name: 'Valentine\'s Bouquets', type: 'Seasonal Promotion', status: 'scheduled', startDate: 'Feb 1', endDate: 'Feb 14', budget: 200, spent: 0, reach: 0, conversions: 0 },
+            { id: 3, name: 'Winter Newsletter Series', type: 'Email', status: 'completed', startDate: 'Dec 1', endDate: 'Jan 10', budget: 45, spent: 45, reach: 8700, conversions: 124 },
+        ];
+
+        function renderCampaigns() {
+            const list = document.getElementById('campaignList');
+            list.innerHTML = campaignsData.map(campaign => `
+                <div class="campaign-item">
+                    <div class="campaign-info">
+                        <div class="campaign-icon ${campaign.status}">
+                            <i class="fas fa-${campaign.status === 'active' ? 'play' : campaign.status === 'scheduled' ? 'clock' : campaign.status === 'completed' ? 'check' : 'file'}"></i>
+                        </div>
+                        <div class="campaign-details">
+                            <h4>${campaign.name}</h4>
+                            <div class="campaign-meta">
+                                <span>${campaign.type}</span>
+                                <span>${campaign.startDate} - ${campaign.endDate}</span>
+                                <span>$${campaign.spent}/$${campaign.budget}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="campaign-stats">
+                        <div class="campaign-stat">
+                            <div class="campaign-stat-value">${campaign.reach.toLocaleString()}</div>
+                            <div class="campaign-stat-label">Reach</div>
+                        </div>
+                        <div class="campaign-stat">
+                            <div class="campaign-stat-value">${campaign.conversions}</div>
+                            <div class="campaign-stat-label">Conversions</div>
+                        </div>
+                        <button class="btn btn-sm btn-secondary">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openCampaignModal() {
+            document.getElementById('campaignModal').classList.add('active');
+        }
+
+        function closeCampaignModal() {
+            document.getElementById('campaignModal').classList.remove('active');
+        }
+
+        function createCampaign() {
+            showToast('Campaign created!', 'success');
+            closeCampaignModal();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SCHEDULE CALENDAR
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function renderScheduleCalendar() {
+            const calendar = document.getElementById('scheduleCalendar');
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const posts = {
+                13: ['Week Preview'],
+                14: ['In the Field'],
+                15: ['Recipe Drop'],
+                16: ['Behind Scenes'],
+                17: ['Weekend Preview'],
+                18: ['Market Day Live'],
+                19: []
+            };
+
+            calendar.innerHTML = days.map((day, i) => {
+                const date = 13 + i;
+                const dayPosts = posts[date] || [];
+                return `
+                    <div class="schedule-day">
+                        <div class="schedule-day-header">${day}</div>
+                        <div class="schedule-day-number">${date}</div>
+                        ${dayPosts.map(post => `<div class="schedule-post">${post}</div>`).join('')}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CHARTS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function initCharts() {
+            // Spend Chart
+            const spendCtx = document.getElementById('spendChart');
+            if (spendCtx) {
+                new Chart(spendCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Social Ads', 'Direct Mail', 'SMS', 'Email', 'Subscriptions', 'Materials'],
+                        datasets: [{
+                            data: [350, 156, 50, 45, 25, 221],
+                            backgroundColor: [
+                                '#E1306C',
+                                '#9b59b6',
+                                '#2a9d8f',
+                                '#4361ee',
+                                '#f4a261',
+                                '#ffd700'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#8d99ae' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ROI Chart
+            const roiCtx = document.getElementById('roiChart');
+            if (roiCtx) {
+                new Chart(roiCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Oct', 'Nov', 'Dec', 'Jan'],
+                        datasets: [{
+                            label: 'ROI',
+                            data: [12.3, 14.8, 16.2, 18.5],
+                            borderColor: '#2a9d8f',
+                            backgroundColor: 'rgba(42, 157, 143, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                ticks: { color: '#8d99ae' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            x: {
+                                ticks: { color: '#8d99ae' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Engagement Chart
+            const engagementCtx = document.getElementById('engagementChart');
+            if (engagementCtx) {
+                new Chart(engagementCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Instagram',
+                            data: [1200, 1450, 1890, 2340],
+                            borderColor: '#E1306C',
+                            tension: 0.4
+                        }, {
+                            label: 'Facebook',
+                            data: [800, 920, 1100, 1280],
+                            borderColor: '#4267B2',
+                            tension: 0.4
+                        }, {
+                            label: 'Email',
+                            data: [450, 520, 610, 720],
+                            borderColor: '#4361ee',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#8d99ae' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                ticks: { color: '#8d99ae' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            x: {
+                                ticks: { color: '#8d99ae' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FINANCIAL INTEGRATION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function logMarketingActivity(type, data) {
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'logMarketingActivity',
+                        type: type,
+                        data: data,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (error) {
+                console.log('Marketing activity logged locally:', type, data);
+            }
+        }
+
+        async function getMarketingBudget() {
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingBudget`);
+                return await response.json();
+            } catch (error) {
+                return { allocated: 1000, spent: 847, remaining: 153 };
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UTILITY FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function sendSMSBlast() {
+            showToast('Opening SMS composer...', 'info');
+        }
+
+        function openEmailComposer() {
+            showToast('Opening email composer...', 'info');
+        }
+
+        function approveSurplusEmail() {
+            showToast('Surplus email approved and sent!', 'success');
+        }
+
+        function connectTikTok() {
+            showToast('TikTok connection coming soon!', 'info');
+        }
+
+        function openBudgetSettings() {
+            showToast('Budget settings modal coming soon!', 'info');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderFarmPics();
+            renderCampaigns();
+            renderScheduleCalendar();
+            initCharts();
+            updateNewPicsBadge();
+        });
+    </script>
+</body>
+</html>

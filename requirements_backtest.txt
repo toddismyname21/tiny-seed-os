@@ -1,0 +1,22 @@
+# Tiny Seed Backtesting Requirements
+# Install with: pip install -r requirements_backtest.txt
+
+# Core data science
+numpy>=1.21.0
+pandas>=1.3.0
+
+# Data download
+yfinance>=0.2.0
+
+# Visualization
+matplotlib>=3.4.0
+
+# Backtesting libraries (choose based on your needs)
+bt>=0.2.9                    # Portfolio backtesting - recommended for beginners
+backtrader>=1.9.76           # Full-featured backtesting with live trading
+# vectorbt>=0.25.0           # Fast vectorized backtesting (optional)
+# zipline-reloaded>=3.0.0    # Academic-style backtesting (optional, complex install)
+
+# Optional: Additional analysis
+# scipy>=1.7.0               # Statistical functions
+# seaborn>=0.11.0            # Enhanced visualizations
