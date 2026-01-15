@@ -2700,9 +2700,10 @@
             }
 
             try {
+                // Use text/plain to avoid CORS preflight
                 const response = await fetch(API_CONFIG.apiUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ action: endpoint, data })
                 });
                 return await response.json();
@@ -2836,13 +2837,17 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing accounts...';
 
             try {
-                // Exchange public token for access token via our backend
-                const exchangeResult = await saveToSheet('exchangePlaidPublicToken', {
+                // Exchange public token via GET to avoid CORS preflight
+                const params = new URLSearchParams({
+                    action: 'exchangePlaidPublicToken',
                     publicToken: publicToken,
                     institutionId: metadata.institution.institution_id,
                     institutionName: metadata.institution.name,
-                    accounts: metadata.accounts
+                    accounts: JSON.stringify(metadata.accounts)
                 });
+
+                const response = await fetch(`${API_CONFIG.apiUrl}?${params.toString()}`);
+                const exchangeResult = await response.json();
 
                 if (!exchangeResult || !exchangeResult.success) {
                     throw new Error(exchangeResult?.error || 'Failed to exchange token');
