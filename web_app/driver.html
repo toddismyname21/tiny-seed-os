@@ -1603,6 +1603,134 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
+        /* Auto-Advance Modal */
+        .auto-advance-modal {
+            text-align: center;
+            padding: 32px 24px;
+        }
+
+        .auto-advance-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .auto-advance-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .auto-advance-destination {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .auto-advance-address {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .auto-advance-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .auto-advance-actions .btn-lg {
+            padding: 16px 24px;
+            font-size: 16px;
+        }
+
+        /* Professional Map Styling */
+        #deliveryMap {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .leaflet-container {
+            background: #1a1a2e;
+            font-family: inherit;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .leaflet-popup-content {
+            margin: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .leaflet-popup-tip {
+            background: var(--bg-card);
+        }
+
+        .leaflet-control-zoom {
+            border: none !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .leaflet-control-zoom a {
+            background: var(--bg-card) !important;
+            color: var(--text-primary) !important;
+            border: none !important;
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            font-size: 18px !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: var(--bg-elevated) !important;
+        }
+
+        .leaflet-control-attribution {
+            background: rgba(15, 23, 42, 0.8) !important;
+            color: var(--text-muted) !important;
+            font-size: 10px;
+        }
+
+        .leaflet-control-attribution a {
+            color: var(--text-secondary) !important;
+        }
+
+        /* Map route info bar */
+        .map-info-bar {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .map-info-item {
+            text-align: center;
+        }
+
+        .map-info-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .map-info-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -3190,6 +3318,94 @@
             closeModal('podModal');
             btn.disabled = false;
             btn.textContent = 'Complete Delivery';
+
+            // Auto-advance: Offer to navigate to next stop
+            setTimeout(function() {
+                autoAdvanceToNextStop();
+            }, 500);
+        }
+
+        // Auto-advance to next stop after completing delivery
+        function autoAdvanceToNextStop() {
+            var nextStop = AppState.route.stops.find(function(s) {
+                return s.status === 'pending' && s.lat && s.lng;
+            });
+
+            if (!nextStop) {
+                // All deliveries complete - offer to navigate back to farm
+                showAutoAdvanceModal({
+                    title: 'Route Complete!',
+                    message: 'All deliveries finished. Navigate back to farm?',
+                    destination: FARM_DEPOT.name,
+                    lat: FARM_DEPOT.lat,
+                    lng: FARM_DEPOT.lng,
+                    address: FARM_DEPOT.address,
+                    isFarm: true
+                });
+                return;
+            }
+
+            showAutoAdvanceModal({
+                title: 'Next Stop',
+                message: nextStop.customer,
+                destination: nextStop.address,
+                lat: nextStop.lat,
+                lng: nextStop.lng,
+                address: nextStop.address,
+                isFarm: false
+            });
+        }
+
+        // Show auto-advance modal
+        function showAutoAdvanceModal(options) {
+            // Create modal if it doesn't exist
+            var modal = document.getElementById('autoAdvanceModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'autoAdvanceModal';
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal auto-advance-modal">
+                        <div class="auto-advance-icon" id="autoAdvanceIcon">🚗</div>
+                        <div class="auto-advance-title" id="autoAdvanceTitle"></div>
+                        <div class="auto-advance-destination" id="autoAdvanceDestination"></div>
+                        <div class="auto-advance-address" id="autoAdvanceAddress"></div>
+                        <div class="auto-advance-actions">
+                            <button class="btn btn-primary btn-lg" id="autoAdvanceNavBtn" onclick="confirmAutoAdvance()">
+                                Navigate Now
+                            </button>
+                            <button class="btn btn-outline" onclick="closeModal('autoAdvanceModal')">
+                                Skip
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            // Store navigation data
+            modal.dataset.lat = options.lat;
+            modal.dataset.lng = options.lng;
+            modal.dataset.address = options.address;
+
+            // Update content
+            document.getElementById('autoAdvanceIcon').textContent = options.isFarm ? '🏠' : '📍';
+            document.getElementById('autoAdvanceTitle').textContent = options.title;
+            document.getElementById('autoAdvanceDestination').textContent = options.message;
+            document.getElementById('autoAdvanceAddress').textContent = options.destination;
+
+            modal.classList.add('active');
+        }
+
+        // Confirm auto-advance and open navigation
+        function confirmAutoAdvance() {
+            var modal = document.getElementById('autoAdvanceModal');
+            var lat = modal.dataset.lat;
+            var lng = modal.dataset.lng;
+            var address = modal.dataset.address;
+
+            closeModal('autoAdvanceModal');
+            openNavigation(lat, lng, encodeURIComponent(address));
         }
 
         // Auto re-optimize remaining route after delivery/skip
@@ -3571,9 +3787,11 @@
             deliveryMap = L.map('deliveryMap').setView(defaultCenter, 11);
 
             // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19
+            // Use CartoDB Dark Matter for professional dark theme
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors, © CARTO',
+                maxZoom: 19,
+                subdomains: 'abcd'
             }).addTo(deliveryMap);
 
             // Render markers if we have stops
