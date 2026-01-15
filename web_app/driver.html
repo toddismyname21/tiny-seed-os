@@ -8,6 +8,8 @@
     <meta name="theme-color" content="#0f172a">
     <title>Tiny Seed Delivery</title>
     <link rel="manifest" href="manifest-driver.json">
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
     <style>
         * {
             margin: 0;
@@ -1352,6 +1354,200 @@
                 box-shadow: 0 0 50px rgba(0, 0, 0, 0.3);
             }
         }
+
+        /* Map View Styles */
+        #mapTab {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #deliveryMap {
+            flex: 1;
+            min-height: 300px;
+            background: var(--bg-card);
+        }
+
+        .map-controls {
+            padding: 12px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+        }
+
+        .optimize-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .optimize-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Navigation Picker Modal */
+        .nav-picker-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .nav-picker-overlay.active {
+            display: flex;
+        }
+
+        .nav-picker {
+            background: var(--bg-card);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .nav-picker-title {
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .nav-picker-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-option {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            border: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .nav-option:active {
+            background: var(--primary);
+        }
+
+        .nav-option-icon {
+            font-size: 28px;
+        }
+
+        .nav-picker-cancel {
+            width: 100%;
+            padding: 16px;
+            margin-top: 12px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Navigate Button on Stop Cards */
+        .navigate-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .navigate-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Welcome Message */
+        .welcome-toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            z-index: 1000;
+            animation: fadeInOut 3s ease forwards;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+
+        /* Map Markers */
+        .custom-marker {
+            background: var(--primary);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .custom-marker.completed {
+            background: var(--text-muted);
+        }
+
+        .custom-marker.current {
+            background: var(--secondary);
+            animation: pulse-marker 2s infinite;
+        }
+
+        @keyframes pulse-marker {
+            0%, 100% { box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4); }
+            50% { box-shadow: 0 2px 20px rgba(59, 130, 246, 0.8); }
+        }
     </style>
 </head>
 <body>
@@ -1384,60 +1580,47 @@
         <main class="main-content">
             <!-- Login Screen -->
             <div class="login-screen" id="loginScreen">
-                <div class="login-logo">&#x1F69A;</div>
-                <h1 class="login-title">Driver Login</h1>
-                <p class="login-subtitle">Enter your 4-digit PIN to start</p>
+                <div class="login-logo">&#x1F331;</div>
+                <h1 class="login-title">Tiny Seed Delivery</h1>
+                <p class="login-subtitle">Enter your 4-digit PIN</p>
 
                 <div class="pin-display">
-                    <div class="pin-dot" id="pin1" style="width:20px;height:20px;border-radius:50%;background:#334155;border:2px solid #475569;display:inline-block;margin:0 8px;"></div>
-                    <div class="pin-dot" id="pin2" style="width:20px;height:20px;border-radius:50%;background:#334155;border:2px solid #475569;display:inline-block;margin:0 8px;"></div>
-                    <div class="pin-dot" id="pin3" style="width:20px;height:20px;border-radius:50%;background:#334155;border:2px solid #475569;display:inline-block;margin:0 8px;"></div>
-                    <div class="pin-dot" id="pin4" style="width:20px;height:20px;border-radius:50%;background:#334155;border:2px solid #475569;display:inline-block;margin:0 8px;"></div>
+                    <div class="pin-dot" id="pin1"></div>
+                    <div class="pin-dot" id="pin2"></div>
+                    <div class="pin-dot" id="pin3"></div>
+                    <div class="pin-dot" id="pin4"></div>
                 </div>
-                <div id="pinDebug" style="color:#22c55e;font-size:28px;margin:16px 0;font-family:monospace;letter-spacing:8px;">____</div>
 
                 <div class="pin-pad">
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('1');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">1</button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('2');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">2</button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('3');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">3</button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('4');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">4</button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('5');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">5</button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('6');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">6</button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('7');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">7</button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('8');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">8</button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('9');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">9</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('1')">1</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('2')">2</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('3')">3</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('4')">4</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('5')">5</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('6')">6</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('7')">7</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('8')">8</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('9')">9</button>
                     <button type="button" class="pin-btn action"></button>
-                    <button type="button" class="pin-btn" onclick="window.pinValue=(window.pinValue||'')+('0');document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';if(window.pinValue.length>=4){setTimeout(function(){validatePin()},300);}">0</button>
-                    <button type="button" class="pin-btn action" onclick="window.pinValue=(window.pinValue||'').slice(0,-1);document.getElementById('pinDebug').textContent=(window.pinValue+'____').slice(0,4);document.getElementById('pin1').style.background=window.pinValue.length>=1?'#22c55e':'#334155';document.getElementById('pin2').style.background=window.pinValue.length>=2?'#22c55e':'#334155';document.getElementById('pin3').style.background=window.pinValue.length>=3?'#22c55e':'#334155';document.getElementById('pin4').style.background=window.pinValue.length>=4?'#22c55e':'#334155';">&#x232B;</button>
+                    <button type="button" class="pin-btn" onclick="enterPinDigit('0')">0</button>
+                    <button type="button" class="pin-btn action" onclick="clearPinDigit()">&#x232B;</button>
                 </div>
 
                 <div class="login-error" id="loginError"></div>
+            </div>
 
-                <button type="button" style="margin-top:20px;padding:16px 48px;background:#22c55e;color:white;border:none;border-radius:12px;font-size:18px;font-weight:bold;cursor:pointer;" onclick="
-                    var pin = window.pinValue || '';
-                    var drivers = [
-                        { id: 'DRV-001', name: 'Todd Pollack', pin: '7714', initials: 'TP' },
-                        { id: 'DRV-002', name: 'Samantha Pollack', pin: '1234', initials: 'SP' },
-                        { id: 'DRV-003', name: 'Sarah Chen', pin: '5678', initials: 'SC' }
-                    ];
-                    var driver = null;
-                    for (var i = 0; i < drivers.length; i++) {
-                        if (drivers[i].pin === pin) { driver = drivers[i]; break; }
-                    }
-                    if (driver) {
-                        AppState.driver = driver;
-                        AppState.isLoggedIn = true;
-                        document.getElementById('loginScreen').style.display = 'none';
-                        document.getElementById('appHeader').style.display = 'flex';
-                        document.getElementById('bottomNav').style.display = 'flex';
-                        document.getElementById('routeTab').classList.add('active');
-                        document.getElementById('driverAvatar').textContent = driver.initials;
-                        document.getElementById('driverName').textContent = driver.name;
-                        loadRoute();
-                    } else {
-                        alert('Invalid PIN: ' + pin);
-                    }
-                ">LOGIN</button>
+            <!-- Welcome Toast (hidden by default) -->
+            <div id="welcomeToast" class="welcome-toast" style="display:none;"></div>
+
+            <!-- Navigation Picker Modal -->
+            <div class="nav-picker-overlay" id="navPickerOverlay" onclick="closeNavPicker(event)">
+                <div class="nav-picker" onclick="event.stopPropagation()">
+                    <div class="nav-picker-title">Open in Maps</div>
+                    <div class="nav-picker-options" id="navPickerOptions">
+                        <!-- Options populated dynamically -->
+                    </div>
+                    <button class="nav-picker-cancel" onclick="closeNavPicker()">Cancel</button>
+                </div>
             </div>
 
             <!-- Route Tab -->
@@ -1486,6 +1669,16 @@
             <div class="tab-content" id="historyTab">
                 <div class="history-list" id="historyList">
                     <!-- History rendered here -->
+                </div>
+            </div>
+
+            <!-- Map Tab -->
+            <div class="tab-content" id="mapTab">
+                <div id="deliveryMap"></div>
+                <div class="map-controls">
+                    <button class="optimize-btn" onclick="optimizeRoute()">
+                        <span>&#x1F504;</span> Optimize Route
+                    </button>
                 </div>
             </div>
 
@@ -1555,6 +1748,10 @@
             <div class="nav-item active" onclick="switchTab('route')">
                 <span class="nav-icon">&#x1F4CD;</span>
                 <span>Route</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('map')">
+                <span class="nav-icon">&#x1F5FA;</span>
+                <span>Map</span>
             </div>
             <div class="nav-item" onclick="switchTab('history')">
                 <span class="nav-icon">&#x1F4CB;</span>
@@ -2194,7 +2391,7 @@
                             </div>
 
                             <div class="stop-actions" style="margin-top: 12px;">
-                                <button class="stop-action-btn" onclick="openNavigation('${stop.address}')">
+                                <button class="stop-action-btn" onclick="openNavigation(${stop.lat}, ${stop.lng}, '${encodeURIComponent(stop.address)}')">
                                     <span class="stop-action-icon">&#x1F5FA;</span>
                                     <span>Navigate</span>
                                 </button>
@@ -3045,6 +3242,359 @@
             }
         `;
         document.head.appendChild(style);
+
+        // ============================================
+        // PIN ENTRY FUNCTIONS
+        // ============================================
+        var pinValue = '';
+
+        function enterPinDigit(digit) {
+            if (pinValue.length < 4) {
+                pinValue += digit;
+                updatePinDots();
+                if (pinValue.length === 4) {
+                    setTimeout(doLogin, 300);
+                }
+            }
+        }
+
+        function clearPinDigit() {
+            if (pinValue.length > 0) {
+                pinValue = pinValue.slice(0, -1);
+                updatePinDots();
+            }
+        }
+
+        function updatePinDots() {
+            for (var i = 1; i <= 4; i++) {
+                var dot = document.getElementById('pin' + i);
+                if (dot) {
+                    if (i <= pinValue.length) {
+                        dot.classList.add('filled');
+                    } else {
+                        dot.classList.remove('filled');
+                    }
+                }
+            }
+        }
+
+        function doLogin() {
+            var drivers = [
+                { id: 'DRV-001', name: 'Todd Pollack', pin: '7714', initials: 'TP' },
+                { id: 'DRV-002', name: 'Samantha Pollack', pin: '1234', initials: 'SP' },
+                { id: 'DRV-003', name: 'Sarah Chen', pin: '5678', initials: 'SC' }
+            ];
+
+            var driver = null;
+            for (var i = 0; i < drivers.length; i++) {
+                if (drivers[i].pin === pinValue) {
+                    driver = drivers[i];
+                    break;
+                }
+            }
+
+            if (driver) {
+                AppState.driver = driver;
+                AppState.isLoggedIn = true;
+
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appHeader').style.display = 'flex';
+                document.getElementById('bottomNav').style.display = 'flex';
+                document.getElementById('routeTab').classList.add('active');
+                document.getElementById('driverAvatar').textContent = driver.initials;
+                document.getElementById('driverName').textContent = driver.name;
+
+                // Show welcome message with first name
+                var firstName = driver.name.split(' ')[0];
+                showWelcome('Welcome, ' + firstName + '!');
+
+                loadRoute();
+                pinValue = '';
+                updatePinDots();
+            } else {
+                document.getElementById('loginError').textContent = 'Invalid PIN. Please try again.';
+                pinValue = '';
+                updatePinDots();
+                // Shake animation
+                var pinDisplay = document.querySelector('.pin-display');
+                if (pinDisplay) {
+                    pinDisplay.style.animation = 'shake 0.3s';
+                    setTimeout(function() { pinDisplay.style.animation = ''; }, 300);
+                }
+            }
+        }
+
+        function showWelcome(message) {
+            var toast = document.getElementById('welcomeToast');
+            if (toast) {
+                toast.textContent = message;
+                toast.style.display = 'block';
+                setTimeout(function() {
+                    toast.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // ============================================
+        // MAP FUNCTIONALITY
+        // ============================================
+        var deliveryMap = null;
+        var mapMarkers = [];
+        var routeLine = null;
+
+        function initMap() {
+            if (deliveryMap) return; // Already initialized
+
+            var mapContainer = document.getElementById('deliveryMap');
+            if (!mapContainer) return;
+
+            // Default center (Pittsburgh area)
+            var defaultCenter = [40.4406, -79.9959];
+
+            deliveryMap = L.map('deliveryMap').setView(defaultCenter, 12);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(deliveryMap);
+
+            // Render markers if we have stops
+            if (AppState.route.stops.length > 0) {
+                renderMapMarkers();
+            }
+        }
+
+        function renderMapMarkers() {
+            if (!deliveryMap) return;
+
+            // Clear existing markers
+            mapMarkers.forEach(function(marker) {
+                deliveryMap.removeLayer(marker);
+            });
+            mapMarkers = [];
+
+            if (routeLine) {
+                deliveryMap.removeLayer(routeLine);
+                routeLine = null;
+            }
+
+            var stops = AppState.route.stops;
+            if (stops.length === 0) return;
+
+            var bounds = [];
+            var routeCoords = [];
+
+            stops.forEach(function(stop, index) {
+                if (!stop.lat || !stop.lng) return;
+
+                var isCompleted = stop.status === 'delivered' || stop.status === 'issue';
+                var isCurrent = index === AppState.route.currentStopIndex && AppState.route.isStarted;
+
+                // Create custom icon
+                var markerClass = 'custom-marker';
+                if (isCompleted) markerClass += ' completed';
+                if (isCurrent) markerClass += ' current';
+
+                var icon = L.divIcon({
+                    className: '',
+                    html: '<div class="' + markerClass + '">' + (index + 1) + '</div>',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+
+                var marker = L.marker([stop.lat, stop.lng], { icon: icon })
+                    .bindPopup(
+                        '<strong>' + stop.customer + '</strong><br>' +
+                        stop.address + '<br>' +
+                        '<button onclick="openNavigation(' + stop.lat + ', ' + stop.lng + ', \'' + encodeURIComponent(stop.address) + '\')" ' +
+                        'style="margin-top:8px;padding:8px 16px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">Navigate</button>'
+                    )
+                    .addTo(deliveryMap);
+
+                mapMarkers.push(marker);
+                bounds.push([stop.lat, stop.lng]);
+                routeCoords.push([stop.lat, stop.lng]);
+            });
+
+            // Draw route line
+            if (routeCoords.length > 1) {
+                routeLine = L.polyline(routeCoords, {
+                    color: '#3b82f6',
+                    weight: 4,
+                    opacity: 0.7,
+                    dashArray: '10, 10'
+                }).addTo(deliveryMap);
+            }
+
+            // Fit map to show all markers
+            if (bounds.length > 0) {
+                deliveryMap.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }
+
+        // ============================================
+        // NAVIGATION INTEGRATION
+        // ============================================
+        var pendingNavigation = null;
+
+        function openNavigation(lat, lng, address) {
+            pendingNavigation = { lat: lat, lng: lng, address: decodeURIComponent(address) };
+            showNavPicker();
+        }
+
+        function showNavPicker() {
+            var overlay = document.getElementById('navPickerOverlay');
+            var options = document.getElementById('navPickerOptions');
+
+            if (!overlay || !options || !pendingNavigation) return;
+
+            var lat = pendingNavigation.lat;
+            var lng = pendingNavigation.lng;
+            var addr = pendingNavigation.address;
+
+            // Detect platform
+            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            var isAndroid = /Android/.test(navigator.userAgent);
+
+            var html = '';
+
+            // Google Maps (works on all platforms)
+            html += '<a class="nav-option" href="https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '" target="_blank">';
+            html += '<span class="nav-option-icon">&#x1F5FA;</span>';
+            html += '<span>Google Maps</span>';
+            html += '</a>';
+
+            // Apple Maps (iOS only)
+            if (isIOS) {
+                html += '<a class="nav-option" href="maps://?daddr=' + lat + ',' + lng + '">';
+                html += '<span class="nav-option-icon">&#x1F34E;</span>';
+                html += '<span>Apple Maps</span>';
+                html += '</a>';
+            }
+
+            // Waze
+            html += '<a class="nav-option" href="https://waze.com/ul?ll=' + lat + ',' + lng + '&navigate=yes" target="_blank">';
+            html += '<span class="nav-option-icon">&#x1F697;</span>';
+            html += '<span>Waze</span>';
+            html += '</a>';
+
+            options.innerHTML = html;
+            overlay.classList.add('active');
+        }
+
+        function closeNavPicker(event) {
+            if (event && event.target !== document.getElementById('navPickerOverlay')) {
+                return;
+            }
+            var overlay = document.getElementById('navPickerOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+            }
+            pendingNavigation = null;
+        }
+
+        // ============================================
+        // ROUTE OPTIMIZATION (Nearest Neighbor Algorithm)
+        // ============================================
+        function optimizeRoute() {
+            var stops = AppState.route.stops.filter(function(s) {
+                return s.status === 'pending' && s.lat && s.lng;
+            });
+
+            if (stops.length < 2) {
+                alert('Need at least 2 pending stops to optimize');
+                return;
+            }
+
+            // Farm location (starting point) - approximate
+            var farmLat = 40.45;
+            var farmLng = -79.95;
+
+            // Nearest neighbor algorithm
+            var optimized = [];
+            var remaining = stops.slice();
+            var currentLat = farmLat;
+            var currentLng = farmLng;
+
+            while (remaining.length > 0) {
+                var nearestIndex = 0;
+                var nearestDist = Infinity;
+
+                for (var i = 0; i < remaining.length; i++) {
+                    var dist = haversineDistance(currentLat, currentLng, remaining[i].lat, remaining[i].lng);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestIndex = i;
+                    }
+                }
+
+                var nearest = remaining.splice(nearestIndex, 1)[0];
+                optimized.push(nearest);
+                currentLat = nearest.lat;
+                currentLng = nearest.lng;
+            }
+
+            // Reorder stops in AppState
+            var completedStops = AppState.route.stops.filter(function(s) {
+                return s.status !== 'pending';
+            });
+
+            AppState.route.stops = completedStops.concat(optimized);
+
+            // Re-render
+            renderStops();
+            renderMapMarkers();
+
+            alert('Route optimized! Stops reordered for shortest travel distance.');
+        }
+
+        function haversineDistance(lat1, lng1, lat2, lng2) {
+            var R = 3959; // Earth radius in miles
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLng = (lng2 - lng1) * Math.PI / 180;
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // ============================================
+        // UPDATE SWITCH TAB FOR MAP
+        // ============================================
+        var originalSwitchTab = switchTab;
+        switchTab = function(tabName) {
+            // Call original function
+            var navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(function(item) { item.classList.remove('active'); });
+
+            var tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(function(tab) { tab.classList.remove('active'); });
+
+            var clickedItem = document.querySelector('.nav-item[onclick*="' + tabName + '"]');
+            if (clickedItem) clickedItem.classList.add('active');
+
+            var targetTab = document.getElementById(tabName + 'Tab');
+            if (targetTab) targetTab.classList.add('active');
+
+            AppState.currentTab = tabName;
+
+            // Initialize map when switching to map tab
+            if (tabName === 'map') {
+                setTimeout(function() {
+                    initMap();
+                    if (deliveryMap) {
+                        deliveryMap.invalidateSize();
+                        renderMapMarkers();
+                    }
+                }, 100);
+            }
+        };
+
     </script>
+
+    <!-- Leaflet JS for maps -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 </body>
 </html>
