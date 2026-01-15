@@ -1412,6 +1412,30 @@
                 </div>
 
                 <div class="login-error" id="loginError"></div>
+
+                <button type="button" style="margin-top:20px;padding:16px 48px;background:#22c55e;color:white;border:none;border-radius:12px;font-size:18px;font-weight:bold;cursor:pointer;" onclick="
+                    var pin = window.pinValue || '';
+                    var drivers = [
+                        { id: 'DRV-001', name: 'Todd Pollack', pin: '7714', initials: 'TP' },
+                        { id: 'DRV-002', name: 'Samantha Pollack', pin: '1234', initials: 'SP' },
+                        { id: 'DRV-003', name: 'Sarah Chen', pin: '5678', initials: 'SC' }
+                    ];
+                    var driver = null;
+                    for (var i = 0; i < drivers.length; i++) {
+                        if (drivers[i].pin === pin) { driver = drivers[i]; break; }
+                    }
+                    if (driver) {
+                        document.getElementById('loginScreen').style.display = 'none';
+                        document.getElementById('appHeader').style.display = 'flex';
+                        document.getElementById('bottomNav').style.display = 'flex';
+                        document.getElementById('routeTab').classList.add('active');
+                        document.getElementById('driverAvatar').textContent = driver.initials;
+                        document.getElementById('driverName').textContent = driver.name;
+                        alert('Welcome, ' + driver.name + '!');
+                    } else {
+                        alert('Invalid PIN: ' + pin);
+                    }
+                ">LOGIN</button>
             </div>
 
             <!-- Route Tab -->
