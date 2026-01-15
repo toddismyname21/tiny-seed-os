@@ -1396,18 +1396,18 @@
                 </div>
 
                 <div class="pin-pad">
-                    <button type="button" class="pin-btn" ontouchend="enterPin(1)" onclick="enterPin(1)">1</button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(2)" onclick="enterPin(2)">2</button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(3)" onclick="enterPin(3)">3</button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(4)" onclick="enterPin(4)">4</button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(5)" onclick="enterPin(5)">5</button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(6)" onclick="enterPin(6)">6</button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(7)" onclick="enterPin(7)">7</button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(8)" onclick="enterPin(8)">8</button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(9)" onclick="enterPin(9)">9</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(1)">1</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(2)">2</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(3)">3</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(4)">4</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(5)">5</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(6)">6</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(7)">7</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(8)">8</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(9)">9</button>
                     <button type="button" class="pin-btn action"></button>
-                    <button type="button" class="pin-btn" ontouchend="enterPin(0)" onclick="enterPin(0)">0</button>
-                    <button type="button" class="pin-btn action" ontouchend="clearPin()" onclick="clearPin()">&#x232B;</button>
+                    <button type="button" class="pin-btn" onclick="enterPin(0)">0</button>
+                    <button type="button" class="pin-btn action" onclick="clearPin()">&#x232B;</button>
                 </div>
 
                 <div class="login-error" id="loginError"></div>
@@ -1791,13 +1791,6 @@
             checkOnlineStatus();
             initSignatureCanvas();
             checkSession();
-
-            // Prevent double-tap zoom on buttons
-            document.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('touchend', function(e) {
-                    e.preventDefault();
-                });
-            });
         });
 
         function checkSession() {
