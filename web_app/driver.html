@@ -2764,14 +2764,7 @@
         // DELIVERY NOTIFICATIONS
         // ============================================
 
-        // Twilio configuration for direct SMS
-        const TWILIO_CONFIG = {
-            accountSid: 'AC85c921ca82cb00ef4f009eefbad6d071',
-            authToken: 'fef3e9a12e44a0a85e958e0255172997',
-            fromNumber: '+14128662259'
-        };
-
-        // Send SMS directly via Twilio API
+        // Send SMS via Google Apps Script backend (credentials stored securely server-side)
         async function sendTwilioSMS(toNumber, message) {
             try {
                 // Format phone number
@@ -2781,34 +2774,27 @@
                 }
                 formattedTo = '+' + formattedTo;
 
-                const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_CONFIG.accountSid}/Messages.json`;
-                const auth = btoa(`${TWILIO_CONFIG.accountSid}:${TWILIO_CONFIG.authToken}`);
-
-                const formData = new URLSearchParams();
-                formData.append('To', formattedTo);
-                formData.append('From', TWILIO_CONFIG.fromNumber);
-                formData.append('Body', message);
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Basic ${auth}`,
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: formData.toString()
+                // Route through backend - credentials are stored securely in Apps Script
+                const params = new URLSearchParams({
+                    action: 'sendSMS',
+                    to: formattedTo,
+                    message: message
                 });
 
+                console.log(`Sending SMS to ${formattedTo} via backend...`);
+
+                const response = await fetch(`${TRACKING_API_URL}?${params.toString()}`);
                 const result = await response.json();
 
-                if (response.ok) {
-                    console.log(`SMS sent to ${formattedTo}: ${result.sid}`);
+                if (result.success) {
+                    console.log(`SMS sent to ${formattedTo}: ${result.sid || 'OK'}`);
                     return { success: true, sid: result.sid };
                 } else {
-                    console.error(`SMS failed to ${formattedTo}:`, result.message);
-                    return { success: false, error: result.message };
+                    console.error(`SMS failed to ${formattedTo}:`, result.error);
+                    return { success: false, error: result.error };
                 }
             } catch (error) {
-                console.error('Twilio SMS error:', error);
+                console.error('SMS error:', error);
                 return { success: false, error: error.message };
             }
         }
@@ -3743,9 +3729,9 @@
         const FARM_DEPOT = {
             id: 'DEPOT',
             name: 'Tiny Seed Farm',
-            lat: 40.7945,  // Zelienople area
-            lng: -80.1393,
-            address: 'Farm Depot - Start/End Point'
+            lat: 40.7248232,   // 257 Zeigler Rd
+            lng: -80.1540297,
+            address: '257 Zeigler Rd, Rochester PA 15074'
         };
 
         // Route Optimizer - Production Grade
