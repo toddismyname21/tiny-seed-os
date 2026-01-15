@@ -540,6 +540,18 @@ function doGet(e) {
       case 'populateFieldDaysData':
         return jsonResponse(populateFieldDaysData());
 
+      // ============ FIELD PLAN ADVISOR ============
+      case 'analyzeFieldPlan':
+        return jsonResponse(analyzeFieldPlan(e.parameter));
+      case 'getFieldPlanSuggestions':
+        return jsonResponse(getFieldPlanSuggestions(e.parameter));
+      case 'approveSuggestion':
+        return jsonResponse(approveSuggestion(e.parameter));
+      case 'rejectSuggestion':
+        return jsonResponse(rejectSuggestion(e.parameter));
+      case 'approveAllSuggestions':
+        return jsonResponse(approveAllSuggestions(e.parameter));
+
       // ============ MARKETING MODULE ============
       case 'getFarmPics':
         return jsonResponse(getFarmPics(e.parameter));
