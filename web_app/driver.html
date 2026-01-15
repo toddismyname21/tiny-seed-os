@@ -1838,27 +1838,59 @@
         // AUTHENTICATION
         // ============================================
         function enterPin(digit) {
-            if (AppState.pin.length < 4) {
-                AppState.pin += digit;
-                updatePinDisplay();
+            try {
+                if (AppState.pin.length < 4) {
+                    AppState.pin = AppState.pin + String(digit);
+                    updatePinDisplay();
 
-                if (AppState.pin.length === 4) {
-                    setTimeout(validatePin, 200);
+                    if (AppState.pin.length === 4) {
+                        setTimeout(validatePin, 200);
+                    }
                 }
+            } catch (e) {
+                alert('enterPin error: ' + e.message);
             }
         }
 
         function clearPin() {
-            AppState.pin = AppState.pin.slice(0, -1);
-            updatePinDisplay();
+            try {
+                if (AppState.pin.length > 0) {
+                    AppState.pin = AppState.pin.slice(0, -1);
+                }
+                updatePinDisplay();
+            } catch (e) {
+                alert('clearPin error: ' + e.message);
+            }
         }
 
         function updatePinDisplay() {
-            for (let i = 1; i <= 4; i++) {
-                const dot = document.getElementById(`pin${i}`);
-                dot.classList.toggle('filled', i <= AppState.pin.length);
+            try {
+                var pin1 = document.getElementById('pin1');
+                var pin2 = document.getElementById('pin2');
+                var pin3 = document.getElementById('pin3');
+                var pin4 = document.getElementById('pin4');
+                var len = AppState.pin.length;
+
+                if (pin1) {
+                    if (len >= 1) { pin1.classList.add('filled'); } else { pin1.classList.remove('filled'); }
+                }
+                if (pin2) {
+                    if (len >= 2) { pin2.classList.add('filled'); } else { pin2.classList.remove('filled'); }
+                }
+                if (pin3) {
+                    if (len >= 3) { pin3.classList.add('filled'); } else { pin3.classList.remove('filled'); }
+                }
+                if (pin4) {
+                    if (len >= 4) { pin4.classList.add('filled'); } else { pin4.classList.remove('filled'); }
+                }
+
+                var errorEl = document.getElementById('loginError');
+                if (errorEl) {
+                    errorEl.textContent = '';
+                }
+            } catch (e) {
+                alert('updatePinDisplay error: ' + e.message);
             }
-            document.getElementById('loginError').textContent = '';
         }
 
         async function validatePin() {
