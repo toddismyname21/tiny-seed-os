@@ -1435,6 +1435,795 @@ function approveAllSuggestions(params) {
   return results;
 }
 
+// =============================================================================
+// UNASSIGNED PLANTING ANALYZER & SUCCESSION PLANNING
+// =============================================================================
+
+/**
+ * Analyze unassigned plantings and group them by field time
+ * Calculates total space needed and suggests optimal field configurations
+ */
+function analyzeUnassignedPlantings(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var planSheet = ss.getSheetByName('PLANNING_2026');
+  var profileSheet = ss.getSheetByName('REF_CropProfiles');
+  var bedSheet = ss.getSheetByName('REF_Beds');
+
+  if (!planSheet) {
+    return { success: false, error: 'PLANNING_2026 sheet not found' };
+  }
+
+  // Get planning data
+  var planData = planSheet.getDataRange().getValues();
+  var planHeaders = planData[0];
+
+  var statusCol = planHeaders.indexOf('STATUS');
+  var batchCol = planHeaders.indexOf('Batch_ID');
+  var cropCol = planHeaders.indexOf('Crop');
+  var varietyCol = planHeaders.indexOf('Variety');
+  var bedCol = planHeaders.indexOf('Target_Bed_ID');
+  var transplantCol = planHeaders.indexOf('Transplant_Date');
+  var fieldSowCol = planHeaders.indexOf('Field_Sow_Date');
+  var firstHarvestCol = planHeaders.indexOf('First_Harvest');
+  var lastHarvestCol = planHeaders.indexOf('Last_Harvest');
+  var methodCol = planHeaders.indexOf('Method');
+  var feetCol = planHeaders.indexOf('Bed_Feet');
+
+  // Build unassigned plantings list
+  var unassigned = [];
+  var assigned = [];
+
+  for (var i = 1; i < planData.length; i++) {
+    var row = planData[i];
+    var status = row[statusCol];
+    var crop = row[cropCol];
+    var bedId = row[bedCol];
+
+    if (!crop || status === 'Completed' || status === 'Cancelled') continue;
+
+    var fieldDays = getDefaultFieldDays(crop);
+    var family = getCropFamily(crop);
+    var fieldStart = row[transplantCol] || row[fieldSowCol];
+    var fieldTimeGroup = getFieldTimeGroup(fieldDays.max);
+
+    var planting = {
+      rowIndex: i + 1,
+      batchId: row[batchCol],
+      crop: crop,
+      variety: row[varietyCol],
+      method: row[methodCol],
+      bedId: bedId,
+      bedFeet: Number(row[feetCol]) || 50,
+      fieldStart: fieldStart,
+      firstHarvest: row[firstHarvestCol],
+      lastHarvest: row[lastHarvestCol],
+      fieldDaysMin: fieldDays.min,
+      fieldDaysMax: fieldDays.max,
+      fieldTimeGroup: fieldTimeGroup.group,
+      fieldTimeLabel: fieldTimeGroup.label,
+      family: family,
+      status: status
+    };
+
+    if (!bedId || bedId === '' || bedId === 'TBD' || bedId === 'Unassigned') {
+      unassigned.push(planting);
+    } else {
+      assigned.push(planting);
+    }
+  }
+
+  // Group unassigned by field time
+  var groupedByTime = {
+    'Quick': { plantings: [], totalFeet: 0, crops: {} },
+    'Short': { plantings: [], totalFeet: 0, crops: {} },
+    'Medium': { plantings: [], totalFeet: 0, crops: {} },
+    'Long': { plantings: [], totalFeet: 0, crops: {} },
+    'VeryLong': { plantings: [], totalFeet: 0, crops: {} }
+  };
+
+  for (var i = 0; i < unassigned.length; i++) {
+    var p = unassigned[i];
+    var group = groupedByTime[p.fieldTimeGroup];
+    if (group) {
+      group.plantings.push(p);
+      group.totalFeet += p.bedFeet;
+      if (!group.crops[p.crop]) {
+        group.crops[p.crop] = { count: 0, totalFeet: 0, family: p.family };
+      }
+      group.crops[p.crop].count++;
+      group.crops[p.crop].totalFeet += p.bedFeet;
+    }
+  }
+
+  // Get bed information for space calculations
+  var beds = {};
+  var totalAvailableFeet = 0;
+  var availableBedsByField = {};
+
+  if (bedSheet && bedSheet.getLastRow() > 1) {
+    var bedData = bedSheet.getDataRange().getValues();
+    var bedHeaders = bedData[0];
+    var bedIdCol = bedHeaders.indexOf('Bed_ID') !== -1 ? bedHeaders.indexOf('Bed_ID') : 0;
+    var bedFieldCol = bedHeaders.indexOf('Field') !== -1 ? bedHeaders.indexOf('Field') : 1;
+    var bedLengthCol = bedHeaders.indexOf('Length_Feet') !== -1 ? bedHeaders.indexOf('Length_Feet') : 3;
+    var bedStatusCol = bedHeaders.indexOf('Status') !== -1 ? bedHeaders.indexOf('Status') : 4;
+
+    for (var i = 1; i < bedData.length; i++) {
+      var bedId = bedData[i][bedIdCol];
+      var field = bedData[i][bedFieldCol];
+      var length = Number(bedData[i][bedLengthCol]) || 100;
+      var bedStatus = bedData[i][bedStatusCol];
+
+      if (bedStatus === 'Inactive' || bedStatus === 'Reserved') continue;
+
+      beds[bedId] = {
+        id: bedId,
+        field: field,
+        length: length,
+        status: bedStatus
+      };
+
+      if (!availableBedsByField[field]) {
+        availableBedsByField[field] = { beds: [], totalFeet: 0 };
+      }
+      availableBedsByField[field].beds.push(beds[bedId]);
+      availableBedsByField[field].totalFeet += length;
+      totalAvailableFeet += length;
+    }
+  }
+
+  // Calculate field size suggestions
+  var fieldSizeSuggestions = [];
+  var totalUnassignedFeet = 0;
+
+  for (var groupName in groupedByTime) {
+    var group = groupedByTime[groupName];
+    if (group.plantings.length === 0) continue;
+
+    totalUnassignedFeet += group.totalFeet;
+
+    // Calculate how many beds needed
+    var avgBedLength = 100; // Assume 100ft beds
+    var bedsNeeded = Math.ceil(group.totalFeet / avgBedLength);
+
+    fieldSizeSuggestions.push({
+      fieldTimeGroup: groupName,
+      label: FIELD_TIME_GROUPS[groupName].label,
+      plantingCount: group.plantings.length,
+      totalFeetNeeded: group.totalFeet,
+      bedsNeeded: bedsNeeded,
+      suggestedFieldSize: group.totalFeet + ' linear feet (' + bedsNeeded + ' beds @ 100ft)',
+      crops: group.crops
+    });
+  }
+
+  // Find gaps where successions could fit
+  var successionOpportunities = findSuccessionGaps({
+    assigned: assigned,
+    unassigned: unassigned,
+    beds: beds
+  });
+
+  return {
+    success: true,
+    summary: {
+      totalUnassigned: unassigned.length,
+      totalAssigned: assigned.length,
+      totalUnassignedFeet: totalUnassignedFeet,
+      totalAvailableFeet: totalAvailableFeet,
+      spaceDeficit: totalUnassignedFeet > totalAvailableFeet ? totalUnassignedFeet - totalAvailableFeet : 0
+    },
+    groupedByFieldTime: groupedByTime,
+    fieldSizeSuggestions: fieldSizeSuggestions,
+    successionOpportunities: successionOpportunities,
+    availableBedsByField: availableBedsByField
+  };
+}
+
+/**
+ * Find gaps in existing bed schedules where successions could fit
+ */
+function findSuccessionGaps(params) {
+  var assigned = params.assigned || [];
+  var unassigned = params.unassigned || [];
+  var beds = params.beds || {};
+
+  // Build bed occupancy timeline
+  var bedOccupancy = {};
+
+  for (var i = 0; i < assigned.length; i++) {
+    var p = assigned[i];
+    if (!p.bedId || !p.fieldStart) continue;
+
+    if (!bedOccupancy[p.bedId]) {
+      bedOccupancy[p.bedId] = {
+        bed: beds[p.bedId] || { id: p.bedId, length: 100 },
+        occupiedPeriods: [],
+        gaps: []
+      };
+    }
+
+    var startDate = new Date(p.fieldStart);
+    var endDate = p.lastHarvest ? new Date(p.lastHarvest) : new Date(startDate.getTime() + p.fieldDaysMax * 24 * 60 * 60 * 1000);
+
+    bedOccupancy[p.bedId].occupiedPeriods.push({
+      crop: p.crop,
+      batchId: p.batchId,
+      family: p.family,
+      start: startDate,
+      end: endDate,
+      fieldTimeGroup: p.fieldTimeGroup
+    });
+  }
+
+  // Calculate gaps for each bed
+  var opportunities = [];
+  var seasonStart = new Date('2026-03-01');
+  var seasonEnd = new Date('2026-11-15');
+
+  for (var bedId in bedOccupancy) {
+    var bed = bedOccupancy[bedId];
+    var periods = bed.occupiedPeriods;
+
+    // Sort by start date
+    periods.sort(function(a, b) { return a.start - b.start; });
+
+    // Find gaps
+    var lastEnd = seasonStart;
+
+    for (var i = 0; i < periods.length; i++) {
+      var period = periods[i];
+
+      // Gap before this period?
+      if (period.start > lastEnd) {
+        var gapDays = Math.floor((period.start - lastEnd) / (24 * 60 * 60 * 1000));
+
+        if (gapDays >= 21) { // Minimum 21 days for even quick crops
+          bed.gaps.push({
+            start: lastEnd,
+            end: period.start,
+            days: gapDays,
+            afterCrop: i > 0 ? periods[i-1].crop : null,
+            beforeCrop: period.crop,
+            afterFamily: i > 0 ? periods[i-1].family : null,
+            beforeFamily: period.family
+          });
+        }
+      }
+
+      if (period.end > lastEnd) {
+        lastEnd = period.end;
+      }
+    }
+
+    // Gap after last period until end of season?
+    if (lastEnd < seasonEnd) {
+      var gapDays = Math.floor((seasonEnd - lastEnd) / (24 * 60 * 60 * 1000));
+      if (gapDays >= 21) {
+        bed.gaps.push({
+          start: lastEnd,
+          end: seasonEnd,
+          days: gapDays,
+          afterCrop: periods.length > 0 ? periods[periods.length - 1].crop : null,
+          beforeCrop: null,
+          afterFamily: periods.length > 0 ? periods[periods.length - 1].family : null,
+          beforeFamily: null
+        });
+      }
+    }
+
+    // Match unassigned plantings to gaps
+    for (var g = 0; g < bed.gaps.length; g++) {
+      var gap = bed.gaps[g];
+      var fittingPlantings = [];
+
+      for (var u = 0; u < unassigned.length; u++) {
+        var up = unassigned[u];
+
+        // Does this planting fit in the gap?
+        if (up.fieldDaysMax <= gap.days) {
+          // Check rotation compatibility
+          var rotationOk = true;
+          if (gap.afterFamily && gap.afterFamily === up.family) {
+            rotationOk = false;
+          }
+
+          if (rotationOk) {
+            fittingPlantings.push({
+              batchId: up.batchId,
+              crop: up.crop,
+              variety: up.variety,
+              fieldDays: up.fieldDaysMax,
+              bedFeet: up.bedFeet,
+              fieldTimeGroup: up.fieldTimeGroup,
+              rotationScore: gap.afterFamily ? (ROTATION_COMPATIBILITY[gap.afterFamily] ? ROTATION_COMPATIBILITY[gap.afterFamily][up.family] || 1 : 1) : 1
+            });
+          }
+        }
+      }
+
+      if (fittingPlantings.length > 0) {
+        // Sort by rotation score (beneficial first)
+        fittingPlantings.sort(function(a, b) { return b.rotationScore - a.rotationScore; });
+
+        opportunities.push({
+          bedId: bedId,
+          field: bed.bed.field,
+          bedLength: bed.bed.length,
+          gapStart: gap.start.toISOString().split('T')[0],
+          gapEnd: gap.end.toISOString().split('T')[0],
+          gapDays: gap.days,
+          afterCrop: gap.afterCrop,
+          fittingPlantings: fittingPlantings.slice(0, 5), // Top 5 options
+          recommendation: fittingPlantings[0] ? 'Best fit: ' + fittingPlantings[0].crop + ' (' + fittingPlantings[0].fieldDays + ' days)' : 'No suitable crops found'
+        });
+      }
+    }
+  }
+
+  // Sort opportunities by gap size (largest first)
+  opportunities.sort(function(a, b) { return b.gapDays - a.gapDays; });
+
+  return {
+    totalGapsFound: opportunities.length,
+    opportunities: opportunities
+  };
+}
+
+/**
+ * Generate comprehensive field plan report
+ * This is the main function to generate a full planning analysis
+ */
+function generateFieldPlanReport(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Get all analyses
+  var unassignedAnalysis = analyzeUnassignedPlantings({});
+  var fieldPlanAnalysis = analyzeFieldPlan({});
+
+  if (!unassignedAnalysis.success || !fieldPlanAnalysis.success) {
+    return {
+      success: false,
+      error: 'Failed to generate analyses',
+      unassignedError: unassignedAnalysis.error,
+      fieldPlanError: fieldPlanAnalysis.error
+    };
+  }
+
+  // Build the report
+  var report = {
+    generatedAt: new Date().toISOString(),
+    success: true,
+
+    // Executive Summary
+    executiveSummary: {
+      totalPlantings: fieldPlanAnalysis.totalPlantings,
+      unassignedPlantings: unassignedAnalysis.summary.totalUnassigned,
+      assignedPlantings: unassignedAnalysis.summary.totalAssigned,
+      percentAssigned: Math.round((unassignedAnalysis.summary.totalAssigned / fieldPlanAnalysis.totalPlantings) * 100) + '%',
+      totalSpaceNeeded: unassignedAnalysis.summary.totalUnassignedFeet + ' feet',
+      totalSpaceAvailable: unassignedAnalysis.summary.totalAvailableFeet + ' feet',
+      spaceDeficit: unassignedAnalysis.summary.spaceDeficit > 0 ?
+        unassignedAnalysis.summary.spaceDeficit + ' feet shortage' : 'No shortage - space available',
+      suggestionsGenerated: fieldPlanAnalysis.suggestionsCount,
+      criticalIssues: fieldPlanAnalysis.summary.rotationConflicts
+    },
+
+    // Unassigned Plantings by Field Time Group
+    unassignedByFieldTime: [],
+
+    // Field Size Recommendations
+    fieldSizeRecommendations: unassignedAnalysis.fieldSizeSuggestions,
+
+    // Succession Opportunities
+    successionOpportunities: unassignedAnalysis.successionOpportunities,
+
+    // Optimization Suggestions
+    optimizationSuggestions: {
+      high: fieldPlanAnalysis.suggestions.filter(function(s) { return s.priority === 'HIGH'; }),
+      medium: fieldPlanAnalysis.suggestions.filter(function(s) { return s.priority === 'MEDIUM'; }),
+      low: fieldPlanAnalysis.suggestions.filter(function(s) { return s.priority === 'LOW'; })
+    },
+
+    // Detailed Groupings
+    detailedGroupings: unassignedAnalysis.groupedByFieldTime
+  };
+
+  // Format unassigned by field time for easy reading
+  for (var groupName in unassignedAnalysis.groupedByFieldTime) {
+    var group = unassignedAnalysis.groupedByFieldTime[groupName];
+    if (group.plantings.length > 0) {
+      var cropList = [];
+      for (var crop in group.crops) {
+        cropList.push(crop + ' (' + group.crops[crop].count + ' plantings, ' + group.crops[crop].totalFeet + ' ft)');
+      }
+
+      report.unassignedByFieldTime.push({
+        group: groupName,
+        label: FIELD_TIME_GROUPS[groupName].label,
+        color: FIELD_TIME_GROUPS[groupName].color,
+        plantingCount: group.plantings.length,
+        totalFeet: group.totalFeet,
+        crops: cropList
+      });
+    }
+  }
+
+  // Generate text summary for quick reading
+  report.textSummary = generateTextSummary(report);
+
+  // Save report to sheet
+  saveReportToSheet(ss, report);
+
+  return report;
+}
+
+/**
+ * Generate human-readable text summary
+ */
+function generateTextSummary(report) {
+  var lines = [];
+
+  lines.push('═══════════════════════════════════════════════════════════════════');
+  lines.push('FIELD PLAN REPORT - Generated ' + new Date().toLocaleDateString());
+  lines.push('═══════════════════════════════════════════════════════════════════');
+  lines.push('');
+
+  // Executive Summary
+  lines.push('OVERVIEW');
+  lines.push('────────');
+  lines.push('• Total plantings: ' + report.executiveSummary.totalPlantings);
+  lines.push('• Assigned to beds: ' + report.executiveSummary.assignedPlantings + ' (' + report.executiveSummary.percentAssigned + ')');
+  lines.push('• Unassigned: ' + report.executiveSummary.unassignedPlantings);
+  lines.push('• Space needed for unassigned: ' + report.executiveSummary.totalSpaceNeeded);
+  lines.push('• Available bed space: ' + report.executiveSummary.totalSpaceAvailable);
+  lines.push('• ' + report.executiveSummary.spaceDeficit);
+  lines.push('');
+
+  // Issues
+  if (report.executiveSummary.criticalIssues > 0) {
+    lines.push('⚠️  CRITICAL: ' + report.executiveSummary.criticalIssues + ' rotation conflicts detected!');
+    lines.push('');
+  }
+
+  // Unassigned by Field Time
+  if (report.unassignedByFieldTime.length > 0) {
+    lines.push('UNASSIGNED PLANTINGS BY FIELD TIME');
+    lines.push('───────────────────────────────────');
+
+    for (var i = 0; i < report.unassignedByFieldTime.length; i++) {
+      var group = report.unassignedByFieldTime[i];
+      lines.push('');
+      lines.push(group.label.toUpperCase());
+      lines.push('  Plantings: ' + group.plantingCount + ' | Total feet: ' + group.totalFeet);
+      lines.push('  Crops: ' + group.crops.join(', '));
+    }
+    lines.push('');
+  }
+
+  // Field Size Recommendations
+  if (report.fieldSizeRecommendations.length > 0) {
+    lines.push('FIELD SIZE RECOMMENDATIONS');
+    lines.push('──────────────────────────');
+
+    for (var i = 0; i < report.fieldSizeRecommendations.length; i++) {
+      var rec = report.fieldSizeRecommendations[i];
+      lines.push('• ' + rec.label + ': ' + rec.suggestedFieldSize);
+    }
+    lines.push('');
+  }
+
+  // Succession Opportunities
+  if (report.successionOpportunities.totalGapsFound > 0) {
+    lines.push('SUCCESSION OPPORTUNITIES');
+    lines.push('────────────────────────');
+    lines.push(report.successionOpportunities.totalGapsFound + ' bed gaps found for succession planting:');
+    lines.push('');
+
+    var opps = report.successionOpportunities.opportunities.slice(0, 10); // Top 10
+    for (var i = 0; i < opps.length; i++) {
+      var opp = opps[i];
+      lines.push('• Bed ' + opp.bedId + ': ' + opp.gapDays + ' day gap (' + opp.gapStart + ' to ' + opp.gapEnd + ')');
+      lines.push('  ' + opp.recommendation);
+      if (opp.afterCrop) {
+        lines.push('  (After: ' + opp.afterCrop + ')');
+      }
+    }
+    lines.push('');
+  }
+
+  // High Priority Suggestions
+  if (report.optimizationSuggestions.high.length > 0) {
+    lines.push('HIGH PRIORITY ACTIONS NEEDED');
+    lines.push('────────────────────────────');
+
+    for (var i = 0; i < Math.min(5, report.optimizationSuggestions.high.length); i++) {
+      var sug = report.optimizationSuggestions.high[i];
+      lines.push('• [' + sug.id + '] ' + sug.description);
+    }
+
+    if (report.optimizationSuggestions.high.length > 5) {
+      lines.push('  ... and ' + (report.optimizationSuggestions.high.length - 5) + ' more');
+    }
+    lines.push('');
+  }
+
+  lines.push('═══════════════════════════════════════════════════════════════════');
+  lines.push('Run approveSuggestion() or approveAllSuggestions() to apply changes');
+  lines.push('═══════════════════════════════════════════════════════════════════');
+
+  return lines.join('\n');
+}
+
+/**
+ * Save report to a sheet for reference
+ */
+function saveReportToSheet(ss, report) {
+  var sheet = ss.getSheetByName('FIELD_PLAN_REPORT');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('FIELD_PLAN_REPORT');
+  }
+
+  // Clear and write report
+  sheet.clear();
+
+  // Header
+  sheet.getRange('A1').setValue('FIELD PLAN REPORT').setFontSize(14).setFontWeight('bold');
+  sheet.getRange('A2').setValue('Generated: ' + report.generatedAt);
+
+  // Executive Summary
+  sheet.getRange('A4').setValue('EXECUTIVE SUMMARY').setFontWeight('bold').setBackground('#4a86e8').setFontColor('white');
+  sheet.getRange('A5').setValue('Total Plantings');
+  sheet.getRange('B5').setValue(report.executiveSummary.totalPlantings);
+  sheet.getRange('A6').setValue('Assigned');
+  sheet.getRange('B6').setValue(report.executiveSummary.assignedPlantings);
+  sheet.getRange('A7').setValue('Unassigned');
+  sheet.getRange('B7').setValue(report.executiveSummary.unassignedPlantings);
+  sheet.getRange('A8').setValue('Space Needed');
+  sheet.getRange('B8').setValue(report.executiveSummary.totalSpaceNeeded);
+  sheet.getRange('A9').setValue('Space Available');
+  sheet.getRange('B9').setValue(report.executiveSummary.totalSpaceAvailable);
+  sheet.getRange('A10').setValue('Rotation Conflicts');
+  sheet.getRange('B10').setValue(report.executiveSummary.criticalIssues);
+  sheet.getRange('A11').setValue('Suggestions');
+  sheet.getRange('B11').setValue(report.executiveSummary.suggestionsGenerated);
+
+  // Unassigned by Field Time
+  var row = 13;
+  sheet.getRange('A' + row).setValue('UNASSIGNED BY FIELD TIME').setFontWeight('bold').setBackground('#4a86e8').setFontColor('white');
+  sheet.getRange('A' + (row+1) + ':E' + (row+1)).setValues([['Group', 'Plantings', 'Total Feet', 'Crops', '']]);
+  sheet.getRange('A' + (row+1) + ':E' + (row+1)).setFontWeight('bold');
+  row += 2;
+
+  for (var i = 0; i < report.unassignedByFieldTime.length; i++) {
+    var group = report.unassignedByFieldTime[i];
+    sheet.getRange('A' + row + ':E' + row).setValues([[
+      group.label,
+      group.plantingCount,
+      group.totalFeet,
+      group.crops.join(', '),
+      ''
+    ]]);
+    sheet.getRange('A' + row).setBackground(group.color);
+    row++;
+  }
+
+  // Succession Opportunities
+  row += 2;
+  sheet.getRange('A' + row).setValue('SUCCESSION OPPORTUNITIES').setFontWeight('bold').setBackground('#4a86e8').setFontColor('white');
+  sheet.getRange('A' + (row+1) + ':E' + (row+1)).setValues([['Bed', 'Gap Days', 'Start', 'End', 'Recommendation']]);
+  sheet.getRange('A' + (row+1) + ':E' + (row+1)).setFontWeight('bold');
+  row += 2;
+
+  var opps = report.successionOpportunities.opportunities.slice(0, 20);
+  for (var i = 0; i < opps.length; i++) {
+    var opp = opps[i];
+    sheet.getRange('A' + row + ':E' + row).setValues([[
+      opp.bedId,
+      opp.gapDays,
+      opp.gapStart,
+      opp.gapEnd,
+      opp.recommendation
+    ]]);
+    row++;
+  }
+
+  // Autosize columns
+  sheet.autoResizeColumns(1, 5);
+}
+
+/**
+ * Get optimal bed assignments for all unassigned plantings
+ * Returns a complete assignment plan that can be reviewed and approved
+ */
+function getOptimalBedAssignments(params) {
+  var analysis = analyzeUnassignedPlantings({});
+
+  if (!analysis.success) {
+    return analysis;
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var bedSheet = ss.getSheetByName('REF_Beds');
+  var planSheet = ss.getSheetByName('PLANNING_2026');
+
+  // Get all beds
+  var beds = {};
+  var bedsByField = {};
+
+  if (bedSheet && bedSheet.getLastRow() > 1) {
+    var bedData = bedSheet.getDataRange().getValues();
+    for (var i = 1; i < bedData.length; i++) {
+      var bedId = bedData[i][0];
+      var field = bedData[i][1];
+      var length = Number(bedData[i][3]) || 100;
+      var status = bedData[i][4];
+
+      if (status === 'Inactive' || status === 'Reserved') continue;
+
+      beds[bedId] = { id: bedId, field: field, length: length, assigned: [] };
+
+      if (!bedsByField[field]) bedsByField[field] = [];
+      bedsByField[field].push(beds[bedId]);
+    }
+  }
+
+  // Get current bed assignments
+  var planData = planSheet.getDataRange().getValues();
+  var planHeaders = planData[0];
+  var bedCol = planHeaders.indexOf('Target_Bed_ID');
+  var cropCol = planHeaders.indexOf('Crop');
+  var lastHarvestCol = planHeaders.indexOf('Last_Harvest');
+
+  for (var i = 1; i < planData.length; i++) {
+    var bedId = planData[i][bedCol];
+    if (bedId && beds[bedId]) {
+      beds[bedId].assigned.push({
+        crop: planData[i][cropCol],
+        lastHarvest: planData[i][lastHarvestCol]
+      });
+    }
+  }
+
+  // Create assignment plan by field time group
+  var assignmentPlan = [];
+  var assignmentsByGroup = {};
+
+  for (var groupName in analysis.groupedByFieldTime) {
+    var group = analysis.groupedByFieldTime[groupName];
+    if (group.plantings.length === 0) continue;
+
+    assignmentsByGroup[groupName] = [];
+
+    // Sort plantings by feet needed (largest first for better packing)
+    var sortedPlantings = group.plantings.sort(function(a, b) {
+      return b.bedFeet - a.bedFeet;
+    });
+
+    for (var i = 0; i < sortedPlantings.length; i++) {
+      var planting = sortedPlantings[i];
+
+      // Find best bed for this planting
+      var bestBed = null;
+      var bestScore = -999;
+
+      for (var bedId in beds) {
+        var bed = beds[bedId];
+        var rotationCheck = canPlantInBed(planting.crop, bedId);
+
+        var score = 0;
+        if (rotationCheck.canPlant) {
+          score += 50;
+
+          // Prefer beds with same field time group crops
+          for (var j = 0; j < bed.assigned.length; j++) {
+            var assignedCrop = bed.assigned[j];
+            var assignedFieldDays = getDefaultFieldDays(assignedCrop.crop);
+            var assignedGroup = getFieldTimeGroup(assignedFieldDays.max);
+            if (assignedGroup.group === groupName) {
+              score += 20;
+            }
+          }
+
+          // Prefer beds that aren't fully packed
+          if (bed.assigned.length < 3) {
+            score += 10;
+          }
+        } else {
+          score -= 100;
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestBed = { bedId: bedId, score: score };
+        }
+      }
+
+      var assignment = {
+        batchId: planting.batchId,
+        crop: planting.crop,
+        variety: planting.variety,
+        bedFeet: planting.bedFeet,
+        fieldTimeGroup: groupName,
+        suggestedBed: bestBed ? bestBed.bedId : null,
+        score: bestBed ? bestBed.score : 0,
+        status: bestBed && bestBed.score >= 50 ? 'GOOD_FIT' : bestBed && bestBed.score > 0 ? 'ACCEPTABLE' : 'NO_GOOD_OPTION'
+      };
+
+      assignmentsByGroup[groupName].push(assignment);
+      assignmentPlan.push(assignment);
+
+      // Track assignment in bed
+      if (bestBed && beds[bestBed.bedId]) {
+        beds[bestBed.bedId].assigned.push({
+          crop: planting.crop,
+          batchId: planting.batchId
+        });
+      }
+    }
+  }
+
+  return {
+    success: true,
+    totalAssignments: assignmentPlan.length,
+    assignmentsByGroup: assignmentsByGroup,
+    assignmentPlan: assignmentPlan,
+    summary: {
+      goodFit: assignmentPlan.filter(function(a) { return a.status === 'GOOD_FIT'; }).length,
+      acceptable: assignmentPlan.filter(function(a) { return a.status === 'ACCEPTABLE'; }).length,
+      noGoodOption: assignmentPlan.filter(function(a) { return a.status === 'NO_GOOD_OPTION'; }).length
+    }
+  };
+}
+
+/**
+ * Apply optimal bed assignments
+ */
+function applyOptimalAssignments(params) {
+  var plan = getOptimalBedAssignments({});
+
+  if (!plan.success) {
+    return plan;
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var planSheet = ss.getSheetByName('PLANNING_2026');
+  var planData = planSheet.getDataRange().getValues();
+  var planHeaders = planData[0];
+
+  var batchCol = planHeaders.indexOf('Batch_ID');
+  var bedCol = planHeaders.indexOf('Target_Bed_ID');
+
+  var applied = 0;
+  var skipped = 0;
+
+  for (var i = 0; i < plan.assignmentPlan.length; i++) {
+    var assignment = plan.assignmentPlan[i];
+
+    if (!assignment.suggestedBed || assignment.status === 'NO_GOOD_OPTION') {
+      skipped++;
+      continue;
+    }
+
+    // Find the planting row
+    for (var j = 1; j < planData.length; j++) {
+      if (planData[j][batchCol] === assignment.batchId) {
+        planSheet.getRange(j + 1, bedCol + 1).setValue(assignment.suggestedBed);
+        applied++;
+        break;
+      }
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Applied ' + applied + ' bed assignments, skipped ' + skipped,
+    applied: applied,
+    skipped: skipped
+  };
+}
+
 /**
  * Test the Field Plan Advisor
  */
@@ -1455,4 +2244,30 @@ function testFieldPlanAdvisor() {
   Logger.log('Pending suggestions: ' + pending.count);
 
   Logger.log('=== Field Plan Advisor Test Complete ===');
+}
+
+/**
+ * Test unassigned planting analysis
+ */
+function testUnassignedAnalysis() {
+  Logger.log('=== Testing Unassigned Planting Analysis ===');
+
+  var result = analyzeUnassignedPlantings({});
+  Logger.log('Summary: ' + JSON.stringify(result.summary));
+  Logger.log('Field size suggestions: ' + JSON.stringify(result.fieldSizeSuggestions));
+  Logger.log('Succession opportunities: ' + result.successionOpportunities.totalGapsFound);
+
+  Logger.log('=== Test Complete ===');
+}
+
+/**
+ * Test full report generation
+ */
+function testFieldPlanReport() {
+  Logger.log('=== Generating Field Plan Report ===');
+
+  var report = generateFieldPlanReport({});
+  Logger.log(report.textSummary);
+
+  Logger.log('=== Report Complete ===');
 }

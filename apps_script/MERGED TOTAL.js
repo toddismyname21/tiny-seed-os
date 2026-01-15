@@ -552,6 +552,16 @@ function doGet(e) {
       case 'approveAllSuggestions':
         return jsonResponse(approveAllSuggestions(e.parameter));
 
+      // ============ UNASSIGNED PLANTING ANALYZER ============
+      case 'analyzeUnassignedPlantings':
+        return jsonResponse(analyzeUnassignedPlantings(e.parameter));
+      case 'generateFieldPlanReport':
+        return jsonResponse(generateFieldPlanReport(e.parameter));
+      case 'getOptimalBedAssignments':
+        return jsonResponse(getOptimalBedAssignments(e.parameter));
+      case 'applyOptimalAssignments':
+        return jsonResponse(applyOptimalAssignments(e.parameter));
+
       // ============ MARKETING MODULE ============
       case 'getFarmPics':
         return jsonResponse(getFarmPics(e.parameter));
@@ -16347,11 +16357,14 @@ function getSocialConnections(params) {
             sheet = ss.insertSheet(MARKETING_SHEETS.SOCIAL_CONNECTIONS);
             sheet.appendRow(['Platform', 'Account', 'Status', 'Followers', 'Connected_At', 'Last_Post']);
 
-            // Default platforms
+            // Default platforms - ordered by engagement priority (TikTok first)
             const platforms = [
-                ['instagram', '@tinyseedfarm', 'connected', 2847, '', ''],
-                ['facebook', 'Tiny Seed Farm', 'connected', 1523, '', ''],
-                ['tiktok', '', 'disconnected', 0, '', ''],
+                ['tiktok', '', 'disconnected', 0, '', ''],  // 2.80% engagement - highest!
+                ['instagram', '@tinyseedfarm', 'connected', 2847, '', ''],  // 0.50% (+38% for ag)
+                ['facebook', 'Tiny Seed Farm', 'connected', 1523, '', ''],  // 0.20% - best for 40+
+                ['youtube', '', 'disconnected', 0, '', ''],  // Long-form evergreen content
+                ['pinterest', '', 'disconnected', 0, '', ''],  // High intent - recipe/garden pins
+                ['threads', '', 'disconnected', 0, '', ''],  // Instagram companion
                 ['ayrshare', '', AYRSHARE_CONFIG.ENABLED ? 'active' : 'not_configured', 0, '', '']
             ];
 
