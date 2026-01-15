@@ -2928,8 +2928,32 @@
             window.open(`tel:${phone}`);
         }
 
-        function textCustomer(phone) {
-            window.open(`sms:${phone}`);
+        // Text customer via Twilio (sends from business number, not personal phone)
+        async function textCustomer(phone, customMessage) {
+            if (!phone) {
+                alert('No phone number available for this customer');
+                return;
+            }
+
+            // Find the current stop for context
+            var stop = AppState.currentStop || AppState.route.stops.find(s => s.phone === phone);
+            var customerName = stop ? stop.customer : 'Customer';
+
+            var message = customMessage || `Hi! This is your Tiny Seed Farm driver. I'm on my way with your delivery and should arrive soon. Reply to this message if you have any special instructions.`;
+
+            showNotificationToast('Sending text message...');
+
+            try {
+                var result = await sendTwilioSMS(phone, message);
+                if (result.success) {
+                    showNotificationToast('Text sent to ' + customerName);
+                } else {
+                    showNotificationToast('Failed to send: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Text error:', error);
+                showNotificationToast('Failed to send text');
+            }
         }
 
         // ============================================
