@@ -225,6 +225,9 @@
             align-items: center;
             justify-content: center;
             transition: all 0.15s;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .pin-btn:active {
@@ -1781,8 +1784,26 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkOnlineStatus();
             initSignatureCanvas();
+            initPinButtons();
             checkSession();
         });
+
+        function initPinButtons() {
+            // Add touch event support for iOS
+            document.querySelectorAll('.pin-btn').forEach(btn => {
+                btn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    this.classList.add('active');
+                }, { passive: false });
+
+                btn.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('active');
+                    // Trigger the onclick handler
+                    this.click();
+                }, { passive: false });
+            });
+        }
 
         function checkSession() {
             const session = localStorage.getItem('driverSession');
