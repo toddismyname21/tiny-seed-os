@@ -326,6 +326,8 @@ function doGet(e) {
         return jsonResponse(getTimeClockHistory(e.parameter));
       case 'getEmployeeTasks':
         return jsonResponse(getEmployeeTasks(e.parameter));
+      case 'createSampleTasks':
+        return jsonResponse(createSampleTasks());
       case 'completeTaskWithGPS':
         return jsonResponse(completeTaskWithGPS(e.parameter));
       case 'logHarvestWithDetails':
@@ -13747,6 +13749,41 @@ function getEmployeeTasks(params) {
       }
     }
 
+    // Also load manual tasks from EMPLOYEE_TASKS sheet
+    const manualTasksSheet = ss.getSheetByName('EMPLOYEE_TASKS');
+    if (manualTasksSheet) {
+      const manualData = manualTasksSheet.getDataRange().getValues();
+      const manualHeaders = manualData[0];
+
+      for (let i = 1; i < manualData.length; i++) {
+        const row = {};
+        manualHeaders.forEach((h, j) => row[h] = manualData[i][j]);
+
+        // Skip completed tasks
+        if (row.Status === 'Completed' || row.Status === 'Cancelled') continue;
+
+        // Skip tasks not assigned to this employee (or show all if no assignee)
+        if (row.Assigned_To && employeeId && row.Assigned_To !== employeeId && row.Assigned_To !== 'All') continue;
+
+        const taskDate = row.Due_Date ? new Date(row.Due_Date) : null;
+        if (taskDate) {
+          tasks.push({
+            id: row.Task_ID || 'TASK-' + i,
+            type: row.Task_Type || 'task',
+            crop: row.Crop || row.Description || 'General Task',
+            variety: row.Variety || '',
+            date: taskDate.toISOString().split('T')[0],
+            bed: row.Bed_ID || row.Location || '',
+            field: row.Field || '',
+            quantity: row.Quantity || '',
+            status: row.Status || 'Pending',
+            notes: row.Notes || '',
+            costingMode: row.Costing_Mode === true || row.Costing_Mode === 'TRUE'
+          });
+        }
+      }
+    }
+
     // Sort by date
     tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -13754,6 +13791,40 @@ function getEmployeeTasks(params) {
   } catch (error) {
     return { success: false, error: error.toString(), tasks: [] };
   }
+}
+
+// Create sample tasks for testing
+function createSampleTasks() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('EMPLOYEE_TASKS');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('EMPLOYEE_TASKS');
+    sheet.appendRow([
+      'Task_ID', 'Task_Type', 'Crop', 'Variety', 'Description', 'Due_Date',
+      'Bed_ID', 'Field', 'Location', 'Quantity', 'Assigned_To', 'Status',
+      'Costing_Mode', 'Notes', 'Created_At', 'Created_By'
+    ]);
+    sheet.getRange(1, 1, 1, 16).setFontWeight('bold');
+  }
+
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+
+  const sampleTasks = [
+    ['TASK-001', 'sow', 'Lettuce', 'Salanova Red', 'Seed 4 flats of Salanova Red', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-1', '4 flats', 'All', 'Pending', false, 'Use 128-cell trays', new Date().toISOString(), 'System'],
+    ['TASK-002', 'transplant', 'Tomatoes', 'Cherokee Purple', 'Transplant tomato starts to high tunnel', tomorrow.toISOString().split('T')[0], 'HT-1', 'High Tunnel', 'High Tunnel 1', '48 plants', 'All', 'Pending', true, 'Space 18 inches apart', new Date().toISOString(), 'System'],
+    ['TASK-003', 'harvest', 'Kale', 'Lacinato', 'Harvest kale for Saturday market', today.toISOString().split('T')[0], 'B-12', 'North Field', 'Bed 12', '30 bunches', 'All', 'Pending', false, 'Cut and bunch, rubber bands in cooler', new Date().toISOString(), 'System'],
+    ['TASK-004', 'weed', 'Carrots', 'Nantes', 'Hand weed carrot beds', dayAfter.toISOString().split('T')[0], 'B-5', 'South Field', 'Beds 5-6', '', 'All', 'Pending', true, 'Careful around young seedlings', new Date().toISOString(), 'System'],
+    ['TASK-005', 'irrigate', 'Mixed Greens', '', 'Check drip irrigation in greens house', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-2', '', 'All', 'Pending', false, 'Look for clogged emitters', new Date().toISOString(), 'System'],
+    ['TASK-006', 'harvest', 'Spinach', 'Bloomsdale', 'OVERDUE - Harvest spinach', yesterday.toISOString().split('T')[0], 'B-8', 'North Field', 'Bed 8', '20 lbs', 'All', 'Pending', false, 'Was supposed to be done yesterday!', new Date().toISOString(), 'System']
+  ];
+
+  sampleTasks.forEach(task => sheet.appendRow(task));
+
+  return { success: true, message: 'Created ' + sampleTasks.length + ' sample tasks' };
 }
 
 function completeTaskWithGPS(params) {
