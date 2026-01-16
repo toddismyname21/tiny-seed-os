@@ -2864,6 +2864,420 @@ function getTasksDashboard() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// QUICKBOOKS DASHBOARD FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get QuickBooks Dashboard - consolidated financial overview
+ * Returns: Account balances, open invoices, open bills, P&L summary
+ */
+function getQuickBooksDashboard() {
+  // Check if QuickBooks is configured and connected
+  const connectionStatus = getQuickBooksConnectionStatus();
+
+  if (!connectionStatus.connected) {
+    return {
+      success: false,
+      connected: false,
+      error: connectionStatus.error || 'QuickBooks not connected',
+      authUrl: connectionStatus.authUrl,
+      message: 'Please connect to QuickBooks to view dashboard'
+    };
+  }
+
+  try {
+    // Fetch all data in parallel-ish (Apps Script is single-threaded but we batch)
+    const accounts = getQBAccountBalances();
+    const invoices = getQBOpenInvoices();
+    const bills = getQBOpenBills();
+    const profitLoss = getQBProfitLossSummary();
+
+    // Calculate totals
+    const totalCash = accounts.data
+      .filter(a => a.accountType === 'Bank')
+      .reduce((sum, a) => sum + (a.balance || 0), 0);
+
+    const totalCredit = accounts.data
+      .filter(a => a.accountType === 'Credit Card')
+      .reduce((sum, a) => sum + (a.balance || 0), 0);
+
+    const totalAR = invoices.summary.totalOutstanding || 0;
+    const totalAP = bills.summary.totalOutstanding || 0;
+
+    return {
+      success: true,
+      connected: true,
+      companyName: connectionStatus.companyName,
+      dashboard: {
+        // Quick Stats
+        summary: {
+          cashOnHand: totalCash,
+          creditCardBalance: totalCredit,
+          accountsReceivable: totalAR,
+          accountsPayable: totalAP,
+          netCashPosition: totalCash - totalCredit - totalAP + totalAR
+        },
+
+        // Account Balances
+        accounts: accounts.data,
+
+        // Open Invoices (A/R)
+        invoices: {
+          summary: invoices.summary,
+          overdue: invoices.overdue,
+          current: invoices.current.slice(0, 10) // Top 10
+        },
+
+        // Open Bills (A/P)
+        bills: {
+          summary: bills.summary,
+          overdue: bills.overdue,
+          current: bills.current.slice(0, 10) // Top 10
+        },
+
+        // P&L Summary
+        profitLoss: profitLoss.data,
+
+        generatedAt: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      connected: true,
+      error: error.toString(),
+      message: 'Error fetching QuickBooks data'
+    };
+  }
+}
+
+/**
+ * Check QuickBooks connection status
+ */
+function getQuickBooksConnectionStatus() {
+  try {
+    // Check if config exists and is enabled
+    if (typeof QUICKBOOKS_CONFIG === 'undefined' || !QUICKBOOKS_CONFIG.ENABLED) {
+      return {
+        connected: false,
+        configured: false,
+        error: 'QuickBooks integration not enabled',
+        message: 'Set QUICKBOOKS_CONFIG.ENABLED = true and add credentials'
+      };
+    }
+
+    // Check if OAuth service is authorized
+    const service = getQuickBooksOAuthService();
+    if (!service.hasAccess()) {
+      return {
+        connected: false,
+        configured: true,
+        authorized: false,
+        authUrl: service.getAuthorizationUrl(),
+        error: 'QuickBooks not authorized',
+        message: 'Click the link to authorize QuickBooks access'
+      };
+    }
+
+    // Test connection by getting company info
+    const companyId = PropertiesService.getUserProperties().getProperty('QB_REALM_ID') || QUICKBOOKS_CONFIG.COMPANY_ID;
+    const result = quickBooksApiCall('companyinfo/' + companyId);
+
+    if (result.success && result.data && result.data.CompanyInfo) {
+      return {
+        connected: true,
+        configured: true,
+        authorized: true,
+        companyName: result.data.CompanyInfo.CompanyName,
+        companyId: companyId
+      };
+    }
+
+    return {
+      connected: false,
+      configured: true,
+      authorized: true,
+      error: 'Could not fetch company info'
+    };
+
+  } catch (error) {
+    return {
+      connected: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Get QuickBooks Account Balances
+ * Returns bank accounts and credit cards with current balances
+ */
+function getQBAccountBalances() {
+  try {
+    // Query for Bank and Credit Card accounts
+    const query = "SELECT * FROM Account WHERE AccountType IN ('Bank', 'Credit Card') AND Active = true";
+    const result = quickBooksApiCall('query?query=' + encodeURIComponent(query));
+
+    if (!result.success) {
+      return { success: false, error: result.error, data: [] };
+    }
+
+    const accounts = (result.data.QueryResponse.Account || []).map(account => ({
+      id: account.Id,
+      name: account.Name,
+      accountType: account.AccountType,
+      accountSubType: account.AccountSubType,
+      balance: account.CurrentBalance || 0,
+      currency: account.CurrencyRef ? account.CurrencyRef.value : 'USD',
+      lastUpdated: account.MetaData ? account.MetaData.LastUpdatedTime : null
+    }));
+
+    // Sort: Banks first, then by balance descending
+    accounts.sort((a, b) => {
+      if (a.accountType !== b.accountType) {
+        return a.accountType === 'Bank' ? -1 : 1;
+      }
+      return b.balance - a.balance;
+    });
+
+    return {
+      success: true,
+      data: accounts,
+      summary: {
+        bankCount: accounts.filter(a => a.accountType === 'Bank').length,
+        creditCardCount: accounts.filter(a => a.accountType === 'Credit Card').length,
+        totalBankBalance: accounts.filter(a => a.accountType === 'Bank').reduce((s, a) => s + a.balance, 0),
+        totalCreditBalance: accounts.filter(a => a.accountType === 'Credit Card').reduce((s, a) => s + a.balance, 0)
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString(), data: [] };
+  }
+}
+
+/**
+ * Get QuickBooks Open Invoices (Accounts Receivable)
+ * Returns unpaid invoices with aging
+ */
+function getQBOpenInvoices() {
+  try {
+    // Query for open invoices (Balance > 0)
+    const query = "SELECT * FROM Invoice WHERE Balance > '0' ORDER BY DueDate ASC";
+    const result = quickBooksApiCall('query?query=' + encodeURIComponent(query));
+
+    if (!result.success) {
+      return { success: false, error: result.error, overdue: [], current: [], summary: {} };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const invoices = (result.data.QueryResponse.Invoice || []).map(inv => {
+      const dueDate = inv.DueDate ? new Date(inv.DueDate) : null;
+      const isOverdue = dueDate && dueDate < today;
+      const daysOverdue = isOverdue ? Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)) : 0;
+
+      return {
+        id: inv.Id,
+        docNumber: inv.DocNumber,
+        customerName: inv.CustomerRef ? inv.CustomerRef.name : 'Unknown',
+        customerId: inv.CustomerRef ? inv.CustomerRef.value : null,
+        txnDate: inv.TxnDate,
+        dueDate: inv.DueDate,
+        totalAmount: inv.TotalAmt || 0,
+        balance: inv.Balance || 0,
+        isOverdue: isOverdue,
+        daysOverdue: daysOverdue,
+        email: inv.BillEmail ? inv.BillEmail.Address : null
+      };
+    });
+
+    const overdue = invoices.filter(i => i.isOverdue);
+    const current = invoices.filter(i => !i.isOverdue);
+
+    // Calculate aging buckets
+    const aging = {
+      current: current.reduce((s, i) => s + i.balance, 0),
+      days1to30: overdue.filter(i => i.daysOverdue <= 30).reduce((s, i) => s + i.balance, 0),
+      days31to60: overdue.filter(i => i.daysOverdue > 30 && i.daysOverdue <= 60).reduce((s, i) => s + i.balance, 0),
+      days61to90: overdue.filter(i => i.daysOverdue > 60 && i.daysOverdue <= 90).reduce((s, i) => s + i.balance, 0),
+      over90: overdue.filter(i => i.daysOverdue > 90).reduce((s, i) => s + i.balance, 0)
+    };
+
+    return {
+      success: true,
+      overdue: overdue,
+      current: current,
+      summary: {
+        totalOutstanding: invoices.reduce((s, i) => s + i.balance, 0),
+        overdueCount: overdue.length,
+        overdueAmount: overdue.reduce((s, i) => s + i.balance, 0),
+        currentCount: current.length,
+        currentAmount: current.reduce((s, i) => s + i.balance, 0),
+        aging: aging
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString(), overdue: [], current: [], summary: {} };
+  }
+}
+
+/**
+ * Get QuickBooks Open Bills (Accounts Payable)
+ * Returns unpaid bills with aging
+ */
+function getQBOpenBills() {
+  try {
+    // Query for open bills (Balance > 0)
+    const query = "SELECT * FROM Bill WHERE Balance > '0' ORDER BY DueDate ASC";
+    const result = quickBooksApiCall('query?query=' + encodeURIComponent(query));
+
+    if (!result.success) {
+      return { success: false, error: result.error, overdue: [], current: [], summary: {} };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const bills = (result.data.QueryResponse.Bill || []).map(bill => {
+      const dueDate = bill.DueDate ? new Date(bill.DueDate) : null;
+      const isOverdue = dueDate && dueDate < today;
+      const daysOverdue = isOverdue ? Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)) : 0;
+
+      return {
+        id: bill.Id,
+        docNumber: bill.DocNumber,
+        vendorName: bill.VendorRef ? bill.VendorRef.name : 'Unknown',
+        vendorId: bill.VendorRef ? bill.VendorRef.value : null,
+        txnDate: bill.TxnDate,
+        dueDate: bill.DueDate,
+        totalAmount: bill.TotalAmt || 0,
+        balance: bill.Balance || 0,
+        isOverdue: isOverdue,
+        daysOverdue: daysOverdue
+      };
+    });
+
+    const overdue = bills.filter(b => b.isOverdue);
+    const current = bills.filter(b => !b.isOverdue);
+
+    // Calculate aging buckets
+    const aging = {
+      current: current.reduce((s, b) => s + b.balance, 0),
+      days1to30: overdue.filter(b => b.daysOverdue <= 30).reduce((s, b) => s + b.balance, 0),
+      days31to60: overdue.filter(b => b.daysOverdue > 30 && b.daysOverdue <= 60).reduce((s, b) => s + b.balance, 0),
+      days61to90: overdue.filter(b => b.daysOverdue > 60 && b.daysOverdue <= 90).reduce((s, b) => s + b.balance, 0),
+      over90: overdue.filter(b => b.daysOverdue > 90).reduce((s, b) => s + b.balance, 0)
+    };
+
+    return {
+      success: true,
+      overdue: overdue,
+      current: current,
+      summary: {
+        totalOutstanding: bills.reduce((s, b) => s + b.balance, 0),
+        overdueCount: overdue.length,
+        overdueAmount: overdue.reduce((s, b) => s + b.balance, 0),
+        currentCount: current.length,
+        currentAmount: current.reduce((s, b) => s + b.balance, 0),
+        aging: aging
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString(), overdue: [], current: [], summary: {} };
+  }
+}
+
+/**
+ * Get QuickBooks Profit & Loss Summary
+ * Returns YTD income and expenses
+ */
+function getQBProfitLossSummary() {
+  try {
+    // Get current year date range
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const startDate = Utilities.formatDate(startOfYear, 'America/New_York', 'yyyy-MM-dd');
+    const endDate = Utilities.formatDate(now, 'America/New_York', 'yyyy-MM-dd');
+
+    // Fetch P&L report
+    const result = quickBooksApiCall(`reports/ProfitAndLoss?start_date=${startDate}&end_date=${endDate}&summarize_column_by=Total`);
+
+    if (!result.success) {
+      return { success: false, error: result.error, data: {} };
+    }
+
+    const report = result.data;
+
+    // Parse report data
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    let netIncome = 0;
+    const incomeCategories = [];
+    const expenseCategories = [];
+
+    if (report.Rows && report.Rows.Row) {
+      for (const section of report.Rows.Row) {
+        if (section.group === 'Income' && section.Summary) {
+          totalIncome = parseFloat(section.Summary.ColData[1].value) || 0;
+
+          // Get top income categories
+          if (section.Rows && section.Rows.Row) {
+            for (const row of section.Rows.Row.slice(0, 5)) {
+              if (row.ColData) {
+                incomeCategories.push({
+                  name: row.ColData[0].value,
+                  amount: parseFloat(row.ColData[1].value) || 0
+                });
+              }
+            }
+          }
+        }
+
+        if (section.group === 'Expenses' && section.Summary) {
+          totalExpenses = parseFloat(section.Summary.ColData[1].value) || 0;
+
+          // Get top expense categories
+          if (section.Rows && section.Rows.Row) {
+            for (const row of section.Rows.Row.slice(0, 5)) {
+              if (row.ColData) {
+                expenseCategories.push({
+                  name: row.ColData[0].value,
+                  amount: parseFloat(row.ColData[1].value) || 0
+                });
+              }
+            }
+          }
+        }
+
+        if (section.group === 'NetIncome' && section.Summary) {
+          netIncome = parseFloat(section.Summary.ColData[1].value) || 0;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        period: {
+          startDate: startDate,
+          endDate: endDate,
+          label: 'Year to Date ' + now.getFullYear()
+        },
+        totalIncome: totalIncome,
+        totalExpenses: Math.abs(totalExpenses),
+        netIncome: netIncome,
+        profitMargin: totalIncome > 0 ? ((netIncome / totalIncome) * 100).toFixed(1) : 0,
+        topIncomeCategories: incomeCategories.sort((a, b) => b.amount - a.amount),
+        topExpenseCategories: expenseCategories.sort((a, b) => b.amount - a.amount)
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString(), data: {} };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // API ENDPOINTS - Add these to the main doGet/doPost switch statements
 // ═══════════════════════════════════════════════════════════════════════════
 

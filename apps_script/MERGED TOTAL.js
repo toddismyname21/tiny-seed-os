@@ -733,6 +733,40 @@ function doGet(e) {
       case 'getTasksDashboard':
         return jsonResponse(getTasksDashboard());
 
+      // ============ QUICKBOOKS DASHBOARD ============
+      case 'getQuickBooksDashboard':
+        return jsonResponse(getQuickBooksDashboard());
+      case 'getQuickBooksConnectionStatus':
+        return jsonResponse(getQuickBooksConnectionStatus());
+      case 'getQBAccountBalances':
+        return jsonResponse(getQBAccountBalances());
+      case 'getQBOpenInvoices':
+        return jsonResponse(getQBOpenInvoices());
+      case 'getQBOpenBills':
+        return jsonResponse(getQBOpenBills());
+      case 'getQBProfitLossSummary':
+        return jsonResponse(getQBProfitLossSummary());
+
+      // ============ FLOWER OPERATIONS ============
+      case 'getFlowerTasks':
+        return jsonResponse(getFlowerTasks(e.parameter));
+      case 'getFlowerTaskById':
+        return jsonResponse(getFlowerTaskById(e.parameter));
+      case 'getFlowerPlanning':
+        return jsonResponse(getFlowerPlanning(e.parameter));
+      case 'getFlowerInventory':
+        return jsonResponse(getFlowerInventory(e.parameter));
+      case 'getFlowerInventoryItem':
+        return jsonResponse(getFlowerInventoryItem(e.parameter));
+      case 'getFlowerCriticalDates':
+        return jsonResponse(getFlowerCriticalDates(e.parameter));
+      case 'getFlowerDatabase':
+        return jsonResponse(getFlowerDatabase());
+      case 'getFlowerDashboard':
+        return jsonResponse(getFlowerDashboard());
+      case 'initializeFlowerModule':
+        return jsonResponse(initializeFlowerModule());
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -1016,6 +1050,28 @@ function doPost(e) {
         return jsonResponse(deleteReceipt(data));
       case 'linkReceiptToGrant':
         return jsonResponse(linkReceiptToGrant(data));
+
+      // ============ FLOWER OPERATIONS (POST) ============
+      case 'saveFlowerTask':
+        return jsonResponse(saveFlowerTask(data));
+      case 'updateFlowerTask':
+        return jsonResponse(updateFlowerTask(data));
+      case 'deleteFlowerTask':
+        return jsonResponse(deleteFlowerTask(data));
+      case 'completeFlowerTask':
+        return jsonResponse(completeFlowerTask(data));
+      case 'saveFlowerPlanning':
+        return jsonResponse(saveFlowerPlanning(data));
+      case 'updateFlowerPlanning':
+        return jsonResponse(updateFlowerPlanning(data));
+      case 'saveFlowerInventoryItem':
+        return jsonResponse(saveFlowerInventoryItem(data));
+      case 'updateFlowerInventoryItem':
+        return jsonResponse(updateFlowerInventoryItem(data));
+      case 'addFlowerCriticalDate':
+        return jsonResponse(addFlowerCriticalDate(data));
+      case 'bulkUpdateFlowerCropProfiles':
+        return jsonResponse(bulkUpdateFlowerCropProfiles(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -20207,5 +20263,883 @@ function handleShopifyProductWebhook(product) {
   logIntegration('Shopify', 'ProductWebhook', 'SUCCESS', `Processed product ${product.title}`);
 
   return { success: true, message: `Product ${product.title} processed` };
+}
+
+// ============================================================================
+// FLOWER OPERATIONS MODULE
+// ============================================================================
+
+/**
+ * Initialize the Flower Module - creates all required sheets
+ */
+function initializeFlowerModule() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Create FLOWER_TASKS sheet
+  createTabIfNotExists(ss, "FLOWER_TASKS", [
+    "Task_ID", "Task_Name", "Flower", "Est_Time", "Supplies_Needed", "Planning_Notes",
+    "Assigned_To", "Due_Date", "Priority", "Status", "Process_Notes", "Actual_Time",
+    "Completed_Date", "Completed_By", "Created_At", "Created_By"
+  ], "#f8b4d9");
+
+  // Create FLOWER_PLANNING_2026 sheet
+  createTabIfNotExists(ss, "FLOWER_PLANNING_2026", [
+    "Plan_ID", "Flower", "Variety", "Supplier", "Quantity", "Unit", "Start_Date",
+    "Transplant_Date", "First_Harvest", "Last_Harvest", "Successions", "Bed_Assignment",
+    "Status", "Notes", "Created_At", "Updated_At"
+  ], "#c77dbe");
+
+  // Create FLOWER_INVENTORY sheet (for tubers, bulbs, corms)
+  createTabIfNotExists(ss, "FLOWER_INVENTORY", [
+    "Item_ID", "Item_Type", "Flower", "Variety", "Quantity", "Unit", "Location",
+    "Condition", "Source", "Cost_Each", "Total_Value", "Date_Acquired",
+    "Last_Counted", "Notes", "Active"
+  ], "#f4a261");
+
+  // Create FLOWER_CRITICAL_DATES sheet
+  createTabIfNotExists(ss, "FLOWER_CRITICAL_DATES", [
+    "Date_ID", "Flower", "Task_Type", "Month", "Start_Date", "End_Date",
+    "Priority", "Description", "Notes", "Recurs_Annually"
+  ], "#e76f51");
+
+  // Create FLOWER_DATABASE reference sheet with all varieties
+  const flowerDbSheet = createTabIfNotExists(ss, "REF_FlowerDatabase", [
+    "Flower_Name", "Type", "Spacing", "Grid", "Days_To_Bloom", "Varieties",
+    "Notes", "Caution", "Growing", "Primary_Category"
+  ], "#fcd34d");
+
+  // Populate flower database if empty
+  if (flowerDbSheet.getLastRow() < 2) {
+    populateFlowerDatabase(flowerDbSheet);
+  }
+
+  // Update REF_CropProfiles with flower data
+  updateCropProfilesWithFlowers(ss);
+
+  return {
+    success: true,
+    message: 'Flower module initialized successfully',
+    sheets: ['FLOWER_TASKS', 'FLOWER_PLANNING_2026', 'FLOWER_INVENTORY', 'FLOWER_CRITICAL_DATES', 'REF_FlowerDatabase']
+  };
+}
+
+/**
+ * Populate the flower database with reference data
+ */
+function populateFlowerDatabase(sheet) {
+  const flowerData = [
+    ["Ageratum", "filler", "9-12\"", "3X3", "80-100", "Not growing", "", "", "FALSE", "Flower"],
+    ["Agrostemma", "filler", "6-9\"", "4X4", "75-80", "Purple Queen", "", "All parts poisonous", "TRUE", "Flower"],
+    ["Amaranthus", "texture", "12-15\"", "2X2", "65-75", "Red Spike", "", "", "TRUE", "Flower"],
+    ["Ammi", "filler", "3-12\"", "3X3 or 4X4", "65-95", "Dara, Green Mist", "", "", "TRUE", "Flower"],
+    ["Ammobium", "filler", "6-9\"", "4X4", "70-80", "Winged Everlasting", "", "", "TRUE", "Flower"],
+    ["Asters", "focal", "6-12\"", "3X3", "110-125", "Valkyrie Mix, Lady Coral series, Tower series", "Filler when showing color, focal when fully open", "", "TRUE", "Flower"],
+    ["Basil", "filler", "4-8\"", "4X4", "75-80", "Aromatto", "Filler, aroma, color", "", "TRUE", "Herb"],
+    ["Bells of Ireland", "filler", "10-12\"", "3X3", "90-110", "Bells of Ireland", "", "", "TRUE", "Flower"],
+    ["Bupleurum", "filler", "10\"", "3X3", "80-90", "Green Gold", "", "", "TRUE", "Flower"],
+    ["Campanula", "focal", "10\"", "3X3", "70", "Champion series", "", "", "TRUE", "Flower"],
+    ["Celosia", "texture", "6-12\"", "3X3", "90-120", "Cramer's series", "", "", "TRUE", "Flower"],
+    ["Centaurea", "auxiliary", "6-9\"", "4X4", "65-75", "Black Button, Florist Blue Boy", "", "", "TRUE", "Flower"],
+    ["Columbine", "auxiliary", "10-15\"", "3X3", "365", "McKana Giants, Barlow Mix", "Early bloom time, perennial", "", "TRUE", "Flower"],
+    ["Cosmos", "auxiliary", "9-12\"", "3X3", "75-90", "Rubenza, Double Click, Xsenia, Bright Lights", "", "", "TRUE", "Flower"],
+    ["Craspedia", "texture", "12\"", "3X3", "110-120", "Sunball", "Height, texture, filler", "", "TRUE", "Flower"],
+    ["Cynoglossum", "filler", "9-12\"", "3X3", "75-85", "Blue (Chinese forget-me-not)", "Color, filler", "", "TRUE", "Flower"],
+    ["Dahlia", "focal", "12\"", "2X2", "70-80", "Multiple varieties", "Main focal flower", "", "TRUE", "Flower"],
+    ["Delphinium", "focal", "12\"", "2X2", "100-120", "Magic Fountains", "No longer growing", "All parts poisonous", "FALSE", "Flower"],
+    ["Didiscus", "auxiliary", "6-12\"", "3X3", "95-100", "Lacy Blue", "", "", "TRUE", "Flower"],
+    ["Eryngium", "filler", "18-24\"", "2X2", "365", "Blue or white Glitter", "Perennial", "", "TRUE", "Flower"],
+    ["Eucalyptus", "filler", "12-24\"", "2X2", "120-150", "Silver Drop", "", "", "TRUE", "Foliage"],
+    ["Gomphrena", "auxiliary", "6-8\"", "3X3", "90-100", "Qis series", "Texture, auxiliary", "", "TRUE", "Flower"],
+    ["Gypsophila", "filler", "18\"", "2X2", "130", "Baby's Breath", "Perennial", "", "TRUE", "Flower"],
+    ["Larkspur", "focal", "4-6\"", "4X4", "80-90", "Qis or Galilee series", "Height, main or auxiliary", "All parts poisonous", "TRUE", "Flower"],
+    ["Lavender", "filler", "18-36\" apart", "varies", "110", "Grosso, Hidcote", "Perennial", "", "TRUE", "Herb"],
+    ["Lisianthus", "focal", "4-8\"", "4X4", "120-150", "Not growing", "Non-pelleted seeds not available", "", "FALSE", "Flower"],
+    ["Lupine", "focal", "18\"", "N/A", "365", "Any", "Establishing naturalized patch", "All parts poisonous", "TRUE", "Flower"],
+    ["Marigold", "focal", "12\"", "2X3", "70-90", "Giant Orange", "Main focal or auxiliary flower", "", "TRUE", "Flower"],
+    ["Matricaria", "filler", "8-12\"", "3X3", "100", "Any non-pelleted varieties", "", "", "TRUE", "Flower"],
+    ["Nigella", "auxiliary", "6-9\"", "4X4", "65-75", "Delft Blue", "Auxiliary flower, pods", "", "TRUE", "Flower"],
+    ["Poppy (perennial)", "auxiliary", "8\"", "2X3", "365", "Pods", "Post harvest heat treatment", "", "TRUE", "Flower"],
+    ["Rudbeckia", "auxiliary", "12-18\"", "2X3", "110-120", "Cherokee Sunset, Gloriosa Double Daisy, Prairie Sun", "Does not hold up in heat at farmers markets", "", "TRUE", "Flower"],
+    ["Salvia (Annual)", "filler", "12\"", "2X3", "135", "Gruppenblau", "Height, filler", "", "TRUE", "Flower"],
+    ["Salvia (perennial)", "filler", "12\"", "2X3", "365", "Nemorosa", "Height, filler, perennial", "", "TRUE", "Flower"],
+    ["Scabiosa", "auxiliary", "12-18\"", "3X3", "90-110", "Fama, Black Knight", "", "", "TRUE", "Flower"],
+    ["Snapdragons", "auxiliary", "4-12\"", "3X3 or 4X4", "100-120", "Madame Butterfly, Potomac, Costa", "Height, auxiliary flower", "", "TRUE", "Flower"],
+    ["Statice", "filler", "12\"", "2X2", "110-120", "Apricot, Blue", "", "", "TRUE", "Flower"],
+    ["Stock", "focal", "6\"", "4X4", "90-105", "Iron, Katz", "Focal flower, aroma", "", "TRUE", "Flower"],
+    ["Strawflower", "texture", "10-12\"", "3X3", "75-85", "Reds, pastels, Burgundy colors", "", "", "TRUE", "Flower"],
+    ["Sunflowers", "focal", "6-18\"", "3X3 or 2X2", "55-90", "Zohar, Double Quick, Procut series", "Choose pollenless for cut flowers", "", "TRUE", "Flower"],
+    ["Sweet Peas", "focal", "6\" apart", "N/A", "75-85", "Not growing", "", "All parts poisonous", "FALSE", "Flower"],
+    ["Tulips", "focal", "1-2\" in trench", "trench", "varies", "Double Gudoshnik, Pink Impression Mix, Angelique", "For early tunnel blooms", "", "TRUE", "Bulb"],
+    ["Verbena", "filler", "18-24\"", "2X2", "90", "Various", "", "", "TRUE", "Flower"],
+    ["Yarrow", "filler", "12-24\"", "2X3", "130", "Colorado Mix", "", "", "TRUE", "Flower"],
+    ["Zinnia", "focal", "9-12\"", "2X3", "75-90", "Benary's Giant, Queen Lime Orange, Queen Lime Red", "", "", "TRUE", "Flower"],
+    ["Daffodils", "auxiliary", "2\" in trench", "trench", "varies", "Cheerfulness, Gold Standard, Pink Charm, Butterfly", "Establishing naturalized patch", "", "TRUE", "Bulb"],
+    ["Ranunculus", "focal", "4-5\" in trench", "3 trenches/bed", "varies", "Various", "Also 4 trenches per 30\" bed", "", "TRUE", "Corm"],
+    ["Anemones", "focal", "4-5\" in trench", "3 trenches/bed", "varies", "Various", "", "", "TRUE", "Corm"],
+    ["Baptisia", "focal", "varies", "2X3", "365", "Indigo Blue", "Focal flower, height, perennial", "", "TRUE", "Flower"],
+    ["Peony", "focal", "24\" apart", "varies", "varies", "Sarah Bernhardt, Duchess de Nemours, Felix Crouse", "Perennial", "", "TRUE", "Flower"]
+  ];
+
+  sheet.getRange(2, 1, flowerData.length, flowerData[0].length).setValues(flowerData);
+}
+
+/**
+ * Update REF_CropProfiles with flower data
+ */
+function updateCropProfilesWithFlowers(ss) {
+  const profileSheet = ss.getSheetByName('REF_CropProfiles');
+  if (!profileSheet) return;
+
+  const headers = profileSheet.getRange(1, 1, 1, profileSheet.getLastColumn()).getValues()[0];
+  const cropNameCol = headers.indexOf('Crop_Name') + 1;
+  const categoryCol = headers.indexOf('Primary_Category') + 1;
+  const dtmAvgCol = headers.indexOf('DTM_Average') + 1;
+  const rowsPerBedCol = headers.indexOf('Rows_Per_Bed') + 1;
+  const inRowSpacingCol = headers.indexOf('In_Row_Spacing_In') + 1;
+
+  if (cropNameCol === 0) return;
+
+  // Get existing crops
+  const existingData = profileSheet.getDataRange().getValues();
+  const existingCrops = existingData.slice(1).map(row => row[cropNameCol - 1]);
+
+  // Flower profiles to add/update
+  const flowerProfiles = [
+    { name: "Dahlia", category: "Flower", dtm: 75, rows: 2, spacing: 12 },
+    { name: "Zinnia", category: "Flower", dtm: 82, rows: 3, spacing: 10 },
+    { name: "Sunflower", category: "Flower", dtm: 70, rows: 2, spacing: 12 },
+    { name: "Snapdragon", category: "Flower", dtm: 110, rows: 4, spacing: 6 },
+    { name: "Cosmos", category: "Flower", dtm: 82, rows: 3, spacing: 10 },
+    { name: "Celosia", category: "Flower", dtm: 105, rows: 3, spacing: 9 },
+    { name: "Larkspur", category: "Flower", dtm: 85, rows: 4, spacing: 5 },
+    { name: "Stock", category: "Flower", dtm: 97, rows: 4, spacing: 6 },
+    { name: "Ranunculus", category: "Flower", dtm: 90, rows: 3, spacing: 5 },
+    { name: "Anemone", category: "Flower", dtm: 90, rows: 3, spacing: 5 },
+    { name: "Tulip", category: "Flower", dtm: 100, rows: 6, spacing: 2 },
+    { name: "Lisianthus", category: "Flower", dtm: 135, rows: 4, spacing: 6 },
+    { name: "Aster", category: "Flower", dtm: 117, rows: 3, spacing: 9 },
+    { name: "Marigold", category: "Flower", dtm: 80, rows: 3, spacing: 12 },
+    { name: "Scabiosa", category: "Flower", dtm: 100, rows: 3, spacing: 15 },
+    { name: "Statice", category: "Flower", dtm: 115, rows: 2, spacing: 12 },
+    { name: "Strawflower", category: "Flower", dtm: 80, rows: 3, spacing: 11 },
+    { name: "Gomphrena", category: "Flower", dtm: 95, rows: 3, spacing: 7 },
+    { name: "Eucalyptus", category: "Foliage", dtm: 135, rows: 2, spacing: 18 },
+    { name: "Ammi", category: "Flower", dtm: 80, rows: 3, spacing: 6 },
+    { name: "Bells of Ireland", category: "Flower", dtm: 100, rows: 3, spacing: 11 }
+  ];
+
+  flowerProfiles.forEach(flower => {
+    const existingIndex = existingCrops.indexOf(flower.name);
+
+    if (existingIndex === -1) {
+      // Add new row
+      const newRow = new Array(headers.length).fill('');
+      newRow[cropNameCol - 1] = flower.name;
+      if (categoryCol > 0) newRow[categoryCol - 1] = flower.category;
+      if (dtmAvgCol > 0) newRow[dtmAvgCol - 1] = flower.dtm;
+      if (rowsPerBedCol > 0) newRow[rowsPerBedCol - 1] = flower.rows;
+      if (inRowSpacingCol > 0) newRow[inRowSpacingCol - 1] = flower.spacing;
+      profileSheet.appendRow(newRow);
+    } else {
+      // Update existing row
+      const rowNum = existingIndex + 2; // +2 for header and 0-index
+      if (dtmAvgCol > 0) profileSheet.getRange(rowNum, dtmAvgCol).setValue(flower.dtm);
+      if (rowsPerBedCol > 0) profileSheet.getRange(rowNum, rowsPerBedCol).setValue(flower.rows);
+      if (inRowSpacingCol > 0) profileSheet.getRange(rowNum, inRowSpacingCol).setValue(flower.spacing);
+    }
+  });
+}
+
+// ============ FLOWER TASK FUNCTIONS ============
+
+/**
+ * Get all flower tasks with optional filtering
+ */
+function getFlowerTasks(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_TASKS');
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { success: true, tasks: [], message: 'No flower tasks found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const tasks = data.slice(1).map((row, index) => {
+    const task = {};
+    headers.forEach((header, i) => task[header] = row[i]);
+    task.rowNumber = index + 2;
+    return task;
+  });
+
+  // Apply filters
+  let filtered = tasks;
+  if (params.status) {
+    filtered = filtered.filter(t => t.Status === params.status);
+  }
+  if (params.flower) {
+    filtered = filtered.filter(t => t.Flower === params.flower);
+  }
+  if (params.assignedTo) {
+    filtered = filtered.filter(t => t.Assigned_To === params.assignedTo);
+  }
+  if (params.dueDate) {
+    const dueDate = new Date(params.dueDate);
+    filtered = filtered.filter(t => {
+      const taskDate = new Date(t.Due_Date);
+      return taskDate <= dueDate;
+    });
+  }
+
+  return { success: true, tasks: filtered, count: filtered.length };
+}
+
+/**
+ * Get a single flower task by ID
+ */
+function getFlowerTaskById(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_TASKS');
+
+  if (!sheet || !params.taskId) {
+    return { success: false, error: 'Task not found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const taskIdCol = headers.indexOf('Task_ID');
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][taskIdCol] === params.taskId) {
+      const task = {};
+      headers.forEach((header, j) => task[header] = data[i][j]);
+      return { success: true, task: task };
+    }
+  }
+
+  return { success: false, error: 'Task not found' };
+}
+
+/**
+ * Save a new flower task
+ */
+function saveFlowerTask(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('FLOWER_TASKS');
+
+  if (!sheet) {
+    initializeFlowerModule();
+    sheet = ss.getSheetByName('FLOWER_TASKS');
+  }
+
+  const taskId = 'FT-' + new Date().getTime();
+  const now = new Date().toISOString();
+
+  const newRow = [
+    taskId,
+    data.taskName || '',
+    data.flower || '',
+    data.estTime || '',
+    data.supplies || '',
+    data.planningNotes || '',
+    data.assignedTo || '',
+    data.dueDate || '',
+    data.priority || 'normal',
+    'pending',
+    '',
+    '',
+    '',
+    '',
+    now,
+    data.createdBy || 'System'
+  ];
+
+  sheet.appendRow(newRow);
+
+  return { success: true, taskId: taskId, message: 'Task saved successfully' };
+}
+
+/**
+ * Update an existing flower task
+ */
+function updateFlowerTask(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_TASKS');
+
+  if (!sheet || !data.taskId) {
+    return { success: false, error: 'Task not found' };
+  }
+
+  const dataRange = sheet.getDataRange().getValues();
+  const headers = dataRange[0];
+  const taskIdCol = headers.indexOf('Task_ID');
+
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][taskIdCol] === data.taskId) {
+      const rowNum = i + 1;
+
+      // Update fields that were provided
+      Object.keys(data).forEach(key => {
+        const colIndex = headers.indexOf(key);
+        if (colIndex !== -1 && key !== 'taskId') {
+          sheet.getRange(rowNum, colIndex + 1).setValue(data[key]);
+        }
+      });
+
+      return { success: true, message: 'Task updated successfully' };
+    }
+  }
+
+  return { success: false, error: 'Task not found' };
+}
+
+/**
+ * Complete a flower task
+ */
+function completeFlowerTask(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_TASKS');
+
+  if (!sheet || !data.taskId) {
+    return { success: false, error: 'Task not found' };
+  }
+
+  const dataRange = sheet.getDataRange().getValues();
+  const headers = dataRange[0];
+  const taskIdCol = headers.indexOf('Task_ID');
+  const statusCol = headers.indexOf('Status');
+  const processNotesCol = headers.indexOf('Process_Notes');
+  const actualTimeCol = headers.indexOf('Actual_Time');
+  const completedDateCol = headers.indexOf('Completed_Date');
+  const completedByCol = headers.indexOf('Completed_By');
+
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][taskIdCol] === data.taskId) {
+      const rowNum = i + 1;
+
+      sheet.getRange(rowNum, statusCol + 1).setValue('completed');
+      sheet.getRange(rowNum, completedDateCol + 1).setValue(new Date().toISOString());
+
+      if (data.processNotes) {
+        sheet.getRange(rowNum, processNotesCol + 1).setValue(data.processNotes);
+      }
+      if (data.actualTime) {
+        sheet.getRange(rowNum, actualTimeCol + 1).setValue(data.actualTime);
+      }
+      if (data.completedBy) {
+        sheet.getRange(rowNum, completedByCol + 1).setValue(data.completedBy);
+      }
+
+      return { success: true, message: 'Task completed successfully' };
+    }
+  }
+
+  return { success: false, error: 'Task not found' };
+}
+
+/**
+ * Delete a flower task (soft delete)
+ */
+function deleteFlowerTask(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_TASKS');
+
+  if (!sheet || !data.taskId) {
+    return { success: false, error: 'Task not found' };
+  }
+
+  const dataRange = sheet.getDataRange().getValues();
+  const headers = dataRange[0];
+  const taskIdCol = headers.indexOf('Task_ID');
+  const statusCol = headers.indexOf('Status');
+
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][taskIdCol] === data.taskId) {
+      const rowNum = i + 1;
+      sheet.getRange(rowNum, statusCol + 1).setValue('deleted');
+      return { success: true, message: 'Task deleted successfully' };
+    }
+  }
+
+  return { success: false, error: 'Task not found' };
+}
+
+// ============ FLOWER PLANNING FUNCTIONS ============
+
+/**
+ * Get flower planning data
+ */
+function getFlowerPlanning(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_PLANNING_2026');
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { success: true, plans: [], message: 'No flower plans found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const plans = data.slice(1).map((row, index) => {
+    const plan = {};
+    headers.forEach((header, i) => plan[header] = row[i]);
+    plan.rowNumber = index + 2;
+    return plan;
+  });
+
+  return { success: true, plans: plans, count: plans.length };
+}
+
+/**
+ * Save a new flower planning entry
+ */
+function saveFlowerPlanning(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('FLOWER_PLANNING_2026');
+
+  if (!sheet) {
+    initializeFlowerModule();
+    sheet = ss.getSheetByName('FLOWER_PLANNING_2026');
+  }
+
+  const planId = 'FP-' + new Date().getTime();
+  const now = new Date().toISOString();
+
+  const newRow = [
+    planId,
+    data.flower || '',
+    data.variety || '',
+    data.supplier || '',
+    data.quantity || 0,
+    data.unit || '',
+    data.startDate || '',
+    data.transplantDate || '',
+    data.firstHarvest || '',
+    data.lastHarvest || '',
+    data.successions || 1,
+    data.bedAssignment || '',
+    data.status || 'planned',
+    data.notes || '',
+    now,
+    now
+  ];
+
+  sheet.appendRow(newRow);
+
+  return { success: true, planId: planId, message: 'Plan saved successfully' };
+}
+
+/**
+ * Update a flower planning entry
+ */
+function updateFlowerPlanning(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_PLANNING_2026');
+
+  if (!sheet || !data.planId) {
+    return { success: false, error: 'Plan not found' };
+  }
+
+  const dataRange = sheet.getDataRange().getValues();
+  const headers = dataRange[0];
+  const planIdCol = headers.indexOf('Plan_ID');
+  const updatedAtCol = headers.indexOf('Updated_At');
+
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][planIdCol] === data.planId) {
+      const rowNum = i + 1;
+
+      Object.keys(data).forEach(key => {
+        const colIndex = headers.indexOf(key);
+        if (colIndex !== -1 && key !== 'planId') {
+          sheet.getRange(rowNum, colIndex + 1).setValue(data[key]);
+        }
+      });
+
+      sheet.getRange(rowNum, updatedAtCol + 1).setValue(new Date().toISOString());
+
+      return { success: true, message: 'Plan updated successfully' };
+    }
+  }
+
+  return { success: false, error: 'Plan not found' };
+}
+
+// ============ FLOWER INVENTORY FUNCTIONS ============
+
+/**
+ * Get flower inventory (tubers, bulbs, corms)
+ */
+function getFlowerInventory(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_INVENTORY');
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { success: true, items: [], message: 'No flower inventory found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const items = data.slice(1)
+    .filter(row => row[headers.indexOf('Active')] !== 'FALSE')
+    .map((row, index) => {
+      const item = {};
+      headers.forEach((header, i) => item[header] = row[i]);
+      item.rowNumber = index + 2;
+      return item;
+    });
+
+  // Filter by type if specified
+  let filtered = items;
+  if (params.itemType) {
+    filtered = filtered.filter(i => i.Item_Type === params.itemType);
+  }
+  if (params.flower) {
+    filtered = filtered.filter(i => i.Flower === params.flower);
+  }
+
+  return { success: true, items: filtered, count: filtered.length };
+}
+
+/**
+ * Get a single flower inventory item
+ */
+function getFlowerInventoryItem(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_INVENTORY');
+
+  if (!sheet || !params.itemId) {
+    return { success: false, error: 'Item not found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const itemIdCol = headers.indexOf('Item_ID');
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][itemIdCol] === params.itemId) {
+      const item = {};
+      headers.forEach((header, j) => item[header] = data[i][j]);
+      return { success: true, item: item };
+    }
+  }
+
+  return { success: false, error: 'Item not found' };
+}
+
+/**
+ * Save a new flower inventory item
+ */
+function saveFlowerInventoryItem(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('FLOWER_INVENTORY');
+
+  if (!sheet) {
+    initializeFlowerModule();
+    sheet = ss.getSheetByName('FLOWER_INVENTORY');
+  }
+
+  const itemId = 'FI-' + new Date().getTime();
+  const now = new Date().toISOString();
+
+  const newRow = [
+    itemId,
+    data.itemType || '', // Tuber, Bulb, Corm, Seed
+    data.flower || '',
+    data.variety || '',
+    data.quantity || 0,
+    data.unit || 'each',
+    data.location || '',
+    data.condition || 'Good',
+    data.source || '',
+    data.costEach || 0,
+    (data.quantity || 0) * (data.costEach || 0),
+    data.dateAcquired || now.split('T')[0],
+    now.split('T')[0],
+    data.notes || '',
+    'TRUE'
+  ];
+
+  sheet.appendRow(newRow);
+
+  return { success: true, itemId: itemId, message: 'Inventory item saved successfully' };
+}
+
+/**
+ * Update a flower inventory item
+ */
+function updateFlowerInventoryItem(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_INVENTORY');
+
+  if (!sheet || !data.itemId) {
+    return { success: false, error: 'Item not found' };
+  }
+
+  const dataRange = sheet.getDataRange().getValues();
+  const headers = dataRange[0];
+  const itemIdCol = headers.indexOf('Item_ID');
+  const lastCountedCol = headers.indexOf('Last_Counted');
+
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][itemIdCol] === data.itemId) {
+      const rowNum = i + 1;
+
+      Object.keys(data).forEach(key => {
+        const colIndex = headers.indexOf(key);
+        if (colIndex !== -1 && key !== 'itemId') {
+          sheet.getRange(rowNum, colIndex + 1).setValue(data[key]);
+        }
+      });
+
+      sheet.getRange(rowNum, lastCountedCol + 1).setValue(new Date().toISOString().split('T')[0]);
+
+      // Recalculate total value
+      const qtyCol = headers.indexOf('Quantity');
+      const costCol = headers.indexOf('Cost_Each');
+      const totalCol = headers.indexOf('Total_Value');
+      const qty = sheet.getRange(rowNum, qtyCol + 1).getValue();
+      const cost = sheet.getRange(rowNum, costCol + 1).getValue();
+      sheet.getRange(rowNum, totalCol + 1).setValue(qty * cost);
+
+      return { success: true, message: 'Inventory item updated successfully' };
+    }
+  }
+
+  return { success: false, error: 'Item not found' };
+}
+
+// ============ FLOWER CRITICAL DATES FUNCTIONS ============
+
+/**
+ * Get flower critical dates
+ */
+function getFlowerCriticalDates(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('FLOWER_CRITICAL_DATES');
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { success: true, dates: [], message: 'No critical dates found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const dates = data.slice(1).map((row, index) => {
+    const date = {};
+    headers.forEach((header, i) => date[header] = row[i]);
+    date.rowNumber = index + 2;
+    return date;
+  });
+
+  // Filter by month if specified
+  let filtered = dates;
+  if (params.month) {
+    filtered = filtered.filter(d => d.Month === params.month);
+  }
+  if (params.flower) {
+    filtered = filtered.filter(d => d.Flower === params.flower);
+  }
+
+  return { success: true, dates: filtered, count: filtered.length };
+}
+
+/**
+ * Add a critical date
+ */
+function addFlowerCriticalDate(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('FLOWER_CRITICAL_DATES');
+
+  if (!sheet) {
+    initializeFlowerModule();
+    sheet = ss.getSheetByName('FLOWER_CRITICAL_DATES');
+  }
+
+  const dateId = 'FCD-' + new Date().getTime();
+
+  const newRow = [
+    dateId,
+    data.flower || '',
+    data.taskType || '',
+    data.month || '',
+    data.startDate || '',
+    data.endDate || '',
+    data.priority || 'important',
+    data.description || '',
+    data.notes || '',
+    data.recursAnnually || 'TRUE'
+  ];
+
+  sheet.appendRow(newRow);
+
+  return { success: true, dateId: dateId, message: 'Critical date added successfully' };
+}
+
+// ============ FLOWER DASHBOARD FUNCTIONS ============
+
+/**
+ * Get flower dashboard data
+ */
+function getFlowerDashboard() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Tasks stats
+  const tasksSheet = ss.getSheetByName('FLOWER_TASKS');
+  let tasksDueToday = 0;
+  let tasksCompleted = 0;
+  let tasksPending = 0;
+
+  if (tasksSheet && tasksSheet.getLastRow() > 1) {
+    const taskData = tasksSheet.getDataRange().getValues();
+    const headers = taskData[0];
+    const statusCol = headers.indexOf('Status');
+    const dueDateCol = headers.indexOf('Due_Date');
+    const today = new Date().toISOString().split('T')[0];
+
+    taskData.slice(1).forEach(row => {
+      if (row[statusCol] === 'completed') {
+        tasksCompleted++;
+      } else if (row[statusCol] === 'pending') {
+        tasksPending++;
+        const dueDate = row[dueDateCol] ? new Date(row[dueDateCol]).toISOString().split('T')[0] : '';
+        if (dueDate && dueDate <= today) {
+          tasksDueToday++;
+        }
+      }
+    });
+  }
+
+  // Inventory stats
+  const invSheet = ss.getSheetByName('FLOWER_INVENTORY');
+  let totalInventoryItems = 0;
+  let totalInventoryValue = 0;
+
+  if (invSheet && invSheet.getLastRow() > 1) {
+    const invData = invSheet.getDataRange().getValues();
+    const headers = invData[0];
+    const activeCol = headers.indexOf('Active');
+    const valueCol = headers.indexOf('Total_Value');
+
+    invData.slice(1).forEach(row => {
+      if (row[activeCol] !== 'FALSE') {
+        totalInventoryItems++;
+        totalInventoryValue += parseFloat(row[valueCol]) || 0;
+      }
+    });
+  }
+
+  // Planning stats
+  const planSheet = ss.getSheetByName('FLOWER_PLANNING_2026');
+  let plannedVarieties = 0;
+  let inProgress = 0;
+
+  if (planSheet && planSheet.getLastRow() > 1) {
+    const planData = planSheet.getDataRange().getValues();
+    const headers = planData[0];
+    const statusCol = headers.indexOf('Status');
+
+    planData.slice(1).forEach(row => {
+      plannedVarieties++;
+      if (row[statusCol] === 'in progress' || row[statusCol] === 'growing') {
+        inProgress++;
+      }
+    });
+  }
+
+  // Flower database count
+  const dbSheet = ss.getSheetByName('REF_FlowerDatabase');
+  let totalVarieties = dbSheet ? Math.max(0, dbSheet.getLastRow() - 1) : 52;
+
+  return {
+    success: true,
+    dashboard: {
+      totalVarieties: totalVarieties,
+      tasksDueToday: tasksDueToday,
+      tasksCompleted: tasksCompleted,
+      tasksPending: tasksPending,
+      inventoryItems: totalInventoryItems,
+      inventoryValue: totalInventoryValue,
+      plannedVarieties: plannedVarieties,
+      inProgress: inProgress
+    }
+  };
+}
+
+/**
+ * Get the flower database reference data
+ */
+function getFlowerDatabase() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('REF_FlowerDatabase');
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { success: true, flowers: [], message: 'Flower database not found. Run initializeFlowerModule first.' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const flowers = data.slice(1).map((row, index) => {
+    const flower = {};
+    headers.forEach((header, i) => flower[header] = row[i]);
+    return flower;
+  });
+
+  return { success: true, flowers: flowers, count: flowers.length };
+}
+
+/**
+ * Bulk update flower crop profiles from new data
+ */
+function bulkUpdateFlowerCropProfiles(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  if (!data.flowers || !Array.isArray(data.flowers)) {
+    return { success: false, error: 'Invalid data format' };
+  }
+
+  const profileSheet = ss.getSheetByName('REF_CropProfiles');
+  if (!profileSheet) {
+    return { success: false, error: 'REF_CropProfiles not found' };
+  }
+
+  let updated = 0;
+  let added = 0;
+
+  const existingData = profileSheet.getDataRange().getValues();
+  const headers = existingData[0];
+  const cropNameCol = headers.indexOf('Crop_Name');
+  const existingCrops = existingData.slice(1).map(row => row[cropNameCol]);
+
+  data.flowers.forEach(flower => {
+    const existingIndex = existingCrops.indexOf(flower.name);
+
+    if (existingIndex === -1) {
+      // Add new
+      const newRow = new Array(headers.length).fill('');
+      newRow[cropNameCol] = flower.name;
+      headers.forEach((header, i) => {
+        if (flower[header] !== undefined) {
+          newRow[i] = flower[header];
+        }
+      });
+      profileSheet.appendRow(newRow);
+      added++;
+    } else {
+      // Update existing
+      const rowNum = existingIndex + 2;
+      headers.forEach((header, i) => {
+        if (flower[header] !== undefined && header !== 'Crop_Name') {
+          profileSheet.getRange(rowNum, i + 1).setValue(flower[header]);
+        }
+      });
+      updated++;
+    }
+  });
+
+  return {
+    success: true,
+    message: `Updated ${updated} profiles, added ${added} new profiles`,
+    updated: updated,
+    added: added
+  };
 }
 
