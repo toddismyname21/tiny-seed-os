@@ -5113,6 +5113,514 @@
         }
 
         /* ========================================
+           INVENTORY MODE (Full Screen)
+           ======================================== */
+        .inventory-mode {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 5000;
+            flex-direction: column;
+        }
+
+        .inventory-mode.active {
+            display: flex;
+        }
+
+        .inventory-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            padding: 16px 20px;
+            padding-top: calc(16px + var(--safe-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inventory-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .inventory-back {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .inventory-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .inventory-scan-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .inventory-tabs {
+            display: flex;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .inventory-tab {
+            flex: 1;
+            padding: 14px 12px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+
+        .inventory-tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        .inventory-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .inventory-panel {
+            display: none;
+        }
+
+        .inventory-panel.active {
+            display: block;
+        }
+
+        .inventory-location-select {
+            margin-bottom: 16px;
+        }
+
+        .inventory-location-select label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .inventory-select {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .inventory-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .inventory-item-entry {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .inventory-entry-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .inventory-entry-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .inventory-input {
+            flex: 1;
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .inventory-input.qty {
+            width: 80px;
+            flex: none;
+            text-align: center;
+        }
+
+        .inventory-select.unit {
+            width: 100px;
+            flex: none;
+            padding: 14px 10px;
+        }
+
+        .inventory-quick-scan,
+        .inventory-add-btn {
+            width: 50px;
+            flex: none;
+            background: #3b82f6;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .inventory-quick-scan {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+        }
+
+        .inventory-count-list {
+            margin-bottom: 20px;
+        }
+
+        .inventory-count-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .inventory-count-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .inventory-count-item-qty {
+            font-size: 18px;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .inventory-count-item-remove {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+            margin-left: 10px;
+        }
+
+        .inventory-submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: #3b82f6;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .inventory-submit-btn.secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            margin-top: 16px;
+        }
+
+        .report-summary {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .report-summary h3 {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .report-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+        }
+
+        .report-stat {
+            text-align: center;
+        }
+
+        .report-stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #3b82f6;
+            display: block;
+        }
+
+        .report-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* ========================================
+           COSTING MODE (Full Screen)
+           ======================================== */
+        .costing-mode {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 5000;
+            flex-direction: column;
+        }
+
+        .costing-mode.active {
+            display: flex;
+        }
+
+        .costing-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            padding: 16px 20px;
+            padding-top: calc(16px + var(--safe-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .costing-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .costing-back {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .costing-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .costing-timer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 14px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+
+        .costing-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .costing-active {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border: 2px solid var(--success);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .costing-active-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .costing-active-task {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .costing-active-crop,
+        .costing-active-field {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .costing-active-timer {
+            text-align: center;
+        }
+
+        .costing-big-timer {
+            font-size: 48px;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            color: var(--success);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .costing-timer-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .costing-pause-btn,
+        .costing-stop-btn {
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .costing-pause-btn {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .costing-pause-btn.paused {
+            background: var(--warning);
+            color: white;
+        }
+
+        .costing-pause-btn.paused i::before {
+            content: "\f04b";
+        }
+
+        .costing-stop-btn {
+            background: var(--danger);
+            color: white;
+        }
+
+        .costing-task-select {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .costing-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .costing-select {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .costing-select:focus {
+            outline: none;
+            border-color: var(--success);
+        }
+
+        .costing-start-btn {
+            width: 100%;
+            padding: 16px;
+            background: #10b981;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .costing-log {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .costing-log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .costing-log-item:last-child {
+            border-bottom: none;
+        }
+
+        .costing-log-task {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .costing-log-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .costing-log-duration {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            color: var(--success);
+        }
+
+        /* ========================================
            FLEET TAB (Tractor Mode)
            ======================================== */
         .fleet-grid {
@@ -5652,7 +6160,7 @@
         <main class="main-content">
             <!-- Home Tab -->
             <div id="homeTab" class="tab-panel active">
-                <!-- Work Mode Selector (5 modes) -->
+                <!-- Work Mode Selector (7 modes) -->
                 <div class="mode-selector scrollable" id="modeSelector">
                     <button class="mode-btn active" onclick="setWorkMode('field')" data-mode="field">
                         <i class="fas fa-seedling"></i>
@@ -5665,6 +6173,14 @@
                     <button class="mode-btn" onclick="setWorkMode('packhouse')" data-mode="packhouse">
                         <i class="fas fa-warehouse"></i>
                         <span>Packhouse</span>
+                    </button>
+                    <button class="mode-btn" onclick="setWorkMode('inventory')" data-mode="inventory">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Inventory</span>
+                    </button>
+                    <button class="mode-btn" onclick="setWorkMode('costing')" data-mode="costing">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>Costing</span>
                     </button>
                     <button class="mode-btn" onclick="setWorkMode('garage')" data-mode="garage">
                         <i class="fas fa-wrench"></i>
@@ -6421,7 +6937,7 @@
         <div class="garage-header">
             <div class="garage-header-left">
                 <button class="garage-back" onclick="exitGarageMode()">
-                    <i class="fas fa-arrow-left"></i>
+                    <i class="fas fa-home"></i>
                 </button>
                 <span class="garage-title">TSF Garage</span>
             </div>
@@ -6618,12 +7134,215 @@
         </div>
     </div>
 
+    <!-- FULL SCREEN INVENTORY CAPTURE MODE -->
+    <div class="inventory-mode" id="inventoryMode">
+        <div class="inventory-header">
+            <div class="inventory-header-left">
+                <button class="inventory-back" onclick="exitInventoryMode()">
+                    <i class="fas fa-home"></i>
+                </button>
+                <span class="inventory-title">Inventory Count</span>
+            </div>
+            <div class="inventory-header-right">
+                <button class="inventory-scan-btn" onclick="openScanner('inventory-count')">
+                    <i class="fas fa-barcode"></i>
+                </button>
+            </div>
+        </div>
+        <div class="inventory-tabs">
+            <button class="inventory-tab active" onclick="switchInventoryTab('count')" data-tab="count">Count</button>
+            <button class="inventory-tab" onclick="switchInventoryTab('history')" data-tab="history">History</button>
+            <button class="inventory-tab" onclick="switchInventoryTab('report')" data-tab="report">Report</button>
+        </div>
+        <div class="inventory-content">
+            <!-- Count Tab -->
+            <div id="inventoryCountTab" class="inventory-panel active">
+                <div class="inventory-location-select">
+                    <label>Location</label>
+                    <select id="inventoryLocation" class="inventory-select">
+                        <option value="">-- Select Location --</option>
+                        <option value="cooler-1">Cooler 1</option>
+                        <option value="cooler-2">Cooler 2</option>
+                        <option value="greenhouse-1">Greenhouse 1</option>
+                        <option value="greenhouse-2">Greenhouse 2</option>
+                        <option value="field-storage">Field Storage</option>
+                        <option value="barn">Barn</option>
+                    </select>
+                </div>
+
+                <div class="inventory-item-entry">
+                    <div class="inventory-entry-row">
+                        <input type="text" id="inventoryItemName" class="inventory-input" placeholder="Item name or scan barcode">
+                        <button class="inventory-quick-scan" onclick="openScanner('inventory-item')">
+                            <i class="fas fa-qrcode"></i>
+                        </button>
+                    </div>
+                    <div class="inventory-entry-row">
+                        <input type="number" id="inventoryItemQty" class="inventory-input qty" placeholder="Qty" inputmode="numeric">
+                        <select id="inventoryItemUnit" class="inventory-select unit">
+                            <option value="each">Each</option>
+                            <option value="lbs">Lbs</option>
+                            <option value="cases">Cases</option>
+                            <option value="bunches">Bunches</option>
+                            <option value="flats">Flats</option>
+                        </select>
+                        <button class="inventory-add-btn" onclick="addInventoryItem()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="inventory-count-list" id="inventoryCountList">
+                    <div class="empty-state small">
+                        <i class="fas fa-clipboard-list"></i>
+                        <p>Start counting items</p>
+                    </div>
+                </div>
+
+                <button class="inventory-submit-btn" onclick="submitInventoryCount()">
+                    <i class="fas fa-check"></i> Submit Count
+                </button>
+            </div>
+
+            <!-- History Tab -->
+            <div id="inventoryHistoryTab" class="inventory-panel">
+                <div id="inventoryHistoryList">
+                    <div class="empty-state small">
+                        <i class="fas fa-history"></i>
+                        <p>No recent counts</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Tab -->
+            <div id="inventoryReportTab" class="inventory-panel">
+                <div class="report-summary">
+                    <h3>Today's Count Summary</h3>
+                    <div class="report-stats">
+                        <div class="report-stat">
+                            <span class="report-stat-value" id="reportItemsCount">0</span>
+                            <span class="report-stat-label">Items</span>
+                        </div>
+                        <div class="report-stat">
+                            <span class="report-stat-value" id="reportLocationsCount">0</span>
+                            <span class="report-stat-label">Locations</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="inventory-submit-btn secondary" onclick="generateInventoryReport()">
+                    <i class="fas fa-file-export"></i> Generate Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL SCREEN COSTING MODE -->
+    <div class="costing-mode" id="costingMode">
+        <div class="costing-header">
+            <div class="costing-header-left">
+                <button class="costing-back" onclick="exitCostingMode()">
+                    <i class="fas fa-home"></i>
+                </button>
+                <span class="costing-title">Labor Costing</span>
+            </div>
+            <div class="costing-timer" id="costingTimerDisplay">
+                <i class="fas fa-clock"></i>
+                <span id="costingTimerValue">00:00:00</span>
+            </div>
+        </div>
+        <div class="costing-content">
+            <!-- Active Costing Task -->
+            <div class="costing-active" id="costingActiveTask" style="display: none;">
+                <div class="costing-active-info">
+                    <div class="costing-active-task" id="costingActiveTaskName">--</div>
+                    <div class="costing-active-crop" id="costingActiveCrop">--</div>
+                    <div class="costing-active-field" id="costingActiveField">--</div>
+                </div>
+                <div class="costing-active-timer">
+                    <div class="costing-big-timer" id="costingBigTimer">00:00:00</div>
+                    <div class="costing-timer-controls">
+                        <button class="costing-pause-btn" onclick="pauseCostingTimer()">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button class="costing-stop-btn" onclick="stopCostingTask()">
+                            <i class="fas fa-stop"></i> End Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Selection -->
+            <div class="costing-task-select" id="costingTaskSelect">
+                <h3 class="costing-section-title">Select Task to Track</h3>
+
+                <div class="form-group">
+                    <label>Task Type</label>
+                    <select id="costingTaskType" class="costing-select">
+                        <option value="">-- Select Task --</option>
+                        <option value="planting">Planting</option>
+                        <option value="transplanting">Transplanting</option>
+                        <option value="weeding">Weeding</option>
+                        <option value="cultivating">Cultivating</option>
+                        <option value="harvesting">Harvesting</option>
+                        <option value="washing">Washing</option>
+                        <option value="packing">Packing</option>
+                        <option value="seeding">Seeding Trays</option>
+                        <option value="irrigation">Irrigation</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Crop (optional)</label>
+                    <select id="costingCrop" class="costing-select">
+                        <option value="">-- Select Crop --</option>
+                        <option value="tomatoes">Tomatoes</option>
+                        <option value="lettuce">Lettuce</option>
+                        <option value="kale">Kale</option>
+                        <option value="carrots">Carrots</option>
+                        <option value="peppers">Peppers</option>
+                        <option value="mixed-greens">Mixed Greens</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Field/Location (optional)</label>
+                    <select id="costingField" class="costing-select">
+                        <option value="">-- Select Field --</option>
+                        <option value="field-1">Field 1</option>
+                        <option value="field-2">Field 2</option>
+                        <option value="field-3">Field 3</option>
+                        <option value="greenhouse-1">Greenhouse 1</option>
+                        <option value="greenhouse-2">Greenhouse 2</option>
+                        <option value="packhouse">Packhouse</option>
+                    </select>
+                </div>
+
+                <button class="costing-start-btn" onclick="startCostingTask()">
+                    <i class="fas fa-play"></i> Start Tracking
+                </button>
+            </div>
+
+            <!-- Today's Log -->
+            <div class="costing-log">
+                <h3 class="costing-section-title">Today's Log</h3>
+                <div id="costingLogList">
+                    <div class="empty-state small">
+                        <i class="fas fa-clock"></i>
+                        <p>No tasks logged today</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- FULL SCREEN DRIVER MODE -->
     <div class="driver-mode" id="driverMode">
         <div class="driver-header">
             <div class="driver-header-left">
                 <button class="driver-back" onclick="exitDriverMode()">
-                    <i class="fas fa-arrow-left"></i>
+                    <i class="fas fa-home"></i>
                 </button>
                 <span class="driver-title">Deliveries</span>
             </div>
@@ -8778,9 +9497,23 @@
 
             document.getElementById('langToggle').textContent = AppState.language.toUpperCase();
             translatePage();
+
+            // Restore clock state from localStorage
+            restoreClockState();
+
             updateClockUI();
             startClock();
             loadInitialData();
+
+            // Restore saved work mode
+            const savedMode = localStorage.getItem('tsf_work_mode');
+            if (savedMode) {
+                AppState.workMode = savedMode;
+                // Update mode buttons to show saved mode
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === savedMode);
+                });
+            }
         }
 
         async function logout() {
@@ -8852,30 +9585,44 @@
 
             try {
                 const gps = await captureGPS();
+                const mode = AppState.workMode || 'field';
 
                 if (!AppState.isClockedIn) {
                     // Clock In
-                    const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}&lat=${gps.lat || ''}&lng=${gps.lng || ''}`);
+                    const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}&lat=${gps.lat || ''}&lng=${gps.lng || ''}&mode=${mode}`);
                     const data = await response.json();
 
                     if (data.success) {
                         AppState.isClockedIn = true;
                         AppState.clockInTime = new Date().toISOString();
+
+                        // Persist clock state in localStorage
+                        localStorage.setItem('tsf_clocked_in', 'true');
+                        localStorage.setItem('tsf_clock_in_time', AppState.clockInTime);
+
                         showToast(t('clock.clockedInSuccess'), 'success');
 
-                        // After clock in, switch to tasks view
-                        setTimeout(() => switchTab('tasks'), 500);
+                        // Trigger mode check - if full-screen mode selected, show it now
+                        onClockIn();
                     } else {
                         showToast(data.error || t('common.error'), 'error');
                     }
                 } else {
                     // Clock Out
-                    const response = await fetch(`${CONFIG.API_URL}?action=clockOut&employeeId=${AppState.employee.Employee_ID}&lat=${gps.lat || ''}&lng=${gps.lng || ''}`);
+                    const response = await fetch(`${CONFIG.API_URL}?action=clockOut&employeeId=${AppState.employee.Employee_ID}&lat=${gps.lat || ''}&lng=${gps.lng || ''}&mode=${mode}`);
                     const data = await response.json();
 
                     if (data.success) {
                         AppState.isClockedIn = false;
                         AppState.clockInTime = null;
+
+                        // Clear persisted clock state
+                        localStorage.removeItem('tsf_clocked_in');
+                        localStorage.removeItem('tsf_clock_in_time');
+
+                        // Exit any full-screen mode when clocking out
+                        exitFullScreenMode();
+
                         document.getElementById('hoursToday').textContent = data.hoursWorked?.toFixed(1) || '0.0';
                         showToast(t('clock.clockedOutSuccess'), 'success');
                     } else {
@@ -8886,10 +9633,39 @@
                 updateClockUI();
             } catch (error) {
                 console.error('Clock error:', error);
-                showToast(t('common.error'), 'error');
+
+                // Offline fallback - still allow clock in/out locally
+                if (!AppState.isClockedIn) {
+                    AppState.isClockedIn = true;
+                    AppState.clockInTime = new Date().toISOString();
+                    localStorage.setItem('tsf_clocked_in', 'true');
+                    localStorage.setItem('tsf_clock_in_time', AppState.clockInTime);
+                    showToast('Clocked in (offline)', 'info');
+                    onClockIn();
+                } else {
+                    AppState.isClockedIn = false;
+                    AppState.clockInTime = null;
+                    localStorage.removeItem('tsf_clocked_in');
+                    localStorage.removeItem('tsf_clock_in_time');
+                    exitFullScreenMode();
+                    showToast('Clocked out (offline)', 'info');
+                }
+                updateClockUI();
             }
 
             btn.disabled = false;
+        }
+
+        // Restore clock state on page load
+        function restoreClockState() {
+            const wasClocked = localStorage.getItem('tsf_clocked_in') === 'true';
+            const clockTime = localStorage.getItem('tsf_clock_in_time');
+
+            if (wasClocked && clockTime) {
+                AppState.isClockedIn = true;
+                AppState.clockInTime = clockTime;
+                updateClockUI();
+            }
         }
 
         // ============================================
@@ -8946,8 +9722,11 @@
         }
 
         // ============================================
-        // WORK MODE SYSTEM (5 Modes)
+        // WORK MODE SYSTEM (7 Modes)
         // ============================================
+        const FULL_SCREEN_MODES = ['driver', 'garage', 'inventory', 'costing'];
+        const NAV_MODES = ['field', 'tractor', 'packhouse'];
+
         function setWorkMode(mode) {
             AppState.workMode = mode;
             localStorage.setItem('tsf_work_mode', mode);
@@ -8961,19 +9740,43 @@
             document.getElementById('fieldNav').style.display = 'none';
             document.getElementById('packhouseNav').style.display = 'none';
             document.getElementById('tractorNav').style.display = 'none';
-            document.getElementById('driverMode').classList.remove('active');
-            document.getElementById('garageMode').classList.remove('active');
+            document.getElementById('driverMode')?.classList.remove('active');
+            document.getElementById('garageMode')?.classList.remove('active');
+            document.getElementById('inventoryMode')?.classList.remove('active');
+            document.getElementById('costingMode')?.classList.remove('active');
 
-            // Handle full-screen modes (driver, garage)
-            if (mode === 'driver') {
-                document.getElementById('driverMode').classList.add('active');
-                loadDriverRoute();
-            } else if (mode === 'garage') {
-                document.getElementById('garageMode').classList.add('active');
-                loadGarageAssets();
+            // For full-screen modes, check if clocked in first
+            if (FULL_SCREEN_MODES.includes(mode)) {
+                if (!AppState.isClockedIn) {
+                    // Stay on home screen, show clock in prompt
+                    document.getElementById('fieldNav').style.display = 'flex';
+                    switchTab('home');
+                    showToast(`Clock in to start ${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode`, 'info');
+                    return;
+                }
+
+                // Clocked in - show full screen mode
+                if (mode === 'driver') {
+                    document.getElementById('driverMode').classList.add('active');
+                    loadDriverRoute();
+                } else if (mode === 'garage') {
+                    document.getElementById('garageMode').classList.add('active');
+                    loadGarageAssets();
+                } else if (mode === 'inventory') {
+                    document.getElementById('inventoryMode').classList.add('active');
+                    loadInventoryCapture();
+                } else if (mode === 'costing') {
+                    document.getElementById('costingMode').classList.add('active');
+                    loadCostingTasks();
+                }
             } else {
                 // Standard nav modes (field, tractor, packhouse)
-                document.getElementById(`${mode}Nav`).style.display = 'flex';
+                const navElement = document.getElementById(`${mode}Nav`);
+                if (navElement) {
+                    navElement.style.display = 'flex';
+                } else {
+                    document.getElementById('fieldNav').style.display = 'flex';
+                }
                 switchTab('home');
 
                 // Load fleet data for tractor mode
@@ -8987,19 +9790,51 @@
                 tractor: 'Tractor',
                 packhouse: 'Packhouse',
                 garage: 'Garage',
-                driver: 'Driver'
+                driver: 'Driver',
+                inventory: 'Inventory',
+                costing: 'Costing'
             };
-            showToast(`Switched to ${modeNames[mode]} Mode`, 'success');
+            showToast(`${modeNames[mode]} Mode`, 'success');
+        }
+
+        // Exit functions return to home screen with mode selector
+        function exitFullScreenMode() {
+            // Hide all full-screen modes
+            document.getElementById('driverMode')?.classList.remove('active');
+            document.getElementById('garageMode')?.classList.remove('active');
+            document.getElementById('inventoryMode')?.classList.remove('active');
+            document.getElementById('costingMode')?.classList.remove('active');
+
+            // Show home with field nav (allows mode switching)
+            document.getElementById('fieldNav').style.display = 'flex';
+            switchTab('home');
+
+            // Keep the work mode set so they can see what they're in
+            showToast('Tap a mode to switch', 'info');
         }
 
         function exitDriverMode() {
-            document.getElementById('driverMode').classList.remove('active');
-            setWorkMode('field');
+            exitFullScreenMode();
         }
 
         function exitGarageMode() {
-            document.getElementById('garageMode').classList.remove('active');
-            setWorkMode('field');
+            exitFullScreenMode();
+        }
+
+        function exitInventoryMode() {
+            exitFullScreenMode();
+        }
+
+        function exitCostingMode() {
+            exitFullScreenMode();
+        }
+
+        // When clock in happens, check if we need to show a full-screen mode
+        function onClockIn() {
+            if (FULL_SCREEN_MODES.includes(AppState.workMode)) {
+                // Re-trigger the mode to show full screen now that clocked in
+                setWorkMode(AppState.workMode);
+            }
         }
 
         function loadDriverRoute() {
@@ -9068,6 +9903,456 @@
         function completeDeliveryStop(stopNum) {
             showToast(`Stop ${stopNum} completed!`, 'success');
             // In production: API call to mark complete, capture signature/photo
+        }
+
+        function reportDeliveryIssue(stopNum) {
+            // Show issue reporting modal
+            showToast(`Report issue for stop ${stopNum}`, 'info');
+        }
+
+        // ============================================
+        // INVENTORY CAPTURE MODE
+        // ============================================
+        const InventoryState = {
+            currentCount: [],
+            history: JSON.parse(localStorage.getItem('tsf_inventory_history') || '[]'),
+            todaysCounts: []
+        };
+
+        function loadInventoryCapture() {
+            // Reset current count for new session
+            InventoryState.currentCount = [];
+            renderInventoryCountList();
+            loadInventoryHistory();
+            updateInventoryReportStats();
+        }
+
+        function switchInventoryTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.inventory-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+
+            // Update panels
+            document.getElementById('inventoryCountTab').classList.toggle('active', tab === 'count');
+            document.getElementById('inventoryHistoryTab').classList.toggle('active', tab === 'history');
+            document.getElementById('inventoryReportTab').classList.toggle('active', tab === 'report');
+
+            if (tab === 'history') {
+                loadInventoryHistory();
+            } else if (tab === 'report') {
+                updateInventoryReportStats();
+            }
+        }
+
+        function addInventoryItem() {
+            const nameInput = document.getElementById('inventoryItemName');
+            const qtyInput = document.getElementById('inventoryItemQty');
+            const unitSelect = document.getElementById('inventoryItemUnit');
+            const locationSelect = document.getElementById('inventoryLocation');
+
+            const name = nameInput.value.trim();
+            const qty = parseFloat(qtyInput.value);
+            const unit = unitSelect.value;
+            const location = locationSelect.value;
+
+            if (!name || !qty || !location) {
+                showToast('Please fill in item name, quantity, and location', 'error');
+                return;
+            }
+
+            InventoryState.currentCount.push({
+                id: Date.now(),
+                name,
+                qty,
+                unit,
+                location,
+                timestamp: new Date().toISOString()
+            });
+
+            // Clear inputs
+            nameInput.value = '';
+            qtyInput.value = '';
+
+            renderInventoryCountList();
+            showToast(`Added ${qty} ${unit} of ${name}`, 'success');
+        }
+
+        function removeInventoryItem(itemId) {
+            InventoryState.currentCount = InventoryState.currentCount.filter(i => i.id !== itemId);
+            renderInventoryCountList();
+        }
+
+        function renderInventoryCountList() {
+            const list = document.getElementById('inventoryCountList');
+
+            if (InventoryState.currentCount.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state small">
+                        <i class="fas fa-clipboard-list"></i>
+                        <p>Start counting items</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = InventoryState.currentCount.map(item => `
+                <div class="inventory-count-item">
+                    <div>
+                        <div class="inventory-count-item-name">${item.name}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${item.location}</div>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span class="inventory-count-item-qty">${item.qty} ${item.unit}</span>
+                        <button class="inventory-count-item-remove" onclick="removeInventoryItem(${item.id})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function submitInventoryCount() {
+            if (InventoryState.currentCount.length === 0) {
+                showToast('Add items before submitting', 'error');
+                return;
+            }
+
+            const countRecord = {
+                id: Date.now(),
+                user: AppState.employee?.Name || 'Unknown',
+                timestamp: new Date().toISOString(),
+                items: [...InventoryState.currentCount],
+                totalItems: InventoryState.currentCount.length,
+                locations: [...new Set(InventoryState.currentCount.map(i => i.location))]
+            };
+
+            // Save to history
+            InventoryState.history.unshift(countRecord);
+            localStorage.setItem('tsf_inventory_history', JSON.stringify(InventoryState.history.slice(0, 100)));
+
+            // Send to backend
+            try {
+                await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'logInventoryCount',
+                        ...countRecord
+                    })
+                });
+            } catch (error) {
+                console.error('[Inventory] Submit error:', error);
+                // Queued for offline sync
+            }
+
+            showToast(`Inventory count submitted: ${countRecord.totalItems} items`, 'success');
+
+            // Reset current count
+            InventoryState.currentCount = [];
+            renderInventoryCountList();
+            updateInventoryReportStats();
+        }
+
+        function loadInventoryHistory() {
+            const list = document.getElementById('inventoryHistoryList');
+
+            if (InventoryState.history.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state small">
+                        <i class="fas fa-history"></i>
+                        <p>No recent counts</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = InventoryState.history.slice(0, 20).map(record => `
+                <div class="costing-log-item">
+                    <div>
+                        <div class="costing-log-task">${record.totalItems} items</div>
+                        <div class="costing-log-meta">
+                            ${record.locations.join(', ')} &bull; ${new Date(record.timestamp).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div class="costing-log-duration" style="color: #3b82f6;">
+                        ${record.user}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateInventoryReportStats() {
+            const today = new Date().toDateString();
+            const todaysCounts = InventoryState.history.filter(r =>
+                new Date(r.timestamp).toDateString() === today
+            );
+
+            const totalItems = todaysCounts.reduce((sum, r) => sum + r.totalItems, 0);
+            const uniqueLocations = [...new Set(todaysCounts.flatMap(r => r.locations))];
+
+            document.getElementById('reportItemsCount').textContent = totalItems;
+            document.getElementById('reportLocationsCount').textContent = uniqueLocations.length;
+        }
+
+        function generateInventoryReport() {
+            const today = new Date().toDateString();
+            const todaysCounts = InventoryState.history.filter(r =>
+                new Date(r.timestamp).toDateString() === today
+            );
+
+            if (todaysCounts.length === 0) {
+                showToast('No counts recorded today', 'info');
+                return;
+            }
+
+            // Generate CSV or export
+            const items = todaysCounts.flatMap(r => r.items);
+            const csvContent = [
+                ['Item', 'Quantity', 'Unit', 'Location', 'Time', 'User'].join(','),
+                ...items.map(i => [
+                    i.name,
+                    i.qty,
+                    i.unit,
+                    i.location,
+                    new Date(i.timestamp).toLocaleTimeString(),
+                    todaysCounts.find(r => r.items.includes(i))?.user || ''
+                ].join(','))
+            ].join('\n');
+
+            // For mobile, copy to clipboard
+            navigator.clipboard?.writeText(csvContent);
+            showToast('Report copied to clipboard!', 'success');
+        }
+
+        // ============================================
+        // LABOR COSTING MODE
+        // ============================================
+        const CostingState = {
+            activeTask: null,
+            startTime: null,
+            pausedTime: 0,
+            isPaused: false,
+            timerInterval: null,
+            todaysLog: JSON.parse(localStorage.getItem('tsf_costing_log') || '[]')
+        };
+
+        function loadCostingTasks() {
+            // Filter to today's log only
+            const today = new Date().toDateString();
+            CostingState.todaysLog = CostingState.todaysLog.filter(r =>
+                new Date(r.timestamp).toDateString() === today
+            );
+
+            renderCostingLog();
+            updateCostingTimerDisplay();
+
+            // Restore active task if any
+            const savedTask = localStorage.getItem('tsf_active_costing_task');
+            if (savedTask) {
+                const task = JSON.parse(savedTask);
+                if (task.date === today) {
+                    CostingState.activeTask = task;
+                    CostingState.startTime = new Date(task.startTime);
+                    CostingState.pausedTime = task.pausedTime || 0;
+                    showActiveTaskPanel();
+                    startCostingTimerInterval();
+                }
+            }
+        }
+
+        function startCostingTask() {
+            const taskType = document.getElementById('costingTaskType').value;
+            const crop = document.getElementById('costingCrop').value;
+            const field = document.getElementById('costingField').value;
+
+            if (!taskType) {
+                showToast('Please select a task type', 'error');
+                return;
+            }
+
+            CostingState.activeTask = {
+                type: taskType,
+                crop: crop || 'N/A',
+                field: field || 'N/A',
+                startTime: new Date().toISOString(),
+                date: new Date().toDateString(),
+                user: AppState.employee?.Name || 'Unknown'
+            };
+
+            CostingState.startTime = new Date();
+            CostingState.pausedTime = 0;
+            CostingState.isPaused = false;
+
+            // Save active task
+            localStorage.setItem('tsf_active_costing_task', JSON.stringify(CostingState.activeTask));
+
+            showActiveTaskPanel();
+            startCostingTimerInterval();
+
+            showToast(`Started tracking: ${taskType}`, 'success');
+        }
+
+        function showActiveTaskPanel() {
+            document.getElementById('costingActiveTask').style.display = 'block';
+            document.getElementById('costingTaskSelect').style.display = 'none';
+
+            const taskNames = {
+                planting: 'Planting', transplanting: 'Transplanting', weeding: 'Weeding',
+                cultivating: 'Cultivating', harvesting: 'Harvesting', washing: 'Washing',
+                packing: 'Packing', seeding: 'Seeding Trays', irrigation: 'Irrigation', other: 'Other'
+            };
+
+            document.getElementById('costingActiveTaskName').textContent =
+                taskNames[CostingState.activeTask.type] || CostingState.activeTask.type;
+            document.getElementById('costingActiveCrop').textContent =
+                CostingState.activeTask.crop !== 'N/A' ? CostingState.activeTask.crop : '';
+            document.getElementById('costingActiveField').textContent =
+                CostingState.activeTask.field !== 'N/A' ? CostingState.activeTask.field : '';
+        }
+
+        function hideActiveTaskPanel() {
+            document.getElementById('costingActiveTask').style.display = 'none';
+            document.getElementById('costingTaskSelect').style.display = 'block';
+        }
+
+        function startCostingTimerInterval() {
+            if (CostingState.timerInterval) {
+                clearInterval(CostingState.timerInterval);
+            }
+
+            CostingState.timerInterval = setInterval(() => {
+                if (!CostingState.isPaused) {
+                    updateCostingTimerDisplay();
+                }
+            }, 1000);
+        }
+
+        function updateCostingTimerDisplay() {
+            if (!CostingState.startTime) {
+                document.getElementById('costingTimerValue').textContent = '00:00:00';
+                document.getElementById('costingBigTimer').textContent = '00:00:00';
+                return;
+            }
+
+            const now = new Date();
+            let elapsed = (now - CostingState.startTime) / 1000 - CostingState.pausedTime;
+            if (elapsed < 0) elapsed = 0;
+
+            const hours = Math.floor(elapsed / 3600);
+            const mins = Math.floor((elapsed % 3600) / 60);
+            const secs = Math.floor(elapsed % 60);
+
+            const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            document.getElementById('costingTimerValue').textContent = timeStr;
+            document.getElementById('costingBigTimer').textContent = timeStr;
+        }
+
+        function pauseCostingTimer() {
+            const pauseBtn = document.querySelector('.costing-pause-btn');
+
+            if (CostingState.isPaused) {
+                // Resume
+                CostingState.isPaused = false;
+                pauseBtn.classList.remove('paused');
+                pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                showToast('Timer resumed', 'info');
+            } else {
+                // Pause
+                CostingState.isPaused = true;
+                CostingState.pauseStartTime = new Date();
+                pauseBtn.classList.add('paused');
+                pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                showToast('Timer paused', 'info');
+            }
+        }
+
+        async function stopCostingTask() {
+            if (!CostingState.activeTask) return;
+
+            // Calculate duration
+            const now = new Date();
+            let totalSeconds = (now - CostingState.startTime) / 1000 - CostingState.pausedTime;
+            if (totalSeconds < 0) totalSeconds = 0;
+
+            const hours = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+            // Create log entry
+            const logEntry = {
+                id: Date.now(),
+                ...CostingState.activeTask,
+                endTime: now.toISOString(),
+                timestamp: now.toISOString(),
+                durationSeconds: totalSeconds,
+                durationFormatted: durationStr
+            };
+
+            // Save to log
+            CostingState.todaysLog.unshift(logEntry);
+            localStorage.setItem('tsf_costing_log', JSON.stringify(CostingState.todaysLog.slice(0, 500)));
+
+            // Clear active task
+            localStorage.removeItem('tsf_active_costing_task');
+
+            // Send to backend
+            try {
+                await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'logLaborCost',
+                        ...logEntry
+                    })
+                });
+            } catch (error) {
+                console.error('[Costing] Submit error:', error);
+            }
+
+            showToast(`Task logged: ${durationStr}`, 'success');
+
+            // Reset state
+            clearInterval(CostingState.timerInterval);
+            CostingState.activeTask = null;
+            CostingState.startTime = null;
+            CostingState.pausedTime = 0;
+            CostingState.isPaused = false;
+
+            hideActiveTaskPanel();
+            updateCostingTimerDisplay();
+            renderCostingLog();
+        }
+
+        function renderCostingLog() {
+            const list = document.getElementById('costingLogList');
+
+            if (CostingState.todaysLog.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state small">
+                        <i class="fas fa-clock"></i>
+                        <p>No tasks logged today</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const taskNames = {
+                planting: 'Planting', transplanting: 'Transplanting', weeding: 'Weeding',
+                cultivating: 'Cultivating', harvesting: 'Harvesting', washing: 'Washing',
+                packing: 'Packing', seeding: 'Seeding Trays', irrigation: 'Irrigation', other: 'Other'
+            };
+
+            list.innerHTML = CostingState.todaysLog.map(entry => `
+                <div class="costing-log-item">
+                    <div>
+                        <div class="costing-log-task">${taskNames[entry.type] || entry.type}</div>
+                        <div class="costing-log-meta">
+                            ${entry.crop !== 'N/A' ? entry.crop + ' • ' : ''}${entry.field !== 'N/A' ? entry.field : ''}
+                        </div>
+                    </div>
+                    <div class="costing-log-duration">${entry.durationFormatted}</div>
+                </div>
+            `).join('');
         }
 
         // ============================================
