@@ -88,6 +88,14 @@ function doGet(e) {
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
         return testConnection();
+      case 'healthCheck':
+        return jsonResponse(healthCheck());
+      case 'diagnoseSheets':
+        return jsonResponse(diagnoseSheets());
+      case 'diagnoseIntegrations':
+        return jsonResponse(diagnoseIntegrations());
+      case 'getSystemStatus':
+        return jsonResponse(getSystemStatus());
       case 'populateTraySizes':
         return jsonResponse(populateTraySizesFromProfiles());
 
@@ -150,11 +158,9 @@ function doGet(e) {
         return getCSAMembers();
       case 'getFinancials':
         return getFinancials();
-          case 'getCropProfile':
-    return getCropProfile(params.cropName);
-    case 'getCropProfile':
-    return jsonResponse(getCropProfile(e.parameter.cropName));
-  case 'updateCropProfile':
+      case 'getCropProfile':
+        return jsonResponse(getCropProfile(e.parameter.cropName));
+      case 'updateCropProfile':
     return jsonResponse(updateCropProfile(e.parameter));
   case 'createCropProfile':
     return jsonResponse(createCropProfile(e.parameter));
@@ -196,6 +202,14 @@ function doGet(e) {
         return jsonResponse(getTrayInventory());
       case 'saveTrayInventory':
         return jsonResponse(saveTrayInventory(e.parameter));
+
+      // ============ FARM INVENTORY ENDPOINTS (Asset Tracking) ============
+      case 'getFarmInventory':
+        return jsonResponse(getFarmInventory(e.parameter));
+      case 'getFarmInventoryItem':
+        return jsonResponse(getFarmInventoryItem(e.parameter));
+      case 'getFarmInventoryStats':
+        return jsonResponse(getFarmInventoryStats());
 
       // ============ SALES MODULE - CUSTOMER FACING ============
       case 'authenticateCustomer':
@@ -610,10 +624,20 @@ function doGet(e) {
           youtube: parseInt(e.parameter.youtube) || 0,
           pinterest: parseInt(e.parameter.pinterest) || 0
         }));
-      case 'publishSocialPost':
-        return jsonResponse(publishToSocial(payload));
       case 'checkAyrshareStatus':
         return jsonResponse(checkAyrshareStatus());
+      case 'addNeighborSignup':
+        return jsonResponse(addNeighborSignup({
+          name: e.parameter.name || '',
+          email: e.parameter.email || '',
+          zip: e.parameter.zip || '',
+          neighborhood: e.parameter.neighborhood || '',
+          source: e.parameter.source || 'direct-mail',
+          campaign: e.parameter.campaign || '',
+          timestamp: e.parameter.timestamp || new Date().toISOString()
+        }));
+      case 'getNeighborSignups':
+        return jsonResponse(getNeighborSignups(e.parameter));
 
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'initSeedInventory':
@@ -930,6 +954,16 @@ function doPost(e) {
         return jsonResponse(addSeedLot(data));
       case 'useSeedFromLot':
         return jsonResponse(useSeedFromLot(data));
+
+      // ============ FARM INVENTORY POST ENDPOINTS (Asset Tracking) ============
+      case 'addFarmInventoryItem':
+        return jsonResponse(addFarmInventoryItem(data));
+      case 'updateFarmInventoryItem':
+        return jsonResponse(updateFarmInventoryItem(data));
+      case 'deleteFarmInventoryItem':
+        return jsonResponse(deleteFarmInventoryItem(data));
+      case 'uploadFarmInventoryPhoto':
+        return jsonResponse(uploadFarmInventoryPhoto(data));
 
       // ============ SHOPIFY & QUICKBOOKS INTEGRATION ============
       case 'shopifyWebhook':
@@ -6370,6 +6404,195 @@ function storeAyrshareApiKey() {
   PropertiesService.getScriptProperties().setProperty('AYRSHARE_API_KEY', '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F');
   Logger.log('Ayrshare API key stored securely!');
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HEALTH CHECK & DIAGNOSTIC ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function healthCheck() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const now = new Date();
+
+    return {
+      success: true,
+      status: 'healthy',
+      timestamp: now.toISOString(),
+      spreadsheet: {
+        id: ss.getId(),
+        name: ss.getName(),
+        timezone: Session.getScriptTimeZone()
+      },
+      runtime: {
+        quotaRemaining: 'N/A', // Apps Script doesn't expose this directly
+        executionTime: 'started'
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      status: 'unhealthy',
+      error: error.toString()
+    };
+  }
+}
+
+function diagnoseSheets() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const allSheets = ss.getSheets().map(s => s.getName());
+
+    // Critical sheets that must exist
+    const criticalSheets = [
+      'PLANNING_2026',
+      'REF_CropProfiles',
+      'REF_Beds',
+      'REF_Fields',
+      'USERS',
+      'SEED_INVENTORY'
+    ];
+
+    // Important sheets
+    const importantSheets = [
+      'SESSIONS',
+      'AUDIT_LOG',
+      'SALES_ORDERS',
+      'INVENTORY_PRODUCTS',
+      'DTM_LEARNING',
+      'HARVEST_LOG'
+    ];
+
+    const results = {
+      success: true,
+      totalSheets: allSheets.length,
+      critical: {},
+      important: {},
+      allSheets: allSheets
+    };
+
+    // Check critical sheets
+    let criticalMissing = 0;
+    criticalSheets.forEach(name => {
+      const exists = allSheets.includes(name);
+      results.critical[name] = exists ? 'OK' : 'MISSING';
+      if (!exists) criticalMissing++;
+    });
+
+    // Check important sheets
+    let importantMissing = 0;
+    importantSheets.forEach(name => {
+      const exists = allSheets.includes(name);
+      results.important[name] = exists ? 'OK' : 'MISSING';
+      if (!exists) importantMissing++;
+    });
+
+    results.summary = {
+      criticalMissing: criticalMissing,
+      importantMissing: importantMissing,
+      health: criticalMissing === 0 ? 'GOOD' : 'CRITICAL'
+    };
+
+    return results;
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function diagnoseIntegrations() {
+  try {
+    const results = {
+      success: true,
+      integrations: {}
+    };
+
+    // Check Ayrshare
+    try {
+      const ayrshareKey = PropertiesService.getScriptProperties().getProperty('AYRSHARE_API_KEY');
+      results.integrations.ayrshare = {
+        configured: !!ayrshareKey,
+        status: ayrshareKey ? 'KEY_SET' : 'NOT_CONFIGURED'
+      };
+    } catch (e) {
+      results.integrations.ayrshare = { configured: false, error: e.toString() };
+    }
+
+    // Check Plaid
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const plaidSheet = ss.getSheetByName('PLAID_ITEMS');
+      results.integrations.plaid = {
+        configured: !!plaidSheet,
+        itemCount: plaidSheet ? Math.max(0, plaidSheet.getLastRow() - 1) : 0
+      };
+    } catch (e) {
+      results.integrations.plaid = { configured: false, error: e.toString() };
+    }
+
+    // Check Twilio (SMS)
+    try {
+      const twilioSid = typeof TWILIO_CONFIG !== 'undefined' && TWILIO_CONFIG.ACCOUNT_SID;
+      results.integrations.twilio = {
+        configured: !!twilioSid && twilioSid !== 'YOUR_TWILIO_ACCOUNT_SID',
+        status: twilioSid ? 'CONFIGURED' : 'NOT_CONFIGURED'
+      };
+    } catch (e) {
+      results.integrations.twilio = { configured: false, error: e.toString() };
+    }
+
+    // Check Google Maps
+    try {
+      const mapsKey = typeof GOOGLE_ROUTES_CONFIG !== 'undefined' && GOOGLE_ROUTES_CONFIG.API_KEY;
+      results.integrations.googleMaps = {
+        configured: !!mapsKey,
+        status: mapsKey ? 'CONFIGURED' : 'NOT_CONFIGURED'
+      };
+    } catch (e) {
+      results.integrations.googleMaps = { configured: false, error: e.toString() };
+    }
+
+    // Check Shopify
+    try {
+      const shopifyToken = typeof SHOPIFY_CONFIG !== 'undefined' && SHOPIFY_CONFIG.ACCESS_TOKEN;
+      results.integrations.shopify = {
+        configured: shopifyToken && shopifyToken !== 'YOUR_SHOPIFY_ACCESS_TOKEN',
+        status: shopifyToken && shopifyToken !== 'YOUR_SHOPIFY_ACCESS_TOKEN' ? 'CONFIGURED' : 'NEEDS_SETUP'
+      };
+    } catch (e) {
+      results.integrations.shopify = { configured: false, error: e.toString() };
+    }
+
+    // Check QuickBooks
+    try {
+      const qbService = typeof getQuickBooksOAuthService === 'function' ? getQuickBooksOAuthService() : null;
+      results.integrations.quickbooks = {
+        configured: qbService ? qbService.hasAccess() : false,
+        status: qbService && qbService.hasAccess() ? 'CONNECTED' : 'NOT_CONNECTED'
+      };
+    } catch (e) {
+      results.integrations.quickbooks = { configured: false, error: e.toString() };
+    }
+
+    return results;
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getSystemStatus() {
+  const health = healthCheck();
+  const sheets = diagnoseSheets();
+  const integrations = diagnoseIntegrations();
+
+  return {
+    success: true,
+    timestamp: new Date().toISOString(),
+    health: health,
+    sheets: sheets,
+    integrations: integrations,
+    overallStatus: health.status === 'healthy' && sheets.summary?.health === 'GOOD' ? 'OPERATIONAL' : 'DEGRADED'
+  };
+}
+
  /**
    * Updates a crop profile in REF_CropProfiles
    * Used by Quick Plant Wizard when user modifies grow settings
@@ -7660,6 +7883,382 @@ function uploadProductPhoto(data) {
     // Decode base64 image data
     const imageData = Utilities.base64Decode(data.base64);
     const blob = Utilities.newBlob(imageData, 'image/jpeg', data.fileName || 'product_' + Date.now() + '.jpg');
+
+    // Create file in folder
+    const file = folder.createFile(blob);
+
+    // Set sharing to anyone with link can view
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    return {
+      success: true,
+      url: file.getUrl(),
+      fileId: file.getId(),
+      fileName: file.getName()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FARM INVENTORY SYSTEM - Physical Asset Tracking
+// For equipment, tools, vehicles, infrastructure (not consumables)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const FARM_INVENTORY_HEADERS = [
+  'Item_ID', 'Photo_URL', 'Item_Name', 'Category', 'Sub_Category', 'Quantity',
+  'Condition', 'Location', 'Est_Value', 'Serial_Model', 'Purchase_Date',
+  'Notes', 'Captured_Date', 'Captured_By', 'GPS_Lat', 'GPS_Lon',
+  'Accounting_Category', 'Depreciation_Type', 'Active', 'Last_Updated'
+];
+
+const FARM_INVENTORY_CATEGORIES = [
+  'Equipment', 'Tools', 'Seeds & Transplants', 'Irrigation', 'Pest Control',
+  'Soil Amendments', 'Packaging', 'Safety', 'Office', 'Infrastructure', 'Vehicles', 'Other'
+];
+
+const FARM_INVENTORY_LOCATIONS = [
+  'Tool Shed', 'Greenhouse 1', 'Greenhouse 2', 'Greenhouse 3', 'Equipment Barn',
+  'Cold Storage', 'Wash/Pack Station', 'Field Storage', 'Office',
+  'Personal Vehicle', 'Other'
+];
+
+const FARM_INVENTORY_CONDITIONS = ['Good', 'Fair', 'Poor', 'Needs Repair'];
+
+// Auto-mapping categories to accounting
+const ACCOUNTING_CATEGORY_MAP = {
+  'Equipment': (value) => value > 2500 ? 'Fixed Assets:Equipment' : 'Expenses:Small Equipment',
+  'Tools': 'Expenses:Tools & Supplies',
+  'Seeds & Transplants': 'Inventory:Seeds',
+  'Irrigation': (value) => value > 2500 ? 'Fixed Assets:Equipment' : 'Inventory:Supplies',
+  'Pest Control': 'Inventory:Pest Control',
+  'Soil Amendments': 'Inventory:Amendments',
+  'Packaging': 'Inventory:Packaging',
+  'Safety': 'Expenses:Safety',
+  'Office': 'Expenses:Office',
+  'Infrastructure': 'Fixed Assets:Buildings',
+  'Vehicles': 'Fixed Assets:Vehicles',
+  'Other': 'Expenses:Miscellaneous'
+};
+
+/**
+ * Get farm inventory items with optional filtering
+ */
+function getFarmInventory(params) {
+  try {
+    const sheet = getOrCreateSheet('FARM_INVENTORY', FARM_INVENTORY_HEADERS);
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return {
+        success: true,
+        data: [],
+        count: 0,
+        categories: FARM_INVENTORY_CATEGORIES,
+        locations: FARM_INVENTORY_LOCATIONS,
+        conditions: FARM_INVENTORY_CONDITIONS
+      };
+    }
+
+    const headers = data[0];
+    let items = data.slice(1).map(row => {
+      const item = {};
+      headers.forEach((header, i) => {
+        item[header] = row[i];
+      });
+      return item;
+    }).filter(item => item.Item_ID);
+
+    // Filter by category
+    if (params && params.category && params.category !== 'all') {
+      items = items.filter(item => item.Category === params.category);
+    }
+
+    // Filter by location
+    if (params && params.location && params.location !== 'all') {
+      items = items.filter(item => item.Location === params.location);
+    }
+
+    // Filter by condition
+    if (params && params.condition) {
+      items = items.filter(item => item.Condition === params.condition);
+    }
+
+    // Filter active only
+    if (params && params.activeOnly === 'true') {
+      items = items.filter(item => item.Active === true || item.Active === 'true' || item.Active === 'TRUE' || item.Active === 'Yes');
+    }
+
+    return {
+      success: true,
+      data: items,
+      count: items.length,
+      categories: FARM_INVENTORY_CATEGORIES,
+      locations: FARM_INVENTORY_LOCATIONS,
+      conditions: FARM_INVENTORY_CONDITIONS
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get a single farm inventory item by ID
+ */
+function getFarmInventoryItem(params) {
+  try {
+    if (!params.id) {
+      return { success: false, error: 'Item ID required' };
+    }
+
+    const sheet = getOrCreateSheet('FARM_INVENTORY', FARM_INVENTORY_HEADERS);
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return { success: false, error: 'Item not found' };
+    }
+
+    const headers = data[0];
+    const idCol = headers.indexOf('Item_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === params.id) {
+        const item = {};
+        headers.forEach((header, j) => {
+          item[header] = data[i][j];
+        });
+        return { success: true, data: item };
+      }
+    }
+
+    return { success: false, error: 'Item not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get farm inventory statistics
+ */
+function getFarmInventoryStats() {
+  try {
+    const result = getFarmInventory({});
+    if (!result.success) return result;
+
+    const items = result.data;
+    const stats = {
+      totalItems: items.length,
+      totalValue: 0,
+      byCategory: {},
+      byLocation: {},
+      byCondition: {},
+      needsRepair: []
+    };
+
+    items.forEach(item => {
+      // Total value
+      const value = parseFloat(item.Est_Value) || 0;
+      stats.totalValue += value;
+
+      // By category
+      const cat = item.Category || 'Other';
+      if (!stats.byCategory[cat]) stats.byCategory[cat] = { count: 0, value: 0 };
+      stats.byCategory[cat].count++;
+      stats.byCategory[cat].value += value;
+
+      // By location
+      const loc = item.Location || 'Other';
+      if (!stats.byLocation[loc]) stats.byLocation[loc] = { count: 0, value: 0 };
+      stats.byLocation[loc].count++;
+      stats.byLocation[loc].value += value;
+
+      // By condition
+      const cond = item.Condition || 'Unknown';
+      if (!stats.byCondition[cond]) stats.byCondition[cond] = 0;
+      stats.byCondition[cond]++;
+
+      // Needs repair
+      if (item.Condition === 'Needs Repair' || item.Condition === 'Poor') {
+        stats.needsRepair.push({
+          id: item.Item_ID,
+          name: item.Item_Name,
+          condition: item.Condition,
+          location: item.Location
+        });
+      }
+    });
+
+    return { success: true, data: stats };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Add a new farm inventory item
+ */
+function addFarmInventoryItem(data) {
+  try {
+    const sheet = getOrCreateSheet('FARM_INVENTORY', FARM_INVENTORY_HEADERS);
+    const existingData = sheet.getDataRange().getValues();
+    const now = new Date().toISOString();
+
+    // Generate new ID
+    let maxNum = 0;
+    for (let i = 1; i < existingData.length; i++) {
+      const id = existingData[i][0];
+      if (id && id.startsWith('INV-')) {
+        const num = parseInt(id.replace('INV-', ''));
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    const newId = 'INV-' + String(maxNum + 1).padStart(4, '0');
+
+    // Auto-determine accounting category
+    const estValue = parseFloat(data.estValue) || 0;
+    const category = data.category || 'Other';
+    let accountingCategory = 'Expenses:Miscellaneous';
+
+    const mapper = ACCOUNTING_CATEGORY_MAP[category];
+    if (mapper) {
+      accountingCategory = typeof mapper === 'function' ? mapper(estValue) : mapper;
+    }
+
+    // Determine depreciation type
+    let depreciationType = 'None';
+    if (accountingCategory.startsWith('Fixed Assets:')) {
+      if (accountingCategory.includes('Vehicle')) depreciationType = '5-year MACRS';
+      else if (accountingCategory.includes('Building')) depreciationType = '15-year Straight-line';
+      else depreciationType = '7-year MACRS';
+    }
+
+    const row = FARM_INVENTORY_HEADERS.map(header => {
+      if (header === 'Item_ID') return newId;
+      if (header === 'Photo_URL') return data.photoUrl || '';
+      if (header === 'Item_Name') return data.itemName || '';
+      if (header === 'Category') return category;
+      if (header === 'Sub_Category') return data.subCategory || '';
+      if (header === 'Quantity') return parseInt(data.quantity) || 1;
+      if (header === 'Condition') return data.condition || 'Good';
+      if (header === 'Location') return data.location || '';
+      if (header === 'Est_Value') return estValue;
+      if (header === 'Serial_Model') return data.serialModel || '';
+      if (header === 'Purchase_Date') return data.purchaseDate || '';
+      if (header === 'Notes') return data.notes || '';
+      if (header === 'Captured_Date') return now;
+      if (header === 'Captured_By') return data.capturedBy || 'Mobile User';
+      if (header === 'GPS_Lat') return data.gpsLat || '';
+      if (header === 'GPS_Lon') return data.gpsLon || '';
+      if (header === 'Accounting_Category') return accountingCategory;
+      if (header === 'Depreciation_Type') return depreciationType;
+      if (header === 'Active') return 'Yes';
+      if (header === 'Last_Updated') return now;
+      return '';
+    });
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      data: { itemId: newId, accountingCategory, depreciationType },
+      message: `Item ${newId} added successfully`
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update an existing farm inventory item
+ */
+function updateFarmInventoryItem(data) {
+  try {
+    if (!data.itemId) {
+      return { success: false, error: 'Item ID required' };
+    }
+
+    const sheet = getOrCreateSheet('FARM_INVENTORY', FARM_INVENTORY_HEADERS);
+    const existingData = sheet.getDataRange().getValues();
+    const headers = existingData[0];
+    const idCol = headers.indexOf('Item_ID');
+
+    let rowIndex = -1;
+    for (let i = 1; i < existingData.length; i++) {
+      if (existingData[i][idCol] === data.itemId) {
+        rowIndex = i + 1; // 1-indexed for sheet
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'Item not found' };
+    }
+
+    // Update specified fields
+    const now = new Date().toISOString();
+    const updateFields = {
+      'Photo_URL': data.photoUrl,
+      'Item_Name': data.itemName,
+      'Category': data.category,
+      'Sub_Category': data.subCategory,
+      'Quantity': data.quantity !== undefined ? parseInt(data.quantity) : undefined,
+      'Condition': data.condition,
+      'Location': data.location,
+      'Est_Value': data.estValue !== undefined ? parseFloat(data.estValue) : undefined,
+      'Serial_Model': data.serialModel,
+      'Notes': data.notes,
+      'Active': data.active,
+      'Last_Updated': now
+    };
+
+    headers.forEach((header, colIndex) => {
+      if (updateFields[header] !== undefined) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(updateFields[header]);
+      }
+    });
+
+    return { success: true, message: `Item ${data.itemId} updated successfully` };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Delete (deactivate) a farm inventory item
+ */
+function deleteFarmInventoryItem(data) {
+  try {
+    if (!data.itemId) {
+      return { success: false, error: 'Item ID required' };
+    }
+
+    // Soft delete - just mark as inactive
+    return updateFarmInventoryItem({ itemId: data.itemId, active: 'No' });
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Upload photo for farm inventory item
+ */
+function uploadFarmInventoryPhoto(data) {
+  try {
+    const folderName = 'TinySeed_Farm_Inventory_Photos';
+    let folder;
+
+    const folders = DriveApp.getFoldersByName(folderName);
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder(folderName);
+    }
+
+    // Decode base64 image data
+    const imageData = Utilities.base64Decode(data.base64);
+    const fileName = data.fileName || 'inv_' + Date.now() + '.jpg';
+    const blob = Utilities.newBlob(imageData, 'image/jpeg', fileName);
 
     // Create file in folder
     const file = folder.createFile(blob);
@@ -17518,17 +18117,6 @@ const AYRSHARE_CONFIG = {
 };
 
 /**
- * Store Ayrshare API key securely - RUN THIS ONCE in Apps Script editor
- * After running, delete or comment out the key for security
- */
-function storeAyrshareApiKey() {
-    const key = '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F';
-    PropertiesService.getScriptProperties().setProperty('AYRSHARE_API_KEY', key);
-    Logger.log('Ayrshare API key stored securely!');
-    return { success: true, message: 'API key stored' };
-}
-
-/**
  * Check if Ayrshare is configured
  */
 function checkAyrshareStatus() {
@@ -18442,6 +19030,115 @@ function updateFollowerCounts(counts) {
         };
     } catch (error) {
         Logger.log('Error updating follower counts: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Add a neighbor signup from the landing page
+ */
+function addNeighborSignup(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheetName = 'MARKETING_NeighborSignups';
+
+        // Get or create the sheet
+        let sheet = ss.getSheetByName(sheetName);
+        if (!sheet) {
+            sheet = ss.insertSheet(sheetName);
+            sheet.getRange(1, 1, 1, 8).setValues([[
+                'Timestamp', 'Name', 'Email', 'ZIP', 'Neighborhood', 'Source', 'Campaign', 'Status'
+            ]]);
+            sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+            sheet.setFrozenRows(1);
+        }
+
+        // Check for duplicate email
+        const data_range = sheet.getDataRange().getValues();
+        const emailCol = 2; // 0-indexed, Email is column 3
+        for (let i = 1; i < data_range.length; i++) {
+            if (data_range[i][emailCol] && data_range[i][emailCol].toString().toLowerCase() === data.email.toLowerCase()) {
+                // Update existing record instead of duplicating
+                sheet.getRange(i + 1, 1).setValue(data.timestamp);
+                sheet.getRange(i + 1, 6).setValue(data.source);
+                sheet.getRange(i + 1, 7).setValue(data.campaign);
+                return {
+                    success: true,
+                    message: 'Welcome back! Your info has been updated.',
+                    updated: true
+                };
+            }
+        }
+
+        // Add new row
+        sheet.appendRow([
+            data.timestamp,
+            data.name,
+            data.email,
+            data.zip,
+            data.neighborhood,
+            data.source,
+            data.campaign,
+            'new'
+        ]);
+
+        Logger.log('Neighbor signup added: ' + data.email + ' from ' + data.neighborhood);
+
+        return {
+            success: true,
+            message: 'Welcome to the farm family!',
+            email: data.email,
+            neighborhood: data.neighborhood
+        };
+    } catch (error) {
+        Logger.log('Error adding neighbor signup: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get all neighbor signups (for admin dashboard)
+ */
+function getNeighborSignups(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('MARKETING_NeighborSignups');
+
+        if (!sheet) {
+            return { success: true, signups: [], total: 0 };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        if (data.length <= 1) {
+            return { success: true, signups: [], total: 0 };
+        }
+
+        const headers = data[0];
+        const signups = [];
+
+        for (let i = 1; i < data.length; i++) {
+            const row = {};
+            for (let j = 0; j < headers.length; j++) {
+                row[headers[j].toLowerCase().replace(/\s+/g, '_')] = data[i][j];
+            }
+            signups.push(row);
+        }
+
+        // Count by neighborhood
+        const byNeighborhood = {};
+        signups.forEach(s => {
+            const n = s.neighborhood || 'unknown';
+            byNeighborhood[n] = (byNeighborhood[n] || 0) + 1;
+        });
+
+        return {
+            success: true,
+            signups: signups,
+            total: signups.length,
+            byNeighborhood: byNeighborhood
+        };
+    } catch (error) {
+        Logger.log('Error getting neighbor signups: ' + error.toString());
         return { success: false, error: error.toString() };
     }
 }

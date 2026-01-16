@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome, Neighbor | Tiny Seed Farm</title>
+    <meta name="description" content="You're invited to join our farm family. Fresh, local, organic produce from your neighborhood farm.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --green-dark: #2d5a27;
+            --green-primary: #4a7c43;
+            --green-light: #6b9b64;
+            --cream: #faf8f5;
+            --cream-dark: #f5f0e8;
+            --brown: #8b7355;
+            --brown-light: #a89078;
+            --text-dark: #2c3e2d;
+            --text-light: #5a6b5c;
+            --gold: #d4a853;
+            --gold-light: #e8c77b;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--cream);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 600;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 90vh;
+            background: linear-gradient(135deg, rgba(45, 90, 39, 0.85) 0%, rgba(74, 124, 67, 0.8) 100%),
+                        url('https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=1920&q=80') center/cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(to top, var(--cream) 0%, transparent 100%);
+        }
+
+        .hero-content {
+            max-width: 800px;
+            color: white;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            opacity: 0.95;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--gold);
+            color: var(--text-dark);
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(212, 168, 83, 0.4);
+        }
+
+        .hero-cta:hover {
+            background: var(--gold-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 168, 83, 0.5);
+        }
+
+        /* Introduction Section */
+        .intro {
+            padding: 5rem 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .intro-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .intro-image {
+            position: relative;
+        }
+
+        .intro-image img {
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .intro-image-badge {
+            position: absolute;
+            bottom: -20px;
+            right: -20px;
+            background: var(--green-primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 15px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(74, 124, 67, 0.3);
+        }
+
+        .intro-content h2 {
+            font-size: 2.2rem;
+            color: var(--green-dark);
+            margin-bottom: 1.5rem;
+        }
+
+        .intro-content p {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .intro-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .intro-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--cream-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+        }
+
+        .intro-feature i {
+            color: var(--green-primary);
+        }
+
+        /* Offer Section */
+        .offer {
+            background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-primary) 100%);
+            padding: 5rem 2rem;
+            text-align: center;
+            color: white;
+        }
+
+        .offer-container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .offer-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .offer h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .offer-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+        }
+
+        .offer-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .offer-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .offer-card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .offer-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .offer-card p {
+            opacity: 0.85;
+            font-size: 0.95rem;
+        }
+
+        /* Form Section */
+        .form-section {
+            padding: 5rem 2rem;
+            background: var(--cream-dark);
+        }
+
+        .form-container {
+            max-width: 550px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: 25px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .form-header h2 {
+            font-size: 1.8rem;
+            color: var(--green-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-header p {
+            color: var(--text-light);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e5e5e5;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--green-primary);
+            box-shadow: 0 0 0 4px rgba(74, 124, 67, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #aaa;
+        }
+
+        .form-submit {
+            width: 100%;
+            padding: 1.25rem;
+            background: var(--green-primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .form-submit:hover {
+            background: var(--green-dark);
+            transform: translateY(-2px);
+        }
+
+        .form-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .promo-code {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--cream);
+            border-radius: 12px;
+        }
+
+        .promo-code span {
+            font-family: monospace;
+            background: var(--gold-light);
+            padding: 0.25rem 0.75rem;
+            border-radius: 5px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 5rem 2rem;
+            background: white;
+        }
+
+        .testimonials-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .testimonials h2 {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--green-dark);
+            margin-bottom: 3rem;
+        }
+
+        .testimonial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .testimonial-card {
+            background: var(--cream);
+            padding: 2rem;
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .testimonial-card::before {
+            content: '"';
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            color: var(--green-light);
+            opacity: 0.3;
+            position: absolute;
+            top: 10px;
+            left: 20px;
+        }
+
+        .testimonial-text {
+            font-style: italic;
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .testimonial-author {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .testimonial-location {
+            color: var(--green-primary);
+            font-size: 0.9rem;
+        }
+
+        /* Location Section */
+        .location {
+            padding: 5rem 2rem;
+            background: var(--cream-dark);
+        }
+
+        .location-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .location-info h2 {
+            font-size: 2rem;
+            color: var(--green-dark);
+            margin-bottom: 1.5rem;
+        }
+
+        .location-detail {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .location-detail i {
+            color: var(--green-primary);
+            font-size: 1.25rem;
+            margin-top: 0.25rem;
+        }
+
+        .location-detail h4 {
+            font-family: 'Open Sans', sans-serif;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .location-detail p {
+            color: var(--text-light);
+        }
+
+        .location-map {
+            background: #ddd;
+            border-radius: 20px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            overflow: hidden;
+        }
+
+        .location-map iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 20px;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--green-dark);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-tagline {
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-social {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-social a {
+            color: white;
+            font-size: 1.5rem;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .footer-social a:hover {
+            opacity: 1;
+        }
+
+        .footer-copy {
+            font-size: 0.85rem;
+            opacity: 0.6;
+        }
+
+        /* Success State */
+        .form-success {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .form-success.active {
+            display: block;
+        }
+
+        .form-success i {
+            font-size: 4rem;
+            color: var(--green-primary);
+            margin-bottom: 1rem;
+        }
+
+        .form-success h3 {
+            font-size: 1.5rem;
+            color: var(--green-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-success p {
+            color: var(--text-light);
+        }
+
+        .form-content.hidden {
+            display: none;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hero {
+                min-height: 80vh;
+                padding: 1.5rem;
+            }
+
+            .intro-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .intro-image-badge {
+                position: relative;
+                bottom: auto;
+                right: auto;
+                display: inline-block;
+                margin-top: 1rem;
+            }
+
+            .location-container {
+                grid-template-columns: 1fr;
+            }
+
+            .form-container {
+                padding: 2rem 1.5rem;
+            }
+
+            .offer-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--green-dark);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: translateY(150%);
+            transition: transform 0.4s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+
+        .toast.error {
+            background: #dc2626;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-seedling"></i> Your Local Farm
+            </div>
+            <h1>Welcome, Neighbor</h1>
+            <p class="hero-subtitle">
+                You're invited to join our farm family. Fresh, organic produce grown just down the road from you.
+            </p>
+            <a href="#claim" class="hero-cta">
+                <i class="fas fa-gift"></i> Claim Your Welcome Gift
+            </a>
+        </div>
+    </section>
+
+    <!-- Introduction Section -->
+    <section class="intro">
+        <div class="intro-grid">
+            <div class="intro-image">
+                <img src="https://images.unsplash.com/photo-1595855759920-86582396756a?w=600&q=80" alt="Fresh farm vegetables">
+                <div class="intro-image-badge">
+                    <i class="fas fa-map-marker-alt"></i> Pittsburgh Area
+                </div>
+            </div>
+            <div class="intro-content">
+                <h2>Hi, We're Tiny Seed Farm</h2>
+                <p>
+                    We're a small family farm growing organic vegetables, beautiful flowers, and gourmet mushrooms for Pittsburgh families just like yours.
+                </p>
+                <p>
+                    We believe everyone deserves access to real food - vegetables that actually taste like vegetables, picked fresh that morning, grown by someone who lives in your community.
+                </p>
+                <p>
+                    We're not a faceless grocery store. We're your neighbors. And we'd love to have you as part of our farm family.
+                </p>
+                <div class="intro-features">
+                    <div class="intro-feature">
+                        <i class="fas fa-leaf"></i> Certified Organic
+                    </div>
+                    <div class="intro-feature">
+                        <i class="fas fa-truck"></i> Local Delivery
+                    </div>
+                    <div class="intro-feature">
+                        <i class="fas fa-heart"></i> Family Owned
+                    </div>
+                    <div class="intro-feature">
+                        <i class="fas fa-calendar-check"></i> Weekly CSA
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Offer Section -->
+    <section class="offer">
+        <div class="offer-container">
+            <div class="offer-icon">
+                <i class="fas fa-gift"></i>
+            </div>
+            <h2>Your Neighbor Welcome Gift</h2>
+            <p class="offer-subtitle">
+                Because you're our neighbor, we want to give you something special.
+            </p>
+            <div class="offer-cards">
+                <div class="offer-card">
+                    <div class="offer-card-icon">
+                        <i class="fas fa-percent"></i>
+                    </div>
+                    <h3>25% Off</h3>
+                    <p>Your first CSA box or farm store order</p>
+                </div>
+                <div class="offer-card">
+                    <div class="offer-card-icon">
+                        <i class="fas fa-tractor"></i>
+                    </div>
+                    <h3>Free Farm Tour</h3>
+                    <p>Bring the whole family to see where your food grows</p>
+                </div>
+                <div class="offer-card">
+                    <div class="offer-card-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <h3>Neighbor Pricing</h3>
+                    <p>Exclusive discounts all season long</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Form Section -->
+    <section class="form-section" id="claim">
+        <div class="form-container">
+            <div class="form-content" id="formContent">
+                <div class="form-header">
+                    <h2>Claim Your Gift</h2>
+                    <p>Enter your info below and we'll send your welcome package</p>
+                </div>
+                <form id="neighborForm">
+                    <div class="form-group">
+                        <label for="name">Your Name</label>
+                        <input type="text" id="name" name="name" placeholder="Jane Smith" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" placeholder="jane@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="zip">ZIP Code</label>
+                        <input type="text" id="zip" name="zip" placeholder="15217" pattern="[0-9]{5}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="neighborhood">Your Neighborhood</label>
+                        <select id="neighborhood" name="neighborhood" required>
+                            <option value="">Select your area...</option>
+                            <option value="squirrel-hill">Squirrel Hill</option>
+                            <option value="shadyside">Shadyside</option>
+                            <option value="highland-park">Highland Park</option>
+                            <option value="mt-lebanon">Mt. Lebanon</option>
+                            <option value="cranberry">Cranberry Township</option>
+                            <option value="zelienople">Zelienople</option>
+                            <option value="north-hills">North Hills</option>
+                            <option value="fox-chapel">Fox Chapel</option>
+                            <option value="sewickley">Sewickley</option>
+                            <option value="upper-st-clair">Upper St. Clair</option>
+                            <option value="peters-township">Peters Township</option>
+                            <option value="other">Other Pittsburgh Area</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="source" name="source" value="direct-mail">
+                    <input type="hidden" id="campaign" name="campaign" value="">
+                    <button type="submit" class="form-submit" id="submitBtn">
+                        <i class="fas fa-gift"></i> Get My Welcome Gift
+                    </button>
+                </form>
+                <div class="promo-code">
+                    Your discount code: <span>NEIGHBOR25</span>
+                </div>
+            </div>
+            <div class="form-success" id="formSuccess">
+                <i class="fas fa-check-circle"></i>
+                <h3>Welcome to the Family!</h3>
+                <p>Check your email for your welcome package and discount code.</p>
+                <div class="promo-code" style="margin-top: 1.5rem;">
+                    Your discount code: <span>NEIGHBOR25</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials">
+        <div class="testimonials-container">
+            <h2>What Our Neighbors Say</h2>
+            <div class="testimonial-grid">
+                <div class="testimonial-card">
+                    <p class="testimonial-text">
+                        "The freshest vegetables I've ever had. My kids actually ask for salad now! So glad they reached out to us."
+                    </p>
+                    <p class="testimonial-author">Sarah M.</p>
+                    <p class="testimonial-location">Squirrel Hill</p>
+                </div>
+                <div class="testimonial-card">
+                    <p class="testimonial-text">
+                        "We visited the farm and fell in love. Now we're CSA members for life. The tomatoes taste like my grandmother's garden."
+                    </p>
+                    <p class="testimonial-author">The Johnson Family</p>
+                    <p class="testimonial-location">Fox Chapel</p>
+                </div>
+                <div class="testimonial-card">
+                    <p class="testimonial-text">
+                        "Finally, a farm that delivers to our neighborhood! The convenience plus the quality - it's unbeatable."
+                    </p>
+                    <p class="testimonial-author">Mike & Lisa T.</p>
+                    <p class="testimonial-location">Mt. Lebanon</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location Section -->
+    <section class="location">
+        <div class="location-container">
+            <div class="location-info">
+                <h2>Visit the Farm</h2>
+                <div class="location-detail">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div>
+                        <h4>Farm Location</h4>
+                        <p>Pittsburgh Area<br>Contact us for directions</p>
+                    </div>
+                </div>
+                <div class="location-detail">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <h4>Farm Stand Hours</h4>
+                        <p>Saturday & Sunday: 9am - 2pm<br>Weekdays by appointment</p>
+                    </div>
+                </div>
+                <div class="location-detail">
+                    <i class="fas fa-envelope"></i>
+                    <div>
+                        <h4>Contact</h4>
+                        <p>hello@tinyseedfarm.com<br>Follow us @tinyseedfarm</p>
+                    </div>
+                </div>
+            </div>
+            <div class="location-map">
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-map" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p>Farm tour available upon signup!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-logo">
+            <i class="fas fa-seedling"></i> Tiny Seed Farm
+        </div>
+        <p class="footer-tagline">Growing Community, One Seed at a Time</p>
+        <div class="footer-social">
+            <a href="https://instagram.com/tinyseedfarm" target="_blank" title="Instagram">
+                <i class="fab fa-instagram"></i>
+            </a>
+            <a href="https://facebook.com/tinyseedfarm" target="_blank" title="Facebook">
+                <i class="fab fa-facebook"></i>
+            </a>
+            <a href="https://tiktok.com/@tinyseedenergy" target="_blank" title="TikTok">
+                <i class="fab fa-tiktok"></i>
+            </a>
+        </div>
+        <p class="footer-copy">&copy; 2026 Tiny Seed Farm. All rights reserved.</p>
+    </footer>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Success!</span>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+
+        // Get URL parameters for tracking
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                source: params.get('source') || params.get('utm_source') || 'direct-mail',
+                campaign: params.get('campaign') || params.get('utm_campaign') || '',
+                neighborhood: params.get('neighborhood') || params.get('n') || ''
+            };
+        }
+
+        // Pre-fill form from URL params
+        document.addEventListener('DOMContentLoaded', function() {
+            const params = getUrlParams();
+
+            // Set hidden fields
+            document.getElementById('source').value = params.source;
+            document.getElementById('campaign').value = params.campaign;
+
+            // Pre-select neighborhood if provided
+            if (params.neighborhood) {
+                const neighborhoodSelect = document.getElementById('neighborhood');
+                const option = neighborhoodSelect.querySelector(`option[value="${params.neighborhood}"]`);
+                if (option) {
+                    option.selected = true;
+                }
+            }
+        });
+
+        // Form submission
+        document.getElementById('neighborForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<div class="spinner"></div> Sending...';
+            submitBtn.disabled = true;
+
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                zip: document.getElementById('zip').value,
+                neighborhood: document.getElementById('neighborhood').value,
+                source: document.getElementById('source').value,
+                campaign: document.getElementById('campaign').value,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                // Send to API
+                const params = new URLSearchParams({
+                    action: 'addNeighborSignup',
+                    ...formData
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success state
+                    document.getElementById('formContent').classList.add('hidden');
+                    document.getElementById('formSuccess').classList.add('active');
+                    showToast('Welcome to the farm family!', 'success');
+
+                    // Track conversion
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'neighbor_signup', {
+                            'neighborhood': formData.neighborhood,
+                            'source': formData.source
+                        });
+                    }
+                } else {
+                    throw new Error(result.error || 'Failed to submit');
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                showToast('Something went wrong. Please try again.', 'error');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = toast.querySelector('i');
+
+            toastMessage.textContent = message;
+            toast.classList.remove('error');
+            toastIcon.className = 'fas fa-check-circle';
+
+            if (type === 'error') {
+                toast.classList.add('error');
+                toastIcon.className = 'fas fa-exclamation-circle';
+            }
+
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // Smooth scroll for CTA
+        document.querySelector('.hero-cta').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelector('#claim').scrollIntoView({ behavior: 'smooth' });
+        });
+    </script>
+</body>
+</html>
