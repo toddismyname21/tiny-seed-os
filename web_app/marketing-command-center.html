@@ -1331,7 +1331,7 @@
 
         <!-- DASHBOARD TAB -->
         <div id="dashboardTab" class="tab-content active">
-            <!-- Quick Stats -->
+            <!-- Quick Stats - Real Data Only -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-card-header">
@@ -1339,10 +1339,10 @@
                             <i class="fab fa-instagram"></i>
                         </div>
                     </div>
-                    <div class="stat-value">2,847</div>
+                    <div class="stat-value" id="statInstagram">--</div>
                     <div class="stat-label">Instagram Followers</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> +124 this week
+                    <div class="stat-change neutral" id="statInstagramChange">
+                        <i class="fas fa-sync"></i> Loading...
                     </div>
                 </div>
 
@@ -1352,49 +1352,49 @@
                             <i class="fab fa-facebook"></i>
                         </div>
                     </div>
-                    <div class="stat-value">1,523</div>
+                    <div class="stat-value" id="statFacebook">--</div>
                     <div class="stat-label">Facebook Followers</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> +45 this week
+                    <div class="stat-change neutral" id="statFacebookChange">
+                        <i class="fas fa-sync"></i> Loading...
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
-                        <div class="stat-icon green">
-                            <i class="fas fa-envelope-open"></i>
+                        <div class="stat-icon" style="background: rgba(0,0,0,0.3);">
+                            <i class="fab fa-tiktok"></i>
                         </div>
                     </div>
-                    <div class="stat-value">42.3%</div>
-                    <div class="stat-label">Email Open Rate</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> +5.2% vs avg
+                    <div class="stat-value" id="statTiktok">--</div>
+                    <div class="stat-label">TikTok Followers</div>
+                    <div class="stat-change neutral" id="statTiktokChange">
+                        <i class="fas fa-sync"></i> Loading...
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div class="stat-icon purple">
-                            <i class="fas fa-sms"></i>
+                            <i class="fas fa-robot"></i>
                         </div>
                     </div>
-                    <div class="stat-value">28.7%</div>
-                    <div class="stat-label">SMS Conversion</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> Above 21% target
+                    <div class="stat-value" id="statAyrshare">--</div>
+                    <div class="stat-label">Ayrshare Status</div>
+                    <div class="stat-change neutral" id="statAyrshareChange">
+                        <i class="fas fa-sync"></i> Checking...
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
-                        <div class="stat-icon gold">
-                            <i class="fas fa-dollar-sign"></i>
+                        <div class="stat-icon green">
+                            <i class="fas fa-share-alt"></i>
                         </div>
                     </div>
-                    <div class="stat-value">$847</div>
-                    <div class="stat-label">Marketing Spend (MTD)</div>
-                    <div class="stat-change neutral">
-                        <i class="fas fa-minus"></i> $153 remaining
+                    <div class="stat-value" id="statPosts">0</div>
+                    <div class="stat-label">Posts This Month</div>
+                    <div class="stat-change neutral" id="statPostsChange">
+                        <i class="fas fa-info-circle"></i> From Ayrshare
                     </div>
                 </div>
 
@@ -1404,10 +1404,10 @@
                             <i class="fas fa-chart-line"></i>
                         </div>
                     </div>
-                    <div class="stat-value">18.5x</div>
+                    <div class="stat-value" id="statROI">--</div>
                     <div class="stat-label">Marketing ROI</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> Excellent
+                    <div class="stat-change neutral" id="statROIChange">
+                        <i class="fas fa-info-circle"></i> Needs data
                     </div>
                 </div>
             </div>
@@ -1425,7 +1425,7 @@
                         <i class="fas fa-plus"></i> New Campaign
                     </button>
                     <button class="btn btn-secondary" onclick="switchTab('farmpics')">
-                        <i class="fas fa-images"></i> Review Farm Pics (5)
+                        <i class="fas fa-images"></i> Farm Pics
                     </button>
                     <button class="btn btn-secondary" onclick="sendSMSBlast()">
                         <i class="fas fa-paper-plane"></i> SMS Blast
@@ -1443,56 +1443,11 @@
                         <h3><i class="fas fa-clock"></i> Recent Posts</h3>
                         <button class="btn btn-sm btn-secondary">View All</button>
                     </div>
-                    <div class="card-body">
-                        <div class="campaign-list">
-                            <div class="campaign-item">
-                                <div class="campaign-info">
-                                    <div class="campaign-icon active">
-                                        <i class="fab fa-instagram"></i>
-                                    </div>
-                                    <div class="campaign-details">
-                                        <h4>Fresh tomatoes harvest!</h4>
-                                        <div class="campaign-meta">
-                                            <span>2 hours ago</span>
-                                            <span>IG, FB, TikTok</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="campaign-stats">
-                                    <div class="campaign-stat">
-                                        <div class="campaign-stat-value">234</div>
-                                        <div class="campaign-stat-label">Likes</div>
-                                    </div>
-                                    <div class="campaign-stat">
-                                        <div class="campaign-stat-value">18</div>
-                                        <div class="campaign-stat-label">Comments</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="campaign-item">
-                                <div class="campaign-info">
-                                    <div class="campaign-icon completed">
-                                        <i class="fas fa-envelope"></i>
-                                    </div>
-                                    <div class="campaign-details">
-                                        <h4>Weekly Newsletter</h4>
-                                        <div class="campaign-meta">
-                                            <span>Yesterday</span>
-                                            <span>487 recipients</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="campaign-stats">
-                                    <div class="campaign-stat">
-                                        <div class="campaign-stat-value">42%</div>
-                                        <div class="campaign-stat-label">Opened</div>
-                                    </div>
-                                    <div class="campaign-stat">
-                                        <div class="campaign-stat-value">12%</div>
-                                        <div class="campaign-stat-label">Clicked</div>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="card-body" id="recentPostsList">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                            <p>No posts yet</p>
+                            <p style="font-size: 0.8rem;">Posts made through Ayrshare will appear here</p>
                         </div>
                     </div>
                 </div>
@@ -1754,19 +1709,21 @@
                     </div>
                     <div class="connection-stats">
                         <div class="connection-stat">
-                            <div class="connection-stat-value">2,847</div>
+                            <div class="connection-stat-value" id="igFollowers">--</div>
                             <div class="connection-stat-label">Followers</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">4.2%</div>
+                            <div class="connection-stat-value">--</div>
                             <div class="connection-stat-label">Engagement</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">156</div>
+                            <div class="connection-stat-value">--</div>
                             <div class="connection-stat-label">Posts</div>
                         </div>
                     </div>
-                    <button class="connection-btn disconnect">Disconnect</button>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); padding: 0.5rem; text-align: center;">
+                        <i class="fas fa-info-circle"></i> Engagement data requires Ayrshare Premium
+                    </div>
                 </div>
 
                 <div class="connection-card" data-platform="facebook">
@@ -1778,26 +1735,28 @@
                                 <div style="font-size: 0.8rem; color: var(--text-secondary);">Tiny Seed Farm</div>
                             </div>
                         </div>
-                        <div class="connection-status">
+                        <div class="connection-status" id="fbStatus">
                             <div class="dot connected"></div>
                             Connected
                         </div>
                     </div>
                     <div class="connection-stats">
                         <div class="connection-stat">
-                            <div class="connection-stat-value">1,523</div>
+                            <div class="connection-stat-value" id="fbFollowers">--</div>
                             <div class="connection-stat-label">Followers</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">3.1%</div>
+                            <div class="connection-stat-value">--</div>
                             <div class="connection-stat-label">Engagement</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">89</div>
+                            <div class="connection-stat-value">--</div>
                             <div class="connection-stat-label">Posts</div>
                         </div>
                     </div>
-                    <button class="connection-btn disconnect">Disconnect</button>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); padding: 0.5rem; text-align: center;">
+                        <i class="fas fa-info-circle"></i> Engagement data requires Ayrshare Premium
+                    </div>
                 </div>
 
                 <div class="connection-card" data-platform="tiktok">
@@ -1806,17 +1765,17 @@
                             <i class="fab fa-tiktok"></i>
                             <div>
                                 <div style="font-weight: 600;">TikTok</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Not connected</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">@TinySeedEnergy</div>
                             </div>
                         </div>
-                        <div class="connection-status">
-                            <div class="dot disconnected"></div>
-                            Disconnected
+                        <div class="connection-status" id="tiktokStatus">
+                            <div class="dot connected"></div>
+                            Connected
                         </div>
                     </div>
                     <div class="connection-stats">
                         <div class="connection-stat">
-                            <div class="connection-stat-value">--</div>
+                            <div class="connection-stat-value" id="tiktokFollowers">--</div>
                             <div class="connection-stat-label">Followers</div>
                         </div>
                         <div class="connection-stat">
@@ -1840,29 +1799,29 @@
                                 <div style="font-size: 0.8rem; color: var(--text-secondary);">Multi-platform API</div>
                             </div>
                         </div>
-                        <div class="connection-status">
+                        <div class="connection-status" id="ayrshareStatus">
                             <div class="dot connected"></div>
                             Active
                         </div>
                     </div>
                     <div class="connection-stats">
                         <div class="connection-stat">
-                            <div class="connection-stat-value">3</div>
+                            <div class="connection-stat-value" id="ayrshareConnected">--</div>
                             <div class="connection-stat-label">Platforms</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">247</div>
-                            <div class="connection-stat-label">Posts/mo</div>
+                            <div class="connection-stat-value" id="aysharePosts">0</div>
+                            <div class="connection-stat-label">Posts</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">$25</div>
+                            <div class="connection-stat-value">$29</div>
                             <div class="connection-stat-label">Cost/mo</div>
                         </div>
                     </div>
-                    <button class="connection-btn disconnect">Manage</button>
+                    <a href="https://app.ayrshare.com" target="_blank" class="connection-btn disconnect">Manage</a>
                 </div>
 
-                <div class="connection-card">
+                <div class="connection-card" data-platform="twilio">
                     <div class="connection-header">
                         <div class="connection-platform" style="color: var(--success);">
                             <i class="fas fa-sms"></i>
@@ -1872,34 +1831,34 @@
                             </div>
                         </div>
                         <div class="connection-status">
-                            <div class="dot connected"></div>
-                            Active
+                            <div class="dot disconnected"></div>
+                            Not Setup
                         </div>
                     </div>
                     <div class="connection-stats">
                         <div class="connection-stat">
-                            <div class="connection-stat-value">487</div>
+                            <div class="connection-stat-value">--</div>
                             <div class="connection-stat-label">Subscribers</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">28.7%</div>
+                            <div class="connection-stat-value">--</div>
                             <div class="connection-stat-label">Conv Rate</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">$50</div>
+                            <div class="connection-stat-value">--</div>
                             <div class="connection-stat-label">Cost/mo</div>
                         </div>
                     </div>
-                    <button class="connection-btn disconnect">Manage</button>
+                    <button class="connection-btn connect">Setup Twilio</button>
                 </div>
 
-                <div class="connection-card">
+                <div class="connection-card" data-platform="klaviyo">
                     <div class="connection-header">
                         <div class="connection-platform" style="color: var(--info);">
                             <i class="fas fa-envelope"></i>
                             <div>
-                                <div style="font-weight: 600;">Klaviyo</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Email Marketing</div>
+                                <div style="font-weight: 600;">Email Marketing</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Klaviyo / Mailchimp</div>
                             </div>
                         </div>
                         <div class="connection-status">
@@ -1917,11 +1876,11 @@
                             <div class="connection-stat-label">Open Rate</div>
                         </div>
                         <div class="connection-stat">
-                            <div class="connection-stat-value">$45</div>
-                            <div class="connection-stat-label">Est. Cost</div>
+                            <div class="connection-stat-value">--</div>
+                            <div class="connection-stat-label">Cost/mo</div>
                         </div>
                     </div>
-                    <button class="connection-btn connect">Setup Klaviyo</button>
+                    <button class="connection-btn connect">Setup Email</button>
                 </div>
 
                 <div class="connection-card" data-platform="youtube">
@@ -2074,182 +2033,68 @@
                             <i class="fas fa-cog"></i>
                         </button>
                     </div>
-                    <div class="budget-amount">$1,000</div>
+                    <div class="budget-amount" id="budgetAmount">$0</div>
                     <div class="budget-subtitle">Monthly Allocation</div>
                     <div class="budget-progress">
                         <div class="budget-progress-header">
-                            <span>Spent: $847</span>
-                            <span>Remaining: $153</span>
+                            <span id="budgetSpent">Spent: $0</span>
+                            <span id="budgetRemaining">Remaining: $0</span>
                         </div>
                         <div class="budget-progress-bar">
-                            <div class="budget-progress-fill" style="width: 84.7%; background: linear-gradient(90deg, var(--success), var(--warning));"></div>
+                            <div class="budget-progress-fill" id="budgetProgressBar" style="width: 0%; background: linear-gradient(90deg, var(--success), var(--warning));"></div>
                         </div>
+                    </div>
+                    <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+                        <i class="fas fa-info-circle"></i> Set a monthly budget to track spending
                     </div>
                 </div>
 
                 <div class="budget-card">
                     <div class="budget-header">
-                        <h4><i class="fas fa-piggy-bank"></i> Dedicated Account</h4>
-                        <span style="color: var(--success); font-size: 0.85rem;">
-                            <i class="fas fa-link"></i> Linked to Financial Center
-                        </span>
+                        <h4><i class="fas fa-receipt"></i> Current Subscriptions</h4>
                     </div>
-                    <div class="budget-amount">$2,340</div>
-                    <div class="budget-subtitle">Marketing Fund Balance</div>
-                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span>Auto-deposit (5% of revenue)</span>
-                            <span style="color: var(--success);">+$156 this week</span>
+                    <div style="margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-robot" style="color: var(--purple);"></i>
+                                <span>Ayrshare Premium</span>
+                            </div>
+                            <span style="color: var(--success);">$29/mo</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Round-up contributions</span>
-                            <span style="color: var(--success);">+$23 this week</span>
+                        <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; color: var(--text-secondary);">
+                            <span>Other services</span>
+                            <span>Not setup</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="roi-card">
-                    <div class="roi-value">18.5x</div>
+                <div class="roi-card" style="background: linear-gradient(135deg, rgba(141, 153, 174, 0.2) 0%, rgba(141, 153, 174, 0.1) 100%);">
+                    <div class="roi-value" id="budgetROI">--</div>
                     <div class="roi-label">Return on Marketing Investment</div>
                     <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">
-                        $847 spent → $15,670 attributed revenue
+                        ROI calculated after spending and revenue tracked
                     </div>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-receipt"></i> Spending Breakdown</h3>
-                    <select class="form-input" style="width: auto;">
-                        <option>January 2026</option>
-                        <option>December 2025</option>
-                        <option>November 2025</option>
-                    </select>
+                    <h3><i class="fas fa-receipt"></i> Spending History</h3>
                 </div>
-                <div class="card-body">
-                    <table class="spend-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Vendor</th>
-                                <th>Amount</th>
-                                <th>Date</th>
-                                <th>ROI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="spend-category">
-                                        <div class="spend-category-dot" style="background: var(--instagram);"></div>
-                                        Social Ads
-                                    </div>
-                                </td>
-                                <td>Meta Ads</td>
-                                <td>$350.00</td>
-                                <td>Jan 10, 2026</td>
-                                <td style="color: var(--success);">24.5x</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="spend-category">
-                                        <div class="spend-category-dot" style="background: var(--purple);"></div>
-                                        Direct Mail
-                                    </div>
-                                </td>
-                                <td>Lob.com</td>
-                                <td>$156.00</td>
-                                <td>Jan 8, 2026</td>
-                                <td style="color: var(--success);">8.2x</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="spend-category">
-                                        <div class="spend-category-dot" style="background: var(--success);"></div>
-                                        SMS
-                                    </div>
-                                </td>
-                                <td>Twilio</td>
-                                <td>$50.00</td>
-                                <td>Jan 1, 2026</td>
-                                <td style="color: var(--success);">32.1x</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="spend-category">
-                                        <div class="spend-category-dot" style="background: var(--info);"></div>
-                                        Email
-                                    </div>
-                                </td>
-                                <td>Klaviyo</td>
-                                <td>$45.00</td>
-                                <td>Jan 1, 2026</td>
-                                <td style="color: var(--success);">18.9x</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="spend-category">
-                                        <div class="spend-category-dot" style="background: var(--secondary);"></div>
-                                        Subscriptions
-                                    </div>
-                                </td>
-                                <td>Ayrshare</td>
-                                <td>$25.00</td>
-                                <td>Jan 1, 2026</td>
-                                <td style="color: var(--text-secondary);">--</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="spend-category">
-                                        <div class="spend-category-dot" style="background: var(--gold);"></div>
-                                        Booth/Signage
-                                    </div>
-                                </td>
-                                <td>Vistaprint</td>
-                                <td>$221.00</td>
-                                <td>Jan 5, 2026</td>
-                                <td style="color: var(--text-secondary);">--</td>
-                            </tr>
-                        </tbody>
-                        <tfoot>
-                            <tr style="font-weight: 700;">
-                                <td colspan="2">Total</td>
-                                <td>$847.00</td>
-                                <td></td>
-                                <td style="color: var(--success);">18.5x avg</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chart-pie"></i> Spend by Channel</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="spendChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chart-line"></i> ROI Trend</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="roiChart"></canvas>
-                        </div>
-                    </div>
+                <div class="card-body" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-receipt" style="font-size: 3rem; color: var(--text-secondary); opacity: 0.3; margin-bottom: 1rem;"></i>
+                    <h4 style="margin-bottom: 0.5rem;">No Spending Tracked Yet</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        Marketing expenses will appear here once tracked.<br>
+                        Future: Link to Financial Command Center for automatic tracking.
+                    </p>
                 </div>
             </div>
         </div>
 
         <!-- ANALYTICS TAB -->
         <div id="analyticsTab" class="tab-content">
+            <!-- Analytics Stats - Will populate from Ayrshare API -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-card-header">
@@ -2257,10 +2102,10 @@
                             <i class="fas fa-eye"></i>
                         </div>
                     </div>
-                    <div class="stat-value">45.2K</div>
+                    <div class="stat-value" id="analyticsReach">--</div>
                     <div class="stat-label">Total Reach (30 days)</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> +23% vs last month
+                    <div class="stat-change neutral">
+                        <i class="fas fa-info-circle"></i> Requires Ayrshare Premium
                     </div>
                 </div>
 
@@ -2270,10 +2115,10 @@
                             <i class="fas fa-heart"></i>
                         </div>
                     </div>
-                    <div class="stat-value">3,847</div>
+                    <div class="stat-value" id="analyticsEngagements">--</div>
                     <div class="stat-label">Total Engagements</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> +18% vs last month
+                    <div class="stat-change neutral">
+                        <i class="fas fa-info-circle"></i> Post to start tracking
                     </div>
                 </div>
 
@@ -2283,131 +2128,66 @@
                             <i class="fas fa-user-plus"></i>
                         </div>
                     </div>
-                    <div class="stat-value">124</div>
-                    <div class="stat-label">New Customers (attributed)</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> +45 this week
+                    <div class="stat-value" id="analyticsCustomers">0</div>
+                    <div class="stat-label">New Followers</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-info-circle"></i> Tracked after posting
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div class="stat-icon instagram">
-                            <i class="fas fa-dollar-sign"></i>
+                            <i class="fas fa-paper-plane"></i>
                         </div>
                     </div>
-                    <div class="stat-value">$15,670</div>
-                    <div class="stat-label">Attributed Revenue</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i> +$4,230 this week
+                    <div class="stat-value" id="analyticsPosts">0</div>
+                    <div class="stat-label">Posts This Month</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-info-circle"></i> Via Ayrshare
                     </div>
                 </div>
             </div>
 
+            <!-- No Data Message -->
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-chart-area"></i> Engagement Over Time</h3>
+                    <h3><i class="fas fa-chart-area"></i> Analytics Dashboard</h3>
                 </div>
-                <div class="card-body">
-                    <div class="chart-container" style="height: 400px;">
-                        <canvas id="engagementChart"></canvas>
-                    </div>
+                <div class="card-body" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-chart-line" style="font-size: 4rem; color: var(--purple); opacity: 0.3; margin-bottom: 1.5rem;"></i>
+                    <h3 style="margin-bottom: 0.5rem;">No Analytics Data Yet</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        Start posting through Ayrshare to collect engagement data.<br>
+                        Analytics will appear here once you have post activity.
+                    </p>
+                    <button class="btn btn-primary" onclick="switchTab('fieldmode')">
+                        <i class="fas fa-plus"></i> Create Your First Post
+                    </button>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-trophy"></i> Top Performing Content</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="campaign-list">
-                            <div class="campaign-item">
-                                <div class="campaign-info">
-                                    <div class="campaign-icon" style="background: rgba(225, 48, 108, 0.2);">
-                                        <i class="fas fa-video" style="color: var(--instagram);"></i>
-                                    </div>
-                                    <div class="campaign-details">
-                                        <h4>"First tomatoes of the season!"</h4>
-                                        <div class="campaign-meta">
-                                            <span>Reel</span>
-                                            <span>Jan 8</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="campaign-stats">
-                                    <div class="campaign-stat">
-                                        <div class="campaign-stat-value">12.4K</div>
-                                        <div class="campaign-stat-label">Views</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="campaign-item">
-                                <div class="campaign-info">
-                                    <div class="campaign-icon" style="background: rgba(66, 103, 178, 0.2);">
-                                        <i class="fas fa-image" style="color: var(--facebook);"></i>
-                                    </div>
-                                    <div class="campaign-details">
-                                        <h4>"Team harvest day"</h4>
-                                        <div class="campaign-meta">
-                                            <span>Photo</span>
-                                            <span>Jan 5</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="campaign-stats">
-                                    <div class="campaign-stat">
-                                        <div class="campaign-stat-value">847</div>
-                                        <div class="campaign-stat-label">Likes</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- How Analytics Works -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(225, 48, 108, 0.1) 100%);">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> How Analytics Works</h3>
                 </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-funnel-dollar"></i> Conversion Funnel</h3>
-                    </div>
-                    <div class="card-body">
-                        <div style="display: flex; flex-direction: column; gap: 1rem;">
-                            <div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                    <span>Impressions</span>
-                                    <span>45,200</span>
-                                </div>
-                                <div class="budget-progress-bar">
-                                    <div class="budget-progress-fill" style="width: 100%; background: var(--info);"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                    <span>Clicks</span>
-                                    <span>3,847 (8.5%)</span>
-                                </div>
-                                <div class="budget-progress-bar">
-                                    <div class="budget-progress-fill" style="width: 8.5%; background: var(--purple);"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                    <span>Signups</span>
-                                    <span>487 (12.7%)</span>
-                                </div>
-                                <div class="budget-progress-bar">
-                                    <div class="budget-progress-fill" style="width: 12.7%; background: var(--warning);"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                    <span>Purchases</span>
-                                    <span>124 (25.5%)</span>
-                                </div>
-                                <div class="budget-progress-bar">
-                                    <div class="budget-progress-fill" style="width: 25.5%; background: var(--success);"></div>
-                                </div>
-                            </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                        <div style="text-align: center; padding: 1rem;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">1</div>
+                            <h4 style="margin-bottom: 0.5rem;">Post Content</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Use Field Mode to post to connected platforms via Ayrshare</p>
+                        </div>
+                        <div style="text-align: center; padding: 1rem;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">2</div>
+                            <h4 style="margin-bottom: 0.5rem;">Collect Data</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Ayrshare tracks likes, comments, shares, and reach</p>
+                        </div>
+                        <div style="text-align: center; padding: 1rem;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">3</div>
+                            <h4 style="margin-bottom: 0.5rem;">View Insights</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Analytics populate here and on Ayrshare dashboard</p>
                         </div>
                     </div>
                 </div>
@@ -3182,120 +2962,9 @@
         // ═══════════════════════════════════════════════════════════════════════════
 
         function initCharts() {
-            // Spend Chart
-            const spendCtx = document.getElementById('spendChart');
-            if (spendCtx) {
-                new Chart(spendCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Social Ads', 'Direct Mail', 'SMS', 'Email', 'Subscriptions', 'Materials'],
-                        datasets: [{
-                            data: [350, 156, 50, 45, 25, 221],
-                            backgroundColor: [
-                                '#E1306C',
-                                '#9b59b6',
-                                '#2a9d8f',
-                                '#4361ee',
-                                '#f4a261',
-                                '#ffd700'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { color: '#8d99ae' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // ROI Chart
-            const roiCtx = document.getElementById('roiChart');
-            if (roiCtx) {
-                new Chart(roiCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Oct', 'Nov', 'Dec', 'Jan'],
-                        datasets: [{
-                            label: 'ROI',
-                            data: [12.3, 14.8, 16.2, 18.5],
-                            borderColor: '#2a9d8f',
-                            backgroundColor: 'rgba(42, 157, 143, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: {
-                                ticks: { color: '#8d99ae' },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
-                            },
-                            x: {
-                                ticks: { color: '#8d99ae' },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Engagement Chart
-            const engagementCtx = document.getElementById('engagementChart');
-            if (engagementCtx) {
-                new Chart(engagementCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                        datasets: [{
-                            label: 'Instagram',
-                            data: [1200, 1450, 1890, 2340],
-                            borderColor: '#E1306C',
-                            tension: 0.4
-                        }, {
-                            label: 'Facebook',
-                            data: [800, 920, 1100, 1280],
-                            borderColor: '#4267B2',
-                            tension: 0.4
-                        }, {
-                            label: 'Email',
-                            data: [450, 520, 610, 720],
-                            borderColor: '#4361ee',
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { color: '#8d99ae' }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                ticks: { color: '#8d99ae' },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
-                            },
-                            x: {
-                                ticks: { color: '#8d99ae' },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
-                            }
-                        }
-                    }
-                });
-            }
+            // Charts will be initialized when real data is available
+            // Currently no chart data to display
+            console.log('Charts: No data available yet');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -3324,7 +2993,8 @@
                 const response = await fetch(`${API_URL}?action=getMarketingBudget`);
                 return await response.json();
             } catch (error) {
-                return { allocated: 1000, spent: 847, remaining: 153 };
+                // Return zeros - no fake data
+                return { allocated: 0, spent: 0, remaining: 0 };
             }
         }
 
