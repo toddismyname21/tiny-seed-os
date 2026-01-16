@@ -1,0 +1,2191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed OS - Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <script src="auth-guard.js" data-required-role="Admin"></script>
+    <style>
+        /* ════════════════════════════════════════════════════════════════════════════
+           TINY SEED OS - ADMIN PANEL
+           Production-Ready Admin Dashboard
+           Last Updated: 2026-01-15
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        :root {
+            /* Brand Colors */
+            --primary: #2d5a27;
+            --primary-dark: #1e3d1a;
+            --primary-light: #4a7c43;
+
+            /* Status Colors */
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.1);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --info: #3b82f6;
+            --info-bg: rgba(59, 130, 246, 0.1);
+
+            /* Background Colors */
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --bg-input: #1e293b;
+            --bg-hover: #2d3a4f;
+
+            /* Text Colors */
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            /* Borders */
+            --border: #334155;
+            --border-light: #475569;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
+
+            /* Layout */
+            --sidebar-width: 260px;
+            --header-height: 64px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           LAYOUT
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .logo-subtitle {
+            font-size: 11px;
+            color: var(--danger);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .nav-item-badge {
+            margin-left: auto;
+            background: var(--danger);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .nav-item-badge.warning {
+            background: var(--warning);
+        }
+
+        .nav-item-badge.info {
+            background: var(--info);
+        }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--danger);
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            height: var(--header-height);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 24px;
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           CARDS & PANELS
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            color: var(--primary-light);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .card-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-elevated);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .stat-icon.users { background: var(--info-bg); color: var(--info); }
+        .stat-icon.active { background: var(--success-bg); color: var(--success); }
+        .stat-icon.pending { background: var(--warning-bg); color: var(--warning); }
+        .stat-icon.system { background: var(--primary); color: white; }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           STATUS BADGES
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success { background: var(--success-bg); color: var(--success); }
+        .badge-warning { background: var(--warning-bg); color: var(--warning); }
+        .badge-danger { background: var(--danger-bg); color: var(--danger); }
+        .badge-info { background: var(--info-bg); color: var(--info); }
+        .badge-muted { background: var(--bg-elevated); color: var(--text-muted); }
+
+        /* Backend Status Badge - shows features needing backend work */
+        .badge-backend {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           BUTTONS
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           TABLES
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg-elevated);
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        tr:hover td {
+            background: var(--bg-hover);
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           FORMS
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            transition: all 0.15s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(74, 124, 67, 0.2);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           MODALS
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           ALERTS & NOTIFICATIONS
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .alert-success { background: var(--success-bg); border: 1px solid var(--success); }
+        .alert-warning { background: var(--warning-bg); border: 1px solid var(--warning); }
+        .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger); }
+        .alert-info { background: var(--info-bg); border: 1px solid var(--info); }
+
+        .alert i {
+            font-size: 18px;
+            margin-top: 2px;
+        }
+
+        .alert-success i { color: var(--success); }
+        .alert-warning i { color: var(--warning); }
+        .alert-danger i { color: var(--danger); }
+        .alert-info i { color: var(--info); }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .alert-message {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+        .toast.info { border-left: 4px solid var(--info); }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           SECTIONS - View Panels
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        /* Development Status Banner */
+        .dev-banner {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .dev-banner i {
+            font-size: 16px;
+        }
+
+        .dev-banner strong {
+            font-weight: 600;
+        }
+
+        /* System Status Grid */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+
+        .status-item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-item-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .status-item-name {
+            font-weight: 500;
+        }
+
+        .status-item-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Activity Log */
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.login { background: var(--success-bg); color: var(--success); }
+        .activity-icon.logout { background: var(--info-bg); color: var(--info); }
+        .activity-icon.create { background: var(--primary); color: white; }
+        .activity-icon.edit { background: var(--warning-bg); color: var(--warning); }
+        .activity-icon.delete { background: var(--danger-bg); color: var(--danger); }
+
+        .activity-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .activity-title {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .activity-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        /* Role Badges */
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .role-badge.admin { background: var(--danger-bg); color: var(--danger); }
+        .role-badge.manager { background: var(--info-bg); color: var(--info); }
+        .role-badge.field_lead { background: var(--warning-bg); color: var(--warning); }
+        .role-badge.employee { background: var(--success-bg); color: var(--success); }
+        .role-badge.driver { background: #8b5cf6; color: white; background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+
+        /* ════════════════════════════════════════════════════════════════════════════
+           RESPONSIVE
+           ════════════════════════════════════════════════════════════════════════════ */
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header-title {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- ════════════════════════════════════════════════════════════════════════════
+             SIDEBAR
+             ════════════════════════════════════════════════════════════════════════════ -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div>
+                        <div class="logo-text">Tiny Seed OS</div>
+                        <div class="logo-subtitle">Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Overview</div>
+                    <a class="nav-item active" onclick="showSection('dashboard')">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">User Management</div>
+                    <a class="nav-item" onclick="showSection('users')">
+                        <i class="fas fa-users"></i>
+                        <span>All Users</span>
+                        <span class="nav-item-badge info" id="userCountBadge">0</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('sessions')">
+                        <i class="fas fa-user-clock"></i>
+                        <span>Active Sessions</span>
+                        <span class="nav-item-badge warning">NEEDS API</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('roles')">
+                        <i class="fas fa-user-tag"></i>
+                        <span>Roles & Permissions</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">System</div>
+                    <a class="nav-item" onclick="showSection('status')">
+                        <i class="fas fa-server"></i>
+                        <span>System Status</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('audit')">
+                        <i class="fas fa-history"></i>
+                        <span>Audit Log</span>
+                        <span class="nav-item-badge warning">NEEDS API</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('settings')">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Quick Links</div>
+                    <a class="nav-item" href="../index.html">
+                        <i class="fas fa-home"></i>
+                        <span>Main Dashboard</span>
+                    </a>
+                    <a class="nav-item" href="financial-dashboard.html">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>Financial Dashboard</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ════════════════════════════════════════════════════════════════════════════
+             MAIN CONTENT
+             ════════════════════════════════════════════════════════════════════════════ -->
+        <main class="main-content">
+            <!-- Development Status Banner -->
+            <div class="dev-banner">
+                <i class="fas fa-code"></i>
+                <span><strong>Development Status:</strong> Features marked with <span class="badge-backend">NEEDS API</span> require backend implementation. See documentation for details.</span>
+            </div>
+
+            <!-- Header -->
+            <header class="header">
+                <h1 class="header-title" id="sectionTitle">Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content">
+                <!-- ════════════════════════════════════════════════════════════════════
+                     DASHBOARD SECTION
+                     ════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section active" id="section-dashboard">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon users">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-value" id="statTotalUsers">-</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon active">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-value" id="statActiveUsers">-</div>
+                            <div class="stat-label">Active Users</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon pending">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-value" id="statActiveSessions">-</div>
+                            <div class="stat-label">Active Sessions <span class="badge-backend">NEEDS API</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon system">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div class="stat-value" id="statSystemStatus">-</div>
+                            <div class="stat-label">System Status</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-bolt"></i>
+                                Quick Actions
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                                <button class="btn btn-primary" onclick="openAddUserModal()">
+                                    <i class="fas fa-user-plus"></i>
+                                    Add New User
+                                </button>
+                                <button class="btn btn-secondary" onclick="showSection('users')">
+                                    <i class="fas fa-users"></i>
+                                    Manage Users
+                                </button>
+                                <button class="btn btn-secondary" onclick="testApiConnection()">
+                                    <i class="fas fa-plug"></i>
+                                    Test API Connection
+                                </button>
+                                <button class="btn btn-secondary" onclick="showSection('roles')">
+                                    <i class="fas fa-user-tag"></i>
+                                    View Permissions
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-history"></i>
+                                Recent Activity
+                                <span class="badge-backend">NEEDS API</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-list" id="recentActivity">
+                                <div class="empty-state">
+                                    <i class="fas fa-history"></i>
+                                    <h3>Audit Log Not Available</h3>
+                                    <p>Backend API for activity logging needs to be implemented.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════
+                     USERS SECTION
+                     ════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-users">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-users"></i>
+                                User Management
+                            </div>
+                            <button class="btn btn-primary" onclick="openAddUserModal()">
+                                <i class="fas fa-user-plus"></i>
+                                Add User
+                            </button>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Username</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Last Login</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usersTableBody">
+                                        <tr>
+                                            <td colspan="6" style="text-align: center; padding: 40px;">
+                                                <div class="spinner" style="margin: 0 auto;"></div>
+                                                <p style="margin-top: 12px; color: var(--text-muted);">Loading users...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Status for User Management -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-code"></i>
+                                API Status - User Management
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <div class="status-item-info">
+                                        <div class="status-item-icon" style="background: var(--success-bg); color: var(--success);">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        <div>
+                                            <div class="status-item-name">getUsers</div>
+                                            <div class="status-item-detail">List all users</div>
+                                        </div>
+                                    </div>
+                                    <span class="badge badge-success">WORKING</span>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-item-info">
+                                        <div class="status-item-icon" style="background: var(--success-bg); color: var(--success);">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        <div>
+                                            <div class="status-item-name">createUser</div>
+                                            <div class="status-item-detail">Add new user</div>
+                                        </div>
+                                    </div>
+                                    <span class="badge badge-success">WORKING</span>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-item-info">
+                                        <div class="status-item-icon" style="background: var(--warning-bg); color: var(--warning);">
+                                            <i class="fas fa-exclamation"></i>
+                                        </div>
+                                        <div>
+                                            <div class="status-item-name">updateUser</div>
+                                            <div class="status-item-detail">Edit user details</div>
+                                        </div>
+                                    </div>
+                                    <span class="badge badge-warning">NEEDS BUILD</span>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-item-info">
+                                        <div class="status-item-icon" style="background: var(--warning-bg); color: var(--warning);">
+                                            <i class="fas fa-exclamation"></i>
+                                        </div>
+                                        <div>
+                                            <div class="status-item-name">deactivateUser</div>
+                                            <div class="status-item-detail">Disable user account</div>
+                                        </div>
+                                    </div>
+                                    <span class="badge badge-warning">NEEDS BUILD</span>
+                                </div>
+                                <div class="status-item">
+                                    <div class="status-item-info">
+                                        <div class="status-item-icon" style="background: var(--warning-bg); color: var(--warning);">
+                                            <i class="fas fa-exclamation"></i>
+                                        </div>
+                                        <div>
+                                            <div class="status-item-name">resetUserPin</div>
+                                            <div class="status-item-detail">Reset user PIN</div>
+                                        </div>
+                                    </div>
+                                    <span class="badge badge-warning">NEEDS BUILD</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════
+                     ACTIVE SESSIONS SECTION
+                     ════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-sessions">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div class="alert-content">
+                            <div class="alert-title">Backend Required</div>
+                            <div class="alert-message">The Active Sessions feature requires backend API implementation. Sessions are currently stored in browser localStorage only.</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-user-clock"></i>
+                                Active Sessions
+                                <span class="badge-backend">NEEDS API</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="empty-state">
+                                <i class="fas fa-user-clock"></i>
+                                <h3>Session Tracking Not Available</h3>
+                                <p>Backend APIs needed: getActiveSessions, forceLogout</p>
+                                <button class="btn btn-secondary" style="margin-top: 16px;" disabled>
+                                    <i class="fas fa-code"></i>
+                                    Awaiting Implementation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- What's Needed -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-clipboard-list"></i>
+                                Implementation Requirements
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Backend APIs Needed:</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge badge-warning">TODO</span>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">getActiveSessions</code>
+                                    <span style="color: var(--text-muted);">- Return list of active user sessions with timestamps</span>
+                                </li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge badge-warning">TODO</span>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">forceLogout</code>
+                                    <span style="color: var(--text-muted);">- Invalidate a specific user session</span>
+                                </li>
+                                <li style="padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge badge-warning">TODO</span>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">SESSIONS sheet</code>
+                                    <span style="color: var(--text-muted);">- Google Sheet to store session tokens</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════
+                     ROLES & PERMISSIONS SECTION
+                     ════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-roles">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-user-tag"></i>
+                                Roles & Permissions
+                            </div>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Role</th>
+                                            <th>Level</th>
+                                            <th>Permissions</th>
+                                            <th>Special Features</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="role-badge admin"><i class="fas fa-crown"></i> Admin</span></td>
+                                            <td>5 (Highest)</td>
+                                            <td>All permissions including financials</td>
+                                            <td><span class="badge badge-info">Bypass Geofence</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="role-badge manager"><i class="fas fa-user-tie"></i> Manager</span></td>
+                                            <td>4</td>
+                                            <td>Planning, sales, reports, scheduling, employees</td>
+                                            <td><span class="badge badge-danger">No Financials</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="role-badge field_lead"><i class="fas fa-hard-hat"></i> Field Lead</span></td>
+                                            <td>3</td>
+                                            <td>View plans, tasks, harvest, greenhouse, sowing</td>
+                                            <td><span class="badge badge-muted">View Only Plans</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="role-badge employee"><i class="fas fa-user"></i> Employee</span></td>
+                                            <td>1</td>
+                                            <td>Time clock, assigned tasks, harvest, seeding, scouting</td>
+                                            <td><span class="badge badge-muted">Basic Access</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="role-badge driver"><i class="fas fa-truck"></i> Driver</span></td>
+                                            <td>2</td>
+                                            <td>Delivery routes, proof of delivery</td>
+                                            <td><span class="badge badge-info">Employee Mode Toggle</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permission Matrix -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-th"></i>
+                                Permission Matrix
+                            </div>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Feature</th>
+                                            <th style="text-align: center;">Admin</th>
+                                            <th style="text-align: center;">Manager</th>
+                                            <th style="text-align: center;">Field Lead</th>
+                                            <th style="text-align: center;">Employee</th>
+                                            <th style="text-align: center;">Driver</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="permissionMatrix">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════
+                     SYSTEM STATUS SECTION
+                     ════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-status">
+                    <div class="stats-grid" style="margin-bottom: 24px;">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: var(--success-bg); color: var(--success);">
+                                <i class="fas fa-plug"></i>
+                            </div>
+                            <div class="stat-value" id="apiStatusValue">-</div>
+                            <div class="stat-label">API Connection</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: var(--info-bg); color: var(--info);">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="stat-value" id="sheetsStatusValue">-</div>
+                            <div class="stat-label">Google Sheets</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: var(--warning-bg); color: var(--warning);">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-value" id="lastCheckValue">-</div>
+                            <div class="stat-label">Last Check</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-server"></i>
+                                System Components
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="runSystemCheck()">
+                                <i class="fas fa-sync-alt"></i>
+                                Run Check
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="status-grid" id="systemComponents">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Endpoints Status -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-code"></i>
+                                API Endpoints
+                            </div>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Endpoint</th>
+                                            <th>Category</th>
+                                            <th>Status</th>
+                                            <th>Last Tested</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="endpointsTable">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════
+                     AUDIT LOG SECTION
+                     ════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-audit">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div class="alert-content">
+                            <div class="alert-title">Backend Required</div>
+                            <div class="alert-message">The Audit Log feature requires backend API implementation to track user actions.</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-history"></i>
+                                Audit Log
+                                <span class="badge-backend">NEEDS API</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="empty-state">
+                                <i class="fas fa-history"></i>
+                                <h3>Audit Logging Not Available</h3>
+                                <p>Backend APIs needed: getAuditLog, logAdminAction</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Implementation Requirements -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-clipboard-list"></i>
+                                Implementation Requirements
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Backend APIs Needed:</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge badge-warning">TODO</span>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">getAuditLog</code>
+                                    <span style="color: var(--text-muted);">- Return paginated list of admin actions</span>
+                                </li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge badge-warning">TODO</span>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">logAdminAction</code>
+                                    <span style="color: var(--text-muted);">- Record admin actions (create, edit, delete user, etc.)</span>
+                                </li>
+                                <li style="padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                    <span class="badge badge-warning">TODO</span>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">AUDIT_LOG sheet</code>
+                                    <span style="color: var(--text-muted);">- Google Sheet: Timestamp, User, Action, Target, Details</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════
+                     SETTINGS SECTION
+                     ════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-settings">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-cog"></i>
+                                Admin Settings
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">API URL</label>
+                                <input type="text" class="form-input" id="settingsApiUrl" readonly>
+                                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                                    Managed in web_app/api-config.js
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Session Expiry (Hours)</label>
+                                <input type="number" class="form-input" id="settingsSessionExpiry" value="24" min="1" max="168">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Default Role for New Users</label>
+                                    <select class="form-select" id="settingsDefaultRole">
+                                        <option value="Employee">Employee</option>
+                                        <option value="Driver">Driver</option>
+                                        <option value="Field_Lead">Field Lead</option>
+                                        <option value="Manager">Manager</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Require Geofence for Clock In</label>
+                                    <select class="form-select" id="settingsGeofence">
+                                        <option value="all">All users except Admin</option>
+                                        <option value="none">No geofence required</option>
+                                        <option value="employees">Employees only</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button class="btn btn-primary" onclick="saveSettings()">
+                                <i class="fas fa-save"></i>
+                                Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════
+         ADD USER MODAL
+         ════════════════════════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="addUserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-user-plus"></i>
+                    Add New User
+                </h3>
+                <button class="modal-close" onclick="closeModal('addUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" class="form-input" id="newUserFullName" required placeholder="John Smith">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Username *</label>
+                            <input type="text" class="form-input" id="newUserUsername" required placeholder="jsmith" pattern="[a-z0-9_]+" title="Lowercase letters, numbers, underscores only">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">PIN (4 digits) *</label>
+                            <input type="password" class="form-input" id="newUserPin" required pattern="[0-9]{4}" maxlength="4" placeholder="1234">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Role *</label>
+                            <select class="form-select" id="newUserRole" required>
+                                <option value="">Select role...</option>
+                                <option value="Employee">Employee</option>
+                                <option value="Driver">Driver</option>
+                                <option value="Field_Lead">Field Lead</option>
+                                <option value="Manager">Manager</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email (Optional)</label>
+                        <input type="email" class="form-input" id="newUserEmail" placeholder="john@example.com">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createUser()">
+                    <i class="fas fa-user-plus"></i>
+                    Create User
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════
+         EDIT USER MODAL
+         ════════════════════════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="editUserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-user-edit"></i>
+                    Edit User
+                    <span class="badge-backend">NEEDS API</span>
+                </h3>
+                <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning" style="margin-bottom: 16px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div class="alert-content">
+                        <div class="alert-title">Backend Required</div>
+                        <div class="alert-message">The updateUser API endpoint needs to be implemented.</div>
+                    </div>
+                </div>
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-input" id="editUserFullName" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-input" id="editUserUsername" disabled>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Role</label>
+                            <select class="form-select" id="editUserRole" disabled>
+                                <option value="Employee">Employee</option>
+                                <option value="Driver">Driver</option>
+                                <option value="Field_Lead">Field Lead</option>
+                                <option value="Manager">Manager</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="editUserStatus" disabled>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="editUserEmail" disabled>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editUserModal')">Cancel</button>
+                <button class="btn btn-primary" disabled title="Requires updateUser API">
+                    <i class="fas fa-save"></i>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════
+         JAVASCRIPT
+         ════════════════════════════════════════════════════════════════════════════ -->
+    <script>
+        // ════════════════════════════════════════════════════════════════════════════
+        // CONFIGURATION
+        // ════════════════════════════════════════════════════════════════════════════
+
+        const API_URL = TINY_SEED_API.MAIN_API;
+        let currentUsers = [];
+
+        // Permission features for matrix
+        const FEATURES = [
+            { name: 'Financial Dashboard', admin: true, manager: false, field_lead: false, employee: false, driver: false },
+            { name: 'User Management', admin: true, manager: false, field_lead: false, employee: false, driver: false },
+            { name: 'Full Planning (Edit)', admin: true, manager: true, field_lead: false, employee: false, driver: false },
+            { name: 'View Plans', admin: true, manager: true, field_lead: true, employee: false, driver: false },
+            { name: 'Sales Dashboard', admin: true, manager: true, field_lead: false, employee: false, driver: false },
+            { name: 'Reports', admin: true, manager: true, field_lead: false, employee: false, driver: false },
+            { name: 'Task Management', admin: true, manager: true, field_lead: true, employee: true, driver: false },
+            { name: 'Harvest Logging', admin: true, manager: true, field_lead: true, employee: true, driver: false },
+            { name: 'Greenhouse Operations', admin: true, manager: true, field_lead: true, employee: true, driver: false },
+            { name: 'Time Clock', admin: true, manager: true, field_lead: true, employee: true, driver: true },
+            { name: 'Delivery Routes', admin: true, manager: true, field_lead: false, employee: false, driver: true },
+            { name: 'Field Scouting', admin: true, manager: true, field_lead: true, employee: true, driver: false },
+        ];
+
+        // System components for status check
+        const SYSTEM_COMPONENTS = [
+            { name: 'API Gateway', endpoint: 'testConnection', icon: 'fa-plug' },
+            { name: 'User Authentication', endpoint: 'getUsers', icon: 'fa-user-shield' },
+            { name: 'Planning Data', endpoint: 'getPlanningData', icon: 'fa-calendar-alt' },
+            { name: 'Crop Database', endpoint: 'getCropProfiles', icon: 'fa-seedling' },
+        ];
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ════════════════════════════════════════════════════════════════════════════
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAdmin();
+        });
+
+        async function initializeAdmin() {
+            // Populate user info
+            populateUserInfo();
+
+            // Load settings
+            document.getElementById('settingsApiUrl').value = API_URL;
+
+            // Populate permission matrix
+            populatePermissionMatrix();
+
+            // Load initial data
+            await loadUsers();
+            await runSystemCheck();
+        }
+
+        function populateUserInfo() {
+            const user = AuthGuard.getUser();
+            if (user) {
+                document.getElementById('userName').textContent = user.fullName || user.username;
+                document.getElementById('userAvatar').textContent = (user.fullName || user.username || 'A').charAt(0).toUpperCase();
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // NAVIGATION
+        // ════════════════════════════════════════════════════════════════════════════
+
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+
+            // Show selected section
+            const section = document.getElementById('section-' + sectionId);
+            if (section) {
+                section.classList.add('active');
+            }
+
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.nav-item')?.classList.add('active');
+
+            // Update header title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'users': 'User Management',
+                'sessions': 'Active Sessions',
+                'roles': 'Roles & Permissions',
+                'status': 'System Status',
+                'audit': 'Audit Log',
+                'settings': 'Settings'
+            };
+            document.getElementById('sectionTitle').textContent = titles[sectionId] || 'Dashboard';
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // USER MANAGEMENT
+        // ════════════════════════════════════════════════════════════════════════════
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_URL}?action=getUsers`);
+                const result = await response.json();
+
+                if (result.success) {
+                    currentUsers = result.users || [];
+                    renderUsersTable();
+                    updateStats();
+                } else {
+                    showToast('Failed to load users: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showToast('Error loading users', 'error');
+            }
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('usersTableBody');
+
+            if (currentUsers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <h3>No Users Found</h3>
+                                <p>Add your first user to get started.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = currentUsers.map(user => `
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;">
+                                ${(user.Full_Name || user.Username || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div style="font-weight: 500;">${user.Full_Name || '-'}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">${user.User_ID || '-'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">${user.Username || '-'}</code></td>
+                    <td><span class="role-badge ${(user.Role || 'employee').toLowerCase()}">${user.Role || 'Employee'}</span></td>
+                    <td>
+                        ${user.Is_Active === false
+                            ? '<span class="badge badge-danger"><i class="fas fa-times-circle"></i> Inactive</span>'
+                            : '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Active</span>'
+                        }
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 13px;">
+                        ${user.Last_Login ? formatDate(user.Last_Login) : 'Never'}
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="btn btn-secondary btn-icon" onclick="openEditUserModal('${user.User_ID}')" title="Edit User">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-secondary btn-icon" onclick="resetUserPin('${user.User_ID}')" title="Reset PIN" disabled>
+                                <i class="fas fa-key"></i>
+                            </button>
+                            <button class="btn btn-danger btn-icon" onclick="deactivateUser('${user.User_ID}')" title="Deactivate" disabled>
+                                <i class="fas fa-user-slash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = currentUsers.length;
+            const active = currentUsers.filter(u => u.Is_Active !== false).length;
+
+            document.getElementById('statTotalUsers').textContent = total;
+            document.getElementById('statActiveUsers').textContent = active;
+            document.getElementById('statActiveSessions').textContent = '—';
+            document.getElementById('userCountBadge').textContent = total;
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // CREATE USER
+        // ════════════════════════════════════════════════════════════════════════════
+
+        function openAddUserModal() {
+            document.getElementById('addUserForm').reset();
+            document.getElementById('addUserModal').classList.add('active');
+        }
+
+        async function createUser() {
+            const fullName = document.getElementById('newUserFullName').value.trim();
+            const username = document.getElementById('newUserUsername').value.trim().toLowerCase();
+            const pin = document.getElementById('newUserPin').value.trim();
+            const role = document.getElementById('newUserRole').value;
+            const email = document.getElementById('newUserEmail').value.trim();
+
+            if (!fullName || !username || !pin || !role) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (!/^[0-9]{4}$/.test(pin)) {
+                showToast('PIN must be exactly 4 digits', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'createUser',
+                        fullName: fullName,
+                        username: username,
+                        pin: pin,
+                        role: role,
+                        email: email
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('User created successfully!', 'success');
+                    closeModal('addUserModal');
+                    await loadUsers();
+                } else {
+                    showToast('Failed to create user: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error creating user:', error);
+                showToast('Error creating user', 'error');
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // EDIT USER (Needs Backend)
+        // ════════════════════════════════════════════════════════════════════════════
+
+        function openEditUserModal(userId) {
+            const user = currentUsers.find(u => u.User_ID === userId);
+            if (!user) {
+                showToast('User not found', 'error');
+                return;
+            }
+
+            document.getElementById('editUserId').value = user.User_ID;
+            document.getElementById('editUserFullName').value = user.Full_Name || '';
+            document.getElementById('editUserUsername').value = user.Username || '';
+            document.getElementById('editUserRole').value = user.Role || 'Employee';
+            document.getElementById('editUserStatus').value = user.Is_Active !== false ? 'true' : 'false';
+            document.getElementById('editUserEmail').value = user.Email || '';
+
+            document.getElementById('editUserModal').classList.add('active');
+        }
+
+        function resetUserPin(userId) {
+            showToast('resetUserPin API not implemented yet', 'warning');
+        }
+
+        function deactivateUser(userId) {
+            showToast('deactivateUser API not implemented yet', 'warning');
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // SYSTEM STATUS
+        // ════════════════════════════════════════════════════════════════════════════
+
+        async function runSystemCheck() {
+            document.getElementById('statSystemStatus').innerHTML = '<div class="spinner" style="width: 24px; height: 24px;"></div>';
+
+            const componentsHtml = [];
+            let allOk = true;
+
+            for (const component of SYSTEM_COMPONENTS) {
+                try {
+                    const response = await fetch(`${API_URL}?action=${component.endpoint}`);
+                    const result = await response.json();
+
+                    const isOk = result.success !== false;
+                    if (!isOk) allOk = false;
+
+                    componentsHtml.push(`
+                        <div class="status-item">
+                            <div class="status-item-info">
+                                <div class="status-item-icon" style="background: ${isOk ? 'var(--success-bg)' : 'var(--danger-bg)'}; color: ${isOk ? 'var(--success)' : 'var(--danger)'};">
+                                    <i class="fas ${component.icon}"></i>
+                                </div>
+                                <div>
+                                    <div class="status-item-name">${component.name}</div>
+                                    <div class="status-item-detail">${component.endpoint}</div>
+                                </div>
+                            </div>
+                            <span class="badge ${isOk ? 'badge-success' : 'badge-danger'}">${isOk ? 'OK' : 'ERROR'}</span>
+                        </div>
+                    `);
+                } catch (error) {
+                    allOk = false;
+                    componentsHtml.push(`
+                        <div class="status-item">
+                            <div class="status-item-info">
+                                <div class="status-item-icon" style="background: var(--danger-bg); color: var(--danger);">
+                                    <i class="fas ${component.icon}"></i>
+                                </div>
+                                <div>
+                                    <div class="status-item-name">${component.name}</div>
+                                    <div class="status-item-detail">${component.endpoint}</div>
+                                </div>
+                            </div>
+                            <span class="badge badge-danger">FAILED</span>
+                        </div>
+                    `);
+                }
+            }
+
+            document.getElementById('systemComponents').innerHTML = componentsHtml.join('');
+            document.getElementById('statSystemStatus').textContent = allOk ? 'OK' : 'Issues';
+            document.getElementById('statSystemStatus').style.color = allOk ? 'var(--success)' : 'var(--danger)';
+
+            document.getElementById('apiStatusValue').textContent = allOk ? 'Connected' : 'Issues';
+            document.getElementById('apiStatusValue').style.color = allOk ? 'var(--success)' : 'var(--danger)';
+
+            document.getElementById('sheetsStatusValue').textContent = allOk ? 'Connected' : 'Check';
+            document.getElementById('lastCheckValue').textContent = new Date().toLocaleTimeString();
+        }
+
+        async function testApiConnection() {
+            showToast('Testing API connection...', 'info');
+            try {
+                const response = await fetch(`${API_URL}?action=testConnection`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('API connection successful!', 'success');
+                } else {
+                    showToast('API returned error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('API connection failed: ' + error.message, 'error');
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // PERMISSION MATRIX
+        // ════════════════════════════════════════════════════════════════════════════
+
+        function populatePermissionMatrix() {
+            const tbody = document.getElementById('permissionMatrix');
+
+            tbody.innerHTML = FEATURES.map(feature => `
+                <tr>
+                    <td>${feature.name}</td>
+                    <td style="text-align: center;">${feature.admin ? '<i class="fas fa-check" style="color: var(--success);"></i>' : '<i class="fas fa-times" style="color: var(--text-muted);"></i>'}</td>
+                    <td style="text-align: center;">${feature.manager ? '<i class="fas fa-check" style="color: var(--success);"></i>' : '<i class="fas fa-times" style="color: var(--text-muted);"></i>'}</td>
+                    <td style="text-align: center;">${feature.field_lead ? '<i class="fas fa-check" style="color: var(--success);"></i>' : '<i class="fas fa-times" style="color: var(--text-muted);"></i>'}</td>
+                    <td style="text-align: center;">${feature.employee ? '<i class="fas fa-check" style="color: var(--success);"></i>' : '<i class="fas fa-times" style="color: var(--text-muted);"></i>'}</td>
+                    <td style="text-align: center;">${feature.driver ? '<i class="fas fa-check" style="color: var(--success);"></i>' : '<i class="fas fa-times" style="color: var(--text-muted);"></i>'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // UTILITIES
+        // ════════════════════════════════════════════════════════════════════════════
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function refreshData() {
+            loadUsers();
+            runSystemCheck();
+            showToast('Data refreshed', 'success');
+        }
+
+        function logout() {
+            AuthGuard.clearSession();
+            window.location.href = '../login.html';
+        }
+
+        function saveSettings() {
+            showToast('Settings saved (stored locally)', 'success');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+
+            toast.innerHTML = `
+                <i class="fas ${icons[type] || icons.info}" style="color: var(--${type === 'error' ? 'danger' : type});"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

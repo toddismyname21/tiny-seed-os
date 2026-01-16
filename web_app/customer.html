@@ -1570,15 +1570,13 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- API Configuration -->
+    <script src="api-config.js"></script>
+
     <script>
         // ========================================
         // TINY SEED CUSTOMER PORTAL - JAVASCRIPT
         // ========================================
-
-        // Configuration
-        const CONFIG = {
-            API_URL: 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec'
-        };
 
         // App State
         let AppState = {
@@ -1589,6 +1587,9 @@
             orders: [],
             isCSAMember: false
         };
+
+        // Initialize API client
+        const api = new CustomerPortalAPI('Retail');
 
         // ========================================
         // INITIALIZATION
@@ -1754,22 +1755,68 @@
         // PRODUCTS
         // ========================================
 
-        function loadProducts() {
-            // Sample products - would be loaded from API
-            AppState.products = [
-                { id: 1, name: 'Basil', unit: 'bunch', price: 4.00, category: 'herbs', emoji: '🌿', stock: 45 },
-                { id: 2, name: 'Tomatoes', unit: 'lb', price: 6.00, category: 'fruiting', emoji: '🍅', stock: 120 },
-                { id: 3, name: 'Lettuce Mix', unit: 'bag', price: 5.00, category: 'leafy', emoji: '🥬', stock: 80 },
-                { id: 4, name: 'Carrots', unit: 'lb', price: 4.50, category: 'root', emoji: '🥕', stock: 150 },
-                { id: 5, name: 'Kale', unit: 'bunch', price: 4.00, category: 'leafy', emoji: '🥬', stock: 60 },
-                { id: 6, name: 'Zucchini', unit: 'lb', price: 3.00, category: 'fruiting', emoji: '🥒', stock: 5 },
-                { id: 7, name: 'Sunflowers', unit: 'bunch', price: 12.00, category: 'flowers', emoji: '🌻', stock: 25 },
-                { id: 8, name: 'Beets', unit: 'bunch', price: 5.00, category: 'root', emoji: '🫐', stock: 40 },
-                { id: 9, name: 'Cilantro', unit: 'bunch', price: 3.00, category: 'herbs', emoji: '🌿', stock: 0 },
-                { id: 10, name: 'Peppers', unit: 'lb', price: 5.00, category: 'fruiting', emoji: '🫑', stock: 85 },
-                { id: 11, name: 'Arugula', unit: 'bag', price: 5.00, category: 'leafy', emoji: '🥗', stock: 35 },
-                { id: 12, name: 'Radishes', unit: 'bunch', price: 4.00, category: 'root', emoji: '🔴', stock: 55 }
-            ];
+        // Emoji map for product categories/names
+        const PRODUCT_EMOJIS = {
+            'basil': '🌿', 'tomato': '🍅', 'tomatoes': '🍅', 'lettuce': '🥬', 'carrot': '🥕', 'carrots': '🥕',
+            'kale': '🥬', 'zucchini': '🥒', 'sunflower': '🌻', 'sunflowers': '🌻', 'beet': '🫐', 'beets': '🫐',
+            'cilantro': '🌿', 'pepper': '🫑', 'peppers': '🫑', 'arugula': '🥗', 'radish': '🔴', 'radishes': '🔴',
+            'spinach': '🥬', 'chard': '🥬', 'cucumber': '🥒', 'squash': '🎃', 'onion': '🧅', 'garlic': '🧄',
+            'herbs': '🌿', 'leafy': '🥬', 'root': '🥕', 'fruiting': '🍅', 'flowers': '🌸', 'default': '🥬'
+        };
+
+        function getProductEmoji(product) {
+            const name = (product.name || '').toLowerCase();
+            const category = (product.category || '').toLowerCase();
+
+            // Check name first
+            for (const [key, emoji] of Object.entries(PRODUCT_EMOJIS)) {
+                if (name.includes(key)) return emoji;
+            }
+            // Fall back to category
+            return PRODUCT_EMOJIS[category] || PRODUCT_EMOJIS.default;
+        }
+
+        // Sample products for fallback
+        const SAMPLE_PRODUCTS = [
+            { id: 1, name: 'Basil', unit: 'bunch', price: 4.00, category: 'herbs', emoji: '🌿', stock: 45 },
+            { id: 2, name: 'Tomatoes', unit: 'lb', price: 6.00, category: 'fruiting', emoji: '🍅', stock: 120 },
+            { id: 3, name: 'Lettuce Mix', unit: 'bag', price: 5.00, category: 'leafy', emoji: '🥬', stock: 80 },
+            { id: 4, name: 'Carrots', unit: 'lb', price: 4.50, category: 'root', emoji: '🥕', stock: 150 },
+            { id: 5, name: 'Kale', unit: 'bunch', price: 4.00, category: 'leafy', emoji: '🥬', stock: 60 },
+            { id: 6, name: 'Zucchini', unit: 'lb', price: 3.00, category: 'fruiting', emoji: '🥒', stock: 5 },
+            { id: 7, name: 'Sunflowers', unit: 'bunch', price: 12.00, category: 'flowers', emoji: '🌻', stock: 25 },
+            { id: 8, name: 'Beets', unit: 'bunch', price: 5.00, category: 'root', emoji: '🫐', stock: 40 },
+            { id: 9, name: 'Cilantro', unit: 'bunch', price: 3.00, category: 'herbs', emoji: '🌿', stock: 0 },
+            { id: 10, name: 'Peppers', unit: 'lb', price: 5.00, category: 'fruiting', emoji: '🫑', stock: 85 },
+            { id: 11, name: 'Arugula', unit: 'bag', price: 5.00, category: 'leafy', emoji: '🥗', stock: 35 },
+            { id: 12, name: 'Radishes', unit: 'bunch', price: 4.00, category: 'root', emoji: '🔴', stock: 55 }
+        ];
+
+        async function loadProducts() {
+            try {
+                // Try to load products from API
+                const result = await api.get('getRetailProducts');
+
+                if (result.success && result.products && result.products.length > 0) {
+                    // Map API products to expected format
+                    AppState.products = result.products.map(p => ({
+                        id: p.Crop_ID || p.id || p.Product_ID,
+                        name: p.Crop_Name || p.name || p.Product_Name,
+                        unit: p.Unit || p.unit || 'each',
+                        price: parseFloat(p.Retail_Price || p.price || p.Price || 0),
+                        category: (p.Category || p.category || 'other').toLowerCase(),
+                        emoji: p.emoji || getProductEmoji(p),
+                        stock: parseInt(p.Available_Qty || p.stock || p.Stock || 100)
+                    }));
+                } else {
+                    // Fallback to sample products
+                    AppState.products = SAMPLE_PRODUCTS;
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                // Fallback to sample products on error
+                AppState.products = SAMPLE_PRODUCTS;
+            }
 
             renderProducts(AppState.products);
         }
@@ -1925,46 +1972,104 @@
                 return;
             }
 
-            // TODO: Submit order to API
-            showToast('Order placed successfully!', 'success');
+            if (!AppState.user) {
+                showToast('Please log in to place an order', 'error');
+                return;
+            }
 
-            // Clear cart and switch to orders tab
-            AppState.cart = [];
-            saveCart();
-            updateCartUI();
-            loadOrders();
-            switchTab('orders');
+            // Disable checkout button to prevent double-submit
+            const checkoutBtn = document.querySelector('.checkout-btn');
+            checkoutBtn.disabled = true;
+            checkoutBtn.textContent = 'Placing Order...';
+
+            try {
+                // Calculate totals
+                const subtotal = AppState.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                const deliveryFee = 5.00;
+                const total = subtotal + deliveryFee;
+
+                // Prepare order data
+                const orderData = {
+                    customerId: AppState.user.id || AppState.user.Customer_ID,
+                    customerName: AppState.user.name || AppState.user.Contact_Name,
+                    customerEmail: AppState.user.email || AppState.user.Email,
+                    customerType: 'Retail',
+                    deliveryAddress: AppState.user.address || AppState.user.Address || '',
+                    deliveryFee: deliveryFee,
+                    subtotal: subtotal,
+                    total: total,
+                    items: AppState.cart.map(item => ({
+                        productId: item.id,
+                        productName: item.name,
+                        quantity: item.qty,
+                        unit: item.unit,
+                        unitPrice: item.price,
+                        lineTotal: item.price * item.qty
+                    })),
+                    notes: '',
+                    source: 'Customer Portal'
+                };
+
+                // Submit order to API
+                const result = await api.post('createSalesOrder', orderData);
+
+                if (result.success) {
+                    showToast('Order placed successfully!', 'success');
+
+                    // Clear cart
+                    AppState.cart = [];
+                    saveCart();
+                    updateCartUI();
+
+                    // Reload orders and switch tab
+                    await loadOrders();
+                    switchTab('orders');
+                } else {
+                    showToast(result.error || 'Failed to place order. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Checkout error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            } finally {
+                // Re-enable checkout button
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = 'Place Order';
+            }
         }
 
         // ========================================
         // ORDERS
         // ========================================
 
-        function loadOrders() {
-            // Sample orders - would be loaded from API
-            AppState.orders = [
-                {
-                    id: 'ORD-20260114-001',
-                    date: '2026-01-14',
-                    status: 'out-for-delivery',
-                    total: 47.50,
-                    items: ['Basil (2)', 'Tomatoes (3 lbs)', 'Lettuce Mix (1)']
-                },
-                {
-                    id: 'ORD-20260110-003',
-                    date: '2026-01-10',
-                    status: 'delivered',
-                    total: 62.00,
-                    items: ['Carrots (2 lbs)', 'Kale (1)', 'Sunflowers (1)']
-                },
-                {
-                    id: 'ORD-20260107-002',
-                    date: '2026-01-07',
-                    status: 'delivered',
-                    total: 35.00,
-                    items: ['Tomatoes (5 lbs)', 'Basil (1)']
+        async function loadOrders() {
+            if (!AppState.user) {
+                AppState.orders = [];
+                renderOrders();
+                return;
+            }
+
+            try {
+                const customerId = AppState.user.id || AppState.user.Customer_ID;
+                const result = await api.getOrderHistory(customerId, 20);
+
+                if (result.success && result.orders) {
+                    // Map API response to expected format
+                    AppState.orders = result.orders.map(order => ({
+                        id: order.Order_ID || order.id,
+                        date: order.Order_Date || order.date,
+                        status: (order.Status || order.status || 'pending').toLowerCase().replace(' ', '-'),
+                        total: parseFloat(order.Total || order.total || 0),
+                        items: order.items || order.Items || []
+                    }));
+                } else {
+                    // Fallback to empty if no orders
+                    AppState.orders = [];
                 }
-            ];
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                // Show empty state on error
+                AppState.orders = [];
+            }
 
             renderOrders();
         }
@@ -1996,7 +2101,7 @@
                         <span class="order-date">${formatDate(order.date)}</span>
                         <span class="order-total">$${order.total.toFixed(2)}</span>
                     </div>
-                    <div class="order-items-preview">${order.items.join(', ')}</div>
+                    <div class="order-items-preview">${formatOrderItems(order.items)}</div>
                     <div class="order-actions">
                         ${order.status === 'out-for-delivery' ? `
                             <button class="btn btn-primary" onclick="trackOrder('${order.id}')">
@@ -2019,6 +2124,23 @@
                 'delivered': 'Delivered'
             };
             return statuses[status] || status;
+        }
+
+        function formatOrderItems(items) {
+            if (!items || items.length === 0) return 'No items';
+
+            // Check if items are objects or strings
+            if (typeof items[0] === 'string') {
+                return items.join(', ');
+            }
+
+            // Format object items: "Product Name (qty unit)"
+            return items.map(item => {
+                const name = item.Product_Name || item.productName || item.name || 'Item';
+                const qty = item.Quantity || item.quantity || item.qty || 1;
+                const unit = item.Unit || item.unit || '';
+                return `${name} (${qty}${unit ? ' ' + unit : ''})`;
+            }).join(', ');
         }
 
         function trackOrder(orderId) {

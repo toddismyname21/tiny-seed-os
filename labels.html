@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="web_app/auth-guard.js" data-required-role="Manager"></script>
     <style>
         :root {
             --primary: #2d5a27;
@@ -480,6 +481,101 @@
         .toast.show { transform: translateX(0); }
         .toast i { color: var(--success); font-size: 1.25rem; }
 
+        /* Label Type Toggle */
+        .label-type-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-light);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .type-btn i {
+            font-size: 1.25rem;
+        }
+
+        .type-btn:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .type-btn.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Seed Lot Label Style */
+        .seed-label {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 70px;
+            min-width: 200px;
+            max-width: 300px;
+            font-family: 'Inter', Arial, sans-serif;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .seed-label:hover {
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .seed-label.selected {
+            outline: 3px solid var(--primary);
+        }
+
+        .seed-label .label-checkbox {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+        }
+
+        .seed-label .seed-label-crop {
+            font-weight: 700;
+            font-size: 12px;
+            color: #78350f;
+        }
+
+        .seed-label .seed-label-variety {
+            font-size: 10px;
+            color: #92400e;
+        }
+
+        .seed-label .seed-label-id {
+            font-size: 8px;
+            font-family: monospace;
+            color: #a16207;
+            margin-top: 2px;
+        }
+
+        .seed-label .seed-label-qty {
+            font-size: 9px;
+            color: #78350f;
+        }
+
         /* Print Preview Modal */
         .modal-overlay {
             position: fixed;
@@ -662,7 +758,21 @@
 
     <main class="main-container">
         <div class="control-panel">
+            <!-- Label Type Selector -->
             <div class="panel-section">
+                <h3 class="panel-title"><i class="fas fa-tags"></i> Label Type</h3>
+                <div class="label-type-toggle">
+                    <button class="type-btn active" id="btnGreenhouseLabels" onclick="switchLabelType('greenhouse')">
+                        <i class="fas fa-seedling"></i> Greenhouse Trays
+                    </button>
+                    <button class="type-btn" id="btnSeedLabels" onclick="switchLabelType('seed')">
+                        <i class="fas fa-box"></i> Seed Lots
+                    </button>
+                </div>
+            </div>
+
+            <!-- Greenhouse Filter Section -->
+            <div class="panel-section" id="greenhouseFilters">
                 <h3 class="panel-title"><i class="fas fa-filter"></i> Filter Seedings</h3>
 
                 <div class="form-group">
@@ -685,8 +795,33 @@
                 </button>
             </div>
 
+            <!-- Seed Lot Filter Section (hidden by default) -->
+            <div class="panel-section" id="seedFilters" style="display: none;">
+                <h3 class="panel-title"><i class="fas fa-filter"></i> Filter Seed Lots</h3>
+
+                <div class="form-group">
+                    <label>Crop</label>
+                    <select class="form-control" id="seedCropFilter">
+                        <option value="">All Crops</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Status</label>
+                    <select class="form-control" id="seedStatusFilter">
+                        <option value="">All</option>
+                        <option value="Active">Active</option>
+                        <option value="low">Low Stock</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="loadSeedLots()">
+                    <i class="fas fa-search"></i> Load Seed Lots
+                </button>
+            </div>
+
             <div class="panel-section">
-                <h3 class="panel-title"><i class="fas fa-list"></i> Available Seedings</h3>
+                <h3 class="panel-title"><i class="fas fa-list"></i> <span id="listTitle">Available Seedings</span></h3>
 
                 <div class="selection-actions">
                     <button class="btn btn-secondary" onclick="selectAllSeedings()">
@@ -799,12 +934,15 @@
     </div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
 
         let seedings = [];
         let selectedSeedings = new Set();
         let labels = [];
         let selectedLabels = new Set();
+        let currentLabelType = 'greenhouse'; // 'greenhouse' or 'seed'
+        let seedLots = [];
+        let selectedSeedLots = new Set();
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -1334,6 +1472,283 @@
         }
 
         document.getElementById('cropFilter').addEventListener('change', applyFiltersAndRender);
+
+        // ============ LABEL TYPE SWITCHING ============
+
+        function switchLabelType(type) {
+            currentLabelType = type;
+
+            // Update toggle buttons
+            document.getElementById('btnGreenhouseLabels').classList.toggle('active', type === 'greenhouse');
+            document.getElementById('btnSeedLabels').classList.toggle('active', type === 'seed');
+
+            // Show/hide filter sections
+            document.getElementById('greenhouseFilters').style.display = type === 'greenhouse' ? 'block' : 'none';
+            document.getElementById('seedFilters').style.display = type === 'seed' ? 'block' : 'none';
+
+            // Update list title
+            document.getElementById('listTitle').textContent = type === 'greenhouse' ? 'Available Seedings' : 'Available Seed Lots';
+
+            // Clear labels and selections
+            labels = [];
+            selectedLabels.clear();
+            document.getElementById('labelsContainer').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-tag"></i>
+                    <h3>No Labels Generated</h3>
+                    <p>${type === 'greenhouse' ? 'Select seedings' : 'Select seed lots'} from the list and click "Generate Labels"</p>
+                </div>
+            `;
+            document.getElementById('totalLabelsCount').textContent = '0';
+
+            // Load data based on type
+            if (type === 'greenhouse') {
+                loadSeedings();
+            } else {
+                loadSeedLots();
+            }
+        }
+
+        // ============ SEED LOT FUNCTIONS ============
+
+        async function loadSeedLots() {
+            document.getElementById('seedingsList').innerHTML = `
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading seed lots...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getSeedInventory`);
+                const data = await response.json();
+
+                if (data.success && data.data && data.data.length > 0) {
+                    seedLots = data.data.map(s => ({
+                        id: s.Seed_Lot_ID || s.rowIndex,
+                        seedLotId: s.Seed_Lot_ID,
+                        qrCodeUrl: s.QR_Code_URL,
+                        crop: s.Crop,
+                        variety: s.Variety,
+                        supplier: s.Supplier,
+                        supplierLot: s.Supplier_Lot,
+                        quantity: s.Quantity_Remaining || 0,
+                        unit: s.Unit || 'seeds',
+                        organic: s.Organic_Certified === 'Yes',
+                        status: s.Status
+                    }));
+                    showToast(`Loaded ${seedLots.length} seed lots`);
+                } else {
+                    seedLots = [];
+                    showToast('No seed lots found');
+                }
+            } catch (error) {
+                console.error('Error loading seed lots:', error);
+                seedLots = [];
+                showToast('Error loading seed lots');
+            }
+
+            updateSeedCropFilter();
+            applyFiltersAndRenderSeedLots();
+        }
+
+        function updateSeedCropFilter() {
+            const cropFilter = document.getElementById('seedCropFilter');
+            const uniqueCrops = [...new Set(seedLots.map(s => s.crop))].sort();
+
+            cropFilter.innerHTML = '<option value="">All Crops</option>';
+            uniqueCrops.forEach(crop => {
+                cropFilter.innerHTML += `<option value="${crop}">${crop}</option>`;
+            });
+        }
+
+        function applyFiltersAndRenderSeedLots() {
+            const cropFilter = document.getElementById('seedCropFilter').value;
+            const statusFilter = document.getElementById('seedStatusFilter').value;
+
+            let filtered = seedLots;
+            if (cropFilter) {
+                filtered = filtered.filter(s => s.crop === cropFilter);
+            }
+            if (statusFilter === 'Active') {
+                filtered = filtered.filter(s => s.status === 'Active');
+            } else if (statusFilter === 'low') {
+                filtered = filtered.filter(s => s.quantity < 100); // Low stock threshold
+            }
+
+            renderSeedLotsList(filtered);
+        }
+
+        function renderSeedLotsList(seedLotData) {
+            const container = document.getElementById('seedingsList');
+
+            if (seedLotData.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 1.5rem;">
+                        <i class="fas fa-box" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 0.5rem;">No seed lots found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            seedLotData.forEach(seed => {
+                const isSelected = selectedSeedLots.has(seed.id);
+                html += `
+                    <div class="seeding-item ${isSelected ? 'selected' : ''}" onclick="toggleSeedLot('${seed.id}')" style="border-left: 4px solid #f59e0b;">
+                        <input type="checkbox" class="seeding-checkbox"
+                               ${isSelected ? 'checked' : ''}
+                               onclick="event.stopPropagation(); toggleSeedLot('${seed.id}')">
+                        <div class="seeding-info">
+                            <div class="seeding-crop">${seed.crop}</div>
+                            <div class="seeding-meta">
+                                ${seed.variety} | ${seed.supplier || 'Unknown supplier'}
+                            </div>
+                            <div style="font-size: 10px; font-family: monospace; color: var(--text-secondary);">
+                                ${seed.seedLotId}
+                            </div>
+                        </div>
+                        <span class="seeding-badge" style="background: #f59e0b;">${seed.quantity} ${seed.unit}</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            updateSeedStats();
+        }
+
+        function toggleSeedLot(id) {
+            if (selectedSeedLots.has(id)) {
+                selectedSeedLots.delete(id);
+            } else {
+                selectedSeedLots.add(id);
+            }
+            applyFiltersAndRenderSeedLots();
+        }
+
+        function updateSeedStats() {
+            document.getElementById('selectedSeedingsCount').textContent = selectedSeedLots.size;
+            document.getElementById('totalTraysCount').textContent = selectedSeedLots.size; // 1 label per seed lot
+        }
+
+        // Override selectAllSeedings for seed lots
+        const originalSelectAllSeedings = selectAllSeedings;
+        selectAllSeedings = function() {
+            if (currentLabelType === 'seed') {
+                const cropFilter = document.getElementById('seedCropFilter').value;
+                let filtered = seedLots;
+                if (cropFilter) {
+                    filtered = seedLots.filter(s => s.crop === cropFilter);
+                }
+                filtered.forEach(s => selectedSeedLots.add(s.id));
+                applyFiltersAndRenderSeedLots();
+                showToast(`Selected ${selectedSeedLots.size} seed lots`);
+            } else {
+                originalSelectAllSeedings();
+            }
+        };
+
+        // Override clearAllSeedings for seed lots
+        const originalClearAllSeedings = clearAllSeedings;
+        clearAllSeedings = function() {
+            if (currentLabelType === 'seed') {
+                selectedSeedLots.clear();
+                applyFiltersAndRenderSeedLots();
+                showToast('Cleared selection');
+            } else {
+                originalClearAllSeedings();
+            }
+        };
+
+        // Override generateLabels for seed lots
+        const originalGenerateLabels = generateLabels;
+        generateLabels = function() {
+            if (currentLabelType === 'seed') {
+                generateSeedLabels();
+            } else {
+                originalGenerateLabels();
+            }
+        };
+
+        function generateSeedLabels() {
+            if (selectedSeedLots.size === 0) {
+                showToast('Please select at least one seed lot');
+                return;
+            }
+
+            labels = [];
+            selectedLabels.clear();
+
+            selectedSeedLots.forEach(id => {
+                const seed = seedLots.find(s => s.id === id);
+                if (seed) {
+                    const labelId = `seed-${seed.seedLotId}`;
+                    labels.push({
+                        ...seed,
+                        labelId: labelId,
+                        labelType: 'seed'
+                    });
+                    selectedLabels.add(labelId);
+                }
+            });
+
+            document.getElementById('totalLabelsCount').textContent = labels.length;
+            renderSeedLotLabels();
+            showToast(`Generated ${labels.length} seed lot labels`);
+        }
+
+        function renderSeedLotLabels() {
+            const container = document.getElementById('labelsContainer');
+
+            if (labels.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tag"></i>
+                        <h3>No Labels Generated</h3>
+                        <p>Select seed lots from the list and click "Generate Labels"</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            labels.forEach((label, index) => {
+                const isSelected = selectedLabels.has(label.labelId);
+
+                html += `
+                    <div class="seed-label ${isSelected ? 'selected' : ''}"
+                         id="label-${index}"
+                         onclick="toggleLabel('${label.labelId}', ${index})">
+                        <input type="checkbox" class="label-checkbox"
+                               ${isSelected ? 'checked' : ''}
+                               onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
+                        <div class="label-qr" id="qr-${index}"></div>
+                        <div class="label-content">
+                            <div class="seed-label-crop">${label.crop}</div>
+                            <div class="seed-label-variety">${label.variety}</div>
+                            <div class="seed-label-id">${label.seedLotId}</div>
+                            <div class="seed-label-qty">${label.quantity} ${label.unit} | ${label.organic ? 'Organic' : ''}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Generate QR codes
+            labels.forEach((label, index) => {
+                generateQRCode(`qr-${index}`, label.seedLotId, 50);
+            });
+        }
+
+        // Filter listeners for seed lots
+        document.getElementById('seedCropFilter')?.addEventListener('change', function() {
+            if (currentLabelType === 'seed') applyFiltersAndRenderSeedLots();
+        });
+        document.getElementById('seedStatusFilter')?.addEventListener('change', function() {
+            if (currentLabelType === 'seed') applyFiltersAndRenderSeedLots();
+        });
     </script>
 </body>
 </html>

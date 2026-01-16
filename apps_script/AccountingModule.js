@@ -63,7 +63,8 @@ const ACCOUNTING_SHEETS = {
   GRANTS: 'GRANTS',
   GRANT_EXPENDITURES: 'GRANT_EXPENDITURES',
   FIXED_ASSETS: 'FIXED_ASSETS',
-  AUDIT_TRAIL: 'AUDIT_TRAIL'
+  AUDIT_TRAIL: 'AUDIT_TRAIL',
+  ACCOUNTANT_TASKS: 'ACCOUNTANT_TASKS'
 };
 
 // Headers for each sheet
@@ -131,6 +132,13 @@ const AUDIT_TRAIL_HEADERS = [
   'Entity_Type', 'Entity_ID', 'Old_Value', 'New_Value', 'IP_Address', 'Notes'
 ];
 
+const ACCOUNTANT_TASK_HEADERS = [
+  'Task_ID', 'Title', 'Description', 'Category', 'Priority', 'Status',
+  'Source_Type', 'Source_ID', 'Source_Date', 'Due_Date', 'Assigned_To',
+  'Created_At', 'Updated_At', 'Completed_At', 'Completed_By', 'Notes',
+  'Recurring', 'Recurrence_Pattern'
+];
+
 // ═══════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -153,6 +161,7 @@ function initializeAccountingModule() {
   createAccountingSheet(ss, ACCOUNTING_SHEETS.GRANT_EXPENDITURES, GRANT_EXPENDITURE_HEADERS, '#22c55e');
   createAccountingSheet(ss, ACCOUNTING_SHEETS.FIXED_ASSETS, FIXED_ASSET_HEADERS, '#64748b');
   createAccountingSheet(ss, ACCOUNTING_SHEETS.AUDIT_TRAIL, AUDIT_TRAIL_HEADERS, '#475569');
+  createAccountingSheet(ss, ACCOUNTING_SHEETS.ACCOUNTANT_TASKS, ACCOUNTANT_TASK_HEADERS, '#dc2626');
 
   // Initialize expense categories if empty
   initializeExpenseCategories();
@@ -2455,6 +2464,403 @@ function generateEnterpriseRecommendations(enterprises, unallocated) {
   }
 
   return recommendations;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACCOUNTANT TASK MANAGEMENT - Accountability System
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Parse imported emails and extract action items as tasks
+ */
+function parseEmailsForTasks() {
+  const emails = getAccountantEmails({ limit: 200 }).data;
+  const existingTasks = getAccountantTasks({}).data;
+  const existingSourceIds = existingTasks.map(t => t.Source_ID);
+
+  const tasksCreated = [];
+  const now = new Date().toISOString();
+
+  // Define task extraction rules
+  const taskRules = [
+    {
+      pattern: /bank feed|quickbooks|reconnect/i,
+      category: 'QUICKBOOKS',
+      title: 'Reconnect QuickBooks Bank Feed',
+      description: 'Reconnect PNC bank accounts to QuickBooks bank feed',
+      priority: 'HIGH'
+    },
+    {
+      pattern: /complete your.*organizer|tax organizer/i,
+      category: 'TAX_PREP',
+      title: 'Complete 2024 Tax Organizer',
+      description: 'Complete the tax organizer for 2024 tax return preparation',
+      priority: 'HIGH'
+    },
+    {
+      pattern: /sign your.*documents|review and sign/i,
+      category: 'DOCUMENTS',
+      title: 'Sign Tax Documents',
+      description: 'Review and sign required tax documents',
+      priority: 'HIGH'
+    },
+    {
+      pattern: /open invoices|invoice.*for/i,
+      category: 'BILLING',
+      title: 'Pay DGPerry Invoice',
+      description: 'Review and pay open invoice from DGPerry',
+      priority: 'MEDIUM'
+    },
+    {
+      pattern: /tax return forms|sign.*tax return/i,
+      category: 'TAX_FILING',
+      title: 'Sign Tax Return Forms',
+      description: 'Review and sign completed tax return forms',
+      priority: 'HIGH'
+    },
+    {
+      pattern: /extremely important|urgent|action required/i,
+      category: 'URGENT',
+      title: 'Urgent: Review Required',
+      description: 'Review urgent communication from accountant',
+      priority: 'CRITICAL'
+    },
+    {
+      pattern: /year.?end items/i,
+      category: 'YEAR_END',
+      title: 'Provide Year-End Items',
+      description: 'Provide requested year-end documentation',
+      priority: 'HIGH'
+    }
+  ];
+
+  // Process each email
+  emails.forEach(email => {
+    const subject = email.Subject || '';
+    const snippet = email.Snippet || '';
+    const messageId = email.Message_ID;
+    const emailDate = email.Date;
+
+    // Skip if already processed
+    if (existingSourceIds.includes(messageId)) {
+      return;
+    }
+
+    // Check against rules
+    for (const rule of taskRules) {
+      if (rule.pattern.test(subject) || rule.pattern.test(snippet)) {
+        // Create task
+        const taskId = 'TASK-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd-HHmmss') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+
+        const task = {
+          Task_ID: taskId,
+          Title: rule.title + (email.From_Name ? ` (from ${email.From_Name})` : ''),
+          Description: rule.description + '\n\nEmail: ' + subject,
+          Category: rule.category,
+          Priority: rule.priority,
+          Status: 'PENDING',
+          Source_Type: 'EMAIL',
+          Source_ID: messageId,
+          Source_Date: emailDate,
+          Due_Date: calculateDueDate(rule.priority, emailDate),
+          Assigned_To: 'Owner',
+          Created_At: now,
+          Updated_At: now,
+          Completed_At: '',
+          Completed_By: '',
+          Notes: 'Auto-extracted from email',
+          Recurring: false,
+          Recurrence_Pattern: ''
+        };
+
+        // Save task
+        const sheet = getOrCreateSheet(ACCOUNTING_SHEETS.ACCOUNTANT_TASKS, ACCOUNTANT_TASK_HEADERS);
+        sheet.appendRow(Object.values(task));
+
+        tasksCreated.push(task);
+        existingSourceIds.push(messageId); // Prevent duplicates in same run
+        break; // Only one task per email
+      }
+    }
+  });
+
+  return {
+    success: true,
+    tasksCreated: tasksCreated.length,
+    tasks: tasksCreated
+  };
+}
+
+/**
+ * Calculate due date based on priority
+ */
+function calculateDueDate(priority, sourceDate) {
+  const date = sourceDate ? new Date(sourceDate) : new Date();
+  const now = new Date();
+
+  // Use current date if source date is in the past
+  const baseDate = date > now ? date : now;
+
+  switch (priority) {
+    case 'CRITICAL':
+      baseDate.setDate(baseDate.getDate() + 1); // 1 day
+      break;
+    case 'HIGH':
+      baseDate.setDate(baseDate.getDate() + 7); // 1 week
+      break;
+    case 'MEDIUM':
+      baseDate.setDate(baseDate.getDate() + 14); // 2 weeks
+      break;
+    case 'LOW':
+      baseDate.setDate(baseDate.getDate() + 30); // 1 month
+      break;
+    default:
+      baseDate.setDate(baseDate.getDate() + 7);
+  }
+
+  return baseDate.toISOString().split('T')[0];
+}
+
+/**
+ * Get accountant tasks with filtering
+ */
+function getAccountantTasks(params) {
+  params = params || {};
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ACCOUNTING_SHEETS.ACCOUNTANT_TASKS);
+
+  if (!sheet) {
+    return { success: true, data: [], count: 0, message: 'Run parseEmailsForTasks first to create tasks.' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) {
+    return { success: true, data: [], count: 0 };
+  }
+
+  const headers = data[0];
+  let tasks = data.slice(1).map(row => {
+    const task = {};
+    headers.forEach((header, i) => {
+      task[header] = row[i];
+    });
+    return task;
+  }).filter(t => t.Task_ID); // Filter out empty rows
+
+  // Apply filters
+  if (params.status) {
+    tasks = tasks.filter(t => t.Status === params.status);
+  }
+
+  if (params.category) {
+    tasks = tasks.filter(t => t.Category === params.category);
+  }
+
+  if (params.priority) {
+    tasks = tasks.filter(t => t.Priority === params.priority);
+  }
+
+  // Sort by priority then due date
+  const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+  tasks.sort((a, b) => {
+    const pA = priorityOrder[a.Priority] || 4;
+    const pB = priorityOrder[b.Priority] || 4;
+    if (pA !== pB) return pA - pB;
+    return new Date(a.Due_Date) - new Date(b.Due_Date);
+  });
+
+  return {
+    success: true,
+    data: tasks,
+    count: tasks.length
+  };
+}
+
+/**
+ * Update task status
+ */
+function updateAccountantTask(data) {
+  if (!data.taskId) {
+    return { success: false, error: 'Task ID is required' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ACCOUNTING_SHEETS.ACCOUNTANT_TASKS);
+  if (!sheet) {
+    return { success: false, error: 'Tasks sheet not found' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const taskIdCol = headers.indexOf('Task_ID');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][taskIdCol] === data.taskId) {
+      const now = new Date().toISOString();
+
+      // Update status
+      if (data.status) {
+        const statusCol = headers.indexOf('Status');
+        sheet.getRange(i + 1, statusCol + 1).setValue(data.status);
+
+        // If completing, set completed fields
+        if (data.status === 'COMPLETED') {
+          const completedAtCol = headers.indexOf('Completed_At');
+          const completedByCol = headers.indexOf('Completed_By');
+          sheet.getRange(i + 1, completedAtCol + 1).setValue(now);
+          sheet.getRange(i + 1, completedByCol + 1).setValue(data.completedBy || 'Owner');
+        }
+      }
+
+      // Update other fields
+      if (data.notes) {
+        const notesCol = headers.indexOf('Notes');
+        sheet.getRange(i + 1, notesCol + 1).setValue(data.notes);
+      }
+
+      if (data.dueDate) {
+        const dueCol = headers.indexOf('Due_Date');
+        sheet.getRange(i + 1, dueCol + 1).setValue(data.dueDate);
+      }
+
+      // Update timestamp
+      const updatedCol = headers.indexOf('Updated_At');
+      sheet.getRange(i + 1, updatedCol + 1).setValue(now);
+
+      logAuditEvent('Update', 'AccountantTask', data.taskId, null, data);
+
+      return { success: true, message: 'Task updated' };
+    }
+  }
+
+  return { success: false, error: 'Task not found' };
+}
+
+/**
+ * Add a manual task
+ */
+function addAccountantTask(data) {
+  if (!data.title) {
+    return { success: false, error: 'Title is required' };
+  }
+
+  const sheet = getOrCreateSheet(ACCOUNTING_SHEETS.ACCOUNTANT_TASKS, ACCOUNTANT_TASK_HEADERS);
+  const now = new Date().toISOString();
+
+  const taskId = 'TASK-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd-HHmmss') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+
+  const task = {
+    Task_ID: taskId,
+    Title: data.title,
+    Description: data.description || '',
+    Category: data.category || 'MANUAL',
+    Priority: data.priority || 'MEDIUM',
+    Status: 'PENDING',
+    Source_Type: 'MANUAL',
+    Source_ID: '',
+    Source_Date: now,
+    Due_Date: data.dueDate || calculateDueDate(data.priority || 'MEDIUM', now),
+    Assigned_To: data.assignedTo || 'Owner',
+    Created_At: now,
+    Updated_At: now,
+    Completed_At: '',
+    Completed_By: '',
+    Notes: data.notes || '',
+    Recurring: data.recurring || false,
+    Recurrence_Pattern: data.recurrencePattern || ''
+  };
+
+  sheet.appendRow(Object.values(task));
+
+  logAuditEvent('Create', 'AccountantTask', taskId, null, task);
+
+  return {
+    success: true,
+    taskId: taskId,
+    task: task
+  };
+}
+
+/**
+ * Get task dashboard - summary of all tasks
+ */
+function getTasksDashboard() {
+  const tasks = getAccountantTasks({}).data;
+
+  // Count by status
+  const byStatus = {
+    PENDING: tasks.filter(t => t.Status === 'PENDING').length,
+    IN_PROGRESS: tasks.filter(t => t.Status === 'IN_PROGRESS').length,
+    COMPLETED: tasks.filter(t => t.Status === 'COMPLETED').length,
+    BLOCKED: tasks.filter(t => t.Status === 'BLOCKED').length
+  };
+
+  // Count by priority
+  const byPriority = {
+    CRITICAL: tasks.filter(t => t.Priority === 'CRITICAL' && t.Status !== 'COMPLETED').length,
+    HIGH: tasks.filter(t => t.Priority === 'HIGH' && t.Status !== 'COMPLETED').length,
+    MEDIUM: tasks.filter(t => t.Priority === 'MEDIUM' && t.Status !== 'COMPLETED').length,
+    LOW: tasks.filter(t => t.Priority === 'LOW' && t.Status !== 'COMPLETED').length
+  };
+
+  // Count by category
+  const byCategory = {};
+  tasks.filter(t => t.Status !== 'COMPLETED').forEach(t => {
+    byCategory[t.Category] = (byCategory[t.Category] || 0) + 1;
+  });
+
+  // Overdue tasks
+  const today = new Date().toISOString().split('T')[0];
+  const overdue = tasks.filter(t => t.Status !== 'COMPLETED' && t.Due_Date && t.Due_Date < today);
+
+  // Due this week
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const nextWeekStr = nextWeek.toISOString().split('T')[0];
+  const dueThisWeek = tasks.filter(t => t.Status !== 'COMPLETED' && t.Due_Date && t.Due_Date >= today && t.Due_Date <= nextWeekStr);
+
+  // Top pending tasks (sorted by priority)
+  const pendingTasks = tasks
+    .filter(t => t.Status === 'PENDING' || t.Status === 'IN_PROGRESS')
+    .slice(0, 10);
+
+  return {
+    success: true,
+    dashboard: {
+      summary: {
+        totalTasks: tasks.length,
+        activeTasks: tasks.filter(t => t.Status !== 'COMPLETED').length,
+        completedTasks: byStatus.COMPLETED,
+        overdueCount: overdue.length,
+        dueThisWeek: dueThisWeek.length
+      },
+      byStatus: byStatus,
+      byPriority: byPriority,
+      byCategory: byCategory,
+      overdueTasks: overdue.map(t => ({
+        taskId: t.Task_ID,
+        title: t.Title,
+        priority: t.Priority,
+        dueDate: t.Due_Date,
+        daysOverdue: Math.floor((new Date() - new Date(t.Due_Date)) / (1000 * 60 * 60 * 24))
+      })),
+      upcomingTasks: dueThisWeek.map(t => ({
+        taskId: t.Task_ID,
+        title: t.Title,
+        priority: t.Priority,
+        dueDate: t.Due_Date
+      })),
+      topPendingTasks: pendingTasks.map(t => ({
+        taskId: t.Task_ID,
+        title: t.Title,
+        category: t.Category,
+        priority: t.Priority,
+        status: t.Status,
+        dueDate: t.Due_Date,
+        description: t.Description
+      })),
+      generatedAt: new Date().toISOString()
+    }
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

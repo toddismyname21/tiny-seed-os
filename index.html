@@ -6,6 +6,7 @@
     <title>Tiny Seed OS - Farm Management Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
     <style>
         :root {
             --primary: #2d5a27;
@@ -2633,6 +2634,26 @@
                     <i class="fas fa-table"></i>
                     <span>Planning Grid</span>
                 </a>
+                <a class="nav-item" href="succession.html">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Succession Wizard</span>
+                </a>
+                <a class="nav-item" href="bed_assignment_COMPLETE.html">
+                    <i class="fas fa-th-large"></i>
+                    <span>Bed Assignment</span>
+                </a>
+                <a class="nav-item" href="web_app/field-planner.html">
+                    <i class="fas fa-map"></i>
+                    <span>Field Planner</span>
+                </a>
+                <a class="nav-item" href="gantt_FINAL.html">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Gantt - Fields</span>
+                </a>
+                <a class="nav-item" href="gantt_CROP_VIEW_FINAL.html">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Gantt - Crops</span>
+                </a>
             </div>
 
             <div class="nav-section">
@@ -2641,17 +2662,53 @@
                     <i class="fas fa-seedling"></i>
                     <span>Greenhouse</span>
                 </a>
+                <a class="nav-item" href="seed_inventory_PRODUCTION.html">
+                    <i class="fas fa-boxes"></i>
+                    <span>Seed Inventory</span>
+                </a>
+                <a class="nav-item" href="flowers.html">
+                    <i class="fas fa-spa"></i>
+                    <span>Flower Operations</span>
+                </a>
                 <a class="nav-item" href="labels.html">
                     <i class="fas fa-tag"></i>
                     <span>Labels</span>
                 </a>
+                <a class="nav-item" href="greenhouse_labels_PRODUCTION (1).html">
+                    <i class="fas fa-tags"></i>
+                    <span>GH Labels</span>
+                </a>
             </div>
 
             <div class="nav-section">
-                <div class="nav-section-title">Sales & Delivery</div>
+                <div class="nav-section-title">Operations</div>
+                <a class="nav-item" href="farm-operations.html">
+                    <i class="fas fa-tractor"></i>
+                    <span>Farm Operations</span>
+                </a>
+                <a class="nav-item" href="track.html">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Tracking</span>
+                </a>
+                <a class="nav-item" href="field_app_mobile.html">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>Field Kiosk</span>
+                </a>
+                <a class="nav-item" href="smart_learning_DTM.html">
+                    <i class="fas fa-brain"></i>
+                    <span>DTM Learning</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Sales & Marketing</div>
                 <a class="nav-item" href="web_app/sales.html">
                     <i class="fas fa-chart-line"></i>
                     <span>Sales Dashboard</span>
+                </a>
+                <a class="nav-item" href="web_app/marketing-command-center.html">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Marketing Center</span>
                 </a>
                 <a class="nav-item" href="web_app/driver.html">
                     <i class="fas fa-truck"></i>
@@ -2661,18 +2718,34 @@
                     <i class="fas fa-shopping-cart"></i>
                     <span>Customer Portal</span>
                 </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Team</div>
                 <a class="nav-item" href="employee.html">
                     <i class="fas fa-user-clock"></i>
                     <span>Employee App</span>
                 </a>
             </div>
 
-            <div class="nav-section">
+            <div class="nav-section" data-role="Admin">
                 <div class="nav-section-title">Finance</div>
                 <a class="nav-item" href="web_app/wealth-builder.html">
                     <i class="fas fa-chart-pie"></i>
                     <span>Wealth Builder</span>
                     <span class="badge success">NEW</span>
+                </a>
+                <a class="nav-item" href="web_app/financial-dashboard.html">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>Financial Dashboard</span>
+                </a>
+            </div>
+
+            <div class="nav-section" data-role="Admin">
+                <div class="nav-section-title">Admin</div>
+                <a class="nav-item" href="web_app/admin.html">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Admin Panel</span>
                 </a>
             </div>
 
@@ -3452,7 +3525,7 @@
         // ========================================
         // CONFIGURATION
         // ========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
 
         // State
         let allPlantings = [];

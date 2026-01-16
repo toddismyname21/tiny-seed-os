@@ -11,16 +11,23 @@
 const CROP_FIELD_DAYS = {
   // Quick turnover (under 45 days)
   'Radish': { min: 21, max: 35, harvestWindow: 14, multiHarvest: false },
-  'Arugula': { min: 20, max: 45, harvestWindow: 25, multiHarvest: true },
+  'Sora Radish': { min: 25, max: 30, harvestWindow: 14, multiHarvest: false },
+  'French Breakfast': { min: 25, max: 30, harvestWindow: 14, multiHarvest: false },
+  'Rover Radish': { min: 25, max: 30, harvestWindow: 14, multiHarvest: false },
+  'Arugula': { min: 25, max: 30, harvestWindow: 14, multiHarvest: true },
   'Baby Greens': { min: 21, max: 35, harvestWindow: 14, multiHarvest: true },
   'Spinach': { min: 30, max: 50, harvestWindow: 20, multiHarvest: true },
+  'Yuma Spinach': { min: 25, max: 30, harvestWindow: 14, multiHarvest: true },
+  'Pawnee Spinach': { min: 25, max: 30, harvestWindow: 14, multiHarvest: true },
   'Lettuce': { min: 30, max: 60, harvestWindow: 30, multiHarvest: true },
   'Mesclun': { min: 21, max: 35, harvestWindow: 14, multiHarvest: true },
+  'Something Fresh Mix': { min: 25, max: 30, harvestWindow: 14, multiHarvest: true },
   'Mustard Greens': { min: 25, max: 45, harvestWindow: 20, multiHarvest: true },
   'Mizuna': { min: 21, max: 40, harvestWindow: 19, multiHarvest: true },
   'Tat Soi': { min: 25, max: 45, harvestWindow: 20, multiHarvest: true },
   'Cilantro': { min: 21, max: 45, harvestWindow: 24, multiHarvest: true },
   'Dill': { min: 25, max: 50, harvestWindow: 25, multiHarvest: true },
+  'Petite Kale Mix': { min: 25, max: 30, harvestWindow: 14, multiHarvest: true },
 
   // Medium (45-75 days)
   'Bush Beans': { min: 50, max: 75, harvestWindow: 21, multiHarvest: true },
@@ -70,13 +77,13 @@ const CROP_FIELD_DAYS = {
  */
 const CROP_FAMILIES = {
   'Solanaceae': ['Tomatoes', 'Cherry Tomatoes', 'Peppers', 'Sweet Peppers', 'Hot Peppers', 'Eggplant', 'Potatoes', 'Tomatillos'],
-  'Brassicaceae': ['Broccoli', 'Cabbage', 'Cauliflower', 'Kale', 'Brussels Sprouts', 'Collards', 'Kohlrabi', 'Radish', 'Turnips', 'Arugula', 'Bok Choy', 'Mustard Greens', 'Mizuna', 'Tat Soi'],
+  'Brassicaceae': ['Broccoli', 'Cabbage', 'Cauliflower', 'Kale', 'Petite Kale Mix', 'Brussels Sprouts', 'Collards', 'Kohlrabi', 'Radish', 'Sora Radish', 'French Breakfast', 'Rover Radish', 'Turnips', 'Arugula', 'Bok Choy', 'Mustard Greens', 'Mizuna', 'Tat Soi'],
   'Cucurbitaceae': ['Cucumber', 'Zucchini', 'Summer Squash', 'Winter Squash', 'Butternut Squash', 'Pumpkins', 'Melons', 'Watermelon'],
   'Fabaceae': ['Bush Beans', 'Snap Beans', 'Pole Beans', 'Peas', 'Snow Peas', 'Snap Peas'],
   'Alliaceae': ['Onions', 'Garlic', 'Leeks', 'Shallots', 'Scallions', 'Chives'],
   'Apiaceae': ['Carrots', 'Celery', 'Parsnips', 'Parsley', 'Fennel', 'Dill', 'Cilantro'],
-  'Amaranthaceae': ['Beets', 'Spinach', 'Swiss Chard'],
-  'Asteraceae': ['Lettuce', 'Endive', 'Radicchio', 'Sunflowers', 'Artichokes'],
+  'Amaranthaceae': ['Beets', 'Spinach', 'Yuma Spinach', 'Pawnee Spinach', 'Swiss Chard'],
+  'Asteraceae': ['Lettuce', 'Endive', 'Radicchio', 'Sunflowers', 'Artichokes', 'Something Fresh Mix', 'Mesclun'],
   'Poaceae': ['Corn', 'Sweet Corn']
 };
 
@@ -121,6 +128,285 @@ const FIELD_TIME_GROUPS = {
   'Long':     { min: 100, max: 130, label: 'Long Season (100-130 days)', color: '#ef4444' },
   'VeryLong': { min: 130, max: 999, label: 'Very Long Season (130+ days)', color: '#8b5cf6' }
 };
+
+/**
+ * SEASONAL DTM ADJUSTMENT SYSTEM
+ * Crops take longer to mature in cooler seasons (early spring, late fall)
+ * This system adjusts DTM based on planting date
+ */
+
+/**
+ * Season definitions with date ranges (month-day format)
+ * Based on Zelienople, PA climate (Zone 6a)
+ */
+const SEASON_BOUNDARIES = {
+  'EarlySpring': { start: '03-01', end: '04-30', label: 'Early Spring (Mar-Apr)' },
+  'LateSpring':  { start: '05-01', end: '05-31', label: 'Late Spring (May)' },
+  'Summer':      { start: '06-01', end: '08-15', label: 'Summer (Jun-Aug 15)' },
+  'LateSummer':  { start: '08-16', end: '09-15', label: 'Late Summer (Aug 16-Sep 15)' },
+  'Fall':        { start: '09-16', end: '10-31', label: 'Fall (Sep 16-Oct)' },
+  'LateFall':    { start: '11-01', end: '11-30', label: 'Late Fall (Nov)' }
+};
+
+/**
+ * Default DTM multipliers by season
+ * Crops take longer when days are shorter and temps are cooler
+ * Summer = baseline (1.0), other seasons add time
+ */
+const SEASONAL_DTM_MULTIPLIERS = {
+  'EarlySpring': 1.35,  // 35% longer - cold soil, short days
+  'LateSpring':  1.15,  // 15% longer - warming up
+  'Summer':      1.0,   // Baseline - optimal growing conditions
+  'LateSummer':  1.1,   // 10% longer - days shortening
+  'Fall':        1.25,  // 25% longer - cooling temps
+  'LateFall':    1.5    // 50% longer - cold, short days
+};
+
+/**
+ * Determine which season a date falls into
+ * @param {Date|string} date - The planting date
+ * @returns {string} Season name (EarlySpring, LateSpring, Summer, etc.)
+ */
+function getSeasonFromDate(date) {
+  if (!date) return 'Summer'; // Default to summer if no date
+
+  var d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return 'Summer';
+
+  var month = d.getMonth() + 1; // 0-indexed
+  var day = d.getDate();
+  var mmdd = String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+
+  for (var season in SEASON_BOUNDARIES) {
+    var bounds = SEASON_BOUNDARIES[season];
+    if (mmdd >= bounds.start && mmdd <= bounds.end) {
+      return season;
+    }
+  }
+
+  // Winter months default to EarlySpring multiplier (slowest growth)
+  return 'EarlySpring';
+}
+
+/**
+ * Get seasonally-adjusted field days for a crop
+ *
+ * PRIORITY ORDER (best to fallback):
+ * 1. LEARNED DATA - Real harvest data from DTM_LEARNING sheet (most accurate)
+ * 2. CROP PROFILE - DTM_Spring/Summer/Fall from CROPS sheet (configured)
+ * 3. DEFAULT MULTIPLIER - Guessed seasonal factors (fallback only)
+ *
+ * @param {string} cropName - Name of the crop
+ * @param {Date|string} plantingDate - When the crop will be planted in the field
+ * @returns {Object} Adjusted field days { min, max, harvestWindow, multiHarvest, season, multiplier, adjusted, source }
+ */
+function getSeasonalFieldDays(cropName, plantingDate) {
+  // Get base field days from constants
+  var baseFieldDays = getDefaultFieldDays(cropName);
+  var season = getSeasonFromDate(plantingDate);
+  var multiplier = SEASONAL_DTM_MULTIPLIERS[season] || 1.0;
+
+  // PRIORITY 1: Check for LEARNED DATA from actual harvests
+  var learnedData = getLearnedDTMForCrop(cropName, season);
+  if (learnedData && learnedData.samples >= 3) {
+    // Use learned data if we have at least 3 samples for reliability
+    return {
+      min: learnedData.min,
+      max: learnedData.max,
+      harvestWindow: baseFieldDays.harvestWindow,
+      multiHarvest: baseFieldDays.multiHarvest,
+      season: season,
+      seasonLabel: SEASON_BOUNDARIES[season] ? SEASON_BOUNDARIES[season].label : season,
+      multiplier: 1.0,
+      adjusted: true,
+      source: 'learned_data',
+      samples: learnedData.samples,
+      avgDTM: learnedData.avgDTM
+    };
+  }
+
+  // PRIORITY 2: Try crop-specific seasonal DTM from CROPS sheet
+  var cropSeasonalDTM = getCropSeasonalDTM(cropName);
+  if (cropSeasonalDTM) {
+    var seasonalDTM = null;
+    if ((season === 'EarlySpring' || season === 'LateSpring') && cropSeasonalDTM.spring) {
+      seasonalDTM = cropSeasonalDTM.spring;
+    } else if ((season === 'Summer' || season === 'LateSummer') && cropSeasonalDTM.summer) {
+      seasonalDTM = cropSeasonalDTM.summer;
+    } else if ((season === 'Fall' || season === 'LateFall') && cropSeasonalDTM.fall) {
+      seasonalDTM = cropSeasonalDTM.fall;
+    }
+
+    if (seasonalDTM) {
+      return {
+        min: Math.round(seasonalDTM * 0.85),
+        max: Math.round(seasonalDTM * 1.15),
+        harvestWindow: baseFieldDays.harvestWindow,
+        multiHarvest: baseFieldDays.multiHarvest,
+        season: season,
+        seasonLabel: SEASON_BOUNDARIES[season] ? SEASON_BOUNDARIES[season].label : season,
+        multiplier: 1.0,
+        adjusted: true,
+        source: 'crop_profile'
+      };
+    }
+  }
+
+  // PRIORITY 3: Apply default seasonal multiplier (guessed - least reliable)
+  return {
+    min: Math.round(baseFieldDays.min * multiplier),
+    max: Math.round(baseFieldDays.max * multiplier),
+    harvestWindow: baseFieldDays.harvestWindow,
+    multiHarvest: baseFieldDays.multiHarvest,
+    season: season,
+    seasonLabel: SEASON_BOUNDARIES[season] ? SEASON_BOUNDARIES[season].label : season,
+    multiplier: multiplier,
+    adjusted: multiplier !== 1.0,
+    source: 'default_multiplier'
+  };
+}
+
+/**
+ * Get learned DTM data for a specific crop and season from DTM_LEARNING sheet
+ * This is the internal function used by getSeasonalFieldDays
+ *
+ * @param {string} cropName - Name of the crop
+ * @param {string} season - Season to filter by
+ * @returns {Object|null} { avgDTM, min, max, samples } or null if not enough data
+ */
+function getLearnedDTMForCrop(cropName, season) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var dtmSheet = ss.getSheetByName('DTM_LEARNING');
+
+    if (!dtmSheet || dtmSheet.getLastRow() < 2) {
+      return null;
+    }
+
+    var data = dtmSheet.getDataRange().getValues();
+    var headers = data[0];
+
+    var cropCol = headers.indexOf('Crop');
+    var actualDTMCol = headers.indexOf('Actual_DTM');
+    var seasonCol = headers.indexOf('Season');
+
+    if (cropCol === -1 || actualDTMCol === -1) return null;
+
+    var normalizedCrop = String(cropName).toLowerCase().trim();
+    var dtmValues = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var rowCrop = String(data[i][cropCol]).toLowerCase().trim();
+      var rowSeason = String(data[i][seasonCol]).trim();
+      var rowDTM = Number(data[i][actualDTMCol]);
+
+      if (rowCrop === normalizedCrop && rowSeason === season && rowDTM > 0) {
+        dtmValues.push(rowDTM);
+      }
+    }
+
+    if (dtmValues.length === 0) return null;
+
+    var avgDTM = Math.round(dtmValues.reduce(function(a, b) { return a + b; }, 0) / dtmValues.length);
+    var minDTM = Math.min.apply(null, dtmValues);
+    var maxDTM = Math.max.apply(null, dtmValues);
+
+    return {
+      avgDTM: avgDTM,
+      min: minDTM,
+      max: maxDTM,
+      samples: dtmValues.length
+    };
+
+  } catch (e) {
+    Logger.log('Error getting learned DTM: ' + e);
+    return null;
+  }
+}
+
+/**
+ * Get crop-specific seasonal DTM from CROPS sheet
+ * @param {string} cropName - Name of the crop
+ * @returns {Object|null} { spring, summer, fall, average } or null if not found
+ */
+function getCropSeasonalDTM(cropName) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('CROPS');
+    if (!sheet) return null;
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+
+    var cropCol = headers.indexOf('Crop_Name');
+    var springCol = headers.indexOf('DTM_Spring');
+    var summerCol = headers.indexOf('DTM_Summer');
+    var fallCol = headers.indexOf('DTM_Fall');
+    var avgCol = headers.indexOf('DTM_Average');
+
+    if (cropCol === -1) return null;
+
+    var normalizedCrop = String(cropName).toLowerCase().trim();
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][cropCol]).toLowerCase().trim() === normalizedCrop) {
+        return {
+          spring: springCol >= 0 ? Number(data[i][springCol]) || null : null,
+          summer: summerCol >= 0 ? Number(data[i][summerCol]) || null : null,
+          fall: fallCol >= 0 ? Number(data[i][fallCol]) || null : null,
+          average: avgCol >= 0 ? Number(data[i][avgCol]) || null : null
+        };
+      }
+    }
+    return null;
+  } catch (e) {
+    Logger.log('Error getting crop seasonal DTM: ' + e);
+    return null;
+  }
+}
+
+/**
+ * API endpoint: Get seasonal DTM information for a crop and date
+ */
+function getSeasonalDTMInfo(params) {
+  try {
+    var crop = params.crop || params.cropName;
+    var date = params.date || params.plantingDate || new Date();
+
+    if (!crop) {
+      return { success: false, error: 'Crop name required' };
+    }
+
+    var fieldDays = getSeasonalFieldDays(crop, date);
+    var season = getSeasonFromDate(date);
+
+    return {
+      success: true,
+      crop: crop,
+      date: date instanceof Date ? date.toISOString().split('T')[0] : date,
+      season: season,
+      seasonLabel: SEASON_BOUNDARIES[season] ? SEASON_BOUNDARIES[season].label : season,
+      multiplier: fieldDays.multiplier,
+      adjusted: fieldDays.adjusted,
+      source: fieldDays.source,
+      fieldDays: {
+        min: fieldDays.min,
+        max: fieldDays.max,
+        harvestWindow: fieldDays.harvestWindow,
+        multiHarvest: fieldDays.multiHarvest
+      },
+      allSeasons: Object.keys(SEASONAL_DTM_MULTIPLIERS).map(function(s) {
+        return {
+          season: s,
+          label: SEASON_BOUNDARIES[s] ? SEASON_BOUNDARIES[s].label : s,
+          multiplier: SEASONAL_DTM_MULTIPLIERS[s]
+        };
+      })
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
 
 /**
  * Get the crop family for a given crop name
@@ -2258,6 +2544,468 @@ function testUnassignedAnalysis() {
   Logger.log('Succession opportunities: ' + result.successionOpportunities.totalGapsFound);
 
   Logger.log('=== Test Complete ===');
+}
+
+// =============================================================================
+// ASSIGN PLANTINGS TO SPECIFIC FIELD
+// =============================================================================
+
+/**
+ * Assign selected plantings to a specific field
+ * Works around existing plantings and optimizes bed assignments
+ *
+ * @param {Object} params
+ * @param {string[]} params.batchIds - Array of batch IDs to assign
+ * @param {string} params.targetField - Field name to assign to
+ * @param {boolean} params.apply - If true, apply changes. If false, just preview
+ * @returns {Object} Assignment results with preview or applied changes
+ */
+function assignPlantingsToField(params) {
+  var batchIds = params.batchIds;
+  var targetField = params.targetField;
+  var applyChanges = params.apply === true || params.apply === 'true';
+
+  if (!batchIds || !Array.isArray(batchIds) || batchIds.length === 0) {
+    // Try parsing as JSON string
+    if (typeof params.batchIds === 'string') {
+      try {
+        batchIds = JSON.parse(params.batchIds);
+      } catch (e) {
+        return { success: false, error: 'batchIds must be an array of batch IDs' };
+      }
+    } else {
+      return { success: false, error: 'batchIds must be an array of batch IDs' };
+    }
+  }
+
+  if (!targetField) {
+    return { success: false, error: 'targetField is required' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var planSheet = ss.getSheetByName('PLANNING_2026');
+  var bedSheet = ss.getSheetByName('REF_Beds');
+
+  if (!planSheet || !bedSheet) {
+    return { success: false, error: 'Required sheets not found' };
+  }
+
+  // Get beds in target field
+  var bedData = bedSheet.getDataRange().getValues();
+  var bedHeaders = bedData[0];
+  var bedIdCol = bedHeaders.indexOf('Bed_ID') !== -1 ? bedHeaders.indexOf('Bed_ID') : 0;
+  var bedFieldCol = bedHeaders.indexOf('Field') !== -1 ? bedHeaders.indexOf('Field') : 1;
+  var bedLengthCol = bedHeaders.indexOf('Length_Feet') !== -1 ? bedHeaders.indexOf('Length_Feet') : 3;
+  var bedStatusCol = bedHeaders.indexOf('Status') !== -1 ? bedHeaders.indexOf('Status') : 4;
+
+  var fieldBeds = [];
+  for (var i = 1; i < bedData.length; i++) {
+    var field = bedData[i][bedFieldCol];
+    var status = bedData[i][bedStatusCol];
+
+    if (field === targetField && status !== 'Inactive' && status !== 'Reserved') {
+      fieldBeds.push({
+        bedId: bedData[i][bedIdCol],
+        field: field,
+        length: Number(bedData[i][bedLengthCol]) || 100,
+        occupiedPeriods: [],
+        availableGaps: []
+      });
+    }
+  }
+
+  if (fieldBeds.length === 0) {
+    return { success: false, error: 'No available beds found in field: ' + targetField };
+  }
+
+  // Get planning data
+  var planData = planSheet.getDataRange().getValues();
+  var planHeaders = planData[0];
+
+  var statusCol = planHeaders.indexOf('STATUS');
+  var batchCol = planHeaders.indexOf('Batch_ID');
+  var cropCol = planHeaders.indexOf('Crop');
+  var varietyCol = planHeaders.indexOf('Variety');
+  var bedCol = planHeaders.indexOf('Target_Bed_ID');
+  var transplantCol = planHeaders.indexOf('Transplant_Date');
+  var fieldSowCol = planHeaders.indexOf('Field_Sow_Date');
+  var firstHarvestCol = planHeaders.indexOf('First_Harvest');
+  var lastHarvestCol = planHeaders.indexOf('Last_Harvest');
+  var feetCol = planHeaders.indexOf('Bed_Feet');
+
+  // Build bed occupancy from existing plantings
+  for (var i = 1; i < planData.length; i++) {
+    var row = planData[i];
+    var existingBedId = row[bedCol];
+    var status = row[statusCol];
+
+    if (!existingBedId || status === 'Completed' || status === 'Cancelled') continue;
+
+    // Find if this bed is in our target field
+    for (var b = 0; b < fieldBeds.length; b++) {
+      if (fieldBeds[b].bedId === existingBedId) {
+        var fieldStart = row[transplantCol] || row[fieldSowCol];
+        var lastHarvest = row[lastHarvestCol];
+
+        if (fieldStart) {
+          var startDate = new Date(fieldStart);
+          var endDate = lastHarvest ? new Date(lastHarvest) : new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+          fieldBeds[b].occupiedPeriods.push({
+            batchId: row[batchCol],
+            crop: row[cropCol],
+            start: startDate,
+            end: endDate,
+            family: getCropFamily(row[cropCol])
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  // Get plantings to assign
+  var plantingsToAssign = [];
+  var plantingRows = {}; // Map batchId to row index
+
+  for (var i = 1; i < planData.length; i++) {
+    var row = planData[i];
+    var batchId = row[batchCol];
+
+    if (batchIds.indexOf(batchId) !== -1) {
+      var fieldDays = getDefaultFieldDays(row[cropCol]);
+      var fieldStart = row[transplantCol] || row[fieldSowCol];
+
+      plantingsToAssign.push({
+        batchId: batchId,
+        crop: row[cropCol],
+        variety: row[varietyCol],
+        bedFeet: Number(row[feetCol]) || 50,
+        fieldStart: fieldStart ? new Date(fieldStart) : null,
+        lastHarvest: row[lastHarvestCol] ? new Date(row[lastHarvestCol]) : null,
+        fieldDaysMin: fieldDays.min,
+        fieldDaysMax: fieldDays.max,
+        fieldTimeGroup: getFieldTimeGroup(fieldDays.max).group,
+        family: getCropFamily(row[cropCol]),
+        currentBed: row[bedCol]
+      });
+
+      plantingRows[batchId] = i + 1; // 1-indexed row
+    }
+  }
+
+  if (plantingsToAssign.length === 0) {
+    return { success: false, error: 'No matching plantings found for provided batch IDs' };
+  }
+
+  // Sort plantings by field time group and then by start date
+  var groupOrder = { 'Quick': 0, 'Short': 1, 'Medium': 2, 'Long': 3, 'VeryLong': 4 };
+  plantingsToAssign.sort(function(a, b) {
+    var groupDiff = (groupOrder[a.fieldTimeGroup] || 5) - (groupOrder[b.fieldTimeGroup] || 5);
+    if (groupDiff !== 0) return groupDiff;
+    if (a.fieldStart && b.fieldStart) return a.fieldStart - b.fieldStart;
+    return 0;
+  });
+
+  // Calculate gaps in each bed
+  var seasonStart = new Date('2026-03-01');
+  var seasonEnd = new Date('2026-11-15');
+
+  for (var b = 0; b < fieldBeds.length; b++) {
+    var bed = fieldBeds[b];
+    var periods = bed.occupiedPeriods.sort(function(a, b) { return a.start - b.start; });
+
+    var lastEnd = seasonStart;
+
+    for (var p = 0; p < periods.length; p++) {
+      if (periods[p].start > lastEnd) {
+        bed.availableGaps.push({
+          start: new Date(lastEnd),
+          end: new Date(periods[p].start),
+          days: Math.floor((periods[p].start - lastEnd) / (24 * 60 * 60 * 1000)),
+          afterFamily: p > 0 ? periods[p-1].family : null
+        });
+      }
+      if (periods[p].end > lastEnd) {
+        lastEnd = new Date(periods[p].end);
+      }
+    }
+
+    // Gap after last period
+    if (lastEnd < seasonEnd) {
+      bed.availableGaps.push({
+        start: new Date(lastEnd),
+        end: seasonEnd,
+        days: Math.floor((seasonEnd - lastEnd) / (24 * 60 * 60 * 1000)),
+        afterFamily: periods.length > 0 ? periods[periods.length - 1].family : null
+      });
+    }
+
+    // If no periods, whole season is available
+    if (periods.length === 0) {
+      bed.availableGaps = [{
+        start: seasonStart,
+        end: seasonEnd,
+        days: Math.floor((seasonEnd - seasonStart) / (24 * 60 * 60 * 1000)),
+        afterFamily: null
+      }];
+    }
+  }
+
+  // Assign plantings to beds
+  var assignments = [];
+  var unassignable = [];
+
+  for (var i = 0; i < plantingsToAssign.length; i++) {
+    var planting = plantingsToAssign[i];
+    var bestBed = null;
+    var bestScore = -999;
+    var bestGapIndex = -1;
+
+    for (var b = 0; b < fieldBeds.length; b++) {
+      var bed = fieldBeds[b];
+
+      // Check rotation compatibility with bed history
+      var rotationCheck = canPlantInBed(planting.crop, bed.bedId);
+      if (!rotationCheck.canPlant) continue;
+
+      // Find best gap in this bed
+      for (var g = 0; g < bed.availableGaps.length; g++) {
+        var gap = bed.availableGaps[g];
+
+        // Skip if gap is too small
+        if (gap.days < planting.fieldDaysMin) continue;
+
+        // Check if planting fits in this time window
+        if (planting.fieldStart) {
+          if (planting.fieldStart < gap.start || planting.fieldStart > gap.end) continue;
+        }
+
+        var score = 50; // Base score for fitting
+
+        // Bonus for rotation compatibility
+        if (gap.afterFamily) {
+          var compat = ROTATION_COMPATIBILITY[gap.afterFamily] ?
+            ROTATION_COMPATIBILITY[gap.afterFamily][planting.family] || 1 : 1;
+          score += compat * 10;
+        }
+
+        // Bonus for same field time group as other crops in bed
+        for (var p = 0; p < bed.occupiedPeriods.length; p++) {
+          var occupiedCrop = bed.occupiedPeriods[p].crop;
+          var occupiedFieldDays = getDefaultFieldDays(occupiedCrop);
+          var occupiedGroup = getFieldTimeGroup(occupiedFieldDays.max).group;
+          if (occupiedGroup === planting.fieldTimeGroup) {
+            score += 15;
+            break;
+          }
+        }
+
+        // Slight penalty for beds that are already very full
+        if (bed.occupiedPeriods.length >= 3) {
+          score -= 10;
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestBed = bed;
+          bestGapIndex = g;
+        }
+      }
+    }
+
+    if (bestBed && bestGapIndex >= 0) {
+      var assignment = {
+        batchId: planting.batchId,
+        crop: planting.crop,
+        variety: planting.variety,
+        fieldTimeGroup: planting.fieldTimeGroup,
+        fromBed: planting.currentBed || 'Unassigned',
+        toBed: bestBed.bedId,
+        score: bestScore,
+        rowIndex: plantingRows[planting.batchId]
+      };
+
+      assignments.push(assignment);
+
+      // Update bed occupancy for subsequent assignments
+      var plantingEnd = planting.lastHarvest ||
+        (planting.fieldStart ? new Date(planting.fieldStart.getTime() + planting.fieldDaysMax * 24 * 60 * 60 * 1000) :
+         new Date(bestBed.availableGaps[bestGapIndex].start.getTime() + planting.fieldDaysMax * 24 * 60 * 60 * 1000));
+
+      bestBed.occupiedPeriods.push({
+        batchId: planting.batchId,
+        crop: planting.crop,
+        start: planting.fieldStart || bestBed.availableGaps[bestGapIndex].start,
+        end: plantingEnd,
+        family: planting.family
+      });
+
+      // Recalculate gaps for this bed
+      recalculateBedGaps(bestBed, seasonStart, seasonEnd);
+
+    } else {
+      unassignable.push({
+        batchId: planting.batchId,
+        crop: planting.crop,
+        reason: 'No suitable bed/gap found in ' + targetField
+      });
+    }
+  }
+
+  // Apply changes if requested
+  if (applyChanges && assignments.length > 0) {
+    for (var i = 0; i < assignments.length; i++) {
+      var a = assignments[i];
+      planSheet.getRange(a.rowIndex, bedCol + 1).setValue(a.toBed);
+    }
+  }
+
+  // Group assignments by field time for summary
+  var assignmentsByGroup = {};
+  for (var i = 0; i < assignments.length; i++) {
+    var group = assignments[i].fieldTimeGroup;
+    if (!assignmentsByGroup[group]) assignmentsByGroup[group] = [];
+    assignmentsByGroup[group].push(assignments[i]);
+  }
+
+  return {
+    success: true,
+    applied: applyChanges,
+    targetField: targetField,
+    bedsInField: fieldBeds.length,
+    totalRequested: batchIds.length,
+    totalAssigned: assignments.length,
+    totalUnassignable: unassignable.length,
+    assignments: assignments,
+    assignmentsByGroup: assignmentsByGroup,
+    unassignable: unassignable,
+    message: applyChanges ?
+      'Applied ' + assignments.length + ' bed assignments to ' + targetField :
+      'Preview: ' + assignments.length + ' plantings can be assigned to ' + targetField + '. Call with apply=true to save.'
+  };
+}
+
+/**
+ * Helper: Recalculate available gaps for a bed after adding a planting
+ */
+function recalculateBedGaps(bed, seasonStart, seasonEnd) {
+  var periods = bed.occupiedPeriods.sort(function(a, b) { return a.start - b.start; });
+  bed.availableGaps = [];
+
+  var lastEnd = seasonStart;
+
+  for (var p = 0; p < periods.length; p++) {
+    if (periods[p].start > lastEnd) {
+      bed.availableGaps.push({
+        start: new Date(lastEnd),
+        end: new Date(periods[p].start),
+        days: Math.floor((periods[p].start - lastEnd) / (24 * 60 * 60 * 1000)),
+        afterFamily: p > 0 ? periods[p-1].family : null
+      });
+    }
+    if (periods[p].end > lastEnd) {
+      lastEnd = new Date(periods[p].end);
+    }
+  }
+
+  if (lastEnd < seasonEnd) {
+    bed.availableGaps.push({
+      start: new Date(lastEnd),
+      end: seasonEnd,
+      days: Math.floor((seasonEnd - lastEnd) / (24 * 60 * 60 * 1000)),
+      afterFamily: periods.length > 0 ? periods[periods.length - 1].family : null
+    });
+  }
+}
+
+/**
+ * Get list of available fields
+ */
+function getAvailableFields(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var bedSheet = ss.getSheetByName('REF_Beds');
+  var planSheet = ss.getSheetByName('PLANNING_2026');
+
+  if (!bedSheet) {
+    return { success: false, error: 'REF_Beds sheet not found' };
+  }
+
+  var bedData = bedSheet.getDataRange().getValues();
+  var bedHeaders = bedData[0];
+  var bedIdCol = bedHeaders.indexOf('Bed_ID') !== -1 ? bedHeaders.indexOf('Bed_ID') : 0;
+  var bedFieldCol = bedHeaders.indexOf('Field') !== -1 ? bedHeaders.indexOf('Field') : 1;
+  var bedLengthCol = bedHeaders.indexOf('Length_Feet') !== -1 ? bedHeaders.indexOf('Length_Feet') : 3;
+  var bedStatusCol = bedHeaders.indexOf('Status') !== -1 ? bedHeaders.indexOf('Status') : 4;
+
+  var fields = {};
+
+  for (var i = 1; i < bedData.length; i++) {
+    var field = bedData[i][bedFieldCol];
+    var status = bedData[i][bedStatusCol];
+    var length = Number(bedData[i][bedLengthCol]) || 100;
+
+    if (!field) continue;
+
+    if (!fields[field]) {
+      fields[field] = {
+        name: field,
+        totalBeds: 0,
+        activeBeds: 0,
+        totalFeet: 0,
+        activeFeet: 0,
+        currentPlantings: 0
+      };
+    }
+
+    fields[field].totalBeds++;
+    fields[field].totalFeet += length;
+
+    if (status !== 'Inactive' && status !== 'Reserved') {
+      fields[field].activeBeds++;
+      fields[field].activeFeet += length;
+    }
+  }
+
+  // Count current plantings per field
+  if (planSheet && planSheet.getLastRow() > 1) {
+    var planData = planSheet.getDataRange().getValues();
+    var planHeaders = planData[0];
+    var bedCol = planHeaders.indexOf('Target_Bed_ID');
+    var statusCol = planHeaders.indexOf('STATUS');
+
+    for (var i = 1; i < planData.length; i++) {
+      var bedId = planData[i][bedCol];
+      var status = planData[i][statusCol];
+
+      if (!bedId || status === 'Completed' || status === 'Cancelled') continue;
+
+      // Find which field this bed is in
+      for (var j = 1; j < bedData.length; j++) {
+        if (bedData[j][bedIdCol] === bedId) {
+          var field = bedData[j][bedFieldCol];
+          if (fields[field]) {
+            fields[field].currentPlantings++;
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  var fieldList = [];
+  for (var fieldName in fields) {
+    fieldList.push(fields[fieldName]);
+  }
+
+  // Sort by name
+  fieldList.sort(function(a, b) { return a.name.localeCompare(b.name); });
+
+  return {
+    success: true,
+    fields: fieldList,
+    totalFields: fieldList.length
+  };
 }
 
 /**

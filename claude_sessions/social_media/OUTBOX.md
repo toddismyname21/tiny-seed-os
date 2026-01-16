@@ -1,106 +1,135 @@
 # STATUS: Social Media Claude
 
-**Last Updated:** 2026-01-15 @ 6:15 PM
+**Last Updated:** 2026-01-16 @ Evening
 
 ---
 
-## CURRENT STATUS: READY FOR BACKEND DEPLOYMENT
+## CURRENT STATUS: LANDING PAGE LIVE
 
-All UI work complete. Backend code written and ready for Backend Claude to deploy.
-
----
-
-## ALL PLATFORMS CONNECTED
-
-| Platform | Account | Connected to Ayrshare |
-|----------|---------|----------------------|
-| Facebook | Tiny Seed Farm | YES |
-| Instagram | @tinyseedfarm | YES |
-| TikTok | @TinySeedEnergy | YES |
-| YouTube | Tiny Seed Farm | YES |
-| Pinterest | tinyseedfarm | YES |
-| Threads | @tinyseedfarm | (via Instagram) |
+Neighbor landing page is built, deployed, and ready for the direct mail campaign.
 
 ---
 
-## API KEY STATUS
+## JUST COMPLETED
 
-**API Key:** `1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F`
+### Landing Page: `web_app/neighbor.html`
 
-**Storage Method:** PropertiesService (secure, not in source code)
+**Live URL:** https://toddismyname21.github.io/tiny-seed-os/web_app/neighbor.html
 
-Backend Claude needs to run this ONE TIME in Apps Script editor:
-```javascript
-PropertiesService.getScriptProperties().setProperty('AYRSHARE_API_KEY', '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F');
+| Feature | Status |
+|---------|--------|
+| Hero section with "Welcome, Neighbor" | Done |
+| Farm introduction story | Done |
+| 3 offer cards (25% off, Free Tour, Neighbor Pricing) | Done |
+| Signup form (name, email, ZIP, neighborhood) | Done |
+| All target neighborhoods in dropdown | Done |
+| Campaign tracking via URL params | Done |
+| Backend API for signups | Done |
+| Duplicate email handling | Done |
+| Mobile responsive design | Done |
+
+### Target Neighborhoods Included
+- Squirrel Hill
+- Shadyside
+- Highland Park
+- Mt. Lebanon
+- Cranberry Township
+- Zelienople
+- North Hills
+- Fox Chapel
+- Sewickley
+- Upper St. Clair
+- Peters Township
+
+### Backend Endpoints Added
+```
+addNeighborSignup - Saves signup to MARKETING_NeighborSignups sheet
+getNeighborSignups - Returns all signups with neighborhood breakdown
+```
+
+### How Tracking Works
+Postcard URLs can include parameters:
+- `?n=cranberry` - Pre-selects neighborhood
+- `?campaign=feb26-cranberry` - Tracks which mailer
+- `?source=postcard` - Tracks source type
+
+Example: `tinyseedfarm.com/neighbor?n=cranberry&campaign=feb26`
+
+---
+
+## DIRECT MAIL DELIVERABLES (Complete)
+
+| File | Description | Status |
+|------|-------------|--------|
+| `DIRECT_MAIL_RESEARCH.md` | USPS programs, costs, timelines | Done |
+| `ADDRESS_TARGETING_ALGORITHM.md` | High-value address scoring system | Done |
+| `NEIGHBOR_LANDING_PAGE_SPEC.md` | Page design spec | Done |
+| `DIRECT_MAIL_CAMPAIGN_PLAN.md` | Step-by-step campaign plan | Done |
+| `MORNING_DIRECT_MAIL_BRIEF.md` | Executive summary | Done |
+| `web_app/neighbor.html` | **LIVE LANDING PAGE** | Done |
+
+---
+
+## MARKETING COMMAND CENTER (Previous Session)
+
+- [x] Stripped all fake/demo data
+- [x] Added "Update Follower Counts" manual entry
+- [x] Fixed CORS issue with follower save
+- [x] All platforms showing as connected via Ayrshare
+
+---
+
+## PENDING ITEMS
+
+### For Owner to Do
+1. **Deploy Apps Script** - Run new deployment to activate `addNeighborSignup` endpoint
+2. **Create NEIGHBOR25 promo code** - In Shopify for the 25% discount
+3. **Review landing page** - Visit the live URL and confirm it looks right
+4. **Decide on postcard design** - DIY with Canva or hire designer
+
+### Still Needs Shopify Credentials
+Email marketing integration still waiting for Shopify API token (not found in project).
+
+---
+
+## FILES CREATED THIS SESSION
+
+```
+/web_app/
+└── neighbor.html              (NEW - LIVE)
+
+/apps_script/MERGED TOTAL.js   (UPDATED)
+└── Added addNeighborSignup()
+└── Added getNeighborSignups()
 ```
 
 ---
 
-## COMPLETED THIS SESSION
+## WHAT OWNER NEEDS TO DO FOR LANDING PAGE TO WORK
 
-### PM Action Items (All Done)
-- [x] Write full `publishToAyrshare` function - in `/claude_sessions/social_media/BACKEND_CODE.md`
-- [x] Add schedule picker (date/time) - farmers can now batch content
-- [x] Add draft saving (localStorage) - don't lose work
-- [x] Add character count per platform (TikTok, Instagram, Facebook, YouTube)
-- [x] Document Ayrshare connection steps for user reference
+**CRITICAL:** The Apps Script needs a new deployment for the signup form to work!
 
-### Platform Setup
-- [x] All social accounts created
-- [x] All platforms connected to Ayrshare
-- [x] Marketing Command Center updated with all platforms
-- [x] SMS Marketing integration with Twilio
-- [x] TikTok-first Field Mode with engagement badges
-- [x] Platform Engagement Guide
-- [x] SOCIAL_CREDENTIALS.md created (secure, in .gitignore)
+1. Go to: https://script.google.com/
+2. Open the Tiny Seed OS project
+3. Click "Deploy" > "Manage deployments"
+4. Click the pencil icon on the current deployment
+5. Select "New version" from the dropdown
+6. Click "Deploy"
+7. Copy the new Web app URL (if it changed, update neighbor.html)
+
+Without this step, form submissions will fail because the new `addNeighborSignup` function isn't deployed yet.
 
 ---
 
-## FILES MODIFIED
+## NEXT STEPS (When Ready)
 
-### `/web_app/marketing-command-center.html`
-- Added schedule picker UI with datetime input
-- Added draft saving/loading with localStorage
-- Added character count display for each platform
-- Updated publishAll() to use Ayrshare API
-- TikTok-first Field Mode with tips
-
-### `/claude_sessions/social_media/BACKEND_CODE.md` (NEW)
-Contains ready-to-deploy code:
-- `publishToAyrshare()` - main posting function
-- `getAyrshareStatus()` - check connected platforms
-- `deleteAyrsharePost()` - remove posts
-- `getAyrshareAnalytics()` - analytics data
-- `logMarketingPost()` - tracking in spreadsheet
+1. Deploy Apps Script (see above)
+2. Test form submission on landing page
+3. Create postcard design in Canva
+4. Generate mailing list using algorithm
+5. Order postcards
+6. Mail them out!
 
 ---
 
-## NEXT STEPS (For Backend Claude)
-
-1. **Run API key storage** (one-time in Apps Script editor)
-2. **Add functions from BACKEND_CODE.md** to apps_script/MERGED TOTAL.js
-3. **Add endpoint handlers** to doPost switch statement
-4. **Deploy new version** with clasp
-5. **Test posting** from Marketing Command Center
-
----
-
-## CHARACTER LIMITS REFERENCE
-
-| Platform | Caption Limit |
-|----------|--------------|
-| TikTok | 2,200 chars |
-| Instagram | 2,200 chars |
-| Facebook | 63,206 chars |
-| YouTube | 5,000 chars |
-| Pinterest | 500 chars |
-
----
-
-## NOT BLOCKED
-
-All work complete on my end. Ready for Backend Claude integration.
-
----
-
-*Social Media Claude - Session Complete*
+*Social Media Claude - Landing Page Complete and Deployed*

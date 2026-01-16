@@ -6,6 +6,7 @@
     <title>Greenhouse View - Tiny Seed OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="web_app/auth-guard.js" data-required-role="Field_Lead"></script>
     <style>
         :root {
             --primary: #2d5a27;
@@ -967,6 +968,41 @@
         </div>
     </div>
 
+    <!-- Seed Lot Selection Modal (for traceability when sowing) -->
+    <div class="tray-edit-modal" id="seedLotModal">
+        <div class="tray-edit-content" style="max-width: 500px;">
+            <h3><i class="fas fa-qrcode" style="color: #f59e0b;"></i> Link Seed Lot (Optional)</h3>
+
+            <div class="tray-edit-info" style="border-left: 4px solid #f59e0b;">
+                <div class="crop-name" id="sowingCropName">Lettuce - Salanova</div>
+                <div class="batch-id" id="sowingBatchId">26-LET-001</div>
+            </div>
+
+            <div class="stock-input-group">
+                <label>Select Seed Lot for Traceability</label>
+                <select id="seedLotSelect" style="width: 100%; padding: 12px; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+                    <option value="">-- Skip (no seed lot) --</option>
+                </select>
+                <div style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+                    <i class="fas fa-info-circle"></i> Linking a seed lot enables full seed-to-sale traceability
+                </div>
+            </div>
+
+            <div class="stock-input-group" id="seedQtyGroup" style="display: none;">
+                <label>Seeds/Cells Used</label>
+                <input type="number" id="seedQtyUsed" min="1" placeholder="Auto-calculated from tray count" style="width: 100%; padding: 12px; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+            </div>
+
+            <div class="stock-modal-actions">
+                <button class="btn-cancel" onclick="closeSeedLotModal()">Cancel</button>
+                <button class="btn-save" onclick="skipSeedLotAndSow()" style="background: var(--bg-light); border: 1px solid var(--border);">Skip & Sow</button>
+                <button class="btn-save" onclick="confirmSowWithSeedLot()" style="background: #f59e0b;">
+                    <i class="fas fa-link"></i> Link & Sow
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Tray Edit Modal (for individual plantings) -->
     <div class="tray-edit-modal" id="trayEditModal">
         <div class="tray-edit-content">
@@ -1016,7 +1052,7 @@
         // ========================================
         // CONFIGURATION
         // ========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
 
         // Crop icons for display
         const cropIcons = {
@@ -1033,6 +1069,10 @@
         // Tray stock data
         let trayStock = {};
         let traysInUse = {};
+
+        // Seed lot data for traceability
+        let seedLots = [];
+        let pendingSowing = null; // Stores {batchId, buttonEl, planting} while modal is open
 
         // ========================================
         // INITIALIZATION
@@ -1678,15 +1718,112 @@
         // ========================================
         // TASK COMPLETION
         // ========================================
+
+        // Opens seed lot modal before marking as sown (for traceability)
         async function markSown(batchId, buttonEl) {
             if (!batchId) return;
 
+            // Find the planting info
+            const planting = allPlantings.find(p => p.Batch_ID === batchId);
+            if (!planting) {
+                console.error('Planting not found:', batchId);
+                return;
+            }
+
+            // Store pending sowing info
+            pendingSowing = { batchId, buttonEl, planting };
+
+            // Populate modal
+            document.getElementById('sowingCropName').textContent =
+                `${planting.Crop || 'Unknown'}${planting.Variety ? ' - ' + planting.Variety : ''}`;
+            document.getElementById('sowingBatchId').textContent = batchId;
+
+            // Calculate seeds needed (trays × cells)
+            const trays = parseInt(planting.Trays_Needed || planting.Trays) || 1;
+            const cells = parseInt(planting.Tray_Cell_Count) || 128;
+            const seedsNeeded = trays * cells;
+            document.getElementById('seedQtyUsed').value = seedsNeeded;
+
+            // Load matching seed lots for this crop
+            await loadSeedLotsForCrop(planting.Crop);
+
+            // Show modal
+            document.getElementById('seedLotModal').classList.add('active');
+        }
+
+        async function loadSeedLotsForCrop(cropName) {
+            const select = document.getElementById('seedLotSelect');
+            select.innerHTML = '<option value="">-- Loading... --</option>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getSeedInventory`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    seedLots = data.data;
+
+                    // Filter for matching crop (case-insensitive)
+                    const cropLower = (cropName || '').toLowerCase();
+                    const matchingLots = seedLots.filter(s =>
+                        (s.Crop || '').toLowerCase() === cropLower &&
+                        s.Status === 'Active' &&
+                        (s.Quantity_Remaining || 0) > 0
+                    );
+
+                    select.innerHTML = '<option value="">-- Skip (no seed lot) --</option>';
+
+                    if (matchingLots.length > 0) {
+                        matchingLots.forEach(lot => {
+                            const option = document.createElement('option');
+                            option.value = lot.Seed_Lot_ID;
+                            option.textContent = `${lot.Seed_Lot_ID} - ${lot.Variety || 'No variety'} (${lot.Quantity_Remaining} ${lot.Unit || 'seeds'})`;
+                            option.dataset.qty = lot.Quantity_Remaining;
+                            select.appendChild(option);
+                        });
+
+                        // Show quantity input
+                        document.getElementById('seedQtyGroup').style.display = 'block';
+                    } else {
+                        select.innerHTML += '<option value="" disabled>No matching seed lots found for ' + cropName + '</option>';
+                        document.getElementById('seedQtyGroup').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading seed lots:', error);
+                select.innerHTML = '<option value="">-- Could not load seed lots --</option>';
+            }
+        }
+
+        function closeSeedLotModal() {
+            document.getElementById('seedLotModal').classList.remove('active');
+            pendingSowing = null;
+        }
+
+        async function skipSeedLotAndSow() {
+            if (!pendingSowing) return;
+            closeSeedLotModal();
+            await completeSowing(pendingSowing.batchId, pendingSowing.buttonEl, null, 0);
+        }
+
+        async function confirmSowWithSeedLot() {
+            if (!pendingSowing) return;
+
+            const seedLotId = document.getElementById('seedLotSelect').value;
+            const qtyUsed = parseInt(document.getElementById('seedQtyUsed').value) || 0;
+
+            closeSeedLotModal();
+            await completeSowing(pendingSowing.batchId, pendingSowing.buttonEl, seedLotId, qtyUsed);
+        }
+
+        async function completeSowing(batchId, buttonEl, seedLotId, seedQtyUsed) {
             // Update button state
             buttonEl.classList.add('completing');
             buttonEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
             try {
                 const today = new Date().toISOString().split('T')[0];
+
+                // 1. Update the planting record
                 const params = new URLSearchParams({
                     action: 'updatePlanting',
                     id: batchId,
@@ -1694,15 +1831,40 @@
                     STATUS: 'Sown'
                 });
 
+                // Add seed lot linkage if provided
+                if (seedLotId) {
+                    params.append('Seed_Lot_ID', seedLotId);
+                }
+
                 const response = await fetch(`${API_URL}?${params.toString()}`);
                 const result = await response.json();
 
                 if (result.success) {
+                    // 2. If seed lot was selected, record the usage for traceability
+                    if (seedLotId && seedQtyUsed > 0) {
+                        try {
+                            await fetch(API_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'useSeedFromLot',
+                                    seedLotId: seedLotId,
+                                    quantity: seedQtyUsed,
+                                    batchId: batchId,
+                                    notes: `Sown in greenhouse on ${today}`
+                                })
+                            });
+                        } catch (e) {
+                            console.warn('Could not record seed usage:', e);
+                        }
+                    }
+
                     buttonEl.classList.remove('completing');
                     buttonEl.classList.add('completed');
                     buttonEl.innerHTML = '<i class="fas fa-check-circle"></i> Sown!';
 
-                    showToast(`Marked as sown on ${formatDateDisplay(today)}`);
+                    const traceMsg = seedLotId ? ` (linked to ${seedLotId})` : '';
+                    showToast(`Marked as sown on ${formatDateDisplay(today)}${traceMsg}`);
 
                     // Remove the task item after a short delay
                     setTimeout(() => {

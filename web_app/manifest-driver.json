@@ -1,0 +1,39 @@
+{
+  "name": "Tiny Seed Delivery",
+  "short_name": "Delivery",
+  "description": "Driver delivery app for Tiny Seed farm - routes, deliveries, proof of delivery",
+  "start_url": "/web_app/driver.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#22c55e",
+  "icons": [
+    {
+      "src": "../icons/driver-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "../icons/driver-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "Today's Route",
+      "short_name": "Route",
+      "description": "View today's delivery route",
+      "url": "/web_app/driver.html?tab=route"
+    },
+    {
+      "name": "Employee Mode",
+      "short_name": "Employee",
+      "description": "Switch to employee mode",
+      "url": "/web_app/driver.html?mode=employee"
+    }
+  ]
+}

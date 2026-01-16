@@ -34,20 +34,26 @@ const FARM_CONFIG = {
 // ═══════════════════════════════════════════════════════════════════════════
 // TWILIO SMS CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
-// INSTRUCTIONS: Replace these with your actual Twilio credentials
-// Get them from: https://console.twilio.com/
+// Credentials stored securely in PropertiesService
+// Run storeAllCredentials() once to set up
 const TWILIO_CONFIG = {
-  ACCOUNT_SID: 'AC85c921ca82cb00ef4f009eefbad6d071',
-  AUTH_TOKEN: '7ae4c1d1315687baa807af2babfb83fd',
+  get ACCOUNT_SID() {
+    return PropertiesService.getScriptProperties().getProperty('TWILIO_ACCOUNT_SID') || '';
+  },
+  get AUTH_TOKEN() {
+    return PropertiesService.getScriptProperties().getProperty('TWILIO_AUTH_TOKEN') || '';
+  },
   FROM_NUMBER: '+14128662259',
-  ENABLED: true                                 // A2P 10DLC registration required for full deliverability
+  ENABLED: true
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GOOGLE ROUTES API CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 const GOOGLE_ROUTES_CONFIG = {
-  API_KEY: 'AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y',
+  get API_KEY() {
+    return PropertiesService.getScriptProperties().getProperty('GOOGLE_MAPS_API_KEY') || '';
+  },
   FARM_ADDRESS: '257 Zeigler Rd, Rochester, PA 15074',
   FARM_COORDS: { lat: 40.7456217, lng: -80.1610431 }
 };
@@ -719,6 +725,14 @@ function doGet(e) {
       case 'generateEnterpriseAnalysis':
         return jsonResponse(generateEnterpriseAnalysis(e.parameter));
 
+      // ============ ACCOUNTANT TASK MANAGEMENT ============
+      case 'parseEmailsForTasks':
+        return jsonResponse(parseEmailsForTasks());
+      case 'getAccountantTasks':
+        return jsonResponse(getAccountantTasks(e.parameter));
+      case 'getTasksDashboard':
+        return jsonResponse(getTasksDashboard());
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -772,6 +786,12 @@ function doPost(e) {
         return jsonResponse(deleteAyrsharePost(data.postId));
       case 'updateFollowerCounts':
         return jsonResponse(updateFollowerCounts(data.counts));
+
+      // ============ ACCOUNTANT TASK MANAGEMENT ============
+      case 'updateAccountantTask':
+        return jsonResponse(updateAccountantTask(data));
+      case 'addAccountantTask':
+        return jsonResponse(addAccountantTask(data));
 
       // ============ LEGACY POST ENDPOINTS ============
       case 'addPlanting':
@@ -6401,10 +6421,52 @@ function logMarketingPost(postData) {
   }
 }
 
-// One-time setup function - run in Apps Script editor
-function storeAyrshareApiKey() {
-  PropertiesService.getScriptProperties().setProperty('AYRSHARE_API_KEY', '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F');
-  Logger.log('Ayrshare API key stored securely!');
+// ═══════════════════════════════════════════════════════════════════════════
+// ONE-TIME CREDENTIAL SETUP - RUN ONCE IN APPS SCRIPT EDITOR
+// ═══════════════════════════════════════════════════════════════════════════
+// After running, credentials are stored securely in PropertiesService
+// DELETE the values from this function after running for security
+
+function storeAllCredentials() {
+  const props = PropertiesService.getScriptProperties();
+
+  // Twilio SMS
+  props.setProperty('TWILIO_ACCOUNT_SID', 'AC85c921ca82cb00ef4f009eefbad6d071');
+  props.setProperty('TWILIO_AUTH_TOKEN', '7ae4c1d1315687baa807af2babfb83fd');
+
+  // Google Maps
+  props.setProperty('GOOGLE_MAPS_API_KEY', 'AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y');
+
+  // Plaid Banking
+  props.setProperty('PLAID_CLIENT_ID', '69690f5d01c8e8001d439007');
+  props.setProperty('PLAID_SECRET', '65ccc418aad5af30d15744b05de1d5');
+
+  // Ayrshare Social Media
+  props.setProperty('AYRSHARE_API_KEY', '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F');
+
+  Logger.log('All credentials stored securely in PropertiesService!');
+  Logger.log('IMPORTANT: Now delete the hardcoded values from this function.');
+
+  return { success: true, message: 'All credentials stored. Delete values from function now.' };
+}
+
+// Verify credentials are configured
+function verifyCredentials() {
+  const props = PropertiesService.getScriptProperties();
+  const results = {
+    TWILIO_ACCOUNT_SID: !!props.getProperty('TWILIO_ACCOUNT_SID'),
+    TWILIO_AUTH_TOKEN: !!props.getProperty('TWILIO_AUTH_TOKEN'),
+    GOOGLE_MAPS_API_KEY: !!props.getProperty('GOOGLE_MAPS_API_KEY'),
+    PLAID_CLIENT_ID: !!props.getProperty('PLAID_CLIENT_ID'),
+    PLAID_SECRET: !!props.getProperty('PLAID_SECRET'),
+    AYRSHARE_API_KEY: !!props.getProperty('AYRSHARE_API_KEY')
+  };
+
+  const allConfigured = Object.values(results).every(v => v === true);
+  Logger.log('Credential Status: ' + JSON.stringify(results));
+  Logger.log('All configured: ' + allConfigured);
+
+  return { success: true, credentials: results, allConfigured: allConfigured };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -17507,8 +17569,12 @@ function testFinancialModule() {
 // Sandbox mode for testing, switch to development/production when ready
 
 const PLAID_CONFIG = {
-    CLIENT_ID: '69690f5d01c8e8001d439007',
-    SECRET: '65ccc418aad5af30d15744b05de1d5',
+    get CLIENT_ID() {
+        return PropertiesService.getScriptProperties().getProperty('PLAID_CLIENT_ID') || '';
+    },
+    get SECRET() {
+        return PropertiesService.getScriptProperties().getProperty('PLAID_SECRET') || '';
+    },
     ENV: 'sandbox', // Change to 'development' or 'production' when ready
     BASE_URL: 'https://sandbox.plaid.com', // Change for production
     PRODUCTS: ['transactions', 'auth'],

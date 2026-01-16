@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seed Inventory Management - Tiny Seed OS</title>
+    <script src="web_app/auth-guard.js" data-required-role="Manager"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -20,8 +21,36 @@
             color: white;
             padding: 20px 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
-        
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
         .header h1 {
             font-size: 1.8em;
             margin-bottom: 5px;
@@ -175,8 +204,9 @@
             padding: 20px;
             transition: all 0.2s;
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: 1fr auto auto;
             gap: 20px;
+            align-items: start;
         }
         
         .seed-card:hover {
@@ -319,11 +349,56 @@
             display: flex;
             gap: 6px;
             margin-top: 8px;
+            flex-wrap: wrap;
         }
-        
+
         .btn-small {
             padding: 6px 12px;
             font-size: 12px;
+        }
+
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .qr-code {
+            width: 80px;
+            height: 80px;
+            border-radius: 4px;
+        }
+
+        .qr-id {
+            font-size: 9px;
+            color: #718096;
+            margin-top: 4px;
+            font-family: monospace;
+        }
+
+        .btn-qr {
+            background: #6366f1;
+            color: white;
+        }
+
+        .btn-qr:hover {
+            background: #4f46e5;
+        }
+
+        .scan-btn {
+            background: #8b5cf6;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .scan-btn:hover {
+            background: #7c3aed;
         }
         
         .modal-overlay {
@@ -418,8 +493,13 @@
 </head>
 <body>
     <div class="header">
-        <h1>🌱 Seed Inventory Management</h1>
-        <div class="header-subtitle">Track seed packets, lots, germination rates & auto-deduct on planting</div>
+        <a href="index.html" class="back-btn">
+            ← Dashboard
+        </a>
+        <div class="header-content">
+            <h1>🌱 Seed Inventory Management</h1>
+            <div class="header-subtitle">Track seed packets, lots, germination rates & auto-deduct on planting</div>
+        </div>
     </div>
     
     <div class="main-content">
@@ -475,6 +555,7 @@
             <div class="controls">
                 <h2 style="font-size: 1.3em; color: #2d3748;">Seed Inventory</h2>
                 <div style="display: flex; gap: 10px;">
+                    <button class="btn scan-btn" onclick="openQRScanner()">📷 Scan QR</button>
                     <button class="btn btn-success" onclick="openAddSeed()">➕ Add New Seed</button>
                     <button class="btn btn-primary" onclick="openSeedCalculator()">🧮 Seed Calculator</button>
                 </div>
@@ -564,9 +645,41 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- QR Scanner Modal -->
+    <div class="modal-overlay" id="qrScannerModal">
+        <div class="modal">
+            <div class="modal-header">📷 Scan Seed QR Code</div>
+            <div id="qr-reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
+            <div id="qr-result" style="margin-top: 15px; padding: 15px; background: #f0fdf4; border-radius: 8px; display: none;">
+                <div style="font-weight: 600; color: #166534;">Scanned:</div>
+                <div id="scanned-id" style="font-family: monospace; font-size: 14px; margin-top: 5px;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeQRScanner()">Close</button>
+                <button class="btn btn-success" id="lookupBtn" onclick="lookupScannedSeed()" style="display: none;">View Seed Details</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seed Detail Modal (for QR lookup) -->
+    <div class="modal-overlay" id="seedDetailModal">
+        <div class="modal">
+            <div class="modal-header">🌱 Seed Lot Details</div>
+            <div id="seedDetailContent">Loading...</div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeSeedDetail()">Close</button>
+                <button class="btn btn-qr" onclick="printSeedLabel()">🏷️ Print Label</button>
+                <button class="btn btn-primary" onclick="viewUsageHistory()">📋 View History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
         
         let seedInventory = [];
         
@@ -701,16 +814,21 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="qr-section">
+                            <img class="qr-code" src="${getQRCodeUrl(seed)}" alt="QR Code" onerror="this.style.display='none'">
+                            <div class="qr-id">${seed.seedLotId || seed.lotNumber}</div>
+                        </div>
                         <div class="seed-actions">
                             <div class="quantity-display">${seed.quantity}</div>
                             <div class="quantity-label">packets remaining</div>
                             <div class="progress-bar">
-                                <div class="progress-fill ${status === 'low' ? 'low' : ''} ${status === 'depleted' ? 'depleted' : ''}" 
+                                <div class="progress-fill ${status === 'low' ? 'low' : ''} ${status === 'depleted' ? 'depleted' : ''}"
                                      style="width: ${percentRemaining}%"></div>
                             </div>
                             <div class="action-buttons">
                                 <button class="btn btn-primary btn-small" onclick="useSeed(${seed.id})">📤 Use</button>
                                 <button class="btn btn-success btn-small" onclick="restock(${seed.id})">➕ Restock</button>
+                                <button class="btn btn-qr btn-small" onclick="printLabel('${seed.seedLotId || seed.lotNumber}')">🏷️ Print</button>
                             </div>
                         </div>
                     </div>
@@ -856,15 +974,246 @@
             const plantsNeeded = parseInt(document.getElementById('calcPlantsNeeded').value) || 0;
             const germRate = parseInt(document.getElementById('calcGermRate').value) || 95;
             const safetyFactor = parseInt(document.getElementById('calcSafetyFactor').value) || 10;
-            
+
             const adjustedForGerm = Math.ceil(plantsNeeded / (germRate / 100));
             const withSafety = Math.ceil(adjustedForGerm * (1 + safetyFactor / 100));
-            
+
             document.getElementById('calcResult').textContent = `${withSafety} seeds`;
-            document.getElementById('calcBreakdown').textContent = 
+            document.getElementById('calcBreakdown').textContent =
                 `${plantsNeeded} plants needed → ${adjustedForGerm} seeds (${germRate}% germ) → ${withSafety} seeds (${safetyFactor}% safety)`;
         }
-        
+
+        // ============ QR CODE FUNCTIONS ============
+
+        // Generate QR code URL using QuickChart.io (free, no API key)
+        // Encodes full tracking URL so any phone camera opens the page directly
+        function getQRCodeUrl(seed) {
+            const seedId = seed.seedLotId || seed.lotNumber || `S-${seed.crop.substring(0,3).toUpperCase()}-${seed.id}`;
+            const trackingUrl = `https://tinyseedfarm.github.io/TIny_Seed_OS/seed_track.html?id=${seedId}`;
+            return `https://quickchart.io/chart?cht=qr&chs=150x150&chl=${encodeURIComponent(trackingUrl)}&choe=UTF-8`;
+        }
+
+        // QR Scanner variables
+        let html5QrCode = null;
+        let scannedSeedId = null;
+
+        function openQRScanner() {
+            document.getElementById('qrScannerModal').classList.add('active');
+            document.getElementById('qr-result').style.display = 'none';
+            document.getElementById('lookupBtn').style.display = 'none';
+
+            // Initialize scanner
+            html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess,
+                onScanError
+            ).catch(err => {
+                console.error('Camera error:', err);
+                document.getElementById('qr-reader').innerHTML =
+                    '<div style="text-align:center;padding:20px;color:#991b1b;">Camera access denied or not available.<br>You can manually enter a seed lot ID.</div>';
+            });
+        }
+
+        function onScanSuccess(decodedText) {
+            scannedSeedId = decodedText;
+            document.getElementById('scanned-id').textContent = decodedText;
+            document.getElementById('qr-result').style.display = 'block';
+            document.getElementById('lookupBtn').style.display = 'inline-block';
+
+            // Stop scanning after success
+            if (html5QrCode) {
+                html5QrCode.stop().catch(err => console.log('Stop error:', err));
+            }
+        }
+
+        function onScanError(errorMessage) {
+            // Silently ignore scan errors (continuous scanning)
+        }
+
+        function closeQRScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().catch(err => console.log('Stop error:', err));
+                html5QrCode = null;
+            }
+            document.getElementById('qrScannerModal').classList.remove('active');
+            document.getElementById('qr-result').style.display = 'none';
+            scannedSeedId = null;
+        }
+
+        async function lookupScannedSeed() {
+            if (!scannedSeedId) return;
+
+            closeQRScanner();
+
+            // First check local inventory
+            const localSeed = seedInventory.find(s =>
+                s.seedLotId === scannedSeedId || s.lotNumber === scannedSeedId
+            );
+
+            if (localSeed) {
+                showSeedDetail(localSeed);
+                return;
+            }
+
+            // Try API lookup
+            try {
+                const response = await fetch(`${API_URL}?action=getSeedByQR&seedLotId=${encodeURIComponent(scannedSeedId)}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    showSeedDetail(result.data);
+                } else {
+                    alert(`Seed lot "${scannedSeedId}" not found in inventory.`);
+                }
+            } catch (error) {
+                console.error('Lookup error:', error);
+                alert(`Could not find seed lot: ${scannedSeedId}`);
+            }
+        }
+
+        let currentDetailSeed = null;
+
+        function showSeedDetail(seed) {
+            currentDetailSeed = seed;
+            const content = document.getElementById('seedDetailContent');
+
+            content.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start;">
+                    <div>
+                        <h3 style="font-size: 1.5em; color: #2d3748; margin-bottom: 5px;">${seed.crop || seed.Crop}</h3>
+                        <p style="color: #718096; margin-bottom: 15px;">${seed.variety || seed.Variety}</p>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Seed Lot ID</div>
+                                <div style="font-weight: 600;">${seed.seedLotId || seed.Seed_Lot_ID || seed.lotNumber}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Vendor</div>
+                                <div style="font-weight: 600;">${seed.vendor || seed.Supplier || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Quantity</div>
+                                <div style="font-weight: 600; color: #f59e0b; font-size: 1.2em;">
+                                    ${seed.quantity || seed.Quantity_Remaining || 0} ${seed.unit || seed.Unit || 'packets'}
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Germination</div>
+                                <div style="font-weight: 600;">${seed.germRate || seed.Germination_Rate || 'N/A'}%</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Organic</div>
+                                <div style="font-weight: 600;">${(seed.organic || seed.Organic_Certified) ? '✓ Yes' : 'No'}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Supplier Lot</div>
+                                <div style="font-weight: 600;">${seed.lotNumber || seed.Supplier_Lot || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <img src="${getQRCodeUrl(seed)}" style="width: 120px; height: 120px; border-radius: 8px;">
+                        <div style="font-size: 10px; color: #a0aec0; margin-top: 5px;">Scan to track</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('seedDetailModal').classList.add('active');
+        }
+
+        function closeSeedDetail() {
+            document.getElementById('seedDetailModal').classList.remove('active');
+            currentDetailSeed = null;
+        }
+
+        function printLabel(seedLotId) {
+            // Find the seed
+            const seed = seedInventory.find(s => s.seedLotId === seedLotId || s.lotNumber === seedLotId);
+            if (seed) {
+                currentDetailSeed = seed;
+            }
+
+            // Open print dialog with label preview
+            const printWindow = window.open('', '_blank', 'width=400,height=300');
+            const qrUrl = getQRCodeUrl(currentDetailSeed || { lotNumber: seedLotId });
+
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Seed Label - ${seedLotId}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 10px; }
+                        .label {
+                            border: 2px solid #000;
+                            padding: 10px;
+                            width: 2in;
+                            text-align: center;
+                            page-break-inside: avoid;
+                        }
+                        .crop-name { font-size: 14pt; font-weight: bold; margin-bottom: 5px; }
+                        .variety { font-size: 10pt; color: #666; margin-bottom: 8px; }
+                        .qr { width: 1in; height: 1in; }
+                        .lot-id { font-size: 8pt; font-family: monospace; margin-top: 5px; }
+                        @media print {
+                            body { padding: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="label">
+                        <div class="crop-name">${currentDetailSeed?.crop || currentDetailSeed?.Crop || 'Seed'}</div>
+                        <div class="variety">${currentDetailSeed?.variety || currentDetailSeed?.Variety || ''}</div>
+                        <img class="qr" src="${qrUrl}" alt="QR">
+                        <div class="lot-id">${seedLotId}</div>
+                    </div>
+                    <p class="no-print" style="margin-top: 20px;">
+                        <button onclick="window.print()">Print Label</button>
+                        <button onclick="window.close()">Close</button>
+                    </p>
+                </body>
+                </html>
+            `);
+        }
+
+        async function viewUsageHistory() {
+            if (!currentDetailSeed) return;
+
+            const seedId = currentDetailSeed.seedLotId || currentDetailSeed.Seed_Lot_ID || currentDetailSeed.lotNumber;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getSeedUsageHistory&seedLotId=${encodeURIComponent(seedId)}`);
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.length > 0) {
+                    const historyHtml = result.data.map(u => `
+                        <div style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
+                            <div style="font-weight: 600;">${u.Quantity_Used} ${u.Unit || 'seeds'} used</div>
+                            <div style="font-size: 12px; color: #718096;">
+                                ${new Date(u.Used_Date).toLocaleDateString()} - Batch: ${u.Batch_ID || 'N/A'}
+                            </div>
+                            ${u.Notes ? `<div style="font-size: 11px; color: #a0aec0;">${u.Notes}</div>` : ''}
+                        </div>
+                    `).join('');
+
+                    document.getElementById('seedDetailContent').innerHTML += `
+                        <div style="margin-top: 20px; border-top: 2px solid #e2e8f0; padding-top: 15px;">
+                            <h4 style="margin-bottom: 10px;">📋 Usage History</h4>
+                            ${historyHtml}
+                        </div>
+                    `;
+                } else {
+                    alert('No usage history found for this seed lot.');
+                }
+            } catch (error) {
+                console.error('History error:', error);
+                alert('Could not load usage history.');
+            }
+        }
+
         init();
     </script>
 </body>

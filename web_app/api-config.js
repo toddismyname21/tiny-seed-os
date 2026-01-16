@@ -17,12 +17,17 @@
 
 const TINY_SEED_API = {
     // ═══════════════════════════════════════════════════════════════════════════
-    // UNIFIED API - All endpoints consolidated into MERGED TOTAL.js
+    // SINGLE SOURCE OF TRUTH FOR API URL
     // ═══════════════════════════════════════════════════════════════════════════
+    // !!! ALL HTML FILES SHOULD IMPORT THIS FILE - DO NOT HARDCODE API URLS !!!
+    //
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
-    // After deploying MERGED TOTAL.js, update this URL with the new deployment ID
+    //
+    // LAST UPDATED: 2026-01-15
+    // UPDATED BY: Architecture Claude
+    // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbz23N_RluRDlJheaK0vTZmvfIkd5yyMblNizASjuuo6vsNibuoWIPt04KuZOCKEwaoj/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

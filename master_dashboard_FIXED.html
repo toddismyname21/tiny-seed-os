@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tiny Seed OS - Master Dashboard</title>
+    <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
     <style>
         * {
             margin: 0;
@@ -30,7 +31,34 @@
             margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-        
+
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .main-dash-link {
+            background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .main-dash-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(45, 90, 39, 0.3);
+        }
+
         .header h1 {
             color: #2d3748;
             font-size: 2.5rem;
@@ -185,6 +213,10 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="header-nav">
+                <div></div>
+                <a href="index.html" class="main-dash-link">→ Main Dashboard</a>
+            </div>
             <h1>🌱 Tiny Seed OS</h1>
             <p class="subtitle">Master Dashboard - Spring 2026</p>
             <div class="sync-status disconnected" id="syncStatus">
@@ -254,7 +286,7 @@
 
     <script>
         // API Configuration
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyaBzyy3-Ycd3tynhv_Pgsq4naGT1YtuEY-j0qFz2ZUcuyqlwmGThuUM5zcI-0lgXot/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
         
         let isConnected = false;
         

@@ -1,12 +1,92 @@
 # OUTBOX: Accounting_Compliance Claude
 ## To: PM_Architect / Owner
 
-**Updated:** 2026-01-16 @ 3:15 AM
-**Status:** PHASE 1 + LOAN READINESS COMPLETE
+**Updated:** 2026-01-16 @ 4:45 AM
+**Status:** TASK ACCOUNTABILITY SYSTEM LIVE
 
 ---
 
-## LATEST UPDATE: Loan Readiness Reports Added
+## ACCOUNTANT TASK ACCOUNTABILITY
+
+### Summary Dashboard
+| Metric | Count |
+|--------|-------|
+| **Total Tasks Extracted** | 57 |
+| **CRITICAL Priority** | 9 |
+| **HIGH Priority** | 38 |
+| **MEDIUM Priority** | 10 |
+| **Completed** | 0 |
+
+---
+
+## ACTION ITEMS FROM DGPERRY (Consolidated)
+
+These are the **actual action items** you need to complete, consolidated from 103 emails:
+
+### 1. RECONNECT QUICKBOOKS BANK FEED
+- **Priority:** HIGH
+- **From:** Michelle Bockart (Dec 23, 2025)
+- **Action Required:** Log into QuickBooks and reconnect PNC accounts to the bank feed
+- **Status:** PENDING
+
+### 2. COMPLETE 2024 TAX ORGANIZER
+- **Priority:** HIGH
+- **From:** Multiple SafeSend reminders (Oct-Dec 2025)
+- **Action Required:** Go to SafeSend portal, complete the tax organizer for 2024 returns
+- **Note:** 28 reminder emails sent - this is URGENT
+- **Status:** PENDING
+
+### 3. SIGN TAX DOCUMENTS
+- **Priority:** HIGH
+- **From:** Multiple SafeSend reminders
+- **Action Required:** Review and sign documents at SafeSend portal
+- **Status:** PENDING
+
+### 4. PROVIDE YEAR-END ITEMS
+- **Priority:** HIGH
+- **From:** Mary Reiland (Oct 30, 2025)
+- **Action Required:** Review September 2025 uncategorized items PDF and respond
+- **Warning from accountant:** "Any open items we carry into the new year will delay the preparation of your personal tax return"
+- **Attachments saved to Drive:** UNCATEGORIZED ITEMS.pdf, P&L YTD, P&L Month, Balance Sheet, General Ledger
+- **Status:** PENDING
+
+### 5. PAY DGPERRY INVOICES
+- **Priority:** MEDIUM
+- **Current Balance:** $1,395.00 (2 invoices)
+- **Invoice #169111:** From Nov 13, 2025
+- **Action Required:** Review and pay invoices through Aiwyn portal
+- **Status:** PENDING
+
+---
+
+## API ENDPOINTS FOR TASK MANAGEMENT
+
+```
+GET  ?action=getAccountantTasks              - Get all tasks (filterable)
+GET  ?action=getTasksDashboard               - Get summary dashboard
+GET  ?action=parseEmailsForTasks             - Extract tasks from new emails
+POST {action: "updateAccountantTask", ...}   - Update task status
+POST {action: "addAccountantTask", ...}      - Add manual task
+```
+
+### Filter Options for getAccountantTasks
+- `?status=PENDING` or `IN_PROGRESS` or `COMPLETED`
+- `?priority=CRITICAL` or `HIGH` or `MEDIUM`
+- `?category=QUICKBOOKS` or `TAX_PREP` or `BILLING` etc.
+
+---
+
+## DEPLOYED: v115 - Accountant Task Management System
+
+New capabilities:
+- Automatic task extraction from DGPerry emails
+- Task tracking with status, priority, due dates
+- Dashboard with summary metrics
+- Overdue/upcoming task alerts
+
+---
+
+## PREVIOUS UPDATE: Loan Readiness Reports Added
 
 ### New Functions Deployed (v111)
 - **`generateBalanceSheet()`** - Assets, liabilities, owner's equity, key ratios for lenders

@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Planner - Tiny Seed OS</title>
+    <script src="auth-guard.js" data-required-role="Manager"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #22c55e;
+            --primary-dark: #16a34a;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .status-badge.loading {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Field Time Groups */
+        .field-time-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .field-time-group {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .group-header {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .group-header:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .group-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .group-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .group-stats {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .group-plantings {
+            border-top: 1px solid var(--border);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .planting-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+        }
+
+        .planting-row:last-child {
+            border-bottom: none;
+        }
+
+        .planting-row:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .planting-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .planting-info {
+            flex: 1;
+        }
+
+        .planting-crop {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .planting-details {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .planting-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--info);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Field Selection */
+        .field-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field-option {
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .field-option:hover {
+            border-color: var(--primary);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .field-option.selected {
+            border-color: var(--primary);
+            background: rgba(34, 197, 94, 0.2);
+        }
+
+        .field-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .field-stats {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Action Buttons */
+        .action-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background: #334155;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        /* Selection Summary */
+        .selection-summary {
+            padding: 16px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .summary-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
+        }
+
+        .summary-value {
+            font-weight: 600;
+        }
+
+        /* Preview Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Preview Table */
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .preview-table th {
+            background: var(--bg-dark);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .preview-table tr:hover td {
+            background: var(--bg-card-hover);
+        }
+
+        .bed-change {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bed-change .arrow {
+            color: var(--primary);
+        }
+
+        /* Loading State */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.show {
+            display: flex;
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Select All */
+        .select-all-row {
+            padding: 8px 16px;
+            background: var(--bg-dark);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <a href="index.html" class="back-link">&larr;</a>
+                <h1>Field Planner</h1>
+            </div>
+            <span class="status-badge loading" id="statusBadge">Loading...</span>
+        </header>
+
+        <div class="main-grid">
+            <!-- Main Content - Unassigned Plantings -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Unassigned Plantings</h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="selectAllVisible()">Select All</button>
+                        <button class="btn btn-secondary" onclick="deselectAll()">Deselect All</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="field-time-groups" id="fieldTimeGroups">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">&#x23F3;</div>
+                            <p>Loading plantings...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Selection Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Selection</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="selection-summary">
+                            <div class="summary-row">
+                                <span class="summary-label">Selected Plantings</span>
+                                <span class="summary-value" id="selectedCount">0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Total Bed Feet</span>
+                                <span class="summary-value" id="selectedFeet">0 ft</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Field Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Target Field</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="field-list" id="fieldList">
+                            <div class="empty-state">
+                                <p>Loading fields...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="action-section">
+                            <button class="btn btn-primary" id="previewBtn" onclick="previewAssignments()" disabled>
+                                Preview Assignments
+                            </button>
+                            <button class="btn btn-secondary" onclick="generateReport()">
+                                Generate Full Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Assignment Preview</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="previewContent">
+                <!-- Preview content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-success" id="applyBtn" onclick="applyAssignments()">
+                    Apply Assignments
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+
+        let unassignedData = null;
+        let fieldsData = null;
+        let selectedField = null;
+        let previewData = null;
+
+        const FIELD_TIME_COLORS = {
+            'Quick': '#4ade80',
+            'Short': '#60a5fa',
+            'Medium': '#f59e0b',
+            'Long': '#ef4444',
+            'VeryLong': '#8b5cf6'
+        };
+
+        const FIELD_TIME_LABELS = {
+            'Quick': 'Quick Turnover (< 45 days)',
+            'Short': 'Short Season (45-75 days)',
+            'Medium': 'Medium Season (75-100 days)',
+            'Long': 'Long Season (100-130 days)',
+            'VeryLong': 'Very Long Season (130+ days)'
+        };
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', async () => {
+            await Promise.all([
+                loadUnassignedPlantings(),
+                loadAvailableFields()
+            ]);
+            updateStatus('Ready', false);
+        });
+
+        async function loadUnassignedPlantings() {
+            try {
+                const response = await fetch(`${API_URL}?action=analyzeUnassignedPlantings`);
+                const data = await response.json();
+
+                if (data.success) {
+                    unassignedData = data;
+                    renderFieldTimeGroups(data.groupedByFieldTime);
+                } else {
+                    showToast('Error loading plantings: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error loading plantings: ' + error.message, 'error');
+            }
+        }
+
+        async function loadAvailableFields() {
+            try {
+                const response = await fetch(`${API_URL}?action=getAvailableFields`);
+                const data = await response.json();
+
+                if (data.success) {
+                    fieldsData = data.fields;
+                    renderFieldList(data.fields);
+                } else {
+                    showToast('Error loading fields: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error loading fields: ' + error.message, 'error');
+            }
+        }
+
+        function renderFieldTimeGroups(groups) {
+            const container = document.getElementById('fieldTimeGroups');
+            let html = '';
+
+            const groupOrder = ['Quick', 'Short', 'Medium', 'Long', 'VeryLong'];
+
+            for (const groupName of groupOrder) {
+                const group = groups[groupName];
+                if (!group || group.plantings.length === 0) continue;
+
+                html += `
+                    <div class="field-time-group" data-group="${groupName}">
+                        <div class="group-header" onclick="toggleGroup('${groupName}')">
+                            <div class="group-title">
+                                <div class="group-color" style="background: ${FIELD_TIME_COLORS[groupName]}"></div>
+                                <span>${FIELD_TIME_LABELS[groupName]}</span>
+                            </div>
+                            <span class="group-stats">${group.plantings.length} plantings | ${group.totalFeet} ft</span>
+                        </div>
+                        <div class="group-plantings" id="group-${groupName}">
+                            <div class="select-all-row">
+                                <input type="checkbox" onchange="toggleGroupSelection('${groupName}', this.checked)">
+                                <span>Select all ${groupName.toLowerCase()}</span>
+                            </div>
+                            ${group.plantings.map(p => `
+                                <div class="planting-row">
+                                    <input type="checkbox"
+                                           data-batch="${p.batchId}"
+                                           data-feet="${p.bedFeet}"
+                                           data-group="${groupName}"
+                                           onchange="updateSelection()">
+                                    <div class="planting-info">
+                                        <div class="planting-crop">${p.crop}</div>
+                                        <div class="planting-details">${p.variety || ''} | ${p.bedFeet} ft | ${p.fieldStart ? new Date(p.fieldStart).toLocaleDateString() : 'No date'}</div>
+                                    </div>
+                                    <span class="planting-badge">${p.batchId}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (!html) {
+                html = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">&#x2705;</div>
+                        <p>All plantings are assigned!</p>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderFieldList(fields) {
+            const container = document.getElementById('fieldList');
+            let html = '';
+
+            for (const field of fields) {
+                html += `
+                    <div class="field-option" data-field="${field.name}" onclick="selectField('${field.name}')">
+                        <div class="field-name">${field.name}</div>
+                        <div class="field-stats">
+                            ${field.activeBeds} beds | ${field.activeFeet} ft | ${field.currentPlantings} plantings
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (!html) {
+                html = '<div class="empty-state"><p>No fields available</p></div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        function toggleGroup(groupName) {
+            const el = document.getElementById(`group-${groupName}`);
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function toggleGroupSelection(groupName, checked) {
+            const checkboxes = document.querySelectorAll(`input[data-group="${groupName}"]`);
+            checkboxes.forEach(cb => cb.checked = checked);
+            updateSelection();
+        }
+
+        function selectAllVisible() {
+            const checkboxes = document.querySelectorAll('.planting-row input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateSelection();
+        }
+
+        function deselectAll() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateSelection();
+        }
+
+        function selectField(fieldName) {
+            selectedField = fieldName;
+
+            // Update UI
+            document.querySelectorAll('.field-option').forEach(el => {
+                el.classList.remove('selected');
+                if (el.dataset.field === fieldName) {
+                    el.classList.add('selected');
+                }
+            });
+
+            updatePreviewButton();
+        }
+
+        function updateSelection() {
+            const checkboxes = document.querySelectorAll('.planting-row input[type="checkbox"]:checked');
+            let totalFeet = 0;
+
+            checkboxes.forEach(cb => {
+                totalFeet += parseInt(cb.dataset.feet) || 0;
+            });
+
+            document.getElementById('selectedCount').textContent = checkboxes.length;
+            document.getElementById('selectedFeet').textContent = totalFeet + ' ft';
+
+            updatePreviewButton();
+        }
+
+        function updatePreviewButton() {
+            const checkboxes = document.querySelectorAll('.planting-row input[type="checkbox"]:checked');
+            const btn = document.getElementById('previewBtn');
+            btn.disabled = !(checkboxes.length > 0 && selectedField);
+        }
+
+        async function previewAssignments() {
+            const checkboxes = document.querySelectorAll('.planting-row input[type="checkbox"]:checked');
+            const batchIds = Array.from(checkboxes).map(cb => cb.dataset.batch);
+
+            if (batchIds.length === 0 || !selectedField) {
+                showToast('Select plantings and a target field', 'error');
+                return;
+            }
+
+            updateStatus('Calculating...', true);
+
+            try {
+                const response = await fetch(`${API_URL}?action=assignPlantingsToField&targetField=${encodeURIComponent(selectedField)}&batchIds=${encodeURIComponent(JSON.stringify(batchIds))}&apply=false`);
+                const data = await response.json();
+
+                if (data.success) {
+                    previewData = data;
+                    showPreviewModal(data);
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+
+            updateStatus('Ready', false);
+        }
+
+        function showPreviewModal(data) {
+            let html = `
+                <div style="margin-bottom: 20px;">
+                    <strong>Target Field:</strong> ${data.targetField}<br>
+                    <strong>Beds Available:</strong> ${data.bedsInField}<br>
+                    <strong>Plantings to Assign:</strong> ${data.totalAssigned} of ${data.totalRequested}
+                    ${data.totalUnassignable > 0 ? `<br><span style="color: var(--warning)">Unable to assign: ${data.totalUnassignable}</span>` : ''}
+                </div>
+            `;
+
+            if (data.assignments.length > 0) {
+                html += `
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>Crop</th>
+                                <th>Field Time</th>
+                                <th>Bed Assignment</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.assignments.map(a => `
+                                <tr>
+                                    <td><strong>${a.crop}</strong><br><small>${a.variety || ''}</small></td>
+                                    <td><span style="color: ${FIELD_TIME_COLORS[a.fieldTimeGroup]}">${a.fieldTimeGroup}</span></td>
+                                    <td>
+                                        <div class="bed-change">
+                                            <span style="color: var(--text-secondary)">${a.fromBed}</span>
+                                            <span class="arrow">&rarr;</span>
+                                            <strong>${a.toBed}</strong>
+                                        </div>
+                                    </td>
+                                    <td>${a.score}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            if (data.unassignable.length > 0) {
+                html += `
+                    <div style="margin-top: 20px; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                        <strong style="color: var(--danger)">Could not assign:</strong>
+                        <ul style="margin-top: 8px; padding-left: 20px;">
+                            ${data.unassignable.map(u => `<li>${u.crop} - ${u.reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            document.getElementById('previewContent').innerHTML = html;
+            document.getElementById('previewModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('previewModal').classList.remove('active');
+        }
+
+        async function applyAssignments() {
+            if (!previewData) return;
+
+            const checkboxes = document.querySelectorAll('.planting-row input[type="checkbox"]:checked');
+            const batchIds = Array.from(checkboxes).map(cb => cb.dataset.batch);
+
+            updateStatus('Applying...', true);
+            document.getElementById('applyBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}?action=assignPlantingsToField&targetField=${encodeURIComponent(selectedField)}&batchIds=${encodeURIComponent(JSON.stringify(batchIds))}&apply=true`);
+                const data = await response.json();
+
+                if (data.success && data.applied) {
+                    showToast(`Applied ${data.totalAssigned} bed assignments!`, 'success');
+                    closeModal();
+
+                    // Reload data
+                    await loadUnassignedPlantings();
+                    await loadAvailableFields();
+                    deselectAll();
+                } else {
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+
+            document.getElementById('applyBtn').disabled = false;
+            updateStatus('Ready', false);
+        }
+
+        async function generateReport() {
+            updateStatus('Generating report...', true);
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateFieldPlanReport`);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show report in modal
+                    let html = `<pre style="white-space: pre-wrap; font-family: monospace; font-size: 13px;">${data.textSummary}</pre>`;
+                    document.getElementById('previewContent').innerHTML = html;
+                    document.getElementById('applyBtn').style.display = 'none';
+                    document.getElementById('previewModal').classList.add('active');
+
+                    showToast('Report generated! Also saved to FIELD_PLAN_REPORT sheet.', 'success');
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+
+            updateStatus('Ready', false);
+        }
+
+        function updateStatus(text, loading) {
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = text;
+            badge.classList.toggle('loading', loading);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+
+            toastMessage.textContent = message;
+            toast.className = 'toast show ' + type;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

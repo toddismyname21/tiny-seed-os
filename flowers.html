@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flower Operations - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="web_app/auth-guard.js" data-required-role="Field_Lead"></script>
+    <style>
+        :root {
+            --primary: #9c4f96;
+            --primary-light: #c77dbe;
+            --primary-dark: #6d2868;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+            --flower-pink: #f8b4d9;
+            --flower-purple: #c084fc;
+            --flower-yellow: #fcd34d;
+            --flower-orange: #fb923c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a0a1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title i { color: var(--flower-pink); }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(156, 79, 150, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .main-container {
+            padding: 100px 2rem 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            background: var(--bg-card);
+            padding: 0.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+        }
+
+        .tab-btn:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-card .icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .stat-card .label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .stat-card.pink .icon { color: var(--flower-pink); }
+        .stat-card.purple .icon { color: var(--flower-purple); }
+        .stat-card.yellow .icon { color: var(--flower-yellow); }
+        .stat-card.orange .icon { color: var(--flower-orange); }
+        .stat-card.success .icon { color: var(--success); }
+
+        /* Sections */
+        .section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .section-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-header i {
+            color: var(--flower-pink);
+            font-size: 1.25rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .section-header .badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Flower Database Table */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-light);
+            font-weight: 600;
+            color: var(--text-primary);
+            position: sticky;
+            top: 0;
+            white-space: nowrap;
+        }
+
+        tr:hover {
+            background: rgba(156, 79, 150, 0.1);
+        }
+
+        .flower-type {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .flower-type.focal { background: var(--flower-pink); color: #1a1a2e; }
+        .flower-type.auxiliary { background: var(--flower-purple); color: white; }
+        .flower-type.filler { background: var(--flower-yellow); color: #1a1a2e; }
+        .flower-type.texture { background: var(--flower-orange); color: white; }
+
+        .caution-badge {
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .not-growing {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Task List */
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .task-item {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .task-item:hover {
+            border-color: var(--primary);
+        }
+
+        .task-checkbox {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .task-checkbox:hover {
+            border-color: var(--primary);
+            background: rgba(156, 79, 150, 0.2);
+        }
+
+        .task-checkbox.done {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .task-checkbox.done i {
+            color: white;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .task-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .task-priority {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .task-priority.critical { background: var(--danger); color: white; }
+        .task-priority.high { background: var(--warning); color: #1a1a2e; }
+        .task-priority.normal { background: var(--success); color: white; }
+
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .calendar-month {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .month-header {
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .month-header i {
+            color: var(--flower-pink);
+        }
+
+        .calendar-event {
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            border-left: 3px solid;
+        }
+
+        .calendar-event.critical {
+            background: rgba(230, 57, 70, 0.2);
+            border-color: var(--danger);
+        }
+
+        .calendar-event.important {
+            background: rgba(233, 196, 106, 0.2);
+            border-color: var(--warning);
+        }
+
+        .calendar-event.harvest {
+            background: rgba(42, 157, 143, 0.2);
+            border-color: var(--success);
+        }
+
+        /* How-To Cards */
+        .howto-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .howto-card {
+            background: var(--bg-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .howto-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+        }
+
+        .howto-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 0.75rem;
+        }
+
+        .howto-card h3 i {
+            color: var(--flower-pink);
+        }
+
+        .howto-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .howto-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .howto-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            min-height: 44px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Search and Filter */
+        .search-filter {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 12px 12px 44px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .filter-select {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            min-width: 150px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .main-container {
+                padding: 90px 1rem 1rem;
+            }
+
+            .page-title {
+                font-size: 1.2rem;
+            }
+
+            .tab-nav {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+
+            .tab-btn {
+                white-space: nowrap;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Quick Add Button */
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(156, 79, 150, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Dashboard
+            </a>
+            <h1 class="page-title">
+                <i class="fas fa-spa"></i>
+                Flower Operations
+            </h1>
+        </div>
+        <div class="header-actions">
+            <span id="flowerManager" style="color: var(--text-secondary);">Manager: Loren</span>
+            <button class="btn btn-secondary" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                Dashboard
+            </button>
+            <button class="tab-btn" data-tab="tasks">
+                <i class="fas fa-tasks"></i>
+                Tasks
+            </button>
+            <button class="tab-btn" data-tab="calendar">
+                <i class="fas fa-calendar-alt"></i>
+                Critical Dates
+            </button>
+            <button class="tab-btn" data-tab="database">
+                <i class="fas fa-database"></i>
+                Flower Database
+            </button>
+            <button class="tab-btn" data-tab="planning">
+                <i class="fas fa-seedling"></i>
+                Planning
+            </button>
+            <button class="tab-btn" data-tab="howto">
+                <i class="fas fa-book-open"></i>
+                How-Tos
+            </button>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card pink">
+                    <div class="icon"><i class="fas fa-flower-tulip"></i></div>
+                    <div class="value" id="totalVarieties">52</div>
+                    <div class="label">Flower Varieties</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="icon"><i class="fas fa-clipboard-check"></i></div>
+                    <div class="value" id="tasksDue">8</div>
+                    <div class="label">Tasks Due Today</div>
+                </div>
+                <div class="stat-card yellow">
+                    <div class="icon"><i class="fas fa-sun"></i></div>
+                    <div class="value" id="inHarvest">12</div>
+                    <div class="label">In Harvest</div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="value" id="criticalDates">3</div>
+                    <div class="label">Critical Dates This Week</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="value" id="completedTasks">24</div>
+                    <div class="label">Tasks Completed</div>
+                </div>
+            </div>
+
+            <!-- Today's Tasks Section -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-calendar-day"></i>
+                        <h2>Today's Tasks</h2>
+                        <span class="badge">8 tasks</span>
+                    </div>
+                    <button class="btn btn-primary" onclick="openTaskModal()">
+                        <i class="fas fa-plus"></i>
+                        Add Task
+                    </button>
+                </div>
+                <div class="task-list" id="todaysTasks">
+                    <!-- Tasks populated by JS -->
+                </div>
+            </div>
+
+            <!-- Upcoming Critical Dates -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-bell"></i>
+                        <h2>Upcoming Critical Dates</h2>
+                    </div>
+                </div>
+                <div id="upcomingDates" class="calendar-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Flowers in Harvest -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-cut"></i>
+                        <h2>Currently in Harvest</h2>
+                    </div>
+                </div>
+                <div id="harvestList" style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Tab -->
+        <div id="tasks" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-tasks"></i>
+                        <h2>Flower Task Log</h2>
+                    </div>
+                    <button class="btn btn-primary" onclick="openTaskModal()">
+                        <i class="fas fa-plus"></i>
+                        Add Task
+                    </button>
+                </div>
+                <div class="search-filter">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="taskSearch" placeholder="Search tasks..." onkeyup="filterTasks()">
+                    </div>
+                    <select class="filter-select" id="taskStatusFilter" onchange="filterTasks()">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="done">Completed</option>
+                    </select>
+                    <select class="filter-select" id="taskFlowerFilter" onchange="filterTasks()">
+                        <option value="">All Flowers</option>
+                        <option value="Dahlia">Dahlia</option>
+                        <option value="Tulip">Tulip</option>
+                        <option value="Zinnia">Zinnia</option>
+                        <option value="Sunflower">Sunflower</option>
+                        <option value="Snapdragon">Snapdragon</option>
+                        <option value="Ranunculus">Ranunculus</option>
+                    </select>
+                </div>
+                <div class="task-list" id="allTasks">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Dates Calendar Tab -->
+        <div id="calendar" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-calendar-alt"></i>
+                        <h2>2026 Critical Dates Calendar</h2>
+                    </div>
+                    <button class="btn btn-primary" onclick="openDateModal()">
+                        <i class="fas fa-plus"></i>
+                        Add Date
+                    </button>
+                </div>
+                <div class="calendar-grid" id="fullCalendar">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Flower Database Tab -->
+        <div id="database" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-database"></i>
+                        <h2>Flower Database</h2>
+                        <span class="badge">52 varieties</span>
+                    </div>
+                </div>
+                <div class="search-filter">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="flowerSearch" placeholder="Search flowers..." onkeyup="filterFlowers()">
+                    </div>
+                    <select class="filter-select" id="flowerTypeFilter" onchange="filterFlowers()">
+                        <option value="">All Types</option>
+                        <option value="focal">Focal Flower</option>
+                        <option value="auxiliary">Auxiliary</option>
+                        <option value="filler">Filler</option>
+                        <option value="texture">Texture</option>
+                    </select>
+                    <select class="filter-select" id="growingFilter" onchange="filterFlowers()">
+                        <option value="">All</option>
+                        <option value="growing">Currently Growing</option>
+                        <option value="not">Not Growing</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table id="flowerTable">
+                        <thead>
+                            <tr>
+                                <th>Flower</th>
+                                <th>Type</th>
+                                <th>Spacing</th>
+                                <th>Grid</th>
+                                <th>Days to Bloom</th>
+                                <th>Varieties</th>
+                                <th>Notes</th>
+                                <th>Caution</th>
+                            </tr>
+                        </thead>
+                        <tbody id="flowerTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planning Tab -->
+        <div id="planning" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-seedling"></i>
+                        <h2>2026 Flower Planning</h2>
+                    </div>
+                    <button class="btn btn-primary" onclick="openPlanModal()">
+                        <i class="fas fa-plus"></i>
+                        Add Planting
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Flower</th>
+                                <th>Variety</th>
+                                <th>Quantity</th>
+                                <th>Start Date</th>
+                                <th>Transplant</th>
+                                <th>First Harvest</th>
+                                <th>Bed</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="planningTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- How-To Tab -->
+        <div id="howto" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-book-open"></i>
+                        <h2>How-To Library</h2>
+                    </div>
+                </div>
+                <div class="howto-grid" id="howtoGrid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="openTaskModal()" title="Quick Add Task">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Add Task Modal -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-tasks"></i> Add Flower Task</h2>
+                <button class="modal-close" onclick="closeModal('taskModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Task Name</label>
+                        <input type="text" id="taskName" placeholder="e.g., Split dahlia tubers">
+                    </div>
+                    <div class="form-group">
+                        <label>Flower/Crop</label>
+                        <select id="taskFlower">
+                            <option value="">Select flower...</option>
+                            <option value="Dahlia">Dahlia</option>
+                            <option value="Tulip">Tulip</option>
+                            <option value="Zinnia">Zinnia</option>
+                            <option value="Sunflower">Sunflower</option>
+                            <option value="Snapdragon">Snapdragon</option>
+                            <option value="Ranunculus">Ranunculus</option>
+                            <option value="Lisianthus">Lisianthus</option>
+                            <option value="Stock">Stock</option>
+                            <option value="Celosia">Celosia</option>
+                            <option value="Cosmos">Cosmos</option>
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estimated Time</label>
+                        <input type="text" id="taskEstTime" placeholder="e.g., 2 hours">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Supplies Needed</label>
+                        <input type="text" id="taskSupplies" placeholder="e.g., Sharp knife, labels, rooting hormone">
+                    </div>
+                    <div class="form-group">
+                        <label>Assigned To</label>
+                        <select id="taskAssigned">
+                            <option value="Loren">Loren</option>
+                            <option value="Todd">Todd</option>
+                            <option value="Team">Team</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="taskDueDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select id="taskPriority">
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Planning Notes</label>
+                        <textarea id="taskNotes" rows="3" placeholder="Any notes for this task..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('taskModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTask()">
+                    <i class="fas fa-save"></i>
+                    Save Task
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- How-To Detail Modal -->
+    <div class="modal-overlay" id="howtoModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="howtoModalTitle"><i class="fas fa-book"></i> Guide</h2>
+                <button class="modal-close" onclick="closeModal('howtoModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="howtoModalContent">
+                <!-- Content populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+
+        // Flower Database - from reference PDF
+        const flowerDatabase = [
+            { name: "Ageratum", spacing: "9-12\"", grid: "3X3", dtb: "80-100", type: "filler", varieties: "Not growing", notes: "", caution: "", growing: false },
+            { name: "Agrostemma", spacing: "6-9\"", grid: "4X4", dtb: "75-80", type: "filler", varieties: "Purple Queen", notes: "", caution: "All parts poisonous", growing: true },
+            { name: "Amaranthus", spacing: "12-15\"", grid: "2X2", dtb: "65-75", type: "texture", varieties: "Red Spike", notes: "", caution: "", growing: true },
+            { name: "Ammi", spacing: "3-12\"", grid: "3X3 or 4X4", dtb: "65-95", type: "filler", varieties: "Dara, Green Mist", notes: "", caution: "", growing: true },
+            { name: "Ammobium", spacing: "6-9\"", grid: "4X4", dtb: "70-80", type: "filler", varieties: "Winged Everlasting", notes: "", caution: "", growing: true },
+            { name: "Artemisia", spacing: "12-24\"", grid: "2X2", dtb: "120", type: "filler", varieties: "Not growing", notes: "Self-seeds readily, creating weed problem", caution: "", growing: false },
+            { name: "Asclepsia", spacing: "12-24\"", grid: "2X2", dtb: "90", type: "filler", varieties: "Not growing", notes: "", caution: "Skin irritation - milky sap", growing: false },
+            { name: "Asters", spacing: "6-12\"", grid: "3X3", dtb: "110-125", type: "focal", varieties: "Valkyrie Mix, Lady Coral Lavender, Tower series", notes: "Filler when showing color, focal when fully open", caution: "", growing: true },
+            { name: "Basil", spacing: "4-8\"", grid: "4X4", dtb: "75-80", type: "filler", varieties: "Aromatto", notes: "Filler, aroma, color", caution: "", growing: true },
+            { name: "Bells of Ireland", spacing: "10-12\"", grid: "3X3", dtb: "90-110", type: "filler", varieties: "Bells of Ireland", notes: "", caution: "", growing: true },
+            { name: "Bupleurum", spacing: "10\"", grid: "3X3", dtb: "80-90", type: "filler", varieties: "Green Gold", notes: "", caution: "", growing: true },
+            { name: "Campanula", spacing: "10\"", grid: "3X3", dtb: "70", type: "focal", varieties: "Champion series", notes: "", caution: "", growing: true },
+            { name: "Celosia", spacing: "6-12\"", grid: "3X3", dtb: "90-120", type: "texture", varieties: "Any Cramer's series", notes: "", caution: "", growing: true },
+            { name: "Centaurea", spacing: "6-9\"", grid: "4X4", dtb: "65-75", type: "auxiliary", varieties: "Black Button, Florist Blue Boy", notes: "", caution: "", growing: true },
+            { name: "Columbine", spacing: "10-15\"", grid: "3X3", dtb: "365", type: "auxiliary", varieties: "McKana Giants, Barlow Mix", notes: "Early bloom time", caution: "", growing: true },
+            { name: "Cosmos", spacing: "9-12\"", grid: "3X3", dtb: "75-90", type: "auxiliary", varieties: "Rubenza, Double Click, Xsenia, Bright Lights", notes: "", caution: "", growing: true },
+            { name: "Craspedia", spacing: "12\"", grid: "3X3", dtb: "110-120", type: "texture", varieties: "Sunball", notes: "Height, texture, filler", caution: "", growing: true },
+            { name: "Cynoglossum", spacing: "9-12\"", grid: "3X3", dtb: "75-85", type: "filler", varieties: "Blue (Chinese forget-me-not)", notes: "Color, filler", caution: "", growing: true },
+            { name: "Dahlia", spacing: "12\"", grid: "2X2", dtb: "70-80", type: "focal", varieties: "Multiple varieties", notes: "Main focal flower", caution: "", growing: true },
+            { name: "Delphinium", spacing: "12\"", grid: "2X2", dtb: "100-120", type: "focal", varieties: "Magic Fountains", notes: "No longer growing", caution: "All parts poisonous", growing: false },
+            { name: "Didiscus", spacing: "6-12\"", grid: "3X3", dtb: "95-100", type: "auxiliary", varieties: "Lacy Blue", notes: "", caution: "", growing: true },
+            { name: "Eryngium", spacing: "18-24\"", grid: "2X2", dtb: "365", type: "filler", varieties: "Blue or white Glitter", notes: "", caution: "", growing: true },
+            { name: "Echinacea", spacing: "18-24\"", grid: "2X2", dtb: "125-265", type: "focal", varieties: "Cheyenne", notes: "No longer growing", caution: "", growing: false },
+            { name: "Eucalyptus", spacing: "12-24\"", grid: "2X2", dtb: "120-150", type: "filler", varieties: "Silver Drop", notes: "", caution: "", growing: true },
+            { name: "Gomphrena", spacing: "6-8\"", grid: "3X3", dtb: "90-100", type: "auxiliary", varieties: "Qis series", notes: "Texture, auxiliary", caution: "", growing: true },
+            { name: "Gypsophila", spacing: "18\"", grid: "2X2", dtb: "130", type: "filler", varieties: "Baby's Breath (perennial)", notes: "", caution: "", growing: true },
+            { name: "Larkspur", spacing: "4-6\"", grid: "4X4", dtb: "80-90", type: "focal", varieties: "Qis or Galilee series", notes: "Height, main or auxiliary", caution: "All parts poisonous", growing: true },
+            { name: "Lavender", spacing: "18-36\" apart", grid: "varies", dtb: "110", type: "filler", varieties: "Grosso, Hidcote", notes: "", caution: "", growing: true },
+            { name: "Lisianthus", spacing: "4-8\"", grid: "4X4", dtb: "120-150", type: "focal", varieties: "Not growing", notes: "Non-pelleted seeds not available", caution: "", growing: false },
+            { name: "Lupine", spacing: "18\"", grid: "N/A", dtb: "365", type: "focal", varieties: "Any", notes: "Establishing naturalized patch outside flower field", caution: "All parts poisonous", growing: true },
+            { name: "Marigold", spacing: "12\"", grid: "2X3", dtb: "70-90", type: "focal", varieties: "Giant Orange", notes: "Main focal or auxiliary flower", caution: "", growing: true },
+            { name: "Matricaria", spacing: "8-12\"", grid: "3X3", dtb: "100", type: "filler", varieties: "Any non-pelleted varieties", notes: "", caution: "", growing: true },
+            { name: "Nigella", spacing: "6-9\"", grid: "4X4", dtb: "65-75", type: "auxiliary", varieties: "Delft Blue", notes: "Auxiliary flower, pods", caution: "", growing: true },
+            { name: "Poppy (perennial)", spacing: "8\"", grid: "2X3", dtb: "365", type: "auxiliary", varieties: "Pods", notes: "Post harvest heat treatment", caution: "", growing: true },
+            { name: "Rudbeckia", spacing: "12-18\"", grid: "2X3", dtb: "110-120", type: "auxiliary", varieties: "Cherokee Sunset, Gloriosa Double Daisy, Prairie Sun", notes: "Does not hold up in heat at farmers markets", caution: "", growing: true },
+            { name: "Salvia (Annual)", spacing: "12\"", grid: "2X3", dtb: "135", type: "filler", varieties: "Gruppenblau", notes: "Height, filler", caution: "", growing: true },
+            { name: "Salvia (perennial)", spacing: "12\"", grid: "2X3", dtb: "365", type: "filler", varieties: "Nemorosa", notes: "Height, filler", caution: "", growing: true },
+            { name: "Scabiosa", spacing: "12-18\"", grid: "3X3", dtb: "90-110", type: "auxiliary", varieties: "Fama, Black Knight", notes: "", caution: "", growing: true },
+            { name: "Snapdragons", spacing: "4-12\"", grid: "3X3 or 4X4 (tunnel)", dtb: "100-120", type: "auxiliary", varieties: "Madame Butterfly, Potomac, Costa", notes: "Height, auxiliary flower", caution: "", growing: true },
+            { name: "Statice", spacing: "12\"", grid: "2X2", dtb: "110-120", type: "filler", varieties: "Apricot, Blue", notes: "", caution: "", growing: true },
+            { name: "Stock", spacing: "6\"", grid: "4X4", dtb: "90-105", type: "focal", varieties: "Iron, Katz", notes: "Focal flower, aroma", caution: "", growing: true },
+            { name: "Strawflower", spacing: "10-12\"", grid: "3X3", dtb: "75-85", type: "texture", varieties: "Reds, pastels, Burgundy colors", notes: "", caution: "", growing: true },
+            { name: "Sunflowers", spacing: "6-18\"", grid: "3X3/2X2", dtb: "55-90", type: "focal", varieties: "Zohar, Double Quick, Procut series", notes: "Choose pollenless for cut flowers", caution: "", growing: true },
+            { name: "Sweet Peas", spacing: "6\" apart", grid: "N/A", dtb: "75-85", type: "focal", varieties: "Not growing", notes: "", caution: "All parts poisonous", growing: false },
+            { name: "Tulips", spacing: "1-2\" in trench", grid: "trench", dtb: "varies", type: "focal", varieties: "Double Gudoshnik, Pink Impression Mix, Angelique", notes: "For early tunnel blooms", caution: "", growing: true },
+            { name: "Verbena", spacing: "18-24\"", grid: "2X2", dtb: "90", type: "filler", varieties: "Various", notes: "", caution: "", growing: true },
+            { name: "Yarrow", spacing: "12-24\"", grid: "2X3", dtb: "130", type: "filler", varieties: "Colorado Mix", notes: "", caution: "", growing: true },
+            { name: "Zinnia", spacing: "9-12\"", grid: "2X3", dtb: "75-90", type: "focal", varieties: "Benary's Giant, Queen Lime Orange, Queen Lime Red", notes: "", caution: "", growing: true },
+            { name: "Daffodils", spacing: "2\" in trench", grid: "trench", dtb: "varies", type: "auxiliary", varieties: "Cheerfulness, Gold Standard, Pink Charm, Butterfly", notes: "Establishing naturalized patch", caution: "", growing: true },
+            { name: "Ranunculus", spacing: "4-5\" in trench", grid: "3 trenches/bed", dtb: "varies", type: "focal", varieties: "Various", notes: "Also 4 trenches per 30\" bed", caution: "", growing: true },
+            { name: "Anemones", spacing: "4-5\" in trench", grid: "3 trenches/bed", dtb: "varies", type: "focal", varieties: "Various", notes: "", caution: "", growing: true },
+            { name: "Baptisia", spacing: "varies", grid: "2X3", dtb: "365", type: "focal", varieties: "Indigo Blue", notes: "Focal flower, height", caution: "", growing: true },
+            { name: "Peony", spacing: "24\" apart", grid: "varies", dtb: "varies", type: "focal", varieties: "Sarah Bernhardt (pink), Duchess de Nemours (white), Felix Crouse (red)", notes: "", caution: "", growing: true }
+        ];
+
+        // Sample Tasks Data
+        let tasks = [
+            { id: 1, name: "Split dahlia tubers", flower: "Dahlia", estTime: "3 hours", supplies: "Sharp knife, labels, rooting hormone", assigned: "Loren", dueDate: "2026-01-20", priority: "high", done: false, notes: "Stored tubers from last season" },
+            { id: 2, name: "Start tulip forcing - batch 2", flower: "Tulip", estTime: "2 hours", supplies: "Crates, bulbs, cooler space", assigned: "Loren", dueDate: "2026-01-18", priority: "critical", done: false, notes: "Double Gudoshnik variety" },
+            { id: 3, name: "Order ranunculus corms", flower: "Ranunculus", estTime: "30 min", supplies: "Computer", assigned: "Todd", dueDate: "2026-01-17", priority: "high", done: false, notes: "Need 500 corms" },
+            { id: 4, name: "Check snapdragon tunnel temps", flower: "Snapdragon", estTime: "15 min", supplies: "Thermometer", assigned: "Loren", dueDate: "2026-01-16", priority: "normal", done: true, notes: "" },
+            { id: 5, name: "Prep beds for anemone planting", flower: "Anemone", estTime: "4 hours", supplies: "Compost, rake, drip tape", assigned: "Team", dueDate: "2026-01-22", priority: "high", done: false, notes: "Tunnel 2" },
+            { id: 6, name: "Seed lisianthus (if available)", flower: "Lisianthus", estTime: "1 hour", supplies: "Seeds, 128 trays, humidity dome", assigned: "Loren", dueDate: "2026-01-25", priority: "normal", done: false, notes: "Check Johnny's for non-pelleted" },
+            { id: 7, name: "Inventory dahlia tuber storage", flower: "Dahlia", estTime: "2 hours", supplies: "Labels, notebook", assigned: "Loren", dueDate: "2026-01-19", priority: "normal", done: false, notes: "Check for rot" },
+            { id: 8, name: "Pre-sprout ranunculus corms", flower: "Ranunculus", estTime: "1 hour", supplies: "Trays, damp paper towels", assigned: "Loren", dueDate: "2026-01-28", priority: "high", done: false, notes: "Soak 4 hours first" }
+        ];
+
+        // Critical Dates Calendar Data
+        const criticalDates = {
+            "January": [
+                { event: "Start tulip forcing - batch 2", type: "critical", date: "Jan 15-20" },
+                { event: "Order ranunculus corms", type: "important", date: "Jan 15" },
+                { event: "Dahlia tuber check/split", type: "important", date: "Jan 20-31" }
+            ],
+            "February": [
+                { event: "Seed lisianthus (120-150 DTB)", type: "critical", date: "Feb 1" },
+                { event: "Pre-sprout ranunculus corms", type: "critical", date: "Feb 1-15" },
+                { event: "Plant anemone corms", type: "important", date: "Feb 15" },
+                { event: "Tulip forcing - batch 3", type: "important", date: "Feb 1" }
+            ],
+            "March": [
+                { event: "Seed snapdragons (succession 1)", type: "important", date: "Mar 1" },
+                { event: "Plant ranunculus corms", type: "critical", date: "Mar 1-15" },
+                { event: "Start dahlia cuttings", type: "important", date: "Mar 15" },
+                { event: "First tulip harvest (tunnel)", type: "harvest", date: "Mar 15-30" }
+            ],
+            "April": [
+                { event: "Seed zinnias (succession 1)", type: "important", date: "Apr 1" },
+                { event: "Seed sunflowers (succession 1)", type: "important", date: "Apr 1" },
+                { event: "Transplant snapdragons", type: "important", date: "Apr 15" },
+                { event: "Ranunculus harvest begins", type: "harvest", date: "Apr 15" }
+            ],
+            "May": [
+                { event: "Transplant dahlias", type: "critical", date: "May 15-30" },
+                { event: "Seed zinnias (succession 2)", type: "important", date: "May 1" },
+                { event: "Seed sunflowers (succession 2)", type: "important", date: "May 1" },
+                { event: "Anemone harvest", type: "harvest", date: "May 1-30" }
+            ],
+            "June": [
+                { event: "Seed zinnias (succession 3)", type: "important", date: "Jun 1" },
+                { event: "Pinch dahlias", type: "important", date: "Jun 1-15" },
+                { event: "Snapdragon harvest", type: "harvest", date: "Jun 1-30" }
+            ],
+            "July": [
+                { event: "Dahlia harvest begins", type: "harvest", date: "Jul 1" },
+                { event: "Zinnia harvest begins", type: "harvest", date: "Jul 1" },
+                { event: "Seed snapdragons (fall)", type: "important", date: "Jul 15" },
+                { event: "Sunflower harvest", type: "harvest", date: "Jul 15" }
+            ],
+            "August": [
+                { event: "Order tulip bulbs for forcing", type: "critical", date: "Aug 1" },
+                { event: "Seed overwintering flowers", type: "critical", date: "Aug 15-31" },
+                { event: "Peak dahlia harvest", type: "harvest", date: "Aug 1-31" }
+            ],
+            "September": [
+                { event: "Plant overwintering snapdragons", type: "critical", date: "Sep 1-15" },
+                { event: "Pre-cool tulip bulbs (begin)", type: "critical", date: "Sep 15" },
+                { event: "Order ranunculus/anemone corms", type: "important", date: "Sep 1" }
+            ],
+            "October": [
+                { event: "Dig dahlia tubers (after frost)", type: "critical", date: "Oct 15-30" },
+                { event: "Last zinnia harvest", type: "harvest", date: "Oct 1-15" },
+                { event: "Tulip cooling continues", type: "important", date: "Oct 1-31" }
+            ],
+            "November": [
+                { event: "Store dahlia tubers", type: "important", date: "Nov 1-15" },
+                { event: "Prep tulip forcing crates", type: "important", date: "Nov 15" }
+            ],
+            "December": [
+                { event: "Begin tulip forcing - batch 1", type: "critical", date: "Dec 15" },
+                { event: "Dahlia tuber check", type: "important", date: "Dec 15" }
+            ]
+        };
+
+        // How-To Guides
+        const howtoGuides = [
+            {
+                id: 1,
+                title: "Splitting Dahlia Tubers",
+                icon: "fa-cut",
+                summary: "Learn when and how to divide dahlia tubers for maximum production. Essential late-winter task.",
+                time: "2-3 min per tuber",
+                difficulty: "Intermediate",
+                content: `
+                    <h3>When to Split</h3>
+                    <p>Late winter/early spring (January-March) when you can see eyes beginning to swell on the crown.</p>
+
+                    <h3>Tools Needed</h3>
+                    <ul>
+                        <li>Sharp knife or pruners (sterilize between cuts)</li>
+                        <li>Labels and permanent marker</li>
+                        <li>Rooting hormone (optional)</li>
+                        <li>Sulfur powder (for dusting cuts)</li>
+                    </ul>
+
+                    <h3>Step-by-Step Process</h3>
+                    <ol>
+                        <li><strong>Inspect tubers</strong> - Remove any that are soft, moldy, or shriveled</li>
+                        <li><strong>Identify the crown</strong> - Where tubers connect to the stem</li>
+                        <li><strong>Locate eyes</strong> - Small bumps/sprouts on the crown (NOT on tuber body)</li>
+                        <li><strong>Make cuts</strong> - Each division needs: 1 tuber + piece of crown + at least 1 eye</li>
+                        <li><strong>Dust cuts</strong> - Apply sulfur powder to prevent rot</li>
+                        <li><strong>Label immediately</strong> - Variety name on each piece</li>
+                        <li><strong>Cure divisions</strong> - Let dry 24-48 hours before storing</li>
+                    </ol>
+
+                    <h3>Storage After Splitting</h3>
+                    <p>Store in slightly damp peat moss or vermiculite at 40-50°F until planting time.</p>
+
+                    <h3>Common Mistakes</h3>
+                    <ul>
+                        <li>Cutting tubers without eyes (they won't grow)</li>
+                        <li>Not sterilizing tools (spreads disease)</li>
+                        <li>Storing too wet (causes rot)</li>
+                    </ul>
+                `
+            },
+            {
+                id: 2,
+                title: "Forcing Tulips",
+                icon: "fa-snowflake",
+                summary: "Get early tulip blooms by forcing bulbs in the greenhouse. Critical timing required.",
+                time: "14-16 weeks total",
+                difficulty: "Advanced",
+                content: `
+                    <h3>Timeline Overview</h3>
+                    <p><strong>Order:</strong> August | <strong>Cool:</strong> October-January | <strong>Force:</strong> January-February | <strong>Bloom:</strong> February-March</p>
+
+                    <h3>Bulb Selection</h3>
+                    <ul>
+                        <li>Choose varieties rated for forcing (12-14cm+ bulbs)</li>
+                        <li>Best varieties: Double Gudoshnik, Pink Impression Mix, Angelique</li>
+                        <li>Order from reputable supplier in August</li>
+                    </ul>
+
+                    <h3>Pre-Cooling Requirements</h3>
+                    <p><strong>Critical:</strong> Tulips need 12-16 weeks at 35-48°F to bloom properly.</p>
+                    <ul>
+                        <li>Use a spare refrigerator or walk-in cooler</li>
+                        <li>Keep away from fruit (ethylene damages bulbs)</li>
+                        <li>Store dry in mesh bags or crates until planting</li>
+                    </ul>
+
+                    <h3>Planting for Forcing</h3>
+                    <ol>
+                        <li>Use bulb crates or deep flats (6\" minimum depth)</li>
+                        <li>Fill with well-draining potting mix</li>
+                        <li>Plant bulbs shoulder-to-shoulder, tips just showing</li>
+                        <li>Water thoroughly</li>
+                        <li>Return to cold storage for remaining cool period</li>
+                    </ol>
+
+                    <h3>Moving to Greenhouse</h3>
+                    <ul>
+                        <li>After 12-16 weeks cold, move to 55-60°F greenhouse</li>
+                        <li>Keep in low light first few days</li>
+                        <li>Water regularly but don't overwater</li>
+                        <li>Expect blooms in 3-4 weeks</li>
+                    </ul>
+
+                    <h3>Harvest Tips</h3>
+                    <ul>
+                        <li>Cut when buds are colored but still closed</li>
+                        <li>Pull entire plant including bulb for longest vase life</li>
+                        <li>Keep cold after cutting</li>
+                    </ul>
+                `
+            },
+            {
+                id: 3,
+                title: "Overwintering Flowers",
+                icon: "fa-temperature-low",
+                summary: "Get a jump on spring with fall-seeded flowers that overwinter in tunnels or field.",
+                time: "Fall seeding for spring bloom",
+                difficulty: "Intermediate",
+                content: `
+                    <h3>Best Crops for Overwintering (Zone 6 PA)</h3>
+                    <ul>
+                        <li><strong>Snapdragons</strong> - Seed Aug 15, transplant Sep 15</li>
+                        <li><strong>Stock</strong> - Seed Aug 15, transplant Sep 15</li>
+                        <li><strong>Sweet William</strong> - Direct seed September</li>
+                        <li><strong>Larkspur</strong> - Direct seed October</li>
+                        <li><strong>Bells of Ireland</strong> - Direct seed October</li>
+                    </ul>
+
+                    <h3>Fall Seeding Timeline</h3>
+                    <table style="width:100%; margin: 1rem 0;">
+                        <tr><th>Crop</th><th>Seed Date</th><th>Transplant</th><th>Spring Bloom</th></tr>
+                        <tr><td>Snapdragons</td><td>Aug 15</td><td>Sep 15</td><td>Apr-May</td></tr>
+                        <tr><td>Stock</td><td>Aug 15</td><td>Sep 15</td><td>Apr-May</td></tr>
+                        <tr><td>Larkspur</td><td>Oct 1-15</td><td>Direct seed</td><td>May-Jun</td></tr>
+                    </table>
+
+                    <h3>Protection Methods</h3>
+                    <ul>
+                        <li><strong>Low tunnels</strong> - 4' wire hoops with row cover</li>
+                        <li><strong>Caterpillar tunnels</strong> - Better for taller crops</li>
+                        <li><strong>High tunnel</strong> - Best protection, earliest blooms</li>
+                    </ul>
+
+                    <h3>Spring Management</h3>
+                    <ol>
+                        <li>Remove covers gradually as temps warm</li>
+                        <li>Begin fertilizing in March</li>
+                        <li>Watch for aphids as weather warms</li>
+                        <li>Support tall crops with netting</li>
+                    </ol>
+                `
+            },
+            {
+                id: 4,
+                title: "Ranunculus & Anemone Production",
+                icon: "fa-spa",
+                summary: "Essential techniques for growing these premium spring flowers.",
+                time: "3-4 months from planting",
+                difficulty: "Intermediate",
+                content: `
+                    <h3>Pre-Sprouting Corms</h3>
+                    <p>Critical step that improves germination dramatically.</p>
+                    <ol>
+                        <li>Soak corms 4 hours in room temperature water</li>
+                        <li>Place on damp paper towels in trays</li>
+                        <li>Cover and keep at 50°F for 10-14 days</li>
+                        <li>Corms should swell and show small roots</li>
+                        <li>Plant when roots are 1/2\" long</li>
+                    </ol>
+
+                    <h3>Planting</h3>
+                    <ul>
+                        <li><strong>Spacing:</strong> 3 zipper trenches per 30\" bed, corms 4-5\" apart</li>
+                        <li><strong>Depth:</strong> 2\" deep, claws pointing down</li>
+                        <li><strong>Best in:</strong> Tunnel or low tunnel for winter protection</li>
+                    </ul>
+
+                    <h3>Growing Conditions</h3>
+                    <ul>
+                        <li>Cool temps (40-60°F ideal)</li>
+                        <li>Good drainage essential</li>
+                        <li>Keep consistently moist but not wet</li>
+                        <li>Support with netting as plants grow</li>
+                    </ul>
+
+                    <h3>Harvest</h3>
+                    <ul>
+                        <li>Cut when buds are colored and feel soft like marshmallow</li>
+                        <li>Harvest in morning when cool</li>
+                        <li>Expect 8-12 stems per plant</li>
+                    </ul>
+                `
+            },
+            {
+                id: 5,
+                title: "Succession Planting Sunflowers",
+                icon: "fa-sun",
+                summary: "Keep sunflowers in production all season with proper succession timing.",
+                time: "55-90 days per succession",
+                difficulty: "Beginner",
+                content: `
+                    <h3>Why Succession Plant?</h3>
+                    <p>Single-stem sunflowers bloom all at once. Succession planting ensures continuous harvest.</p>
+
+                    <h3>Recommended Schedule (Zone 6)</h3>
+                    <table style="width:100%; margin: 1rem 0;">
+                        <tr><th>Succession</th><th>Seed Date</th><th>Expected Harvest</th></tr>
+                        <tr><td>1</td><td>April 1</td><td>June 1-15</td></tr>
+                        <tr><td>2</td><td>April 15</td><td>June 15-30</td></tr>
+                        <tr><td>3</td><td>May 1</td><td>July 1-15</td></tr>
+                        <tr><td>4</td><td>May 15</td><td>July 15-30</td></tr>
+                        <tr><td>5</td><td>June 1</td><td>August 1-15</td></tr>
+                        <tr><td>6</td><td>June 15</td><td>August 15-30</td></tr>
+                        <tr><td>7</td><td>July 1</td><td>September</td></tr>
+                    </table>
+
+                    <h3>Variety Selection</h3>
+                    <ul>
+                        <li><strong>Pollenless varieties</strong> - Essential for cut flowers (no staining)</li>
+                        <li><strong>Zohar</strong> - Orange/gold, great branching</li>
+                        <li><strong>Procut series</strong> - Single stem, uniform</li>
+                        <li><strong>Double Quick</strong> - Double flowers, unique</li>
+                    </ul>
+
+                    <h3>Spacing</h3>
+                    <ul>
+                        <li>3X3 for smaller blooms (more stems/bed)</li>
+                        <li>2X2 for larger blooms</li>
+                        <li>6-18\" between plants depending on variety</li>
+                    </ul>
+                `
+            },
+            {
+                id: 6,
+                title: "Zinnia Production",
+                icon: "fa-circle",
+                summary: "America's favorite cut flower - easy to grow with proper technique.",
+                time: "75-90 days from seed",
+                difficulty: "Beginner",
+                content: `
+                    <h3>Starting Zinnias</h3>
+                    <ul>
+                        <li>Direct seed after last frost (May 15 in PA)</li>
+                        <li>Or start indoors 4 weeks before transplant</li>
+                        <li>Zinnias don't like root disturbance - use large cells</li>
+                    </ul>
+
+                    <h3>Best Varieties for Cut Flowers</h3>
+                    <ul>
+                        <li><strong>Benary's Giant</strong> - Industry standard, large blooms</li>
+                        <li><strong>Queen Lime Orange</strong> - Unique color, smaller bloom</li>
+                        <li><strong>Queen Lime Red</strong> - Coral/lime bicolor</li>
+                        <li><strong>Oklahoma series</strong> - Heat tolerant</li>
+                    </ul>
+
+                    <h3>Spacing & Planting</h3>
+                    <ul>
+                        <li>9-12\" between plants</li>
+                        <li>2X3 grid pattern</li>
+                        <li>Use landscape fabric or mulch</li>
+                    </ul>
+
+                    <h3>Pinching</h3>
+                    <p>Pinch center stem when plants are 12\" tall to encourage branching and more stems.</p>
+
+                    <h3>Disease Prevention</h3>
+                    <ul>
+                        <li>Avoid overhead watering</li>
+                        <li>Provide good air circulation</li>
+                        <li>Remove diseased foliage immediately</li>
+                        <li>Rotate planting locations yearly</li>
+                    </ul>
+                `
+            }
+        ];
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initTabs();
+            renderDashboard();
+            renderFlowerDatabase();
+            renderTasks();
+            renderCalendar();
+            renderHowTos();
+            renderPlanning();
+        });
+
+        // Tab functionality
+        function initTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tabId = this.dataset.tab;
+
+                    // Update buttons
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Update content
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        }
+
+        // Render Dashboard
+        function renderDashboard() {
+            // Today's tasks
+            const today = new Date().toISOString().split('T')[0];
+            const todaysTasks = tasks.filter(t => t.dueDate <= today && !t.done).slice(0, 5);
+
+            const taskHtml = todaysTasks.map(task => `
+                <div class="task-item">
+                    <div class="task-checkbox ${task.done ? 'done' : ''}" onclick="toggleTask(${task.id})">
+                        ${task.done ? '<i class="fas fa-check"></i>' : ''}
+                    </div>
+                    <div class="task-content">
+                        <div class="task-title">${task.name}</div>
+                        <div class="task-meta">
+                            <span><i class="fas fa-spa"></i> ${task.flower}</span>
+                            <span><i class="fas fa-clock"></i> ${task.estTime}</span>
+                            <span><i class="fas fa-user"></i> ${task.assigned}</span>
+                        </div>
+                    </div>
+                    <span class="task-priority ${task.priority}">${task.priority}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('todaysTasks').innerHTML = taskHtml || '<p style="color: var(--text-secondary);">No tasks due today!</p>';
+
+            // Upcoming dates
+            const upcomingHtml = Object.entries(criticalDates).slice(0, 3).map(([month, events]) => `
+                <div class="calendar-month">
+                    <div class="month-header"><i class="fas fa-calendar"></i> ${month}</div>
+                    ${events.slice(0, 3).map(e => `
+                        <div class="calendar-event ${e.type}">
+                            <strong>${e.date}</strong>: ${e.event}
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+
+            document.getElementById('upcomingDates').innerHTML = upcomingHtml;
+
+            // Flowers in harvest (simulated for January - mostly forcing)
+            const harvestFlowers = ["Tulips (forced)", "Snapdragons (tunnel)", "Stock (tunnel)"];
+            document.getElementById('harvestList').innerHTML = harvestFlowers.map(f => `
+                <span style="background: var(--success); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 500;">${f}</span>
+            `).join('');
+        }
+
+        // Render Flower Database
+        function renderFlowerDatabase() {
+            const tbody = document.getElementById('flowerTableBody');
+            tbody.innerHTML = flowerDatabase.map(flower => `
+                <tr class="${!flower.growing ? 'not-growing' : ''}">
+                    <td><strong>${flower.name}</strong></td>
+                    <td><span class="flower-type ${flower.type}">${flower.type}</span></td>
+                    <td>${flower.spacing}</td>
+                    <td>${flower.grid}</td>
+                    <td>${flower.dtb}</td>
+                    <td>${flower.varieties}</td>
+                    <td>${flower.notes}</td>
+                    <td>${flower.caution ? `<span class="caution-badge">${flower.caution}</span>` : ''}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Render Tasks
+        function renderTasks() {
+            const taskHtml = tasks.map(task => `
+                <div class="task-item" data-status="${task.done ? 'done' : 'pending'}" data-flower="${task.flower}">
+                    <div class="task-checkbox ${task.done ? 'done' : ''}" onclick="toggleTask(${task.id})">
+                        ${task.done ? '<i class="fas fa-check"></i>' : ''}
+                    </div>
+                    <div class="task-content">
+                        <div class="task-title">${task.name}</div>
+                        <div class="task-meta">
+                            <span><i class="fas fa-spa"></i> ${task.flower}</span>
+                            <span><i class="fas fa-clock"></i> ${task.estTime}</span>
+                            <span><i class="fas fa-user"></i> ${task.assigned}</span>
+                            <span><i class="fas fa-calendar"></i> ${task.dueDate}</span>
+                        </div>
+                        ${task.notes ? `<div style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);"><i class="fas fa-sticky-note"></i> ${task.notes}</div>` : ''}
+                    </div>
+                    <span class="task-priority ${task.priority}">${task.priority}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('allTasks').innerHTML = taskHtml;
+        }
+
+        // Render Calendar
+        function renderCalendar() {
+            const calendarHtml = Object.entries(criticalDates).map(([month, events]) => `
+                <div class="calendar-month">
+                    <div class="month-header"><i class="fas fa-calendar"></i> ${month}</div>
+                    ${events.map(e => `
+                        <div class="calendar-event ${e.type}">
+                            <strong>${e.date}</strong>: ${e.event}
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+
+            document.getElementById('fullCalendar').innerHTML = calendarHtml;
+        }
+
+        // Render How-Tos
+        function renderHowTos() {
+            const howtoHtml = howtoGuides.map(guide => `
+                <div class="howto-card" onclick="openHowTo(${guide.id})">
+                    <h3><i class="fas ${guide.icon}"></i> ${guide.title}</h3>
+                    <p>${guide.summary}</p>
+                    <div class="howto-meta">
+                        <span><i class="fas fa-clock"></i> ${guide.time}</span>
+                        <span><i class="fas fa-signal"></i> ${guide.difficulty}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('howtoGrid').innerHTML = howtoHtml;
+        }
+
+        // Render Planning
+        function renderPlanning() {
+            const planningData = [
+                { flower: "Dahlia", variety: "Cafe au Lait", qty: "50 tubers", start: "Mar 15", transplant: "May 20", harvest: "Jul 15", bed: "Field B1-B3", status: "planned" },
+                { flower: "Zinnia", variety: "Benary's Giant Mix", qty: "500 plants", start: "Apr 1", transplant: "May 15", harvest: "Jul 1", bed: "Field A1-A4", status: "planned" },
+                { flower: "Sunflower", variety: "Procut Orange", qty: "200/succession", start: "Apr 1", transplant: "Direct seed", harvest: "Jun 1", bed: "Field C1", status: "planned" },
+                { flower: "Tulip", variety: "Double Gudoshnik", qty: "500 bulbs", start: "Dec 15 (forcing)", transplant: "N/A", harvest: "Mar 1", bed: "Tunnel 1", status: "in progress" },
+                { flower: "Ranunculus", variety: "Elegance Mix", qty: "300 corms", start: "Feb 1", transplant: "Mar 1", harvest: "Apr 15", bed: "Tunnel 2", status: "planned" },
+                { flower: "Snapdragon", variety: "Potomac Mix", qty: "200 plants", start: "Aug 15 (2025)", transplant: "Sep 15 (2025)", harvest: "Apr 1", bed: "Tunnel 1", status: "growing" }
+            ];
+
+            document.getElementById('planningTableBody').innerHTML = planningData.map(p => `
+                <tr>
+                    <td><strong>${p.flower}</strong></td>
+                    <td>${p.variety}</td>
+                    <td>${p.qty}</td>
+                    <td>${p.start}</td>
+                    <td>${p.transplant}</td>
+                    <td>${p.harvest}</td>
+                    <td>${p.bed}</td>
+                    <td><span class="flower-type ${p.status === 'growing' ? 'focal' : p.status === 'in progress' ? 'auxiliary' : 'filler'}">${p.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Toggle task completion
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.done = !task.done;
+                renderTasks();
+                renderDashboard();
+            }
+        }
+
+        // Filter flowers
+        function filterFlowers() {
+            const search = document.getElementById('flowerSearch').value.toLowerCase();
+            const typeFilter = document.getElementById('flowerTypeFilter').value;
+            const growingFilter = document.getElementById('growingFilter').value;
+
+            const rows = document.querySelectorAll('#flowerTableBody tr');
+            rows.forEach((row, index) => {
+                const flower = flowerDatabase[index];
+                const matchesSearch = flower.name.toLowerCase().includes(search) ||
+                                     flower.varieties.toLowerCase().includes(search);
+                const matchesType = !typeFilter || flower.type === typeFilter;
+                const matchesGrowing = !growingFilter ||
+                                       (growingFilter === 'growing' && flower.growing) ||
+                                       (growingFilter === 'not' && !flower.growing);
+
+                row.style.display = matchesSearch && matchesType && matchesGrowing ? '' : 'none';
+            });
+        }
+
+        // Filter tasks
+        function filterTasks() {
+            const search = document.getElementById('taskSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('taskStatusFilter').value;
+            const flowerFilter = document.getElementById('taskFlowerFilter').value;
+
+            const items = document.querySelectorAll('#allTasks .task-item');
+            items.forEach((item, index) => {
+                const task = tasks[index];
+                const matchesSearch = task.name.toLowerCase().includes(search);
+                const matchesStatus = !statusFilter ||
+                                     (statusFilter === 'done' && task.done) ||
+                                     (statusFilter === 'pending' && !task.done);
+                const matchesFlower = !flowerFilter || task.flower === flowerFilter;
+
+                item.style.display = matchesSearch && matchesStatus && matchesFlower ? '' : 'none';
+            });
+        }
+
+        // Modal functions
+        function openTaskModal() {
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function openHowTo(id) {
+            const guide = howtoGuides.find(g => g.id === id);
+            if (guide) {
+                document.getElementById('howtoModalTitle').innerHTML = `<i class="fas ${guide.icon}"></i> ${guide.title}`;
+                document.getElementById('howtoModalContent').innerHTML = guide.content;
+                document.getElementById('howtoModal').classList.add('active');
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Save task
+        function saveTask() {
+            const task = {
+                id: tasks.length + 1,
+                name: document.getElementById('taskName').value,
+                flower: document.getElementById('taskFlower').value,
+                estTime: document.getElementById('taskEstTime').value,
+                supplies: document.getElementById('taskSupplies').value,
+                assigned: document.getElementById('taskAssigned').value,
+                dueDate: document.getElementById('taskDueDate').value,
+                priority: document.getElementById('taskPriority').value,
+                notes: document.getElementById('taskNotes').value,
+                done: false
+            };
+
+            if (task.name && task.flower) {
+                tasks.unshift(task);
+                renderTasks();
+                renderDashboard();
+                closeModal('taskModal');
+
+                // Clear form
+                document.getElementById('taskName').value = '';
+                document.getElementById('taskNotes').value = '';
+            } else {
+                alert('Please fill in task name and flower');
+            }
+        }
+
+        // Refresh data
+        function refreshData() {
+            // In production, this would fetch from API
+            renderDashboard();
+            renderTasks();
+            renderFlowerDatabase();
+        }
+
+        // Close modal on outside click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
