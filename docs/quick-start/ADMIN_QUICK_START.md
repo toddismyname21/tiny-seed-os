@@ -23,14 +23,29 @@ You have full access to everything: operations, financials, user management, and
 | Financial Dashboard | `web_app/financial-dashboard.html` | Bank accounts, cash flow |
 | Wealth Builder | `web_app/wealth-builder.html` | Investment tracking |
 
-### Operations (You Have Full Access)
+### Planning (You Have Full Access)
 | App | URL | Purpose |
 |-----|-----|---------|
-| Planning View | `planning.html` | Create/edit crop plans |
-| Succession Planner | `succession.html` | Batch planting creation |
+| Planning Grid | `planning.html` | Create/edit crop plans |
+| Succession Wizard | `succession.html` | Batch planting creation |
 | Bed Assignment | `bed_assignment_COMPLETE.html` | Field allocation |
+| Field Planner | `web_app/field-planner.html` | Visual field layout |
+| Gantt - Fields | `gantt_FINAL.html` | Timeline by field |
+| Gantt - Crops | `gantt_CROP_VIEW_FINAL.html` | Timeline by crop |
+
+### Growing
+| App | URL | Purpose |
+|-----|-----|---------|
 | Greenhouse | `greenhouse.html` | Seedling tracking |
-| Gantt Chart | `gantt_FINAL.html` | Timeline view |
+| Seed Inventory | `seed_inventory_PRODUCTION.html` | Track seeds |
+| Flowers | `flowers.html` | Flower operations |
+
+### Operations
+| App | URL | Purpose |
+|-----|-----|---------|
+| Farm Operations | `farm-operations.html` | Daily tasks |
+| Tracking | `track.html` | Progress tracking |
+| DTM Learning | `smart_learning_DTM.html` | AI-powered DTM |
 
 ### Sales & Customers
 | App | URL | Purpose |

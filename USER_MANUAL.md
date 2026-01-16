@@ -2,8 +2,8 @@
 
 ## A Living Document for All Users
 
-**Version:** 1.0
-**Last Updated:** 2026-01-15
+**Version:** 1.1
+**Last Updated:** 2026-01-16
 **System Status:** Production (MVP)
 
 ---
@@ -87,17 +87,30 @@ As Admin, you have access to everything. Your primary tools are:
 ### Planning Tools
 | Tool | Location | Purpose |
 |------|----------|---------|
-| **Planning View** | `planning.html` | Full crop schedule with editing |
-| **Succession Planner** | `succession.html` | Create new planting batches |
+| **Planning Grid** | `planning.html` | Full crop schedule with editing |
+| **Succession Wizard** | `succession.html` | Create new planting batches |
 | **Bed Assignment** | `bed_assignment_COMPLETE.html` | Allocate beds to plantings |
+| **Field Planner** | `web_app/field-planner.html` | Visual field layout planning |
 | **Visual Calendar** | `calendar.html` | Timeline view of all plantings |
-| **Gantt Chart** | `gantt_FINAL.html` | Project timeline visualization |
+| **Gantt - Fields** | `gantt_FINAL.html` | Project timeline by field |
+| **Gantt - Crops** | `gantt_CROP_VIEW_FINAL.html` | Project timeline by crop |
 
-### Operations
+### Growing
 | Tool | Location | Purpose |
 |------|----------|---------|
 | **Greenhouse** | `greenhouse.html` | Seedling and tray management |
 | **Seed Inventory** | `seed_inventory_PRODUCTION.html` | Track seed stock |
+| **Flowers** | `flowers.html` | Flower-specific operations |
+| **Labels** | `labels.html` | Print crop labels |
+| **GH Labels** | `greenhouse_labels_PRODUCTION (1).html` | Greenhouse-specific labels |
+
+### Operations
+| Tool | Location | Purpose |
+|------|----------|---------|
+| **Farm Operations** | `farm-operations.html` | Daily farm tasks |
+| **Tracking** | `track.html` | Progress and harvest tracking |
+| **Field Kiosk** | `field_app_mobile.html` | Quick field data entry |
+| **DTM Learning** | `smart_learning_DTM.html` | Days-to-maturity AI learning |
 | **Soil Tests** | `soil-tests.html` | Soil analysis and amendments |
 | **Sowing Sheets** | `sowing-sheets.html` | Print daily task sheets |
 
@@ -777,6 +790,7 @@ If you find something that doesn't work:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | 2026-01-16 | Added unified navigation structure, new tools inventory |
 | 1.0 | 2026-01-15 | Initial comprehensive manual |
 
 ---
