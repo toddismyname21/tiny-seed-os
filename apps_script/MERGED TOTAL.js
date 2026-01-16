@@ -822,6 +822,16 @@ function doPost(e) {
       case 'logAdminAction':
         return jsonResponse(logAdminAction(data));
 
+      // ============ EMPLOYEE REGISTRATION ============
+      case 'registerEmployee':
+        return jsonResponse(registerEmployee(data));
+      case 'getPendingRegistrations':
+        return jsonResponse(getPendingRegistrations());
+      case 'approveRegistration':
+        return jsonResponse(approveRegistration(data));
+      case 'rejectRegistration':
+        return jsonResponse(rejectRegistration(data));
+
       // ============ SOCIAL MEDIA INTEGRATION ============
       case 'publishSocialPost':
         return jsonResponse(publishToAyrshare({
@@ -12801,6 +12811,315 @@ function authenticateEmployee(params) {
     }
 
     return { success: false, error: 'Invalid PIN' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// EMPLOYEE REGISTRATION (New User Sign-up)
+// ============================================
+function registerEmployee(data) {
+  try {
+    const { firstName, lastName, phone, email, pin, language, timestamp } = data;
+
+    if (!firstName || !lastName || !phone || !pin) {
+      return { success: false, error: 'Missing required fields' };
+    }
+
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      return { success: false, error: 'PIN must be exactly 4 digits' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Check if PIN already exists in USERS sheet
+    const usersSheet = ss.getSheetByName('USERS');
+    if (usersSheet) {
+      const userData = usersSheet.getDataRange().getValues();
+      const pinCol = userData[0].indexOf('PIN');
+      for (let i = 1; i < userData.length; i++) {
+        if ((userData[i][pinCol] || '').toString().trim() === pin) {
+          return { success: false, error: 'This PIN is already in use. Please choose a different PIN.' };
+        }
+      }
+    }
+
+    // Get or create PENDING_REGISTRATIONS sheet
+    let pendingSheet = ss.getSheetByName('PENDING_REGISTRATIONS');
+    if (!pendingSheet) {
+      pendingSheet = ss.insertSheet('PENDING_REGISTRATIONS');
+      pendingSheet.appendRow([
+        'Registration_ID', 'First_Name', 'Last_Name', 'Phone', 'Email',
+        'PIN', 'Language_Pref', 'Submitted_At', 'Status', 'Reviewed_By', 'Reviewed_At'
+      ]);
+      pendingSheet.getRange(1, 1, 1, 11).setFontWeight('bold');
+    }
+
+    // Check if phone already has pending registration
+    const pendingData = pendingSheet.getDataRange().getValues();
+    const phoneCol = pendingData[0].indexOf('Phone');
+    const statusCol = pendingData[0].indexOf('Status');
+    for (let i = 1; i < pendingData.length; i++) {
+      if ((pendingData[i][phoneCol] || '').toString().trim() === phone &&
+          (pendingData[i][statusCol] || '') === 'Pending') {
+        return { success: false, error: 'A registration with this phone number is already pending.' };
+      }
+    }
+
+    // Generate registration ID
+    const regId = 'REG-' + Date.now().toString(36).toUpperCase();
+
+    // Add to pending registrations
+    pendingSheet.appendRow([
+      regId,
+      firstName,
+      lastName,
+      phone,
+      email || '',
+      pin,
+      language || 'en',
+      timestamp || new Date().toISOString(),
+      'Pending',
+      '',
+      ''
+    ]);
+
+    // Send email notification to admin
+    try {
+      const adminEmail = 'todd@tinyseedfarmpgh.com';
+      const subject = `🌱 New Employee Registration: ${firstName} ${lastName}`;
+      const htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+          <div style="background: #22c55e; color: white; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">🌱 New Registration</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <h2 style="margin: 0 0 16px 0; color: #374151;">${firstName} ${lastName}</h2>
+            <p style="margin: 8px 0; color: #6b7280;"><strong>Phone:</strong> ${phone}</p>
+            ${email ? `<p style="margin: 8px 0; color: #6b7280;"><strong>Email:</strong> ${email}</p>` : ''}
+            <p style="margin: 8px 0; color: #6b7280;"><strong>Language:</strong> ${language === 'es' ? 'Spanish' : 'English'}</p>
+            <p style="margin: 8px 0; color: #6b7280;"><strong>Registration ID:</strong> ${regId}</p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+            <p style="color: #374151; font-size: 14px;">Log in to the Employee App to approve or reject this registration.</p>
+          </div>
+        </div>
+      `;
+      MailApp.sendEmail({
+        to: adminEmail,
+        subject: subject,
+        htmlBody: htmlBody
+      });
+    } catch (e) {
+      // Silently fail if email fails - registration still succeeds
+      console.log('Email notification failed:', e);
+    }
+
+    // Send SMS notification to admins (optional - if Twilio is configured)
+    try {
+      // Notify admin that there's a new registration
+      // sendSmsToAdmins(`New employee registration: ${firstName} ${lastName}. Please review in admin panel.`);
+    } catch (e) {
+      // Silently fail if SMS not configured
+    }
+
+    return {
+      success: true,
+      registrationId: regId,
+      message: 'Registration submitted successfully'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getPendingRegistrations() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PENDING_REGISTRATIONS');
+
+    if (!sheet) {
+      return { success: true, registrations: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, registrations: [] };
+    }
+
+    const headers = data[0];
+    const registrations = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const registration = {};
+      headers.forEach((h, j) => {
+        registration[h] = row[j];
+      });
+
+      // Only return pending registrations
+      if (registration.Status === 'Pending') {
+        registrations.push(registration);
+      }
+    }
+
+    return { success: true, registrations };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function approveRegistration(data) {
+  try {
+    const { registrationId, approvedBy } = data;
+
+    if (!registrationId) {
+      return { success: false, error: 'Registration ID is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const pendingSheet = ss.getSheetByName('PENDING_REGISTRATIONS');
+
+    if (!pendingSheet) {
+      return { success: false, error: 'No pending registrations found' };
+    }
+
+    const pendingData = pendingSheet.getDataRange().getValues();
+    const headers = pendingData[0];
+    const regIdCol = headers.indexOf('Registration_ID');
+    const statusCol = headers.indexOf('Status');
+    const reviewedByCol = headers.indexOf('Reviewed_By');
+    const reviewedAtCol = headers.indexOf('Reviewed_At');
+
+    let registration = null;
+    let rowIndex = -1;
+
+    for (let i = 1; i < pendingData.length; i++) {
+      if (pendingData[i][regIdCol] === registrationId) {
+        rowIndex = i;
+        registration = {};
+        headers.forEach((h, j) => {
+          registration[h] = pendingData[i][j];
+        });
+        break;
+      }
+    }
+
+    if (!registration) {
+      return { success: false, error: 'Registration not found' };
+    }
+
+    if (registration.Status !== 'Pending') {
+      return { success: false, error: 'Registration has already been processed' };
+    }
+
+    // Add to USERS sheet
+    let usersSheet = ss.getSheetByName('USERS');
+    if (!usersSheet) {
+      usersSheet = ss.insertSheet('USERS');
+      usersSheet.appendRow([
+        'User_ID', 'Username', 'PIN', 'Full_Name', 'Email', 'Role', 'Is_Active',
+        'Last_Login', 'Created_At', 'Tractor_Mode', 'Garage_Mode', 'Inventory_Mode', 'Costing_Mode'
+      ]);
+      usersSheet.getRange(1, 1, 1, 13).setFontWeight('bold');
+    }
+
+    // Generate user ID
+    const userId = 'USR-' + (Date.now() % 1000000).toString().padStart(6, '0');
+    const username = (registration.First_Name + '.' + registration.Last_Name).toLowerCase().replace(/\s/g, '');
+    const fullName = registration.First_Name + ' ' + registration.Last_Name;
+
+    usersSheet.appendRow([
+      userId,
+      username,
+      registration.PIN,
+      fullName,
+      registration.Email || '',
+      'Employee',  // Default role
+      true,        // Is_Active
+      '',          // Last_Login
+      new Date().toISOString(),  // Created_At
+      false,       // Tractor_Mode - base workers don't get this by default
+      false,       // Garage_Mode
+      false,       // Inventory_Mode
+      false        // Costing_Mode
+    ]);
+
+    // Update pending registration status
+    pendingSheet.getRange(rowIndex + 1, statusCol + 1).setValue('Approved');
+    pendingSheet.getRange(rowIndex + 1, reviewedByCol + 1).setValue(approvedBy || 'Admin');
+    pendingSheet.getRange(rowIndex + 1, reviewedAtCol + 1).setValue(new Date().toISOString());
+
+    // Send SMS to new employee (if Twilio configured)
+    try {
+      if (registration.Phone) {
+        sendSMS(registration.Phone,
+          `Welcome to Tiny Seed Farm, ${registration.First_Name}! Your registration has been approved. You can now log in with your 4-digit PIN.`
+        );
+      }
+    } catch (e) {
+      // Silently fail if SMS not configured
+    }
+
+    return {
+      success: true,
+      userId,
+      message: `${fullName} has been approved and added to the team!`
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function rejectRegistration(data) {
+  try {
+    const { registrationId, rejectedBy, reason } = data;
+
+    if (!registrationId) {
+      return { success: false, error: 'Registration ID is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const pendingSheet = ss.getSheetByName('PENDING_REGISTRATIONS');
+
+    if (!pendingSheet) {
+      return { success: false, error: 'No pending registrations found' };
+    }
+
+    const pendingData = pendingSheet.getDataRange().getValues();
+    const headers = pendingData[0];
+    const regIdCol = headers.indexOf('Registration_ID');
+    const statusCol = headers.indexOf('Status');
+    const reviewedByCol = headers.indexOf('Reviewed_By');
+    const reviewedAtCol = headers.indexOf('Reviewed_At');
+
+    let rowIndex = -1;
+    let registration = null;
+
+    for (let i = 1; i < pendingData.length; i++) {
+      if (pendingData[i][regIdCol] === registrationId) {
+        rowIndex = i;
+        registration = {};
+        headers.forEach((h, j) => {
+          registration[h] = pendingData[i][j];
+        });
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'Registration not found' };
+    }
+
+    // Update status to Rejected
+    pendingSheet.getRange(rowIndex + 1, statusCol + 1).setValue('Rejected');
+    pendingSheet.getRange(rowIndex + 1, reviewedByCol + 1).setValue(rejectedBy || 'Admin');
+    pendingSheet.getRange(rowIndex + 1, reviewedAtCol + 1).setValue(new Date().toISOString());
+
+    return {
+      success: true,
+      message: 'Registration rejected'
+    };
   } catch (error) {
     return { success: false, error: error.toString() };
   }

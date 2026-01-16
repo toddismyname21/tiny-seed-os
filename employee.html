@@ -181,6 +181,325 @@
             font-size: 0.85rem;
         }
 
+        .register-link {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 24px;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+
+        .register-link span {
+            color: var(--primary-light);
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        /* ========================================
+           REGISTRATION SCREEN
+           ======================================== */
+        .registration-screen {
+            padding: 30px 24px;
+            max-width: 400px;
+            margin: 0 auto;
+            padding-top: calc(30px + var(--safe-top));
+        }
+
+        .registration-back {
+            position: absolute;
+            top: calc(16px + var(--safe-top));
+            left: 16px;
+            background: var(--bg-card);
+            border: none;
+            color: var(--text-primary);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .registration-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+
+        .registration-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .registration-form .form-input {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: var(--text-primary);
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .registration-form .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .registration-form .form-input.pin-input {
+            text-align: center;
+            font-size: 24px;
+            letter-spacing: 8px;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+
+        .registration-form .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .registration-submit {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .registration-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .registration-note {
+            margin-top: 24px;
+            padding: 16px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .registration-note i {
+            color: var(--info);
+            margin-top: 2px;
+        }
+
+        /* Registration Success */
+        .registration-success {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 24px;
+            text-align: center;
+        }
+
+        .registration-success .success-icon {
+            width: 100px;
+            height: 100px;
+            background: rgba(34, 197, 94, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .registration-success .success-icon i {
+            font-size: 50px;
+            color: var(--success);
+        }
+
+        .registration-success h1 {
+            font-size: 24px;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .registration-success p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.5;
+            max-width: 280px;
+            margin-bottom: 30px;
+        }
+
+        .registration-done-btn {
+            padding: 14px 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Admin Approval Panel */
+        .admin-panel {
+            display: none;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .admin-panel.visible {
+            display: block;
+        }
+
+        .admin-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .admin-panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-panel-title i {
+            font-size: 20px;
+        }
+
+        .pending-badge {
+            background: var(--warning);
+            color: #000;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .pending-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pending-item {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .pending-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .pending-item-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .pending-item-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .pending-item-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .pending-item-info span {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .pending-item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pending-item-actions button {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .approve-btn {
+            background: var(--success);
+            color: white;
+        }
+
+        .approve-btn:active {
+            background: #16a34a;
+        }
+
+        .reject-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border) !important;
+            color: var(--text-secondary);
+        }
+
+        .reject-btn:active {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger) !important;
+        }
+
+        .no-pending {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-secondary);
+        }
+
+        .no-pending i {
+            font-size: 40px;
+            margin-bottom: 12px;
+            color: var(--success);
+        }
+
+        .no-pending p {
+            font-size: 15px;
+        }
+
         /* ========================================
            MAIN APP LAYOUT
            ======================================== */
@@ -6212,6 +6531,81 @@
 
             <div class="login-error" id="loginError"></div>
             <div class="login-hint" data-i18n="auth.hint">Enter your 4-digit PIN</div>
+
+            <button class="register-link" onclick="showRegistration()">
+                New here? <span>Register</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Registration Screen -->
+    <div id="registrationScreen" class="screen">
+        <div class="registration-screen">
+            <button class="registration-back" onclick="hideRegistration()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="login-logo">🌱</div>
+            <h1 class="login-title">Join the Team</h1>
+            <p class="registration-subtitle">Fill out your info and we'll get you set up</p>
+
+            <form class="registration-form" onsubmit="submitRegistration(event)">
+                <div class="form-group">
+                    <label class="form-label">First Name *</label>
+                    <input type="text" class="form-input" id="regFirstName" required placeholder="Your first name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Last Name *</label>
+                    <input type="text" class="form-input" id="regLastName" required placeholder="Your last name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone *</label>
+                    <input type="tel" class="form-input" id="regPhone" required placeholder="(555) 123-4567">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email (optional)</label>
+                    <input type="email" class="form-input" id="regEmail" placeholder="you@email.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Create a 4-digit PIN *</label>
+                    <input type="tel" class="form-input pin-input" id="regPin" required
+                           maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm PIN *</label>
+                    <input type="tel" class="form-input pin-input" id="regPinConfirm" required
+                           maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Preferred Language</label>
+                    <select class="form-input" id="regLanguage">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="registration-submit" id="regSubmitBtn">
+                    <i class="fas fa-paper-plane"></i> Submit Registration
+                </button>
+            </form>
+
+            <div class="registration-note">
+                <i class="fas fa-info-circle"></i>
+                Your registration will be reviewed by a manager. You'll receive a text when approved.
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Success Screen -->
+    <div id="registrationSuccessScreen" class="screen">
+        <div class="registration-success">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h1>Registration Submitted!</h1>
+            <p>A manager will review your request and you'll receive a text message when approved.</p>
+            <button class="registration-done-btn" onclick="hideRegistrationSuccess()">
+                <i class="fas fa-arrow-left"></i> Back to Login
+            </button>
         </div>
     </div>
 
@@ -6284,6 +6678,23 @@
                         <i class="fas fa-play"></i>
                         <span data-i18n="clock.clockIn">Clock In</span>
                     </button>
+                </div>
+
+                <!-- Admin Panel (only visible for admins) -->
+                <div class="admin-panel" id="adminPanel">
+                    <div class="admin-panel-header">
+                        <div class="admin-panel-title">
+                            <i class="fas fa-user-shield"></i>
+                            Pending Registrations
+                        </div>
+                        <span class="pending-badge" id="pendingCount">0</span>
+                    </div>
+                    <div class="pending-list" id="pendingList">
+                        <div class="no-pending">
+                            <i class="fas fa-check-circle"></i>
+                            <p>No pending registrations</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Hours Summary -->
@@ -9575,6 +9986,222 @@
             }, 1000);
         }
 
+        // ============================================
+        // REGISTRATION (New User Sign-up)
+        // ============================================
+        function showRegistration() {
+            document.getElementById('loginScreen').classList.remove('active');
+            document.getElementById('registrationScreen').classList.add('active');
+        }
+
+        function hideRegistration() {
+            document.getElementById('registrationScreen').classList.remove('active');
+            document.getElementById('loginScreen').classList.add('active');
+            // Clear form
+            document.getElementById('regFirstName').value = '';
+            document.getElementById('regLastName').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPin').value = '';
+            document.getElementById('regPinConfirm').value = '';
+        }
+
+        function hideRegistrationSuccess() {
+            document.getElementById('registrationSuccessScreen').classList.remove('active');
+            document.getElementById('loginScreen').classList.add('active');
+        }
+
+        async function submitRegistration(event) {
+            event.preventDefault();
+
+            const firstName = document.getElementById('regFirstName').value.trim();
+            const lastName = document.getElementById('regLastName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const pin = document.getElementById('regPin').value.trim();
+            const pinConfirm = document.getElementById('regPinConfirm').value.trim();
+            const language = document.getElementById('regLanguage').value;
+
+            // Validation
+            if (!firstName || !lastName || !phone || !pin) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                showToast('PIN must be exactly 4 digits', 'error');
+                return;
+            }
+
+            if (pin !== pinConfirm) {
+                showToast('PINs do not match', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('regSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=registerEmployee`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        firstName,
+                        lastName,
+                        phone,
+                        email,
+                        pin,
+                        language,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show success screen
+                    document.getElementById('registrationScreen').classList.remove('active');
+                    document.getElementById('registrationSuccessScreen').classList.add('active');
+                } else {
+                    showToast(data.error || 'Registration failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('[Registration] Error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Registration';
+            }
+        }
+
+        // ============================================
+        // ADMIN: PENDING REGISTRATIONS
+        // ============================================
+        async function loadPendingRegistrations() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getPendingRegistrations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.registrations) {
+                    renderPendingRegistrations(data.registrations);
+                }
+            } catch (error) {
+                console.error('[Admin] Error loading pending registrations:', error);
+            }
+        }
+
+        function renderPendingRegistrations(registrations) {
+            const container = document.getElementById('pendingList');
+            const countBadge = document.getElementById('pendingCount');
+
+            if (!registrations || registrations.length === 0) {
+                container.innerHTML = `
+                    <div class="no-pending">
+                        <i class="fas fa-check-circle"></i>
+                        <p>No pending registrations</p>
+                    </div>
+                `;
+                countBadge.textContent = '0';
+                return;
+            }
+
+            countBadge.textContent = registrations.length;
+
+            container.innerHTML = registrations.map(reg => `
+                <div class="pending-item" data-row="${reg.row}">
+                    <div class="pending-item-header">
+                        <div>
+                            <div class="pending-item-name">${reg.firstName} ${reg.lastName}</div>
+                            <div class="pending-item-date">${new Date(reg.timestamp).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    <div class="pending-item-info">
+                        <span><i class="fas fa-phone"></i> ${reg.phone}</span>
+                        ${reg.email ? `<span><i class="fas fa-envelope"></i> ${reg.email}</span>` : ''}
+                        <span><i class="fas fa-language"></i> ${reg.language === 'es' ? 'Spanish' : 'English'}</span>
+                    </div>
+                    <div class="pending-item-actions">
+                        <button class="approve-btn" onclick="approveRegistration(${reg.row}, '${reg.firstName}', '${reg.lastName}')">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="reject-btn" onclick="rejectRegistration(${reg.row}, '${reg.firstName}', '${reg.lastName}')">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function approveRegistration(row, firstName, lastName) {
+            const btn = event.target.closest('button');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=approveRegistration`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ row })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`${firstName} ${lastName} approved! They can now log in.`, 'success');
+                    loadPendingRegistrations(); // Refresh list
+                } else {
+                    showToast(data.error || 'Failed to approve registration', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Approve';
+                }
+            } catch (error) {
+                console.error('[Admin] Error approving registration:', error);
+                showToast('Connection error. Please try again.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Approve';
+            }
+        }
+
+        async function rejectRegistration(row, firstName, lastName) {
+            if (!confirm(`Are you sure you want to reject ${firstName} ${lastName}'s registration?`)) {
+                return;
+            }
+
+            const btn = event.target.closest('button');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=rejectRegistration`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ row })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`${firstName} ${lastName}'s registration rejected.`, 'warning');
+                    loadPendingRegistrations(); // Refresh list
+                } else {
+                    showToast(data.error || 'Failed to reject registration', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-times"></i> Reject';
+                }
+            } catch (error) {
+                console.error('[Admin] Error rejecting registration:', error);
+                showToast('Connection error. Please try again.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-times"></i> Reject';
+            }
+        }
+
         function showMainApp() {
             document.getElementById('loginScreen').classList.remove('active');
             document.getElementById('mainApp').classList.add('active');
@@ -9620,6 +10247,15 @@
                 AppState.workMode = 'field';  // Default to field mode
             }
             updateModeSelector();
+
+            // Show admin panel for admins
+            const adminPanel = document.getElementById('adminPanel');
+            if (AppState.employee && AppState.employee.Role === 'Admin') {
+                adminPanel.classList.add('visible');
+                loadPendingRegistrations();
+            } else {
+                adminPanel.classList.remove('visible');
+            }
         }
 
         async function logout() {
