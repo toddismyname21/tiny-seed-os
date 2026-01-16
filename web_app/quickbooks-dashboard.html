@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickBooks Dashboard - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --primary: #2ca01c;
+            --primary-dark: #1e7014;
+            --secondary: #0077b6;
+            --success: #2a9d8f;
+            --warning: #f4a261;
+            --danger: #e63946;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-light: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: rgba(255,255,255,0.1);
+            --qb-green: #2ca01c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .top-nav {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-logo {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--qb-green) 0%, var(--success) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .nav-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--qb-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Connection Status Banner */
+        .connection-banner {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+        }
+
+        .connection-banner.connected {
+            border-left: 4px solid var(--success);
+        }
+
+        .connection-banner.disconnected {
+            border-left: 4px solid var(--warning);
+        }
+
+        .connection-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .connection-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .connection-icon.connected {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .connection-icon.disconnected {
+            background: rgba(244, 162, 97, 0.2);
+            color: var(--warning);
+        }
+
+        .connection-text h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .connection-text p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .summary-card .label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card .value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .summary-card .value.positive {
+            color: var(--success);
+        }
+
+        .summary-card .value.negative {
+            color: var(--danger);
+        }
+
+        .summary-card .change {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .dashboard-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .dashboard-card.full-width {
+            grid-column: span 2;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .card-title i {
+            color: var(--qb-green);
+        }
+
+        .card-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge-warning {
+            background: rgba(244, 162, 97, 0.2);
+            color: var(--warning);
+        }
+
+        .badge-success {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .badge-danger {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        /* Account List */
+        .account-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .account-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 10px;
+        }
+
+        .account-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .account-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .account-icon.bank {
+            background: rgba(0, 119, 182, 0.2);
+            color: var(--secondary);
+        }
+
+        .account-icon.credit {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        .account-name {
+            font-weight: 500;
+        }
+
+        .account-type {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .account-balance {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* Invoice/Bill List */
+        .transaction-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .transaction-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .transaction-item.header {
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .transaction-item.overdue {
+            border-left: 3px solid var(--danger);
+        }
+
+        .overdue-badge {
+            font-size: 0.75rem;
+            color: var(--danger);
+            background: rgba(230, 57, 70, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        /* P&L Summary */
+        .pl-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pl-item {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 10px;
+        }
+
+        .pl-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pl-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .pl-value.income {
+            color: var(--success);
+        }
+
+        .pl-value.expense {
+            color: var(--warning);
+        }
+
+        .pl-value.net {
+            color: var(--text-primary);
+        }
+
+        /* Aging Chart */
+        .aging-chart {
+            display: flex;
+            gap: 0.5rem;
+            height: 24px;
+            margin: 1rem 0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .aging-segment {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 500;
+            min-width: 30px;
+        }
+
+        .aging-current { background: var(--success); }
+        .aging-30 { background: #f4d35e; color: #000; }
+        .aging-60 { background: var(--warning); }
+        .aging-90 { background: #e76f51; }
+        .aging-over90 { background: var(--danger); }
+
+        .aging-legend {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Last Updated */
+        .last-updated {
+            text-align: center;
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .summary-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-card.full-width {
+                grid-column: span 1;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .transaction-item {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <div class="nav-logo">
+                <i class="fas fa-calculator"></i>
+            </div>
+            <div>
+                <div class="nav-title">QuickBooks Dashboard</div>
+                <div class="nav-subtitle">Tiny Seed Farm Financial Overview</div>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <button class="btn btn-secondary" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='accounting.html'">
+                <i class="fas fa-receipt"></i> Accounting Hub
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='index.html'">
+                <i class="fas fa-home"></i> Home
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Connection Status -->
+        <div id="connectionBanner" class="connection-banner disconnected">
+            <div class="connection-info">
+                <div class="connection-icon disconnected">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <div class="connection-text">
+                    <h3>Checking QuickBooks Connection...</h3>
+                    <p>Please wait while we verify your connection</p>
+                </div>
+            </div>
+            <button id="connectBtn" class="btn btn-primary" style="display: none;" onclick="connectQuickBooks()">
+                <i class="fas fa-link"></i> Connect QuickBooks
+            </button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid" id="summaryGrid">
+            <div class="summary-card">
+                <div class="label">Cash on Hand</div>
+                <div class="value positive" id="cashOnHand">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Credit Card Balance</div>
+                <div class="value negative" id="creditBalance">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Accounts Receivable</div>
+                <div class="value" id="arBalance">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Accounts Payable</div>
+                <div class="value" id="apBalance">--</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Net Cash Position</div>
+                <div class="value" id="netCash">--</div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Account Balances -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-university"></i>
+                        Account Balances
+                    </div>
+                </div>
+                <div id="accountsList" class="account-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        Loading accounts...
+                    </div>
+                </div>
+            </div>
+
+            <!-- P&L Summary -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Profit & Loss (YTD)
+                    </div>
+                    <span class="card-badge badge-success" id="plPeriod">2026</span>
+                </div>
+                <div id="plSummary">
+                    <div class="pl-summary">
+                        <div class="pl-item">
+                            <div class="pl-label">Income</div>
+                            <div class="pl-value income" id="totalIncome">--</div>
+                        </div>
+                        <div class="pl-item">
+                            <div class="pl-label">Expenses</div>
+                            <div class="pl-value expense" id="totalExpenses">--</div>
+                        </div>
+                        <div class="pl-item">
+                            <div class="pl-label">Net Income</div>
+                            <div class="pl-value net" id="netIncome">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overdue Invoices (A/R) -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        Open Invoices (A/R)
+                    </div>
+                    <span class="card-badge badge-warning" id="arOverdueCount">0 overdue</span>
+                </div>
+
+                <!-- AR Aging Chart -->
+                <div id="arAging">
+                    <div class="aging-chart" id="arAgingChart"></div>
+                    <div class="aging-legend">
+                        <span>Current</span>
+                        <span>1-30 days</span>
+                        <span>31-60 days</span>
+                        <span>61-90 days</span>
+                        <span>90+ days</span>
+                    </div>
+                </div>
+
+                <div id="invoicesList" class="transaction-list" style="margin-top: 1rem;">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        Loading invoices...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overdue Bills (A/P) -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-file-invoice"></i>
+                        Open Bills (A/P)
+                    </div>
+                    <span class="card-badge badge-danger" id="apOverdueCount">0 overdue</span>
+                </div>
+
+                <!-- AP Aging Chart -->
+                <div id="apAging">
+                    <div class="aging-chart" id="apAgingChart"></div>
+                    <div class="aging-legend">
+                        <span>Current</span>
+                        <span>1-30 days</span>
+                        <span>31-60 days</span>
+                        <span>61-90 days</span>
+                        <span>90+ days</span>
+                    </div>
+                </div>
+
+                <div id="billsList" class="transaction-list" style="margin-top: 1rem;">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        Loading bills...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Updated -->
+        <div class="last-updated" id="lastUpdated">
+            Last updated: --
+        </div>
+    </main>
+
+    <script>
+        // API Configuration
+        const API_URL = window.API_CONFIG?.APPS_SCRIPT_URL ||
+            'https://script.google.com/macros/s/AKfycbwxe2qjNkrNvYkHv7NJWBJvemu0MGBfO7NEfiF0dBo/exec';
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount || 0);
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return '--';
+            return new Date(dateStr).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // API call helper
+        async function apiCall(action, params = {}) {
+            const url = new URL(API_URL);
+            url.searchParams.set('action', action);
+            Object.entries(params).forEach(([key, value]) => {
+                url.searchParams.set(key, value);
+            });
+
+            try {
+                const response = await fetch(url);
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Check connection status
+        async function checkConnection() {
+            const banner = document.getElementById('connectionBanner');
+            const icon = banner.querySelector('.connection-icon');
+            const text = banner.querySelector('.connection-text');
+            const btn = document.getElementById('connectBtn');
+
+            const result = await apiCall('getQuickBooksConnectionStatus');
+
+            if (result.connected) {
+                banner.className = 'connection-banner connected';
+                icon.className = 'connection-icon connected';
+                icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                text.innerHTML = `
+                    <h3>Connected to QuickBooks</h3>
+                    <p>${result.companyName || 'Tiny Seed Farm LLC'}</p>
+                `;
+                btn.style.display = 'none';
+                return true;
+            } else {
+                banner.className = 'connection-banner disconnected';
+                icon.className = 'connection-icon disconnected';
+                icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                text.innerHTML = `
+                    <h3>QuickBooks Not Connected</h3>
+                    <p>${result.message || 'Connect to view your financial data'}</p>
+                `;
+                btn.style.display = 'flex';
+
+                if (result.authUrl) {
+                    btn.onclick = () => window.open(result.authUrl, '_blank');
+                }
+                return false;
+            }
+        }
+
+        // Connect to QuickBooks
+        async function connectQuickBooks() {
+            const result = await apiCall('getQuickBooksAuthUrl');
+            if (result.success && result.url) {
+                window.open(result.url, '_blank');
+            } else {
+                alert('Could not get QuickBooks authorization URL. Please check the configuration.');
+            }
+        }
+
+        // Load dashboard data
+        async function loadDashboard() {
+            const isConnected = await checkConnection();
+
+            if (!isConnected) {
+                // Show empty states
+                document.getElementById('accountsList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-plug"></i>
+                        <p>Connect QuickBooks to view accounts</p>
+                    </div>
+                `;
+                document.getElementById('invoicesList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <p>Connect QuickBooks to view invoices</p>
+                    </div>
+                `;
+                document.getElementById('billsList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-file-invoice"></i>
+                        <p>Connect QuickBooks to view bills</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Fetch full dashboard data
+            const result = await apiCall('getQuickBooksDashboard');
+
+            if (!result.success) {
+                console.error('Dashboard error:', result.error);
+                return;
+            }
+
+            const data = result.dashboard;
+
+            // Update summary cards
+            document.getElementById('cashOnHand').textContent = formatCurrency(data.summary.cashOnHand);
+            document.getElementById('creditBalance').textContent = formatCurrency(data.summary.creditCardBalance);
+            document.getElementById('arBalance').textContent = formatCurrency(data.summary.accountsReceivable);
+            document.getElementById('apBalance').textContent = formatCurrency(data.summary.accountsPayable);
+
+            const netCash = data.summary.netCashPosition;
+            const netCashEl = document.getElementById('netCash');
+            netCashEl.textContent = formatCurrency(netCash);
+            netCashEl.className = `value ${netCash >= 0 ? 'positive' : 'negative'}`;
+
+            // Update accounts list
+            renderAccounts(data.accounts);
+
+            // Update P&L
+            renderProfitLoss(data.profitLoss);
+
+            // Update invoices
+            renderInvoices(data.invoices);
+
+            // Update bills
+            renderBills(data.bills);
+
+            // Update timestamp
+            document.getElementById('lastUpdated').textContent =
+                `Last updated: ${new Date(data.generatedAt).toLocaleString()}`;
+        }
+
+        // Render account balances
+        function renderAccounts(accounts) {
+            const container = document.getElementById('accountsList');
+
+            if (!accounts || accounts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-university"></i>
+                        <p>No accounts found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = accounts.map(account => `
+                <div class="account-item">
+                    <div class="account-info">
+                        <div class="account-icon ${account.accountType === 'Bank' ? 'bank' : 'credit'}">
+                            <i class="fas fa-${account.accountType === 'Bank' ? 'university' : 'credit-card'}"></i>
+                        </div>
+                        <div>
+                            <div class="account-name">${account.name}</div>
+                            <div class="account-type">${account.accountSubType || account.accountType}</div>
+                        </div>
+                    </div>
+                    <div class="account-balance ${account.accountType === 'Credit Card' ? 'negative' : ''}">
+                        ${formatCurrency(account.balance)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render P&L summary
+        function renderProfitLoss(pl) {
+            if (!pl) return;
+
+            document.getElementById('totalIncome').textContent = formatCurrency(pl.totalIncome);
+            document.getElementById('totalExpenses').textContent = formatCurrency(pl.totalExpenses);
+
+            const netIncomeEl = document.getElementById('netIncome');
+            netIncomeEl.textContent = formatCurrency(pl.netIncome);
+            netIncomeEl.className = `pl-value ${pl.netIncome >= 0 ? 'income' : 'expense'}`;
+
+            if (pl.period) {
+                document.getElementById('plPeriod').textContent = pl.period.label;
+            }
+        }
+
+        // Render aging chart
+        function renderAgingChart(chartId, aging, total) {
+            const chart = document.getElementById(chartId);
+            if (!aging || total <= 0) {
+                chart.innerHTML = '<div class="aging-segment aging-current" style="width: 100%">No data</div>';
+                return;
+            }
+
+            const segments = [
+                { class: 'aging-current', value: aging.current, label: 'Current' },
+                { class: 'aging-30', value: aging.days1to30, label: '1-30' },
+                { class: 'aging-60', value: aging.days31to60, label: '31-60' },
+                { class: 'aging-90', value: aging.days61to90, label: '61-90' },
+                { class: 'aging-over90', value: aging.over90, label: '90+' }
+            ];
+
+            chart.innerHTML = segments
+                .filter(s => s.value > 0)
+                .map(s => {
+                    const pct = (s.value / total * 100).toFixed(0);
+                    return `<div class="aging-segment ${s.class}" style="width: ${pct}%" title="${s.label}: ${formatCurrency(s.value)}">${pct}%</div>`;
+                })
+                .join('');
+        }
+
+        // Render invoices
+        function renderInvoices(invoices) {
+            const container = document.getElementById('invoicesList');
+
+            // Update badge
+            const badge = document.getElementById('arOverdueCount');
+            badge.textContent = `${invoices.summary.overdueCount} overdue`;
+            badge.className = `card-badge ${invoices.summary.overdueCount > 0 ? 'badge-danger' : 'badge-success'}`;
+
+            // Render aging chart
+            renderAgingChart('arAgingChart', invoices.summary.aging, invoices.summary.totalOutstanding);
+
+            // Get combined list (overdue first)
+            const allInvoices = [...invoices.overdue, ...invoices.current].slice(0, 8);
+
+            if (allInvoices.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <p>No open invoices</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="transaction-item header">
+                    <span>Customer</span>
+                    <span>Due Date</span>
+                    <span>Balance</span>
+                    <span>Status</span>
+                </div>
+                ${allInvoices.map(inv => `
+                    <div class="transaction-item ${inv.isOverdue ? 'overdue' : ''}">
+                        <span>${inv.customerName}</span>
+                        <span>${formatDate(inv.dueDate)}</span>
+                        <span>${formatCurrency(inv.balance)}</span>
+                        <span>${inv.isOverdue ? `<span class="overdue-badge">${inv.daysOverdue}d overdue</span>` : 'Current'}</span>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Render bills
+        function renderBills(bills) {
+            const container = document.getElementById('billsList');
+
+            // Update badge
+            const badge = document.getElementById('apOverdueCount');
+            badge.textContent = `${bills.summary.overdueCount} overdue`;
+            badge.className = `card-badge ${bills.summary.overdueCount > 0 ? 'badge-danger' : 'badge-success'}`;
+
+            // Render aging chart
+            renderAgingChart('apAgingChart', bills.summary.aging, bills.summary.totalOutstanding);
+
+            // Get combined list (overdue first)
+            const allBills = [...bills.overdue, ...bills.current].slice(0, 8);
+
+            if (allBills.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <p>No open bills</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="transaction-item header">
+                    <span>Vendor</span>
+                    <span>Due Date</span>
+                    <span>Balance</span>
+                    <span>Status</span>
+                </div>
+                ${allBills.map(bill => `
+                    <div class="transaction-item ${bill.isOverdue ? 'overdue' : ''}">
+                        <span>${bill.vendorName}</span>
+                        <span>${formatDate(bill.dueDate)}</span>
+                        <span>${formatCurrency(bill.balance)}</span>
+                        <span>${bill.isOverdue ? `<span class="overdue-badge">${bill.daysOverdue}d overdue</span>` : 'Current'}</span>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Refresh dashboard
+        function refreshDashboard() {
+            loadDashboard();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+</body>
+</html>

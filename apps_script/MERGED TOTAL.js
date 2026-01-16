@@ -274,6 +274,12 @@ function doGet(e) {
         return jsonResponse(handleClockIn(e.parameter));
       case 'clockOut':
         return jsonResponse(handleClockOut(e.parameter));
+      case 'getTimesheet':
+        return jsonResponse(getTimesheet(e.parameter));
+      case 'getDeliveryCount':
+        return jsonResponse(getDeliveryCount(e.parameter));
+      case 'syncToQuickBooks':
+        return jsonResponse(syncToQuickBooks(e.parameter));
 
       // ============ FLEET MANAGEMENT ============
       case 'getFleetAssets':
@@ -12487,6 +12493,318 @@ function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
             Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R * c;
+}
+
+// ============================================
+// TIMESHEET & QUICKBOOKS INTEGRATION
+// ============================================
+
+/**
+ * Get employee timesheet data for pay period
+ */
+function getTimesheet(params) {
+  try {
+    const employeeId = params.employeeId;
+    if (!employeeId) {
+      return { success: false, error: 'Employee ID required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
+
+    if (!sheet) {
+      return { success: true, entries: [], payPeriod: getPayPeriod() };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Get current pay period (bi-weekly)
+    const payPeriod = getPayPeriod();
+    const startDate = new Date(payPeriod.start);
+    const endDate = new Date(payPeriod.end);
+    endDate.setHours(23, 59, 59);
+
+    const entries = [];
+    let totalHours = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Employee_ID === employeeId) {
+        const entryDate = new Date(row.Date);
+        if (entryDate >= startDate && entryDate <= endDate) {
+          entries.push({
+            date: row.Date,
+            clockIn: row.Clock_In,
+            clockOut: row.Clock_Out,
+            hours: row.Hours_Worked ? parseFloat(row.Hours_Worked).toFixed(2) : null
+          });
+          if (row.Hours_Worked) {
+            totalHours += parseFloat(row.Hours_Worked);
+          }
+        }
+      }
+    }
+
+    // Get hourly rate from employee sheet
+    const hourlyRate = getEmployeeHourlyRate(employeeId);
+
+    return {
+      success: true,
+      entries: entries,
+      payPeriod: payPeriod,
+      totalHours: totalHours.toFixed(2),
+      hourlyRate: hourlyRate
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get current bi-weekly pay period
+ */
+function getPayPeriod() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = now.getDate();
+
+  // Bi-weekly: 1-15 and 16-end of month
+  let start, end;
+  if (day <= 15) {
+    start = new Date(year, month, 1);
+    end = new Date(year, month, 15);
+  } else {
+    start = new Date(year, month, 16);
+    end = new Date(year, month + 1, 0); // Last day of month
+  }
+
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0]
+  };
+}
+
+/**
+ * Get employee hourly rate
+ */
+function getEmployeeHourlyRate(employeeId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('EMPLOYEES') || ss.getSheetByName('Employees');
+
+    if (!sheet) return 15.00; // Default
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Employee_ID');
+    const rateCol = headers.indexOf('Hourly_Rate');
+
+    if (idCol === -1) return 15.00;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === employeeId) {
+        return rateCol !== -1 && data[i][rateCol] ? parseFloat(data[i][rateCol]) : 15.00;
+      }
+    }
+    return 15.00;
+  } catch (error) {
+    return 15.00;
+  }
+}
+
+/**
+ * Sync timesheet to QuickBooks Time/Payroll
+ */
+function syncToQuickBooks(params) {
+  try {
+    const employeeId = params.employeeId;
+    const entries = params.entries;
+    const payPeriod = params.payPeriod;
+
+    if (!employeeId || !entries) {
+      return { success: false, error: 'Missing required parameters' };
+    }
+
+    // Get QuickBooks credentials from script properties
+    const props = PropertiesService.getScriptProperties();
+    const qbAccessToken = props.getProperty('QB_ACCESS_TOKEN');
+    const qbRealmId = props.getProperty('QB_REALM_ID');
+
+    // If QuickBooks not configured, log to a sync sheet for manual export
+    if (!qbAccessToken || !qbRealmId) {
+      return logTimesheetForExport(employeeId, entries, payPeriod);
+    }
+
+    // QuickBooks Time API integration
+    const qbPayrollEndpoint = `https://quickbooks.api.intuit.com/v3/company/${qbRealmId}/timeactivity`;
+
+    let synced = 0;
+    let errors = [];
+
+    entries.forEach(entry => {
+      if (!entry.hours || !entry.clockIn || !entry.clockOut) return;
+
+      const payload = {
+        TxnDate: entry.date,
+        NameOf: "Employee",
+        EmployeeRef: { value: employeeId },
+        Hours: Math.floor(parseFloat(entry.hours)),
+        Minutes: Math.round((parseFloat(entry.hours) % 1) * 60),
+        StartTime: entry.clockIn,
+        EndTime: entry.clockOut,
+        Description: "Farm work - auto-synced from Tiny Seed OS"
+      };
+
+      try {
+        const response = UrlFetchApp.fetch(qbPayrollEndpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + qbAccessToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          payload: JSON.stringify(payload),
+          muteHttpExceptions: true
+        });
+
+        if (response.getResponseCode() === 200 || response.getResponseCode() === 201) {
+          synced++;
+        } else {
+          errors.push(`Entry ${entry.date}: ${response.getContentText()}`);
+        }
+      } catch (e) {
+        errors.push(`Entry ${entry.date}: ${e.toString()}`);
+      }
+    });
+
+    // Log sync attempt
+    logQBSync(employeeId, synced, errors.length, payPeriod);
+
+    return {
+      success: true,
+      synced: synced,
+      errors: errors.length,
+      errorDetails: errors.slice(0, 5), // First 5 errors
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log timesheet for manual QuickBooks export if API not configured
+ */
+function logTimesheetForExport(employeeId, entries, payPeriod) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('QB_EXPORT_QUEUE');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('QB_EXPORT_QUEUE');
+      sheet.getRange(1, 1, 1, 8).setValues([[
+        'Export_ID', 'Employee_ID', 'Pay_Period_Start', 'Pay_Period_End',
+        'Total_Hours', 'Entry_Count', 'Created', 'Status'
+      ]]);
+    }
+
+    const totalHours = entries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+    const exportId = 'QBX-' + Date.now();
+
+    sheet.appendRow([
+      exportId,
+      employeeId,
+      payPeriod.start,
+      payPeriod.end,
+      totalHours.toFixed(2),
+      entries.length,
+      new Date().toISOString(),
+      'PENDING'
+    ]);
+
+    return {
+      success: true,
+      exportId: exportId,
+      message: 'Queued for manual export - QuickBooks API not configured',
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log QuickBooks sync attempts
+ */
+function logQBSync(employeeId, synced, errors, payPeriod) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('QB_SYNC_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('QB_SYNC_LOG');
+      sheet.getRange(1, 1, 1, 7).setValues([[
+        'Sync_ID', 'Employee_ID', 'Pay_Period', 'Synced_Count',
+        'Error_Count', 'Timestamp', 'Status'
+      ]]);
+    }
+
+    sheet.appendRow([
+      'SYNC-' + Date.now(),
+      employeeId,
+      `${payPeriod.start} to ${payPeriod.end}`,
+      synced,
+      errors,
+      new Date().toISOString(),
+      errors === 0 ? 'SUCCESS' : 'PARTIAL'
+    ]);
+  } catch (e) {
+    console.error('Failed to log QB sync:', e);
+  }
+}
+
+/**
+ * Get count of pending deliveries for badge
+ */
+function getDeliveryCount(params) {
+  try {
+    const employeeId = params.employeeId;
+    const today = new Date().toISOString().split('T')[0];
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('DELIVERY_ROUTES') || ss.getSheetByName('Delivery_Routes');
+
+    if (!sheet) {
+      return { success: true, count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const dateCol = headers.indexOf('Delivery_Date') !== -1 ? headers.indexOf('Delivery_Date') : headers.indexOf('Date');
+    const driverCol = headers.indexOf('Driver_ID') !== -1 ? headers.indexOf('Driver_ID') : headers.indexOf('Employee_ID');
+    const statusCol = headers.indexOf('Status');
+
+    let count = 0;
+    for (let i = 1; i < data.length; i++) {
+      const rowDate = data[i][dateCol];
+      const dateStr = rowDate instanceof Date ? rowDate.toISOString().split('T')[0] : rowDate;
+
+      if (dateStr === today &&
+          (driverCol === -1 || data[i][driverCol] === employeeId || !data[i][driverCol]) &&
+          (statusCol === -1 || data[i][statusCol] !== 'COMPLETED')) {
+        count++;
+      }
+    }
+
+    return { success: true, count: count };
+  } catch (error) {
+    return { success: true, count: 0 }; // Fail silently for badge
+  }
 }
 
 function getTimeClockHistory(params) {
