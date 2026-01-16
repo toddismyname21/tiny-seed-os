@@ -601,6 +601,15 @@ function doGet(e) {
         return jsonResponse(getSocialConnections(e.parameter));
       case 'resetSocialConnections':
         return jsonResponse(resetSocialConnections());
+      case 'updateFollowerCounts':
+        // Handle GET request with query params for CORS compatibility
+        return jsonResponse(updateFollowerCounts({
+          instagram: parseInt(e.parameter.instagram) || 0,
+          facebook: parseInt(e.parameter.facebook) || 0,
+          tiktok: parseInt(e.parameter.tiktok) || 0,
+          youtube: parseInt(e.parameter.youtube) || 0,
+          pinterest: parseInt(e.parameter.pinterest) || 0
+        }));
       case 'publishSocialPost':
         return jsonResponse(publishToSocial(payload));
       case 'checkAyrshareStatus':

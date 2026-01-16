@@ -3166,15 +3166,17 @@
             saveBtn.disabled = true;
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'updateFollowerCounts',
-                        counts: counts
-                    })
+                // Use GET to avoid CORS preflight issues
+                const params = new URLSearchParams({
+                    action: 'updateFollowerCounts',
+                    instagram: counts.instagram,
+                    facebook: counts.facebook,
+                    tiktok: counts.tiktok,
+                    youtube: counts.youtube,
+                    pinterest: counts.pinterest
                 });
 
+                const response = await fetch(`${API_URL}?${params.toString()}`);
                 const result = await response.json();
 
                 if (result.success) {
