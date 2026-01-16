@@ -1738,7 +1738,7 @@
         <!-- CONNECTIONS TAB -->
         <div id="connectionsTab" class="tab-content">
             <div class="connections-grid">
-                <div class="connection-card">
+                <div class="connection-card" data-platform="instagram">
                     <div class="connection-header">
                         <div class="connection-platform instagram">
                             <i class="fab fa-instagram"></i>
@@ -1769,7 +1769,7 @@
                     <button class="connection-btn disconnect">Disconnect</button>
                 </div>
 
-                <div class="connection-card">
+                <div class="connection-card" data-platform="facebook">
                     <div class="connection-header">
                         <div class="connection-platform facebook">
                             <i class="fab fa-facebook"></i>
@@ -1800,7 +1800,7 @@
                     <button class="connection-btn disconnect">Disconnect</button>
                 </div>
 
-                <div class="connection-card">
+                <div class="connection-card" data-platform="tiktok">
                     <div class="connection-header">
                         <div class="connection-platform tiktok">
                             <i class="fab fa-tiktok"></i>
@@ -1831,7 +1831,7 @@
                     <button class="connection-btn connect" onclick="connectTikTok()">Connect TikTok</button>
                 </div>
 
-                <div class="connection-card">
+                <div class="connection-card" data-platform="ayrshare">
                     <div class="connection-header">
                         <div class="connection-platform" style="color: var(--purple);">
                             <i class="fas fa-robot"></i>
@@ -1924,13 +1924,13 @@
                     <button class="connection-btn connect">Setup Klaviyo</button>
                 </div>
 
-                <div class="connection-card">
+                <div class="connection-card" data-platform="youtube">
                     <div class="connection-header">
                         <div class="connection-platform" style="color: var(--youtube);">
                             <i class="fab fa-youtube"></i>
                             <div>
                                 <div style="font-weight: 600;">YouTube</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Not connected</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Tiny Seed Farm</div>
                             </div>
                         </div>
                         <div class="connection-status">
@@ -1955,13 +1955,13 @@
                     <button class="connection-btn connect" onclick="connectYouTube()">Connect YouTube</button>
                 </div>
 
-                <div class="connection-card">
+                <div class="connection-card" data-platform="pinterest">
                     <div class="connection-header">
                         <div class="connection-platform" style="color: var(--pinterest);">
                             <i class="fab fa-pinterest"></i>
                             <div>
                                 <div style="font-weight: 600;">Pinterest</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Not connected</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">tinyseedfarm</div>
                             </div>
                         </div>
                         <div class="connection-status">
@@ -1986,13 +1986,13 @@
                     <button class="connection-btn connect" onclick="connectPinterest()">Connect Pinterest</button>
                 </div>
 
-                <div class="connection-card">
+                <div class="connection-card" data-platform="threads">
                     <div class="connection-header">
                         <div class="connection-platform" style="color: var(--threads);">
                             <i class="fab fa-threads"></i>
                             <div>
                                 <div style="font-weight: 600;">Threads</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Instagram companion</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">@tinyseedfarm</div>
                             </div>
                         </div>
                         <div class="connection-status">
@@ -2989,17 +2989,8 @@
         // FARM PICS GALLERY
         // ═══════════════════════════════════════════════════════════════════════════
 
-        const farmPicsData = [
-            { id: 1, url: 'https://images.unsplash.com/photo-1592838064575-70ed626d3a0e?w=400', author: 'Maria', status: 'new', category: 'harvest', date: 'Today' },
-            { id: 2, url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400', author: 'Jake', status: 'new', category: 'greenhouse', date: 'Today' },
-            { id: 3, url: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400', author: 'Lisa', status: 'new', category: 'harvest', date: 'Yesterday' },
-            { id: 4, url: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400', author: 'Maria', status: 'new', category: 'team', date: 'Yesterday' },
-            { id: 5, url: 'https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=400', author: 'Jake', status: 'new', category: 'harvest', date: '2 days ago' },
-            { id: 6, url: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=400', author: 'Admin', status: 'approved', category: 'greenhouse', date: '3 days ago' },
-            { id: 7, url: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400', author: 'Lisa', status: 'approved', category: 'harvest', date: '4 days ago' },
-            { id: 8, url: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=400', author: 'Maria', status: 'used', category: 'team', date: '5 days ago' },
-            { id: 9, url: 'https://images.unsplash.com/photo-1595855759920-86582396756a?w=400', author: 'Jake', status: 'used', category: 'harvest', date: '1 week ago' },
-        ];
+        // Farm pics - loaded from API
+        let farmPicsData = [];
 
         function renderFarmPics(filter = 'all') {
             const gallery = document.getElementById('farmPicsGallery');
@@ -3106,11 +3097,8 @@
         // CAMPAIGNS
         // ═══════════════════════════════════════════════════════════════════════════
 
-        const campaignsData = [
-            { id: 1, name: 'Spring CSA Launch', type: 'CSA Recruitment', status: 'active', startDate: 'Jan 15', endDate: 'Feb 28', budget: 500, spent: 234, reach: 12400, conversions: 45 },
-            { id: 2, name: 'Valentine\'s Bouquets', type: 'Seasonal Promotion', status: 'scheduled', startDate: 'Feb 1', endDate: 'Feb 14', budget: 200, spent: 0, reach: 0, conversions: 0 },
-            { id: 3, name: 'Winter Newsletter Series', type: 'Email', status: 'completed', startDate: 'Dec 1', endDate: 'Jan 10', budget: 45, spent: 45, reach: 8700, conversions: 124 },
-        ];
+        // Campaigns - loaded from API
+        let campaignsData = [];
 
         function renderCampaigns() {
             const list = document.getElementById('campaignList');
@@ -3525,15 +3513,174 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // API DATA LOADING
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadFarmPics() {
+            try {
+                const response = await fetch(`${API_URL}?action=getFarmPics`);
+                const result = await response.json();
+                if (result.success && result.farmPics) {
+                    farmPicsData = result.farmPics.map(pic => ({
+                        id: pic.Pic_ID || pic.id,
+                        url: pic.Image_URL || pic.url || 'https://via.placeholder.com/400x300?text=No+Image',
+                        author: pic.Employee_Name || pic.author || 'Unknown',
+                        status: (pic.Status || pic.status || 'new').toLowerCase(),
+                        category: (pic.Category || pic.category || 'general').toLowerCase(),
+                        date: formatRelativeDate(pic.Submitted_At || pic.date)
+                    }));
+                }
+                renderFarmPics();
+                updateNewPicsBadge();
+            } catch (error) {
+                console.error('Error loading farm pics:', error);
+                renderFarmPics(); // Render empty state
+            }
+        }
+
+        async function loadCampaigns() {
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingCampaigns`);
+                const result = await response.json();
+                if (result.success && result.campaigns) {
+                    campaignsData = result.campaigns.map(c => ({
+                        id: c.Campaign_ID || c.id,
+                        name: c.Name || c.name || 'Untitled Campaign',
+                        type: c.Type || c.type || 'General',
+                        status: (c.Status || c.status || 'draft').toLowerCase(),
+                        startDate: formatShortDate(c.Start_Date || c.startDate),
+                        endDate: formatShortDate(c.End_Date || c.endDate),
+                        budget: parseFloat(c.Budget || c.budget) || 0,
+                        spent: parseFloat(c.Spent || c.spent) || 0,
+                        reach: parseInt(c.Reach || c.reach) || 0,
+                        conversions: parseInt(c.Conversions || c.conversions) || 0
+                    }));
+                }
+                renderCampaigns();
+            } catch (error) {
+                console.error('Error loading campaigns:', error);
+                renderCampaigns(); // Render empty state
+            }
+        }
+
+        async function loadSocialConnections() {
+            try {
+                const response = await fetch(`${API_URL}?action=getSocialConnections`);
+                const result = await response.json();
+                if (result.success && result.connections) {
+                    updateConnectionsUI(result.connections, result.ayrshareEnabled);
+                }
+            } catch (error) {
+                console.error('Error loading social connections:', error);
+            }
+        }
+
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingAnalytics`);
+                const result = await response.json();
+                if (result.success) {
+                    updateDashboardStats(result);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard stats:', error);
+            }
+        }
+
+        function updateConnectionsUI(connections, ayrshareEnabled) {
+            // Update connection cards based on API data
+            connections.forEach(conn => {
+                const platform = conn.Platform || conn.platform;
+                const status = conn.Status || conn.status;
+                const followers = conn.Followers || conn.followers || 0;
+
+                // Find and update the connection card for this platform
+                const card = document.querySelector(`[data-platform="${platform}"]`);
+                if (card) {
+                    const statusEl = card.querySelector('.connection-status');
+                    const followersEl = card.querySelector('.connection-stat-value');
+                    if (statusEl) {
+                        statusEl.className = 'connection-status ' + (status === 'connected' ? 'connected' : 'disconnected');
+                        statusEl.innerHTML = status === 'connected'
+                            ? '<i class="fas fa-check-circle"></i> Connected'
+                            : '<i class="fas fa-times-circle"></i> Not Connected';
+                    }
+                    if (followersEl && followers > 0) {
+                        followersEl.textContent = formatNumber(followers);
+                    }
+                }
+            });
+
+            // Update Ayrshare status
+            const ayrshareStatus = document.getElementById('ayrshareStatus');
+            if (ayrshareStatus) {
+                ayrshareStatus.className = 'connection-status ' + (ayrshareEnabled ? 'connected' : 'disconnected');
+                ayrshareStatus.innerHTML = ayrshareEnabled
+                    ? '<i class="fas fa-check-circle"></i> Active'
+                    : '<i class="fas fa-times-circle"></i> Not Configured';
+            }
+        }
+
+        function updateDashboardStats(data) {
+            // Update stats if elements exist
+            if (data.instagramFollowers !== undefined) {
+                const el = document.getElementById('statInstagramFollowers');
+                if (el) el.textContent = formatNumber(data.instagramFollowers);
+            }
+            if (data.facebookFollowers !== undefined) {
+                const el = document.getElementById('statFacebookFollowers');
+                if (el) el.textContent = formatNumber(data.facebookFollowers);
+            }
+        }
+
+        // Helper functions
+        function formatRelativeDate(dateStr) {
+            if (!dateStr) return 'Unknown';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffDays < 14) return '1 week ago';
+            return `${Math.floor(diffDays / 7)} weeks ago`;
+        }
+
+        function formatShortDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toLocaleString();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // INITIALIZATION
         // ═══════════════════════════════════════════════════════════════════════════
 
-        document.addEventListener('DOMContentLoaded', function() {
-            renderFarmPics();
-            renderCampaigns();
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Show loading state
+            console.log('Loading Marketing Command Center data...');
+
+            // Load all data from API
+            await Promise.all([
+                loadFarmPics(),
+                loadCampaigns(),
+                loadSocialConnections(),
+                loadDashboardStats()
+            ]);
+
+            // Initialize UI components
             renderScheduleCalendar();
             initCharts();
-            updateNewPicsBadge();
+            checkForDraft();
+
+            console.log('Marketing Command Center loaded!');
         });
     </script>
 </body>
