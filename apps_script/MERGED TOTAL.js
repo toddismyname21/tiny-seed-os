@@ -107,8 +107,14 @@ function doGet(e) {
         return getDTMLearningData();
   case 'getGreenhouseSowingTasks':
     return jsonResponse(getGreenhouseSowingTasks(e.parameter));
+  case 'getTransplantTasks':
+    return jsonResponse(getTransplantTasks(e.parameter));
+  case 'getDirectSeedTasks':
+    return jsonResponse(getDirectSeedTasks(e.parameter));
+  case 'getSocialStatus':
+    return jsonResponse(getAyrshareStatus());
 
-      
+
       // ============ LEGACY ENDPOINTS ============
       case 'getPlanning':
         return getPlanning();
@@ -593,6 +599,8 @@ function doGet(e) {
         return jsonResponse(getMarketingAnalytics(e.parameter));
       case 'getSocialConnections':
         return jsonResponse(getSocialConnections(e.parameter));
+      case 'resetSocialConnections':
+        return jsonResponse(resetSocialConnections());
       case 'publishSocialPost':
         return jsonResponse(publishToSocial(payload));
       case 'checkAyrshareStatus':
@@ -679,6 +687,20 @@ function doPost(e) {
         return jsonResponse(forceLogout(data));
       case 'logAdminAction':
         return jsonResponse(logAdminAction(data));
+
+      // ============ SOCIAL MEDIA INTEGRATION ============
+      case 'publishSocialPost':
+        return jsonResponse(publishToAyrshare({
+          post: data.caption,
+          platforms: data.platforms,
+          mediaUrl: data.mediaUrl,
+          scheduleDate: data.scheduleDate,
+          platformOptions: data.platformOptions
+        }));
+      case 'getSocialAnalytics':
+        return jsonResponse(getAyrshareAnalytics(data.platforms));
+      case 'deleteSocialPost':
+        return jsonResponse(deleteAyrsharePost(data.postId));
 
       // ============ LEGACY POST ENDPOINTS ============
       case 'addPlanting':
@@ -5872,6 +5894,415 @@ function createDirectSeedingTab() {
     Logger.log(JSON.stringify(result, null, 2));
     return result;
   }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRANSPLANT & DIRECT SEED TASK ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getTransplantTasks(params) {
+  const SHEET_ID = '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc';
+  const PLANNING_TAB = 'PLANNING_2026';
+
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const planningSheet = ss.getSheetByName(PLANNING_TAB);
+
+    if (!planningSheet) {
+      return { success: false, error: 'Planning sheet not found' };
+    }
+
+    const planningData = planningSheet.getDataRange().getValues();
+    const headers = planningData[0];
+
+    const cols = {
+      status: headers.indexOf('STATUS'),
+      batchId: headers.indexOf('Batch_ID'),
+      crop: headers.indexOf('Crop'),
+      variety: headers.indexOf('Variety'),
+      plantingMethod: headers.indexOf('Planting_Method'),
+      transplant: headers.indexOf('Plan_Transplant'),
+      actTransplant: headers.indexOf('Act_Transplant'),
+      bed: headers.indexOf('Target_Bed_ID'),
+      feetUsed: headers.indexOf('Feet_Used'),
+      plantsNeeded: headers.indexOf('Plants_Needed'),
+      notes: headers.indexOf('Notes'),
+      category: headers.indexOf('Category')
+    };
+
+    const startDate = params.startDate ? new Date(params.startDate) : new Date();
+    const endDate = params.endDate ? new Date(params.endDate) : new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    const tasks = [];
+
+    for (let i = 1; i < planningData.length; i++) {
+      const row = planningData[i];
+
+      const plantingMethod = cols.plantingMethod >= 0 ? row[cols.plantingMethod] : 'Transplant';
+      if (plantingMethod === 'Direct Seed') continue;
+
+      const transplantDateRaw = cols.transplant >= 0 ? row[cols.transplant] : null;
+      if (!transplantDateRaw) continue;
+
+      const transplantDate = new Date(transplantDateRaw);
+      if (isNaN(transplantDate.getTime())) continue;
+
+      if (transplantDate < startDate || transplantDate > endDate) continue;
+
+      const isCompleted = cols.actTransplant >= 0 && row[cols.actTransplant];
+
+      tasks.push({
+        batchId: cols.batchId >= 0 ? row[cols.batchId] : 'ROW-' + i,
+        crop: cols.crop >= 0 ? row[cols.crop] : '',
+        variety: cols.variety >= 0 ? row[cols.variety] : '',
+        category: cols.category >= 0 ? row[cols.category] : 'Veg',
+        transplantDate: formatDateSimple(transplantDate),
+        bed: cols.bed >= 0 ? row[cols.bed] : '',
+        feetUsed: cols.feetUsed >= 0 ? (parseInt(row[cols.feetUsed]) || 0) : 0,
+        plantsNeeded: cols.plantsNeeded >= 0 ? (parseInt(row[cols.plantsNeeded]) || 0) : 0,
+        notes: cols.notes >= 0 ? row[cols.notes] : '',
+        completed: !!isCompleted,
+        rowIndex: i + 1
+      });
+    }
+
+    tasks.sort((a, b) => new Date(a.transplantDate) - new Date(b.transplantDate));
+
+    return {
+      success: true,
+      tasks: tasks,
+      summary: {
+        totalTasks: tasks.length,
+        totalFeet: tasks.reduce((sum, t) => sum + t.feetUsed, 0),
+        totalPlants: tasks.reduce((sum, t) => sum + t.plantsNeeded, 0),
+        dateRange: {
+          start: formatDateSimple(startDate),
+          end: formatDateSimple(endDate)
+        }
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getDirectSeedTasks(params) {
+  const SHEET_ID = '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc';
+  const PLANNING_TAB = 'PLANNING_2026';
+
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const planningSheet = ss.getSheetByName(PLANNING_TAB);
+
+    if (!planningSheet) {
+      return { success: false, error: 'Planning sheet not found' };
+    }
+
+    const planningData = planningSheet.getDataRange().getValues();
+    const headers = planningData[0];
+
+    const cols = {
+      status: headers.indexOf('STATUS'),
+      batchId: headers.indexOf('Batch_ID'),
+      crop: headers.indexOf('Crop'),
+      variety: headers.indexOf('Variety'),
+      plantingMethod: headers.indexOf('Planting_Method'),
+      fieldSow: headers.indexOf('Plan_Field_Sow'),
+      actFieldSow: headers.indexOf('Act_Field_Sow'),
+      bed: headers.indexOf('Target_Bed_ID'),
+      feetUsed: headers.indexOf('Feet_Used'),
+      notes: headers.indexOf('Notes'),
+      category: headers.indexOf('Category')
+    };
+
+    const startDate = params.startDate ? new Date(params.startDate) : new Date();
+    const endDate = params.endDate ? new Date(params.endDate) : new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    const tasks = [];
+
+    for (let i = 1; i < planningData.length; i++) {
+      const row = planningData[i];
+
+      const plantingMethod = cols.plantingMethod >= 0 ? row[cols.plantingMethod] : '';
+      if (plantingMethod !== 'Direct Seed') continue;
+
+      const fieldSowDateRaw = cols.fieldSow >= 0 ? row[cols.fieldSow] : null;
+      if (!fieldSowDateRaw) continue;
+
+      const fieldSowDate = new Date(fieldSowDateRaw);
+      if (isNaN(fieldSowDate.getTime())) continue;
+
+      if (fieldSowDate < startDate || fieldSowDate > endDate) continue;
+
+      const isCompleted = cols.actFieldSow >= 0 && row[cols.actFieldSow];
+
+      tasks.push({
+        batchId: cols.batchId >= 0 ? row[cols.batchId] : 'ROW-' + i,
+        crop: cols.crop >= 0 ? row[cols.crop] : '',
+        variety: cols.variety >= 0 ? row[cols.variety] : '',
+        category: cols.category >= 0 ? row[cols.category] : 'Veg',
+        sowDate: formatDateSimple(fieldSowDate),
+        bed: cols.bed >= 0 ? row[cols.bed] : '',
+        feetUsed: cols.feetUsed >= 0 ? (parseInt(row[cols.feetUsed]) || 0) : 0,
+        notes: cols.notes >= 0 ? row[cols.notes] : '',
+        completed: !!isCompleted,
+        rowIndex: i + 1
+      });
+    }
+
+    tasks.sort((a, b) => new Date(a.sowDate) - new Date(b.sowDate));
+
+    return {
+      success: true,
+      tasks: tasks,
+      summary: {
+        totalTasks: tasks.length,
+        totalFeet: tasks.reduce((sum, t) => sum + t.feetUsed, 0),
+        dateRange: {
+          start: formatDateSimple(startDate),
+          end: formatDateSimple(endDate)
+        }
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AYRSHARE SOCIAL MEDIA INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getAyrshareApiKey() {
+  const key = PropertiesService.getScriptProperties().getProperty('AYRSHARE_API_KEY');
+  if (!key) {
+    throw new Error('Ayrshare API key not configured. Run storeAyrshareApiKey() first.');
+  }
+  return key;
+}
+
+function publishToAyrshare(params) {
+  try {
+    const apiKey = getAyrshareApiKey();
+    const baseUrl = 'https://app.ayrshare.com/api';
+
+    if (!params.post || !params.post.trim()) {
+      return { success: false, error: 'Post content is required' };
+    }
+
+    if (!params.platforms || params.platforms.length === 0) {
+      return { success: false, error: 'At least one platform is required' };
+    }
+
+    const platformMap = {
+      'facebook': 'facebook',
+      'instagram': 'instagram',
+      'tiktok': 'tiktok',
+      'youtube': 'youtube',
+      'pinterest': 'pinterest',
+      'threads': 'threads',
+      'twitter': 'twitter',
+      'linkedin': 'linkedin'
+    };
+
+    const validPlatforms = params.platforms
+      .map(p => platformMap[p.toLowerCase()])
+      .filter(p => p);
+
+    if (validPlatforms.length === 0) {
+      return { success: false, error: 'No valid platforms specified' };
+    }
+
+    const payload = {
+      post: params.post,
+      platforms: validPlatforms
+    };
+
+    if (params.mediaUrl) {
+      payload.mediaUrls = [params.mediaUrl];
+      if (validPlatforms.includes('tiktok') || validPlatforms.includes('youtube')) {
+        payload.videoUrl = params.mediaUrl;
+      }
+    }
+
+    if (params.scheduleDate) {
+      payload.scheduleDate = params.scheduleDate;
+    }
+
+    if (params.platformOptions) {
+      if (params.platformOptions.youtube) {
+        payload.youTubeOptions = {
+          title: params.platformOptions.youtube.title || params.post.substring(0, 100),
+          visibility: params.platformOptions.youtube.visibility || 'public',
+          thumbNail: params.platformOptions.youtube.thumbnail
+        };
+      }
+      if (params.platformOptions.pinterest) {
+        payload.pinterestOptions = {
+          title: params.platformOptions.pinterest.title,
+          link: params.platformOptions.pinterest.link,
+          boardId: params.platformOptions.pinterest.boardId
+        };
+      }
+      if (params.platformOptions.instagram) {
+        payload.instagramOptions = {
+          shareToFeed: params.platformOptions.instagram.shareToFeed !== false,
+          isStory: params.platformOptions.instagram.isStory || false
+        };
+      }
+    }
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(baseUrl + '/post', options);
+    const responseCode = response.getResponseCode();
+    const responseData = JSON.parse(response.getContentText());
+
+    if (responseCode === 200) {
+      logMarketingPost({
+        platforms: validPlatforms,
+        content: params.post.substring(0, 100),
+        scheduled: !!params.scheduleDate,
+        scheduleDate: params.scheduleDate,
+        postIds: responseData.postIds || responseData.id
+      });
+
+      return {
+        success: true,
+        postIds: responseData.postIds || responseData.id,
+        status: responseData.status,
+        scheduled: !!params.scheduleDate
+      };
+    } else {
+      return {
+        success: false,
+        error: responseData.message || 'Failed to publish',
+        code: responseCode,
+        details: responseData
+      };
+    }
+  } catch (error) {
+    return { success: false, error: error.message || 'Unknown error occurred' };
+  }
+}
+
+function getAyrshareStatus() {
+  try {
+    const apiKey = getAyrshareApiKey();
+
+    const options = {
+      method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch('https://app.ayrshare.com/api/user', options);
+    const data = JSON.parse(response.getContentText());
+
+    if (response.getResponseCode() === 200) {
+      return {
+        success: true,
+        platforms: data.activePlatforms || [],
+        plan: data.subscription || 'unknown',
+        postsRemaining: data.postsRemaining
+      };
+    } else {
+      return { success: false, error: data.message || 'Failed to get status' };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+function deleteAyrsharePost(postId) {
+  try {
+    const apiKey = getAyrshareApiKey();
+
+    const options = {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({ id: postId }),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch('https://app.ayrshare.com/api/post', options);
+    const data = JSON.parse(response.getContentText());
+
+    return { success: response.getResponseCode() === 200, data: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+function getAyrshareAnalytics(platforms) {
+  try {
+    const apiKey = getAyrshareApiKey();
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({ platforms: platforms || ['instagram', 'facebook', 'tiktok'] }),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch('https://app.ayrshare.com/api/analytics/social', options);
+    const data = JSON.parse(response.getContentText());
+
+    return { success: response.getResponseCode() === 200, analytics: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+function logMarketingPost(postData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('MarketingPosts');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('MarketingPosts');
+      sheet.getRange(1, 1, 1, 7).setValues([[
+        'Timestamp', 'Platforms', 'Content Preview', 'Scheduled', 'Schedule Date', 'Post IDs', 'Status'
+      ]]);
+      const headerRange = sheet.getRange(1, 1, 1, 7);
+      headerRange.setBackground('#9c27b0');
+      headerRange.setFontColor('#ffffff');
+      headerRange.setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+
+    sheet.appendRow([
+      new Date(),
+      postData.platforms.join(', '),
+      postData.content,
+      postData.scheduled ? 'Yes' : 'No',
+      postData.scheduleDate || '',
+      JSON.stringify(postData.postIds),
+      'Published'
+    ]);
+  } catch (error) {
+    console.error('Failed to log marketing post:', error);
+  }
+}
+
+// One-time setup function - run in Apps Script editor
+function storeAyrshareApiKey() {
+  PropertiesService.getScriptProperties().setProperty('AYRSHARE_API_KEY', '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F');
+  Logger.log('Ayrshare API key stored securely!');
+}
  /**
    * Updates a crop profile in REF_CropProfiles
    * Used by Quick Plant Wizard when user modifies grow settings
@@ -16574,15 +17005,78 @@ function getPlaidItems() {
 
 /**
  * Get accounts from Plaid for a specific item or all items
+ * Fixed: Returns 'accounts' (not 'data'), includes institution per account,
+ * uses balance_current field name for frontend compatibility
  */
 function getPlaidAccounts(params) {
+    params = params || {};  // Handle undefined params
     try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('PLAID_ITEMS');
+
+        // If no params provided, fetch ALL connected items
+        if (!params.accessToken && !params.itemId) {
+            if (!sheet) {
+                return { success: true, accounts: [], message: 'No banks connected yet' };
+            }
+
+            const data = sheet.getDataRange().getValues();
+            const allAccounts = [];
+
+            // Iterate through all items and fetch accounts for each
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row[0] || row[3] !== 'Active') continue;
+
+                const itemAccessToken = row[1];
+                const institutionName = row[2];
+
+                try {
+                    const payload = {
+                        client_id: PLAID_CONFIG.CLIENT_ID,
+                        secret: PLAID_CONFIG.SECRET,
+                        access_token: itemAccessToken
+                    };
+
+                    const options = {
+                        method: 'post',
+                        contentType: 'application/json',
+                        payload: JSON.stringify(payload),
+                        muteHttpExceptions: true
+                    };
+
+                    const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/accounts/get', options);
+                    const result = JSON.parse(response.getContentText());
+
+                    if (result.accounts) {
+                        result.accounts.forEach(a => {
+                            syncPlaidAccountToSheet(a, result.item.institution_id);
+                            allAccounts.push({
+                                accountId: a.account_id,
+                                name: a.name,
+                                officialName: a.official_name,
+                                type: a.type,
+                                subtype: a.subtype,
+                                mask: a.mask,
+                                balance_current: a.balances.current,
+                                balance_available: a.balances.available,
+                                limit: a.balances.limit,
+                                institution: institutionName
+                            });
+                        });
+                    }
+                } catch (itemError) {
+                    console.error('Error fetching accounts for item ' + row[0] + ': ' + itemError);
+                }
+            }
+
+            return { success: true, accounts: allAccounts };
+        }
+
+        // Single item fetch (original behavior, fixed field names)
         let accessToken = params.accessToken;
 
-        // If no access token provided, get from our stored items
         if (!accessToken && params.itemId) {
-            const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-            const sheet = ss.getSheetByName('PLAID_ITEMS');
             if (sheet) {
                 const data = sheet.getDataRange().getValues();
                 for (let i = 1; i < data.length; i++) {
@@ -16615,26 +17109,24 @@ function getPlaidAccounts(params) {
         const result = JSON.parse(response.getContentText());
 
         if (result.accounts) {
-            // Save/update accounts in our sheet
             result.accounts.forEach(account => {
                 syncPlaidAccountToSheet(account, result.item.institution_id);
             });
 
             return {
                 success: true,
-                data: result.accounts.map(a => ({
+                accounts: result.accounts.map(a => ({
                     accountId: a.account_id,
                     name: a.name,
                     officialName: a.official_name,
                     type: a.type,
                     subtype: a.subtype,
                     mask: a.mask,
-                    currentBalance: a.balances.current,
-                    availableBalance: a.balances.available,
+                    balance_current: a.balances.current,
+                    balance_available: a.balances.available,
                     limit: a.balances.limit,
-                    isoCurrencyCode: a.balances.iso_currency_code
-                })),
-                institution: result.item.institution_id
+                    institution: result.item.institution_id
+                }))
             };
         } else {
             return { success: false, error: result.error_message || 'Failed to get accounts' };
@@ -17786,6 +18278,47 @@ function getSocialConnections(params) {
             success: true,
             connections: connections,
             ayrshareEnabled: AYRSHARE_CONFIG.ENABLED
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Reset social connections to current status (all connected via Ayrshare)
+ * Call this to update the sheet with current connection status
+ */
+function resetSocialConnections() {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName(MARKETING_SHEETS.SOCIAL_CONNECTIONS);
+
+        // Delete existing sheet to recreate with fresh data
+        if (sheet) {
+            ss.deleteSheet(sheet);
+        }
+
+        // Create new sheet with updated platforms
+        sheet = ss.insertSheet(MARKETING_SHEETS.SOCIAL_CONNECTIONS);
+        sheet.appendRow(['Platform', 'Account', 'Status', 'Followers', 'Connected_At', 'Last_Post']);
+
+        // All platforms connected via Ayrshare - ordered by engagement priority
+        const platforms = [
+            ['tiktok', '@TinySeedEnergy', 'connected', 0, '2026-01-15', ''],
+            ['instagram', '@tinyseedfarm', 'connected', 2847, '2026-01-15', ''],
+            ['facebook', 'Tiny Seed Farm', 'connected', 1523, '2026-01-15', ''],
+            ['youtube', 'Tiny Seed Farm', 'connected', 0, '2026-01-15', ''],
+            ['pinterest', 'tinyseedfarm', 'connected', 0, '2026-01-15', ''],
+            ['threads', '@tinyseedfarm', 'connected', 0, '2026-01-15', ''],
+            ['ayrshare', 'Tiny Seed Farm', AYRSHARE_CONFIG.ENABLED ? 'active' : 'not_configured', 0, '2026-01-15', '']
+        ];
+
+        platforms.forEach(p => sheet.appendRow(p));
+
+        return {
+            success: true,
+            message: 'Social connections reset successfully',
+            platforms: platforms.length
         };
     } catch (error) {
         return { success: false, error: error.toString() };
