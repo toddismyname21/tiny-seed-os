@@ -4018,6 +4018,106 @@
             background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
         }
 
+        /* Team Task Badge */
+        .team-task-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            color: #60a5fa;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .team-task-badge i {
+            font-size: 1rem;
+        }
+
+        /* Subtasks Section */
+        .subtasks-section {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .subtasks-header {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .subtasks-header span {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .subtasks-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .subtasks-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #16a34a);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .subtasks-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .subtask-item:active {
+            transform: scale(0.98);
+        }
+
+        .subtask-item i {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        .subtask-item.completed {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.3);
+            cursor: default;
+        }
+
+        .subtask-item.completed i {
+            color: var(--success);
+        }
+
+        .subtask-item.completed span {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
         /* Completion Animation Overlay */
         .completion-overlay {
             position: fixed;
@@ -13641,6 +13741,36 @@
                     </div>
                     ` : ''}
 
+                    <!-- Team Task Badge -->
+                    ${task.isTeamTask ? `
+                    <div class="team-task-badge">
+                        <i class="fas fa-users"></i>
+                        <span>Team Task - One person completes for everyone</span>
+                    </div>
+                    ` : ''}
+
+                    <!-- Subtasks (tray by tray for seeding) -->
+                    ${task.subtasksTotal > 0 ? `
+                    <div class="subtasks-section">
+                        <div class="subtasks-header">
+                            <span><i class="fas fa-list-check"></i> Progress: ${task.subtasksCompleted}/${task.subtasksTotal}</span>
+                            <div class="subtasks-progress-bar">
+                                <div class="subtasks-progress-fill" style="width: ${(task.subtasksCompleted / task.subtasksTotal) * 100}%"></div>
+                            </div>
+                        </div>
+                        <div class="subtasks-list">
+                            ${task.subtasks.map((sub, idx) => `
+                                <button class="subtask-item ${sub.completed ? 'completed' : ''}"
+                                        onclick="completeSubtask('${task.id}', ${idx})"
+                                        ${sub.completed ? 'disabled' : ''}>
+                                    <i class="fas ${sub.completed ? 'fa-check-circle' : 'fa-circle'}"></i>
+                                    <span>${sub.name}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
                     <!-- Timer Display (hidden until started) -->
                     <div class="task-timer-display ${isTimerActive ? 'active' : ''}" id="timerDisplay-${task.id}">
                         <div class="timer-pulse"></div>
@@ -13899,6 +14029,92 @@
                 console.error('Complete task error:', error);
                 // Still update UI even if API call fails
                 AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+            }
+
+            // For team/shared tasks, also call completeSharedTask to mark for everyone
+            // and create follow-up tasks (like log_harvest after harvest)
+            if (task.isTeamTask || task.createsFollowUp) {
+                try {
+                    const response = await fetch(`${CONFIG.API_URL}?action=completeSharedTask`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            taskId: taskId,
+                            employeeId: AppState.employee?.Employee_ID || '',
+                            notes: ''
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    // If there's a follow-up task, show notification
+                    if (result.followUpTask) {
+                        showToast(`Next: ${result.followUpTask.type === 'log_harvest' ? 'Log & QR code' : 'Follow-up'} - ${result.followUpTask.crop}`, 'info');
+                        // Reload tasks to show the new follow-up task
+                        setTimeout(() => loadInitialData(), 1500);
+                    }
+                } catch (e) {
+                    console.log('Shared task completion note:', e);
+                }
+            }
+        }
+
+        // Complete a subtask (one tray, one variety, etc.)
+        async function completeSubtask(taskId, subtaskIndex) {
+            const task = AppState.tasks.find(t => t.id === taskId);
+            if (!task || !task.subtasks || !task.subtasks[subtaskIndex]) return;
+
+            // Optimistic UI update
+            const subtaskBtn = document.querySelector(`.task-card-v2[data-id="${taskId}"] .subtask-item:nth-child(${subtaskIndex + 1})`);
+            if (subtaskBtn) {
+                subtaskBtn.classList.add('completed');
+                subtaskBtn.disabled = true;
+                subtaskBtn.innerHTML = `<i class="fas fa-check-circle"></i><span>${task.subtasks[subtaskIndex].name}</span>`;
+            }
+
+            // Update progress bar
+            task.subtasks[subtaskIndex].completed = true;
+            task.subtasksCompleted = (task.subtasksCompleted || 0) + 1;
+
+            const progressFill = document.querySelector(`.task-card-v2[data-id="${taskId}"] .subtasks-progress-fill`);
+            const progressText = document.querySelector(`.task-card-v2[data-id="${taskId}"] .subtasks-header span`);
+            if (progressFill) {
+                progressFill.style.width = `${(task.subtasksCompleted / task.subtasksTotal) * 100}%`;
+            }
+            if (progressText) {
+                progressText.innerHTML = `<i class="fas fa-list-check"></i> Progress: ${task.subtasksCompleted}/${task.subtasksTotal}`;
+            }
+
+            // Haptic feedback
+            if (navigator.vibrate) navigator.vibrate(30);
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=completeSubtask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        taskId: taskId,
+                        subtaskIndex: subtaskIndex,
+                        employeeId: AppState.employee?.Employee_ID || ''
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.taskComplete) {
+                    // All subtasks done - show completion
+                    showToast(`All ${task.subtasksTotal} items complete!`, 'success');
+
+                    // Remove task from list after delay
+                    setTimeout(() => {
+                        AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+                        renderTasks();
+                    }, 1000);
+                } else {
+                    showToast(`${result.completed}/${result.total} done`, 'success');
+                }
+            } catch (error) {
+                console.error('Subtask completion error:', error);
             }
         }
 

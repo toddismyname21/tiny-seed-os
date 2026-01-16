@@ -328,6 +328,10 @@ function doGet(e) {
         return jsonResponse(getEmployeeTasks(e.parameter));
       case 'createSampleTasks':
         return jsonResponse(createSampleTasks());
+      case 'completeSharedTask':
+        return jsonResponse(completeSharedTask(data));
+      case 'completeSubtask':
+        return jsonResponse(completeSubtask(data));
       case 'completeTaskWithGPS':
         return jsonResponse(completeTaskWithGPS(e.parameter));
       case 'logHarvestWithDetails':
@@ -6936,9 +6940,9 @@ function storeAllCredentials() {
   // Google Maps
   props.setProperty('GOOGLE_MAPS_API_KEY', 'AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y');
 
-  // Plaid Banking
+  // Plaid Banking (PRODUCTION)
   props.setProperty('PLAID_CLIENT_ID', '69690f5d01c8e8001d439007');
-  props.setProperty('PLAID_SECRET', '65ccc418aad5af30d15744b05de1d5');
+  props.setProperty('PLAID_SECRET', '27349ff4c0011329e95a3d6a4ddafc');
 
   // Ayrshare Social Media
   props.setProperty('AYRSHARE_API_KEY', '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F');
@@ -13767,6 +13771,14 @@ function getEmployeeTasks(params) {
 
         const taskDate = row.Due_Date ? new Date(row.Due_Date) : null;
         if (taskDate) {
+          // Parse subtask details
+          const subtaskDetails = row.Subtask_Details ? row.Subtask_Details.split('|') : [];
+          const subtasks = subtaskDetails.map((s, idx) => ({
+            index: idx,
+            name: s.replace('✓', ''),
+            completed: s.startsWith('✓')
+          }));
+
           tasks.push({
             id: row.Task_ID || 'TASK-' + i,
             type: row.Task_Type || 'task',
@@ -13778,7 +13790,17 @@ function getEmployeeTasks(params) {
             quantity: row.Quantity || '',
             status: row.Status || 'Pending',
             notes: row.Notes || '',
-            costingMode: row.Costing_Mode === true || row.Costing_Mode === 'TRUE'
+            costingMode: row.Costing_Mode === true || row.Costing_Mode === 'TRUE',
+            // Subtask tracking
+            subtasksTotal: row.Subtasks_Total || 0,
+            subtasksCompleted: row.Subtasks_Completed || 0,
+            subtasks: subtasks,
+            // Follow-up tracking
+            createsFollowUp: row.Creates_Follow_Up || false,
+            parentTaskId: row.Parent_Task_ID || '',
+            // Assignment
+            assignedTo: row.Assigned_To || 'All',
+            isTeamTask: row.Assigned_To === 'All'
           });
         }
       }
@@ -13798,33 +13820,232 @@ function createSampleTasks() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('EMPLOYEE_TASKS');
 
-  if (!sheet) {
-    sheet = ss.insertSheet('EMPLOYEE_TASKS');
-    sheet.appendRow([
-      'Task_ID', 'Task_Type', 'Crop', 'Variety', 'Description', 'Due_Date',
-      'Bed_ID', 'Field', 'Location', 'Quantity', 'Assigned_To', 'Status',
-      'Costing_Mode', 'Notes', 'Created_At', 'Created_By'
-    ]);
-    sheet.getRange(1, 1, 1, 16).setFontWeight('bold');
+  // Delete existing sheet to recreate with new columns
+  if (sheet) {
+    ss.deleteSheet(sheet);
   }
+
+  sheet = ss.insertSheet('EMPLOYEE_TASKS');
+  sheet.appendRow([
+    'Task_ID', 'Task_Type', 'Crop', 'Variety', 'Description', 'Due_Date',
+    'Bed_ID', 'Field', 'Location', 'Quantity', 'Assigned_To', 'Status',
+    'Costing_Mode', 'Notes', 'Created_At', 'Created_By',
+    'Subtasks_Total', 'Subtasks_Completed', 'Subtask_Details', 'Completed_By', 'Completed_At',
+    'Creates_Follow_Up', 'Parent_Task_ID'
+  ]);
+  sheet.getRange(1, 1, 1, 23).setFontWeight('bold');
 
   const today = new Date();
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
   const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
   const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
 
+  // Format: [Task_ID, Task_Type, Crop, Variety, Description, Due_Date, Bed_ID, Field, Location, Quantity,
+  //          Assigned_To, Status, Costing_Mode, Notes, Created_At, Created_By,
+  //          Subtasks_Total, Subtasks_Completed, Subtask_Details, Completed_By, Completed_At, Creates_Follow_Up, Parent_Task_ID]
   const sampleTasks = [
-    ['TASK-001', 'sow', 'Lettuce', 'Salanova Red', 'Seed 4 flats of Salanova Red', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-1', '4 flats', 'All', 'Pending', false, 'Use 128-cell trays', new Date().toISOString(), 'System'],
-    ['TASK-002', 'transplant', 'Tomatoes', 'Cherokee Purple', 'Transplant tomato starts to high tunnel', tomorrow.toISOString().split('T')[0], 'HT-1', 'High Tunnel', 'High Tunnel 1', '48 plants', 'All', 'Pending', true, 'Space 18 inches apart', new Date().toISOString(), 'System'],
-    ['TASK-003', 'harvest', 'Kale', 'Lacinato', 'Harvest kale for Saturday market', today.toISOString().split('T')[0], 'B-12', 'North Field', 'Bed 12', '30 bunches', 'All', 'Pending', false, 'Cut and bunch, rubber bands in cooler', new Date().toISOString(), 'System'],
-    ['TASK-004', 'weed', 'Carrots', 'Nantes', 'Hand weed carrot beds', dayAfter.toISOString().split('T')[0], 'B-5', 'South Field', 'Beds 5-6', '', 'All', 'Pending', true, 'Careful around young seedlings', new Date().toISOString(), 'System'],
-    ['TASK-005', 'irrigate', 'Mixed Greens', '', 'Check drip irrigation in greens house', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-2', '', 'All', 'Pending', false, 'Look for clogged emitters', new Date().toISOString(), 'System'],
-    ['TASK-006', 'harvest', 'Spinach', 'Bloomsdale', 'OVERDUE - Harvest spinach', yesterday.toISOString().split('T')[0], 'B-8', 'North Field', 'Bed 8', '20 lbs', 'All', 'Pending', false, 'Was supposed to be done yesterday!', new Date().toISOString(), 'System']
+    // Greenhouse sowing tasks with subtasks (tray by tray)
+    ['TASK-001', 'sow', 'Lettuce', 'Salanova Mix', 'Seed greenhouse lettuce - 6 trays', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-1', '6 trays', 'All', 'Pending', false, 'Use 128-cell trays. Varieties: 2x Red, 2x Green, 2x Butter', new Date().toISOString(), 'System', 6, 0, 'Red Butter|Red Butter|Green Oak|Green Oak|Butter|Butter', '', '', false, ''],
+    ['TASK-002', 'sow', 'Basil', 'Genovese', 'Seed basil for transplant', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-1', '4 trays', 'All', 'Pending', false, 'Use 72-cell trays, 2-3 seeds per cell', new Date().toISOString(), 'System', 4, 0, 'Tray 1|Tray 2|Tray 3|Tray 4', '', '', false, ''],
+    ['TASK-003', 'sow', 'Tomatoes', 'Mixed Heirlooms', 'Seed tomato varieties for high tunnel', tomorrow.toISOString().split('T')[0], '', 'Greenhouse', 'GH-1', '8 trays', 'All', 'Pending', true, 'Cherokee Purple, Brandywine, San Marzano, Sungold', new Date().toISOString(), 'System', 8, 0, 'Cherokee Purple|Cherokee Purple|Brandywine|Brandywine|San Marzano|San Marzano|Sungold|Sungold', '', '', false, ''],
+
+    // Flower tasks
+    ['TASK-004', 'sow', 'Zinnia', 'Benary Giant Mix', 'Seed zinnias for cut flowers', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-2', '4 trays', 'All', 'Pending', false, 'Use 50-cell trays, 1 seed per cell', new Date().toISOString(), 'System', 4, 0, 'Tray 1|Tray 2|Tray 3|Tray 4', '', '', false, ''],
+    ['TASK-005', 'sow', 'Sunflowers', 'ProCut Mix', 'Seed sunflowers - succession planting', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-2', '2 trays', 'All', 'Pending', false, 'Direct sow backup in field tomorrow', new Date().toISOString(), 'System', 2, 0, 'Orange|Yellow', '', '', false, ''],
+    ['TASK-006', 'transplant', 'Snapdragons', 'Rocket Mix', 'Transplant snapdragons to flower beds', tomorrow.toISOString().split('T')[0], 'FL-1', 'Flower Field', 'Flower Bed 1', '100 plants', 'All', 'Pending', false, 'Space 9 inches, pinch after establishment', new Date().toISOString(), 'System', 0, 0, '', '', '', false, ''],
+    ['TASK-007', 'harvest', 'Dahlias', 'Cafe au Lait', 'Harvest dahlias for farmers market', today.toISOString().split('T')[0], 'FL-2', 'Flower Field', 'Dahlia Bed', '50 stems', 'All', 'Pending', false, 'Cut in morning, strip lower leaves, into water immediately', new Date().toISOString(), 'System', 0, 0, '', '', '', 'log_harvest', ''],
+
+    // Vegetable tasks - shared harvest
+    ['TASK-008', 'harvest', 'Carrots', 'Nantes', 'Harvest carrots - TEAM TASK', today.toISOString().split('T')[0], 'B-5', 'South Field', 'Bed 5-6', '200 bunches', 'All', 'Pending', true, 'This is a team task - when done, creates QR/storage task', new Date().toISOString(), 'System', 0, 0, '', '', '', 'log_harvest', ''],
+    ['TASK-009', 'harvest', 'Kale', 'Lacinato', 'Harvest kale for Saturday market', today.toISOString().split('T')[0], 'B-12', 'North Field', 'Bed 12', '30 bunches', 'All', 'Pending', false, 'Cut and bunch, rubber bands in cooler', new Date().toISOString(), 'System', 0, 0, '', '', '', 'log_harvest', ''],
+
+    // Other tasks
+    ['TASK-010', 'transplant', 'Tomatoes', 'Cherokee Purple', 'Transplant tomato starts to high tunnel', tomorrow.toISOString().split('T')[0], 'HT-1', 'High Tunnel', 'High Tunnel 1', '48 plants', 'All', 'Pending', true, 'Space 18 inches apart', new Date().toISOString(), 'System', 0, 0, '', '', '', false, ''],
+    ['TASK-011', 'weed', 'Carrots', 'Nantes', 'Hand weed carrot beds', dayAfter.toISOString().split('T')[0], 'B-5', 'South Field', 'Beds 5-6', '', 'All', 'Pending', true, 'Careful around young seedlings', new Date().toISOString(), 'System', 0, 0, '', '', '', false, ''],
+    ['TASK-012', 'irrigate', 'Mixed Greens', '', 'Check drip irrigation in greens house', today.toISOString().split('T')[0], '', 'Greenhouse', 'GH-2', '', 'All', 'Pending', false, 'Look for clogged emitters', new Date().toISOString(), 'System', 0, 0, '', '', '', false, ''],
+    ['TASK-013', 'harvest', 'Spinach', 'Bloomsdale', 'OVERDUE - Harvest spinach', yesterday.toISOString().split('T')[0], 'B-8', 'North Field', 'Bed 8', '20 lbs', 'All', 'Pending', false, 'Was supposed to be done yesterday!', new Date().toISOString(), 'System', 0, 0, '', '', '', 'log_harvest', '']
   ];
 
   sampleTasks.forEach(task => sheet.appendRow(task));
 
-  return { success: true, message: 'Created ' + sampleTasks.length + ' sample tasks' };
+  return { success: true, message: 'Created ' + sampleTasks.length + ' sample tasks including flowers and greenhouse sowing' };
+}
+
+// Complete a task - marks as done for everyone, creates follow-up if needed
+function completeSharedTask(params) {
+  try {
+    const { taskId, employeeId, notes, harvestData } = params;
+
+    if (!taskId) {
+      return { success: false, error: 'Task ID required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('EMPLOYEE_TASKS');
+
+    if (!sheet) {
+      return { success: false, error: 'EMPLOYEE_TASKS sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const taskIdCol = headers.indexOf('Task_ID');
+    const statusCol = headers.indexOf('Status');
+    const completedByCol = headers.indexOf('Completed_By');
+    const completedAtCol = headers.indexOf('Completed_At');
+    const createsFollowUpCol = headers.indexOf('Creates_Follow_Up');
+    const cropCol = headers.indexOf('Crop');
+    const varietyCol = headers.indexOf('Variety');
+    const quantityCol = headers.indexOf('Quantity');
+    const bedCol = headers.indexOf('Bed_ID');
+    const fieldCol = headers.indexOf('Field');
+
+    let taskRow = -1;
+    let taskData = null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][taskIdCol] === taskId) {
+        taskRow = i + 1; // 1-indexed for sheet
+        taskData = {};
+        headers.forEach((h, j) => taskData[h] = data[i][j]);
+        break;
+      }
+    }
+
+    if (taskRow === -1) {
+      return { success: false, error: 'Task not found' };
+    }
+
+    // Mark task as completed for everyone
+    sheet.getRange(taskRow, statusCol + 1).setValue('Completed');
+    sheet.getRange(taskRow, completedByCol + 1).setValue(employeeId || 'Unknown');
+    sheet.getRange(taskRow, completedAtCol + 1).setValue(new Date().toISOString());
+
+    let followUpTask = null;
+
+    // Create follow-up task if this was a harvest task
+    if (taskData.Creates_Follow_Up === 'log_harvest') {
+      const followUpId = 'TASK-' + Date.now().toString(36).toUpperCase();
+      const followUpRow = [
+        followUpId,
+        'log_harvest',
+        taskData.Crop,
+        taskData.Variety,
+        `Log harvest: ${taskData.Crop} ${taskData.Variety || ''} - QR code, weigh, and store`,
+        new Date().toISOString().split('T')[0], // Due today
+        taskData.Bed_ID,
+        taskData.Field,
+        'Packhouse',
+        taskData.Quantity,
+        employeeId || 'All', // Assign to person who completed harvest
+        'Pending',
+        true, // Costing mode for tracking
+        `Follow-up from ${taskId}. Weigh harvest, print QR label, place in storage or assign to order.`,
+        new Date().toISOString(),
+        'System',
+        0, 0, '', '', '', false, taskId // Parent task reference
+      ];
+
+      sheet.appendRow(followUpRow);
+
+      followUpTask = {
+        id: followUpId,
+        type: 'log_harvest',
+        crop: taskData.Crop,
+        variety: taskData.Variety,
+        quantity: taskData.Quantity
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Task completed for all team members',
+      completedBy: employeeId,
+      followUpTask: followUpTask
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// Complete a subtask (one tray of seeding, etc.)
+function completeSubtask(params) {
+  try {
+    const { taskId, subtaskIndex, employeeId } = params;
+
+    if (!taskId || subtaskIndex === undefined) {
+      return { success: false, error: 'Task ID and subtask index required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('EMPLOYEE_TASKS');
+
+    if (!sheet) {
+      return { success: false, error: 'EMPLOYEE_TASKS sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const taskIdCol = headers.indexOf('Task_ID');
+    const statusCol = headers.indexOf('Status');
+    const subtasksTotalCol = headers.indexOf('Subtasks_Total');
+    const subtasksCompletedCol = headers.indexOf('Subtasks_Completed');
+    const subtaskDetailsCol = headers.indexOf('Subtask_Details');
+    const completedByCol = headers.indexOf('Completed_By');
+    const completedAtCol = headers.indexOf('Completed_At');
+
+    let taskRow = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][taskIdCol] === taskId) {
+        taskRow = i + 1;
+
+        const total = data[i][subtasksTotalCol] || 0;
+        let completed = data[i][subtasksCompletedCol] || 0;
+        let details = (data[i][subtaskDetailsCol] || '').split('|');
+
+        // Mark this subtask as completed (prefix with ✓)
+        if (subtaskIndex < details.length && !details[subtaskIndex].startsWith('✓')) {
+          details[subtaskIndex] = '✓' + details[subtaskIndex];
+          completed++;
+        }
+
+        // Update sheet
+        sheet.getRange(taskRow, subtasksCompletedCol + 1).setValue(completed);
+        sheet.getRange(taskRow, subtaskDetailsCol + 1).setValue(details.join('|'));
+
+        // If all subtasks done, mark whole task complete
+        if (completed >= total) {
+          sheet.getRange(taskRow, statusCol + 1).setValue('Completed');
+          sheet.getRange(taskRow, completedByCol + 1).setValue(employeeId || 'Team');
+          sheet.getRange(taskRow, completedAtCol + 1).setValue(new Date().toISOString());
+
+          return {
+            success: true,
+            message: 'All subtasks completed! Task finished.',
+            completed: completed,
+            total: total,
+            taskComplete: true
+          };
+        }
+
+        return {
+          success: true,
+          message: `Subtask ${subtaskIndex + 1} of ${total} completed`,
+          completed: completed,
+          total: total,
+          taskComplete: false,
+          subtasks: details
+        };
+      }
+    }
+
+    return { success: false, error: 'Task not found' };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 function completeTaskWithGPS(params) {
@@ -18832,8 +19053,8 @@ const PLAID_CONFIG = {
     get SECRET() {
         return PropertiesService.getScriptProperties().getProperty('PLAID_SECRET') || '';
     },
-    ENV: 'sandbox', // Switch to 'production' after Plaid approval
-    BASE_URL: 'https://sandbox.plaid.com',
+    ENV: 'production',
+    BASE_URL: 'https://production.plaid.com',
     PRODUCTS: ['transactions', 'auth'],
     COUNTRY_CODES: ['US'],
     LANGUAGE: 'en'

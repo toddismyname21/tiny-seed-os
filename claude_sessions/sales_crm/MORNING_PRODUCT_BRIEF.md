@@ -19,10 +19,13 @@ I analyzed the codebase and created a standardized product catalog for multi-cha
 |----------|-------|-------|
 | Vegetables | 15 | Core produce items |
 | Herbs | 4 | Culinary herbs |
-| Flowers | 4 | Cut flowers for bouquets |
-| CSA Shares | 4 | Small, Medium, Large, Family |
+| Flowers (single) | 4 | Cut flowers for bouquets |
+| CSA Vegetable | 6 + 6 Flex tiers | From tinyseedfarm.com |
+| CSA Flowers | 5 | Tiny Seed Fleurs |
 | Bundles | 4 | Specialty packs |
-| **TOTAL** | **27** | Products ready for standardization |
+| **TOTAL** | **44** | Products ready for standardization |
+
+*CSA pricing pulled from tinyseedfarm.com on 2026-01-16*
 
 ---
 
@@ -40,8 +43,16 @@ Basil, Cilantro, Parsley, Dill
 ### Flowers (4 products)
 Sunflowers, Zinnias, Dahlias, Cosmos
 
-### CSA Shares (4 sizes)
-Small (~$20/wk), Medium (~$35/wk), Large (~$50/wk), Family (~$65/wk)
+### CSA Vegetable Shares (from tinyseedfarm.com)
+- **Small Summer**: $540 weekly / $270 biweekly
+- **Friends & Family**: $720 weekly / $360 biweekly
+- **Spring CSA**: $150 (limited)
+- **Flex CSA**: $150, $300, $400, $600, $800, $1,000 tiers
+
+### CSA Flower Shares (Tiny Seed Fleurs)
+- **Full Bloom Bouquet**: $400 weekly / $200 biweekly
+- **Petite Bloom Bouquet**: $300 weekly / $150 biweekly
+- **DIY Bloom Bucket**: $90 (June-October)
 
 ### Bundles (4 specialty items)
 Salsa Pack, Stir Fry Pack, Farmer's Bouquet, Weekly Market Box
@@ -98,9 +109,9 @@ Salsa Pack, Stir Fry Pack, Farmer's Bouquet, Weekly Market Box
 ## QUESTIONS FOR OWNER
 
 ### Pricing
-1. Are the sample prices I found accurate?
+1. Are the vegetable/herb/flower prices I found accurate?
 2. What is your target wholesale discount (15%, 20%, 25%)?
-3. What are the actual CSA share season prices?
+3. ~~CSA share prices~~ ✓ **RESOLVED** - Pulled from tinyseedfarm.com
 
 ### Products
 4. Any products missing from my list?
@@ -117,6 +128,15 @@ Salsa Pack, Stir Fry Pack, Farmer's Bouquet, Weekly Market Box
 11. Do you have Shopify credentials ready?
 12. Do you have QuickBooks credentials ready?
 13. Preferred sync frequency (real-time vs daily)?
+
+### Farmers Markets (2026 Season - CONFIRMED)
+4 market locations:
+- Lawrenceville ✓
+- Bloomfield ✓
+- Sewickley ✓
+- Squirrel Hill ✓ (new)
+
+*Note: Northside and Forest Hills dropped for 2026*
 
 ---
 

@@ -11,11 +11,15 @@
 
 | Category | Product Count | Price Range |
 |----------|--------------|-------------|
-| Vegetables | 15 | $3.00 - $9.00 |
-| Herbs | 4 | $2.50 - $4.00 |
-| Flowers | 4 | $8.00 - $15.00 |
-| CSA Shares | 4 | TBD |
-| **TOTAL** | **27** | $2.50 - $15.00 |
+| Vegetables | 15 | $3.00 - $10.00 |
+| Herbs | 4 | $3.00 - $4.00 |
+| Flowers (single) | 4 | $8.00 - $15.00 |
+| CSA Vegetable | 6 + 6 tiers | $150 - $1,000 |
+| CSA Flowers | 5 | $90 - $400 |
+| Bundles | 4 | $10.00 - $25.00 |
+| **TOTAL** | **44** | Products cataloged |
+
+*CSA pricing from tinyseedfarm.com (2026 season)*
 
 ---
 
@@ -63,14 +67,38 @@
 
 ---
 
-## CSA SHARES
+## CSA SHARES - VEGETABLE
 
-| Share Size | Weekly Value | Season Price | Weeks | Description | Shopify SKU | QB Item |
-|------------|-------------|--------------|-------|-------------|-------------|---------|
-| Small | ~$20 | TBD | 20 | 4-6 items, single/couple | CSA-SM-20WK | CSA-Small |
-| Medium | ~$35 | TBD | 20 | 6-8 items, small family | CSA-MD-20WK | CSA-Medium |
-| Large | ~$50 | TBD | 20 | 8-12 items, large family | CSA-LG-20WK | CSA-Large |
-| Family | ~$65 | TBD | 20 | 10-14 items, extended family | CSA-FM-20WK | CSA-Family |
+| Share Name | Frequency | Season Price | Weekly Value | Description | Shopify SKU | QB Item |
+|------------|-----------|--------------|--------------|-------------|-------------|---------|
+| Small Summer | Weekly | $540 | ~$27/wk | Smaller vegetable share | CSA-SM-WK | CSA-Small-Weekly |
+| Small Summer | Biweekly | $270 | ~$27/pickup | Every other week | CSA-SM-BW | CSA-Small-Biweekly |
+| Friends & Family | Weekly | $720 | ~$36/wk | Larger share for families | CSA-FF-WK | CSA-FriendsFamily-Weekly |
+| Friends & Family | Biweekly | $360 | ~$36/pickup | Every other week | CSA-FF-BW | CSA-FriendsFamily-Biweekly |
+| Spring CSA | Limited | $150 | Varies | Early season greens | CSA-SPRING | CSA-Spring |
+| Flex CSA | Prepaid | $150-$1,000 | Credit-based | Choose your own items | CSA-FLEX-xxx | CSA-Flex |
+
+### Flex CSA Tiers
+| Tier | Price | Shopify SKU |
+|------|-------|-------------|
+| Starter | $150 | CSA-FLEX-150 |
+| Basic | $300 | CSA-FLEX-300 |
+| Standard | $400 | CSA-FLEX-400 |
+| Plus | $600 | CSA-FLEX-600 |
+| Premium | $800 | CSA-FLEX-800 |
+| Ultimate | $1,000 | CSA-FLEX-1000 |
+
+---
+
+## CSA SHARES - FLOWERS (Tiny Seed Fleurs)
+
+| Share Name | Frequency | Season Price | Description | Shopify SKU | QB Item |
+|------------|-----------|--------------|-------------|-------------|---------|
+| Full Bloom Bouquet | Weekly | $400 | Larger seasonal bouquet | FLEUR-FULL-WK | Fleurs-FullBloom-Weekly |
+| Full Bloom Bouquet | Biweekly | $200 | Every other week | FLEUR-FULL-BW | Fleurs-FullBloom-Biweekly |
+| Petite Bloom Bouquet | Weekly | $300 | Smaller seasonal bouquet | FLEUR-PETITE-WK | Fleurs-PetiteBloom-Weekly |
+| Petite Bloom Bouquet | Biweekly | $150 | Every other week | FLEUR-PETITE-BW | Fleurs-PetiteBloom-Biweekly |
+| DIY Bloom Bucket | Season | $90 | June-October bulk flowers | FLEUR-DIY-BUCKET | Fleurs-DIY-Bucket |
 
 ---
 
@@ -146,6 +174,25 @@ Examples:
 4. Any products you want to add/remove for 2026?
 5. Do you sell transplant flats to the public?
 6. Any specialty items or value-added products (dried herbs, etc.)?
+
+---
+
+## SALES CHANNELS (2026)
+
+### Farmers Markets
+| Market | Location | Status |
+|--------|----------|--------|
+| Lawrenceville | Pittsburgh | Active |
+| Bloomfield | Pittsburgh | Active |
+| Sewickley | Sewickley | Active |
+| Squirrel Hill | Pittsburgh | NEW for 2026 |
+
+### Online/Direct
+| Channel | Platform | Status |
+|---------|----------|--------|
+| CSA Sales | Shopify (tinyseedfarm.com) | Active |
+| Flex CSA Portal | Shopify | Active |
+| Wholesale | Direct/QB invoicing | Active |
 
 ---
 
