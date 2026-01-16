@@ -1571,6 +1571,381 @@ function getGrants(params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LOAN READINESS REPORTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate Balance Sheet for loan applications
+ * Required by: Farm Credit, FSA, USDA
+ */
+function generateBalanceSheet(params) {
+  params = params || {};
+  const asOfDate = params.asOfDate ? new Date(params.asOfDate) : new Date();
+
+  // Get fixed assets from FIXED_ASSETS sheet
+  const assetsSheet = getOrCreateSheet(ACCOUNTING_SHEETS.FIXED_ASSETS, FIXED_ASSET_HEADERS);
+  const assetsData = assetsSheet.getDataRange().getValues();
+
+  // Current Assets (would come from other sources - Plaid, inventory, etc.)
+  const currentAssets = {
+    cash: parseFloat(params.cashOnHand) || 0,
+    accountsReceivable: parseFloat(params.accountsReceivable) || 0,
+    inventory: parseFloat(params.inventory) || 0,
+    prepaidExpenses: parseFloat(params.prepaidExpenses) || 0,
+    growingCrops: parseFloat(params.growingCrops) || 0
+  };
+
+  // Fixed Assets from sheet
+  const fixedAssets = [];
+  if (assetsData.length > 1) {
+    const headers = assetsData[0];
+    assetsData.slice(1).forEach(row => {
+      if (row[headers.indexOf('Status')] === 'Active') {
+        fixedAssets.push({
+          name: row[headers.indexOf('Asset_Name')],
+          category: row[headers.indexOf('Category')],
+          purchasePrice: parseFloat(row[headers.indexOf('Purchase_Price')]) || 0,
+          currentValue: parseFloat(row[headers.indexOf('Current_Value')]) || 0,
+          accumulatedDepreciation: parseFloat(row[headers.indexOf('Accumulated_Depreciation')]) || 0
+        });
+      }
+    });
+  }
+
+  // Calculate totals
+  const totalCurrentAssets = Object.values(currentAssets).reduce((a, b) => a + b, 0);
+  const totalFixedAssets = fixedAssets.reduce((sum, a) => sum + a.currentValue, 0);
+  const totalAssets = totalCurrentAssets + totalFixedAssets;
+
+  // Liabilities (would integrate with debt tracking)
+  const currentLiabilities = {
+    accountsPayable: parseFloat(params.accountsPayable) || 0,
+    shortTermDebt: parseFloat(params.shortTermDebt) || 0,
+    accruedExpenses: parseFloat(params.accruedExpenses) || 0
+  };
+
+  const longTermLiabilities = {
+    mortgages: parseFloat(params.mortgages) || 0,
+    equipmentLoans: parseFloat(params.equipmentLoans) || 0,
+    otherLongTermDebt: parseFloat(params.otherLongTermDebt) || 0
+  };
+
+  const totalCurrentLiabilities = Object.values(currentLiabilities).reduce((a, b) => a + b, 0);
+  const totalLongTermLiabilities = Object.values(longTermLiabilities).reduce((a, b) => a + b, 0);
+  const totalLiabilities = totalCurrentLiabilities + totalLongTermLiabilities;
+
+  // Owner's Equity
+  const ownersEquity = totalAssets - totalLiabilities;
+
+  // Key Ratios for lenders
+  const currentRatio = totalCurrentLiabilities > 0 ? totalCurrentAssets / totalCurrentLiabilities : 0;
+  const debtToAssetRatio = totalAssets > 0 ? totalLiabilities / totalAssets : 0;
+  const workingCapital = totalCurrentAssets - totalCurrentLiabilities;
+
+  return {
+    success: true,
+    report: {
+      title: 'Balance Sheet',
+      asOfDate: asOfDate.toISOString().split('T')[0],
+      farmName: 'Tiny Seed Farm LLC',
+      ein: '81-5299411',
+
+      assets: {
+        current: currentAssets,
+        totalCurrent: totalCurrentAssets,
+        fixed: fixedAssets,
+        totalFixed: totalFixedAssets,
+        totalAssets: totalAssets
+      },
+
+      liabilities: {
+        current: currentLiabilities,
+        totalCurrent: totalCurrentLiabilities,
+        longTerm: longTermLiabilities,
+        totalLongTerm: totalLongTermLiabilities,
+        totalLiabilities: totalLiabilities
+      },
+
+      ownersEquity: ownersEquity,
+
+      ratios: {
+        currentRatio: currentRatio.toFixed(2),
+        debtToAssetRatio: (debtToAssetRatio * 100).toFixed(1) + '%',
+        workingCapital: workingCapital
+      },
+
+      generatedAt: new Date().toISOString()
+    }
+  };
+}
+
+/**
+ * Generate Cash Flow Statement / Projection
+ * Required by: Farm Credit, FSA, USDA
+ */
+function generateCashFlowStatement(params) {
+  params = params || {};
+  const startDate = params.startDate ? new Date(params.startDate) : new Date(new Date().getFullYear(), 0, 1);
+  const endDate = params.endDate ? new Date(params.endDate) : new Date();
+  const projectionMonths = parseInt(params.projectionMonths) || 12;
+
+  // Get receipts for operating activities
+  const receipts = getReceipts({
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString()
+  }).data;
+
+  // Get categories
+  const categories = getExpenseCategories().data;
+
+  // Calculate operating cash flows from actual data
+  let operatingInflows = 0;
+  let operatingOutflows = 0;
+
+  receipts.forEach(receipt => {
+    const cat = categories.find(c => c.categoryId === receipt.Category_ID);
+    const amount = parseFloat(receipt.Amount) || 0;
+
+    if (cat && cat.type === 'Income') {
+      operatingInflows += amount;
+    } else {
+      operatingOutflows += amount;
+    }
+  });
+
+  // Monthly breakdown
+  const monthlyData = {};
+  receipts.forEach(receipt => {
+    const date = new Date(receipt.Date);
+    const monthKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { inflows: 0, outflows: 0 };
+    }
+
+    const cat = categories.find(c => c.categoryId === receipt.Category_ID);
+    const amount = parseFloat(receipt.Amount) || 0;
+
+    if (cat && cat.type === 'Income') {
+      monthlyData[monthKey].inflows += amount;
+    } else {
+      monthlyData[monthKey].outflows += amount;
+    }
+  });
+
+  // Calculate averages for projection
+  const monthCount = Object.keys(monthlyData).length || 1;
+  const avgMonthlyInflow = operatingInflows / monthCount;
+  const avgMonthlyOutflow = operatingOutflows / monthCount;
+
+  // Generate projection
+  const projection = [];
+  let runningBalance = parseFloat(params.beginningCash) || 0;
+
+  for (let i = 0; i < projectionMonths; i++) {
+    const projDate = new Date();
+    projDate.setMonth(projDate.getMonth() + i);
+    const monthName = projDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+
+    // Apply seasonal factors for farm (rough estimates)
+    let seasonalFactor = 1.0;
+    const month = projDate.getMonth();
+    if (month >= 5 && month <= 9) { // Jun-Oct peak season
+      seasonalFactor = 1.5;
+    } else if (month >= 0 && month <= 2) { // Jan-Mar slow
+      seasonalFactor = 0.5;
+    }
+
+    const projectedInflow = avgMonthlyInflow * seasonalFactor;
+    const projectedOutflow = avgMonthlyOutflow;
+    const netCashFlow = projectedInflow - projectedOutflow;
+    runningBalance += netCashFlow;
+
+    projection.push({
+      month: monthName,
+      inflows: Math.round(projectedInflow),
+      outflows: Math.round(projectedOutflow),
+      netCashFlow: Math.round(netCashFlow),
+      endingBalance: Math.round(runningBalance)
+    });
+  }
+
+  return {
+    success: true,
+    report: {
+      title: 'Cash Flow Statement',
+      farmName: 'Tiny Seed Farm LLC',
+      period: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      },
+
+      operatingActivities: {
+        cashFromSales: operatingInflows,
+        cashPaidForExpenses: operatingOutflows,
+        netOperatingCashFlow: operatingInflows - operatingOutflows
+      },
+
+      investingActivities: {
+        purchaseOfEquipment: parseFloat(params.equipmentPurchases) || 0,
+        saleOfAssets: parseFloat(params.assetSales) || 0,
+        netInvestingCashFlow: (parseFloat(params.assetSales) || 0) - (parseFloat(params.equipmentPurchases) || 0)
+      },
+
+      financingActivities: {
+        loanProceeds: parseFloat(params.loanProceeds) || 0,
+        loanPayments: parseFloat(params.loanPayments) || 0,
+        ownerContributions: parseFloat(params.ownerContributions) || 0,
+        ownerDraws: parseFloat(params.ownerDraws) || 0,
+        netFinancingCashFlow: (parseFloat(params.loanProceeds) || 0) - (parseFloat(params.loanPayments) || 0) +
+                              (parseFloat(params.ownerContributions) || 0) - (parseFloat(params.ownerDraws) || 0)
+      },
+
+      monthlyBreakdown: Object.entries(monthlyData).map(([month, data]) => ({
+        month: month,
+        ...data,
+        netCashFlow: data.inflows - data.outflows
+      })),
+
+      projection: projection,
+
+      summary: {
+        beginningCash: parseFloat(params.beginningCash) || 0,
+        totalInflows: operatingInflows,
+        totalOutflows: operatingOutflows,
+        netChange: operatingInflows - operatingOutflows,
+        endingCash: (parseFloat(params.beginningCash) || 0) + (operatingInflows - operatingOutflows)
+      },
+
+      generatedAt: new Date().toISOString()
+    }
+  };
+}
+
+/**
+ * Generate complete Loan Application Package
+ * Bundles all required documents for Farm Credit / FSA / USDA
+ */
+function generateLoanPackage(params) {
+  params = params || {};
+  const loanType = params.loanType || 'FSA'; // FSA, FarmCredit, USDA
+  const taxYear = params.taxYear || new Date().getFullYear() - 1;
+
+  // Generate all required reports
+  const balanceSheet = generateBalanceSheet(params);
+  const cashFlow = generateCashFlowStatement(params);
+  const profitLoss = generateProfitLossStatement({
+    startDate: new Date(taxYear, 0, 1).toISOString(),
+    endDate: new Date(taxYear, 11, 31).toISOString()
+  });
+  const scheduleF = generateScheduleFReport({ taxYear: taxYear });
+
+  // Farm information
+  const farmInfo = {
+    legalName: 'Tiny Seed Farm LLC',
+    ein: '81-5299411',
+    entityType: 'Limited Liability Company',
+    stateOfFormation: 'Pennsylvania',
+    formationDate: '2017-02-07',
+    address: '257 Zeigler Road, Rochester, PA 15074',
+    county: 'Beaver County',
+    owner: 'Todd R Wilson',
+    organicCertifier: 'OEFFA Ohio',
+    certifiedAcreage: 5.6
+  };
+
+  // Loan-specific requirements
+  const loanRequirements = {
+    FSA: {
+      name: 'Farm Service Agency',
+      requiredDocs: [
+        'Balance Sheet',
+        'Income Statement (P&L)',
+        'Cash Flow Projection',
+        '3 Years Tax Returns (Schedule F)',
+        'Farm Business Plan',
+        'Proof of Farm Experience (3+ years)',
+        'Legal Documents (LLC formation)'
+      ],
+      notes: [
+        'Must demonstrate inability to obtain credit elsewhere',
+        'No delinquency on federal debt',
+        'Complete FSA-2001 Application Form'
+      ]
+    },
+    FarmCredit: {
+      name: 'Farm Credit',
+      requiredDocs: [
+        'Balance Sheet',
+        'Income Statement',
+        'Cash Flow Projection',
+        '3 Years Tax Returns',
+        'Credit Report Authorization',
+        'Proof of Collateral'
+      ],
+      notes: [
+        'Minimum credit score: 640-680',
+        'Send updated financial statements annually',
+        'Include household expenses in cash flow'
+      ]
+    },
+    USDA: {
+      name: 'USDA Programs',
+      requiredDocs: [
+        'Balance Sheet',
+        'Income Statement',
+        'Cash Flow Statement',
+        'Tax Returns',
+        'Conservation Plan (if applicable)',
+        'Organic Certification (if applicable)'
+      ],
+      notes: [
+        'Check specific program requirements',
+        'May require environmental review',
+        'Organic certification can help qualification'
+      ]
+    }
+  };
+
+  const selectedLoan = loanRequirements[loanType] || loanRequirements.FSA;
+
+  return {
+    success: true,
+    package: {
+      title: `Loan Application Package - ${selectedLoan.name}`,
+      generatedAt: new Date().toISOString(),
+      loanType: loanType,
+
+      farmInfo: farmInfo,
+
+      requirements: selectedLoan,
+
+      documents: {
+        balanceSheet: balanceSheet.report,
+        profitLoss: profitLoss.report,
+        cashFlow: cashFlow.report,
+        scheduleF: scheduleF.report
+      },
+
+      checklist: selectedLoan.requiredDocs.map(doc => ({
+        document: doc,
+        status: doc.includes('Balance') || doc.includes('Income') || doc.includes('Cash Flow') || doc.includes('Schedule F')
+          ? 'Generated'
+          : 'Manual Required'
+      })),
+
+      nextSteps: [
+        'Review all generated documents for accuracy',
+        'Gather 3 years of tax returns',
+        'Complete farm business plan',
+        'Contact local ' + selectedLoan.name + ' office',
+        'Schedule appointment with loan officer'
+      ]
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // API ENDPOINTS - Add these to the main doGet/doPost switch statements
 // ═══════════════════════════════════════════════════════════════════════════
 

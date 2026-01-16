@@ -686,6 +686,12 @@ function doGet(e) {
         return jsonResponse(getVendorCategories(e.parameter));
       case 'importAccountantEmails':
         return jsonResponse(importAccountantEmails(e.parameter));
+      case 'generateBalanceSheet':
+        return jsonResponse(generateBalanceSheet(e.parameter));
+      case 'generateCashFlowStatement':
+        return jsonResponse(generateCashFlowStatement(e.parameter));
+      case 'generateLoanPackage':
+        return jsonResponse(generateLoanPackage(e.parameter));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
