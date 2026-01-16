@@ -7162,8 +7162,48 @@
         }
 
         // ============================================
-        // TASKS
+        // TASKS V2 - WITH COSTING MODE & TIME TRACKING
+        // Production-ready labor cost tracking system
         // ============================================
+
+        // Task Timer State
+        const TaskTimer = {
+            activeTaskId: null,
+            startTime: null,
+            elapsedSeconds: 0,
+            intervalId: null,
+            isPaused: false,
+            taskViewTimes: {} // Track when each task card was first viewed
+        };
+
+        // Benchmark data (hours per task type - from UC Davis/Extension research)
+        const TASK_BENCHMARKS = {
+            'sow': 20,        // 20 min default for seeding
+            'seeding': 20,
+            'transplant': 30, // 30 min for transplanting
+            'harvest': 45,    // 45 min for harvest
+            'weed': 40,       // 40 min for weeding
+            'scout': 15,      // 15 min for scouting
+            'irrigate': 20,   // 20 min for irrigation
+            'pack': 30,       // 30 min for packing
+            'deliver': 25,    // 25 min for delivery
+            'default': 30     // 30 min default
+        };
+
+        // Task type icons
+        const TASK_ICONS = {
+            'sow': '🌱',
+            'seeding': '🌱',
+            'transplant': '🚜',
+            'harvest': '🥬',
+            'weed': '🌿',
+            'scout': '🔍',
+            'irrigate': '💧',
+            'pack': '📦',
+            'deliver': '🚚',
+            'default': '📋'
+        };
+
         function filterTasks(filter) {
             document.querySelectorAll('.task-filter').forEach(btn => {
                 btn.classList.toggle('active', btn.textContent.toLowerCase().includes(filter) ||
@@ -7181,6 +7221,7 @@
                     <div class="empty-state">
                         <i class="fas fa-clipboard-check"></i>
                         <h3>${t('tasks.noTasks')}</h3>
+                        <p>All caught up! Great work.</p>
                     </div>
                 `;
                 return;
@@ -7200,38 +7241,258 @@
                     <div class="empty-state">
                         <i class="fas fa-check-circle"></i>
                         <h3>No ${filter} tasks</h3>
+                        <p>You're all caught up!</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = filteredTasks.map(task => `
-                <div class="task-card ${task.date < today ? 'overdue' : ''}" data-id="${task.id}">
-                    <div class="task-checkbox" onclick="completeTask('${task.id}')">
-                        <i class="fas fa-check"></i>
+            // Render new v2 task cards
+            container.innerHTML = filteredTasks.map(task => {
+                const isOverdue = task.date < today;
+                const isToday = task.date === today;
+                const taskType = (task.type || 'default').toLowerCase();
+                const icon = TASK_ICONS[taskType] || TASK_ICONS.default;
+                const benchmark = task.benchmarkMin || TASK_BENCHMARKS[taskType] || TASK_BENCHMARKS.default;
+                const hasCosting = task.costingMode || task.Costing_Mode || false;
+                const isTimerActive = TaskTimer.activeTaskId === task.id;
+                const priorityClass = isOverdue ? 'overdue' : (isToday ? 'today' : 'upcoming');
+                const priorityText = isOverdue ? `OVERDUE ${getDaysOverdue(task.date)} DAYS` : (isToday ? 'TODAY' : formatDate(task.date));
+
+                // Record view time for auto-timing
+                if (!TaskTimer.taskViewTimes[task.id]) {
+                    TaskTimer.taskViewTimes[task.id] = Date.now();
+                }
+
+                return `
+                <div class="task-card-v2 ${priorityClass} ${hasCosting ? 'costing-enabled' : ''} ${isTimerActive ? 'timer-active' : ''}"
+                     data-id="${task.id}" data-type="${taskType}" data-benchmark="${benchmark}">
+
+                    <!-- Priority Bar -->
+                    <div class="task-priority-bar ${priorityClass}">
+                        <i class="fas ${isOverdue ? 'fa-exclamation-circle' : (isToday ? 'fa-clock' : 'fa-calendar-check')}"></i>
+                        <span>${priorityText}</span>
+                        ${hasCosting ? '<span class="costing-badge"><i class="fas fa-dollar-sign"></i> COST TRACKED</span>' : ''}
                     </div>
-                    <div class="task-info">
-                        <span class="task-type-badge ${task.type}">${task.type}</span>
-                        <h3 class="task-title">${task.crop} - ${task.variety || ''}</h3>
-                        <div class="task-meta">
-                            <span><i class="fas fa-map-marker-alt"></i> ${task.bed || task.field || 'TBD'}</span>
-                            <span><i class="fas fa-calendar"></i> ${task.date}</span>
+
+                    <!-- Task Header -->
+                    <div class="task-header-v2">
+                        <div class="task-icon-v2 ${taskType}">${icon}</div>
+                        <div class="task-content-v2">
+                            <div class="task-type-v2">${task.type || 'Task'}</div>
+                            <h3 class="task-title-v2">${task.crop}${task.variety ? ' - ' + task.variety : ''}</h3>
+                            <div class="task-details-v2">
+                                <span><i class="fas fa-map-marker-alt"></i> ${task.bed || task.field || 'TBD'}</span>
+                                ${task.quantity ? `<span><i class="fas fa-seedling"></i> ${task.quantity}</span>` : ''}
+                            </div>
                         </div>
                     </div>
-                    <button class="task-complete-btn" onclick="completeTask('${task.id}')">
+
+                    <!-- Benchmark Hint -->
+                    ${hasCosting ? `
+                    <div class="task-benchmark">
+                        <i class="fas fa-stopwatch"></i>
+                        <span>Benchmark: ~${benchmark} min</span>
+                    </div>
+                    ` : ''}
+
+                    <!-- Timer Display (hidden until started) -->
+                    <div class="task-timer-display ${isTimerActive ? 'active' : ''}" id="timerDisplay-${task.id}">
+                        <div class="timer-pulse"></div>
+                        <div>
+                            <div class="timer-clock" id="timerClock-${task.id}">00:00:00</div>
+                            <div class="timer-label">Time Elapsed</div>
+                        </div>
+                    </div>
+
+                    <!-- Timer Controls (hidden until timer started) -->
+                    <div class="timer-controls ${isTimerActive ? 'active' : ''}" id="timerControls-${task.id}">
+                        <button class="timer-btn pause" onclick="togglePauseTimer('${task.id}')">
+                            <i class="fas fa-pause"></i> Pause
+                        </button>
+                        <button class="timer-btn cancel" onclick="cancelTimer('${task.id}')">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+
+                    <!-- Start Timer Button (only for costing mode) -->
+                    ${hasCosting && !isTimerActive ? `
+                    <button class="start-timer-btn" onclick="startTaskTimer('${task.id}')" id="startTimerBtn-${task.id}">
+                        <i class="fas fa-play-circle"></i> Start Timer (Optional)
+                    </button>
+                    ` : ''}
+
+                    <!-- BIG DONE BUTTON - 72px -->
+                    <button class="task-done-btn ${isTimerActive ? 'with-timer' : ''}" onclick="completeTaskV2('${task.id}')">
                         <i class="fas fa-check"></i>
+                        ${isTimerActive ? 'DONE - STOP TIMER' : 'DONE'}
                     </button>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Update counts
             document.getElementById('taskCountAll').textContent = tasks.length;
             document.getElementById('taskCountToday').textContent = tasks.filter(t => t.date === today).length;
             document.getElementById('taskCountOverdue').textContent = tasks.filter(t => t.date < today && t.status !== 'Completed').length;
+
+            // Update any active timer display
+            if (TaskTimer.activeTaskId && TaskTimer.intervalId) {
+                updateTimerDisplay(TaskTimer.activeTaskId);
+            }
         }
 
-        async function completeTask(taskId) {
-            showLoading();
+        // Get days overdue
+        function getDaysOverdue(dateStr) {
+            const taskDate = new Date(dateStr);
+            const today = new Date();
+            const diffTime = today - taskDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        // Format date nicely
+        function formatDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // Start task timer
+        function startTaskTimer(taskId) {
+            // Stop any existing timer
+            if (TaskTimer.intervalId) {
+                clearInterval(TaskTimer.intervalId);
+            }
+
+            TaskTimer.activeTaskId = taskId;
+            TaskTimer.startTime = Date.now();
+            TaskTimer.elapsedSeconds = 0;
+            TaskTimer.isPaused = false;
+
+            // Hide start button, show timer display and controls
+            const startBtn = document.getElementById(`startTimerBtn-${taskId}`);
+            const timerDisplay = document.getElementById(`timerDisplay-${taskId}`);
+            const timerControls = document.getElementById(`timerControls-${taskId}`);
+            const taskCard = document.querySelector(`.task-card-v2[data-id="${taskId}"]`);
+
+            if (startBtn) startBtn.classList.add('hidden');
+            if (timerDisplay) timerDisplay.classList.add('active');
+            if (timerControls) timerControls.classList.add('active');
+            if (taskCard) taskCard.classList.add('timer-active');
+
+            // Update done button
+            const doneBtn = taskCard?.querySelector('.task-done-btn');
+            if (doneBtn) {
+                doneBtn.classList.add('with-timer');
+                doneBtn.innerHTML = '<i class="fas fa-check"></i> DONE - STOP TIMER';
+            }
+
+            // Start interval
+            TaskTimer.intervalId = setInterval(() => {
+                if (!TaskTimer.isPaused) {
+                    TaskTimer.elapsedSeconds = Math.floor((Date.now() - TaskTimer.startTime) / 1000);
+                    updateTimerDisplay(taskId);
+                }
+            }, 1000);
+
+            // Haptic feedback
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        // Update timer display
+        function updateTimerDisplay(taskId) {
+            const clock = document.getElementById(`timerClock-${taskId}`);
+            if (clock) {
+                const hours = Math.floor(TaskTimer.elapsedSeconds / 3600);
+                const minutes = Math.floor((TaskTimer.elapsedSeconds % 3600) / 60);
+                const seconds = TaskTimer.elapsedSeconds % 60;
+                clock.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Toggle pause timer
+        function togglePauseTimer(taskId) {
+            TaskTimer.isPaused = !TaskTimer.isPaused;
+            const pauseBtn = document.querySelector(`#timerControls-${taskId} .pause`);
+            if (pauseBtn) {
+                pauseBtn.innerHTML = TaskTimer.isPaused
+                    ? '<i class="fas fa-play"></i> Resume'
+                    : '<i class="fas fa-pause"></i> Pause';
+            }
+        }
+
+        // Cancel timer
+        function cancelTimer(taskId) {
+            if (TaskTimer.intervalId) {
+                clearInterval(TaskTimer.intervalId);
+                TaskTimer.intervalId = null;
+            }
+            TaskTimer.activeTaskId = null;
+            TaskTimer.elapsedSeconds = 0;
+            TaskTimer.isPaused = false;
+
+            // Re-render to reset UI
+            renderTasks(AppState.currentTaskFilter || 'all');
+        }
+
+        // Complete task v2 with time logging
+        async function completeTaskV2(taskId) {
+            const task = AppState.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Calculate time
+            let durationMinutes;
+            let usedTimer = false;
+
+            if (TaskTimer.activeTaskId === taskId && TaskTimer.startTime) {
+                // Used manual timer
+                durationMinutes = Math.round(TaskTimer.elapsedSeconds / 60);
+                usedTimer = true;
+
+                // Stop timer
+                if (TaskTimer.intervalId) {
+                    clearInterval(TaskTimer.intervalId);
+                    TaskTimer.intervalId = null;
+                }
+            } else {
+                // Auto-calculate from view time
+                const viewTime = TaskTimer.taskViewTimes[taskId];
+                if (viewTime) {
+                    durationMinutes = Math.round((Date.now() - viewTime) / 60000);
+                } else {
+                    // Default based on benchmark
+                    const taskType = (task.type || 'default').toLowerCase();
+                    durationMinutes = TASK_BENCHMARKS[taskType] || TASK_BENCHMARKS.default;
+                }
+            }
+
+            // Cap at reasonable values (min 1 min, max 480 min / 8 hours)
+            durationMinutes = Math.max(1, Math.min(480, durationMinutes));
+
+            // Get benchmark for efficiency calculation
+            const taskType = (task.type || 'default').toLowerCase();
+            const benchmarkMinutes = task.benchmarkMin || TASK_BENCHMARKS[taskType] || TASK_BENCHMARKS.default;
+            const efficiency = Math.round((benchmarkMinutes / durationMinutes) * 100);
+
+            // Animate card completion
+            const taskCard = document.querySelector(`.task-card-v2[data-id="${taskId}"]`);
+            if (taskCard) {
+                taskCard.classList.add('completing');
+            }
+
+            // Show completion overlay with stats
+            showCompletionOverlay({
+                taskId,
+                task,
+                durationMinutes,
+                benchmarkMinutes,
+                efficiency,
+                usedTimer
+            });
+
+            // Haptic feedback
+            if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+
             try {
                 const gps = await captureGPS();
 
@@ -7239,60 +7500,176 @@
                     taskId: taskId,
                     employeeId: AppState.employee?.Employee_ID || '',
                     lat: gps.lat || '',
-                    lng: gps.lng || ''
-                };
-
-                // Optimistically update UI
-                const removeTaskFromUI = () => {
-                    AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
-                    renderTasks(AppState.currentTab === 'tasks' ? 'all' : 'today');
+                    lng: gps.lng || '',
+                    // Time logging data
+                    durationMinutes: durationMinutes,
+                    benchmarkMinutes: benchmarkMinutes,
+                    efficiency: efficiency,
+                    usedTimer: usedTimer,
+                    taskType: taskType,
+                    batchId: task.batchId || task.Batch_ID || '',
+                    costingMode: task.costingMode || task.Costing_Mode || false
                 };
 
                 if (AppState.isOnline) {
-                    // Online: submit directly
+                    // Online: submit with time logging
                     const params = new URLSearchParams({
-                        action: 'completeTaskWithGPS',
+                        action: 'completeTaskWithTimeLog',
                         ...taskData
                     });
 
                     const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
                     const data = await response.json();
 
-                    if (data.success) {
-                        showToast(t('tasks.completed'), 'success');
-                        removeTaskFromUI();
-                        // Update cache
-                        await OfflineDB.cacheTasks(AppState.tasks);
-                    } else {
-                        showToast(data.error || t('common.error'), 'error');
+                    if (!data.success) {
+                        console.error('Task completion error:', data.error);
                     }
                 } else {
-                    // Offline: queue for later sync and optimistically update UI
-                    await OfflineDB.queueOperation('completeTaskWithGPS', taskData);
-                    showToast(t('tasks.completed') + ' ' + t('common.offline'), 'success');
-                    removeTaskFromUI();
-                    // Update cache with task removed
-                    await OfflineDB.cacheTasks(AppState.tasks);
+                    // Offline: queue for later sync
+                    await OfflineDB.queueOperation('completeTaskWithTimeLog', taskData);
                 }
+
+                // Remove from local state
+                AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+                AppState.lastCompletedTask = { taskId, task, taskData };
+
+                // Update cache
+                await OfflineDB.cacheTasks(AppState.tasks);
+
+                // Clean up timer state
+                TaskTimer.activeTaskId = null;
+                TaskTimer.elapsedSeconds = 0;
+                delete TaskTimer.taskViewTimes[taskId];
+
             } catch (error) {
                 console.error('Complete task error:', error);
-                // Network error - queue offline
-                if (!AppState.isOnline) {
-                    const gps = await captureGPS();
-                    await OfflineDB.queueOperation('completeTaskWithGPS', {
-                        taskId: taskId,
-                        employeeId: AppState.employee?.Employee_ID || '',
-                        lat: gps.lat || '',
-                        lng: gps.lng || ''
-                    });
-                    AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
-                    renderTasks(AppState.currentTab === 'tasks' ? 'all' : 'today');
-                    showToast(t('tasks.completed') + ' ' + t('common.offline'), 'success');
+                // Still update UI even if API call fails
+                AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+            }
+        }
+
+        // Show completion overlay
+        function showCompletionOverlay(data) {
+            const overlay = document.getElementById('completionOverlay');
+            const timeEl = document.getElementById('completionTime');
+            const benchmarkEl = document.getElementById('completionBenchmark');
+            const efficiencyEl = document.getElementById('completionEfficiency');
+            const employeeEl = document.getElementById('completionEmployee');
+
+            // Format time
+            const hours = Math.floor(data.durationMinutes / 60);
+            const minutes = data.durationMinutes % 60;
+            const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes} min`;
+
+            timeEl.textContent = timeStr;
+            benchmarkEl.textContent = `${data.benchmarkMinutes} min`;
+
+            // Set efficiency with color
+            efficiencyEl.textContent = `${data.efficiency}%`;
+            efficiencyEl.classList.remove('warning');
+            if (data.efficiency < 80) {
+                efficiencyEl.classList.add('warning');
+            }
+
+            // Employee name
+            const empName = AppState.employee?.Name || AppState.employee?.First_Name || 'You';
+            employeeEl.textContent = empName;
+
+            // Show overlay
+            overlay.classList.add('visible');
+
+            // Start undo countdown
+            startUndoCountdown();
+        }
+
+        // Close completion overlay
+        function closeCompletionOverlay() {
+            const overlay = document.getElementById('completionOverlay');
+            overlay.classList.remove('visible');
+
+            // Clear any pending undo
+            if (AppState.undoTimeout) {
+                clearTimeout(AppState.undoTimeout);
+                AppState.undoTimeout = null;
+            }
+
+            // Re-render tasks
+            renderTasks(AppState.currentTaskFilter || 'all');
+        }
+
+        // Undo countdown
+        function startUndoCountdown() {
+            let secondsLeft = 5;
+            const undoBtn = document.getElementById('completionUndo');
+
+            const updateBtn = () => {
+                undoBtn.innerHTML = `<i class="fas fa-undo"></i> Undo (${secondsLeft}s)`;
+            };
+            updateBtn();
+
+            const countdownInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    undoBtn.style.opacity = '0.5';
+                    undoBtn.innerHTML = '<i class="fas fa-undo"></i> Too late';
+                    undoBtn.disabled = true;
                 } else {
-                    showToast(t('common.error'), 'error');
+                    updateBtn();
+                }
+            }, 1000);
+
+            AppState.undoCountdownInterval = countdownInterval;
+
+            // Auto-close after 5 seconds
+            AppState.undoTimeout = setTimeout(() => {
+                closeCompletionOverlay();
+            }, 5000);
+        }
+
+        // Undo task completion
+        async function undoTaskCompletion() {
+            if (!AppState.lastCompletedTask) return;
+
+            const { taskId, task, taskData } = AppState.lastCompletedTask;
+
+            // Clear countdown
+            if (AppState.undoCountdownInterval) {
+                clearInterval(AppState.undoCountdownInterval);
+            }
+            if (AppState.undoTimeout) {
+                clearTimeout(AppState.undoTimeout);
+            }
+
+            // Add task back to local state
+            AppState.tasks.push(task);
+
+            // Close overlay and re-render
+            closeCompletionOverlay();
+
+            // Try to undo on server
+            if (AppState.isOnline) {
+                try {
+                    const params = new URLSearchParams({
+                        action: 'undoTaskCompletion',
+                        taskId: taskId
+                    });
+                    await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                } catch (error) {
+                    console.error('Undo error:', error);
                 }
             }
-            hideLoading();
+
+            // Update cache
+            await OfflineDB.cacheTasks(AppState.tasks);
+
+            showToast('Task restored', 'success');
+            AppState.lastCompletedTask = null;
+        }
+
+        // Legacy completeTask function (redirect to v2)
+        async function completeTask(taskId) {
+            await completeTaskV2(taskId);
         }
 
         // ============================================

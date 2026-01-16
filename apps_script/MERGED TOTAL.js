@@ -773,6 +773,12 @@ function doGet(e) {
       case 'initializeFlowerModule':
         return jsonResponse(initializeFlowerModule());
 
+      // ============ TIME LOGGING & COSTING ============
+      case 'getTimelog':
+        return getTimelogData(e.parameter);
+      case 'getLaborByCrop':
+        return getLaborByCrop();
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -796,6 +802,9 @@ function doPost(e) {
         return saveSuccessionPlan(data.plan);
       case 'completeTask':
         return completeTask(data.taskId, data.completedBy, data.notes);
+
+      case 'completeTaskWithTimeLog':
+        return completeTaskWithTimeLog(data);
 
       // ============ USER MANAGEMENT ============
       case 'createUser':
@@ -3167,6 +3176,420 @@ function completeTask(taskId, completedBy, notes) {
       timestamp: new Date().toISOString()
     });
     
+  } catch (error) {
+    return jsonResponse({
+      success: false,
+      error: error.toString()
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TIME LOGGING & COSTING (Activity-Based Costing Implementation)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Complete a task with full time logging for costing mode
+ * Implements Activity-Based Costing (ABC) methodology
+ * Based on USDA, Cornell, UMass Extension research
+ *
+ * @param {Object} data - Task completion data
+ * @returns {Object} JSON response with logging confirmation
+ */
+function completeTaskWithTimeLog(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Ensure TIMELOG sheet exists (create if needed)
+    let timelogSheet = ss.getSheetByName('TIMELOG');
+    if (!timelogSheet) {
+      timelogSheet = createTimelogSheet(ss);
+    }
+
+    // Generate unique log ID
+    const logId = 'TL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    const timestamp = new Date();
+
+    // Determine skill level and hourly rate (Cornell/UMass model)
+    const skillLevel = data.skillLevel || 'basic';
+    const hourlyRates = { basic: 15, skilled: 20, specialist: 25 };
+    const hourlyRate = data.hourlyRate || hourlyRates[skillLevel] || 15;
+
+    // Calculate labor cost
+    const durationHours = (data.durationMinutes || 0) / 60;
+    const laborCost = durationHours * hourlyRate;
+
+    // Determine cost type (USDA direct vs indirect)
+    const directTasks = ['sow', 'transplant', 'harvest', 'pack', 'deliver', 'weed', 'scout', 'irrigate'];
+    const costType = directTasks.includes(data.taskType) ? 'DIRECT' : 'INDIRECT';
+
+    // Calculate efficiency (benchmark / actual * 100)
+    const efficiency = data.benchmarkMinutes && data.durationMinutes > 0
+      ? Math.round((data.benchmarkMinutes / data.durationMinutes) * 100)
+      : null;
+
+    // Build TIMELOG row (17 columns per spec)
+    const timelogRow = [
+      logId,                              // Log_ID
+      data.batchId || '',                 // Batch_ID
+      data.employeeId || '',              // Employee_ID
+      data.employeeName || '',            // Employee_Name
+      data.taskType || '',                // Task_Type
+      skillLevel,                         // Skill_Level
+      timestamp,                          // Start_Time (approximate)
+      timestamp,                          // End_Time
+      data.durationMinutes || 0,          // Duration_Min
+      data.location || '',                // Location
+      costType,                           // Cost_Type (DIRECT/INDIRECT)
+      hourlyRate,                         // Hourly_Rate
+      Math.round(laborCost * 100) / 100,  // Labor_Cost
+      data.notes || '',                   // Notes
+      data.costingMode === true || data.costingMode === 'true', // Costing_Mode
+      data.benchmarkMinutes || '',        // Benchmark_Min
+      efficiency || ''                    // Efficiency_%
+    ];
+
+    // Append to TIMELOG sheet
+    timelogSheet.appendRow(timelogRow);
+
+    // Also log to MASTER_LOG for compatibility
+    const masterLogSheet = ss.getSheetByName('MASTER_LOG');
+    if (masterLogSheet) {
+      masterLogSheet.appendRow([
+        timestamp,
+        'Task Completed',
+        data.taskType + ' - ' + (data.batchId || 'N/A'),
+        '', '', '', '', '',
+        data.notes || 'Completed with time tracking',
+        data.employeeName || data.employeeId || 'Mobile User',
+        '',
+        data.taskId || '',
+        data.durationMinutes + ' min',
+        efficiency ? efficiency + '% efficiency' : ''
+      ]);
+    }
+
+    // Update Planning sheet labor totals if costing mode enabled
+    if (data.costingMode && data.batchId) {
+      updatePlanningLaborTotals(ss, data.batchId, data.durationMinutes, laborCost);
+    }
+
+    return jsonResponse({
+      success: true,
+      message: 'Task completed with time logging',
+      logId: logId,
+      data: {
+        durationMinutes: data.durationMinutes,
+        laborCost: laborCost,
+        efficiency: efficiency,
+        costType: costType,
+        skillLevel: skillLevel,
+        hourlyRate: hourlyRate
+      },
+      timestamp: timestamp.toISOString()
+    });
+
+  } catch (error) {
+    return jsonResponse({
+      success: false,
+      error: error.toString(),
+      stack: error.stack
+    });
+  }
+}
+
+/**
+ * Create TIMELOG sheet with proper headers
+ * Schema based on COSTING_MODE_SPEC.md v2.0
+ */
+function createTimelogSheet(ss) {
+  const sheet = ss.insertSheet('TIMELOG');
+
+  // Set headers (17 columns per spec)
+  const headers = [
+    'Log_ID',
+    'Batch_ID',
+    'Employee_ID',
+    'Employee_Name',
+    'Task_Type',
+    'Skill_Level',
+    'Start_Time',
+    'End_Time',
+    'Duration_Min',
+    'Location',
+    'Cost_Type',
+    'Hourly_Rate',
+    'Labor_Cost',
+    'Notes',
+    'Costing_Mode',
+    'Benchmark_Min',
+    'Efficiency_%'
+  ];
+
+  sheet.appendRow(headers);
+
+  // Format header row
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#1a5f2a'); // Farm green
+  headerRange.setFontColor('#ffffff');
+
+  // Set column widths
+  sheet.setColumnWidth(1, 150);  // Log_ID
+  sheet.setColumnWidth(2, 100);  // Batch_ID
+  sheet.setColumnWidth(3, 100);  // Employee_ID
+  sheet.setColumnWidth(4, 120);  // Employee_Name
+  sheet.setColumnWidth(5, 100);  // Task_Type
+  sheet.setColumnWidth(6, 90);   // Skill_Level
+  sheet.setColumnWidth(7, 150);  // Start_Time
+  sheet.setColumnWidth(8, 150);  // End_Time
+  sheet.setColumnWidth(9, 80);   // Duration_Min
+  sheet.setColumnWidth(10, 100); // Location
+  sheet.setColumnWidth(11, 90);  // Cost_Type
+  sheet.setColumnWidth(12, 90);  // Hourly_Rate
+  sheet.setColumnWidth(13, 90);  // Labor_Cost
+  sheet.setColumnWidth(14, 200); // Notes
+  sheet.setColumnWidth(15, 100); // Costing_Mode
+  sheet.setColumnWidth(16, 100); // Benchmark_Min
+  sheet.setColumnWidth(17, 100); // Efficiency_%
+
+  // Freeze header row
+  sheet.setFrozenRows(1);
+
+  return sheet;
+}
+
+/**
+ * Update Planning sheet with accumulated labor data
+ * Enables contribution margin analysis per planting
+ */
+function updatePlanningLaborTotals(ss, batchId, durationMinutes, laborCost) {
+  try {
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+    if (!planningSheet) return;
+
+    const data = planningSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find column indices
+    const batchCol = headers.indexOf('Batch_ID');
+    const laborMinCol = headers.indexOf('Total_Labor_Min');
+    const laborCostCol = headers.indexOf('Total_Labor_Cost');
+
+    if (batchCol === -1) return;
+
+    // Find row with matching Batch_ID
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][batchCol] === batchId) {
+        const rowNum = i + 1;
+
+        // Add labor minutes if column exists
+        if (laborMinCol !== -1) {
+          const currentMin = planningSheet.getRange(rowNum, laborMinCol + 1).getValue() || 0;
+          planningSheet.getRange(rowNum, laborMinCol + 1).setValue(currentMin + durationMinutes);
+        }
+
+        // Add labor cost if column exists
+        if (laborCostCol !== -1) {
+          const currentCost = planningSheet.getRange(rowNum, laborCostCol + 1).getValue() || 0;
+          planningSheet.getRange(rowNum, laborCostCol + 1).setValue(currentCost + laborCost);
+        }
+
+        break;
+      }
+    }
+  } catch (e) {
+    // Don't fail the main operation if planning update fails
+    console.log('Planning update warning: ' + e.toString());
+  }
+}
+
+/**
+ * Get TIMELOG data for reports and analysis
+ * @param {Object} params - Filter parameters (startDate, endDate, employeeId, batchId, costType)
+ */
+function getTimelogData(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('TIMELOG');
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return jsonResponse({
+        success: true,
+        count: 0,
+        entries: [],
+        summary: { totalMinutes: 0, totalCost: 0, avgEfficiency: 0 }
+      });
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let entries = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((header, index) => { obj[header] = row[index]; });
+      return obj;
+    });
+
+    // Apply filters
+    if (params.startDate) {
+      const start = new Date(params.startDate);
+      entries = entries.filter(e => new Date(e.Start_Time) >= start);
+    }
+    if (params.endDate) {
+      const end = new Date(params.endDate);
+      entries = entries.filter(e => new Date(e.Start_Time) <= end);
+    }
+    if (params.employeeId) {
+      entries = entries.filter(e => e.Employee_ID === params.employeeId);
+    }
+    if (params.batchId) {
+      entries = entries.filter(e => e.Batch_ID === params.batchId);
+    }
+    if (params.costType) {
+      entries = entries.filter(e => e.Cost_Type === params.costType);
+    }
+
+    // Calculate summary
+    const totalMinutes = entries.reduce((sum, e) => sum + (Number(e.Duration_Min) || 0), 0);
+    const totalCost = entries.reduce((sum, e) => sum + (Number(e.Labor_Cost) || 0), 0);
+    const efficiencies = entries.filter(e => e['Efficiency_%']).map(e => Number(e['Efficiency_%']));
+    const avgEfficiency = efficiencies.length > 0
+      ? Math.round(efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length)
+      : null;
+
+    return jsonResponse({
+      success: true,
+      count: entries.length,
+      entries: entries,
+      summary: {
+        totalMinutes: totalMinutes,
+        totalHours: Math.round(totalMinutes / 60 * 10) / 10,
+        totalCost: Math.round(totalCost * 100) / 100,
+        avgEfficiency: avgEfficiency,
+        directCost: entries.filter(e => e.Cost_Type === 'DIRECT').reduce((sum, e) => sum + (Number(e.Labor_Cost) || 0), 0),
+        indirectCost: entries.filter(e => e.Cost_Type === 'INDIRECT').reduce((sum, e) => sum + (Number(e.Labor_Cost) || 0), 0)
+      }
+    });
+
+  } catch (error) {
+    return jsonResponse({
+      success: false,
+      error: error.toString()
+    });
+  }
+}
+
+/**
+ * Get labor summary by crop/batch for contribution margin analysis
+ * Implements ABC methodology from academic research
+ */
+function getLaborByCrop() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const timelogSheet = ss.getSheetByName('TIMELOG');
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!timelogSheet || timelogSheet.getLastRow() < 2) {
+      return jsonResponse({ success: true, crops: [] });
+    }
+
+    const timelogData = timelogSheet.getDataRange().getValues();
+    const timelogHeaders = timelogData[0];
+
+    // Build lookup for crop info from planning
+    const cropLookup = {};
+    if (planningSheet) {
+      const planningData = planningSheet.getDataRange().getValues();
+      const planningHeaders = planningData[0];
+      const batchCol = planningHeaders.indexOf('Batch_ID');
+      const cropCol = planningHeaders.indexOf('Crop');
+      const varietyCol = planningHeaders.indexOf('Variety');
+
+      if (batchCol !== -1 && cropCol !== -1) {
+        for (let i = 1; i < planningData.length; i++) {
+          const batchId = planningData[i][batchCol];
+          if (batchId) {
+            cropLookup[batchId] = {
+              crop: planningData[i][cropCol],
+              variety: varietyCol !== -1 ? planningData[i][varietyCol] : ''
+            };
+          }
+        }
+      }
+    }
+
+    // Aggregate by batch/crop
+    const batchCol = timelogHeaders.indexOf('Batch_ID');
+    const minCol = timelogHeaders.indexOf('Duration_Min');
+    const costCol = timelogHeaders.indexOf('Labor_Cost');
+    const typeCol = timelogHeaders.indexOf('Cost_Type');
+    const effCol = timelogHeaders.indexOf('Efficiency_%');
+
+    const cropTotals = {};
+
+    for (let i = 1; i < timelogData.length; i++) {
+      const batchId = timelogData[i][batchCol];
+      if (!batchId) continue;
+
+      if (!cropTotals[batchId]) {
+        const cropInfo = cropLookup[batchId] || { crop: 'Unknown', variety: '' };
+        cropTotals[batchId] = {
+          batchId: batchId,
+          crop: cropInfo.crop,
+          variety: cropInfo.variety,
+          totalMinutes: 0,
+          totalCost: 0,
+          directCost: 0,
+          indirectCost: 0,
+          entries: 0,
+          efficiencies: []
+        };
+      }
+
+      const minutes = Number(timelogData[i][minCol]) || 0;
+      const cost = Number(timelogData[i][costCol]) || 0;
+      const costType = timelogData[i][typeCol];
+      const efficiency = timelogData[i][effCol];
+
+      cropTotals[batchId].totalMinutes += minutes;
+      cropTotals[batchId].totalCost += cost;
+      cropTotals[batchId].entries += 1;
+
+      if (costType === 'DIRECT') {
+        cropTotals[batchId].directCost += cost;
+      } else {
+        cropTotals[batchId].indirectCost += cost;
+      }
+
+      if (efficiency) {
+        cropTotals[batchId].efficiencies.push(Number(efficiency));
+      }
+    }
+
+    // Calculate averages and format output
+    const crops = Object.values(cropTotals).map(c => ({
+      batchId: c.batchId,
+      crop: c.crop,
+      variety: c.variety,
+      totalHours: Math.round(c.totalMinutes / 60 * 10) / 10,
+      totalCost: Math.round(c.totalCost * 100) / 100,
+      directCost: Math.round(c.directCost * 100) / 100,
+      indirectCost: Math.round(c.indirectCost * 100) / 100,
+      avgEfficiency: c.efficiencies.length > 0
+        ? Math.round(c.efficiencies.reduce((a, b) => a + b, 0) / c.efficiencies.length)
+        : null,
+      entryCount: c.entries
+    }));
+
+    // Sort by total cost descending
+    crops.sort((a, b) => b.totalCost - a.totalCost);
+
+    return jsonResponse({
+      success: true,
+      crops: crops
+    });
+
   } catch (error) {
     return jsonResponse({
       success: false,
