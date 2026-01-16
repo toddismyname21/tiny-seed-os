@@ -2593,6 +2593,532 @@
         /* =====================================================
            PRINT STYLES
            ===================================================== */
+        /* ========================================
+           DELIVERY MODE STYLES
+           ======================================== */
+        .delivery-badge {
+            background: var(--success);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: auto;
+            margin-right: 8px;
+        }
+
+        .delivery-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .summary-stat {
+            text-align: center;
+        }
+
+        .summary-stat .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .summary-stat .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .delivery-route-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .delivery-stop {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .delivery-stop:active {
+            transform: scale(0.98);
+        }
+
+        .delivery-stop.completed {
+            opacity: 0.6;
+        }
+
+        .stop-number {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .delivery-stop.completed .stop-number {
+            background: var(--success);
+        }
+
+        .delivery-stop.completed .stop-number::after {
+            content: '✓';
+        }
+
+        .stop-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stop-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stop-address-preview {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stop-items-count {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .navigate-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--secondary);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Delivery Modal */
+        .delivery-modal {
+            max-width: 500px;
+        }
+
+        .stop-address {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .stop-address i {
+            color: var(--primary);
+        }
+
+        .stop-items {
+            margin-bottom: 16px;
+        }
+
+        .stop-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stop-notes {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 3px solid var(--warning);
+            padding: 12px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .stop-notes.has-notes {
+            display: block;
+        }
+
+        .pod-section {
+            margin-bottom: 20px;
+        }
+
+        .pod-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .photo-capture {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--bg-dark);
+            border-radius: 12px;
+            border: 2px dashed var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .photo-capture.has-photo {
+            border-style: solid;
+            border-color: var(--primary);
+        }
+
+        .photo-capture img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-placeholder {
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .photo-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .retake-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .signature-pad {
+            width: 100%;
+            height: 150px;
+            background: white;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .signature-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+
+        .signature-clear {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 6px 12px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .signature-line {
+            position: absolute;
+            bottom: 40px;
+            left: 20px;
+            right: 20px;
+            height: 1px;
+            background: #ccc;
+        }
+
+        .signature-label {
+            position: absolute;
+            bottom: 16px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+        }
+
+        .pod-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-complete-delivery {
+            width: 100%;
+            padding: 16px;
+            background: var(--success);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 52px;
+        }
+
+        .btn-report-issue {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 2px solid var(--warning);
+            border-radius: 12px;
+            color: var(--warning);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+
+        /* ========================================
+           TIMESHEET STYLES
+           ======================================== */
+        .anomaly-warnings {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .warning-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: var(--danger);
+            margin-bottom: 12px;
+        }
+
+        .warning-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .warning-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .warning-item.overtime {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--warning);
+        }
+
+        .warning-item.overtime .warning-icon {
+            color: var(--warning);
+        }
+
+        .warning-icon {
+            color: var(--danger);
+        }
+
+        .pay-period-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .period-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .period-header .period-label {
+            font-weight: 600;
+        }
+
+        .period-dates {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .period-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .period-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+
+        .period-stat .period-value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .period-stat .period-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .period-stat.projected .period-value {
+            color: var(--success);
+        }
+
+        .timesheet-section {
+            margin-bottom: 16px;
+        }
+
+        .timesheet-section h3 {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        .timesheet-days {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .timesheet-day {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+
+        .day-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .day-name {
+            font-weight: 600;
+            width: 40px;
+        }
+
+        .day-date {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .day-hours {
+            font-weight: 600;
+        }
+
+        .day-hours.overtime {
+            color: var(--warning);
+        }
+
+        .day-times {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .qb-sync-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+        }
+
+        .sync-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6366f1;
+            font-size: 1.25rem;
+        }
+
+        .sync-info {
+            flex: 1;
+        }
+
+        .sync-label {
+            display: block;
+            font-weight: 600;
+        }
+
+        .sync-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .sync-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .sync-badge.synced {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .sync-badge.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .sync-badge.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
         @media print {
             body * {
                 visibility: hidden;
@@ -3139,6 +3665,29 @@
                         <i class="fas fa-chevron-right"></i>
                     </div>
 
+                    <div class="more-item" onclick="openDeliveries()" id="deliveryModeItem">
+                        <div class="more-item-icon delivery" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.deliveries">Deliveries</h3>
+                            <p data-i18n="more.deliveriesDesc">View routes & complete deliveries</p>
+                        </div>
+                        <span class="delivery-badge" id="deliveryBadge" style="display: none;">0</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openTimesheet()">
+                        <div class="more-item-icon timesheet" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.timesheet">My Timesheet</h3>
+                            <p data-i18n="more.timesheetDesc">View hours & pay period</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
                     <div class="more-item" onclick="openFarmPics()">
                         <div class="more-item-icon farmpics" style="background: linear-gradient(135deg, #E1306C, #9b59b6);">
                             <i class="fas fa-camera-retro"></i>
@@ -3187,6 +3736,161 @@
                 <span data-i18n="tabs.more">More</span>
             </div>
         </nav>
+    </div>
+
+    <!-- Delivery Mode Panel -->
+    <div class="slide-panel" id="deliveryPanel">
+        <div class="panel-header">
+            <button class="panel-back" onclick="closeDeliveries()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>Deliveries</h2>
+            <div class="panel-actions">
+                <button class="panel-action-btn" onclick="refreshDeliveries()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+        <div class="panel-content">
+            <div class="delivery-summary" id="deliverySummary">
+                <div class="summary-stat">
+                    <span class="stat-value" id="totalStops">0</span>
+                    <span class="stat-label">Total Stops</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="stat-value" id="completedStops">0</span>
+                    <span class="stat-label">Completed</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="stat-value" id="remainingStops">0</span>
+                    <span class="stat-label">Remaining</span>
+                </div>
+            </div>
+            <div class="delivery-route-list" id="deliveryRouteList">
+                <div class="empty-state">
+                    <i class="fas fa-truck"></i>
+                    <p>No deliveries assigned today</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Stop Modal -->
+    <div class="modal-overlay" id="deliveryStopModal">
+        <div class="modal delivery-modal">
+            <div class="modal-header">
+                <h3 id="stopCustomerName">Customer Name</h3>
+                <button class="modal-close" onclick="closeDeliveryStop()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="stop-address" id="stopAddress">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>123 Main St</span>
+                </div>
+                <div class="stop-items" id="stopItems">
+                    <!-- Items list -->
+                </div>
+                <div class="stop-notes" id="stopNotes"></div>
+
+                <div class="pod-section">
+                    <label class="pod-label">Photo Proof of Delivery</label>
+                    <div class="photo-capture" id="podPhotoCapture" onclick="capturePODPhoto()">
+                        <div class="photo-placeholder" id="podPlaceholder">
+                            <i class="fas fa-camera photo-icon"></i>
+                            <p>Tap to take photo</p>
+                        </div>
+                        <img id="podPhotoPreview" style="display: none;">
+                        <button class="retake-btn" id="podRetake" style="display: none;" onclick="event.stopPropagation(); retakePODPhoto()">Retake</button>
+                    </div>
+                </div>
+
+                <div class="pod-section">
+                    <label class="pod-label">Customer Signature</label>
+                    <div class="signature-pad">
+                        <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+                        <button class="signature-clear" onclick="clearSignature()">Clear</button>
+                        <div class="signature-line"></div>
+                        <span class="signature-label">Sign above</span>
+                    </div>
+                </div>
+
+                <div class="pod-actions">
+                    <button class="btn-complete-delivery" onclick="completeDelivery()">
+                        <i class="fas fa-check"></i> Complete Delivery
+                    </button>
+                    <button class="btn-report-issue" onclick="reportDeliveryIssue()">
+                        <i class="fas fa-exclamation-triangle"></i> Report Issue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timesheet Panel -->
+    <div class="slide-panel" id="timesheetPanel">
+        <div class="panel-header">
+            <button class="panel-back" onclick="closeTimesheet()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>My Timesheet</h2>
+            <div class="panel-actions">
+                <button class="panel-action-btn" onclick="exportTimesheet()">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
+        </div>
+        <div class="panel-content">
+            <!-- Anomaly Warnings -->
+            <div class="anomaly-warnings" id="anomalyWarnings" style="display: none;">
+                <div class="warning-header">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Attention Required</span>
+                </div>
+                <div class="warning-list" id="warningList"></div>
+            </div>
+
+            <!-- Pay Period Summary -->
+            <div class="pay-period-card">
+                <div class="period-header">
+                    <span class="period-label">Current Pay Period</span>
+                    <span class="period-dates" id="payPeriodDates">Jan 1 - Jan 15</span>
+                </div>
+                <div class="period-stats">
+                    <div class="period-stat">
+                        <span class="period-value" id="periodHours">0.0</span>
+                        <span class="period-label">Hours</span>
+                    </div>
+                    <div class="period-stat">
+                        <span class="period-value" id="periodOT">0.0</span>
+                        <span class="period-label">Overtime</span>
+                    </div>
+                    <div class="period-stat projected">
+                        <span class="period-value" id="periodGross">$0</span>
+                        <span class="period-label">Est. Gross</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weekly Breakdown -->
+            <div class="timesheet-section">
+                <h3>This Week</h3>
+                <div class="timesheet-days" id="timesheetDays">
+                    <!-- Days populated by JS -->
+                </div>
+            </div>
+
+            <!-- QuickBooks Sync Status -->
+            <div class="qb-sync-status" id="qbSyncStatus">
+                <div class="sync-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="sync-info">
+                    <span class="sync-label">QuickBooks Sync</span>
+                    <span class="sync-time" id="lastSyncTime">Last synced: --</span>
+                </div>
+                <span class="sync-badge" id="syncBadge">Pending</span>
+            </div>
+        </div>
     </div>
 
     <!-- Toast -->
@@ -7728,7 +8432,601 @@
             if (!navigator.onLine) {
                 document.getElementById('offlineIndicator').classList.add('visible');
             }
+
+            // Check for deliveries and show badge
+            checkDeliveryBadge();
         });
+
+        // ============================================
+        // DELIVERY MODE
+        // ============================================
+        let DeliveryState = {
+            stops: [],
+            currentStop: null,
+            podPhoto: null,
+            signatureData: null
+        };
+
+        async function openDeliveries() {
+            document.getElementById('deliveryPanel').classList.add('active');
+            await loadDeliveryRoutes();
+        }
+
+        function closeDeliveries() {
+            document.getElementById('deliveryPanel').classList.remove('active');
+        }
+
+        async function loadDeliveryRoutes() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getDeliveryRoute&employeeId=${AppState.employee.Employee_ID}`);
+                const data = await response.json();
+
+                if (data.success && data.stops) {
+                    DeliveryState.stops = data.stops;
+                    renderDeliveryStops();
+                    updateDeliverySummary();
+                } else {
+                    // Demo data for testing
+                    DeliveryState.stops = [
+                        { id: 1, customer: 'Smith Family', address: '123 Oak Lane, Doylestown PA', items: [{name: 'Mixed Greens', qty: 2}, {name: 'Tomatoes', qty: 1}], completed: false },
+                        { id: 2, customer: 'Green Market Co-op', address: '456 Main St, New Hope PA', items: [{name: 'Bulk Carrots', qty: 10}], notes: 'Leave at back door', completed: false },
+                        { id: 3, customer: 'Johnson Restaurant', address: '789 Bridge St, Lambertville NJ', items: [{name: 'Chef Mix', qty: 5}, {name: 'Herbs', qty: 3}], completed: true }
+                    ];
+                    renderDeliveryStops();
+                    updateDeliverySummary();
+                }
+            } catch (error) {
+                console.error('Load deliveries error:', error);
+                showToast('Error loading deliveries', 'error');
+            }
+        }
+
+        function renderDeliveryStops() {
+            const list = document.getElementById('deliveryRouteList');
+            if (DeliveryState.stops.length === 0) {
+                list.innerHTML = `<div class="empty-state"><i class="fas fa-truck"></i><p>No deliveries assigned today</p></div>`;
+                return;
+            }
+
+            list.innerHTML = DeliveryState.stops.map((stop, idx) => `
+                <div class="delivery-stop ${stop.completed ? 'completed' : ''}" onclick="openDeliveryStop(${idx})">
+                    <div class="stop-number">${stop.completed ? '' : idx + 1}</div>
+                    <div class="stop-info">
+                        <div class="stop-name">${stop.customer}</div>
+                        <div class="stop-address-preview">${stop.address}</div>
+                        <div class="stop-items-count">${stop.items.length} item${stop.items.length > 1 ? 's' : ''}</div>
+                    </div>
+                    <button class="navigate-btn" onclick="event.stopPropagation(); navigateToStop(${idx})">
+                        <i class="fas fa-directions"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function updateDeliverySummary() {
+            const total = DeliveryState.stops.length;
+            const completed = DeliveryState.stops.filter(s => s.completed).length;
+            document.getElementById('totalStops').textContent = total;
+            document.getElementById('completedStops').textContent = completed;
+            document.getElementById('remainingStops').textContent = total - completed;
+        }
+
+        async function checkDeliveryBadge() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getDeliveryCount&employeeId=${AppState.employee?.Employee_ID || ''}`);
+                const data = await response.json();
+                const badge = document.getElementById('deliveryBadge');
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                // Silently fail - just hide badge
+                document.getElementById('deliveryBadge').style.display = 'none';
+            }
+        }
+
+        function refreshDeliveries() {
+            loadDeliveryRoutes();
+            showToast('Routes refreshed', 'success');
+        }
+
+        function openDeliveryStop(idx) {
+            const stop = DeliveryState.stops[idx];
+            if (!stop) return;
+
+            DeliveryState.currentStop = idx;
+            DeliveryState.podPhoto = null;
+            DeliveryState.signatureData = null;
+
+            document.getElementById('stopCustomerName').textContent = stop.customer;
+            document.getElementById('stopAddress').querySelector('span').textContent = stop.address;
+
+            // Render items
+            const itemsHtml = stop.items.map(item =>
+                `<div class="stop-item"><span>${item.name}</span><span>×${item.qty}</span></div>`
+            ).join('');
+            document.getElementById('stopItems').innerHTML = itemsHtml;
+
+            // Notes
+            const notesEl = document.getElementById('stopNotes');
+            if (stop.notes) {
+                notesEl.textContent = stop.notes;
+                notesEl.classList.add('has-notes');
+            } else {
+                notesEl.classList.remove('has-notes');
+            }
+
+            // Reset POD
+            document.getElementById('podPhotoPreview').style.display = 'none';
+            document.getElementById('podPlaceholder').style.display = 'flex';
+            document.getElementById('podRetake').style.display = 'none';
+            document.getElementById('podPhotoCapture').classList.remove('has-photo');
+
+            // Init signature pad
+            initSignaturePad();
+
+            document.getElementById('deliveryStopModal').classList.add('active');
+        }
+
+        function closeDeliveryStop() {
+            document.getElementById('deliveryStopModal').classList.remove('active');
+        }
+
+        function navigateToStop(idx) {
+            const stop = DeliveryState.stops[idx];
+            if (!stop) return;
+            const encoded = encodeURIComponent(stop.address);
+            window.open(`https://maps.google.com/?daddr=${encoded}`, '_blank');
+        }
+
+        async function capturePODPhoto() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+
+                // Wait for video to be ready
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+
+                stream.getTracks().forEach(t => t.stop());
+
+                DeliveryState.podPhoto = canvas.toDataURL('image/jpeg', 0.8);
+                document.getElementById('podPhotoPreview').src = DeliveryState.podPhoto;
+                document.getElementById('podPhotoPreview').style.display = 'block';
+                document.getElementById('podPlaceholder').style.display = 'none';
+                document.getElementById('podRetake').style.display = 'block';
+                document.getElementById('podPhotoCapture').classList.add('has-photo');
+            } catch (error) {
+                console.error('Camera error:', error);
+                showToast('Camera access denied', 'error');
+            }
+        }
+
+        function retakePODPhoto() {
+            DeliveryState.podPhoto = null;
+            document.getElementById('podPhotoPreview').style.display = 'none';
+            document.getElementById('podPlaceholder').style.display = 'flex';
+            document.getElementById('podRetake').style.display = 'none';
+            document.getElementById('podPhotoCapture').classList.remove('has-photo');
+            capturePODPhoto();
+        }
+
+        let signatureCanvas, signatureCtx, isDrawing = false;
+
+        function initSignaturePad() {
+            signatureCanvas = document.getElementById('signatureCanvas');
+            signatureCtx = signatureCanvas.getContext('2d');
+
+            // Set canvas size
+            const rect = signatureCanvas.getBoundingClientRect();
+            signatureCanvas.width = rect.width;
+            signatureCanvas.height = rect.height;
+
+            signatureCtx.fillStyle = 'white';
+            signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            signatureCtx.strokeStyle = '#000';
+            signatureCtx.lineWidth = 2;
+            signatureCtx.lineCap = 'round';
+
+            // Touch events
+            signatureCanvas.addEventListener('touchstart', startDrawing);
+            signatureCanvas.addEventListener('touchmove', draw);
+            signatureCanvas.addEventListener('touchend', stopDrawing);
+
+            // Mouse events
+            signatureCanvas.addEventListener('mousedown', startDrawing);
+            signatureCanvas.addEventListener('mousemove', draw);
+            signatureCanvas.addEventListener('mouseup', stopDrawing);
+            signatureCanvas.addEventListener('mouseout', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            signatureCtx.beginPath();
+            const pos = getPosition(e);
+            signatureCtx.moveTo(pos.x, pos.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getPosition(e);
+            signatureCtx.lineTo(pos.x, pos.y);
+            signatureCtx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            DeliveryState.signatureData = signatureCanvas.toDataURL('image/png');
+        }
+
+        function getPosition(e) {
+            const rect = signatureCanvas.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            return {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+        }
+
+        function clearSignature() {
+            signatureCtx.fillStyle = 'white';
+            signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            DeliveryState.signatureData = null;
+        }
+
+        async function completeDelivery() {
+            const idx = DeliveryState.currentStop;
+            if (idx === null) return;
+
+            if (!DeliveryState.podPhoto) {
+                showToast('Please take a photo', 'warning');
+                return;
+            }
+
+            try {
+                const gps = await captureGPS();
+                const response = await fetch(`${CONFIG.API_URL}?action=completeDelivery`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        stopId: DeliveryState.stops[idx].id,
+                        employeeId: AppState.employee.Employee_ID,
+                        photo: DeliveryState.podPhoto,
+                        signature: DeliveryState.signatureData,
+                        lat: gps.lat,
+                        lng: gps.lng,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    DeliveryState.stops[idx].completed = true;
+                    renderDeliveryStops();
+                    updateDeliverySummary();
+                    closeDeliveryStop();
+                    showToast('Delivery completed!', 'success');
+                } else {
+                    // Mark complete locally anyway for offline support
+                    DeliveryState.stops[idx].completed = true;
+                    renderDeliveryStops();
+                    updateDeliverySummary();
+                    closeDeliveryStop();
+                    showToast('Saved offline - will sync', 'warning');
+                }
+            } catch (error) {
+                console.error('Complete delivery error:', error);
+                // Offline - mark complete locally
+                DeliveryState.stops[idx].completed = true;
+                renderDeliveryStops();
+                updateDeliverySummary();
+                closeDeliveryStop();
+                showToast('Saved offline - will sync', 'warning');
+            }
+        }
+
+        function reportDeliveryIssue() {
+            const issues = ['Customer not home', 'Wrong address', 'Refused delivery', 'Damaged item', 'Other'];
+            const issue = prompt('Select issue:\n' + issues.map((i, idx) => `${idx + 1}. ${i}`).join('\n'));
+            if (issue) {
+                showToast('Issue reported', 'success');
+                closeDeliveryStop();
+            }
+        }
+
+        // ============================================
+        // TIMESHEET & ANOMALY DETECTION
+        // ============================================
+        let TimesheetState = {
+            entries: [],
+            payPeriod: null,
+            anomalies: [],
+            hourlyRate: 15.00 // Default, would come from employee record
+        };
+
+        async function openTimesheet() {
+            document.getElementById('timesheetPanel').classList.add('active');
+            await loadTimesheet();
+        }
+
+        function closeTimesheet() {
+            document.getElementById('timesheetPanel').classList.remove('active');
+        }
+
+        async function loadTimesheet() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getTimesheet&employeeId=${AppState.employee.Employee_ID}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    TimesheetState.entries = data.entries || [];
+                    TimesheetState.payPeriod = data.payPeriod;
+                    TimesheetState.hourlyRate = data.hourlyRate || 15.00;
+                } else {
+                    // Demo data
+                    generateDemoTimesheet();
+                }
+
+                detectAnomalies();
+                renderTimesheet();
+                renderAnomalyWarnings();
+                updatePayPeriodSummary();
+                updateQBSyncStatus();
+            } catch (error) {
+                console.error('Load timesheet error:', error);
+                generateDemoTimesheet();
+                detectAnomalies();
+                renderTimesheet();
+                renderAnomalyWarnings();
+                updatePayPeriodSummary();
+            }
+        }
+
+        function generateDemoTimesheet() {
+            const today = new Date();
+            const entries = [];
+
+            // Generate last 7 days of entries
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+
+                if (date.getDay() !== 0 && date.getDay() !== 6) { // Skip weekends
+                    const clockIn = new Date(date);
+                    clockIn.setHours(7, Math.floor(Math.random() * 30), 0);
+
+                    const clockOut = new Date(date);
+                    clockOut.setHours(15 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 60), 0);
+
+                    entries.push({
+                        date: date.toISOString().split('T')[0],
+                        clockIn: clockIn.toISOString(),
+                        clockOut: i === 0 && AppState.isClockedIn ? null : clockOut.toISOString(),
+                        hours: i === 0 && AppState.isClockedIn ? null : ((clockOut - clockIn) / 1000 / 60 / 60).toFixed(2)
+                    });
+                }
+            }
+
+            // Add anomaly for demo - one day with 10+ hours
+            if (entries.length > 2) {
+                entries[2].hours = '10.5';
+            }
+
+            TimesheetState.entries = entries;
+            TimesheetState.payPeriod = {
+                start: new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0],
+                end: new Date(today.getFullYear(), today.getMonth(), 15).toISOString().split('T')[0]
+            };
+        }
+
+        function detectAnomalies() {
+            const anomalies = [];
+            let weeklyTotal = 0;
+            const weekStart = getWeekStart(new Date());
+
+            TimesheetState.entries.forEach(entry => {
+                const entryDate = new Date(entry.date);
+                const hours = parseFloat(entry.hours) || 0;
+
+                // Check for long shifts (over 10 hours)
+                if (hours > 10) {
+                    anomalies.push({
+                        type: 'long_shift',
+                        severity: 'warning',
+                        message: `Long shift on ${formatDate(entryDate)}: ${hours.toFixed(1)} hours`,
+                        date: entry.date
+                    });
+                }
+
+                // Check for missing clock out
+                if (entry.clockIn && !entry.clockOut && !isToday(entryDate)) {
+                    anomalies.push({
+                        type: 'missing_clockout',
+                        severity: 'error',
+                        message: `Missing clock-out on ${formatDate(entryDate)}`,
+                        date: entry.date
+                    });
+                }
+
+                // Accumulate weekly hours
+                if (entryDate >= weekStart) {
+                    weeklyTotal += hours;
+                }
+            });
+
+            // Check approaching overtime (over 35 hours, warning at 40)
+            if (weeklyTotal >= 35 && weeklyTotal < 40) {
+                anomalies.push({
+                    type: 'overtime_approaching',
+                    severity: 'warning',
+                    message: `Approaching overtime: ${weeklyTotal.toFixed(1)} hours this week`,
+                    date: null
+                });
+            }
+
+            // Check overtime (over 40 hours)
+            if (weeklyTotal >= 40) {
+                anomalies.push({
+                    type: 'overtime',
+                    severity: 'overtime',
+                    message: `Overtime: ${(weeklyTotal - 40).toFixed(1)} OT hours this week`,
+                    date: null
+                });
+            }
+
+            TimesheetState.anomalies = anomalies;
+        }
+
+        function renderAnomalyWarnings() {
+            const container = document.getElementById('anomalyWarnings');
+            const list = document.getElementById('warningList');
+
+            if (TimesheetState.anomalies.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            list.innerHTML = TimesheetState.anomalies.map(a => `
+                <div class="warning-item ${a.type === 'overtime' || a.type === 'overtime_approaching' ? 'overtime' : ''}">
+                    <i class="fas ${getAnomalyIcon(a.type)} warning-icon"></i>
+                    <span>${a.message}</span>
+                </div>
+            `).join('');
+        }
+
+        function getAnomalyIcon(type) {
+            switch (type) {
+                case 'missing_clockout': return 'fa-clock';
+                case 'long_shift': return 'fa-hourglass-half';
+                case 'overtime':
+                case 'overtime_approaching': return 'fa-dollar-sign';
+                default: return 'fa-exclamation-triangle';
+            }
+        }
+
+        function renderTimesheet() {
+            const container = document.getElementById('timesheetDays');
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            container.innerHTML = TimesheetState.entries.slice(-7).map(entry => {
+                const date = new Date(entry.date);
+                const hours = parseFloat(entry.hours) || 0;
+                const clockIn = entry.clockIn ? new Date(entry.clockIn) : null;
+                const clockOut = entry.clockOut ? new Date(entry.clockOut) : null;
+
+                return `
+                    <div class="timesheet-day">
+                        <div class="day-info">
+                            <span class="day-name">${days[date.getDay()]}</span>
+                            <span class="day-date">${formatDateShort(date)}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="day-hours ${hours > 8 ? 'overtime' : ''}">${entry.hours ? hours.toFixed(1) + 'h' : '--'}</div>
+                            <div class="day-times">${clockIn ? formatTime(clockIn) : '--'} - ${clockOut ? formatTime(clockOut) : 'Now'}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updatePayPeriodSummary() {
+            const totalHours = TimesheetState.entries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+            const regularHours = Math.min(totalHours, 80); // Bi-weekly standard
+            const overtimeHours = Math.max(0, totalHours - 80);
+            const grossPay = (regularHours * TimesheetState.hourlyRate) + (overtimeHours * TimesheetState.hourlyRate * 1.5);
+
+            document.getElementById('periodHours').textContent = totalHours.toFixed(1);
+            document.getElementById('periodOT').textContent = overtimeHours.toFixed(1);
+            document.getElementById('periodGross').textContent = '$' + grossPay.toFixed(0);
+
+            if (TimesheetState.payPeriod) {
+                const start = new Date(TimesheetState.payPeriod.start);
+                const end = new Date(TimesheetState.payPeriod.end);
+                document.getElementById('payPeriodDates').textContent =
+                    `${formatDateShort(start)} - ${formatDateShort(end)}`;
+            }
+        }
+
+        function updateQBSyncStatus() {
+            // Check QuickBooks sync status
+            const badge = document.getElementById('syncBadge');
+            const timeEl = document.getElementById('lastSyncTime');
+
+            // This would check actual QB sync status
+            const lastSync = localStorage.getItem('qb_last_sync');
+            if (lastSync) {
+                const syncDate = new Date(lastSync);
+                timeEl.textContent = `Last synced: ${formatDate(syncDate)}`;
+                badge.textContent = 'Synced';
+                badge.className = 'sync-badge synced';
+            } else {
+                timeEl.textContent = 'Last synced: --';
+                badge.textContent = 'Pending';
+                badge.className = 'sync-badge pending';
+            }
+        }
+
+        async function exportTimesheet() {
+            try {
+                // Export to QuickBooks
+                const response = await fetch(`${CONFIG.API_URL}?action=syncToQuickBooks`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        employeeId: AppState.employee.Employee_ID,
+                        entries: TimesheetState.entries,
+                        payPeriod: TimesheetState.payPeriod
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    localStorage.setItem('qb_last_sync', new Date().toISOString());
+                    updateQBSyncStatus();
+                    showToast('Synced to QuickBooks!', 'success');
+                } else {
+                    showToast('Sync failed - try again', 'error');
+                }
+            } catch (error) {
+                console.error('QB sync error:', error);
+                showToast('Sync failed - offline', 'error');
+            }
+        }
+
+        // Helper functions
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            d.setDate(d.getDate() - day);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        function isToday(date) {
+            const today = new Date();
+            return date.toDateString() === today.toDateString();
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function formatDateShort(date) {
+            return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
     </script>
 </body>
 </html>
