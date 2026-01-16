@@ -701,6 +701,8 @@ function doPost(e) {
         return jsonResponse(getAyrshareAnalytics(data.platforms));
       case 'deleteSocialPost':
         return jsonResponse(deleteAyrsharePost(data.postId));
+      case 'updateFollowerCounts':
+        return jsonResponse(updateFollowerCounts(data.counts));
 
       // ============ LEGACY POST ENDPOINTS ============
       case 'addPlanting':
@@ -18303,10 +18305,11 @@ function resetSocialConnections() {
         sheet.appendRow(['Platform', 'Account', 'Status', 'Followers', 'Connected_At', 'Last_Post']);
 
         // All platforms connected via Ayrshare - ordered by engagement priority
+        // Follower counts start at 0 - user updates manually via Marketing Command Center
         const platforms = [
             ['tiktok', '@TinySeedEnergy', 'connected', 0, '2026-01-15', ''],
-            ['instagram', '@tinyseedfarm', 'connected', 2847, '2026-01-15', ''],
-            ['facebook', 'Tiny Seed Farm', 'connected', 1523, '2026-01-15', ''],
+            ['instagram', '@tinyseedfarm', 'connected', 0, '2026-01-15', ''],
+            ['facebook', 'Tiny Seed Farm', 'connected', 0, '2026-01-15', ''],
             ['youtube', 'Tiny Seed Farm', 'connected', 0, '2026-01-15', ''],
             ['pinterest', 'tinyseedfarm', 'connected', 0, '2026-01-15', ''],
             ['threads', '@tinyseedfarm', 'connected', 0, '2026-01-15', ''],
@@ -18321,6 +18324,59 @@ function resetSocialConnections() {
             platforms: platforms.length
         };
     } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Update follower counts for social platforms
+ * Called from Marketing Command Center when user manually enters counts
+ * @param {Object} counts - Object with platform follower counts {instagram: 1250, facebook: 850, ...}
+ */
+function updateFollowerCounts(counts) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName(MARKETING_SHEETS.SOCIAL_CONNECTIONS);
+
+        if (!sheet) {
+            return { success: false, error: 'Social connections sheet not found. Run reset first.' };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const platformCol = headers.indexOf('Platform');
+        const followersCol = headers.indexOf('Followers');
+
+        if (platformCol === -1 || followersCol === -1) {
+            return { success: false, error: 'Sheet format invalid' };
+        }
+
+        // Map platform names to row numbers
+        const platformRows = {};
+        for (let i = 1; i < data.length; i++) {
+            platformRows[data[i][platformCol].toLowerCase()] = i + 1; // +1 for 1-indexed sheets
+        }
+
+        // Update each platform's follower count
+        const updated = [];
+        for (const [platform, count] of Object.entries(counts)) {
+            const rowNum = platformRows[platform.toLowerCase()];
+            if (rowNum && count >= 0) {
+                sheet.getRange(rowNum, followersCol + 1).setValue(count);
+                updated.push({ platform, count });
+            }
+        }
+
+        // Log the update
+        Logger.log('Follower counts updated: ' + JSON.stringify(updated));
+
+        return {
+            success: true,
+            message: 'Follower counts updated',
+            updated: updated
+        };
+    } catch (error) {
+        Logger.log('Error updating follower counts: ' + error.toString());
         return { success: false, error: error.toString() };
     }
 }

@@ -1692,6 +1692,18 @@
 
         <!-- CONNECTIONS TAB -->
         <div id="connectionsTab" class="tab-content">
+            <!-- Connections Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.25rem;">Connected Platforms</h2>
+                    <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); font-size: 0.85rem;">
+                        Update follower counts weekly to track growth
+                    </p>
+                </div>
+                <button class="btn btn-primary" onclick="openFollowerCountModal()">
+                    <i class="fas fa-edit"></i> Update Counts
+                </button>
+            </div>
             <div class="connections-grid">
                 <div class="connection-card" data-platform="instagram">
                     <div class="connection-header">
@@ -2340,6 +2352,67 @@
                 <button class="btn btn-secondary" onclick="closeSMSModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="sendSMSCampaign()" style="background: linear-gradient(135deg, var(--success) 0%, var(--teal) 100%);">
                     <i class="fas fa-paper-plane"></i> Send SMS Blast
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOLLOWER COUNT UPDATE MODAL -->
+    <div class="modal-overlay" id="followerCountModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);">
+                <h2><i class="fas fa-users"></i> Update Follower Counts</h2>
+                <button class="modal-close" onclick="closeFollowerCountModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem;">
+                    Enter your current follower counts. Check each platform's app for accurate numbers.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-instagram" style="color: var(--instagram);"></i> Instagram
+                    </label>
+                    <input type="number" class="form-input" id="fcInstagram" placeholder="e.g., 1250" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-facebook" style="color: var(--facebook);"></i> Facebook
+                    </label>
+                    <input type="number" class="form-input" id="fcFacebook" placeholder="e.g., 850" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-tiktok"></i> TikTok
+                    </label>
+                    <input type="number" class="form-input" id="fcTiktok" placeholder="e.g., 500" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-youtube" style="color: var(--youtube);"></i> YouTube
+                    </label>
+                    <input type="number" class="form-input" id="fcYoutube" placeholder="e.g., 100" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-pinterest" style="color: var(--pinterest);"></i> Pinterest
+                    </label>
+                    <input type="number" class="form-input" id="fcPinterest" placeholder="e.g., 200" min="0">
+                </div>
+
+                <div style="background: rgba(155, 89, 182, 0.1); padding: 0.75rem; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                    <i class="fas fa-lightbulb" style="color: var(--gold);"></i>
+                    <strong>Tip:</strong> Update weekly to track your growth over time!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFollowerCountModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveFollowerCounts()" style="background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);">
+                    <i class="fas fa-save"></i> Save Counts
                 </button>
             </div>
         </div>
@@ -3033,6 +3106,92 @@
 
         function closeSMSModal() {
             document.getElementById('smsModal').classList.remove('active');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FOLLOWER COUNT UPDATE
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function openFollowerCountModal() {
+            // Pre-fill with current values if available
+            loadCurrentFollowerCounts();
+            document.getElementById('followerCountModal').classList.add('active');
+        }
+
+        function closeFollowerCountModal() {
+            document.getElementById('followerCountModal').classList.remove('active');
+        }
+
+        async function loadCurrentFollowerCounts() {
+            try {
+                const response = await fetch(`${API_URL}?action=getSocialConnections`);
+                const result = await response.json();
+
+                if (result.success && result.connections) {
+                    result.connections.forEach(conn => {
+                        const platform = conn.Platform.toLowerCase();
+                        const followers = conn.Followers || 0;
+
+                        const inputId = {
+                            'instagram': 'fcInstagram',
+                            'facebook': 'fcFacebook',
+                            'tiktok': 'fcTiktok',
+                            'youtube': 'fcYoutube',
+                            'pinterest': 'fcPinterest'
+                        }[platform];
+
+                        if (inputId && followers > 0) {
+                            document.getElementById(inputId).value = followers;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('Could not load current counts:', error);
+            }
+        }
+
+        async function saveFollowerCounts() {
+            const counts = {
+                instagram: parseInt(document.getElementById('fcInstagram').value) || 0,
+                facebook: parseInt(document.getElementById('fcFacebook').value) || 0,
+                tiktok: parseInt(document.getElementById('fcTiktok').value) || 0,
+                youtube: parseInt(document.getElementById('fcYoutube').value) || 0,
+                pinterest: parseInt(document.getElementById('fcPinterest').value) || 0
+            };
+
+            // Show saving state
+            const saveBtn = document.querySelector('#followerCountModal .btn-primary');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateFollowerCounts',
+                        counts: counts
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Follower counts updated!', 'success');
+                    closeFollowerCountModal();
+
+                    // Refresh the connections display
+                    loadSocialConnections();
+                } else {
+                    showToast('Failed to save: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error saving counts: ' + error.message, 'error');
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
         }
 
         function updateSMSCount() {
