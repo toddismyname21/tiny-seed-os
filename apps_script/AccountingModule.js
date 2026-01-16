@@ -1584,6 +1584,302 @@ function getGrants(params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ADDITIONAL GETTER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get accountant emails with filtering
+ */
+function getAccountantEmails(params) {
+  params = params || {};
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ACCOUNTING_SHEETS.ACCOUNTANT_EMAILS);
+
+  if (!sheet) {
+    return { success: true, data: [], count: 0, message: 'Sheet not initialized. Run initializeAccountingModule first.' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) {
+    return { success: true, data: [], count: 0 };
+  }
+
+  const headers = data[0];
+  let emails = data.slice(1).map(row => {
+    const email = {};
+    headers.forEach((header, i) => {
+      email[header] = row[i];
+    });
+    return email;
+  });
+
+  // Apply filters
+  if (params.fromEmail) {
+    emails = emails.filter(e => e.From_Email === params.fromEmail);
+  }
+
+  if (params.startDate) {
+    const startDate = new Date(params.startDate);
+    emails = emails.filter(e => new Date(e.Date) >= startDate);
+  }
+
+  // Sort by date descending
+  emails.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+  // Limit results
+  const limit = parseInt(params.limit) || 100;
+  emails = emails.slice(0, limit);
+
+  return {
+    success: true,
+    data: emails,
+    count: emails.length
+  };
+}
+
+/**
+ * Get accountant documents with filtering
+ */
+function getAccountantDocs(params) {
+  params = params || {};
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ACCOUNTING_SHEETS.ACCOUNTANT_DOCS);
+
+  if (!sheet) {
+    return { success: true, data: [], count: 0, message: 'Sheet not initialized. Run initializeAccountingModule first.' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) {
+    return { success: true, data: [], count: 0 };
+  }
+
+  const headers = data[0];
+  let docs = data.slice(1).map(row => {
+    const doc = {};
+    headers.forEach((header, i) => {
+      doc[header] = row[i];
+    });
+    return doc;
+  });
+
+  // Filter by status
+  if (params.status) {
+    docs = docs.filter(d => d.Status === params.status);
+  }
+
+  if (params.docType) {
+    docs = docs.filter(d => d.Document_Type === params.docType);
+  }
+
+  // Sort by date descending
+  docs.sort((a, b) => new Date(b.Received_Date) - new Date(a.Received_Date));
+
+  return {
+    success: true,
+    data: docs,
+    count: docs.length
+  };
+}
+
+/**
+ * Get vendor-to-category mappings
+ */
+function getVendorCategories(params) {
+  params = params || {};
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ACCOUNTING_SHEETS.VENDOR_CATEGORIES);
+
+  if (!sheet) {
+    return { success: true, data: [], count: 0, message: 'Sheet not initialized.' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) {
+    return { success: true, data: [], count: 0 };
+  }
+
+  const headers = data[0];
+  let mappings = data.slice(1).map(row => {
+    const mapping = {};
+    headers.forEach((header, i) => {
+      mapping[header] = row[i];
+    });
+    return mapping;
+  });
+
+  // Sort by times used descending
+  mappings.sort((a, b) => (b.Times_Used || 0) - (a.Times_Used || 0));
+
+  return {
+    success: true,
+    data: mappings,
+    count: mappings.length
+  };
+}
+
+/**
+ * Add a new expense category
+ */
+function addExpenseCategory(data) {
+  if (!data.categoryName) {
+    return { success: false, error: 'Category name is required' };
+  }
+
+  const sheet = getOrCreateSheet(ACCOUNTING_SHEETS.CATEGORIES, CATEGORY_HEADERS);
+
+  // Generate category ID
+  const type = data.type || 'Expense';
+  const prefix = type === 'Income' ? 'INC' : 'EXP';
+
+  // Find next available number
+  const existing = sheet.getDataRange().getValues();
+  let maxNum = 0;
+  existing.slice(1).forEach(row => {
+    const id = row[0] || '';
+    if (id.startsWith(prefix + '-')) {
+      const num = parseInt(id.replace(prefix + '-', ''));
+      if (num > maxNum) maxNum = num;
+    }
+  });
+
+  const categoryId = prefix + '-' + String(maxNum + 1).padStart(3, '0');
+
+  const row = [
+    categoryId,
+    data.categoryName,
+    type,
+    data.scheduleFLine || 'Line 22',
+    data.description || '',
+    true,
+    maxNum + 1
+  ];
+
+  sheet.appendRow(row);
+
+  logAuditEvent('Create', 'Category', categoryId, null, data);
+
+  return {
+    success: true,
+    categoryId: categoryId,
+    message: 'Category created'
+  };
+}
+
+/**
+ * Update an existing receipt
+ */
+function updateReceipt(data) {
+  if (!data.receiptId) {
+    return { success: false, error: 'Receipt ID is required' };
+  }
+
+  const sheet = getOrCreateSheet(ACCOUNTING_SHEETS.RECEIPTS, RECEIPT_HEADERS);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const receiptIdCol = headers.indexOf('Receipt_ID');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][receiptIdCol] === data.receiptId) {
+      const oldData = {};
+      headers.forEach((h, idx) => oldData[h] = allData[i][idx]);
+
+      // Update fields that are provided
+      Object.keys(data).forEach(key => {
+        const colIndex = headers.indexOf(key);
+        if (colIndex >= 0 && key !== 'receiptId') {
+          sheet.getRange(i + 1, colIndex + 1).setValue(data[key]);
+        }
+      });
+
+      logAuditEvent('Update', 'Receipt', data.receiptId, oldData, data);
+
+      return { success: true, message: 'Receipt updated' };
+    }
+  }
+
+  return { success: false, error: 'Receipt not found' };
+}
+
+/**
+ * Delete a receipt
+ */
+function deleteReceipt(data) {
+  if (!data.receiptId) {
+    return { success: false, error: 'Receipt ID is required' };
+  }
+
+  const sheet = getOrCreateSheet(ACCOUNTING_SHEETS.RECEIPTS, RECEIPT_HEADERS);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const receiptIdCol = headers.indexOf('Receipt_ID');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][receiptIdCol] === data.receiptId) {
+      const oldData = {};
+      headers.forEach((h, idx) => oldData[h] = allData[i][idx]);
+
+      sheet.deleteRow(i + 1);
+
+      logAuditEvent('Delete', 'Receipt', data.receiptId, oldData, null);
+
+      return { success: true, message: 'Receipt deleted' };
+    }
+  }
+
+  return { success: false, error: 'Receipt not found' };
+}
+
+/**
+ * Link a receipt to a grant for expenditure tracking
+ */
+function linkReceiptToGrant(data) {
+  if (!data.receiptId || !data.grantId) {
+    return { success: false, error: 'Receipt ID and Grant ID are required' };
+  }
+
+  // Update the receipt with grant ID
+  const updateResult = updateReceipt({ receiptId: data.receiptId, Grant_ID: data.grantId });
+  if (!updateResult.success) {
+    return updateResult;
+  }
+
+  // Get receipt details
+  const receipts = getReceipts({ receiptId: data.receiptId }).data;
+  if (receipts.length === 0) {
+    return { success: false, error: 'Receipt not found after update' };
+  }
+  const receipt = receipts[0];
+
+  // Create grant expenditure record
+  const expSheet = getOrCreateSheet(ACCOUNTING_SHEETS.GRANT_EXPENDITURES, GRANT_EXPENDITURE_HEADERS);
+
+  const expenditureId = 'GEXP-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd-HHmmss') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+
+  const row = [
+    expenditureId,
+    data.grantId,
+    data.receiptId,
+    receipt.Amount || data.amount || 0,
+    receipt.Category_Name || '',
+    receipt.Date || new Date().toISOString(),
+    data.description || receipt.Notes || '',
+    data.approvedBy || '',
+    data.notes || ''
+  ];
+
+  expSheet.appendRow(row);
+
+  logAuditEvent('Create', 'GrantExpenditure', expenditureId, null, { receiptId: data.receiptId, grantId: data.grantId });
+
+  return {
+    success: true,
+    expenditureId: expenditureId,
+    message: 'Receipt linked to grant'
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // LOAN READINESS REPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1956,6 +2252,209 @@ function generateLoanPackage(params) {
       ]
     }
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENTERPRISE ANALYSIS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate Enterprise Analysis Report - P&L by crop/product line
+ * Shows profitability of each enterprise (e.g., Tomatoes, Salad Mix, Flowers)
+ */
+function generateEnterpriseAnalysis(params) {
+  params = params || {};
+  const startDate = params.startDate ? new Date(params.startDate) : new Date(new Date().getFullYear(), 0, 1);
+  const endDate = params.endDate ? new Date(params.endDate) : new Date();
+
+  // Get all receipts with enterprise tags
+  const receipts = getReceipts({
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString()
+  }).data;
+
+  // Get categories
+  const categories = getExpenseCategories().data;
+
+  // Group by enterprise
+  const enterprises = {};
+  const unallocated = { income: 0, expenses: 0, receipts: [] };
+
+  receipts.forEach(receipt => {
+    const enterprise = receipt.Enterprise || 'Unallocated';
+    const cat = categories.find(c => c.categoryId === receipt.Category_ID);
+    const amount = parseFloat(receipt.Amount) || 0;
+    const isIncome = cat && cat.type === 'Income';
+
+    if (enterprise === 'Unallocated' || !enterprise) {
+      if (isIncome) {
+        unallocated.income += amount;
+      } else {
+        unallocated.expenses += amount;
+      }
+      unallocated.receipts.push({
+        id: receipt.Receipt_ID,
+        date: receipt.Date,
+        vendor: receipt.Vendor,
+        amount: amount,
+        category: receipt.Category_Name,
+        type: isIncome ? 'Income' : 'Expense'
+      });
+    } else {
+      if (!enterprises[enterprise]) {
+        enterprises[enterprise] = {
+          name: enterprise,
+          income: 0,
+          expenses: 0,
+          categories: {},
+          receipts: []
+        };
+      }
+
+      if (isIncome) {
+        enterprises[enterprise].income += amount;
+      } else {
+        enterprises[enterprise].expenses += amount;
+      }
+
+      // Track by category
+      const catName = receipt.Category_Name || 'Other';
+      if (!enterprises[enterprise].categories[catName]) {
+        enterprises[enterprise].categories[catName] = 0;
+      }
+      enterprises[enterprise].categories[catName] += amount;
+
+      enterprises[enterprise].receipts.push({
+        id: receipt.Receipt_ID,
+        date: receipt.Date,
+        vendor: receipt.Vendor,
+        amount: amount,
+        category: catName,
+        type: isIncome ? 'Income' : 'Expense'
+      });
+    }
+  });
+
+  // Calculate profitability for each enterprise
+  const enterpriseList = Object.values(enterprises).map(e => ({
+    name: e.name,
+    totalIncome: e.income,
+    totalExpenses: e.expenses,
+    netProfit: e.income - e.expenses,
+    profitMargin: e.income > 0 ? ((e.income - e.expenses) / e.income * 100).toFixed(1) + '%' : 'N/A',
+    expenseBreakdown: Object.entries(e.categories)
+      .filter(([cat, amt]) => amt > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, amt]) => ({ category: cat, amount: amt })),
+    receiptCount: e.receipts.length
+  }));
+
+  // Sort by net profit
+  enterpriseList.sort((a, b) => b.netProfit - a.netProfit);
+
+  // Calculate totals
+  const totalIncome = enterpriseList.reduce((sum, e) => sum + e.totalIncome, 0) + unallocated.income;
+  const totalExpenses = enterpriseList.reduce((sum, e) => sum + e.totalExpenses, 0) + unallocated.expenses;
+  const totalNetProfit = totalIncome - totalExpenses;
+
+  return {
+    success: true,
+    report: {
+      title: 'Enterprise Analysis Report',
+      farmName: 'Tiny Seed Farm LLC',
+      period: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      },
+
+      enterprises: enterpriseList,
+
+      unallocated: {
+        income: unallocated.income,
+        expenses: unallocated.expenses,
+        netProfit: unallocated.income - unallocated.expenses,
+        receiptCount: unallocated.receipts.length,
+        note: 'These receipts have no enterprise tag. Consider allocating them for better tracking.'
+      },
+
+      summary: {
+        totalEnterprises: enterpriseList.length,
+        totalIncome: totalIncome,
+        totalExpenses: totalExpenses,
+        totalNetProfit: totalNetProfit,
+        overallMargin: totalIncome > 0 ? ((totalNetProfit / totalIncome) * 100).toFixed(1) + '%' : 'N/A',
+        mostProfitable: enterpriseList.length > 0 ? enterpriseList[0].name : 'None',
+        leastProfitable: enterpriseList.length > 0 ? enterpriseList[enterpriseList.length - 1].name : 'None'
+      },
+
+      recommendations: generateEnterpriseRecommendations(enterpriseList, unallocated),
+
+      generatedAt: new Date().toISOString()
+    }
+  };
+}
+
+/**
+ * Generate recommendations based on enterprise analysis
+ */
+function generateEnterpriseRecommendations(enterprises, unallocated) {
+  const recommendations = [];
+
+  // Check for unallocated expenses
+  if (unallocated.expenses > 0) {
+    recommendations.push({
+      type: 'data_quality',
+      priority: 'HIGH',
+      message: `$${unallocated.expenses.toFixed(2)} in expenses are not allocated to any enterprise. Tag receipts with enterprise names for better analysis.`
+    });
+  }
+
+  // Check for unprofitable enterprises
+  const unprofitable = enterprises.filter(e => e.netProfit < 0);
+  unprofitable.forEach(e => {
+    recommendations.push({
+      type: 'profitability',
+      priority: 'HIGH',
+      message: `${e.name} is showing a loss of $${Math.abs(e.netProfit).toFixed(2)}. Review expenses or consider pricing adjustments.`
+    });
+  });
+
+  // Check for low margin enterprises
+  const lowMargin = enterprises.filter(e => {
+    const margin = e.totalIncome > 0 ? (e.netProfit / e.totalIncome) * 100 : 0;
+    return margin > 0 && margin < 20;
+  });
+  lowMargin.forEach(e => {
+    recommendations.push({
+      type: 'profitability',
+      priority: 'MEDIUM',
+      message: `${e.name} has a low profit margin of ${e.profitMargin}. Consider ways to reduce costs or increase prices.`
+    });
+  });
+
+  // Suggest enterprise tracking if none exist
+  if (enterprises.length === 0 && (unallocated.income > 0 || unallocated.expenses > 0)) {
+    recommendations.push({
+      type: 'data_quality',
+      priority: 'HIGH',
+      message: 'No enterprises are being tracked. Add enterprise tags to receipts (e.g., "Tomatoes", "Flowers", "CSA") to analyze profitability by product line.'
+    });
+  }
+
+  // Suggest diversification if one enterprise dominates
+  if (enterprises.length > 0) {
+    const totalIncome = enterprises.reduce((sum, e) => sum + e.totalIncome, 0);
+    const topEnterprise = enterprises[0];
+    if (topEnterprise.totalIncome / totalIncome > 0.7) {
+      recommendations.push({
+        type: 'diversification',
+        priority: 'LOW',
+        message: `${topEnterprise.name} accounts for over 70% of income. Consider diversifying to reduce risk.`
+      });
+    }
+  }
+
+  return recommendations;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

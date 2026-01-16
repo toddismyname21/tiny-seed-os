@@ -716,6 +716,8 @@ function doGet(e) {
         return jsonResponse(generateCashFlowStatement(e.parameter));
       case 'generateLoanPackage':
         return jsonResponse(generateLoanPackage(e.parameter));
+      case 'generateEnterpriseAnalysis':
+        return jsonResponse(generateEnterpriseAnalysis(e.parameter));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
