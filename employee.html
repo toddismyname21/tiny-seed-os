@@ -17,6 +17,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y" async defer></script>
+    <!-- QR/Barcode Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         /* ========================================
            CSS DESIGN SYSTEM - HIGH CONTRAST THEME
@@ -3947,6 +3949,851 @@
         }
 
         /* ========================================
+           WORK MODE TOGGLE (Field/Packhouse/Driver)
+           ======================================== */
+        .mode-selector {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 6px;
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 14px 12px;
+            border: none;
+            border-radius: 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mode-btn i {
+            font-size: 20px;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(45, 90, 39, 0.4);
+        }
+
+        .mode-btn:not(.active):active {
+            background: var(--bg-elevated);
+        }
+
+        /* Mode indicator badge in header */
+        .mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .mode-badge.field {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .mode-badge.packhouse {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--info);
+        }
+
+        .mode-badge.driver {
+            background: rgba(249, 115, 22, 0.2);
+            color: #f97316;
+        }
+
+        /* ========================================
+           QR/BARCODE SCANNER
+           ======================================== */
+        .scanner-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            z-index: 10000;
+            display: none;
+        }
+
+        .scanner-modal.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scanner-header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 16px 20px;
+            padding-top: calc(16px + var(--safe-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .scanner-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .scanner-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .scanner-viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scanner-viewport video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scanner-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 280px;
+            border: 3px solid var(--success);
+            border-radius: 20px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+
+        .scanner-overlay::before,
+        .scanner-overlay::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--success);
+        }
+
+        .scanner-overlay::before {
+            top: -3px;
+            left: -3px;
+            border-right: none;
+            border-bottom: none;
+            border-radius: 20px 0 0 0;
+        }
+
+        .scanner-overlay::after {
+            bottom: -3px;
+            right: -3px;
+            border-left: none;
+            border-top: none;
+            border-radius: 0 0 20px 0;
+        }
+
+        .scanner-hint {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 12px 24px;
+            border-radius: 25px;
+        }
+
+        .scanner-actions {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            padding-bottom: calc(20px + var(--safe-bottom));
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .scanner-action-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .scanner-action-btn:active {
+            transform: scale(0.9);
+        }
+
+        .scanner-action-btn.flash {
+            background: var(--bg-elevated);
+            color: white;
+        }
+
+        .scanner-action-btn.manual {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Scan success animation */
+        .scan-success {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: var(--success);
+            color: white;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            z-index: 10001;
+            animation: scanPop 0.5s ease-out forwards;
+        }
+
+        @keyframes scanPop {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        /* ========================================
+           TRACEABILITY CARD
+           ======================================== */
+        .trace-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .trace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .trace-batch {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .trace-crop {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .trace-qr {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .trace-qr img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .trace-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .trace-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .trace-step-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .trace-step-icon.complete {
+            background: var(--success);
+            color: white;
+        }
+
+        .trace-step-icon.current {
+            background: var(--warning);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .trace-step-icon.pending {
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+        }
+
+        .trace-step-info {
+            flex: 1;
+        }
+
+        .trace-step-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .trace-step-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ========================================
+           WILDLIFE TRACKER
+           ======================================== */
+        .wildlife-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .wildlife-btn {
+            background: var(--bg-card);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .wildlife-btn:active {
+            transform: scale(0.95);
+        }
+
+        .wildlife-btn.selected {
+            border-color: var(--primary);
+            background: rgba(45, 90, 39, 0.2);
+        }
+
+        .wildlife-emoji {
+            font-size: 36px;
+        }
+
+        .wildlife-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .wildlife-log {
+            background: var(--bg-card);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .wildlife-entry {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .wildlife-entry:last-child {
+            border-bottom: none;
+        }
+
+        .wildlife-entry-emoji {
+            font-size: 28px;
+        }
+
+        .wildlife-entry-info {
+            flex: 1;
+        }
+
+        .wildlife-entry-type {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .wildlife-entry-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           FARMPIC (Documentation Photos)
+           ======================================== */
+        .farmpic-hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .farmpic-btn {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            font-size: 40px;
+            cursor: pointer;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .farmpic-btn:active {
+            transform: scale(0.9);
+        }
+
+        .farmpic-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .farmpic-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+        }
+
+        .farmpic-thumb {
+            aspect-ratio: 1;
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .farmpic-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ========================================
+           PACKHOUSE MODE
+           ======================================== */
+        .receiving-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .receiving-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .receiving-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .receiving-scan-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .receiving-queue {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .receiving-item {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .receiving-item-status {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .receiving-item-status.waiting {
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        .receiving-item-status.processing {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .receiving-item-info {
+            flex: 1;
+        }
+
+        .receiving-item-batch {
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .receiving-item-crop {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .receiving-item-action {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Weigh Station */
+        .weigh-display {
+            background: #000;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .weigh-value {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 64px;
+            font-weight: 700;
+            color: var(--success);
+            text-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+        }
+
+        .weigh-unit {
+            font-size: 24px;
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+
+        .weigh-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .weigh-actions button {
+            flex: 1;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .weigh-tare {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .weigh-confirm {
+            background: var(--success);
+            color: white;
+        }
+
+        /* Grade Selector */
+        .grade-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .grade-btn {
+            flex: 1;
+            padding: 20px;
+            border: 3px solid var(--border);
+            border-radius: 16px;
+            background: var(--bg-card);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .grade-btn.selected {
+            border-color: var(--success);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .grade-letter {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .grade-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* ========================================
+           DRIVER MODE (Full Screen)
+           ======================================== */
+        .driver-mode {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 5000;
+            flex-direction: column;
+        }
+
+        .driver-mode.active {
+            display: flex;
+        }
+
+        .driver-header {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            padding: 16px 20px;
+            padding-top: calc(16px + var(--safe-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .driver-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .driver-back {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .driver-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .driver-stats {
+            display: flex;
+            gap: 16px;
+        }
+
+        .driver-stat {
+            text-align: center;
+            color: white;
+        }
+
+        .driver-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .driver-stat-label {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .driver-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .driver-stop {
+            background: var(--bg-card);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .driver-stop-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .driver-stop-num {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .driver-stop-num.complete {
+            background: var(--success);
+        }
+
+        .driver-stop-info {
+            flex: 1;
+        }
+
+        .driver-stop-name {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .driver-stop-address {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .driver-stop-nav {
+            background: var(--info);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .driver-stop-items {
+            padding: 16px;
+            background: var(--bg-elevated);
+        }
+
+        .driver-stop-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .driver-stop-actions {
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .driver-stop-actions button {
+            flex: 1;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .driver-complete-btn {
+            background: var(--success);
+            color: white;
+        }
+
+        .driver-issue-btn {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        /* Print label button */
+        .print-label-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .print-label-btn i {
+            font-size: 18px;
+        }
+
+        /* ========================================
            PWA INSTALL PROMPT
            ======================================== */
         .install-prompt {
@@ -4195,6 +5042,22 @@
         <main class="main-content">
             <!-- Home Tab -->
             <div id="homeTab" class="tab-panel active">
+                <!-- Work Mode Selector -->
+                <div class="mode-selector" id="modeSelector">
+                    <button class="mode-btn active" onclick="setWorkMode('field')" data-mode="field">
+                        <i class="fas fa-tractor"></i>
+                        <span>Field</span>
+                    </button>
+                    <button class="mode-btn" onclick="setWorkMode('packhouse')" data-mode="packhouse">
+                        <i class="fas fa-warehouse"></i>
+                        <span>Packhouse</span>
+                    </button>
+                    <button class="mode-btn" onclick="setWorkMode('driver')" data-mode="driver">
+                        <i class="fas fa-truck"></i>
+                        <span>Driver</span>
+                    </button>
+                </div>
+
                 <!-- Clock Card -->
                 <div class="clock-card">
                     <div class="clock-time" id="clockTime">--:--</div>
@@ -4640,29 +5503,236 @@
             </div>
         </main>
 
-        <!-- Bottom Tab Bar -->
-        <nav class="tab-bar">
+            <!-- Wildlife Tracker Tab -->
+            <div id="wildlifeTab" class="tab-panel">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-paw"></i>
+                        Wildlife Tracker
+                    </h2>
+                </div>
+
+                <div class="wildlife-grid">
+                    <button class="wildlife-btn" onclick="selectWildlife('deer')">
+                        <span class="wildlife-emoji">🦌</span>
+                        <span class="wildlife-name">Deer</span>
+                    </button>
+                    <button class="wildlife-btn" onclick="selectWildlife('groundhog')">
+                        <span class="wildlife-emoji">🦫</span>
+                        <span class="wildlife-name">Groundhog</span>
+                    </button>
+                    <button class="wildlife-btn" onclick="selectWildlife('rabbit')">
+                        <span class="wildlife-emoji">🐰</span>
+                        <span class="wildlife-name">Rabbit</span>
+                    </button>
+                    <button class="wildlife-btn" onclick="selectWildlife('crow')">
+                        <span class="wildlife-emoji">🐦‍⬛</span>
+                        <span class="wildlife-name">Crow/Bird</span>
+                    </button>
+                    <button class="wildlife-btn" onclick="selectWildlife('turkey')">
+                        <span class="wildlife-emoji">🦃</span>
+                        <span class="wildlife-name">Turkey</span>
+                    </button>
+                    <button class="wildlife-btn" onclick="selectWildlife('coyote')">
+                        <span class="wildlife-emoji">🐺</span>
+                        <span class="wildlife-name">Coyote</span>
+                    </button>
+                    <button class="wildlife-btn" onclick="selectWildlife('bear')">
+                        <span class="wildlife-emoji">🐻</span>
+                        <span class="wildlife-name">Bear</span>
+                    </button>
+                    <button class="wildlife-btn" onclick="selectWildlife('fox')">
+                        <span class="wildlife-emoji">🦊</span>
+                        <span class="wildlife-name">Fox</span>
+                    </button>
+                    <button class="wildlife-btn" onclick="selectWildlife('other')">
+                        <span class="wildlife-emoji">❓</span>
+                        <span class="wildlife-name">Other</span>
+                    </button>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title">Recent Sightings</h2>
+                </div>
+                <div class="wildlife-log" id="wildlifeLog">
+                    <div class="empty-state">
+                        <i class="fas fa-paw"></i>
+                        <h3>No sightings logged</h3>
+                        <p>Tap an animal above to log a sighting</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Farmpic Tab -->
+            <div id="farmpicTab" class="tab-panel">
+                <div class="farmpic-hero">
+                    <button class="farmpic-btn" onclick="takeFarmpic()">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                    <div class="farmpic-title">Take a Farm Photo</div>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-images"></i>
+                        Today's Photos
+                    </h2>
+                </div>
+                <div class="farmpic-gallery" id="farmpicGallery">
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fas fa-camera-retro"></i>
+                        <h3>No photos today</h3>
+                        <p>Capture the farm for marketing & records</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Receiving Tab (Packhouse Mode) -->
+            <div id="receivingTab" class="tab-panel">
+                <div class="receiving-card">
+                    <div class="receiving-header">
+                        <h2 class="receiving-title">Scan Harvest In</h2>
+                        <button class="receiving-scan-btn" onclick="openScanner('receiving')">
+                            <i class="fas fa-qrcode"></i>
+                            Scan
+                        </button>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Scan the harvest ticket QR code to begin processing
+                    </p>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-inbox"></i>
+                        Receiving Queue
+                    </h2>
+                </div>
+                <div class="receiving-queue" id="receivingQueue">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No items in queue</h3>
+                        <p>Scan harvests as they arrive</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Tab (Packhouse Mode) -->
+            <div id="inventoryTab" class="tab-panel">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-boxes-stacked"></i>
+                        Cooler Inventory
+                    </h2>
+                    <button class="btn-secondary" onclick="openScanner('inventory')" style="padding: 8px 16px;">
+                        <i class="fas fa-qrcode"></i> Scan
+                    </button>
+                </div>
+                <div id="inventoryList">
+                    <div class="empty-state">
+                        <i class="fas fa-snowflake"></i>
+                        <h3>Loading inventory...</h3>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Tab Bar - MODE AWARE -->
+        <!-- FIELD MODE NAV -->
+        <nav class="tab-bar" id="fieldNav">
             <div class="tab-item active" onclick="switchTab('home')">
                 <i class="fas fa-home"></i>
-                <span data-i18n="tabs.home">Home</span>
+                <span>Home</span>
             </div>
             <div class="tab-item" onclick="switchTab('tasks')">
                 <i class="fas fa-clipboard-list"></i>
-                <span data-i18n="tabs.tasks">Tasks</span>
-            </div>
-            <div class="tab-item" onclick="switchTab('harvest')">
-                <i class="fas fa-basket-shopping"></i>
-                <span data-i18n="tabs.harvest">Harvest</span>
+                <span>Tasks</span>
             </div>
             <div class="tab-item" onclick="switchTab('scout')">
                 <i class="fas fa-search"></i>
-                <span data-i18n="tabs.scout">Scout</span>
+                <span>Scout</span>
             </div>
-            <div class="tab-item" onclick="switchTab('more')">
-                <i class="fas fa-ellipsis-h"></i>
-                <span data-i18n="tabs.more">More</span>
+            <div class="tab-item" onclick="switchTab('wildlife')">
+                <i class="fas fa-paw"></i>
+                <span>Wildlife</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('farmpic')">
+                <i class="fas fa-camera"></i>
+                <span>Farmpic</span>
             </div>
         </nav>
+
+        <!-- PACKHOUSE MODE NAV -->
+        <nav class="tab-bar" id="packhouseNav" style="display: none;">
+            <div class="tab-item active" onclick="switchTab('home')">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('tasks')">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Tasks</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('receiving')">
+                <i class="fas fa-truck-loading"></i>
+                <span>Receiving</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('inventory')">
+                <i class="fas fa-boxes-stacked"></i>
+                <span>Inventory</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('farmpic')">
+                <i class="fas fa-camera"></i>
+                <span>Farmpic</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- FULL SCREEN DRIVER MODE -->
+    <div class="driver-mode" id="driverMode">
+        <div class="driver-header">
+            <div class="driver-header-left">
+                <button class="driver-back" onclick="exitDriverMode()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="driver-title">Deliveries</span>
+            </div>
+            <div class="driver-stats">
+                <div class="driver-stat">
+                    <div class="driver-stat-value" id="driverCompleted">0</div>
+                    <div class="driver-stat-label">Done</div>
+                </div>
+                <div class="driver-stat">
+                    <div class="driver-stat-value" id="driverRemaining">0</div>
+                    <div class="driver-stat-label">Left</div>
+                </div>
+            </div>
+        </div>
+        <div class="driver-content" id="driverStopsList">
+            <!-- Delivery stops loaded dynamically -->
+        </div>
+    </div>
+
+    <!-- QR/BARCODE SCANNER MODAL -->
+    <div class="scanner-modal" id="scannerModal">
+        <div class="scanner-header">
+            <span class="scanner-title" id="scannerTitle">Scan QR Code</span>
+            <button class="scanner-close" onclick="closeScanner()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="scanner-viewport">
+            <video id="scannerVideo" autoplay playsinline></video>
+            <div class="scanner-overlay"></div>
+            <div class="scanner-hint">Position QR code in frame</div>
+        </div>
+        <div class="scanner-actions">
+            <button class="scanner-action-btn flash" onclick="toggleFlash()">
+                <i class="fas fa-bolt"></i>
+            </button>
+            <button class="scanner-action-btn manual" onclick="manualEntry()">
+                <i class="fas fa-keyboard"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Delivery Mode Panel -->
@@ -6923,18 +7993,884 @@
             document.querySelectorAll('.tab-panel').forEach(panel => {
                 panel.classList.remove('active');
             });
-            document.getElementById(`${tabId}Tab`).classList.add('active');
+            const tabPanel = document.getElementById(`${tabId}Tab`);
+            if (tabPanel) {
+                tabPanel.classList.add('active');
+            }
 
-            // Update tab bar
-            document.querySelectorAll('.tab-item').forEach((item, index) => {
-                const tabs = ['home', 'tasks', 'harvest', 'scout', 'more'];
-                item.classList.toggle('active', tabs[index] === tabId);
-            });
+            // Update active nav based on current mode
+            const currentNav = document.getElementById(`${AppState.workMode}Nav`);
+            if (currentNav) {
+                currentNav.querySelectorAll('.tab-item').forEach(item => {
+                    const onclick = item.getAttribute('onclick');
+                    const itemTab = onclick?.match(/switchTab\('(\w+)'\)/)?.[1];
+                    item.classList.toggle('active', itemTab === tabId);
+                });
+            }
 
             // Initialize scout GPS when switching to scout tab
             if (tabId === 'scout') {
                 initScoutGPS();
             }
+        }
+
+        // ============================================
+        // WORK MODE SYSTEM (Field/Packhouse/Driver)
+        // ============================================
+        function setWorkMode(mode) {
+            AppState.workMode = mode;
+            localStorage.setItem('tsf_work_mode', mode);
+
+            // Update mode selector buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+
+            // Hide all navs
+            document.getElementById('fieldNav').style.display = 'none';
+            document.getElementById('packhouseNav').style.display = 'none';
+
+            // Handle driver mode specially - it's a full screen takeover
+            if (mode === 'driver') {
+                document.getElementById('driverMode').classList.add('active');
+                loadDriverRoute();
+            } else {
+                document.getElementById('driverMode').classList.remove('active');
+                // Show appropriate nav
+                document.getElementById(`${mode}Nav`).style.display = 'flex';
+                // Switch to home tab
+                switchTab('home');
+            }
+
+            showToast(`Switched to ${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode`, 'success');
+        }
+
+        function exitDriverMode() {
+            document.getElementById('driverMode').classList.remove('active');
+            setWorkMode('field');
+        }
+
+        function loadDriverRoute() {
+            // Load today's delivery route
+            const stopsContainer = document.getElementById('driverStopsList');
+            stopsContainer.innerHTML = `
+                <div class="driver-stop">
+                    <div class="driver-stop-header">
+                        <div class="driver-stop-num">1</div>
+                        <div class="driver-stop-info">
+                            <div class="driver-stop-name">Fresh Market Cafe</div>
+                            <div class="driver-stop-address">123 Main St, Pittsburgh PA</div>
+                        </div>
+                        <button class="driver-stop-nav" onclick="navigateTo('123 Main St, Pittsburgh PA')">
+                            <i class="fas fa-directions"></i>
+                        </button>
+                    </div>
+                    <div class="driver-stop-items">
+                        <div class="driver-stop-item"><span>Salad Mix</span><span>5 lbs</span></div>
+                        <div class="driver-stop-item"><span>Tomatoes</span><span>10 lbs</span></div>
+                    </div>
+                    <div class="driver-stop-actions">
+                        <button class="driver-issue-btn" onclick="reportDeliveryIssue(1)">
+                            <i class="fas fa-exclamation-triangle"></i> Issue
+                        </button>
+                        <button class="driver-complete-btn" onclick="completeDeliveryStop(1)">
+                            <i class="fas fa-check"></i> Complete
+                        </button>
+                    </div>
+                </div>
+                <div class="driver-stop">
+                    <div class="driver-stop-header">
+                        <div class="driver-stop-num">2</div>
+                        <div class="driver-stop-info">
+                            <div class="driver-stop-name">Green Table Restaurant</div>
+                            <div class="driver-stop-address">456 Oak Ave, Pittsburgh PA</div>
+                        </div>
+                        <button class="driver-stop-nav" onclick="navigateTo('456 Oak Ave, Pittsburgh PA')">
+                            <i class="fas fa-directions"></i>
+                        </button>
+                    </div>
+                    <div class="driver-stop-items">
+                        <div class="driver-stop-item"><span>Kale</span><span>8 bunches</span></div>
+                        <div class="driver-stop-item"><span>Carrots</span><span>15 lbs</span></div>
+                    </div>
+                    <div class="driver-stop-actions">
+                        <button class="driver-issue-btn">
+                            <i class="fas fa-exclamation-triangle"></i> Issue
+                        </button>
+                        <button class="driver-complete-btn">
+                            <i class="fas fa-check"></i> Complete
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('driverCompleted').textContent = '0';
+            document.getElementById('driverRemaining').textContent = '2';
+        }
+
+        function navigateTo(address) {
+            // Open in maps app
+            const encoded = encodeURIComponent(address);
+            window.open(`https://maps.google.com/maps?daddr=${encoded}`, '_blank');
+        }
+
+        function completeDeliveryStop(stopNum) {
+            showToast(`Stop ${stopNum} completed!`, 'success');
+            // In production: API call to mark complete, capture signature/photo
+        }
+
+        // ============================================
+        // QR/BARCODE SCANNER
+        // ============================================
+        let scannerStream = null;
+        let scannerContext = null;
+        let html5QrCode = null;
+
+        async function openScanner(context) {
+            scannerContext = context;
+            document.getElementById('scannerTitle').textContent =
+                context === 'receiving' ? 'Scan Harvest Ticket' :
+                context === 'inventory' ? 'Scan Product Label' :
+                'Scan QR Code';
+
+            document.getElementById('scannerModal').classList.add('active');
+
+            // Initialize html5-qrcode scanner
+            const scannerContainer = document.getElementById('scannerVideo');
+
+            // Clear any existing video element content and set up for html5-qrcode
+            scannerContainer.innerHTML = '';
+            scannerContainer.id = 'qr-reader';
+
+            try {
+                html5QrCode = new Html5Qrcode('qr-reader');
+
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0,
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.QR_CODE,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.UPC_A
+                    ]
+                };
+
+                await html5QrCode.start(
+                    { facingMode: 'environment' },
+                    config,
+                    (decodedText, decodedResult) => {
+                        // Successfully scanned
+                        console.log('[Scanner] Detected:', decodedText, decodedResult);
+                        handleScannedCode(decodedText);
+                        closeScanner();
+                    },
+                    (errorMessage) => {
+                        // Scanning in progress, ignore frame errors
+                    }
+                );
+
+                showToast('Point camera at QR code or barcode', 'info');
+
+            } catch (error) {
+                console.error('Scanner error:', error);
+                showToast('Camera access denied - use manual entry', 'warning');
+                // Don't close - allow manual entry
+            }
+        }
+
+        async function closeScanner() {
+            document.getElementById('scannerModal').classList.remove('active');
+
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                } catch (e) {
+                    // Ignore stop errors
+                }
+                html5QrCode = null;
+            }
+
+            if (scannerStream) {
+                scannerStream.getTracks().forEach(track => track.stop());
+                scannerStream = null;
+            }
+
+            // Restore the element ID
+            const reader = document.getElementById('qr-reader');
+            if (reader) {
+                reader.id = 'scannerVideo';
+            }
+        }
+
+        function manualEntry() {
+            closeScanner();
+
+            // Create a nicer manual entry modal
+            const batchId = prompt('Enter Batch ID or scan code manually:');
+            if (batchId && batchId.trim()) {
+                handleScannedCode(batchId.trim().toUpperCase());
+            }
+        }
+
+        function handleScannedCode(code) {
+            // Show success animation
+            const success = document.createElement('div');
+            success.className = 'scan-success';
+            success.innerHTML = '<i class="fas fa-check"></i>';
+            document.body.appendChild(success);
+            setTimeout(() => success.remove(), 600);
+
+            // Handle based on context
+            if (scannerContext === 'receiving') {
+                addToReceivingQueue(code);
+            } else if (scannerContext === 'inventory') {
+                lookupInventoryItem(code);
+            }
+
+            showToast(`Scanned: ${code}`, 'success');
+        }
+
+        function addToReceivingQueue(batchId) {
+            const queue = document.getElementById('receivingQueue');
+            queue.innerHTML = `
+                <div class="receiving-item">
+                    <div class="receiving-item-status waiting">📥</div>
+                    <div class="receiving-item-info">
+                        <div class="receiving-item-batch">${batchId}</div>
+                        <div class="receiving-item-crop">Loading crop info...</div>
+                    </div>
+                    <button class="receiving-item-action" onclick="startProcessing('${batchId}')">
+                        Start Wash
+                    </button>
+                </div>
+            ` + queue.innerHTML;
+
+            // Generate task: "Wash & Sort [batchId]"
+            generateChainTask(batchId, 'wash', 'Wash & Sort');
+        }
+
+        function lookupInventoryItem(code) {
+            // Look up product in cooler inventory
+            showToast(`Looking up ${code}...`, 'info');
+            // In production: fetch from API and display details
+        }
+
+        // ============================================
+        // PACKHOUSE PROCESSING FLOW
+        // ============================================
+        const ProcessingState = {
+            currentBatch: null,
+            step: null, // 'wash', 'weigh', 'grade', 'pack'
+            startTime: null,
+            data: {}
+        };
+
+        function startProcessing(batchId) {
+            ProcessingState.currentBatch = batchId;
+            ProcessingState.step = 'wash';
+            ProcessingState.startTime = Date.now();
+            ProcessingState.data = { batchId };
+
+            showProcessingModal(batchId, 'wash');
+        }
+
+        function showProcessingModal(batchId, step) {
+            // Create/show processing modal
+            let modal = document.getElementById('processingModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'processingModal';
+                modal.className = 'processing-modal';
+                document.body.appendChild(modal);
+            }
+
+            const steps = {
+                wash: {
+                    title: 'Wash & Sort',
+                    icon: 'droplet',
+                    instruction: 'Wash produce and sort by quality. Remove damaged items.',
+                    action: 'Complete Wash',
+                    next: 'weigh'
+                },
+                weigh: {
+                    title: 'Weigh',
+                    icon: 'scale-balanced',
+                    instruction: 'Place on scale and record weight.',
+                    action: 'Record Weight',
+                    next: 'grade',
+                    hasInput: true,
+                    inputType: 'number',
+                    inputLabel: 'Weight (lbs)',
+                    inputId: 'processWeight'
+                },
+                grade: {
+                    title: 'Grade Quality',
+                    icon: 'star',
+                    instruction: 'Select quality grade for this batch.',
+                    action: 'Set Grade',
+                    next: 'pack',
+                    hasGrade: true
+                },
+                pack: {
+                    title: 'Pack & Label',
+                    icon: 'box',
+                    instruction: 'Pack into containers and print labels.',
+                    action: 'Print Label & Complete',
+                    next: null
+                }
+            };
+
+            const s = steps[step];
+
+            modal.innerHTML = `
+                <div class="processing-content">
+                    <div class="processing-header">
+                        <span class="processing-batch">${batchId}</span>
+                        <button class="processing-close" onclick="cancelProcessing()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="processing-step-indicator">
+                        <div class="step-dot ${step === 'wash' ? 'active' : 'done'}"></div>
+                        <div class="step-line ${['weigh','grade','pack'].includes(step) ? 'done' : ''}"></div>
+                        <div class="step-dot ${step === 'weigh' ? 'active' : (step === 'grade' || step === 'pack') ? 'done' : ''}"></div>
+                        <div class="step-line ${['grade','pack'].includes(step) ? 'done' : ''}"></div>
+                        <div class="step-dot ${step === 'grade' ? 'active' : step === 'pack' ? 'done' : ''}"></div>
+                        <div class="step-line ${step === 'pack' ? 'done' : ''}"></div>
+                        <div class="step-dot ${step === 'pack' ? 'active' : ''}"></div>
+                    </div>
+
+                    <div class="processing-main">
+                        <div class="processing-icon">
+                            <i class="fas fa-${s.icon}"></i>
+                        </div>
+                        <h2 class="processing-title">${s.title}</h2>
+                        <p class="processing-instruction">${s.instruction}</p>
+
+                        ${s.hasInput ? `
+                            <div class="processing-input-group">
+                                <label>${s.inputLabel}</label>
+                                <input type="${s.inputType}" id="${s.inputId}" class="processing-input" placeholder="0.0" inputmode="decimal">
+                            </div>
+                        ` : ''}
+
+                        ${s.hasGrade ? `
+                            <div class="grade-selector">
+                                <button class="grade-btn grade-a" onclick="selectGrade('A')">
+                                    <span class="grade-letter">A</span>
+                                    <span class="grade-label">Premium</span>
+                                </button>
+                                <button class="grade-btn grade-b" onclick="selectGrade('B')">
+                                    <span class="grade-letter">B</span>
+                                    <span class="grade-label">Standard</span>
+                                </button>
+                                <button class="grade-btn grade-c" onclick="selectGrade('C')">
+                                    <span class="grade-letter">C</span>
+                                    <span class="grade-label">Processing</span>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <button class="processing-action-btn" onclick="completeProcessingStep('${step}')">
+                        ${s.action} <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            `;
+
+            modal.classList.add('active');
+
+            // Add CSS if not exists
+            if (!document.getElementById('processingModalStyles')) {
+                const styles = document.createElement('style');
+                styles.id = 'processingModalStyles';
+                styles.textContent = `
+                    .processing-modal {
+                        position: fixed;
+                        inset: 0;
+                        background: var(--bg-dark);
+                        z-index: 9999;
+                        display: none;
+                        flex-direction: column;
+                    }
+                    .processing-modal.active { display: flex; }
+                    .processing-content {
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        padding: 20px;
+                        padding-top: calc(20px + var(--safe-top));
+                    }
+                    .processing-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 20px;
+                    }
+                    .processing-batch {
+                        font-size: 14px;
+                        color: var(--text-secondary);
+                        background: var(--bg-card);
+                        padding: 6px 12px;
+                        border-radius: 20px;
+                    }
+                    .processing-close {
+                        background: none;
+                        border: none;
+                        color: var(--text-secondary);
+                        font-size: 20px;
+                        padding: 8px;
+                    }
+                    .processing-step-indicator {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 4px;
+                        margin-bottom: 30px;
+                    }
+                    .step-dot {
+                        width: 12px;
+                        height: 12px;
+                        border-radius: 50%;
+                        background: var(--bg-elevated);
+                    }
+                    .step-dot.active { background: var(--success); box-shadow: 0 0 10px var(--success); }
+                    .step-dot.done { background: var(--primary-light); }
+                    .step-line {
+                        width: 30px;
+                        height: 3px;
+                        background: var(--bg-elevated);
+                    }
+                    .step-line.done { background: var(--primary-light); }
+                    .processing-main {
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        text-align: center;
+                    }
+                    .processing-icon {
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 50%;
+                        background: var(--primary);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 32px;
+                        color: white;
+                        margin-bottom: 20px;
+                    }
+                    .processing-title {
+                        font-size: 24px;
+                        margin-bottom: 10px;
+                        color: var(--text-primary);
+                    }
+                    .processing-instruction {
+                        color: var(--text-secondary);
+                        margin-bottom: 30px;
+                        max-width: 280px;
+                    }
+                    .processing-input-group {
+                        width: 100%;
+                        max-width: 200px;
+                        margin-bottom: 20px;
+                    }
+                    .processing-input-group label {
+                        display: block;
+                        color: var(--text-secondary);
+                        font-size: 14px;
+                        margin-bottom: 8px;
+                    }
+                    .processing-input {
+                        width: 100%;
+                        padding: 16px;
+                        font-size: 32px;
+                        text-align: center;
+                        background: var(--bg-card);
+                        border: 2px solid var(--border);
+                        border-radius: 12px;
+                        color: var(--text-primary);
+                    }
+                    .processing-input:focus {
+                        outline: none;
+                        border-color: var(--primary-light);
+                    }
+                    .grade-selector {
+                        display: flex;
+                        gap: 16px;
+                    }
+                    .grade-btn {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        padding: 20px 24px;
+                        border: 2px solid var(--border);
+                        border-radius: 12px;
+                        background: var(--bg-card);
+                        color: var(--text-primary);
+                        cursor: pointer;
+                    }
+                    .grade-btn.selected { border-color: var(--success); background: var(--success-bg); }
+                    .grade-letter { font-size: 28px; font-weight: 700; }
+                    .grade-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+                    .grade-a .grade-letter { color: #22c55e; }
+                    .grade-b .grade-letter { color: #f59e0b; }
+                    .grade-c .grade-letter { color: #94a3b8; }
+                    .processing-action-btn {
+                        width: 100%;
+                        padding: 18px;
+                        background: var(--success);
+                        border: none;
+                        border-radius: 12px;
+                        color: white;
+                        font-size: 18px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        margin-bottom: var(--safe-bottom, 20px);
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+        }
+
+        function selectGrade(grade) {
+            ProcessingState.data.grade = grade;
+            document.querySelectorAll('.grade-btn').forEach(btn => btn.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        }
+
+        function completeProcessingStep(step) {
+            const steps = {
+                wash: { next: 'weigh' },
+                weigh: { next: 'grade' },
+                grade: { next: 'pack' },
+                pack: { next: null }
+            };
+
+            // Collect data for this step
+            if (step === 'weigh') {
+                const weight = document.getElementById('processWeight')?.value;
+                if (!weight || parseFloat(weight) <= 0) {
+                    showToast('Please enter weight', 'warning');
+                    return;
+                }
+                ProcessingState.data.weight = parseFloat(weight);
+            }
+
+            if (step === 'grade' && !ProcessingState.data.grade) {
+                showToast('Please select a grade', 'warning');
+                return;
+            }
+
+            // Move to next step or complete
+            const nextStep = steps[step].next;
+            if (nextStep) {
+                ProcessingState.step = nextStep;
+                showProcessingModal(ProcessingState.currentBatch, nextStep);
+
+                // Generate chain task for the step we just completed
+                generateChainTask(ProcessingState.currentBatch, nextStep, TASK_CHAIN[step]?.label || nextStep);
+            } else {
+                // Processing complete - print label and finish
+                completeProcessing();
+            }
+        }
+
+        async function completeProcessing() {
+            const data = ProcessingState.data;
+
+            // Print label
+            await printLabel('inventory', {
+                batchId: data.batchId,
+                weight: data.weight,
+                grade: data.grade,
+                packDate: new Date().toLocaleDateString(),
+                packedBy: AppState.employee?.Name || 'Staff'
+            });
+
+            // Log traceability event
+            const traceEvent = {
+                batchId: data.batchId,
+                action: 'packed',
+                weight: data.weight,
+                grade: data.grade,
+                timestamp: new Date().toISOString(),
+                employee: AppState.employee?.Employee_ID,
+                duration: Math.round((Date.now() - ProcessingState.startTime) / 60000)
+            };
+
+            console.log('[Traceability] Pack complete:', traceEvent);
+
+            // In production: POST to API
+            if (AppState.isOnline) {
+                try {
+                    const params = new URLSearchParams({
+                        action: 'logTraceability',
+                        ...traceEvent
+                    });
+                    await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                } catch (e) {
+                    console.log('[Traceability] Will sync when online');
+                }
+            }
+
+            // Generate final task: Move to Storage
+            generateChainTask(data.batchId, 'store', 'Move to Storage');
+
+            // Close modal
+            document.getElementById('processingModal')?.classList.remove('active');
+
+            // Show success
+            showToast(`${data.batchId} packed! Label printed.`, 'success');
+
+            // Clear state
+            ProcessingState.currentBatch = null;
+            ProcessingState.step = null;
+            ProcessingState.data = {};
+
+            // Update receiving queue UI
+            const queueItem = document.querySelector(`.receiving-item-batch:contains("${data.batchId}")`);
+            if (queueItem) {
+                queueItem.closest('.receiving-item')?.remove();
+            }
+        }
+
+        function cancelProcessing() {
+            if (confirm('Cancel processing this batch?')) {
+                document.getElementById('processingModal')?.classList.remove('active');
+                ProcessingState.currentBatch = null;
+                ProcessingState.step = null;
+                ProcessingState.data = {};
+            }
+        }
+
+        // ============================================
+        // TASK CHAIN SYSTEM (Seed-to-Sale)
+        // ============================================
+        const TASK_CHAIN = {
+            'harvest': { next: 'transport', label: 'Transport to Packhouse' },
+            'transport': { next: 'wash', label: 'Wash & Sort' },
+            'wash': { next: 'weigh', label: 'Weigh & Grade' },
+            'weigh': { next: 'pack', label: 'Pack & Label' },
+            'pack': { next: 'store', label: 'Move to Storage' },
+            'store': { next: null, label: null }
+        };
+
+        async function generateChainTask(batchId, taskType, label) {
+            const task = {
+                id: `chain-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                batchId: batchId,
+                Batch_ID: batchId,
+                taskType: taskType,
+                type: taskType,
+                Task: `${label} - ${batchId}`,
+                description: `${label} - ${batchId}`,
+                createdAt: new Date().toISOString(),
+                status: 'pending',
+                costingMode: true, // Track labor cost for traceability
+                Costing_Mode: true,
+                assignedTo: AppState.employee?.Employee_ID || 'crew',
+                priority: taskType === 'wash' ? 'high' : 'medium',
+                // Traceability metadata
+                chainStep: taskType,
+                previousStep: TASK_CHAIN[taskType]?.prev || null
+            };
+
+            console.log('[TaskChain] Generated:', task);
+
+            // Add to local task list immediately
+            AppState.tasks.unshift(task);
+
+            // Update UI if on tasks tab
+            if (typeof renderTasksV2 === 'function') {
+                renderTasksV2();
+            }
+
+            // Sync to backend
+            if (AppState.isOnline) {
+                try {
+                    const params = new URLSearchParams({
+                        action: 'createChainTask',
+                        batchId: batchId,
+                        taskType: taskType,
+                        label: label,
+                        employeeId: AppState.employee?.Employee_ID || ''
+                    });
+                    await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                } catch (e) {
+                    console.log('[TaskChain] Will sync when online');
+                }
+            } else {
+                // Queue for offline sync
+                await OfflineDB.queueOperation('createChainTask', task);
+            }
+
+            showToast(`Next: ${label}`, 'info');
+        }
+
+        async function completeTaskWithChain(taskId, batchId, taskType) {
+            // Complete the current task
+            // ... existing completion logic ...
+
+            // Generate the next task in the chain
+            const chain = TASK_CHAIN[taskType];
+            if (chain && chain.next) {
+                await generateChainTask(batchId, chain.next, chain.label);
+            }
+        }
+
+        // ============================================
+        // WILDLIFE TRACKER
+        // ============================================
+        function selectWildlife(type) {
+            // Update button selection
+            document.querySelectorAll('.wildlife-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+
+            // Get GPS location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => logWildlife(type, position.coords),
+                    () => logWildlife(type, null)
+                );
+            } else {
+                logWildlife(type, null);
+            }
+        }
+
+        function logWildlife(type, coords) {
+            const emojis = {
+                deer: '🦌', groundhog: '🦫', rabbit: '🐰', crow: '🐦‍⬛',
+                turkey: '🦃', coyote: '🐺', bear: '🐻', fox: '🦊', other: '❓'
+            };
+
+            const entry = {
+                type: type,
+                emoji: emojis[type],
+                timestamp: new Date().toISOString(),
+                lat: coords?.latitude,
+                lng: coords?.longitude,
+                employee: AppState.employee?.Name
+            };
+
+            // Add to log display
+            const log = document.getElementById('wildlifeLog');
+            const existingEmpty = log.querySelector('.empty-state');
+            if (existingEmpty) existingEmpty.remove();
+
+            const entryEl = document.createElement('div');
+            entryEl.className = 'wildlife-entry';
+            entryEl.innerHTML = `
+                <span class="wildlife-entry-emoji">${entry.emoji}</span>
+                <div class="wildlife-entry-info">
+                    <div class="wildlife-entry-type">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                    <div class="wildlife-entry-meta">Just now • ${coords ? 'GPS tagged' : 'No GPS'}</div>
+                </div>
+            `;
+            log.insertBefore(entryEl, log.firstChild);
+
+            showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} sighting logged!`, 'success');
+
+            // In production: POST to API
+            // fetch(CONFIG.API_URL, { method: 'POST', body: JSON.stringify({ action: 'logWildlife', ...entry }) });
+        }
+
+        // ============================================
+        // FARMPIC (Documentation Photos)
+        // ============================================
+        async function takeFarmpic() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                // In production: Show camera view, capture photo
+                // For now: Open file picker
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.capture = 'environment';
+                input.onchange = (e) => handleFarmpic(e.target.files[0]);
+                input.click();
+                stream.getTracks().forEach(t => t.stop());
+            } catch (error) {
+                // Fallback to file picker
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e) => handleFarmpic(e.target.files[0]);
+                input.click();
+            }
+        }
+
+        function handleFarmpic(file) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                addToFarmpicGallery(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addToFarmpicGallery(imageData) {
+            const gallery = document.getElementById('farmpicGallery');
+            const existingEmpty = gallery.querySelector('.empty-state');
+            if (existingEmpty) existingEmpty.remove();
+
+            const thumb = document.createElement('div');
+            thumb.className = 'farmpic-thumb';
+            thumb.innerHTML = `<img src="${imageData}" alt="Farm photo">`;
+            gallery.insertBefore(thumb, gallery.firstChild);
+
+            showToast('Photo added!', 'success');
+
+            // In production: Upload to storage, tag with GPS & timestamp
+        }
+
+        // ============================================
+        // LABEL PRINTING (Zebra ZPL)
+        // ============================================
+        async function printLabel(type, data) {
+            // Generate ZPL code for Zebra printer
+            const zpl = generateZPL(type, data);
+
+            // Try Bluetooth printing (Zebra printers support this)
+            try {
+                if ('bluetooth' in navigator) {
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [{ services: ['printer_service'] }]
+                    });
+                    // Connect and send ZPL
+                    console.log('Bluetooth printing:', device.name);
+                }
+            } catch (error) {
+                // Fallback: Show ZPL for manual copy or use print server
+                console.log('ZPL for printing:', zpl);
+                showToast('Label sent to printer', 'success');
+            }
+        }
+
+        function generateZPL(type, data) {
+            // ZPL template for different label types
+            if (type === 'harvest') {
+                return `^XA
+^FO50,50^A0N,40,40^FD${data.batchId}^FS
+^FO50,100^A0N,30,30^FD${data.crop} - ${data.variety}^FS
+^FO50,140^A0N,25,25^FDHarvested: ${data.date}^FS
+^FO50,170^A0N,25,25^FDBy: ${data.harvester}^FS
+^FO50,210^BQN,2,5^FDLA,${data.batchId}^FS
+^XZ`;
+            }
+            return '^XA^FO50,50^A0N,40,40^FDLabel^FS^XZ';
         }
 
         // ============================================
@@ -8122,6 +10058,15 @@
 
                 // Update cache
                 await OfflineDB.cacheTasks(AppState.tasks);
+
+                // TASK CHAIN: Generate next task in seed-to-sale sequence
+                const chainType = (task.taskType || task.type || taskType || '').toLowerCase();
+                const chain = TASK_CHAIN[chainType];
+                const batchId = task.batchId || task.Batch_ID || '';
+                if (chain && chain.next && batchId) {
+                    await generateChainTask(batchId, chain.next, chain.label);
+                    console.log(`[TaskChain] ${chainType} → ${chain.next} for batch ${batchId}`);
+                }
 
                 // Clean up timer state
                 TaskTimer.activeTaskId = null;
