@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Accounting Hub - Tiny Seed OS</title>
   <script src="api-config.js"></script>
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
   <style>
     :root {
       --primary: #10b981;
@@ -450,9 +451,11 @@
 
   <nav class="tabs">
     <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="banking">Banking</div>
     <div class="tab" data-tab="receipts">Receipts</div>
     <div class="tab" data-tab="accountant">Accountant Docs</div>
     <div class="tab" data-tab="reports">Reports</div>
+    <div class="tab" data-tab="labor">Labor Costs</div>
     <div class="tab" data-tab="grants">Grants</div>
     <div class="tab" data-tab="categories">Categories</div>
   </nav>
@@ -509,6 +512,62 @@
         </div>
         <div id="emailAnalysis">
           <p style="color: var(--text-muted);">Click "Import Emails" to fetch accountant correspondence, then analyze patterns.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banking Tab (Plaid) -->
+    <div id="banking" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Connected Bank Accounts</h2>
+          <button class="btn btn-primary" onclick="connectBank()">
+            + Connect Bank Account
+          </button>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 1rem;">
+          Securely connect your bank accounts via Plaid to automatically import transactions.
+        </p>
+        <div id="plaidStatus" class="alert alert-success" style="display: none;"></div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Institution</th>
+                <th>Account Name</th>
+                <th>Type</th>
+                <th>Balance</th>
+                <th>Last Synced</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bankAccountsTable">
+              <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent Transactions</h2>
+          <button class="btn btn-secondary" onclick="refreshTransactions()">Refresh</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Account</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTable">
+              <tr><td colspan="5">Connect a bank account to see transactions</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -655,6 +714,81 @@
           <button class="btn btn-secondary" onclick="printReport()">Print / Export PDF</button>
         </div>
         <div id="reportContent"></div>
+      </div>
+    </div>
+
+    <!-- Labor Costs Tab - Activity-Based Costing -->
+    <div id="labor" class="tab-content">
+      <div class="grid" style="margin-bottom: 1.5rem;">
+        <div class="stat-card">
+          <div class="stat-value" id="totalLaborHours">-</div>
+          <div class="stat-label">Total Hours Logged</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="totalLaborCost">-</div>
+          <div class="stat-label">Total Labor Cost</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avgCostPerHour">-</div>
+          <div class="stat-label">Avg $/Hour</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="cropsTracked">-</div>
+          <div class="stat-label">Crops Tracked</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Labor Cost by Crop</h2>
+          <button class="btn btn-primary" onclick="loadLaborByCrop()">Refresh</button>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+          Activity-based costing data from employee time tracking. Direct costs are from tasks assigned to specific batches.
+        </p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Batch ID</th>
+                <th>Crop</th>
+                <th>Variety</th>
+                <th>Hours</th>
+                <th>Direct Cost</th>
+                <th>Indirect Cost</th>
+                <th>Total Cost</th>
+                <th>Avg Efficiency</th>
+              </tr>
+            </thead>
+            <tbody id="laborByCropTable">
+              <tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h2 class="card-title">Recent Time Entries</h2>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Employee</th>
+                <th>Task</th>
+                <th>Batch</th>
+                <th>Duration</th>
+                <th>Cost</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody id="recentTimelogTable">
+              <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -879,6 +1013,7 @@
       loadDashboard();
       loadAccountantDocs();
       loadGrants();
+      loadBankAccounts();
 
       // Setup tabs
       document.querySelectorAll('.tab').forEach(tab => {
@@ -894,6 +1029,11 @@
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
       document.getElementById(tabId).classList.add('active');
+
+      // Load labor data when switching to labor tab
+      if (tabId === 'labor') {
+        loadLaborByCrop();
+      }
     }
 
     function setupFileUpload() {
@@ -1071,6 +1211,229 @@
       } else {
         document.getElementById('grantsTable').innerHTML =
           '<tr><td colspan="7">No grants tracked yet. Add your first grant!</td></tr>';
+      }
+    }
+
+    // ============ LABOR COST / ACTIVITY-BASED COSTING ============
+
+    async function loadLaborByCrop() {
+      const tbody = document.getElementById('laborByCropTable');
+      tbody.innerHTML = '<tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>';
+
+      try {
+        const result = await apiCall('getLaborByCrop');
+        if (result.success && result.crops && result.crops.length > 0) {
+          renderLaborByCropTable(result.crops);
+          updateLaborStats(result.crops);
+        } else {
+          tbody.innerHTML = '<tr><td colspan="8">No labor data yet. Time entries from costing-enabled tasks will appear here.</td></tr>';
+          resetLaborStats();
+        }
+
+        // Also load recent timelog entries
+        loadRecentTimelog();
+      } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="8">Error loading labor data: ' + error.message + '</td></tr>';
+      }
+    }
+
+    function renderLaborByCropTable(crops) {
+      const tbody = document.getElementById('laborByCropTable');
+      tbody.innerHTML = crops.map(c => `
+        <tr>
+          <td><code>${c.batchId}</code></td>
+          <td><strong>${c.crop || 'Unknown'}</strong></td>
+          <td>${c.variety || '-'}</td>
+          <td>${(c.totalMinutes / 60).toFixed(1)}h</td>
+          <td style="color: var(--success);">$${(c.directCost || 0).toFixed(2)}</td>
+          <td style="color: var(--warning);">$${(c.indirectCost || 0).toFixed(2)}</td>
+          <td><strong>$${(c.totalCost || 0).toFixed(2)}</strong></td>
+          <td>${c.avgEfficiency ? c.avgEfficiency.toFixed(0) + '%' : '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateLaborStats(crops) {
+      const totalMinutes = crops.reduce((sum, c) => sum + (c.totalMinutes || 0), 0);
+      const totalCost = crops.reduce((sum, c) => sum + (c.totalCost || 0), 0);
+      const totalHours = totalMinutes / 60;
+
+      document.getElementById('totalLaborHours').textContent = totalHours.toFixed(1) + 'h';
+      document.getElementById('totalLaborCost').textContent = '$' + totalCost.toFixed(2);
+      document.getElementById('avgCostPerHour').textContent = totalHours > 0 ? '$' + (totalCost / totalHours).toFixed(2) : '-';
+      document.getElementById('cropsTracked').textContent = crops.length;
+    }
+
+    function resetLaborStats() {
+      document.getElementById('totalLaborHours').textContent = '0h';
+      document.getElementById('totalLaborCost').textContent = '$0';
+      document.getElementById('avgCostPerHour').textContent = '-';
+      document.getElementById('cropsTracked').textContent = '0';
+    }
+
+    async function loadRecentTimelog() {
+      const tbody = document.getElementById('recentTimelogTable');
+
+      try {
+        const result = await apiCall('getTimelog', { limit: 20 });
+        if (result.success && result.entries && result.entries.length > 0) {
+          renderTimelogTable(result.entries);
+        } else {
+          tbody.innerHTML = '<tr><td colspan="7">No time entries yet.</td></tr>';
+        }
+      } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="7">Error loading timelog.</td></tr>';
+      }
+    }
+
+    function renderTimelogTable(entries) {
+      const tbody = document.getElementById('recentTimelogTable');
+      tbody.innerHTML = entries.map(e => `
+        <tr>
+          <td>${formatDate(e.Date || e.Timestamp)}</td>
+          <td>${e.Employee || e.Employee_Name || '-'}</td>
+          <td>${e.Task_Type || e.Task || '-'}</td>
+          <td><code>${e.Batch_ID || '-'}</code></td>
+          <td>${e.Duration_Min ? (e.Duration_Min / 60).toFixed(1) + 'h' : '-'}</td>
+          <td>$${(e.Labor_Cost || 0).toFixed(2)}</td>
+          <td><span class="badge ${e.Cost_Type === 'Direct' ? 'badge-success' : 'badge-warning'}">${e.Cost_Type || 'Unknown'}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    // ============ PLAID BANKING FUNCTIONS ============
+
+    let plaidHandler = null;
+
+    async function loadBankAccounts() {
+      const tbody = document.getElementById('bankAccountsTable');
+
+      // First check if we have any connected items
+      const itemsResult = await apiCall('getPlaidItems');
+      if (!itemsResult.success || !itemsResult.data || itemsResult.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No bank accounts connected. Click "Connect Bank Account" to get started.</td></tr>';
+        return;
+      }
+
+      // Get accounts for all items
+      const accountsResult = await apiCall('getPlaidAccounts');
+      if (accountsResult.success && accountsResult.accounts && accountsResult.accounts.length > 0) {
+        renderBankAccountsTable(accountsResult.accounts);
+        loadTransactions();
+      } else {
+        tbody.innerHTML = '<tr><td colspan="6">Connected but no accounts found. Try refreshing.</td></tr>';
+      }
+    }
+
+    function renderBankAccountsTable(accounts) {
+      const tbody = document.getElementById('bankAccountsTable');
+      tbody.innerHTML = accounts.map(a => `
+        <tr>
+          <td>${a.institution || 'Bank'}</td>
+          <td>${a.name || a.official_name || 'Account'}</td>
+          <td><span class="badge badge-info">${a.type || a.subtype || 'Unknown'}</span></td>
+          <td>${a.balances && a.balances.current !== null ? '$' + a.balances.current.toFixed(2) : '-'}</td>
+          <td>${a.lastSynced ? formatDate(a.lastSynced) : 'Just now'}</td>
+          <td>
+            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="refreshBalances('${a.account_id}')">Refresh</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function connectBank() {
+      showAlert('Initializing bank connection...', 'info');
+
+      // Get link token from backend
+      const tokenResult = await apiCall('createPlaidLinkToken');
+      if (!tokenResult.success || !tokenResult.linkToken) {
+        showAlert('Failed to initialize: ' + (tokenResult.error || 'Unknown error'), 'error');
+        return;
+      }
+
+      // Initialize Plaid Link
+      plaidHandler = Plaid.create({
+        token: tokenResult.linkToken,
+        onSuccess: async (publicToken, metadata) => {
+          showAlert('Bank connected! Saving account...', 'info');
+
+          // Exchange public token for access token
+          const exchangeResult = await apiCall('exchangePlaidPublicToken', {
+            publicToken: publicToken,
+            institutionId: metadata.institution.institution_id,
+            institutionName: metadata.institution.name,
+            accounts: JSON.stringify(metadata.accounts)
+          }, 'POST');
+
+          if (exchangeResult.success) {
+            showAlert('Bank account connected successfully!', 'success');
+            document.getElementById('plaidStatus').style.display = 'block';
+            document.getElementById('plaidStatus').textContent = 'Connected to ' + metadata.institution.name;
+            loadBankAccounts();
+          } else {
+            showAlert('Failed to save connection: ' + exchangeResult.error, 'error');
+          }
+        },
+        onExit: (err, metadata) => {
+          if (err) {
+            showAlert('Connection cancelled: ' + (err.display_message || err.error_message || 'User exited'), 'error');
+          }
+        },
+        onEvent: (eventName, metadata) => {
+          console.log('Plaid event:', eventName, metadata);
+        }
+      });
+
+      plaidHandler.open();
+    }
+
+    async function loadTransactions() {
+      const tbody = document.getElementById('transactionsTable');
+
+      const result = await apiCall('getPlaidTransactions', { days: 30 });
+      if (result.success && result.transactions && result.transactions.length > 0) {
+        tbody.innerHTML = result.transactions.slice(0, 20).map(t => `
+          <tr>
+            <td>${formatDate(t.date)}</td>
+            <td>${t.name || t.merchant_name || 'Unknown'}</td>
+            <td>${t.category ? t.category.join(', ') : '-'}</td>
+            <td style="color: ${t.amount > 0 ? 'var(--danger)' : 'var(--primary)'}">
+              ${t.amount > 0 ? '-' : '+'}$${Math.abs(t.amount).toFixed(2)}
+            </td>
+            <td>${t.account_name || '-'}</td>
+          </tr>
+        `).join('');
+      } else {
+        tbody.innerHTML = '<tr><td colspan="5">No transactions found for the last 30 days</td></tr>';
+      }
+    }
+
+    async function refreshTransactions() {
+      showAlert('Refreshing transactions...', 'info');
+      await loadTransactions();
+      showAlert('Transactions refreshed!', 'success');
+    }
+
+    async function refreshBalances(accountId) {
+      showAlert('Refreshing balances...', 'info');
+      const result = await apiCall('refreshPlaidBalances', { accountId });
+      if (result.success) {
+        showAlert('Balances refreshed!', 'success');
+        loadBankAccounts();
+      } else {
+        showAlert('Failed to refresh: ' + result.error, 'error');
+      }
+    }
+
+    async function disconnectBank(itemId) {
+      if (!confirm('Are you sure you want to disconnect this bank account?')) return;
+
+      const result = await apiCall('disconnectPlaidItem', { itemId }, 'POST');
+      if (result.success) {
+        showAlert('Bank disconnected', 'success');
+        loadBankAccounts();
+      } else {
+        showAlert('Failed to disconnect: ' + result.error, 'error');
       }
     }
 

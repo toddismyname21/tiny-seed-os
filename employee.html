@@ -5,10 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0f172a">
-    <link rel="manifest" href="manifest-employee.json">
-    <link rel="apple-touch-icon" href="icons/employee-192.png">
-    <title>Tiny Seed - Employee App</title>
+    <meta name="theme-color" content="#2d5a27">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Field App">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <title>Tiny Seed - Field App</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y" async defer></script>
@@ -915,6 +920,131 @@
         /* ========================================
            SCOUT TAB
            ======================================== */
+
+        /* Scout Hero Camera Section */
+        .scout-hero {
+            padding: 16px;
+            text-align: center;
+        }
+
+        .scout-camera-hero {
+            width: 100%;
+            padding: 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 20px rgba(45, 90, 39, 0.4);
+        }
+
+        .scout-camera-hero:active {
+            transform: scale(0.98);
+        }
+
+        .camera-icon-large {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+        }
+
+        .camera-text {
+            flex: 1;
+            text-align: left;
+        }
+
+        .camera-title {
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .camera-subtitle {
+            display: block;
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .scout-gps-status {
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .scout-gps-status i {
+            color: var(--success);
+        }
+
+        /* Scout Type Pills (Simplified) */
+        .scout-type-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .scout-pill {
+            padding: 10px 16px;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            background: transparent;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .scout-pill.pest { --pill-color: var(--danger); }
+        .scout-pill.disease { --pill-color: var(--warning); }
+        .scout-pill.weed { --pill-color: #8b5cf6; }
+        .scout-pill.beneficial { --pill-color: var(--success); }
+
+        .scout-pill.active {
+            border-color: var(--pill-color, var(--primary));
+            background: rgba(255,255,255,0.05);
+            color: var(--pill-color, var(--primary));
+        }
+
+        .scout-pill i {
+            font-size: 0.9rem;
+        }
+
+        /* Severity Quick Buttons */
+        .severity-quick {
+            display: flex;
+            gap: 8px;
+        }
+
+        .severity-quick .severity-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .severity-quick .severity-btn i {
+            margin-right: 6px;
+            font-size: 0.6rem;
+        }
+
+        /* Legacy Scout Grid */
         .scout-type-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -3815,9 +3945,188 @@
         .efficiency-meter-fill.poor {
             background: linear-gradient(90deg, var(--danger) 0%, #f87171 100%);
         }
+
+        /* ========================================
+           PWA INSTALL PROMPT
+           ======================================== */
+        .install-prompt {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 20px;
+            padding-bottom: calc(20px + var(--safe-bottom));
+            z-index: 10000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .install-prompt.show {
+            transform: translateY(0);
+        }
+
+        .install-prompt-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .install-prompt-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .install-prompt-text {
+            flex: 1;
+        }
+
+        .install-prompt-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .install-prompt-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .install-prompt-buttons {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .install-btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .install-btn-primary {
+            background: white;
+            color: var(--primary-dark);
+        }
+
+        .install-btn-primary:active {
+            transform: scale(0.95);
+        }
+
+        .install-btn-dismiss {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        /* PWA Update Available Banner */
+        .update-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--info);
+            color: white;
+            padding: 12px 20px;
+            padding-top: calc(12px + var(--safe-top));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10001;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .update-banner.show {
+            transform: translateY(0);
+        }
+
+        .update-banner-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .update-btn {
+            background: white;
+            color: var(--info);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* Offline indicator */
+        .offline-indicator {
+            position: fixed;
+            top: calc(10px + var(--safe-top));
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--warning);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 10002;
+            transition: transform 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .offline-indicator.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .offline-indicator i {
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
+    <!-- PWA Install Prompt -->
+    <div class="install-prompt" id="installPrompt">
+        <div class="install-prompt-content">
+            <div class="install-prompt-icon">🌱</div>
+            <div class="install-prompt-text">
+                <div class="install-prompt-title">Install Field App</div>
+                <div class="install-prompt-desc">Add to home screen for quick access & offline use</div>
+            </div>
+            <div class="install-prompt-buttons">
+                <button class="install-btn install-btn-dismiss" onclick="dismissInstallPrompt()">Later</button>
+                <button class="install-btn install-btn-primary" onclick="installApp()">Install</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Update Banner -->
+    <div class="update-banner" id="updateBanner">
+        <span class="update-banner-text"><i class="fas fa-sync-alt"></i> New version available!</span>
+        <button class="update-btn" onclick="updateApp()">Update Now</button>
+    </div>
+
+    <!-- Offline Indicator -->
+    <div class="offline-indicator" id="offlineIndicator">
+        <i class="fas fa-wifi-slash"></i>
+        <span>Offline Mode</span>
+    </div>
+
     <!-- Login Screen -->
     <div id="loginScreen" class="screen active">
         <div class="login-screen">
@@ -4024,98 +4333,137 @@
                 </div>
             </div>
 
-            <!-- Scout Tab -->
+            <!-- Scout Tab - Redesigned for Usability -->
             <div id="scoutTab" class="tab-panel">
+                <!-- Hero Camera Button -->
+                <div class="scout-hero">
+                    <button class="scout-camera-hero" onclick="openAIDiagnosis()">
+                        <div class="camera-icon-large">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <div class="camera-text">
+                            <span class="camera-title">Snap a Photo</span>
+                            <span class="camera-subtitle">AI identifies pests, diseases & beneficial insects</span>
+                        </div>
+                    </button>
+                    <div class="scout-gps-status" id="scoutGpsStatus">
+                        <i class="fas fa-location-dot"></i>
+                        <span>GPS will auto-tag location</span>
+                    </div>
+                </div>
+
+                <!-- Quick Scout Form -->
                 <div class="form-card">
                     <div class="form-card-header">
-                        <i class="fas fa-search"></i>
-                        <span data-i18n="scout.title">Field Scouting</span>
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Quick Scout Report</span>
                     </div>
 
+                    <!-- Type Selection - Simplified -->
                     <div class="form-group">
-                        <label class="form-label" data-i18n="scout.type">What did you find?</label>
-                        <div class="scout-type-grid">
-                            <button class="scout-type-btn pest" onclick="setScoutType('pest')">
-                                <i class="fas fa-bug"></i>
-                                <span data-i18n="scout.pest">Pest</span>
+                        <label class="form-label">What did you find?</label>
+                        <div class="scout-type-pills">
+                            <button class="scout-pill pest active" onclick="setScoutType('pest')">
+                                <i class="fas fa-bug"></i> Pest
                             </button>
-                            <button class="scout-type-btn disease" onclick="setScoutType('disease')">
-                                <i class="fas fa-virus"></i>
-                                <span data-i18n="scout.disease">Disease</span>
+                            <button class="scout-pill disease" onclick="setScoutType('disease')">
+                                <i class="fas fa-virus"></i> Disease
                             </button>
-                            <button class="scout-type-btn weed" onclick="setScoutType('weed')">
-                                <i class="fas fa-leaf"></i>
-                                <span data-i18n="scout.weed">Weed</span>
+                            <button class="scout-pill weed" onclick="setScoutType('weed')">
+                                <i class="fas fa-seedling"></i> Weed
                             </button>
-                            <button class="scout-type-btn beneficial" onclick="setScoutType('beneficial')">
-                                <i class="fas fa-butterfly"></i>
-                                <span data-i18n="scout.beneficial">Beneficial</span>
-                            </button>
-                            <button class="scout-type-btn wildlife" onclick="setScoutType('wildlife')">
-                                <i class="fas fa-paw"></i>
-                                <span data-i18n="scout.wildlife">Wildlife</span>
-                            </button>
-                            <button class="scout-type-btn other" onclick="setScoutType('other')">
-                                <i class="fas fa-question"></i>
-                                <span data-i18n="scout.other">Other</span>
+                            <button class="scout-pill beneficial" onclick="setScoutType('beneficial')">
+                                <i class="fas fa-check-circle"></i> Good Bug
                             </button>
                         </div>
                     </div>
 
-                    <div class="ai-diagnosis-btn" onclick="openAIDiagnosis()">
-                        <i class="fas fa-robot"></i>
-                        <span data-i18n="scout.aiDoctor">AI Plant Doctor</span>
-                        <small data-i18n="scout.aiHint">Take a photo for instant diagnosis</small>
+                    <!-- Library Dropdown - Based on Type -->
+                    <div class="form-group" id="scoutLibraryGroup">
+                        <label class="form-label">Identify from Library</label>
+                        <select class="form-input" id="scoutLibrarySelect" onchange="selectFromLibrary()">
+                            <option value="">Select or skip...</option>
+                            <optgroup label="Common Pests" id="pestOptions">
+                                <option value="aphid">Aphids</option>
+                                <option value="flea-beetle">Flea Beetles</option>
+                                <option value="cabbage-worm">Cabbage Worm</option>
+                                <option value="cucumber-beetle">Cucumber Beetle</option>
+                                <option value="squash-bug">Squash Bug</option>
+                                <option value="tomato-hornworm">Tomato Hornworm</option>
+                                <option value="other-pest">Other Pest</option>
+                            </optgroup>
+                            <optgroup label="Diseases" id="diseaseOptions" style="display:none;">
+                                <option value="powdery-mildew">Powdery Mildew</option>
+                                <option value="downy-mildew">Downy Mildew</option>
+                                <option value="blight">Blight</option>
+                                <option value="rust">Rust</option>
+                                <option value="bacterial-spot">Bacterial Spot</option>
+                                <option value="other-disease">Other Disease</option>
+                            </optgroup>
+                            <optgroup label="Weeds" id="weedOptions" style="display:none;">
+                                <option value="pigweed">Pigweed</option>
+                                <option value="lambsquarter">Lambsquarter</option>
+                                <option value="galinsoga">Galinsoga</option>
+                                <option value="purslane">Purslane</option>
+                                <option value="crabgrass">Crabgrass</option>
+                                <option value="other-weed">Other Weed</option>
+                            </optgroup>
+                            <optgroup label="Beneficial Insects" id="beneficialOptions" style="display:none;">
+                                <option value="ladybug">Ladybug</option>
+                                <option value="lacewing">Green Lacewing</option>
+                                <option value="ground-beetle">Ground Beetle</option>
+                                <option value="parasitic-wasp">Parasitic Wasp</option>
+                                <option value="syrphid-fly">Syrphid Fly (Hover Fly)</option>
+                                <option value="other-beneficial">Other Beneficial</option>
+                            </optgroup>
+                        </select>
                     </div>
 
-                    <div class="form-row" style="grid-template-columns: 1fr 1fr;">
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="scout.field">Field</label>
-                            <select class="form-input" id="scoutField">
-                                <option value="">Select...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="scout.bed">Bed</label>
-                            <select class="form-input" id="scoutBed">
-                                <option value="">Select...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" data-i18n="scout.severity">Severity</label>
-                        <div class="severity-buttons">
-                            <button class="severity-btn low" onclick="setSeverity('low')">Low</button>
-                            <button class="severity-btn medium" onclick="setSeverity('medium')">Medium</button>
-                            <button class="severity-btn high" onclick="setSeverity('high')">High</button>
-                            <button class="severity-btn critical" onclick="setSeverity('critical')">Critical</button>
+                    <!-- Severity - Only show for Pest/Disease/Weed -->
+                    <div class="form-group" id="severityGroup">
+                        <label class="form-label">Severity</label>
+                        <div class="severity-quick">
+                            <button class="severity-btn low" onclick="setSeverity('low')">
+                                <i class="fas fa-circle"></i> Low
+                            </button>
+                            <button class="severity-btn medium" onclick="setSeverity('medium')">
+                                <i class="fas fa-circle"></i> Medium
+                            </button>
+                            <button class="severity-btn high" onclick="setSeverity('high')">
+                                <i class="fas fa-circle"></i> High
+                            </button>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label" data-i18n="scout.photo">Photo</label>
+                    <!-- Photo (if not already captured via hero) -->
+                    <div class="form-group" id="manualPhotoGroup">
+                        <label class="form-label">Photo (optional if AI used)</label>
                         <div class="photo-capture-btn" onclick="capturePhoto('scout')">
                             <i class="fas fa-camera"></i>
-                            <span data-i18n="scout.addPhoto">Take Photo</span>
+                            <span>Add Photo</span>
                         </div>
                         <div class="photo-preview" id="scoutPhotoPreview" style="display: none;"></div>
                     </div>
 
+                    <!-- Notes with Voice -->
                     <div class="form-group">
-                        <label class="form-label" data-i18n="scout.notes">Notes</label>
+                        <label class="form-label">Quick Notes</label>
                         <div class="voice-input-wrapper">
                             <textarea class="form-input" id="scoutNotes" rows="2"
-                                      placeholder="Describe what you found..."></textarea>
+                                      placeholder="Any additional details..."></textarea>
                             <button class="voice-btn" onclick="startVoice('scoutNotes')">
                                 <i class="fas fa-microphone"></i>
                             </button>
                         </div>
                     </div>
 
+                    <!-- Hidden GPS fields -->
+                    <input type="hidden" id="scoutGpsLat">
+                    <input type="hidden" id="scoutGpsLng">
+
                     <button class="btn-primary" onclick="submitScoutReport()">
                         <i class="fas fa-check"></i>
-                        <span data-i18n="scout.submit">Submit Report</span>
+                        <span>Submit Report</span>
                     </button>
                 </div>
 
@@ -5489,6 +5837,141 @@
 
     <script>
         // ============================================
+        // PWA - SERVICE WORKER & INSTALL PROMPT
+        // ============================================
+        let deferredInstallPrompt = null;
+        let swRegistration = null;
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    swRegistration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('[PWA] Service Worker registered:', swRegistration.scope);
+
+                    // Check for updates
+                    swRegistration.addEventListener('updatefound', () => {
+                        const newWorker = swRegistration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New version available
+                                showUpdateBanner();
+                            }
+                        });
+                    });
+
+                    // Listen for messages from service worker
+                    navigator.serviceWorker.addEventListener('message', (event) => {
+                        if (event.data.type === 'SYNC_AVAILABLE') {
+                            console.log('[PWA] Background sync available');
+                            if (typeof syncOfflineData === 'function') {
+                                syncOfflineData();
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.log('[PWA] Service Worker registration failed:', error);
+                }
+            });
+        }
+
+        // Capture install prompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('[PWA] beforeinstallprompt fired');
+            e.preventDefault();
+            deferredInstallPrompt = e;
+
+            // Show install prompt after a delay (don't be too aggressive)
+            const lastDismissed = localStorage.getItem('pwa_install_dismissed');
+            const daysSinceDismissed = lastDismissed ?
+                (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24) : 999;
+
+            // Show prompt if never dismissed or dismissed more than 7 days ago
+            if (daysSinceDismissed > 7) {
+                setTimeout(() => {
+                    showInstallPrompt();
+                }, 3000); // Show after 3 seconds
+            }
+        });
+
+        // Track if app was installed
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA] App was installed');
+            deferredInstallPrompt = null;
+            hideInstallPrompt();
+            localStorage.setItem('pwa_installed', 'true');
+        });
+
+        function showInstallPrompt() {
+            if (deferredInstallPrompt) {
+                document.getElementById('installPrompt').classList.add('show');
+            }
+        }
+
+        function hideInstallPrompt() {
+            document.getElementById('installPrompt').classList.remove('show');
+        }
+
+        function dismissInstallPrompt() {
+            hideInstallPrompt();
+            localStorage.setItem('pwa_install_dismissed', Date.now().toString());
+        }
+
+        async function installApp() {
+            if (!deferredInstallPrompt) {
+                console.log('[PWA] No install prompt available');
+                return;
+            }
+
+            // Show the native install prompt
+            deferredInstallPrompt.prompt();
+
+            // Wait for user response
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            console.log('[PWA] User choice:', outcome);
+
+            // Clear the saved prompt
+            deferredInstallPrompt = null;
+            hideInstallPrompt();
+        }
+
+        function showUpdateBanner() {
+            document.getElementById('updateBanner').classList.add('show');
+        }
+
+        function updateApp() {
+            if (swRegistration && swRegistration.waiting) {
+                // Tell waiting service worker to activate
+                swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            // Reload the page to get new version
+            window.location.reload();
+        }
+
+        // Offline/Online detection
+        function updateOnlineStatus() {
+            const isOnline = navigator.onLine;
+            document.getElementById('offlineIndicator').classList.toggle('show', !isOnline);
+
+            if (typeof AppState !== 'undefined') {
+                AppState.isOnline = isOnline;
+            }
+
+            if (isOnline && typeof syncOfflineData === 'function') {
+                // Try to sync when coming back online
+                syncOfflineData();
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // Check initial status
+        document.addEventListener('DOMContentLoaded', () => {
+            updateOnlineStatus();
+        });
+
+        // ============================================
         // CONFIGURATION
         // ============================================
         const CONFIG = {
@@ -6378,6 +6861,9 @@
                         AppState.isClockedIn = true;
                         AppState.clockInTime = new Date().toISOString();
                         showToast(t('clock.clockedInSuccess'), 'success');
+
+                        // After clock in, switch to tasks view
+                        setTimeout(() => switchTab('tasks'), 500);
                     } else {
                         showToast(data.error || t('common.error'), 'error');
                     }
@@ -6444,6 +6930,11 @@
                 const tabs = ['home', 'tasks', 'harvest', 'scout', 'more'];
                 item.classList.toggle('active', tabs[index] === tabId);
             });
+
+            // Initialize scout GPS when switching to scout tab
+            if (tabId === 'scout') {
+                initScoutGPS();
+            }
         }
 
         // ============================================
@@ -6559,8 +7050,69 @@
         // ============================================
         function setScoutType(type) {
             AppState.scoutType = type;
-            document.querySelectorAll('.scout-type-btn').forEach(btn => {
+
+            // Update both old buttons and new pills
+            document.querySelectorAll('.scout-type-btn, .scout-pill').forEach(btn => {
                 btn.classList.toggle('active', btn.classList.contains(type));
+            });
+
+            // Update library dropdown visibility based on type
+            const select = document.getElementById('scoutLibrarySelect');
+            if (select) {
+                // Hide all optgroups first
+                select.querySelectorAll('optgroup').forEach(og => og.style.display = 'none');
+
+                // Show relevant optgroup
+                const optgroupMap = {
+                    'pest': 'pestOptions',
+                    'disease': 'diseaseOptions',
+                    'weed': 'weedOptions',
+                    'beneficial': 'beneficialOptions'
+                };
+                const optgroup = document.getElementById(optgroupMap[type]);
+                if (optgroup) {
+                    optgroup.style.display = 'block';
+                }
+                select.value = ''; // Reset selection
+            }
+
+            // Hide severity for beneficial insects
+            const severityGroup = document.getElementById('severityGroup');
+            if (severityGroup) {
+                severityGroup.style.display = type === 'beneficial' ? 'none' : 'block';
+            }
+        }
+
+        function selectFromLibrary() {
+            const select = document.getElementById('scoutLibrarySelect');
+            if (select && select.value) {
+                // Could add logic to auto-fill notes or severity based on selection
+                const selectedText = select.options[select.selectedIndex].text;
+                const notes = document.getElementById('scoutNotes');
+                if (notes && !notes.value) {
+                    notes.value = selectedText + ' observed';
+                }
+            }
+        }
+
+        // Initialize GPS for scout tab
+        function initScoutGPS() {
+            captureGPS().then(gps => {
+                const latField = document.getElementById('scoutGpsLat');
+                const lngField = document.getElementById('scoutGpsLng');
+                const statusEl = document.getElementById('scoutGpsStatus');
+
+                if (gps.lat && gps.lng) {
+                    if (latField) latField.value = gps.lat;
+                    if (lngField) lngField.value = gps.lng;
+                    if (statusEl) {
+                        statusEl.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i> <span>Location captured</span>`;
+                    }
+                } else {
+                    if (statusEl) {
+                        statusEl.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> <span>GPS unavailable - report will still submit</span>`;
+                    }
+                }
             });
         }
 
@@ -6579,20 +7131,35 @@
 
             showLoading();
             try {
-                const gps = await captureGPS();
-                const field = document.getElementById('scoutField').value;
-                const bed = document.getElementById('scoutBed').value;
+                // Get GPS from hidden fields or capture fresh
+                let lat = document.getElementById('scoutGpsLat')?.value || '';
+                let lng = document.getElementById('scoutGpsLng')?.value || '';
+
+                // If no cached GPS, capture now
+                if (!lat || !lng) {
+                    const gps = await captureGPS();
+                    lat = gps.lat || '';
+                    lng = gps.lng || '';
+                }
+
+                // Get library selection for identification
+                const librarySelect = document.getElementById('scoutLibrarySelect');
+                const libraryValue = librarySelect ? librarySelect.value : '';
+                const libraryText = librarySelect && librarySelect.selectedIndex > 0
+                    ? librarySelect.options[librarySelect.selectedIndex].text
+                    : '';
+
                 const notes = document.getElementById('scoutNotes').value;
 
                 const scoutData = {
                     employeeId: AppState.employee?.Employee_ID || '',
                     type: AppState.scoutType,
-                    severity: AppState.scoutSeverity || 'medium',
-                    field: field,
-                    bed: bed,
+                    severity: AppState.scoutSeverity || (AppState.scoutType === 'beneficial' ? 'none' : 'medium'),
+                    identification: libraryText,
+                    identificationCode: libraryValue,
                     notes: notes,
-                    lat: gps.lat || '',
-                    lng: gps.lng || '',
+                    lat: lat,
+                    lng: lng,
                     photo: AppState.capturedPhoto || ''
                 };
 
@@ -6645,12 +7212,32 @@
         function resetScoutForm() {
             AppState.scoutType = null;
             AppState.scoutSeverity = null;
-            document.querySelectorAll('.scout-type-btn, .severity-btn').forEach(btn => {
+
+            // Reset all type buttons (old and new)
+            document.querySelectorAll('.scout-type-btn, .scout-pill, .severity-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
+
+            // Reset library dropdown
+            const librarySelect = document.getElementById('scoutLibrarySelect');
+            if (librarySelect) librarySelect.value = '';
+
+            // Reset notes
             document.getElementById('scoutNotes').value = '';
+
+            // Reset photo
             AppState.capturedPhoto = null;
             document.getElementById('scoutPhotoPreview').style.display = 'none';
+
+            // Reset GPS fields
+            const latField = document.getElementById('scoutGpsLat');
+            const lngField = document.getElementById('scoutGpsLng');
+            if (latField) latField.value = '';
+            if (lngField) lngField.value = '';
+
+            // Re-capture GPS for next report
+            initScoutGPS();
+
             // Refresh pest map after submission
             refreshPestMap();
         }

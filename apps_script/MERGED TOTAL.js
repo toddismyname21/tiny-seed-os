@@ -242,6 +242,8 @@ function doGet(e) {
         return jsonResponse(getSalesCustomers(e.parameter));
       case 'getCustomerById':
         return jsonResponse(getCustomerById(e.parameter));
+      case 'lookupCustomerByEmail':
+        return jsonResponse(lookupCustomerByEmail(e.parameter));
       case 'getSalesCSAMembers':
         return jsonResponse(getSalesCSAMembers(e.parameter));
       case 'getSalesDashboard':
@@ -3735,7 +3737,7 @@ function getFinancials() { return jsonResponse({success: false, message: 'Not im
     // Find the Batch_ID column
     const batchIdColIndex = headers.indexOf('Batch_ID');
     const searchColIndex = batchIdColIndex >= 0 ? batchIdColIndex : 1;
-    const searchId = params.id || params.Batch_ID;
+    const searchId = params.batchId || params.id || params.Batch_ID;
 
     for (let i = 1; i < data.length; i++) {
       if (data[i][searchColIndex] === searchId) {
@@ -9281,6 +9283,68 @@ function getCustomerById(params) {
 
 function getCustomerProfile(params) {
   return getCustomerById(params);
+}
+
+/**
+ * Look up customer by email for auto-routing to correct portal
+ * Returns customer type (CSA, Wholesale, Retail) and portal flags
+ */
+function lookupCustomerByEmail(params) {
+  try {
+    const email = (params.email || '').toLowerCase().trim();
+    if (!email) {
+      return { success: false, error: 'Email is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find email column index
+    const emailColIndex = headers.findIndex(h =>
+      h.toLowerCase().includes('email')
+    );
+    const typeColIndex = headers.findIndex(h =>
+      h.toLowerCase() === 'type' || h.toLowerCase() === 'customer_type'
+    );
+
+    if (emailColIndex === -1) {
+      return { success: false, error: 'Email column not found' };
+    }
+
+    // Search for customer by email
+    for (let i = 1; i < data.length; i++) {
+      const customerEmail = (data[i][emailColIndex] || '').toLowerCase().trim();
+      if (customerEmail === email) {
+        let customer = {};
+        headers.forEach((h, j) => customer[h] = data[i][j]);
+
+        // Determine customer type
+        const customerType = typeColIndex !== -1 ? data[i][typeColIndex] : 'Retail';
+
+        // Check if customer has multiple portal types
+        // (In practice, you might check a separate flags column or multiple records)
+        const hasCSA = customerType === 'CSA' || customer.CSA_Member === 'Yes';
+        const hasWholesale = customerType === 'Wholesale' || customer.Wholesale === 'Yes';
+
+        return {
+          success: true,
+          customer: {
+            ...customer,
+            Type: customerType,
+            hasCSA: hasCSA,
+            hasWholesale: hasWholesale,
+            hasMultiplePortals: hasCSA && hasWholesale
+          }
+        };
+      }
+    }
+
+    return { success: false, error: 'Customer not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 function createSalesCustomer(data) {
@@ -18372,8 +18436,8 @@ const PLAID_CONFIG = {
     get SECRET() {
         return PropertiesService.getScriptProperties().getProperty('PLAID_SECRET') || '';
     },
-    ENV: 'sandbox', // Change to 'development' or 'production' when ready
-    BASE_URL: 'https://sandbox.plaid.com', // Change for production
+    ENV: 'sandbox', // Switch to 'production' after Plaid approval
+    BASE_URL: 'https://sandbox.plaid.com',
     PRODUCTS: ['transactions', 'auth'],
     COUNTRY_CODES: ['US'],
     LANGUAGE: 'en'

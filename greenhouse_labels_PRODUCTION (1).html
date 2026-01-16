@@ -544,7 +544,7 @@
                                             </div>
                                             <div class="label-date-row">
                                                 <span class="label-date-label">📅 Transplant:</span>
-                                                <span>${formatDate(seeding.transplantDate)}</span>
+                                                <span>${formatDate(getTransplantDate(seeding))}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -577,7 +577,7 @@
                             crop: seeding.crop,
                             variety: seeding.variety,
                             seedDate: seeding.seedDate,
-                            transplantDate: seeding.transplantDate,
+                            transplantDate: getTransplantDate(seeding),
                             trayId: trayId,
                             batch: seeding.batchNumber,
                             cells: seeding.cellsPerTray
@@ -600,9 +600,29 @@
         }
         
         function formatDate(dateStr) {
+            if (!dateStr || dateStr === '' || dateStr === 'TBD') {
+                return 'TBD';
+            }
             const d = new Date(dateStr);
+            if (isNaN(d.getTime())) {
+                return 'TBD';
+            }
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+        }
+
+        // Calculate transplant date from seed date + nursery days
+        function getTransplantDate(seeding) {
+            if (seeding.transplantDate && seeding.transplantDate !== '') {
+                return seeding.transplantDate;
+            }
+            // Calculate from seedDate + nurseryDays if transplantDate is missing
+            if (seeding.seedDate && seeding.nurseryDays) {
+                const seedDate = new Date(seeding.seedDate);
+                seedDate.setDate(seedDate.getDate() + seeding.nurseryDays);
+                return seedDate.toISOString().split('T')[0];
+            }
+            return '';
         }
         
         init();

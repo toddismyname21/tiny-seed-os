@@ -12,36 +12,36 @@
            ======================================== */
 
         :root {
-            /* Brand Colors */
-            --primary: #FF8C00;
-            --primary-dark: #e67e00;
-            --primary-light: #ffaa33;
+            /* Brand Colors - Farm Green Theme */
+            --primary: #2d5a27;
+            --primary-dark: #1e3d1a;
+            --primary-light: #4a7c43;
 
             /* Status Colors */
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --info: #3b82f6;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --info: #6366f1;
 
-            /* Light Theme (Customer facing) */
-            --bg-main: #f8fafc;
-            --bg-card: #ffffff;
-            --bg-elevated: #f1f5f9;
-            --bg-input: #ffffff;
+            /* Dark Theme (Matching Desktop) */
+            --bg-main: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-elevated: #0f3460;
+            --bg-input: #0f3460;
 
             /* Text Colors */
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --text-muted: #94a3b8;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --text-muted: #6b7280;
 
             /* Borders */
-            --border-color: #e2e8f0;
-            --border-light: #cbd5e1;
+            --border-color: rgba(255,255,255,0.1);
+            --border-light: rgba(255,255,255,0.15);
 
             /* Shadows */
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
-            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
         }
 
         * {
@@ -52,7 +52,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-main);
+            background: linear-gradient(135deg, var(--bg-main) 0%, #0f0f1a 100%);
             color: var(--text-primary);
             min-height: 100vh;
         }
@@ -265,6 +265,83 @@
         .magic-link-icon {
             font-size: 60px;
             margin-bottom: 20px;
+        }
+
+        /* Portal Links */
+        .portal-links {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .portal-divider {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .portal-divider::before,
+        .portal-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .portal-divider span {
+            padding: 0 12px;
+        }
+
+        .portal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .portal-link {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .portal-link:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .portal-icon {
+            font-size: 24px;
+        }
+
+        .portal-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .portal-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .portal-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .portal-link:hover .portal-desc {
+            color: rgba(255,255,255,0.8);
         }
 
         /* ========================================
@@ -1263,6 +1340,29 @@
                     Didn't receive it? Check spam or <a href="#" onclick="showLoginForm()">try again</a>
                 </p>
             </div>
+
+            <!-- Portal Type Links -->
+            <div class="portal-links">
+                <div class="portal-divider">
+                    <span>Customer Portals</span>
+                </div>
+                <div class="portal-buttons">
+                    <a href="#" class="portal-link" onclick="setPortalType('wholesale')">
+                        <div class="portal-icon">🏪</div>
+                        <div class="portal-text">
+                            <span class="portal-title">Wholesale Portal</span>
+                            <span class="portal-desc">Restaurants & Retailers</span>
+                        </div>
+                    </a>
+                    <a href="#" class="portal-link" onclick="setPortalType('csa')">
+                        <div class="portal-icon">📦</div>
+                        <div class="portal-text">
+                            <span class="portal-title">CSA Portal</span>
+                            <span class="portal-desc">Farm Share Members</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1477,6 +1577,27 @@
                     </div>
                 </div>
 
+                <!-- Portal Toggle (shown if customer has multiple account types) -->
+                <div class="account-section" id="portalToggleSection" style="display: none;">
+                    <div class="account-section-title">Switch Portal</div>
+                    <div class="account-item" onclick="switchPortal('csa')" id="switchToCSA">
+                        <div class="account-item-icon">📦</div>
+                        <div class="account-item-content">
+                            <div class="account-item-label">CSA Member Portal</div>
+                            <div class="account-item-value">Farm share ordering & pickups</div>
+                        </div>
+                        <span class="account-item-arrow" id="csaActiveCheck" style="color: var(--success); display: none;">✓</span>
+                    </div>
+                    <div class="account-item" onclick="switchPortal('wholesale')" id="switchToWholesale">
+                        <div class="account-item-icon">🏪</div>
+                        <div class="account-item-content">
+                            <div class="account-item-label">Wholesale Portal</div>
+                            <div class="account-item-value">Restaurant & retailer bulk ordering</div>
+                        </div>
+                        <span class="account-item-arrow" id="wholesaleActiveCheck" style="color: var(--success); display: none;">✓</span>
+                    </div>
+                </div>
+
                 <div class="account-section">
                     <div class="account-section-title">Notifications</div>
                     <div class="account-item">
@@ -1653,23 +1774,57 @@
                 return;
             }
 
-            // For demo, simulate magic link
+            // Show loading state
             document.getElementById('loginForm').style.display = 'none';
             document.getElementById('magicLinkSent').classList.add('show');
             document.getElementById('sentEmail').textContent = email;
 
-            // In production, this would call the API
-            // const response = await fetch(`${CONFIG.API_URL}?action=sendMagicLink&email=${email}`);
+            try {
+                // First, look up customer by email to auto-detect type
+                const lookupResponse = await fetch(`${CONFIG.API_URL}?action=lookupCustomerByEmail&email=${encodeURIComponent(email)}`);
+                const lookupData = await lookupResponse.json();
+
+                if (lookupData.success && lookupData.customer) {
+                    const customer = lookupData.customer;
+
+                    // Auto-detect customer type and set portal accordingly
+                    if (customer.Type) {
+                        AppState.portalType = customer.Type.toLowerCase();
+                        localStorage.setItem('tsf_portal_type', AppState.portalType);
+
+                        // Store if customer has multiple account types
+                        AppState.hasMultiplePortals = customer.hasCSA && customer.hasWholesale;
+                    }
+
+                    // Send magic link via API
+                    const response = await fetch(`${CONFIG.API_URL}?action=sendMagicLink&email=${encodeURIComponent(email)}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showToast(`Login link sent to ${email}`, 'success');
+                    }
+                } else {
+                    // Customer not found - show helpful message
+                    showToast('No account found. Please contact the farm.', 'error');
+                    showLoginForm();
+                    return;
+                }
+            } catch (error) {
+                console.log('API not available, using demo mode');
+            }
 
             // For demo, auto-login after 2 seconds
             setTimeout(() => {
+                // Use portal type selected or default to CSA
+                const customerType = AppState.portalType === 'wholesale' ? 'Wholesale' : 'CSA';
                 loginUser({
                     id: 'CUST-001',
                     name: 'Demo Customer',
                     email: email,
                     phone: '(412) 555-0123',
-                    type: 'CSA',
-                    address: '123 Main St, Pittsburgh, PA 15206'
+                    type: customerType,
+                    address: '123 Main St, Pittsburgh, PA 15206',
+                    hasMultiplePortals: false // Set true in production if customer has both
                 });
             }, 2000);
         }
@@ -1687,6 +1842,29 @@
         function showLoginForm() {
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('magicLinkSent').classList.remove('show');
+        }
+
+        function setPortalType(type) {
+            // Store portal type for login flow
+            AppState.portalType = type;
+            localStorage.setItem('tsf_portal_type', type);
+
+            // Update UI based on portal type
+            const titleEl = document.querySelector('.login-title');
+            const subtitleEl = document.querySelector('.login-subtitle');
+
+            if (type === 'wholesale') {
+                titleEl.textContent = 'Wholesale Login';
+                subtitleEl.textContent = 'Restaurant & retailer ordering portal';
+                showToast('Wholesale portal selected', 'success');
+            } else if (type === 'csa') {
+                titleEl.textContent = 'CSA Member Login';
+                subtitleEl.textContent = 'Farm share member portal';
+                showToast('CSA member portal selected', 'success');
+            }
+
+            // Scroll to email input
+            document.getElementById('loginEmail').focus();
         }
 
         function loginUser(user) {
@@ -1733,8 +1911,44 @@
                 loadCSAData();
             }
 
+            // Show portal toggle if user has multiple account types
+            if (AppState.user.hasMultiplePortals || AppState.hasMultiplePortals) {
+                document.getElementById('portalToggleSection').style.display = 'block';
+                updatePortalToggleUI();
+            }
+
             loadOrders();
             loadCart();
+        }
+
+        function switchPortal(portalType) {
+            AppState.portalType = portalType;
+            localStorage.setItem('tsf_portal_type', portalType);
+            AppState.isCSAMember = portalType === 'csa';
+
+            // Update CSA tab visibility
+            document.getElementById('csaNavItem').style.display =
+                portalType === 'csa' ? 'flex' : 'none';
+
+            // Update toggle UI
+            updatePortalToggleUI();
+
+            // Show appropriate content
+            if (portalType === 'csa') {
+                loadCSAData();
+                showToast('Switched to CSA Member Portal', 'success');
+            } else {
+                showToast('Switched to Wholesale Portal', 'success');
+            }
+
+            // Go to shop tab
+            switchTab('shop');
+        }
+
+        function updatePortalToggleUI() {
+            const isCsa = AppState.portalType === 'csa';
+            document.getElementById('csaActiveCheck').style.display = isCsa ? 'inline' : 'none';
+            document.getElementById('wholesaleActiveCheck').style.display = isCsa ? 'none' : 'inline';
         }
 
         // ========================================

@@ -958,7 +958,7 @@
             <span class="badge success">+$47</span>
         </button>
         <button class="tab-btn" onclick="showTab('employees')">
-            <i class="fas fa-users"></i> Team Bonuses
+            <i class="fas fa-users"></i> Team & Retirement
         </button>
         <button class="tab-btn" onclick="showTab('settings')">
             <i class="fas fa-cog"></i> Settings
@@ -1961,22 +1961,22 @@
         </div>
 
         <!-- ============================================= -->
-        <!-- EMPLOYEES TAB -->
+        <!-- TEAM & RETIREMENT TAB -->
         <!-- ============================================= -->
         <div id="tab-employees" class="tab-content">
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div>
-                            <div class="stat-label">Total Bonus Pool</div>
-                            <div class="stat-value" style="color: var(--gold);">$4,250</div>
+                            <div class="stat-label">SEP-IRA Contributions (YTD)</div>
+                            <div class="stat-value" style="color: var(--success);">$8,450</div>
                         </div>
-                        <div class="stat-icon gold">
-                            <i class="fas fa-trophy"></i>
+                        <div class="stat-icon green">
+                            <i class="fas fa-piggy-bank"></i>
                         </div>
                     </div>
                     <div class="stat-change positive">
-                        <span>Available this quarter</span>
+                        <span>Farm contribution to employee retirement</span>
                     </div>
                 </div>
 
@@ -1998,221 +1998,228 @@
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div>
-                            <div class="stat-label">Bonuses Paid (YTD)</div>
-                            <div class="stat-value" style="color: var(--success);">$12,800</div>
+                            <div class="stat-label">Incentive Pool</div>
+                            <div class="stat-value" style="color: var(--gold);">$3,200</div>
                         </div>
-                        <div class="stat-icon green">
-                            <i class="fas fa-hand-holding-usd"></i>
+                        <div class="stat-icon gold">
+                            <i class="fas fa-gift"></i>
                         </div>
                     </div>
                     <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+22% vs last year</span>
+                        <span>Available this quarter</span>
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div>
-                            <div class="stat-label">Achievements Unlocked</div>
-                            <div class="stat-value" style="color: var(--secondary);">47</div>
+                            <div class="stat-label">Milestones Reached</div>
+                            <div class="stat-value" style="color: var(--secondary);">24</div>
                         </div>
                         <div class="stat-icon orange">
-                            <i class="fas fa-medal"></i>
+                            <i class="fas fa-flag-checkered"></i>
                         </div>
                     </div>
                     <div class="stat-change positive">
-                        <span>Team total</span>
+                        <span>Team total this year</span>
                     </div>
                 </div>
             </div>
 
             <div class="two-col">
-                <!-- Team Leaderboard -->
+                <!-- Employee IRA Contributions -->
                 <div class="card">
                     <div class="card-header">
-                        <h3><i class="fas fa-trophy"></i> Team Leaderboard</h3>
-                        <select class="form-input" style="width: auto; padding: 0.5rem 1rem;">
-                            <option>This Month</option>
-                            <option>This Quarter</option>
-                            <option>This Year</option>
-                        </select>
+                        <h3><i class="fas fa-piggy-bank"></i> SEP-IRA Contributions</h3>
+                        <button class="btn btn-success btn-sm" onclick="openModal('addIRAContributionModal')">
+                            <i class="fas fa-plus"></i> Add Contribution
+                        </button>
                     </div>
                     <div class="card-body" style="padding: 0;">
+                        <div style="padding: 1rem; background: rgba(42, 157, 143, 0.1); border-bottom: 1px solid var(--border);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary);">Annual Contribution Limit (25% of comp)</span>
+                                <span style="font-weight: 600;">$66,000 max</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">Farm Contribution Rate</span>
+                                <span style="font-weight: 600; color: var(--success);">3% of wages</span>
+                            </div>
+                        </div>
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Rank</th>
-                                    <th>Team Member</th>
-                                    <th>Level</th>
-                                    <th>XP</th>
-                                    <th>Bonus Earned</th>
+                                    <th>Employee</th>
+                                    <th>YTD Wages</th>
+                                    <th>IRA Contribution</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="iraContributionsTable">
                                 <tr>
-                                    <td style="font-size: 1.5rem;">
-                                        <i class="fas fa-crown" style="color: var(--gold);"></i>
-                                    </td>
                                     <td>
                                         <div style="font-weight: 600;">Maria Garcia</div>
                                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Field Manager</div>
                                     </td>
-                                    <td>
-                                        <span class="level-badge">Lv. 12</span>
-                                    </td>
-                                    <td>2,450 XP</td>
-                                    <td style="color: var(--success); font-weight: 600;">$850</td>
+                                    <td>$42,500</td>
+                                    <td style="color: var(--success); font-weight: 600;">$1,275</td>
+                                    <td><span class="status-badge active">Current</span></td>
                                 </tr>
                                 <tr>
-                                    <td style="font-size: 1.25rem; color: #c0c0c0;">
-                                        <i class="fas fa-medal"></i>
-                                    </td>
                                     <td>
                                         <div style="font-weight: 600;">James Wilson</div>
                                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Harvest Lead</div>
                                     </td>
-                                    <td>
-                                        <span class="level-badge">Lv. 10</span>
-                                    </td>
-                                    <td>2,100 XP</td>
-                                    <td style="color: var(--success); font-weight: 600;">$720</td>
+                                    <td>$38,200</td>
+                                    <td style="color: var(--success); font-weight: 600;">$1,146</td>
+                                    <td><span class="status-badge active">Current</span></td>
                                 </tr>
                                 <tr>
-                                    <td style="font-size: 1.25rem; color: #cd7f32;">
-                                        <i class="fas fa-medal"></i>
-                                    </td>
                                     <td>
                                         <div style="font-weight: 600;">Sarah Chen</div>
                                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Greenhouse Tech</div>
                                     </td>
-                                    <td>
-                                        <span class="level-badge">Lv. 9</span>
-                                    </td>
-                                    <td>1,890 XP</td>
-                                    <td style="color: var(--success); font-weight: 600;">$650</td>
+                                    <td>$35,800</td>
+                                    <td style="color: var(--success); font-weight: 600;">$1,074</td>
+                                    <td><span class="status-badge active">Current</span></td>
                                 </tr>
                                 <tr>
-                                    <td>4</td>
                                     <td>
                                         <div style="font-weight: 600;">Mike Johnson</div>
                                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Driver</div>
                                     </td>
-                                    <td>
-                                        <span class="level-badge">Lv. 7</span>
-                                    </td>
-                                    <td>1,420 XP</td>
-                                    <td style="color: var(--success); font-weight: 600;">$480</td>
+                                    <td>$28,600</td>
+                                    <td style="color: var(--success); font-weight: 600;">$858</td>
+                                    <td><span class="status-badge active">Current</span></td>
                                 </tr>
                                 <tr>
-                                    <td>5</td>
                                     <td>
                                         <div style="font-weight: 600;">Emily Davis</div>
                                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Sales</div>
                                     </td>
-                                    <td>
-                                        <span class="level-badge">Lv. 6</span>
-                                    </td>
-                                    <td>1,180 XP</td>
-                                    <td style="color: var(--success); font-weight: 600;">$380</td>
+                                    <td>$32,400</td>
+                                    <td style="color: var(--success); font-weight: 600;">$972</td>
+                                    <td><span class="status-badge active">Current</span></td>
                                 </tr>
                                 <tr>
-                                    <td>6</td>
                                     <td>
                                         <div style="font-weight: 600;">Tom Martinez</div>
                                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Farm Hand</div>
                                     </td>
-                                    <td>
-                                        <span class="level-badge">Lv. 4</span>
-                                    </td>
-                                    <td>720 XP</td>
-                                    <td style="color: var(--success); font-weight: 600;">$170</td>
+                                    <td>$24,800</td>
+                                    <td style="color: var(--success); font-weight: 600;">$744</td>
+                                    <td><span class="status-badge pending">Seasonal</span></td>
                                 </tr>
                             </tbody>
+                            <tfoot style="background: rgba(255,255,255,0.03);">
+                                <tr>
+                                    <td style="font-weight: 700;">Total</td>
+                                    <td style="font-weight: 700;">$202,300</td>
+                                    <td style="font-weight: 700; color: var(--success);">$6,069</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
 
-                <!-- Achievements -->
+                <!-- Milestone Incentives (Non-Competitive) -->
                 <div class="card">
                     <div class="card-header">
-                        <h3><i class="fas fa-medal"></i> Available Achievements</h3>
+                        <h3><i class="fas fa-gift"></i> Milestone Incentives</h3>
                     </div>
                     <div class="card-body">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                            Earn bonuses by reaching personal milestones - not a competition, just recognition for your hard work!
+                        </p>
+
+                        <h4 style="margin: 1rem 0 0.75rem; color: var(--text-secondary); font-size: 0.85rem;">WORK MILESTONES</h4>
                         <div class="achievement-grid">
                             <div class="achievement unlocked">
                                 <div class="achievement-icon">
-                                    <i class="fas fa-seedling" style="color: var(--success);"></i>
+                                    <i class="fas fa-calendar-check" style="color: var(--success);"></i>
                                 </div>
-                                <div class="achievement-name">First Harvest</div>
-                                <div class="achievement-desc">+100 XP</div>
+                                <div class="achievement-name">30-Day Mark</div>
+                                <div class="achievement-desc">$50 bonus</div>
                             </div>
                             <div class="achievement unlocked">
                                 <div class="achievement-icon">
-                                    <i class="fas fa-fire" style="color: var(--secondary);"></i>
+                                    <i class="fas fa-calendar-alt" style="color: var(--info);"></i>
                                 </div>
-                                <div class="achievement-name">5-Day Streak</div>
-                                <div class="achievement-desc">+50 XP</div>
+                                <div class="achievement-name">90-Day Mark</div>
+                                <div class="achievement-desc">$100 bonus</div>
                             </div>
                             <div class="achievement unlocked">
                                 <div class="achievement-icon">
-                                    <i class="fas fa-truck" style="color: var(--info);"></i>
+                                    <i class="fas fa-award" style="color: var(--secondary);"></i>
                                 </div>
-                                <div class="achievement-name">100 Deliveries</div>
-                                <div class="achievement-desc">+200 XP</div>
+                                <div class="achievement-name">1 Year</div>
+                                <div class="achievement-desc">$250 bonus</div>
                             </div>
                             <div class="achievement locked">
                                 <div class="achievement-icon">
                                     <i class="fas fa-star"></i>
                                 </div>
-                                <div class="achievement-name">Top Performer</div>
-                                <div class="achievement-desc">+500 XP</div>
-                            </div>
-                            <div class="achievement locked">
-                                <div class="achievement-icon">
-                                    <i class="fas fa-crown"></i>
-                                </div>
-                                <div class="achievement-name">1000 Hours</div>
-                                <div class="achievement-desc">+1000 XP</div>
+                                <div class="achievement-name">2 Years</div>
+                                <div class="achievement-desc">$500 bonus</div>
                             </div>
                             <div class="achievement locked">
                                 <div class="achievement-icon">
                                     <i class="fas fa-gem"></i>
                                 </div>
-                                <div class="achievement-name">Perfect Month</div>
-                                <div class="achievement-desc">+300 XP</div>
+                                <div class="achievement-name">5 Years</div>
+                                <div class="achievement-desc">$1,000 bonus</div>
+                            </div>
+                            <div class="achievement locked">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-crown"></i>
+                                </div>
+                                <div class="achievement-name">500 Hours/Season</div>
+                                <div class="achievement-desc">$200 bonus</div>
                             </div>
                         </div>
 
-                        <h4 style="margin: 1.5rem 0 1rem; color: var(--text-secondary); font-size: 0.85rem;">BONUS TIERS</h4>
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
-                                <div style="width: 40px; height: 40px; background: #cd7f32; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-star" style="color: white;"></i>
+                        <h4 style="margin: 1.5rem 0 0.75rem; color: var(--text-secondary); font-size: 0.85rem;">SKILL MILESTONES</h4>
+                        <div class="achievement-grid">
+                            <div class="achievement unlocked">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-seedling" style="color: var(--success);"></i>
                                 </div>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600;">Bronze (Lv. 1-5)</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">$25 bonus per level</div>
-                                </div>
+                                <div class="achievement-name">Greenhouse Certified</div>
+                                <div class="achievement-desc">$75 bonus</div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
-                                <div style="width: 40px; height: 40px; background: #c0c0c0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-star" style="color: white;"></i>
+                            <div class="achievement unlocked">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-truck" style="color: var(--info);"></i>
                                 </div>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600;">Silver (Lv. 6-10)</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">$50 bonus per level</div>
-                                </div>
+                                <div class="achievement-name">Delivery Trained</div>
+                                <div class="achievement-desc">$75 bonus</div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
-                                <div style="width: 40px; height: 40px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-star" style="color: white;"></i>
+                            <div class="achievement locked">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-tractor"></i>
                                 </div>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600;">Gold (Lv. 11+)</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">$100 bonus per level</div>
-                                </div>
+                                <div class="achievement-name">Equipment Operator</div>
+                                <div class="achievement-desc">$100 bonus</div>
                             </div>
+                            <div class="achievement locked">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                </div>
+                                <div class="achievement-name">Trained a New Hire</div>
+                                <div class="achievement-desc">$50 bonus</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(233, 196, 106, 0.1); border-radius: 8px; border-left: 4px solid var(--warning);">
+                            <div style="font-weight: 600; margin-bottom: 0.5rem;">
+                                <i class="fas fa-lightbulb" style="color: var(--warning);"></i> How It Works
+                            </div>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+                                Milestones are personal achievements - reach them at your own pace.
+                                Bonuses are paid within 2 pay periods of reaching each milestone.
+                                Everyone can earn every bonus!
+                            </p>
                         </div>
                     </div>
                 </div>
