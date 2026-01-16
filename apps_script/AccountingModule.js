@@ -333,18 +333,22 @@ function getOrCreateFolder(parentFolder, folderName) {
 /**
  * Import all emails from accountant (DGPerry) addresses
  * Can be run manually or on a time trigger
+ * Note: Web app calls have 6-minute limit, so we process in batches
  */
 function importAccountantEmails(params) {
   params = params || {};
-  const maxResults = params.maxResults || 100;
+  const maxResults = Math.min(parseInt(params.maxResults) || 10, 20); // Cap at 20 for web calls
   const onlyNew = params.onlyNew !== false; // Default to only new emails
+  const startTime = new Date().getTime();
+  const maxRunTime = 5 * 60 * 1000; // 5 minutes (leave buffer before 6-min timeout)
 
   const results = {
     success: true,
     emailsFound: 0,
     emailsImported: 0,
     attachmentsSaved: 0,
-    errors: []
+    errors: [],
+    timedOut: false
   };
 
   // Build search query for all accountant emails
@@ -358,15 +362,24 @@ function importAccountantEmails(params) {
   const threads = GmailApp.search(searchQuery, 0, maxResults);
   results.emailsFound = threads.length;
 
-  threads.forEach(thread => {
+  for (let t = 0; t < threads.length; t++) {
+    // Check if we're running out of time
+    if (new Date().getTime() - startTime > maxRunTime) {
+      results.timedOut = true;
+      results.message = 'Stopped early to avoid timeout. Run again to continue.';
+      break;
+    }
+
+    const thread = threads[t];
     const messages = thread.getMessages();
 
-    messages.forEach(message => {
+    for (let m = 0; m < messages.length; m++) {
+      const message = messages[m];
       const messageId = message.getId();
 
       // Skip if already imported
       if (onlyNew && importedIds.includes(messageId)) {
-        return;
+        continue;
       }
 
       try {
@@ -382,8 +395,8 @@ function importAccountantEmails(params) {
           error: e.toString()
         });
       }
-    });
-  });
+    }
+  }
 
   return results;
 }
