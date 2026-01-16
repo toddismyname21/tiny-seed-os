@@ -4118,6 +4118,206 @@
             color: var(--text-secondary);
         }
 
+        /* ========================================
+           TUTORIAL MODE
+           ======================================== */
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .tutorial-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .tutorial-highlight {
+            position: relative;
+            z-index: 9999 !important;
+            box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.6), 0 0 20px rgba(255, 140, 0, 0.4);
+            border-radius: 12px;
+        }
+
+        .tutorial-bubble {
+            position: fixed;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px 20px;
+            max-width: 280px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+        }
+
+        .tutorial-bubble.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tutorial-bubble::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            border-right: none;
+            border-bottom: none;
+            transform: rotate(45deg);
+        }
+
+        .tutorial-bubble.arrow-bottom::before {
+            bottom: -9px;
+            left: 50%;
+            margin-left: -8px;
+            transform: rotate(-135deg);
+        }
+
+        .tutorial-bubble.arrow-top::before {
+            top: -9px;
+            left: 50%;
+            margin-left: -8px;
+            transform: rotate(45deg);
+        }
+
+        .tutorial-bubble.arrow-left::before {
+            left: -9px;
+            top: 50%;
+            margin-top: -8px;
+            transform: rotate(-45deg);
+        }
+
+        .tutorial-bubble.arrow-right::before {
+            right: -9px;
+            top: 50%;
+            margin-top: -8px;
+            transform: rotate(135deg);
+        }
+
+        .tutorial-bubble-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), #ff9d1a);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .tutorial-bubble-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .tutorial-bubble-text {
+            font-size: 14px;
+            color: #4a4a4a;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .tutorial-bubble-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tutorial-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tutorial-btn-next {
+            background: linear-gradient(135deg, var(--primary), #ff9d1a);
+            color: white;
+        }
+
+        .tutorial-btn-next:active {
+            transform: scale(0.98);
+        }
+
+        .tutorial-btn-skip {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .tutorial-progress {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .tutorial-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: all 0.3s;
+        }
+
+        .tutorial-dot.active {
+            background: var(--primary);
+            width: 20px;
+            border-radius: 4px;
+        }
+
+        .tutorial-dot.completed {
+            background: var(--success);
+        }
+
+        /* Tutorial Toggle Button */
+        .tutorial-toggle {
+            position: fixed;
+            bottom: 90px;
+            right: 16px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #ff9d1a);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .tutorial-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .tutorial-toggle.hidden {
+            display: none;
+        }
+
         /* Completion Animation Overlay */
         .completion-overlay {
             position: fixed;
@@ -7456,73 +7656,73 @@
         <!-- Bottom Tab Bar - MODE AWARE -->
         <!-- FIELD MODE NAV -->
         <nav class="tab-bar" id="fieldNav">
-            <div class="tab-item active" onclick="switchTab('home')">
+            <div class="tab-item active" onclick="switchTab('home')" data-tutorial="home-tab" data-tutorial-text="Your dashboard with clock, weather, and quick stats">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
             </div>
-            <div class="tab-item" onclick="switchTab('tasks')">
+            <div class="tab-item" onclick="switchTab('tasks')" data-tutorial="tasks-tab" data-tutorial-text="View and complete your assigned tasks">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Tasks</span>
             </div>
-            <div class="tab-item" onclick="switchTab('scout')">
+            <div class="tab-item" onclick="switchTab('harvest')" data-tutorial="harvest-tab" data-tutorial-text="Log harvests with quantity and quality">
+                <i class="fas fa-basket-shopping"></i>
+                <span>Harvest</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('scout')" data-tutorial="scout-tab" data-tutorial-text="Scout fields for pests, disease, and crop health">
                 <i class="fas fa-search"></i>
                 <span>Scout</span>
             </div>
-            <div class="tab-item" onclick="switchTab('wildlife')">
-                <i class="fas fa-paw"></i>
-                <span>Wildlife</span>
-            </div>
-            <div class="tab-item" onclick="switchTab('farmpic')">
-                <i class="fas fa-camera"></i>
-                <span>Farmpic</span>
+            <div class="tab-item" onclick="switchTab('more')" data-tutorial="more-tab" data-tutorial-text="Access all other features: Wildlife, Photos, Treatments, and more">
+                <i class="fas fa-ellipsis-h"></i>
+                <span>More</span>
             </div>
         </nav>
 
         <!-- PACKHOUSE MODE NAV -->
         <nav class="tab-bar" id="packhouseNav" style="display: none;">
-            <div class="tab-item active" onclick="switchTab('home')">
+            <div class="tab-item active" onclick="switchTab('home')" data-tutorial="home-tab" data-tutorial-text="Your dashboard with clock and quick stats">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
             </div>
-            <div class="tab-item" onclick="switchTab('tasks')">
+            <div class="tab-item" onclick="switchTab('tasks')" data-tutorial="tasks-tab" data-tutorial-text="View packing and processing tasks">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Tasks</span>
             </div>
-            <div class="tab-item" onclick="switchTab('receiving')">
+            <div class="tab-item" onclick="switchTab('receiving')" data-tutorial="receiving-tab" data-tutorial-text="Log incoming harvests from the field">
                 <i class="fas fa-truck-loading"></i>
                 <span>Receiving</span>
             </div>
-            <div class="tab-item" onclick="switchTab('inventory')">
+            <div class="tab-item" onclick="switchTab('inventory')" data-tutorial="inventory-tab" data-tutorial-text="Check cooler inventory and storage">
                 <i class="fas fa-boxes-stacked"></i>
                 <span>Inventory</span>
             </div>
-            <div class="tab-item" onclick="switchTab('farmpic')">
-                <i class="fas fa-camera"></i>
-                <span>Farmpic</span>
+            <div class="tab-item" onclick="switchTab('more')" data-tutorial="more-tab" data-tutorial-text="Access Photos, Orders, and more">
+                <i class="fas fa-ellipsis-h"></i>
+                <span>More</span>
             </div>
         </nav>
 
         <!-- TRACTOR MODE NAV -->
         <nav class="tab-bar" id="tractorNav" style="display: none;">
-            <div class="tab-item active" onclick="switchTab('home')">
+            <div class="tab-item active" onclick="switchTab('home')" data-tutorial="home-tab" data-tutorial-text="Your dashboard with clock and equipment status">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
             </div>
-            <div class="tab-item" onclick="switchTab('tasks')">
+            <div class="tab-item" onclick="switchTab('tasks')" data-tutorial="tasks-tab" data-tutorial-text="View field work and equipment tasks">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Tasks</span>
             </div>
-            <div class="tab-item" onclick="switchTab('fleet')">
+            <div class="tab-item" onclick="switchTab('fleet')" data-tutorial="fleet-tab" data-tutorial-text="Check tractor hours and maintenance status">
                 <i class="fas fa-tractor"></i>
                 <span>Fleet</span>
             </div>
-            <div class="tab-item" onclick="switchTab('fuel')">
+            <div class="tab-item" onclick="switchTab('fuel')" data-tutorial="fuel-tab" data-tutorial-text="Log fuel purchases and track usage">
                 <i class="fas fa-gas-pump"></i>
                 <span>Fuel</span>
             </div>
-            <div class="tab-item" onclick="switchTab('farmpic')">
-                <i class="fas fa-camera"></i>
-                <span>Farmpic</span>
+            <div class="tab-item" onclick="switchTab('more')" data-tutorial="more-tab" data-tutorial-text="Access Photos, Maintenance logs, and more">
+                <i class="fas fa-ellipsis-h"></i>
+                <span>More</span>
             </div>
         </nav>
     </div>
@@ -16587,6 +16787,236 @@
         function formatTime(date) {
             return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         }
+
+        // ============================================
+        // TUTORIAL MODE
+        // ============================================
+        const TutorialMode = {
+            active: false,
+            currentStep: 0,
+            steps: [
+                {
+                    target: '.welcome-banner',
+                    title: 'Welcome Banner',
+                    text: 'See the weather, date, and an encouraging message to start your day.',
+                    icon: 'fa-sun',
+                    position: 'bottom'
+                },
+                {
+                    target: '.mode-selector',
+                    title: 'Work Modes',
+                    text: 'Select your work mode: Field for outdoor work, Packhouse for processing, or specialized modes if you have access.',
+                    icon: 'fa-th-large',
+                    position: 'bottom'
+                },
+                {
+                    target: '.clock-card',
+                    title: 'Time Clock',
+                    text: 'Clock in when you start work, clock out when you finish. Your hours are tracked automatically.',
+                    icon: 'fa-clock',
+                    position: 'bottom'
+                },
+                {
+                    target: '[data-tutorial="tasks-tab"]',
+                    title: 'Tasks Tab',
+                    text: 'View your assigned tasks here. Check off items as you complete them. Some tasks have subtasks you can track individually.',
+                    icon: 'fa-clipboard-list',
+                    position: 'top'
+                },
+                {
+                    target: '[data-tutorial="harvest-tab"]',
+                    title: 'Harvest Tab',
+                    text: 'Log your harvests with crop, quantity, and quality. This data helps track yields and plan sales.',
+                    icon: 'fa-basket-shopping',
+                    position: 'top'
+                },
+                {
+                    target: '[data-tutorial="more-tab"]',
+                    title: 'More Options',
+                    text: 'Access additional features like Wildlife tracking, Farm photos, Treatment logs, Timesheets, and Settings.',
+                    icon: 'fa-ellipsis-h',
+                    position: 'top'
+                },
+                {
+                    target: '.header-btn.lang-toggle',
+                    title: 'Language Toggle',
+                    text: 'Switch between English and Spanish with one tap.',
+                    icon: 'fa-language',
+                    position: 'bottom'
+                },
+                {
+                    target: '.sync-btn-wrapper',
+                    title: 'Sync Button',
+                    text: 'Manually sync your data when online. A badge shows pending items if you worked offline.',
+                    icon: 'fa-sync-alt',
+                    position: 'bottom'
+                }
+            ],
+
+            init() {
+                // Create tutorial elements if they don't exist
+                if (!document.getElementById('tutorialOverlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.id = 'tutorialOverlay';
+                    overlay.className = 'tutorial-overlay';
+                    overlay.onclick = () => this.skip();
+                    document.body.appendChild(overlay);
+
+                    const bubble = document.createElement('div');
+                    bubble.id = 'tutorialBubble';
+                    bubble.className = 'tutorial-bubble';
+                    bubble.innerHTML = `
+                        <div class="tutorial-bubble-icon"><i class="fas fa-info"></i></div>
+                        <div class="tutorial-bubble-title"></div>
+                        <div class="tutorial-bubble-text"></div>
+                        <div class="tutorial-bubble-actions">
+                            <button class="tutorial-btn tutorial-btn-skip" onclick="TutorialMode.skip()">Skip</button>
+                            <button class="tutorial-btn tutorial-btn-next" onclick="TutorialMode.next()">Next</button>
+                        </div>
+                        <div class="tutorial-progress"></div>
+                    `;
+                    document.body.appendChild(bubble);
+
+                    const toggle = document.createElement('button');
+                    toggle.id = 'tutorialToggle';
+                    toggle.className = 'tutorial-toggle';
+                    toggle.innerHTML = '<i class="fas fa-question"></i>';
+                    toggle.onclick = () => this.start();
+                    document.body.appendChild(toggle);
+                }
+
+                // Check if first time user
+                if (!localStorage.getItem('tsf_tutorial_completed')) {
+                    setTimeout(() => this.start(), 2000);
+                }
+            },
+
+            start() {
+                this.active = true;
+                this.currentStep = 0;
+                document.getElementById('tutorialOverlay').classList.add('active');
+                document.getElementById('tutorialToggle').classList.add('hidden');
+                this.showStep();
+            },
+
+            showStep() {
+                const step = this.steps[this.currentStep];
+                if (!step) {
+                    this.complete();
+                    return;
+                }
+
+                // Remove previous highlight
+                document.querySelectorAll('.tutorial-highlight').forEach(el => {
+                    el.classList.remove('tutorial-highlight');
+                });
+
+                // Find target element
+                const target = document.querySelector(step.target);
+                if (!target) {
+                    // Skip to next if target not found
+                    this.currentStep++;
+                    this.showStep();
+                    return;
+                }
+
+                // Highlight target
+                target.classList.add('tutorial-highlight');
+
+                // Position bubble
+                const bubble = document.getElementById('tutorialBubble');
+                const rect = target.getBoundingClientRect();
+
+                bubble.querySelector('.tutorial-bubble-icon i').className = `fas ${step.icon}`;
+                bubble.querySelector('.tutorial-bubble-title').textContent = step.title;
+                bubble.querySelector('.tutorial-bubble-text').textContent = step.text;
+
+                // Update button text
+                const nextBtn = bubble.querySelector('.tutorial-btn-next');
+                nextBtn.textContent = this.currentStep === this.steps.length - 1 ? 'Done' : 'Next';
+
+                // Update progress dots
+                const progress = bubble.querySelector('.tutorial-progress');
+                progress.innerHTML = this.steps.map((_, i) => `
+                    <div class="tutorial-dot ${i < this.currentStep ? 'completed' : ''} ${i === this.currentStep ? 'active' : ''}"></div>
+                `).join('');
+
+                // Remove position classes
+                bubble.classList.remove('arrow-top', 'arrow-bottom', 'arrow-left', 'arrow-right');
+
+                // Position bubble based on target location
+                const bubbleWidth = 280;
+                const bubbleHeight = 200;
+                let left, top;
+
+                if (step.position === 'top') {
+                    // Bubble above target (for bottom nav items)
+                    left = rect.left + (rect.width / 2) - (bubbleWidth / 2);
+                    top = rect.top - bubbleHeight - 20;
+                    bubble.classList.add('arrow-bottom');
+                } else {
+                    // Bubble below target
+                    left = rect.left + (rect.width / 2) - (bubbleWidth / 2);
+                    top = rect.bottom + 20;
+                    bubble.classList.add('arrow-top');
+                }
+
+                // Keep bubble on screen
+                left = Math.max(16, Math.min(left, window.innerWidth - bubbleWidth - 16));
+                top = Math.max(16, Math.min(top, window.innerHeight - bubbleHeight - 16));
+
+                bubble.style.left = left + 'px';
+                bubble.style.top = top + 'px';
+
+                // Animate in
+                setTimeout(() => bubble.classList.add('active'), 50);
+            },
+
+            next() {
+                const bubble = document.getElementById('tutorialBubble');
+                bubble.classList.remove('active');
+
+                setTimeout(() => {
+                    this.currentStep++;
+                    if (this.currentStep >= this.steps.length) {
+                        this.complete();
+                    } else {
+                        this.showStep();
+                    }
+                }, 200);
+            },
+
+            skip() {
+                this.complete();
+            },
+
+            complete() {
+                this.active = false;
+                localStorage.setItem('tsf_tutorial_completed', 'true');
+
+                document.getElementById('tutorialOverlay').classList.remove('active');
+                document.getElementById('tutorialBubble').classList.remove('active');
+                document.getElementById('tutorialToggle').classList.remove('hidden');
+
+                document.querySelectorAll('.tutorial-highlight').forEach(el => {
+                    el.classList.remove('tutorial-highlight');
+                });
+
+                showToast('Tutorial complete! Tap ? anytime to see it again.', 'success');
+            },
+
+            reset() {
+                localStorage.removeItem('tsf_tutorial_completed');
+                this.start();
+            }
+        };
+
+        // Initialize tutorial after app loads
+        const originalShowMainApp = showMainApp;
+        showMainApp = function() {
+            originalShowMainApp.apply(this, arguments);
+            setTimeout(() => TutorialMode.init(), 500);
+        };
     </script>
 </body>
 </html>
