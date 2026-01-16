@@ -3166,6 +3166,151 @@
             flex-shrink: 0;
         }
 
+        /* Route Action Buttons */
+        .route-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 0 4px;
+        }
+
+        .route-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .route-action-btn.start-route {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .route-action-btn.start-route:active {
+            transform: scale(0.98);
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .route-action-btn.start-route.active {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .route-action-btn.start-route.active i::before {
+            content: "\f04d"; /* Stop icon */
+        }
+
+        .route-action-btn.running-behind {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .route-action-btn.running-behind:active {
+            transform: scale(0.98);
+            background: linear-gradient(135deg, #d97706, #b45309);
+        }
+
+        .route-action-btn i {
+            font-size: 1.1rem;
+        }
+
+        /* Contact Buttons in Modal */
+        .stop-contact-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .contact-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 12px 8px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .contact-btn i {
+            font-size: 1.25rem;
+        }
+
+        .contact-btn.call {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .contact-btn.text {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .contact-btn.email {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+
+        .contact-btn.navigate {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .contact-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Contact inline buttons for stop cards */
+        .stop-contact-inline {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .stop-contact-inline .contact-mini-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .stop-contact-inline .contact-mini-btn:active {
+            transform: scale(0.9);
+        }
+
+        .stop-contact-inline .contact-mini-btn.call {
+            background: #10b981;
+            color: white;
+        }
+
+        .stop-contact-inline .contact-mini-btn.text {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .stop-contact-inline .contact-mini-btn.email {
+            background: #8b5cf6;
+            color: white;
+        }
+
         /* Delivery Modal */
         .delivery-modal {
             max-width: 500px;
@@ -5511,6 +5656,291 @@
 
         .print-label-btn i {
             font-size: 18px;
+        }
+
+        /* ========================================
+           SLIDE PANEL (Deliveries, etc.)
+           ======================================== */
+        .slide-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 5000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide-panel.active {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            padding: 16px 20px;
+            padding-top: calc(16px + var(--safe-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .panel-back {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .panel-action-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .delivery-summary {
+            display: flex;
+            justify-content: space-around;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .summary-stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .delivery-route-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .delivery-stop-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .delivery-stop-card.completed {
+            opacity: 0.6;
+        }
+
+        .delivery-stop-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            gap: 12px;
+        }
+
+        .stop-number {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .delivery-stop-card.completed .stop-number {
+            background: var(--success);
+        }
+
+        .stop-info {
+            flex: 1;
+        }
+
+        .stop-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .stop-address {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .stop-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Contact Buttons */
+        .delivery-contact-btns {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px 16px;
+        }
+
+        .contact-btn {
+            flex: 1;
+            height: 44px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .contact-btn.call {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .contact-btn.text {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .contact-btn.email {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+
+        .contact-btn.nav {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+        }
+
+        /* Route Actions */
+        .route-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .route-action-btn {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .route-action-btn.start-route {
+            background: linear-gradient(135deg, var(--success), #16a34a);
+            color: white;
+        }
+
+        .route-action-btn.running-late {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .route-action-btn i {
+            font-size: 16px;
+        }
+
+        /* Delivery Modal Enhancements */
+        .delivery-modal {
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 6000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
         }
 
         /* ========================================
@@ -8208,6 +8638,18 @@
                     <span class="stat-label">Remaining</span>
                 </div>
             </div>
+            <!-- Route Action Buttons -->
+            <div class="route-actions" id="routeActions">
+                <button class="route-action-btn start-route" id="startRouteBtn" onclick="startRoute()">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Start Route</span>
+                </button>
+                <button class="route-action-btn running-behind" onclick="sendRunningBehindSMS()">
+                    <i class="fas fa-clock"></i>
+                    <span>Running Behind</span>
+                </button>
+            </div>
+
             <div class="delivery-route-list" id="deliveryRouteList">
                 <div class="empty-state">
                     <i class="fas fa-truck"></i>
@@ -8229,6 +8671,27 @@
                     <i class="fas fa-map-marker-alt"></i>
                     <span>123 Main St</span>
                 </div>
+
+                <!-- Quick Contact Buttons -->
+                <div class="stop-contact-actions">
+                    <button class="contact-btn call" onclick="callCustomer()">
+                        <i class="fas fa-phone"></i>
+                        <span>Call</span>
+                    </button>
+                    <button class="contact-btn text" onclick="textCustomer()">
+                        <i class="fas fa-comment-sms"></i>
+                        <span>Text</span>
+                    </button>
+                    <button class="contact-btn email" onclick="emailCustomer()">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email</span>
+                    </button>
+                    <button class="contact-btn navigate" onclick="navigateToCurrentStop()">
+                        <i class="fas fa-directions"></i>
+                        <span>Navigate</span>
+                    </button>
+                </div>
+
                 <div class="stop-items" id="stopItems">
                     <!-- Items list -->
                 </div>
@@ -16228,9 +16691,9 @@
                 } else {
                     // Demo data for testing
                     DeliveryState.stops = [
-                        { id: 1, customer: 'Smith Family', address: '123 Oak Lane, Doylestown PA', items: [{name: 'Mixed Greens', qty: 2}, {name: 'Tomatoes', qty: 1}], completed: false },
-                        { id: 2, customer: 'Green Market Co-op', address: '456 Main St, New Hope PA', items: [{name: 'Bulk Carrots', qty: 10}], notes: 'Leave at back door', completed: false },
-                        { id: 3, customer: 'Johnson Restaurant', address: '789 Bridge St, Lambertville NJ', items: [{name: 'Chef Mix', qty: 5}, {name: 'Herbs', qty: 3}], completed: true }
+                        { id: 1, customer: 'Smith Family', address: '123 Oak Lane, Doylestown PA', phone: '2155551234', email: 'smith@email.com', items: [{name: 'Mixed Greens', qty: 2}, {name: 'Tomatoes', qty: 1}], completed: false },
+                        { id: 2, customer: 'Green Market Co-op', address: '456 Main St, New Hope PA', phone: '2155555678', email: 'orders@greenmarket.com', items: [{name: 'Bulk Carrots', qty: 10}], notes: 'Leave at back door', completed: false },
+                        { id: 3, customer: 'Johnson Restaurant', address: '789 Bridge St, Lambertville NJ', phone: '6095559012', email: 'chef@johnson.com', items: [{name: 'Chef Mix', qty: 5}, {name: 'Herbs', qty: 3}], completed: true }
                     ];
                     renderDeliveryStops();
                     updateDeliverySummary();
@@ -16255,6 +16718,13 @@
                         <div class="stop-name">${stop.customer}</div>
                         <div class="stop-address-preview">${stop.address}</div>
                         <div class="stop-items-count">${stop.items.length} item${stop.items.length > 1 ? 's' : ''}</div>
+                        ${!stop.completed ? `
+                        <div class="stop-contact-inline">
+                            ${stop.phone ? `<button class="contact-mini-btn call" onclick="event.stopPropagation(); callCustomerByIndex(${idx})" title="Call"><i class="fas fa-phone"></i></button>` : ''}
+                            ${stop.phone ? `<button class="contact-mini-btn text" onclick="event.stopPropagation(); textCustomerByIndex(${idx})" title="Text"><i class="fas fa-comment-sms"></i></button>` : ''}
+                            ${stop.email ? `<button class="contact-mini-btn email" onclick="event.stopPropagation(); emailCustomerByIndex(${idx})" title="Email"><i class="fas fa-envelope"></i></button>` : ''}
+                        </div>
+                        ` : ''}
                     </div>
                     <button class="navigate-btn" onclick="event.stopPropagation(); navigateToStop(${idx})">
                         <i class="fas fa-directions"></i>
@@ -16340,6 +16810,255 @@
             if (!stop) return;
             const encoded = encodeURIComponent(stop.address);
             window.open(`https://maps.google.com/?daddr=${encoded}`, '_blank');
+        }
+
+        function navigateToCurrentStop() {
+            if (DeliveryState.currentStop !== null) {
+                navigateToStop(DeliveryState.currentStop);
+            }
+        }
+
+        // ========== DELIVERY CONTACT FUNCTIONS ==========
+
+        // Call customer at current stop
+        function callCustomer() {
+            const stop = DeliveryState.stops[DeliveryState.currentStop];
+            if (!stop) return;
+
+            const phone = stop.phone || stop.customerPhone;
+            if (phone) {
+                window.location.href = `tel:${phone}`;
+            } else {
+                showToast('No phone number available', 'warning');
+            }
+        }
+
+        // Call customer by stop index
+        function callCustomerByIndex(idx) {
+            const stop = DeliveryState.stops[idx];
+            if (!stop) return;
+
+            const phone = stop.phone || stop.customerPhone;
+            if (phone) {
+                window.location.href = `tel:${phone}`;
+            } else {
+                showToast('No phone number available', 'warning');
+            }
+        }
+
+        // Text customer at current stop
+        function textCustomer() {
+            const stop = DeliveryState.stops[DeliveryState.currentStop];
+            if (!stop) return;
+
+            const phone = stop.phone || stop.customerPhone;
+            if (phone) {
+                const message = encodeURIComponent(`Hi ${stop.customer}, this is your delivery driver from Tiny Seed Farm. I'm on my way!`);
+                window.location.href = `sms:${phone}?body=${message}`;
+            } else {
+                showToast('No phone number available', 'warning');
+            }
+        }
+
+        // Text customer by stop index
+        function textCustomerByIndex(idx) {
+            const stop = DeliveryState.stops[idx];
+            if (!stop) return;
+
+            const phone = stop.phone || stop.customerPhone;
+            if (phone) {
+                const message = encodeURIComponent(`Hi ${stop.customer}, this is your delivery driver from Tiny Seed Farm.`);
+                window.location.href = `sms:${phone}?body=${message}`;
+            } else {
+                showToast('No phone number available', 'warning');
+            }
+        }
+
+        // Email customer at current stop
+        function emailCustomer() {
+            const stop = DeliveryState.stops[DeliveryState.currentStop];
+            if (!stop) return;
+
+            const email = stop.email || stop.customerEmail;
+            if (email) {
+                const subject = encodeURIComponent(`Delivery Update - Tiny Seed Farm`);
+                const body = encodeURIComponent(`Hi ${stop.customer},\n\nThis is an update regarding your delivery from Tiny Seed Farm.\n\nThank you!`);
+                window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+            } else {
+                showToast('No email available', 'warning');
+            }
+        }
+
+        // Email customer by stop index
+        function emailCustomerByIndex(idx) {
+            const stop = DeliveryState.stops[idx];
+            if (!stop) return;
+
+            const email = stop.email || stop.customerEmail;
+            if (email) {
+                const subject = encodeURIComponent(`Delivery Update - Tiny Seed Farm`);
+                const body = encodeURIComponent(`Hi ${stop.customer},\n\nThis is an update regarding your delivery from Tiny Seed Farm.\n\nThank you!`);
+                window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+            } else {
+                showToast('No email available', 'warning');
+            }
+        }
+
+        // ========== ROUTE ACTION FUNCTIONS ==========
+
+        let routeStarted = false;
+        let driverLocation = null;
+
+        // Start the delivery route - sends SMS to all customers
+        async function startRoute() {
+            const btn = document.getElementById('startRouteBtn');
+
+            if (routeStarted) {
+                // End route
+                routeStarted = false;
+                btn.innerHTML = '<i class="fas fa-play-circle"></i><span>Start Route</span>';
+                btn.classList.remove('active');
+                showToast('Route ended', 'info');
+                return;
+            }
+
+            // Start route
+            routeStarted = true;
+            btn.innerHTML = '<i class="fas fa-stop-circle"></i><span>End Route</span>';
+            btn.classList.add('active');
+
+            // Get current location
+            try {
+                const position = await getCurrentPosition();
+                driverLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+            } catch (error) {
+                console.warn('Could not get location:', error);
+            }
+
+            // Send SMS to all customers on the route
+            const customersToNotify = DeliveryState.stops.filter(s => !s.completed && s.phone);
+
+            if (customersToNotify.length > 0) {
+                // Send via backend API for bulk SMS
+                try {
+                    const response = await fetch(CONFIG.API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'sendRouteSMS',
+                            type: 'route_start',
+                            driverId: AppState.employee?.Employee_ID,
+                            driverName: AppState.employee?.Name || 'Your driver',
+                            customers: customersToNotify.map(s => ({
+                                name: s.customer,
+                                phone: s.phone || s.customerPhone,
+                                address: s.address
+                            }))
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast(`Notified ${customersToNotify.length} customers`, 'success');
+                    } else {
+                        showToast('Route started - notifications may be delayed', 'info');
+                    }
+                } catch (error) {
+                    console.error('SMS send error:', error);
+                    showToast('Route started', 'success');
+                }
+            } else {
+                showToast('Route started!', 'success');
+            }
+        }
+
+        // Get current position as Promise
+        function getCurrentPosition() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation not supported'));
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            });
+        }
+
+        // Send "running behind" SMS with live GPS link
+        async function sendRunningBehindSMS() {
+            // Get current location
+            try {
+                showToast('Getting location...', 'info');
+                const position = await getCurrentPosition();
+                driverLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+
+                // Create Google Maps link with live location
+                const mapsLink = `https://maps.google.com/?q=${driverLocation.lat},${driverLocation.lng}`;
+
+                // Get remaining stops
+                const remainingStops = DeliveryState.stops.filter(s => !s.completed);
+
+                if (remainingStops.length === 0) {
+                    showToast('No remaining deliveries', 'info');
+                    return;
+                }
+
+                // Option to send to all remaining or just next stop
+                const nextStop = remainingStops[0];
+                const phone = nextStop.phone || nextStop.customerPhone;
+
+                if (phone) {
+                    // Direct SMS with location link
+                    const message = encodeURIComponent(
+                        `Hi ${nextStop.customer}, this is your driver from Tiny Seed Farm. ` +
+                        `I'm running a bit behind schedule but I'm on my way! ` +
+                        `Track my location here: ${mapsLink}`
+                    );
+                    window.location.href = `sms:${phone}?body=${message}`;
+                    showToast('Opening SMS...', 'success');
+                } else {
+                    // Try to send via backend to all customers
+                    try {
+                        const response = await fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'sendRouteSMS',
+                                type: 'running_behind',
+                                driverId: AppState.employee?.Employee_ID,
+                                driverName: AppState.employee?.Name || 'Your driver',
+                                locationLink: mapsLink,
+                                customers: remainingStops.map(s => ({
+                                    name: s.customer,
+                                    phone: s.phone || s.customerPhone
+                                })).filter(c => c.phone)
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            showToast('Delay notification sent!', 'success');
+                        } else {
+                            showToast('Could not send notification', 'error');
+                        }
+                    } catch (error) {
+                        console.error('SMS error:', error);
+                        showToast('Could not send notification', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Location error:', error);
+                showToast('Could not get your location. Please enable GPS.', 'error');
+            }
         }
 
         async function capturePODPhoto() {
