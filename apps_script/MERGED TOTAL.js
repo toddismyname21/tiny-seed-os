@@ -684,6 +684,8 @@ function doGet(e) {
         return jsonResponse(suggestCategory(e.parameter.vendor));
       case 'getVendorCategories':
         return jsonResponse(getVendorCategories(e.parameter));
+      case 'importAccountantEmails':
+        return jsonResponse(importAccountantEmails(e.parameter));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);

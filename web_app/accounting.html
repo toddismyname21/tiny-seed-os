@@ -1279,7 +1279,7 @@
 
     async function importEmails() {
       showAlert('Importing accountant emails...', 'info');
-      const result = await apiCall('importAccountantEmails', {}, 'POST');
+      const result = await apiCall('importAccountantEmails', {}, 'GET');
       if (result.success) {
         showAlert(`Imported ${result.emailsImported} emails, ${result.attachmentsSaved} attachments`, 'success');
         loadAccountantDocs();
