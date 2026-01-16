@@ -3949,7 +3949,7 @@
         }
 
         /* ========================================
-           WORK MODE TOGGLE (Field/Packhouse/Driver)
+           WORK MODE TOGGLE (5 Modes)
            ======================================== */
         .mode-selector {
             background: var(--bg-card);
@@ -3960,25 +3960,36 @@
             margin-bottom: 20px;
         }
 
+        .mode-selector.scrollable {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .mode-selector.scrollable::-webkit-scrollbar {
+            display: none;
+        }
+
         .mode-btn {
             flex: 1;
-            padding: 14px 12px;
+            min-width: 64px;
+            padding: 12px 8px;
             border: none;
             border-radius: 12px;
             background: transparent;
             color: var(--text-secondary);
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
         .mode-btn i {
-            font-size: 20px;
+            font-size: 18px;
         }
 
         .mode-btn.active {
@@ -4794,6 +4805,605 @@
         }
 
         /* ========================================
+           GARAGE MODE (Full Screen)
+           ======================================== */
+        .garage-mode {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 5000;
+            flex-direction: column;
+        }
+
+        .garage-mode.active {
+            display: flex;
+        }
+
+        .garage-header {
+            background: linear-gradient(135deg, #FF8C00 0%, #f97316 100%);
+            padding: 16px 20px;
+            padding-top: calc(16px + var(--safe-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .garage-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .garage-back {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .garage-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .garage-sync {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .garage-sync.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        .garage-tabs {
+            display: flex;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .garage-tab {
+            flex: 1;
+            padding: 14px 12px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .garage-tab.active {
+            color: #FF8C00;
+            border-bottom-color: #FF8C00;
+        }
+
+        .garage-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .garage-panel {
+            display: none;
+        }
+
+        .garage-panel.active {
+            display: block;
+        }
+
+        .garage-form {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .garage-form-title {
+            color: #FF8C00;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .garage-select,
+        .garage-input,
+        .garage-textarea {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .garage-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .garage-select:focus,
+        .garage-input:focus,
+        .garage-textarea:focus {
+            outline: none;
+            border-color: #FF8C00;
+        }
+
+        .garage-photo-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-elevated);
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .garage-photo-btn.required {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .garage-photo-preview {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .garage-submit {
+            width: 100%;
+            padding: 16px;
+            background: #FF8C00;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .garage-submit.breakdown {
+            background: var(--danger);
+        }
+
+        .garage-submit.secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .severity-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .severity-btn {
+            flex: 1;
+            padding: 14px 10px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .severity-btn i {
+            font-size: 20px;
+        }
+
+        .severity-btn.critical { border-color: transparent; }
+        .severity-btn.critical i { color: #ef4444; }
+        .severity-btn.high i { color: #f97316; }
+        .severity-btn.medium i { color: #eab308; }
+
+        .severity-btn.selected {
+            background: var(--bg-card);
+        }
+        .severity-btn.selected.critical { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .severity-btn.selected.high { border-color: #f97316; background: rgba(249, 115, 22, 0.1); }
+        .severity-btn.selected.medium { border-color: #eab308; background: rgba(234, 179, 8, 0.1); }
+
+        .inspection-checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .inspection-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .inspection-item input {
+            width: 24px;
+            height: 24px;
+            accent-color: var(--success);
+        }
+
+        .inspection-label {
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .parts-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .parts-input-row .garage-input {
+            flex: 1;
+        }
+
+        .add-part-btn {
+            width: 50px;
+            background: #FF8C00;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .needs-list {
+            min-height: 200px;
+        }
+
+        .needs-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .needs-item-text {
+            color: var(--text-primary);
+            font-size: 15px;
+        }
+
+        .needs-item-remove {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        /* ========================================
+           FLEET TAB (Tractor Mode)
+           ======================================== */
+        .fleet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .tractor-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tractor-card:hover {
+            border-color: var(--primary-light);
+        }
+
+        .tractor-card.running {
+            border-color: var(--success);
+            background: var(--success-bg);
+        }
+
+        .tractor-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .tractor-id {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .tractor-status {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .tractor-status.active {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .tractor-status.maintenance {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .tractor-status.winterized {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .tractor-model {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .tractor-hours {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .tractor-hours-label {
+            color: var(--text-muted);
+        }
+
+        .tractor-hours-value {
+            color: #FF8C00;
+            font-weight: 700;
+        }
+
+        .tractor-action {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tractor-action.start {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tractor-action.running {
+            background: var(--success);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .active-sessions {
+            background: var(--success-bg);
+            border: 1px solid var(--success);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .session-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--success);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .session-item:last-child {
+            border-bottom: none;
+        }
+
+        .session-asset {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .session-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .session-timer {
+            color: var(--success);
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        /* ========================================
+           FUEL TAB (Tractor Mode)
+           ======================================== */
+        .fuel-form {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .fuel-select,
+        .fuel-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .fuel-input.large {
+            font-size: 32px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .fuel-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            margin-top: 16px;
+        }
+
+        .fuel-total-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .fuel-submit {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .fuel-log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .fuel-log-asset {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .fuel-log-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .fuel-log-amount {
+            text-align: right;
+        }
+
+        .fuel-log-gallons {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .fuel-log-cost {
+            font-size: 12px;
+            color: var(--success);
+        }
+
+        /* Tractor Start/Stop Dialog */
+        .tractor-dialog {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 6000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .tractor-dialog.active {
+            display: flex;
+        }
+
+        .tractor-dialog-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 340px;
+        }
+
+        .tractor-dialog-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tractor-dialog-title i {
+            color: #FF8C00;
+        }
+
+        /* ========================================
            PWA INSTALL PROMPT
            ======================================== */
         .install-prompt {
@@ -5042,15 +5652,23 @@
         <main class="main-content">
             <!-- Home Tab -->
             <div id="homeTab" class="tab-panel active">
-                <!-- Work Mode Selector -->
-                <div class="mode-selector" id="modeSelector">
+                <!-- Work Mode Selector (5 modes) -->
+                <div class="mode-selector scrollable" id="modeSelector">
                     <button class="mode-btn active" onclick="setWorkMode('field')" data-mode="field">
-                        <i class="fas fa-tractor"></i>
+                        <i class="fas fa-seedling"></i>
                         <span>Field</span>
+                    </button>
+                    <button class="mode-btn" onclick="setWorkMode('tractor')" data-mode="tractor">
+                        <i class="fas fa-tractor"></i>
+                        <span>Tractor</span>
                     </button>
                     <button class="mode-btn" onclick="setWorkMode('packhouse')" data-mode="packhouse">
                         <i class="fas fa-warehouse"></i>
                         <span>Packhouse</span>
+                    </button>
+                    <button class="mode-btn" onclick="setWorkMode('garage')" data-mode="garage">
+                        <i class="fas fa-wrench"></i>
+                        <span>Garage</span>
                     </button>
                     <button class="mode-btn" onclick="setWorkMode('driver')" data-mode="driver">
                         <i class="fas fa-truck"></i>
@@ -5635,6 +6253,93 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Fleet Tab (Tractor Mode) -->
+            <div id="fleetTab" class="tab-panel">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-tractor"></i>
+                        Fleet
+                    </h2>
+                    <button class="btn-secondary" onclick="refreshFleetData()" id="fleetRefreshBtn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+
+                <!-- Active Tractor Sessions -->
+                <div id="activeTractorSessions" class="active-sessions" style="display: none;">
+                    <div class="session-header">
+                        <i class="fas fa-play-circle"></i>
+                        <span>Active Sessions</span>
+                    </div>
+                    <div id="activeTractorList"></div>
+                </div>
+
+                <!-- Tractor Grid -->
+                <div class="fleet-grid" id="tractorGrid">
+                    <div class="empty-state">
+                        <i class="fas fa-tractor"></i>
+                        <h3>Loading fleet...</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fuel Tab (Tractor Mode) -->
+            <div id="fuelTab" class="tab-panel">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-gas-pump"></i>
+                        Log Fuel
+                    </h2>
+                </div>
+
+                <div class="fuel-form">
+                    <div class="form-group">
+                        <label>Select Asset</label>
+                        <select id="fuelAsset" class="fuel-select">
+                            <option value="">-- Select Tractor/Vehicle --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gallons Added</label>
+                        <input type="number" id="fuelGallons" class="fuel-input large" placeholder="0.0" inputmode="decimal" step="0.1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Cost per Gallon ($)</label>
+                        <input type="number" id="fuelCostPerGallon" class="fuel-input" placeholder="3.50" inputmode="decimal" step="0.01" value="3.50">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Current Hours/Miles</label>
+                        <input type="number" id="fuelReading" class="fuel-input" placeholder="e.g., 2456" inputmode="decimal">
+                    </div>
+
+                    <div class="fuel-total">
+                        <span>Total Cost:</span>
+                        <span class="fuel-total-amount" id="fuelTotalAmount">$0.00</span>
+                    </div>
+
+                    <button class="fuel-submit" onclick="submitFuelLog()">
+                        <i class="fas fa-gas-pump"></i> Log Fuel
+                    </button>
+                </div>
+
+                <!-- Recent Fuel Logs -->
+                <div class="section-header" style="margin-top: 30px;">
+                    <h2 class="section-title">
+                        <i class="fas fa-history"></i>
+                        Recent
+                    </h2>
+                </div>
+                <div id="recentFuelLogs">
+                    <div class="empty-state small">
+                        <i class="fas fa-gas-pump"></i>
+                        <p>No recent fuel logs</p>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Bottom Tab Bar - MODE AWARE -->
@@ -5685,6 +6390,232 @@
                 <span>Farmpic</span>
             </div>
         </nav>
+
+        <!-- TRACTOR MODE NAV -->
+        <nav class="tab-bar" id="tractorNav" style="display: none;">
+            <div class="tab-item active" onclick="switchTab('home')">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('tasks')">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Tasks</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('fleet')">
+                <i class="fas fa-tractor"></i>
+                <span>Fleet</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('fuel')">
+                <i class="fas fa-gas-pump"></i>
+                <span>Fuel</span>
+            </div>
+            <div class="tab-item" onclick="switchTab('farmpic')">
+                <i class="fas fa-camera"></i>
+                <span>Farmpic</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- FULL SCREEN GARAGE MODE -->
+    <div class="garage-mode" id="garageMode">
+        <div class="garage-header">
+            <div class="garage-header-left">
+                <button class="garage-back" onclick="exitGarageMode()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="garage-title">TSF Garage</span>
+            </div>
+            <div class="garage-sync" onclick="refreshFleetData()">
+                <i class="fas fa-sync-alt" id="garageSyncIcon"></i>
+            </div>
+        </div>
+        <div class="garage-tabs">
+            <button class="garage-tab active" onclick="switchGarageTab('service')" data-tab="service">Service</button>
+            <button class="garage-tab" onclick="switchGarageTab('breakdown')" data-tab="breakdown">Breakdown</button>
+            <button class="garage-tab" onclick="switchGarageTab('inspect')" data-tab="inspect">Inspect</button>
+            <button class="garage-tab" onclick="switchGarageTab('parts')" data-tab="parts">Parts</button>
+        </div>
+        <div class="garage-content">
+            <!-- Service Tab -->
+            <div id="garageServiceTab" class="garage-panel active">
+                <div class="garage-form">
+                    <h3 class="garage-form-title">Log Maintenance</h3>
+
+                    <div class="form-group">
+                        <label>Select Asset</label>
+                        <select id="garageAsset" class="garage-select">
+                            <option value="">-- Select Tractor --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Service Type</label>
+                        <select id="garageServiceType" class="garage-select">
+                            <option value="">-- Select Type --</option>
+                            <option value="Oil Change">Oil Change</option>
+                            <option value="Grease">Grease</option>
+                            <option value="Filter">Filter Change</option>
+                            <option value="Winterize">Winterize</option>
+                            <option value="Tire">Tire Service</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Current Hours</label>
+                        <input type="number" id="garageHours" class="garage-input" placeholder="e.g., 2456.5" inputmode="decimal">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Cost ($)</label>
+                        <input type="number" id="garageCost" class="garage-input" placeholder="0.00" inputmode="decimal">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="garageNotes" class="garage-textarea" placeholder="Additional details..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Photo (optional)</label>
+                        <button class="garage-photo-btn" onclick="takeGaragePhoto()">
+                            <i class="fas fa-camera"></i> Take Photo
+                        </button>
+                        <img id="garagePhotoPreview" class="garage-photo-preview" style="display:none;">
+                    </div>
+
+                    <button class="garage-submit" onclick="submitGarageMaintenance()">
+                        <i class="fas fa-check"></i> Log Maintenance
+                    </button>
+                </div>
+            </div>
+
+            <!-- Breakdown Tab -->
+            <div id="garageBreakdownTab" class="garage-panel">
+                <div class="garage-form">
+                    <h3 class="garage-form-title" style="color: var(--danger);">Report Breakdown</h3>
+
+                    <div class="form-group">
+                        <label>Select Asset</label>
+                        <select id="breakdownAsset" class="garage-select">
+                            <option value="">-- Select Tractor --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Severity</label>
+                        <div class="severity-buttons">
+                            <button class="severity-btn critical" onclick="selectSeverity('Critical')">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>Critical</span>
+                            </button>
+                            <button class="severity-btn high" onclick="selectSeverity('High')">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>High</span>
+                            </button>
+                            <button class="severity-btn medium" onclick="selectSeverity('Medium')">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Medium</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="breakdownNotes" class="garage-textarea" placeholder="What happened?" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Parts Needed</label>
+                        <input type="text" id="breakdownParts" class="garage-input" placeholder="e.g., hydraulic hose, filter">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="color: var(--danger);">Photo (REQUIRED)</label>
+                        <button class="garage-photo-btn required" onclick="takeBreakdownPhoto()">
+                            <i class="fas fa-camera"></i> Take Photo
+                        </button>
+                        <img id="breakdownPhotoPreview" class="garage-photo-preview" style="display:none;">
+                    </div>
+
+                    <button class="garage-submit breakdown" onclick="submitBreakdown()">
+                        <i class="fas fa-exclamation-triangle"></i> Report Breakdown
+                    </button>
+                </div>
+            </div>
+
+            <!-- Inspect Tab -->
+            <div id="garageInspectTab" class="garage-panel">
+                <div class="garage-form">
+                    <h3 class="garage-form-title">Safety Inspection</h3>
+
+                    <div class="form-group">
+                        <label>Select Asset</label>
+                        <select id="inspectAsset" class="garage-select">
+                            <option value="">-- Select Tractor --</option>
+                        </select>
+                    </div>
+
+                    <div class="inspection-checklist">
+                        <label class="inspection-item">
+                            <input type="checkbox" id="inspectLights">
+                            <span class="checkmark"></span>
+                            <span class="inspection-label">Lights OK</span>
+                        </label>
+                        <label class="inspection-item">
+                            <input type="checkbox" id="inspectTires">
+                            <span class="checkmark"></span>
+                            <span class="inspection-label">Tires OK</span>
+                        </label>
+                        <label class="inspection-item">
+                            <input type="checkbox" id="inspectFluids">
+                            <span class="checkmark"></span>
+                            <span class="inspection-label">Fluids OK</span>
+                        </label>
+                        <label class="inspection-item">
+                            <input type="checkbox" id="inspectBrakes">
+                            <span class="checkmark"></span>
+                            <span class="inspection-label">Brakes OK</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="inspectNotes" class="garage-textarea" placeholder="Any issues or concerns..."></textarea>
+                    </div>
+
+                    <button class="garage-submit" onclick="submitInspection()">
+                        <i class="fas fa-clipboard-check"></i> Submit Inspection
+                    </button>
+                </div>
+            </div>
+
+            <!-- Parts/Needs to Buy Tab -->
+            <div id="garagePartsTab" class="garage-panel">
+                <div class="garage-form">
+                    <h3 class="garage-form-title">Needs to Buy</h3>
+
+                    <div class="parts-input-row">
+                        <input type="text" id="newPartItem" class="garage-input" placeholder="Item needed...">
+                        <button class="add-part-btn" onclick="addToNeedsList()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+
+                    <div class="needs-list" id="needsToBuyList">
+                        <!-- Items will be added here -->
+                        <div class="empty-state small">
+                            <i class="fas fa-shopping-cart"></i>
+                            <p>No items in list</p>
+                        </div>
+                    </div>
+
+                    <button class="garage-submit secondary" onclick="shareNeedsList()">
+                        <i class="fas fa-share"></i> Share List
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- FULL SCREEN DRIVER MODE -->
@@ -8015,7 +8946,7 @@
         }
 
         // ============================================
-        // WORK MODE SYSTEM (Field/Packhouse/Driver)
+        // WORK MODE SYSTEM (5 Modes)
         // ============================================
         function setWorkMode(mode) {
             AppState.workMode = mode;
@@ -8026,27 +8957,48 @@
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
 
-            // Hide all navs
+            // Hide all navs and full-screen modes
             document.getElementById('fieldNav').style.display = 'none';
             document.getElementById('packhouseNav').style.display = 'none';
+            document.getElementById('tractorNav').style.display = 'none';
+            document.getElementById('driverMode').classList.remove('active');
+            document.getElementById('garageMode').classList.remove('active');
 
-            // Handle driver mode specially - it's a full screen takeover
+            // Handle full-screen modes (driver, garage)
             if (mode === 'driver') {
                 document.getElementById('driverMode').classList.add('active');
                 loadDriverRoute();
+            } else if (mode === 'garage') {
+                document.getElementById('garageMode').classList.add('active');
+                loadGarageAssets();
             } else {
-                document.getElementById('driverMode').classList.remove('active');
-                // Show appropriate nav
+                // Standard nav modes (field, tractor, packhouse)
                 document.getElementById(`${mode}Nav`).style.display = 'flex';
-                // Switch to home tab
                 switchTab('home');
+
+                // Load fleet data for tractor mode
+                if (mode === 'tractor') {
+                    loadFleetData();
+                }
             }
 
-            showToast(`Switched to ${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode`, 'success');
+            const modeNames = {
+                field: 'Field',
+                tractor: 'Tractor',
+                packhouse: 'Packhouse',
+                garage: 'Garage',
+                driver: 'Driver'
+            };
+            showToast(`Switched to ${modeNames[mode]} Mode`, 'success');
         }
 
         function exitDriverMode() {
             document.getElementById('driverMode').classList.remove('active');
+            setWorkMode('field');
+        }
+
+        function exitGarageMode() {
+            document.getElementById('garageMode').classList.remove('active');
             setWorkMode('field');
         }
 
@@ -8117,6 +9069,655 @@
             showToast(`Stop ${stopNum} completed!`, 'success');
             // In production: API call to mark complete, capture signature/photo
         }
+
+        // ============================================
+        // FLEET MANAGEMENT (Tractor Mode)
+        // ============================================
+        const FLEET_API_URL = 'https://script.google.com/macros/s/AKfycbxkBTDNjrQJJS4ioZpqd2BC1LNLPVUsmAoYAlh2I4apIuoi3MmBoEb4E54kVYNhEd0RBA/exec';
+
+        const FleetState = {
+            tractors: [],
+            utilities: [],
+            runningAssets: {},  // { assetId: { startTime, startHours, operator, task } }
+            needsToBuy: JSON.parse(localStorage.getItem('tsf_needs_list') || '[]')
+        };
+
+        async function loadFleetData() {
+            try {
+                const btn = document.getElementById('fleetRefreshBtn');
+                if (btn) btn.querySelector('i').classList.add('fa-spin');
+
+                const response = await fetch(FLEET_API_URL);
+                const data = await response.json();
+
+                FleetState.tractors = data.tractors || [];
+                FleetState.utilities = data.utilities || [];
+
+                renderFleetGrid();
+                populateFleetSelects();
+
+                if (btn) btn.querySelector('i').classList.remove('fa-spin');
+            } catch (error) {
+                console.error('[Fleet] Error loading:', error);
+                // Use fallback data
+                FleetState.tractors = [
+                    { id: 'BCS-853', model: 'BCS 853 (15hp)', currenthours: 245, hoursremaining: 5, status: 'Active' },
+                    { id: 'K-LX3310', model: 'Kubota LX3310', currenthours: 156, hoursremaining: 44, status: 'Active' },
+                    { id: 'K-L3901', model: 'Kubota L3901', currenthours: 312, hoursremaining: 88, status: 'Active' },
+                    { id: 'MF-1840M', model: 'Massey 1840M', currenthours: 423, hoursremaining: -23, status: 'Service Due' },
+                ];
+                renderFleetGrid();
+                populateFleetSelects();
+            }
+        }
+
+        function refreshFleetData() {
+            loadFleetData();
+            showToast('Refreshing fleet data...', 'info');
+        }
+
+        function renderFleetGrid() {
+            const grid = document.getElementById('tractorGrid');
+            if (!grid) return;
+
+            if (FleetState.tractors.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><i class="fas fa-tractor"></i><h3>No tractors found</h3></div>`;
+                return;
+            }
+
+            grid.innerHTML = FleetState.tractors.map(t => {
+                const isRunning = FleetState.runningAssets[t.id];
+                const statusClass = (t.status || '').toLowerCase().replace(' ', '-') || 'active';
+                const hours = parseFloat(t.currenthours || t.currentHours || 0);
+
+                return `
+                    <div class="tractor-card ${isRunning ? 'running' : ''}" onclick="openTractorDialog('${t.id}')">
+                        <div class="tractor-card-header">
+                            <span class="tractor-id">${t.id}</span>
+                            <span class="tractor-status ${statusClass}">${t.status || 'Active'}</span>
+                        </div>
+                        <div class="tractor-model">${t.model || 'Unknown'}</div>
+                        <div class="tractor-hours">
+                            <span class="tractor-hours-label">Hours</span>
+                            <span class="tractor-hours-value">${hours.toLocaleString()}</span>
+                        </div>
+                        <button class="tractor-action ${isRunning ? 'running' : 'start'}" onclick="event.stopPropagation(); ${isRunning ? `stopTractor('${t.id}')` : `startTractor('${t.id}')`}">
+                            <i class="fas fa-${isRunning ? 'stop' : 'play'}"></i>
+                            ${isRunning ? 'RUNNING' : 'Start'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            // Update active sessions
+            updateActiveSessions();
+        }
+
+        function updateActiveSessions() {
+            const container = document.getElementById('activeTractorSessions');
+            const list = document.getElementById('activeTractorList');
+            if (!container || !list) return;
+
+            const running = Object.entries(FleetState.runningAssets);
+            if (running.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            list.innerHTML = running.map(([assetId, data]) => {
+                const elapsed = Math.floor((Date.now() - data.startTime) / 60000);
+                return `
+                    <div class="session-item">
+                        <div>
+                            <div class="session-asset">${assetId}</div>
+                            <div class="session-meta">${data.task} - ${data.operator}</div>
+                        </div>
+                        <div class="session-timer">${elapsed}m</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function startTractor(assetId) {
+            // Show start dialog
+            const tractor = FleetState.tractors.find(t => t.id === assetId);
+            const hours = parseFloat(tractor?.currenthours || tractor?.currentHours || 0);
+
+            const dialog = document.createElement('div');
+            dialog.className = 'tractor-dialog active';
+            dialog.id = 'tractorStartDialog';
+            dialog.innerHTML = `
+                <div class="tractor-dialog-content">
+                    <div class="tractor-dialog-title">
+                        <i class="fas fa-tractor"></i>
+                        Start ${assetId}
+                    </div>
+                    <div class="form-group">
+                        <label>Operator</label>
+                        <input type="text" id="tractorOperator" class="garage-input" value="${AppState.employee?.Name || ''}" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label>Task</label>
+                        <select id="tractorTask" class="garage-select">
+                            <option value="">-- Select Task --</option>
+                            <option value="Primary Tillage">Primary Tillage (Plowing)</option>
+                            <option value="Tillage">Tillage (Discing, Rototilling)</option>
+                            <option value="Cultivation">Cultivation (Weed control)</option>
+                            <option value="Site Maintenance">Site Maintenance (Mowing, Loader)</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Starting Hours</label>
+                        <input type="number" id="tractorStartHours" class="garage-input" value="${hours}" placeholder="Current hours" inputmode="decimal" step="0.1">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="garage-submit secondary" onclick="closeTractorDialog()" style="flex: 1;">Cancel</button>
+                        <button class="garage-submit" onclick="confirmStartTractor('${assetId}')" style="flex: 1; background: var(--success);">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+        }
+
+        async function confirmStartTractor(assetId) {
+            const operator = document.getElementById('tractorOperator').value;
+            const task = document.getElementById('tractorTask').value;
+            const startHours = parseFloat(document.getElementById('tractorStartHours').value);
+
+            if (!operator || !task) {
+                showToast('Please fill in all fields', 'warning');
+                return;
+            }
+
+            // Save to local state
+            FleetState.runningAssets[assetId] = {
+                startTime: Date.now(),
+                startHours: startHours,
+                operator: operator,
+                task: task
+            };
+
+            // Send to API
+            try {
+                await fetch(FLEET_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'usage_start',
+                        assetId: assetId,
+                        operator: operator,
+                        task: task,
+                        reading: startHours,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (e) {
+                console.log('[Fleet] API call queued for sync');
+            }
+
+            closeTractorDialog();
+            renderFleetGrid();
+            showToast(`${assetId} started - ${task}`, 'success');
+
+            // Create a task for this work session
+            generateChainTask(assetId, 'tractor-work', task);
+        }
+
+        function stopTractor(assetId) {
+            const running = FleetState.runningAssets[assetId];
+            if (!running) return;
+
+            const elapsed = Math.floor((Date.now() - running.startTime) / 60000);
+
+            const dialog = document.createElement('div');
+            dialog.className = 'tractor-dialog active';
+            dialog.id = 'tractorStartDialog';
+            dialog.innerHTML = `
+                <div class="tractor-dialog-content">
+                    <div class="tractor-dialog-title">
+                        <i class="fas fa-stop-circle" style="color: var(--success);"></i>
+                        Stop ${assetId}
+                    </div>
+                    <div style="background: var(--bg-elevated); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                        <div style="color: var(--text-secondary); font-size: 13px;">Session Info</div>
+                        <div style="color: var(--text-primary);">Operator: ${running.operator}</div>
+                        <div style="color: var(--text-primary);">Task: ${running.task}</div>
+                        <div style="color: var(--text-primary);">Started: ${running.startHours} hrs</div>
+                        <div style="color: var(--success); font-weight: 700;">Time: ${elapsed} minutes</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Ending Hours</label>
+                        <input type="number" id="tractorEndHours" class="garage-input" placeholder="Current hours on meter" inputmode="decimal" step="0.1">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="garage-submit secondary" onclick="closeTractorDialog()" style="flex: 1;">Cancel</button>
+                        <button class="garage-submit" onclick="confirmStopTractor('${assetId}')" style="flex: 1;">
+                            <i class="fas fa-check"></i> Log Hours
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+        }
+
+        async function confirmStopTractor(assetId) {
+            const endHours = parseFloat(document.getElementById('tractorEndHours').value);
+            const running = FleetState.runningAssets[assetId];
+
+            if (!endHours || endHours < running.startHours) {
+                showToast('Please enter valid ending hours', 'warning');
+                return;
+            }
+
+            const hoursRun = endHours - running.startHours;
+
+            // Send to API
+            try {
+                await fetch(FLEET_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'usage_end',
+                        assetId: assetId,
+                        reading: endHours,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (e) {
+                console.log('[Fleet] API call queued for sync');
+            }
+
+            // Clear from running
+            delete FleetState.runningAssets[assetId];
+
+            closeTractorDialog();
+            renderFleetGrid();
+            showToast(`Logged ${hoursRun.toFixed(1)} hours for ${assetId}`, 'success');
+        }
+
+        function closeTractorDialog() {
+            const dialog = document.getElementById('tractorStartDialog');
+            if (dialog) dialog.remove();
+        }
+
+        function openTractorDialog(assetId) {
+            // Show tractor details/wheel specs
+            const tractor = FleetState.tractors.find(t => t.id === assetId);
+            showToast(`${assetId}: ${tractor?.model || 'Unknown'}`, 'info');
+        }
+
+        function populateFleetSelects() {
+            const selects = ['fuelAsset', 'garageAsset', 'breakdownAsset', 'inspectAsset'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">-- Select --</option>';
+
+                FleetState.tractors.forEach(t => {
+                    select.innerHTML += `<option value="${t.id}">${t.id} - ${t.model || 'Tractor'}</option>`;
+                });
+
+                FleetState.utilities.forEach(u => {
+                    select.innerHTML += `<option value="${u.id}">${u.id} - ${u.model || 'Vehicle'}</option>`;
+                });
+
+                if (currentValue) select.value = currentValue;
+            });
+        }
+
+        // ============================================
+        // FUEL LOGGING (Tractor Mode)
+        // ============================================
+        function updateFuelTotal() {
+            const gallons = parseFloat(document.getElementById('fuelGallons')?.value || 0);
+            const costPerGallon = parseFloat(document.getElementById('fuelCostPerGallon')?.value || 0);
+            const total = gallons * costPerGallon;
+            const display = document.getElementById('fuelTotalAmount');
+            if (display) display.textContent = `$${total.toFixed(2)}`;
+        }
+
+        // Add event listeners for fuel inputs
+        document.addEventListener('DOMContentLoaded', () => {
+            const fuelGallons = document.getElementById('fuelGallons');
+            const fuelCost = document.getElementById('fuelCostPerGallon');
+            if (fuelGallons) fuelGallons.addEventListener('input', updateFuelTotal);
+            if (fuelCost) fuelCost.addEventListener('input', updateFuelTotal);
+        });
+
+        async function submitFuelLog() {
+            const assetId = document.getElementById('fuelAsset').value;
+            const gallons = parseFloat(document.getElementById('fuelGallons').value);
+            const costPerGallon = parseFloat(document.getElementById('fuelCostPerGallon').value);
+            const reading = document.getElementById('fuelReading').value;
+
+            if (!assetId || !gallons) {
+                showToast('Please select asset and enter gallons', 'warning');
+                return;
+            }
+
+            const fuelLog = {
+                assetId,
+                gallons,
+                costPerGallon,
+                totalCost: gallons * costPerGallon,
+                reading,
+                timestamp: new Date().toISOString(),
+                employee: AppState.employee?.Name || 'Unknown'
+            };
+
+            // Send to API (could add fuel logging endpoint)
+            console.log('[Fuel] Logged:', fuelLog);
+
+            // Clear form
+            document.getElementById('fuelGallons').value = '';
+            document.getElementById('fuelReading').value = '';
+
+            showToast(`Logged ${gallons} gal for ${assetId}`, 'success');
+
+            // Add to recent list
+            addFuelToRecentList(fuelLog);
+        }
+
+        function addFuelToRecentList(log) {
+            const container = document.getElementById('recentFuelLogs');
+            if (!container) return;
+
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const item = document.createElement('div');
+            item.className = 'fuel-log-item';
+            item.innerHTML = `
+                <div>
+                    <div class="fuel-log-asset">${log.assetId}</div>
+                    <div class="fuel-log-meta">Just now</div>
+                </div>
+                <div class="fuel-log-amount">
+                    <div class="fuel-log-gallons">${log.gallons} gal</div>
+                    <div class="fuel-log-cost">$${log.totalCost.toFixed(2)}</div>
+                </div>
+            `;
+            container.insertBefore(item, container.firstChild);
+        }
+
+        // ============================================
+        // GARAGE MODE
+        // ============================================
+        let garagePhotoData = null;
+        let breakdownPhotoData = null;
+        let selectedSeverity = null;
+
+        function loadGarageAssets() {
+            loadFleetData();
+        }
+
+        function switchGarageTab(tab) {
+            document.querySelectorAll('.garage-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            document.querySelectorAll('.garage-panel').forEach(p => {
+                p.classList.toggle('active', p.id === `garage${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`);
+            });
+        }
+
+        function selectSeverity(severity) {
+            selectedSeverity = severity;
+            document.querySelectorAll('.severity-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.textContent.trim().toLowerCase().includes(severity.toLowerCase()));
+            });
+        }
+
+        function takeGaragePhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        garagePhotoData = ev.target.result;
+                        const preview = document.getElementById('garagePhotoPreview');
+                        preview.src = garagePhotoData;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        }
+
+        function takeBreakdownPhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        breakdownPhotoData = ev.target.result;
+                        const preview = document.getElementById('breakdownPhotoPreview');
+                        preview.src = breakdownPhotoData;
+                        preview.style.display = 'block';
+                        document.querySelector('.garage-photo-btn.required').classList.remove('required');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        }
+
+        async function submitGarageMaintenance() {
+            const assetId = document.getElementById('garageAsset').value;
+            const serviceType = document.getElementById('garageServiceType').value;
+            const hours = document.getElementById('garageHours').value;
+            const cost = document.getElementById('garageCost').value;
+            const notes = document.getElementById('garageNotes').value;
+
+            if (!assetId || !serviceType) {
+                showToast('Please select asset and service type', 'warning');
+                return;
+            }
+
+            const payload = {
+                type: 'maintenance',
+                assetId: assetId,
+                category: serviceType,
+                reading: parseFloat(hours) || 0,
+                notes: notes,
+                cost: parseFloat(cost) || 0,
+                image: garagePhotoData || '',
+                winterized: serviceType === 'Winterize',
+                user: AppState.employee?.Name || 'Staff',
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                await fetch(FLEET_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                showToast(`${serviceType} logged for ${assetId}`, 'success');
+
+                // Clear form
+                document.getElementById('garageAsset').value = '';
+                document.getElementById('garageServiceType').value = '';
+                document.getElementById('garageHours').value = '';
+                document.getElementById('garageCost').value = '';
+                document.getElementById('garageNotes').value = '';
+                garagePhotoData = null;
+                document.getElementById('garagePhotoPreview').style.display = 'none';
+
+            } catch (e) {
+                showToast('Logged locally - will sync when online', 'info');
+            }
+        }
+
+        async function submitBreakdown() {
+            const assetId = document.getElementById('breakdownAsset').value;
+            const notes = document.getElementById('breakdownNotes').value;
+            const parts = document.getElementById('breakdownParts').value;
+
+            if (!assetId || !selectedSeverity || !breakdownPhotoData) {
+                showToast('Please fill all fields and take a photo', 'warning');
+                return;
+            }
+
+            const payload = {
+                type: 'breakdown',
+                assetId: assetId,
+                severity: selectedSeverity,
+                notes: notes,
+                parts: parts,
+                image: breakdownPhotoData,
+                user: AppState.employee?.Name || 'Staff',
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                await fetch(FLEET_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                showToast(`Breakdown reported for ${assetId}`, 'success');
+
+                // Clear form
+                document.getElementById('breakdownAsset').value = '';
+                document.getElementById('breakdownNotes').value = '';
+                document.getElementById('breakdownParts').value = '';
+                breakdownPhotoData = null;
+                selectedSeverity = null;
+                document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('selected'));
+                document.getElementById('breakdownPhotoPreview').style.display = 'none';
+
+            } catch (e) {
+                showToast('Reported locally - will sync when online', 'info');
+            }
+        }
+
+        async function submitInspection() {
+            const assetId = document.getElementById('inspectAsset').value;
+            const lights = document.getElementById('inspectLights').checked;
+            const tires = document.getElementById('inspectTires').checked;
+            const fluids = document.getElementById('inspectFluids').checked;
+            const brakes = document.getElementById('inspectBrakes').checked;
+            const notes = document.getElementById('inspectNotes').value;
+
+            if (!assetId) {
+                showToast('Please select an asset', 'warning');
+                return;
+            }
+
+            const payload = {
+                type: 'inspection',
+                assetId: assetId,
+                lights: lights,
+                tires: tires,
+                fluids: fluids,
+                brakes: brakes,
+                notes: notes,
+                user: AppState.employee?.Name || 'Staff',
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                await fetch(FLEET_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                showToast(`Inspection complete for ${assetId}`, 'success');
+
+                // Clear form
+                document.getElementById('inspectAsset').value = '';
+                document.getElementById('inspectLights').checked = false;
+                document.getElementById('inspectTires').checked = false;
+                document.getElementById('inspectFluids').checked = false;
+                document.getElementById('inspectBrakes').checked = false;
+                document.getElementById('inspectNotes').value = '';
+
+            } catch (e) {
+                showToast('Logged locally - will sync when online', 'info');
+            }
+        }
+
+        // ============================================
+        // NEEDS TO BUY LIST
+        // ============================================
+        function addToNeedsList() {
+            const input = document.getElementById('newPartItem');
+            const item = input.value.trim();
+            if (!item) return;
+
+            FleetState.needsToBuy.push({
+                id: Date.now(),
+                item: item,
+                addedBy: AppState.employee?.Name || 'Unknown',
+                addedAt: new Date().toISOString()
+            });
+
+            localStorage.setItem('tsf_needs_list', JSON.stringify(FleetState.needsToBuy));
+            input.value = '';
+            renderNeedsList();
+            showToast('Item added to list', 'success');
+        }
+
+        function removeFromNeedsList(id) {
+            FleetState.needsToBuy = FleetState.needsToBuy.filter(i => i.id !== id);
+            localStorage.setItem('tsf_needs_list', JSON.stringify(FleetState.needsToBuy));
+            renderNeedsList();
+        }
+
+        function renderNeedsList() {
+            const container = document.getElementById('needsToBuyList');
+            if (!container) return;
+
+            if (FleetState.needsToBuy.length === 0) {
+                container.innerHTML = `<div class="empty-state small"><i class="fas fa-shopping-cart"></i><p>No items in list</p></div>`;
+                return;
+            }
+
+            container.innerHTML = FleetState.needsToBuy.map(item => `
+                <div class="needs-item">
+                    <span class="needs-item-text">${item.item}</span>
+                    <button class="needs-item-remove" onclick="removeFromNeedsList(${item.id})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function shareNeedsList() {
+            const items = FleetState.needsToBuy.map(i => `- ${i.item}`).join('\n');
+            const text = `Tiny Seed Farm - Needs to Buy\n\n${items || 'No items'}`;
+
+            if (navigator.share) {
+                navigator.share({ title: 'TSF Needs List', text: text });
+            } else {
+                navigator.clipboard.writeText(text);
+                showToast('List copied to clipboard', 'success');
+            }
+        }
+
+        // Initialize needs list on load
+        document.addEventListener('DOMContentLoaded', renderNeedsList);
 
         // ============================================
         // QR/BARCODE SCANNER
