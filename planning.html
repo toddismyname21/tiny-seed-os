@@ -1087,6 +1087,83 @@
                 </table>
             </div>
         </div>
+
+        <!-- Vegetable Critical Dates Section -->
+        <div class="planning-card" style="margin-top: 2rem;">
+            <div class="card-header">
+                <h3><i class="fas fa-calendar-alt" style="color: var(--success);"></i> Vegetable Critical Dates (Zone 6b)</h3>
+                <button class="action-btn" onclick="toggleVegDates()" id="vegDatesToggle">
+                    <i class="fas fa-chevron-down"></i> Show Calendar
+                </button>
+            </div>
+            <div id="vegDatesContent" style="display: none; padding-top: 1rem;">
+                <!-- Key Anchors -->
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                    <div style="background: var(--bg-light); padding: 0.75rem 1.25rem; border-radius: 8px; border-left: 4px solid var(--success);">
+                        <strong style="color: var(--success);">Last Frost:</strong> <span style="color: var(--text-primary);">May 15</span>
+                    </div>
+                    <div style="background: var(--bg-light); padding: 0.75rem 1.25rem; border-radius: 8px; border-left: 4px solid var(--danger);">
+                        <strong style="color: var(--danger);">First Frost:</strong> <span style="color: var(--text-primary);">Oct 15</span>
+                    </div>
+                    <div style="background: var(--bg-light); padding: 0.75rem 1.25rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <strong style="color: #3b82f6;">Persephone:</strong> <span style="color: var(--text-primary);">Nov 10</span>
+                    </div>
+                </div>
+
+                <!-- Critical Dates Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                    <!-- Spring -->
+                    <div style="background: linear-gradient(135deg, rgba(42, 157, 143, 0.1) 0%, rgba(42, 157, 143, 0.05) 100%); border-radius: 12px; padding: 1rem; border: 1px solid rgba(42, 157, 143, 0.3);">
+                        <h4 style="color: var(--success); margin-bottom: 0.75rem;"><i class="fas fa-leaf"></i> SPRING</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                            <div><span style="color: var(--success); font-weight: 600;">Feb 15</span> <span style="color: var(--text-secondary);">— Slow Roots: Seed Onions, Leeks, Celeriac</span></div>
+                            <div><span style="color: var(--success); font-weight: 600;">Mar 1</span> <span style="color: var(--text-secondary);">— Early Greens: Seed Spinach, Lettuce, Brassicas</span></div>
+                            <div><span style="color: var(--success); font-weight: 600;">Mar 15</span> <span style="color: var(--text-secondary);">— Hardy Veg: Direct Sow Peas, Spinach, Radish</span></div>
+                            <div><span style="color: var(--success); font-weight: 600;">Apr 1</span> <span style="color: var(--text-secondary);">— Warm Crops: Seed Tomatoes, Peppers, Eggplant</span></div>
+                            <div><span style="color: var(--success); font-weight: 600;">Apr 15</span> <span style="color: var(--text-secondary);">— Cole Crops: Transplant Broccoli, Cabbage, Kale</span></div>
+                            <div><span style="color: var(--success); font-weight: 600;">Apr 25</span> <span style="color: var(--text-secondary);">— Vine Crops: Seed Cukes, Squash, Melons</span></div>
+                            <div><span style="color: var(--danger); font-weight: 600;">May 22</span> <span style="color: var(--text-secondary);">— <strong>MAIN PLANTING: All Tender Crops</strong></span></div>
+                        </div>
+                    </div>
+
+                    <!-- Summer -->
+                    <div style="background: linear-gradient(135deg, rgba(244, 162, 97, 0.1) 0%, rgba(244, 162, 97, 0.05) 100%); border-radius: 12px; padding: 1rem; border: 1px solid rgba(244, 162, 97, 0.3);">
+                        <h4 style="color: var(--secondary); margin-bottom: 0.75rem;"><i class="fas fa-sun"></i> SUMMER</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                            <div><span style="color: var(--secondary); font-weight: 600;">May 15</span> <span style="color: var(--text-secondary);">— Long Fall Crops: Seed Brussels Sprouts</span></div>
+                            <div><span style="color: var(--secondary); font-weight: 600;">Jun 15</span> <span style="color: var(--text-secondary);">— Fall Storage: Direct Sow Winter Squash, Pumpkins</span></div>
+                            <div><span style="color: var(--secondary); font-weight: 600;">Jun 20</span> <span style="color: var(--text-secondary);">— Fall Brassicas: Seed Cabbage, Broccoli, Cauli</span></div>
+                            <div><span style="color: var(--secondary); font-weight: 600;">Jul 15</span> <span style="color: var(--text-secondary);">— Fall Brassicas: Transplant to Field</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Winter Prep -->
+                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%); border-radius: 12px; padding: 1rem; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <h4 style="color: #3b82f6; margin-bottom: 0.75rem;"><i class="fas fa-snowflake"></i> WINTER PREP</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                            <div><span style="color: #3b82f6; font-weight: 600;">Aug 1</span> <span style="color: var(--text-secondary);">— Storage Roots: Direct Sow Carrots, Beets</span></div>
+                            <div><span style="color: #3b82f6; font-weight: 600;">Aug 15</span> <span style="color: var(--text-secondary);">— Overwinter Onions: Seed Bridger, T-448</span></div>
+                            <div><span style="color: #3b82f6; font-weight: 600;">Aug 15</span> <span style="color: var(--text-secondary);">— Tunnel Greens: Seed Kale, Chard, Collards</span></div>
+                            <div><span style="color: var(--danger); font-weight: 600;">Sep 1</span> <span style="color: var(--text-secondary);">— <strong>Winter Roots: Last Daikon/Turnip Sow</strong></span></div>
+                            <div><span style="color: var(--danger); font-weight: 600;">Sep 7-10</span> <span style="color: var(--text-secondary);">— <strong>Winter Spinach: Direct Sow Tunnel</strong></span></div>
+                            <div><span style="color: var(--danger); font-weight: 600;">Sep 15</span> <span style="color: var(--text-secondary);">— <strong>Tunnel Greens: Transplant Now!</strong></span></div>
+                            <div><span style="color: #3b82f6; font-weight: 600;">Oct 1</span> <span style="color: var(--text-secondary);">— Overwinter Onions: Transplant to Field</span></div>
+                            <div><span style="color: #3b82f6; font-weight: 600;">Oct 15</span> <span style="color: var(--text-secondary);">— Garlic: Plant Hardneck (at first frost)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Winter Tips -->
+                <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-light); border-radius: 10px; border-left: 4px solid #3b82f6;">
+                    <h4 style="color: #3b82f6; margin-bottom: 0.75rem;"><i class="fas fa-lightbulb"></i> Winter Success Rules</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
+                        <div style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">1. Size before darkness:</strong> Crops must be at target size by Nov 10 (Persephone)</div>
+                        <div style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">2. Spinach penny rule:</strong> Plants must be silver-dollar size by Thanksgiving</div>
+                        <div style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">3. Airflow beats heat:</strong> Vent early, vent often. Row cover adds degrees; humidity subtracts quality</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Bulk Actions Bar -->
@@ -1321,6 +1398,19 @@
         // ========================================
         // DATA LOADING
         // ========================================
+        // Toggle Vegetable Critical Dates
+        function toggleVegDates() {
+            const content = document.getElementById('vegDatesContent');
+            const btn = document.getElementById('vegDatesToggle');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                btn.innerHTML = '<i class="fas fa-chevron-up"></i> Hide Calendar';
+            } else {
+                content.style.display = 'none';
+                btn.innerHTML = '<i class="fas fa-chevron-down"></i> Show Calendar';
+            }
+        }
+
         async function loadPlantings() {
             try {
                 const response = await fetch(`${API_URL}?action=getPlanningData`);

@@ -740,6 +740,10 @@
                 <i class="fas fa-book-open"></i>
                 How-Tos
             </button>
+            <button class="tab-btn" data-tab="germination">
+                <i class="fas fa-temperature-half"></i>
+                Germination Guide
+            </button>
         </nav>
 
         <!-- Dashboard Tab -->
@@ -974,6 +978,137 @@
                 </div>
             </div>
         </div>
+
+        <!-- Germination Guide Tab -->
+        <div id="germination" class="tab-content">
+            <!-- Make or Break Rules -->
+            <div class="section" style="background: linear-gradient(135deg, rgba(156, 79, 150, 0.1) 0%, rgba(199, 125, 190, 0.1) 100%); border-color: var(--primary);">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+                        <h2>Flower Germination — Make or Break Rules</h2>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                    <div style="background: var(--bg-light); border-radius: 12px; padding: 1.25rem; border-left: 4px solid #fcd34d;">
+                        <h4 style="color: #fcd34d; margin-bottom: 0.75rem;"><i class="fas fa-sun"></i> LIGHT REQUIRED</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Surface sow (do not bury)</p>
+                        <ul style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 1.25rem;">
+                            <li>Do not cover with soil. Press seed to contact, then mist heavily.</li>
+                            <li>Vermiculite is OK only as an ultra-thin moisture lid.</li>
+                            <li>Pelleted seed: keep fully moist until coating dissolves.</li>
+                        </ul>
+                    </div>
+                    <div style="background: var(--bg-light); border-radius: 12px; padding: 1.25rem; border-left: 4px solid #c084fc;">
+                        <h4 style="color: #c084fc; margin-bottom: 0.75rem;"><i class="fas fa-moon"></i> DARKNESS REQUIRED</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Cover to block light</p>
+                        <ul style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 1.25rem;">
+                            <li>Cover completely (soil or vermiculite) or seed may stay dormant.</li>
+                            <li>Optional: dark cardboard lid until first sprouts show.</li>
+                            <li>Remove cover immediately once germination starts.</li>
+                        </ul>
+                    </div>
+                    <div style="background: var(--bg-light); border-radius: 12px; padding: 1.25rem; border-left: 4px solid #60a5fa;">
+                        <h4 style="color: #60a5fa; margin-bottom: 0.75rem;"><i class="fas fa-snowflake"></i> COOL SOIL</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Above 65°F = dormancy risk</p>
+                        <ul style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 1.25rem;">
+                            <li>Do not use heat mats for cool-soil crops.</li>
+                            <li>Aim 50-65°F, keep evenly moist, and ventilate.</li>
+                            <li>If chamber is warm, germinate outside the chamber.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="margin-top: 1.25rem; padding: 1rem; background: var(--bg-light); border-radius: 10px;">
+                    <p style="color: var(--flower-pink); font-weight: 600; margin-bottom: 0.5rem;">Pro Tip:</p>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">If pelleted lisianthus dries even once, germination can crash. Keep dome on until sprout, then vent gradually.</p>
+                </div>
+            </div>
+
+            <!-- Group 1: Surface Sow -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-sun" style="color: #fcd34d;"></i>
+                        <h2>GROUP 1 — Surface Sow (Light Required)</h2>
+                        <span class="badge" style="background: #fcd34d; color: #1a1a2e;">14 crops</span>
+                    </div>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Rule: surface sow + mist. Do not bury. Pellets must stay continuously moist.</p>
+                <div class="table-container">
+                    <table id="germGroup1Table">
+                        <thead>
+                            <tr>
+                                <th>Crop</th>
+                                <th>Ideal Temp (°F)</th>
+                                <th>Days</th>
+                                <th>Special Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="germGroup1Body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Group 2: Darkness Required -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-moon" style="color: #c084fc;"></i>
+                        <h2>GROUP 2 — Cover Completely (Darkness Required)</h2>
+                        <span class="badge" style="background: #c084fc; color: white;">8 crops</span>
+                    </div>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Rule: cover to block light. Optional: dark lid until first sprouts show.</p>
+                <div class="table-container">
+                    <table id="germGroup2Table">
+                        <thead>
+                            <tr>
+                                <th>Crop</th>
+                                <th>Ideal Temp (°F)</th>
+                                <th>Days</th>
+                                <th>Special Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="germGroup2Body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Group 3: Standard Cover -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-header-left">
+                        <i class="fas fa-seedling" style="color: var(--success);"></i>
+                        <h2>GROUP 3 — Standard Cover (Goldilocks)</h2>
+                        <span class="badge" style="background: var(--success); color: white;">22 crops</span>
+                    </div>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Rule: sow ~2x seed thickness and cover lightly. Watch COOL SOIL vs HEAT LOVER notes.</p>
+                <div class="table-container">
+                    <table id="germGroup3Table">
+                        <thead>
+                            <tr>
+                                <th>Crop</th>
+                                <th>Ideal Temp (°F)</th>
+                                <th>Days</th>
+                                <th>Special Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="germGroup3Body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 10px; border-left: 4px solid var(--danger);">
+                    <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;"><i class="fas fa-fire" style="color: var(--danger);"></i> Heat Mat Decision:</p>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">USE for Marigold/Zinnia; AVOID for Ammi/Bupleurum/Orlaya/Bells of Ireland.</p>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Floating Action Button -->
@@ -1141,33 +1276,40 @@
             { id: 8, name: "Pre-sprout ranunculus corms", flower: "Ranunculus", estTime: "1 hour", supplies: "Trays, damp paper towels", assigned: "Loren", dueDate: "2026-01-28", priority: "high", done: false, notes: "Soak 4 hours first" }
         ];
 
-        // Critical Dates Calendar Data
+        // Critical Dates Calendar Data (from Winter Growing Protocols 2026)
         const criticalDates = {
             "January": [
+                { event: "Slow Cool Flowers: Seed Lisianthus, Eucalyptus", type: "critical", date: "Jan 1" },
                 { event: "Start tulip forcing - batch 2", type: "critical", date: "Jan 15-20" },
                 { event: "Order ranunculus corms", type: "important", date: "Jan 15" },
                 { event: "Dahlia tuber check/split", type: "important", date: "Jan 20-31" }
             ],
             "February": [
+                { event: "Hardy Annuals: Seed Snapdragons, Statice, Stock", type: "critical", date: "Feb 15" },
                 { event: "Seed lisianthus (120-150 DTB)", type: "critical", date: "Feb 1" },
                 { event: "Pre-sprout ranunculus corms", type: "critical", date: "Feb 1-15" },
                 { event: "Plant anemone corms", type: "important", date: "Feb 15" },
                 { event: "Tulip forcing - batch 3", type: "important", date: "Feb 1" }
             ],
             "March": [
+                { event: "Direct Sow Poppies, Larkspur (ground thaws)", type: "critical", date: "Mar 1" },
+                { event: "Sweet Peas: Soak/Sow", type: "important", date: "Mar 1" },
                 { event: "Seed snapdragons (succession 1)", type: "important", date: "Mar 1" },
                 { event: "Plant ranunculus corms", type: "critical", date: "Mar 1-15" },
                 { event: "Start dahlia cuttings", type: "important", date: "Mar 15" },
                 { event: "First tulip harvest (tunnel)", type: "harvest", date: "Mar 15-30" }
             ],
             "April": [
+                { event: "Hardy Transplants: Snaps, Stock, Feverfew", type: "critical", date: "Apr 1" },
+                { event: "Summer Annuals: Seed Zinnias, Celosia, Basil", type: "important", date: "Apr 15" },
                 { event: "Seed zinnias (succession 1)", type: "important", date: "Apr 1" },
-                { event: "Seed sunflowers (succession 1)", type: "important", date: "Apr 1" },
+                { event: "Sunflowers succession #1", type: "important", date: "Apr 25" },
                 { event: "Transplant snapdragons", type: "important", date: "Apr 15" },
                 { event: "Ranunculus harvest begins", type: "harvest", date: "Apr 15" }
             ],
             "May": [
-                { event: "Transplant dahlias", type: "critical", date: "May 15-30" },
+                { event: "TENDER PLANTING: Dahlias, Zinnias, Celosia", type: "critical", date: "May 22" },
+                { event: "Transplant dahlias (after frost)", type: "critical", date: "May 15-30" },
                 { event: "Seed zinnias (succession 2)", type: "important", date: "May 1" },
                 { event: "Seed sunflowers (succession 2)", type: "important", date: "May 1" },
                 { event: "Anemone harvest", type: "harvest", date: "May 1-30" }
@@ -1178,27 +1320,35 @@
                 { event: "Snapdragon harvest", type: "harvest", date: "Jun 1-30" }
             ],
             "July": [
+                { event: "Fall Blooms: Last sunflower sow for Oct bloom", type: "important", date: "Jul 15" },
                 { event: "Dahlia harvest begins", type: "harvest", date: "Jul 1" },
                 { event: "Zinnia harvest begins", type: "harvest", date: "Jul 1" },
                 { event: "Seed snapdragons (fall)", type: "important", date: "Jul 15" },
                 { event: "Sunflower harvest", type: "harvest", date: "Jul 15" }
             ],
             "August": [
+                { event: "Biennials: Seed Foxglove, Sweet William", type: "critical", date: "Aug 1" },
+                { event: "Overwinter Flowers: Seed Rudbeckia, Feverfew, Bells", type: "critical", date: "Aug 15" },
                 { event: "Order tulip bulbs for forcing", type: "critical", date: "Aug 1" },
                 { event: "Seed overwintering flowers", type: "critical", date: "Aug 15-31" },
                 { event: "Peak dahlia harvest", type: "harvest", date: "Aug 1-31" }
             ],
             "September": [
+                { event: "Cool Flowers: Direct Sow Bupleurum, Nigella", type: "critical", date: "Sep 1" },
                 { event: "Plant overwintering snapdragons", type: "critical", date: "Sep 1-15" },
                 { event: "Pre-cool tulip bulbs (begin)", type: "critical", date: "Sep 15" },
                 { event: "Order ranunculus/anemone corms", type: "important", date: "Sep 1" }
             ],
             "October": [
+                { event: "Biennials Transplant: Foxglove, Sweet William", type: "critical", date: "Oct 1" },
+                { event: "Forced Tulips: Start chill at 40°F", type: "critical", date: "Oct 14" },
+                { event: "Plant Bulbs: Tulips, Daffodils (6\" deep)", type: "critical", date: "Oct 15" },
                 { event: "Dig dahlia tubers (after frost)", type: "critical", date: "Oct 15-30" },
-                { event: "Last zinnia harvest", type: "harvest", date: "Oct 1-15" },
-                { event: "Tulip cooling continues", type: "important", date: "Oct 1-31" }
+                { event: "Last zinnia harvest", type: "harvest", date: "Oct 1-15" }
             ],
             "November": [
+                { event: "⚠️ PERSEPHONE PERIOD BEGINS (Nov 10)", type: "critical", date: "Nov 10" },
+                { event: "Crops must be at size before darkness!", type: "important", date: "Nov 10" },
                 { event: "Store dahlia tubers", type: "important", date: "Nov 1-15" },
                 { event: "Prep tulip forcing crates", type: "important", date: "Nov 15" }
             ],
@@ -1467,6 +1617,60 @@
             }
         ];
 
+        // Flower Germination Data (from Tiny Seed Farm Germination Charts v2026)
+        const germinationData = {
+            group1: [ // Surface Sow - Light Required
+                { crop: "Ageratum", temp: "75-80", days: "7-10", notes: "Warmth lover. Do not let dry out." },
+                { crop: "Campanula", temp: "65-68", days: "7-14", notes: "Do not cover. Tiny seed." },
+                { crop: "Celosia", temp: "70-80", days: "8-14", notes: "Cover ultra-thin vermiculite only to hold moisture." },
+                { crop: "Columbine", temp: "70-75", days: "21-28", notes: "Slow. Needs light." },
+                { crop: "Echinops", temp: "65-75", days: "14-21", notes: "Light helps germination." },
+                { crop: "Lisianthus", temp: "68-72", days: "10-15", notes: "⚠️ Strict: keep 100% moist to break pellet." },
+                { crop: "Matricaria", temp: "70", days: "10-14", notes: "Surface sow." },
+                { crop: "Nicotiana", temp: "72-78", days: "7-14", notes: "Light helps. Gently press into soil." },
+                { crop: "Poppy (Iceland)", temp: "65-75", days: "7-12", notes: "Prefer cooler end (<70°F)." },
+                { crop: "Rudbeckia (hirta)", temp: "68-72", days: "8-14", notes: "Very light vermiculite cover or none." },
+                { crop: "Snapdragon", temp: "70-75", days: "7-14", notes: "Boost: 48 hrs at ~55°F after sowing." },
+                { crop: "Statice", temp: "70", days: "5-14", notes: "Light helps. Thin vermiculite cover is best." },
+                { crop: "Strawflower", temp: "70-75", days: "7-10", notes: "Do not cover." },
+                { crop: "Yarrow", temp: "65-72", days: "10-14", notes: "Light required." }
+            ],
+            group2: [ // Darkness Required
+                { crop: "Calendula", temp: "70", days: "7-14", notes: "Sow 1/2\" deep. Fast sprouter." },
+                { crop: "Cress", temp: "55-65", days: "2-5", notes: "Sow 1/2\" deep. Very fast." },
+                { crop: "Larkspur", temp: "55 (cool)", days: "14-21", notes: "⚠️ Pre-chill: freeze packet 1 week before sowing." },
+                { crop: "Lupine", temp: "65-75", days: "14-21", notes: "Scarify + soak 24 hrs." },
+                { crop: "Nasturtium", temp: "60-65", days: "7-14", notes: "Sow 1/2\"-1\" deep. Big seed." },
+                { crop: "Nigella", temp: "60-65", days: "10-14", notes: "Cover completely." },
+                { crop: "Phlox (drummondii)", temp: "60-65", days: "5-10", notes: "Darkness helps germination." },
+                { crop: "Sweet Peas", temp: "55-65", days: "14-21", notes: "⚠️ Soak 24 hrs. Sow 1\" deep. Keep cool." }
+            ],
+            group3: [ // Standard Cover
+                { crop: "Amaranthus", temp: "70-75", days: "7-10", notes: "Warm soil helps." },
+                { crop: "Ammi / Daucus", temp: "60-65", days: "12-16", notes: "❄️ COOL SOIL: do not overheat." },
+                { crop: "Aster", temp: "70-72", days: "10-14", notes: "Even moisture is key." },
+                { crop: "Basil", temp: "65-70", days: "5-10", notes: "Heat mat optional (can handle 80°F)." },
+                { crop: "Bells of Ireland", temp: "50-60", days: "12-21", notes: "❄️ COOL SOIL. If poor, damp seed in fridge 2 wks." },
+                { crop: "Bupleurum", temp: "55-60", days: "14-21", notes: "❄️ COOL SOIL. Hard to germinate in heat." },
+                { crop: "Cosmos", temp: "68-72", days: "7-10", notes: "Very fast." },
+                { crop: "Dahlia (from seed)", temp: "65-70", days: "3-5", notes: "Extremely fast." },
+                { crop: "Delphinium", temp: "65-70", days: "10-20", notes: "Finicky. Fresh seed matters." },
+                { crop: "Dianthus", temp: "65-72", days: "7-14", notes: "Reliable." },
+                { crop: "Digitalis (foxglove)", temp: "65-70", days: "14-21", notes: "Slow." },
+                { crop: "Dusty Miller", temp: "72-75", days: "7-10", notes: "Warmth helps." },
+                { crop: "Eucalyptus", temp: "65-80", days: "14-21", notes: "Slow / erratic. Be patient." },
+                { crop: "Gomphrena", temp: "70-78", days: "5-14", notes: "Cover lightly." },
+                { crop: "Ornamental grasses", temp: "65-70", days: "7-14", notes: "Most prefer 65-70°F." },
+                { crop: "Ornamental kale", temp: "70-85", days: "10-14", notes: "Fast." },
+                { crop: "Marigold", temp: "75-80", days: "4-7", notes: "🔥 Heat mat recommended." },
+                { crop: "Orlaya", temp: "60-65", days: "12-16", notes: "❄️ COOL SOIL. Can be slow." },
+                { crop: "Scabiosa", temp: "65-70", days: "10-12", notes: "Reliable." },
+                { crop: "Stock", temp: "65-75", days: "7-14", notes: "Do not pinch." },
+                { crop: "Sunflowers", temp: "70-75", days: "7-14", notes: "Sow 1/2\" deep." },
+                { crop: "Zinnia", temp: "80-85", days: "3-5", notes: "🔥 HEAT LOVER: heat mat for near-100% in ~3 days." }
+            ]
+        };
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             initTabs();
@@ -1476,6 +1680,7 @@
             renderCalendar();
             renderHowTos();
             renderPlanning();
+            renderGerminationTables();
         });
 
         // Tab functionality
@@ -1751,6 +1956,39 @@
                 }
             });
         });
+
+        // Render Germination Tables
+        function renderGerminationTables() {
+            // Group 1 - Surface Sow
+            document.getElementById('germGroup1Body').innerHTML = germinationData.group1.map(g => `
+                <tr>
+                    <td><strong>${g.crop}</strong></td>
+                    <td>${g.temp}°F</td>
+                    <td>${g.days}</td>
+                    <td>${g.notes}</td>
+                </tr>
+            `).join('');
+
+            // Group 2 - Darkness Required
+            document.getElementById('germGroup2Body').innerHTML = germinationData.group2.map(g => `
+                <tr>
+                    <td><strong>${g.crop}</strong></td>
+                    <td>${g.temp}°F</td>
+                    <td>${g.days}</td>
+                    <td>${g.notes}</td>
+                </tr>
+            `).join('');
+
+            // Group 3 - Standard Cover
+            document.getElementById('germGroup3Body').innerHTML = germinationData.group3.map(g => `
+                <tr>
+                    <td><strong>${g.crop}</strong></td>
+                    <td>${g.temp}°F</td>
+                    <td>${g.days}</td>
+                    <td>${g.notes}</td>
+                </tr>
+            `).join('');
+        }
     </script>
 </body>
 </html>

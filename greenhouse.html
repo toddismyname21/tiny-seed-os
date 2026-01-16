@@ -935,6 +935,111 @@
                 </div>
             </div>
         </section>
+
+        <!-- Vegetable Germination Guide -->
+        <section class="section" id="germination-guide">
+            <div class="section-header">
+                <div class="section-header-left">
+                    <i class="fas fa-temperature-half" style="color: #f59e0b;"></i>
+                    <h2>Germination Chamber Quick Reference</h2>
+                </div>
+                <button class="btn btn-secondary" onclick="toggleGermGuide()" id="germToggleBtn" style="padding: 8px 16px; font-size: 0.85rem;">
+                    <i class="fas fa-chevron-down"></i> Show Guide
+                </button>
+            </div>
+            <div id="germGuideContent" style="display: none;">
+                <!-- Quick Rules -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%); border-radius: 12px; padding: 1rem; border-left: 4px solid #ef4444;">
+                        <h4 style="color: #ef4444; margin-bottom: 0.5rem; font-size: 0.9rem;"><i class="fas fa-fire"></i> HEAT MAT REQUIRED</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.8rem;">Needs 75°F+. Cold soil = rotted seed.</p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%); border-radius: 12px; padding: 1rem; border-left: 4px solid #3b82f6;">
+                        <h4 style="color: #3b82f6; margin-bottom: 0.5rem; font-size: 0.9rem;"><i class="fas fa-snowflake"></i> COOL SOIL ONLY</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.8rem;">No heat mats. >80°F = dormancy.</p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(250, 204, 21, 0.05) 100%); border-radius: 12px; padding: 1rem; border-left: 4px solid #facc15;">
+                        <h4 style="color: #facc15; margin-bottom: 0.5rem; font-size: 0.9rem;"><i class="fas fa-sun"></i> LIGHT REQUIRED</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.8rem;">Surface sow or vermiculite dust.</p>
+                    </div>
+                </div>
+
+                <!-- Cheat Codes -->
+                <div style="background: var(--bg-light); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; border: 1px solid var(--border);">
+                    <h4 style="color: var(--secondary); margin-bottom: 0.75rem;"><i class="fas fa-lightbulb"></i> Tiny Seed Cheat Codes</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                        <div style="font-size: 0.85rem;"><strong style="color: var(--danger);">Lettuce Fail:</strong> <span style="color: var(--text-secondary);">80°F chamber = zero lettuce. Start on coolest bench.</span></div>
+                        <div style="font-size: 0.85rem;"><strong style="color: var(--warning);">Pepper Patience:</strong> <span style="color: var(--text-secondary);">Often pops Day 10-12. Don't dump at Day 7.</span></div>
+                        <div style="font-size: 0.85rem;"><strong style="color: var(--success);">Celery Mistake:</strong> <span style="color: var(--text-secondary);">Needs light. Surface sow + constant moisture.</span></div>
+                        <div style="font-size: 0.85rem;"><strong style="color: var(--primary-light);">Spinach in Aug:</strong> <span style="color: var(--text-secondary);">Shade/barn starts. Sun trays hit 85°F.</span></div>
+                    </div>
+                </div>
+
+                <!-- Group 1: Heat Seekers -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #ef4444; margin-bottom: 0.75rem;"><i class="fas fa-fire"></i> Group 1 — Heat Seekers (Summer Crops)</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">Heat mat or chamber required. Move to bright light at emergence.</p>
+                    <table class="data-table" style="font-size: 0.85rem;">
+                        <thead>
+                            <tr><th>Crop</th><th>Cover</th><th>Ideal</th><th>Range</th><th>Days</th><th>Notes</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Tomatoes</strong></td><td>Standard</td><td>80°F</td><td>75-85°F</td><td>3-6</td><td>Fast. Remove from heat immediately on sprout.</td></tr>
+                            <tr><td><strong>Peppers</strong></td><td>Standard</td><td>85°F</td><td>80-90°F</td><td>7-14</td><td>Slow. Higher heat than tomatoes. Keep moist.</td></tr>
+                            <tr><td><strong>Eggplant</strong></td><td>Standard</td><td>85°F</td><td>80-90°F</td><td>7-10</td><td>Like peppers: loves heat. Cold soil stalls.</td></tr>
+                            <tr><td><strong>Cucumbers</strong></td><td>Standard</td><td>85°F</td><td>70-95°F</td><td>2-3</td><td>Explosive. Check 2x/day. Remove from heat fast.</td></tr>
+                            <tr><td><strong>Squash/Zucchini</strong></td><td>Standard</td><td>85°F</td><td>70-95°F</td><td>3-5</td><td>Large seed; easy to rot if cool/wet.</td></tr>
+                            <tr><td><strong>Melons</strong></td><td>Standard</td><td>90°F</td><td>80-95°F</td><td>3-5</td><td>Highest heat requirement.</td></tr>
+                            <tr><td><strong>Basil</strong></td><td>Light</td><td>75°F</td><td>70-85°F</td><td>5-7</td><td>Light aids germination. Dust vermiculite.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Group 2: Brassicas -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--success); margin-bottom: 0.75rem;"><i class="fas fa-leaf"></i> Group 2 — Cool & Fast (Brassica Workhorses)</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">Standard greenhouse temps work. Heat mats speed them up; watch for stretch.</p>
+                    <table class="data-table" style="font-size: 0.85rem;">
+                        <thead>
+                            <tr><th>Crop</th><th>Cover</th><th>Ideal</th><th>Range</th><th>Days</th><th>Notes</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Broccoli</strong></td><td>1/4"</td><td>70°F</td><td>45-85°F</td><td>3-5</td><td>Very vigorous. Will sprout in cool soil.</td></tr>
+                            <tr><td><strong>Cabbage</strong></td><td>1/4"</td><td>70°F</td><td>45-85°F</td><td>3-5</td><td>Standard depth and steady moisture.</td></tr>
+                            <tr><td><strong>Cauliflower</strong></td><td>1/4"</td><td>70°F</td><td>50-80°F</td><td>4-7</td><td>Slightly fussier. Keep moisture even.</td></tr>
+                            <tr><td><strong>Kale/Collards</strong></td><td>1/4"</td><td>70°F</td><td>50-85°F</td><td>3-5</td><td>Bulletproof. Watch for stretch.</td></tr>
+                            <tr><td><strong>Kohlrabi</strong></td><td>1/4"</td><td>70°F</td><td>50-85°F</td><td>3-5</td><td>Fast and uniform germination.</td></tr>
+                            <tr><td><strong>Brussels sprouts</strong></td><td>1/4"</td><td>70°F</td><td>50-85°F</td><td>4-7</td><td>Same as broccoli; keep trays from drying.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Group 3: Finicky -->
+                <div>
+                    <h4 style="color: #3b82f6; margin-bottom: 0.75rem;"><i class="fas fa-exclamation-triangle"></i> Group 3 — Finicky (Light or Temp Sensitive)</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">Respect COOL SOIL and LIGHT REQUIRED warnings. Lettuce + spinach hate heat.</p>
+                    <table class="data-table" style="font-size: 0.85rem;">
+                        <thead>
+                            <tr><th>Crop</th><th>Cover</th><th>Ideal</th><th>Range</th><th>Days</th><th>Notes</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr style="background: rgba(59,130,246,0.1);"><td><strong>Lettuce</strong></td><td>☀️ LIGHT</td><td>65°F</td><td>40-75°F</td><td>2-7</td><td>❄️ COOL SOIL ONLY. >80°F = thermodormancy!</td></tr>
+                            <tr style="background: rgba(250,204,21,0.1);"><td><strong>Celery/Celeriac</strong></td><td>☀️ LIGHT</td><td>70°F</td><td>60-75°F</td><td>14-21</td><td>Slow. Keep 100% moist 3 weeks. Don't bury!</td></tr>
+                            <tr style="background: rgba(59,130,246,0.1);"><td><strong>Spinach</strong></td><td>1/4"</td><td>60°F</td><td>45-68°F</td><td>6-10</td><td>❄️ COOL SOIL. Pre-chill seed if starting in heat.</td></tr>
+                            <tr><td><strong>Onions/Shallots</strong></td><td>1/4"</td><td>70°F</td><td>50-85°F</td><td>4-10</td><td>Hard seed coat: consistent moisture is key.</td></tr>
+                            <tr><td><strong>Leeks</strong></td><td>1/4"</td><td>70°F</td><td>50-85°F</td><td>7-10</td><td>Similar to onions. Even moisture.</td></tr>
+                            <tr><td><strong>Parsley</strong></td><td>1/4"</td><td>75°F</td><td>50-85°F</td><td>14-21</td><td>Very slow. Soak in warm water 24 hrs.</td></tr>
+                            <tr><td><strong>Beets</strong></td><td>1/2"</td><td>75°F</td><td>50-85°F</td><td>3-7</td><td>Seed is fruit cluster: multiple sprouts.</td></tr>
+                            <tr><td><strong>Chard</strong></td><td>1/2"</td><td>75°F</td><td>50-85°F</td><td>3-7</td><td>Same family as beets; easy and reliable.</td></tr>
+                            <tr><td><strong>Fennel (bulb)</strong></td><td>1/4"</td><td>70°F</td><td>60-75°F</td><td>7-10</td><td>Prefers consistent temps. No big swings.</td></tr>
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: var(--bg-dark); border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem;"><strong style="color: #3b82f6;">Bench Rule:</strong> COOL SOIL crops on the coolest rack (low/shaded). Heat seekers stay in chamber until emergence.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Tray Stock Modal -->
@@ -2002,6 +2107,19 @@
         // ========================================
         // TOAST NOTIFICATIONS
         // ========================================
+        // Toggle Germination Guide
+        function toggleGermGuide() {
+            const content = document.getElementById('germGuideContent');
+            const btn = document.getElementById('germToggleBtn');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                btn.innerHTML = '<i class="fas fa-chevron-up"></i> Hide Guide';
+            } else {
+                content.style.display = 'none';
+                btn.innerHTML = '<i class="fas fa-chevron-down"></i> Show Guide';
+            }
+        }
+
         function showToast(message, type = 'success') {
             // Remove existing toast
             const existing = document.querySelector('.toast-notification');
