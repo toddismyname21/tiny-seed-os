@@ -12728,12 +12728,18 @@ function authenticateEmployee(params) {
               return { success: false, error: 'Account is disabled' };
             }
 
+            // Build employee object with all fields from USERS sheet
             const employee = {
               Employee_ID: data[i][headers.indexOf('User_ID')],
               First_Name: (data[i][headers.indexOf('Full_Name')] || '').split(' ')[0],
               Last_Name: (data[i][headers.indexOf('Full_Name')] || '').split(' ').slice(1).join(' '),
               Role: role,
-              Language_Pref: 'en'
+              Language_Pref: data[i][headers.indexOf('Language_Pref')] || 'en',
+              // Mode permissions (checkbox columns in USERS sheet)
+              Tractor_Mode: data[i][headers.indexOf('Tractor_Mode')] === true || data[i][headers.indexOf('Tractor_Mode')] === 'TRUE',
+              Garage_Mode: data[i][headers.indexOf('Garage_Mode')] === true || data[i][headers.indexOf('Garage_Mode')] === 'TRUE',
+              Inventory_Mode: data[i][headers.indexOf('Inventory_Mode')] === true || data[i][headers.indexOf('Inventory_Mode')] === 'TRUE',
+              Costing_Mode: data[i][headers.indexOf('Costing_Mode')] === true || data[i][headers.indexOf('Costing_Mode')] === 'TRUE'
             };
 
             // Check if clocked in
