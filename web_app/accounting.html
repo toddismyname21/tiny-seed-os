@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounting Hub - Tiny Seed OS</title>
+  <script src="api-config.js"></script>
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --secondary: #3b82f6;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-dark: #1a1a2e;
+      --bg-card: #16213e;
+      --bg-hover: #1e3a5f;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .tab {
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      background: var(--bg-hover);
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .content {
+      padding: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: var(--bg-hover);
+      padding: 1.25rem;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Receipt Upload Zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 1.5rem;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .upload-zone input {
+      display: none;
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 0.875rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: var(--bg-dark);
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tr:hover {
+      background: var(--bg-hover);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+    }
+
+    .badge-warning {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+    }
+
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .badge-info {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: 16px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    /* Alert */
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid var(--primary);
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Receipt Preview */
+    .receipt-preview {
+      max-width: 300px;
+      max-height: 400px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 1rem;
+      }
+
+      .header h1 {
+        font-size: 1.25rem;
+      }
+
+      .content {
+        padding: 1rem;
+      }
+
+      .tab {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>Accounting Hub</h1>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="openAddReceiptModal()">
+        + Add Receipt
+      </button>
+      <button class="btn btn-secondary" onclick="importEmails()">
+        Import Emails
+      </button>
+      <button class="btn btn-secondary" onclick="initializeModule()">
+        Initialize Module
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="receipts">Receipts</div>
+    <div class="tab" data-tab="accountant">Accountant Docs</div>
+    <div class="tab" data-tab="reports">Reports</div>
+    <div class="tab" data-tab="grants">Grants</div>
+    <div class="tab" data-tab="categories">Categories</div>
+  </nav>
+
+  <main class="content">
+    <!-- Dashboard Tab -->
+    <div id="dashboard" class="tab-content active">
+      <div class="grid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalReceipts">-</div>
+          <div class="stat-label">Total Receipts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="totalExpenses">-</div>
+          <div class="stat-label">YTD Expenses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="unverifiedCount">-</div>
+          <div class="stat-label">Unverified</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="accountantDocs">-</div>
+          <div class="stat-label">Pending Docs</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent Receipts</h2>
+          <button class="btn btn-secondary" onclick="switchTab('receipts')">View All</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Vendor</th>
+                <th>Amount</th>
+                <th>Category</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentReceiptsTable">
+              <tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Accountant Email Analysis</h2>
+          <button class="btn btn-secondary" onclick="analyzeEmails()">Refresh Analysis</button>
+        </div>
+        <div id="emailAnalysis">
+          <p style="color: var(--text-muted);">Click "Import Emails" to fetch accountant correspondence, then analyze patterns.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Receipts Tab -->
+    <div id="receipts" class="tab-content">
+      <div class="card">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="receiptFile" accept="image/*,application/pdf" multiple>
+          <div class="upload-icon">+</div>
+          <h3>Drop receipts here or click to upload</h3>
+          <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            Supports images (JPG, PNG) and PDF files
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">All Receipts</h2>
+          <div class="filters">
+            <div class="filter-group">
+              <select class="form-select" id="filterCategory" onchange="filterReceipts()">
+                <option value="">All Categories</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <select class="form-select" id="filterVerified" onchange="filterReceipts()">
+                <option value="">All Status</option>
+                <option value="true">Verified</option>
+                <option value="false">Unverified</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <input type="text" class="form-input" id="filterVendor" placeholder="Search vendor..." oninput="filterReceipts()">
+            </div>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Vendor</th>
+                <th>Amount</th>
+                <th>Category</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="receiptsTable">
+              <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accountant Docs Tab -->
+    <div id="accountant" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Documents from DGPerry</h2>
+          <button class="btn btn-primary" onclick="importEmails()">Import New Emails</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Document</th>
+                <th>Type</th>
+                <th>From</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="accountantDocsTable">
+              <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Email History</h2>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>From</th>
+                <th>Subject</th>
+                <th>Attachments</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="emailsTable">
+              <tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports Tab -->
+    <div id="reports" class="tab-content">
+      <div class="grid">
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom: 1rem;">Profit & Loss Statement</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Start Date</label>
+              <input type="date" class="form-input" id="plStartDate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Date</label>
+              <input type="date" class="form-input" id="plEndDate">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="generatePL()" style="margin-top: 1rem;">Generate P&L</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom: 1rem;">Schedule F Report</h3>
+          <div class="form-group">
+            <label class="form-label">Tax Year</label>
+            <select class="form-select" id="scheduleFYear">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="generateScheduleF()" style="margin-top: 1rem;">Generate Schedule F</button>
+        </div>
+      </div>
+
+      <div class="card" id="reportOutput" style="display: none;">
+        <div class="card-header">
+          <h2 class="card-title" id="reportTitle">Report</h2>
+          <button class="btn btn-secondary" onclick="printReport()">Print / Export PDF</button>
+        </div>
+        <div id="reportContent"></div>
+      </div>
+    </div>
+
+    <!-- Grants Tab -->
+    <div id="grants" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Grant Tracking</h2>
+          <button class="btn btn-primary" onclick="openAddGrantModal()">+ Add Grant</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Grant Name</th>
+                <th>Agency</th>
+                <th>Award Amount</th>
+                <th>Period</th>
+                <th>Next Report Due</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="grantsTable">
+              <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categories Tab -->
+    <div id="categories" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Expense Categories (Schedule F)</h2>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Category Name</th>
+                <th>Type</th>
+                <th>Schedule F Line</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="categoriesTable">
+              <tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Receipt Modal -->
+  <div class="modal-overlay" id="receiptModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Receipt</h2>
+        <button class="close-btn" onclick="closeModal('receiptModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="receiptPreviewContainer" style="text-align: center; margin-bottom: 1rem;"></div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date *</label>
+            <input type="date" class="form-input" id="receiptDate" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount *</label>
+            <input type="number" step="0.01" class="form-input" id="receiptAmount" placeholder="0.00" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Vendor *</label>
+          <input type="text" class="form-input" id="receiptVendor" placeholder="Store or vendor name" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category *</label>
+            <select class="form-select" id="receiptCategory" required>
+              <option value="">Select category...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax Amount</label>
+            <input type="number" step="0.01" class="form-input" id="receiptTax" placeholder="0.00">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Payment Method</label>
+            <select class="form-select" id="receiptPayment">
+              <option value="Credit Card">Credit Card</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="Cash">Cash</option>
+              <option value="Check">Check</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Card Type</label>
+            <select class="form-select" id="receiptCardType">
+              <option value="Company">Company Card</option>
+              <option value="Personal">Personal (Reimbursement)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Enterprise/Crop (optional)</label>
+          <input type="text" class="form-input" id="receiptEnterprise" placeholder="e.g., Tomatoes, Sunflowers">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <input type="checkbox" id="receiptOrganic"> Organic Certified Input
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="receiptNotes" rows="2" placeholder="Additional notes..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('receiptModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveReceipt()">Save Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Grant Modal -->
+  <div class="modal-overlay" id="grantModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Grant</h2>
+        <button class="close-btn" onclick="closeModal('grantModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Grant Name *</label>
+          <input type="text" class="form-input" id="grantName" placeholder="e.g., PA Ag Innovation Grant" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Funding Agency *</label>
+          <input type="text" class="form-input" id="grantAgency" placeholder="e.g., PA Department of Agriculture" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Award Amount</label>
+          <input type="number" step="0.01" class="form-input" id="grantAmount" placeholder="0.00">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Start Date</label>
+            <input type="date" class="form-input" id="grantStart">
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-input" id="grantEnd">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Reporting Frequency</label>
+            <select class="form-select" id="grantReporting">
+              <option value="Monthly">Monthly</option>
+              <option value="Quarterly" selected>Quarterly</option>
+              <option value="Semi-Annual">Semi-Annual</option>
+              <option value="Annual">Annual</option>
+              <option value="Final Only">Final Only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Next Report Due</label>
+            <input type="date" class="form-input" id="grantNextReport">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="grantNotes" rows="2" placeholder="Grant details, requirements..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('grantModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveGrant()">Save Grant</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Container -->
+  <div id="alertContainer" style="position: fixed; top: 1rem; right: 1rem; z-index: 2000; max-width: 400px;"></div>
+
+  <script>
+    // State
+    let categories = [];
+    let receipts = [];
+    let currentImageData = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set default dates
+      const today = new Date();
+      document.getElementById('receiptDate').value = today.toISOString().split('T')[0];
+      document.getElementById('plEndDate').value = today.toISOString().split('T')[0];
+      document.getElementById('plStartDate').value = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+
+      // Load data
+      loadCategories();
+      loadReceipts();
+      loadDashboard();
+      loadAccountantDocs();
+      loadGrants();
+
+      // Setup tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+      });
+
+      // Setup file upload
+      setupFileUpload();
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function setupFileUpload() {
+      const zone = document.getElementById('uploadZone');
+      const input = document.getElementById('receiptFile');
+
+      zone.addEventListener('click', () => input.click());
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+      });
+      input.addEventListener('change', (e) => handleFiles(e.target.files));
+    }
+
+    function handleFiles(files) {
+      for (const file of files) {
+        processReceiptFile(file);
+      }
+    }
+
+    async function processReceiptFile(file) {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result.split(',')[1];
+        currentImageData = {
+          imageData: base64,
+          fileName: file.name,
+          mimeType: file.type
+        };
+
+        // Show preview and open modal
+        const preview = document.getElementById('receiptPreviewContainer');
+        if (file.type.startsWith('image/')) {
+          preview.innerHTML = `<img src="${e.target.result}" class="receipt-preview" alt="Receipt preview">`;
+        } else {
+          preview.innerHTML = `<p>PDF: ${file.name}</p>`;
+        }
+
+        openAddReceiptModal();
+
+        // Try OCR
+        showAlert('Processing receipt with OCR...', 'info');
+        // Note: OCR will happen on the backend when we save
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // API Functions
+    const API_URL = TINY_SEED_API.MAIN_API;
+
+    async function apiCall(action, params = {}, method = 'GET') {
+      try {
+        let url = `${API_URL}?action=${action}`;
+
+        if (method === 'GET') {
+          Object.keys(params).forEach(key => {
+            if (params[key] !== undefined && params[key] !== null) {
+              url += `&${key}=${encodeURIComponent(params[key])}`;
+            }
+          });
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return await response.json();
+        } else {
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, ...params })
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return await response.json();
+        }
+      } catch (error) {
+        console.error('API Error:', error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    // Load Functions
+    async function loadCategories() {
+      const result = await apiCall('getExpenseCategories');
+      if (result.success) {
+        categories = result.data;
+        populateCategoryDropdowns();
+        renderCategoriesTable();
+      }
+    }
+
+    function populateCategoryDropdowns() {
+      const selects = document.querySelectorAll('#receiptCategory, #filterCategory');
+      selects.forEach(select => {
+        const current = select.value;
+        select.innerHTML = select.id === 'filterCategory'
+          ? '<option value="">All Categories</option>'
+          : '<option value="">Select category...</option>';
+
+        categories.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat.categoryId;
+          opt.textContent = `${cat.categoryName} (${cat.scheduleFLine})`;
+          select.appendChild(opt);
+        });
+
+        if (current) select.value = current;
+      });
+    }
+
+    async function loadReceipts() {
+      const result = await apiCall('getReceipts');
+      if (result.success) {
+        receipts = result.data;
+        renderReceiptsTable();
+        renderRecentReceipts();
+      } else {
+        document.getElementById('receiptsTable').innerHTML =
+          '<tr><td colspan="7">No receipts found. Add your first receipt!</td></tr>';
+      }
+    }
+
+    async function loadDashboard() {
+      // Get receipts stats
+      const receiptsResult = await apiCall('getReceipts');
+      if (receiptsResult.success) {
+        const data = receiptsResult.data;
+        document.getElementById('totalReceipts').textContent = data.length;
+
+        const totalExpenses = data.reduce((sum, r) => sum + (parseFloat(r.Amount) || 0), 0);
+        document.getElementById('totalExpenses').textContent = '$' + totalExpenses.toFixed(2);
+
+        const unverified = data.filter(r => !r.Verified).length;
+        document.getElementById('unverifiedCount').textContent = unverified;
+      }
+
+      // Get pending docs
+      const docsResult = await apiCall('getAccountantDocs');
+      if (docsResult.success) {
+        const pending = docsResult.data.filter(d => d.Status === 'Pending Review').length;
+        document.getElementById('accountantDocs').textContent = pending;
+      }
+    }
+
+    async function loadAccountantDocs() {
+      const docsResult = await apiCall('getAccountantDocs');
+      if (docsResult.success && docsResult.data.length > 0) {
+        renderAccountantDocsTable(docsResult.data);
+      } else {
+        document.getElementById('accountantDocsTable').innerHTML =
+          '<tr><td colspan="6">No documents yet. Click "Import Emails" to fetch accountant emails.</td></tr>';
+      }
+
+      const emailsResult = await apiCall('getAccountantEmails');
+      if (emailsResult.success && emailsResult.data.length > 0) {
+        renderEmailsTable(emailsResult.data);
+      } else {
+        document.getElementById('emailsTable').innerHTML =
+          '<tr><td colspan="5">No emails imported yet.</td></tr>';
+      }
+    }
+
+    async function loadGrants() {
+      const result = await apiCall('getGrants');
+      if (result.success && result.data.length > 0) {
+        renderGrantsTable(result.data);
+      } else {
+        document.getElementById('grantsTable').innerHTML =
+          '<tr><td colspan="7">No grants tracked yet. Add your first grant!</td></tr>';
+      }
+    }
+
+    // Render Functions
+    function renderReceiptsTable() {
+      const tbody = document.getElementById('receiptsTable');
+      if (receipts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No receipts found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = receipts.map(r => `
+        <tr>
+          <td>${formatDate(r.Date)}</td>
+          <td>${r.Vendor || '-'}</td>
+          <td>$${parseFloat(r.Amount || 0).toFixed(2)}</td>
+          <td>${r.Category_Name || '-'}</td>
+          <td>${r.Payment_Method || '-'}</td>
+          <td>
+            ${r.Verified
+              ? '<span class="badge badge-success">Verified</span>'
+              : '<span class="badge badge-warning">Unverified</span>'}
+          </td>
+          <td>
+            ${r.Drive_URL ? `<a href="${r.Drive_URL}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
+            ${!r.Verified ? `<button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="verifyReceipt('${r.Receipt_ID}')">Verify</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderRecentReceipts() {
+      const tbody = document.getElementById('recentReceiptsTable');
+      const recent = receipts.slice(0, 5);
+
+      if (recent.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No receipts yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = recent.map(r => `
+        <tr>
+          <td>${formatDate(r.Date)}</td>
+          <td>${r.Vendor || '-'}</td>
+          <td>$${parseFloat(r.Amount || 0).toFixed(2)}</td>
+          <td>${r.Category_Name || '-'}</td>
+          <td>
+            ${r.Verified
+              ? '<span class="badge badge-success">Verified</span>'
+              : '<span class="badge badge-warning">Unverified</span>'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderCategoriesTable() {
+      const tbody = document.getElementById('categoriesTable');
+      tbody.innerHTML = categories.map(c => `
+        <tr>
+          <td><code>${c.categoryId}</code></td>
+          <td>${c.categoryName}</td>
+          <td><span class="badge ${c.type === 'Income' ? 'badge-success' : 'badge-info'}">${c.type}</span></td>
+          <td>${c.scheduleFLine}</td>
+          <td style="color: var(--text-muted)">${c.description || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAccountantDocsTable(docs) {
+      const tbody = document.getElementById('accountantDocsTable');
+      tbody.innerHTML = docs.map(d => `
+        <tr>
+          <td>${formatDate(d.Received_Date)}</td>
+          <td>${d.Document_Name}</td>
+          <td><span class="badge badge-info">${d.Document_Type}</span></td>
+          <td>${d.From_Name || d.From_Email}</td>
+          <td>
+            ${d.Status === 'Pending Review'
+              ? '<span class="badge badge-warning">Pending Review</span>'
+              : d.Status === 'Complete'
+              ? '<span class="badge badge-success">Complete</span>'
+              : '<span class="badge badge-danger">Action Needed</span>'}
+          </td>
+          <td>
+            ${d.Drive_URL ? `<a href="${d.Drive_URL}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderEmailsTable(emails) {
+      const tbody = document.getElementById('emailsTable');
+      tbody.innerHTML = emails.map(e => `
+        <tr>
+          <td>${formatDate(e.Date)}</td>
+          <td>${e.From_Name || e.From_Email}</td>
+          <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${e.Subject}</td>
+          <td>${e.Attachment_Count > 0 ? `<span class="badge badge-info">${e.Attachment_Count}</span>` : '-'}</td>
+          <td><span class="badge badge-success">${e.Status}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderGrantsTable(grants) {
+      const tbody = document.getElementById('grantsTable');
+      tbody.innerHTML = grants.map(g => `
+        <tr>
+          <td>${g.Grant_Name}</td>
+          <td>${g.Funding_Agency}</td>
+          <td>$${parseFloat(g.Award_Amount || 0).toLocaleString()}</td>
+          <td>${formatDate(g.Start_Date)} - ${formatDate(g.End_Date)}</td>
+          <td>${g.Next_Report_Due ? formatDate(g.Next_Report_Due) : '-'}</td>
+          <td><span class="badge badge-success">${g.Status}</span></td>
+          <td>
+            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Edit</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Action Functions
+    function openAddReceiptModal() {
+      document.getElementById('receiptModal').classList.add('active');
+    }
+
+    function openAddGrantModal() {
+      document.getElementById('grantModal').classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    async function saveReceipt() {
+      const data = {
+        date: document.getElementById('receiptDate').value,
+        vendor: document.getElementById('receiptVendor').value,
+        amount: document.getElementById('receiptAmount').value,
+        taxAmount: document.getElementById('receiptTax').value || 0,
+        categoryId: document.getElementById('receiptCategory').value,
+        paymentMethod: document.getElementById('receiptPayment').value,
+        cardType: document.getElementById('receiptCardType').value,
+        enterprise: document.getElementById('receiptEnterprise').value,
+        organicCertified: document.getElementById('receiptOrganic').checked,
+        notes: document.getElementById('receiptNotes').value
+      };
+
+      // Add image data if available
+      if (currentImageData) {
+        Object.assign(data, currentImageData);
+        const result = await apiCall('uploadReceiptImage', data, 'POST');
+        if (result.success) {
+          showAlert('Receipt uploaded and saved!', 'success');
+          closeModal('receiptModal');
+          loadReceipts();
+          loadDashboard();
+          currentImageData = null;
+        } else {
+          showAlert('Error: ' + result.error, 'error');
+        }
+      } else {
+        const result = await apiCall('saveReceipt', data, 'POST');
+        if (result.success) {
+          showAlert('Receipt saved!', 'success');
+          closeModal('receiptModal');
+          loadReceipts();
+          loadDashboard();
+        } else {
+          showAlert('Error: ' + result.error, 'error');
+        }
+      }
+    }
+
+    async function verifyReceipt(receiptId) {
+      const result = await apiCall('verifyReceipt', { receiptId, verifiedBy: 'Owner' }, 'POST');
+      if (result.success) {
+        showAlert('Receipt verified!', 'success');
+        loadReceipts();
+        loadDashboard();
+      } else {
+        showAlert('Error: ' + result.error, 'error');
+      }
+    }
+
+    async function saveGrant() {
+      const data = {
+        grantName: document.getElementById('grantName').value,
+        fundingAgency: document.getElementById('grantAgency').value,
+        awardAmount: document.getElementById('grantAmount').value,
+        startDate: document.getElementById('grantStart').value,
+        endDate: document.getElementById('grantEnd').value,
+        reportingFrequency: document.getElementById('grantReporting').value,
+        nextReportDue: document.getElementById('grantNextReport').value,
+        notes: document.getElementById('grantNotes').value
+      };
+
+      const result = await apiCall('saveGrant', data, 'POST');
+      if (result.success) {
+        showAlert('Grant saved!', 'success');
+        closeModal('grantModal');
+        loadGrants();
+      } else {
+        showAlert('Error: ' + result.error, 'error');
+      }
+    }
+
+    async function importEmails() {
+      showAlert('Importing accountant emails...', 'info');
+      const result = await apiCall('importAccountantEmails', {}, 'POST');
+      if (result.success) {
+        showAlert(`Imported ${result.emailsImported} emails, ${result.attachmentsSaved} attachments`, 'success');
+        loadAccountantDocs();
+      } else {
+        showAlert('Error: ' + result.error, 'error');
+      }
+    }
+
+    async function analyzeEmails() {
+      const result = await apiCall('analyzeAccountantEmailPatterns');
+      if (result.success) {
+        const a = result.analysis;
+        document.getElementById('emailAnalysis').innerHTML = `
+          <div class="grid">
+            <div class="stat-card">
+              <div class="stat-value">${a.totalEmails}</div>
+              <div class="stat-label">Total Emails</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${a.attachmentStats.totalAttachments}</div>
+              <div class="stat-label">Attachments</div>
+            </div>
+          </div>
+          <h4 style="margin-top: 1rem; margin-bottom: 0.5rem;">Emails by Sender:</h4>
+          <ul style="color: var(--text-muted);">
+            ${Object.entries(a.byFromEmail).map(([email, count]) => `<li>${email}: ${count}</li>`).join('')}
+          </ul>
+        `;
+      } else {
+        showAlert('Error analyzing emails: ' + result.error, 'error');
+      }
+    }
+
+    async function generatePL() {
+      const startDate = document.getElementById('plStartDate').value;
+      const endDate = document.getElementById('plEndDate').value;
+
+      const result = await apiCall('generateProfitLossStatement', { startDate, endDate });
+      if (result.success) {
+        renderReport(result.report);
+      } else {
+        showAlert('Error generating report', 'error');
+      }
+    }
+
+    async function generateScheduleF() {
+      const taxYear = document.getElementById('scheduleFYear').value;
+
+      const result = await apiCall('generateScheduleFReport', { taxYear });
+      if (result.success) {
+        renderReport(result.report);
+      } else {
+        showAlert('Error generating report', 'error');
+      }
+    }
+
+    function renderReport(report) {
+      document.getElementById('reportOutput').style.display = 'block';
+      document.getElementById('reportTitle').textContent = report.title;
+
+      let html = '';
+
+      if (report.income) {
+        html += `
+          <h3 style="margin-bottom: 0.5rem;">Income</h3>
+          <table>
+            <thead><tr><th>Category</th><th>Schedule F</th><th>Amount</th></tr></thead>
+            <tbody>
+              ${report.income.map(i => `<tr><td>${i.name}</td><td>${i.scheduleFLine}</td><td>$${i.total.toFixed(2)}</td></tr>`).join('')}
+            </tbody>
+          </table>
+
+          <h3 style="margin: 1rem 0 0.5rem;">Expenses</h3>
+          <table>
+            <thead><tr><th>Category</th><th>Schedule F</th><th>Amount</th></tr></thead>
+            <tbody>
+              ${report.expenses.map(e => `<tr><td>${e.name}</td><td>${e.scheduleFLine}</td><td>$${e.total.toFixed(2)}</td></tr>`).join('')}
+            </tbody>
+          </table>
+
+          <div class="grid" style="margin-top: 1rem;">
+            <div class="stat-card">
+              <div class="stat-value">$${report.summary.totalIncome.toFixed(2)}</div>
+              <div class="stat-label">Total Income</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">$${report.summary.totalExpenses.toFixed(2)}</div>
+              <div class="stat-label">Total Expenses</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" style="color: ${report.summary.netProfit >= 0 ? 'var(--primary)' : 'var(--danger)'}">
+                $${report.summary.netProfit.toFixed(2)}
+              </div>
+              <div class="stat-label">Net Profit</div>
+            </div>
+          </div>
+        `;
+      } else if (report.lines) {
+        html += `
+          <p style="margin-bottom: 1rem;">Tax Year: ${report.taxYear}</p>
+          <table>
+            <thead><tr><th>Schedule F Line</th><th>Total</th></tr></thead>
+            <tbody>
+              ${report.lines.map(l => `<tr><td>${l.line}</td><td>$${l.total.toFixed(2)}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      document.getElementById('reportContent').innerHTML = html;
+    }
+
+    function printReport() {
+      window.print();
+    }
+
+    async function initializeModule() {
+      showAlert('Initializing accounting module...', 'info');
+      const result = await apiCall('initializeAccountingModule');
+      if (result.success) {
+        showAlert('Accounting module initialized! Sheets created: ' + result.sheets.join(', '), 'success');
+        loadCategories();
+      } else {
+        showAlert('Error: ' + result.error, 'error');
+      }
+    }
+
+    function filterReceipts() {
+      const category = document.getElementById('filterCategory').value;
+      const verified = document.getElementById('filterVerified').value;
+      const vendor = document.getElementById('filterVendor').value.toLowerCase();
+
+      let filtered = receipts;
+
+      if (category) {
+        filtered = filtered.filter(r => r.Category_ID === category);
+      }
+
+      if (verified !== '') {
+        filtered = filtered.filter(r => String(r.Verified) === verified);
+      }
+
+      if (vendor) {
+        filtered = filtered.filter(r => (r.Vendor || '').toLowerCase().includes(vendor));
+      }
+
+      // Re-render with filtered data
+      const tbody = document.getElementById('receiptsTable');
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No matching receipts</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => `
+        <tr>
+          <td>${formatDate(r.Date)}</td>
+          <td>${r.Vendor || '-'}</td>
+          <td>$${parseFloat(r.Amount || 0).toFixed(2)}</td>
+          <td>${r.Category_Name || '-'}</td>
+          <td>${r.Payment_Method || '-'}</td>
+          <td>
+            ${r.Verified
+              ? '<span class="badge badge-success">Verified</span>'
+              : '<span class="badge badge-warning">Unverified</span>'}
+          </td>
+          <td>
+            ${r.Drive_URL ? `<a href="${r.Drive_URL}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
+            ${!r.Verified ? `<button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="verifyReceipt('${r.Receipt_ID}')">Verify</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Helpers
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function showAlert(message, type) {
+      const container = document.getElementById('alertContainer');
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type === 'error' ? 'error' : 'success'}`;
+      alert.innerHTML = message;
+      container.appendChild(alert);
+
+      setTimeout(() => alert.remove(), 5000);
+    }
+  </script>
+</body>
+</html>

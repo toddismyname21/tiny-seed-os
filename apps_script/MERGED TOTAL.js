@@ -659,6 +659,32 @@ function doGet(e) {
       case 'syncShopifyOrderToQuickBooks':
         return jsonResponse(syncShopifyOrderToQuickBooks(e.parameter.shopifyOrderId));
 
+      // ============ ACCOUNTING MODULE - GET ENDPOINTS ============
+      case 'initializeAccountingModule':
+        return jsonResponse(initializeAccountingModule());
+      case 'getReceipts':
+        return jsonResponse(getReceipts(e.parameter));
+      case 'getExpenseCategories':
+        return jsonResponse(getExpenseCategories(e.parameter));
+      case 'getAccountantEmails':
+        return jsonResponse(getAccountantEmails(e.parameter));
+      case 'getAccountantDocs':
+        return jsonResponse(getAccountantDocs(e.parameter));
+      case 'analyzeAccountantEmailPatterns':
+        return jsonResponse(analyzeAccountantEmailPatterns());
+      case 'getGrants':
+        return jsonResponse(getGrants(e.parameter));
+      case 'getAuditTrailAccounting':
+        return jsonResponse(getAuditTrail(e.parameter));
+      case 'generateProfitLossStatement':
+        return jsonResponse(generateProfitLossStatement(e.parameter));
+      case 'generateScheduleFReport':
+        return jsonResponse(generateScheduleFReport(e.parameter));
+      case 'suggestCategory':
+        return jsonResponse(suggestCategory(e.parameter.vendor));
+      case 'getVendorCategories':
+        return jsonResponse(getVendorCategories(e.parameter));
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -904,6 +930,28 @@ function doPost(e) {
         return jsonResponse(createQuickBooksInvoice(data));
       case 'createQuickBooksCustomer':
         return jsonResponse(createQuickBooksCustomer(data));
+
+      // ============ ACCOUNTING MODULE - POST ENDPOINTS ============
+      case 'saveReceipt':
+        return jsonResponse(saveReceipt(data));
+      case 'uploadReceiptImage':
+        return jsonResponse(uploadReceiptImage(data));
+      case 'verifyReceipt':
+        return jsonResponse(verifyReceipt(data));
+      case 'importAccountantEmails':
+        return jsonResponse(importAccountantEmails(data));
+      case 'setupEmailImportTrigger':
+        return jsonResponse(setupEmailImportTrigger());
+      case 'saveGrant':
+        return jsonResponse(saveGrant(data));
+      case 'addExpenseCategory':
+        return jsonResponse(addExpenseCategory(data));
+      case 'updateReceipt':
+        return jsonResponse(updateReceipt(data));
+      case 'deleteReceipt':
+        return jsonResponse(deleteReceipt(data));
+      case 'linkReceiptToGrant':
+        return jsonResponse(linkReceiptToGrant(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
