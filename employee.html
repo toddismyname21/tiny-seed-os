@@ -5257,6 +5257,327 @@
         }
 
         /* ========================================
+           COMPLIANCE LOGGING (USDA NOP + FSMA 204)
+           ======================================== */
+        .compliance-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .compliance-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 12px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            min-height: 100px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .compliance-btn:active {
+            transform: scale(0.95);
+            background: #f0fdf4;
+            border-color: #059669;
+        }
+
+        .compliance-btn .compliance-emoji {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .compliance-btn .compliance-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            text-align: center;
+        }
+
+        .compliance-btn.harvest-cte {
+            border-color: #059669;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+
+        .cte-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #059669;
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .compliance-summary {
+            margin: 0 16px 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+
+        .compliance-summary .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .compliance-summary .summary-row.pending {
+            color: #f59e0b;
+        }
+
+        .compliance-summary .summary-row span:last-child {
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .compliance-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .compliance-recent {
+            padding: 0 16px 100px;
+        }
+
+        .compliance-logs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .compliance-log-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .compliance-log-item .log-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0fdf4;
+            border-radius: 10px;
+            font-size: 20px;
+        }
+
+        .compliance-log-item .log-details {
+            flex: 1;
+        }
+
+        .compliance-log-item .log-type {
+            font-weight: 600;
+            color: #111827;
+            font-size: 14px;
+        }
+
+        .compliance-log-item .log-meta {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .compliance-log-item .log-status {
+            font-size: 18px;
+        }
+
+        .compliance-log-item .log-status.synced {
+            color: #22c55e;
+        }
+
+        .compliance-log-item .log-status.pending {
+            color: #f59e0b;
+        }
+
+        /* Compliance Modal Styles */
+        .compliance-modal {
+            max-width: 420px;
+        }
+
+        .compliance-modal .modal-header {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+        }
+
+        .compliance-modal .modal-header.fsma-header {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+        }
+
+        .fsma-badge {
+            position: absolute;
+            top: 50%;
+            right: 50px;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .fsma-notice {
+            background: #ecfeff;
+            border: 1px solid #0891b2;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #0e7490;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-btn.active {
+            background: #dcfce7;
+            border-color: #22c55e;
+            color: #166534;
+        }
+
+        .toggle-btn:not(.active):hover {
+            border-color: #9ca3af;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-row .form-input {
+            flex: 1;
+        }
+
+        .form-select-small {
+            width: 100px;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .lot-code-display {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: 10px;
+            padding: 14px;
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #166534;
+            text-align: center;
+        }
+
+        .lot-code-display + small {
+            display: block;
+            text-align: center;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        .gps-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .gps-status i {
+            color: #22c55e;
+        }
+
+        .photo-capture-btn {
+            width: 100%;
+            padding: 14px;
+            background: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .photo-capture-btn:hover {
+            border-color: #9ca3af;
+            background: #f3f4f6;
+        }
+
+        .photo-preview {
+            margin-top: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .photo-preview img {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+        }
+
+        .compliance-submit {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .compliance-submit:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+        }
+
+        .fsma-submit {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+        }
+
+        .fsma-submit:hover {
+            background: linear-gradient(135deg, #0e7490 0%, #155e75 100%);
+        }
+
+        /* ========================================
            WILDLIFE TRACKER
            ======================================== */
         .wildlife-grid {
@@ -8146,6 +8467,18 @@
                         <i class="fas fa-chevron-right"></i>
                     </div>
 
+                    <div class="more-item" onclick="openCompliance()">
+                        <div class="more-item-icon compliance" style="background: linear-gradient(135deg, #059669, #047857);">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.compliance">Compliance Log</h3>
+                            <p data-i18n="more.complianceDesc">Organic & FSMA traceability</p>
+                        </div>
+                        <span class="compliance-badge" id="complianceBadge" style="display: none;">0</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
                     <div class="more-item" onclick="openSettings()">
                         <div class="more-item-icon settings">
                             <i class="fas fa-cog"></i>
@@ -8159,6 +8492,230 @@
                 </div>
             </div>
         </main>
+
+            <!-- Compliance Logging Tab -->
+            <div id="complianceTab" class="tab-panel">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span data-i18n="compliance.title">Compliance Log</span>
+                    </h2>
+                    <button class="back-btn" onclick="switchTab('more')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+
+                <!-- Quick Log Buttons -->
+                <div class="compliance-grid">
+                    <button class="compliance-btn" onclick="openInputApplicationForm()">
+                        <span class="compliance-emoji">🧴</span>
+                        <span class="compliance-name" data-i18n="compliance.input">Input Application</span>
+                    </button>
+                    <button class="compliance-btn" onclick="openSeedVerificationForm()">
+                        <span class="compliance-emoji">🌱</span>
+                        <span class="compliance-name" data-i18n="compliance.seed">Seed Verify</span>
+                    </button>
+                    <button class="compliance-btn harvest-cte" onclick="openHarvestCTEForm()">
+                        <span class="compliance-emoji">🥬</span>
+                        <span class="compliance-name" data-i18n="compliance.harvestCte">Harvest CTE</span>
+                        <span class="cte-badge">FSMA</span>
+                    </button>
+                    <button class="compliance-btn" onclick="openPackingCTEForm()">
+                        <span class="compliance-emoji">📦</span>
+                        <span class="compliance-name" data-i18n="compliance.packCte">Pack CTE</span>
+                        <span class="cte-badge">FSMA</span>
+                    </button>
+                    <button class="compliance-btn" onclick="openEquipmentCleanForm()">
+                        <span class="compliance-emoji">🚿</span>
+                        <span class="compliance-name" data-i18n="compliance.equipment">Equip Clean</span>
+                    </button>
+                    <button class="compliance-btn" onclick="openBufferCheckForm()">
+                        <span class="compliance-emoji">🧹</span>
+                        <span class="compliance-name" data-i18n="compliance.buffer">Buffer Check</span>
+                    </button>
+                </div>
+
+                <!-- Today's Log Summary -->
+                <div class="compliance-summary" id="complianceSummary">
+                    <div class="summary-row">
+                        <span><i class="fas fa-list-check"></i> <span data-i18n="compliance.today">Today's Logs</span>:</span>
+                        <span id="complianceTodayCount">0</span>
+                    </div>
+                    <div class="summary-row pending">
+                        <span><i class="fas fa-cloud-arrow-up"></i> <span data-i18n="compliance.pending">Pending Sync</span>:</span>
+                        <span id="compliancePendingCount">0</span>
+                    </div>
+                </div>
+
+                <!-- Recent Logs List -->
+                <div class="compliance-recent">
+                    <h3 class="section-subtitle" data-i18n="compliance.recent">Recent Logs</h3>
+                    <div id="complianceLogsList" class="compliance-logs-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Application Form Modal -->
+            <div id="inputApplicationModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content compliance-modal">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-spray-can"></i> <span data-i18n="compliance.inputTitle">Input Application</span></h2>
+                        <button class="modal-close" onclick="closeInputApplicationModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label data-i18n="compliance.field">Field *</label>
+                            <select id="inputField" class="form-select" required>
+                                <option value="">Select Field...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.product">Product Name *</label>
+                            <input type="text" id="inputProduct" class="form-input" placeholder="e.g., PyGanic EC 5.0" required>
+                            <div class="input-suggestions" id="productSuggestions"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.rate">Application Rate *</label>
+                            <input type="text" id="inputRate" class="form-input" placeholder="e.g., 16 oz/acre" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.area">Area Treated</label>
+                            <div class="input-row">
+                                <input type="number" id="inputArea" class="form-input" step="0.1" placeholder="0.5">
+                                <select id="inputAreaUnit" class="form-select-small">
+                                    <option value="acres">acres</option>
+                                    <option value="beds">beds</option>
+                                    <option value="sqft">sq ft</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.organic">OMRI/Organic Certified? *</label>
+                            <div class="toggle-buttons">
+                                <button type="button" class="toggle-btn active" data-value="true" onclick="setOrganicCertified(true)">
+                                    <i class="fas fa-check"></i> Yes
+                                </button>
+                                <button type="button" class="toggle-btn" data-value="false" onclick="setOrganicCertified(false)">
+                                    <i class="fas fa-times"></i> No
+                                </button>
+                            </div>
+                            <input type="hidden" id="inputOrganic" value="true">
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.photo">Photo of Label (optional)</label>
+                            <button type="button" class="photo-capture-btn" onclick="captureInputPhoto()">
+                                <i class="fas fa-camera"></i> <span data-i18n="compliance.takePhoto">Take Photo</span>
+                            </button>
+                            <div id="inputPhotoPreview" class="photo-preview" style="display: none;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.notes">Notes</label>
+                            <textarea id="inputNotes" class="form-textarea" rows="2" placeholder="Optional notes..."></textarea>
+                        </div>
+
+                        <div class="gps-status" id="inputGpsStatus">
+                            <i class="fas fa-location-dot"></i>
+                            <span data-i18n="compliance.gps">GPS:</span>
+                            <span id="inputGpsCoords">Acquiring...</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick="closeInputApplicationModal()">
+                            <span data-i18n="common.cancel">Cancel</span>
+                        </button>
+                        <button class="btn-submit compliance-submit" onclick="submitInputApplication()">
+                            <i class="fas fa-check"></i>
+                            <span data-i18n="compliance.logInput">Log Input</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Harvest CTE Form Modal (FSMA 204) -->
+            <div id="harvestCTEModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content compliance-modal">
+                    <div class="modal-header fsma-header">
+                        <h2><i class="fas fa-leaf"></i> <span data-i18n="compliance.harvestCteTitle">Harvest CTE</span></h2>
+                        <span class="fsma-badge">FSMA 204</span>
+                        <button class="modal-close" onclick="closeHarvestCTEModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="fsma-notice">
+                            <i class="fas fa-info-circle"></i>
+                            <span data-i18n="compliance.cteNotice">Critical Tracking Event - creates traceability record</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.planting">Crop/Planting *</label>
+                            <select id="harvestPlanting" class="form-select" required onchange="updateLotCodePreview()">
+                                <option value="">Select Planting...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.quantity">Quantity Harvested *</label>
+                            <div class="input-row">
+                                <input type="number" id="harvestQuantity" class="form-input" step="0.1" required>
+                                <select id="harvestUnit" class="form-select-small">
+                                    <option value="lbs">lbs</option>
+                                    <option value="heads">heads</option>
+                                    <option value="bunches">bunches</option>
+                                    <option value="cases">cases</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.lotCode">Lot Code (auto-generated)</label>
+                            <div class="lot-code-display" id="lotCodePreview">
+                                TSF-2026-0117-CROP-001
+                            </div>
+                            <small data-i18n="compliance.lotCodeFormat">Format: Farm-Year-Date-Crop-Sequence</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.destination">Destination *</label>
+                            <select id="harvestDestination" class="form-select" required>
+                                <option value="packhouse">Pack House</option>
+                                <option value="coldstorage">Cold Storage</option>
+                                <option value="directsale">Direct Sale</option>
+                                <option value="processing">Processing</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.notes">Notes</label>
+                            <textarea id="harvestNotes" class="form-textarea" rows="2" placeholder="Optional notes..."></textarea>
+                        </div>
+
+                        <div class="gps-status" id="harvestGpsStatus">
+                            <i class="fas fa-location-dot"></i>
+                            <span data-i18n="compliance.gps">GPS:</span>
+                            <span id="harvestGpsCoords">Acquiring...</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick="closeHarvestCTEModal()">
+                            <span data-i18n="common.cancel">Cancel</span>
+                        </button>
+                        <button class="btn-submit compliance-submit fsma-submit" onclick="submitHarvestCTE()">
+                            <i class="fas fa-check"></i>
+                            <span data-i18n="compliance.logHarvest">Log Harvest CTE</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Wildlife Tracker Tab -->
             <div id="wildlifeTab" class="tab-panel">
@@ -10301,7 +10858,7 @@
         const OfflineDB = {
             db: null,
             DB_NAME: CONFIG.DB_NAME,
-            DB_VERSION: 2,
+            DB_VERSION: 3, // Bumped for compliance logging
 
             // Initialize the database
             async init() {
@@ -10365,6 +10922,16 @@
                         // Reference data cache
                         if (!db.objectStoreNames.contains('referenceData')) {
                             db.createObjectStore('referenceData', { keyPath: 'type' });
+                        }
+
+                        // Compliance Logs (USDA NOP + FSMA 204)
+                        if (!db.objectStoreNames.contains('complianceLogs')) {
+                            const complianceStore = db.createObjectStore('complianceLogs', { keyPath: 'localId', autoIncrement: true });
+                            complianceStore.createIndex('logType', 'logType');
+                            complianceStore.createIndex('timestamp', 'timestamp');
+                            complianceStore.createIndex('synced', 'synced');
+                            complianceStore.createIndex('fieldId', 'fieldId');
+                            complianceStore.createIndex('lotCode', 'lotCode');
                         }
 
                         console.log('IndexedDB stores created');
@@ -10601,6 +11168,114 @@
                     request.onsuccess = () => resolve(request.result?.data || null);
                     request.onerror = () => reject(request.error);
                 });
+            },
+
+            // ========== COMPLIANCE LOGGING ==========
+
+            // Save compliance log entry locally
+            async saveComplianceLog(logEntry) {
+                if (!this.db) await this.init();
+
+                const entry = {
+                    ...logEntry,
+                    synced: false,
+                    createdOffline: !navigator.onLine,
+                    createdAt: new Date().toISOString()
+                };
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('complianceLogs', 'readwrite');
+                    const store = tx.objectStore('complianceLogs');
+                    const request = store.add(entry);
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Get all compliance logs (optionally filtered)
+            async getComplianceLogs(filter = {}) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('complianceLogs', 'readonly');
+                    const store = tx.objectStore('complianceLogs');
+                    const request = store.getAll();
+
+                    request.onsuccess = () => {
+                        let logs = request.result || [];
+
+                        // Apply filters
+                        if (filter.logType) {
+                            logs = logs.filter(l => l.logType === filter.logType);
+                        }
+                        if (filter.synced !== undefined) {
+                            logs = logs.filter(l => l.synced === filter.synced);
+                        }
+                        if (filter.today) {
+                            const today = new Date().toDateString();
+                            logs = logs.filter(l => new Date(l.timestamp).toDateString() === today);
+                        }
+
+                        // Sort by timestamp descending
+                        logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                        resolve(logs);
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Get count of unsynced compliance logs
+            async getUnsyncedComplianceCount() {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('complianceLogs', 'readonly');
+                    const store = tx.objectStore('complianceLogs');
+                    const index = store.index('synced');
+                    const request = index.count(IDBKeyRange.only(false));
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            },
+
+            // Mark compliance log as synced
+            async markComplianceLogSynced(localId, serverId) {
+                if (!this.db) await this.init();
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('complianceLogs', 'readwrite');
+                    const store = tx.objectStore('complianceLogs');
+                    const getRequest = store.get(localId);
+
+                    getRequest.onsuccess = () => {
+                        const log = getRequest.result;
+                        if (log) {
+                            log.synced = true;
+                            log.serverId = serverId;
+                            log.syncedAt = new Date().toISOString();
+                            const putRequest = store.put(log);
+                            putRequest.onsuccess = () => resolve(true);
+                            putRequest.onerror = () => reject(putRequest.error);
+                        } else {
+                            resolve(false);
+                        }
+                    };
+                    getRequest.onerror = () => reject(getRequest.error);
+                });
+            },
+
+            // Generate FSMA 204 lot code
+            generateLotCode(crop) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const cropCode = (crop || 'UNK').substring(0, 4).toUpperCase().replace(/[^A-Z]/g, '');
+                const seq = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+                return `TSF-${year}-${month}${day}-${cropCode}-${seq}`;
             }
         };
 
@@ -15960,6 +16635,439 @@
             damageSeverity: null,
             currentPhoto: null
         };
+
+        // ============================================
+        // COMPLIANCE LOGGING MODULE (USDA NOP + FSMA 204)
+        // ============================================
+
+        const ComplianceState = {
+            currentGps: null,
+            inputPhoto: null,
+            organicCertified: true
+        };
+
+        // OMRI-approved products database
+        const APPROVED_INPUTS = [
+            { name: 'PyGanic EC 5.0', category: 'Insecticide', omri: true, rate: '16 oz/acre' },
+            { name: 'Entrust SC', category: 'Insecticide', omri: true, rate: '6 oz/acre' },
+            { name: 'Bt (Dipel)', category: 'Insecticide', omri: true, rate: '1-2 lbs/acre' },
+            { name: 'Neem Oil', category: 'Insecticide/Fungicide', omri: true, rate: '2%' },
+            { name: 'Surround WP', category: 'Insect Barrier', omri: true, rate: '25-50 lbs/acre' },
+            { name: 'Copper Hydroxide', category: 'Fungicide', omri: true, rate: '2-4 lbs/acre' },
+            { name: 'Regalia', category: 'Fungicide', omri: true, rate: '2-4 qt/acre' },
+            { name: 'Serenade ASO', category: 'Fungicide', omri: true, rate: '2-6 qt/acre' },
+            { name: 'Fish Emulsion', category: 'Fertilizer', omri: true, rate: '2-4 gal/acre' },
+            { name: 'Kelp Extract', category: 'Fertilizer', omri: true, rate: '1-2 qt/acre' },
+            { name: 'Blood Meal', category: 'Fertilizer', omri: true, rate: '200-400 lbs/acre' },
+            { name: 'Bone Meal', category: 'Fertilizer', omri: true, rate: '200-400 lbs/acre' },
+            { name: 'Compost Tea', category: 'Fertilizer', omri: true, rate: '10-20 gal/acre' }
+        ];
+
+        const LOG_TYPE_ICONS = {
+            'INPUT_APPLICATION': '🧴',
+            'SEED_VERIFICATION': '🌱',
+            'HARVEST_CTE': '🥬',
+            'PACKING_CTE': '📦',
+            'EQUIPMENT_CLEANING': '🚿',
+            'BUFFER_INSPECTION': '🧹'
+        };
+
+        function openCompliance() {
+            switchTab('compliance');
+            loadComplianceLogs();
+            captureComplianceGps();
+        }
+
+        async function captureComplianceGps() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        ComplianceState.currentGps = {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude
+                        };
+                        updateGpsDisplays();
+                    },
+                    (err) => {
+                        console.log('GPS error:', err);
+                        ComplianceState.currentGps = null;
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            }
+        }
+
+        function updateGpsDisplays() {
+            const gps = ComplianceState.currentGps;
+            const displays = ['inputGpsCoords', 'harvestGpsCoords'];
+            displays.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && gps) {
+                    el.textContent = `${gps.lat.toFixed(4)}, ${gps.lng.toFixed(4)} ✓`;
+                } else if (el) {
+                    el.textContent = 'Unavailable';
+                }
+            });
+        }
+
+        async function loadComplianceLogs() {
+            try {
+                const todayLogs = await OfflineDB.getComplianceLogs({ today: true });
+                const pendingCount = await OfflineDB.getUnsyncedComplianceCount();
+
+                document.getElementById('complianceTodayCount').textContent = todayLogs.length;
+                document.getElementById('compliancePendingCount').textContent = pendingCount;
+
+                // Update badge
+                const badge = document.getElementById('complianceBadge');
+                if (badge) {
+                    if (pendingCount > 0) {
+                        badge.textContent = pendingCount;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+
+                // Render recent logs
+                renderComplianceLogs(todayLogs);
+
+            } catch (error) {
+                console.error('Error loading compliance logs:', error);
+            }
+        }
+
+        function renderComplianceLogs(logs) {
+            const container = document.getElementById('complianceLogsList');
+            if (!container) return;
+
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-check"></i>
+                        <p>No compliance logs today</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = logs.map(log => `
+                <div class="compliance-log-item">
+                    <div class="log-icon">${LOG_TYPE_ICONS[log.logType] || '📋'}</div>
+                    <div class="log-details">
+                        <div class="log-type">${formatLogType(log.logType)}</div>
+                        <div class="log-meta">${log.fieldId || log.productName || ''} • ${formatTime(log.timestamp)}</div>
+                    </div>
+                    <div class="log-status ${log.synced ? 'synced' : 'pending'}">
+                        ${log.synced ? '✓' : '⏳'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatLogType(type) {
+            const labels = {
+                'INPUT_APPLICATION': 'Input Application',
+                'SEED_VERIFICATION': 'Seed Verification',
+                'HARVEST_CTE': 'Harvest CTE',
+                'PACKING_CTE': 'Packing CTE',
+                'EQUIPMENT_CLEANING': 'Equipment Cleaning',
+                'BUFFER_INSPECTION': 'Buffer Inspection'
+            };
+            return labels[type] || type;
+        }
+
+        function formatTime(timestamp) {
+            return new Date(timestamp).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        // ========== INPUT APPLICATION ==========
+
+        function openInputApplicationForm() {
+            populateFieldDropdown('inputField');
+            document.getElementById('inputApplicationModal').style.display = 'flex';
+            captureComplianceGps();
+            setupProductAutocomplete();
+        }
+
+        function closeInputApplicationModal() {
+            document.getElementById('inputApplicationModal').style.display = 'none';
+            clearInputForm();
+        }
+
+        function clearInputForm() {
+            document.getElementById('inputProduct').value = '';
+            document.getElementById('inputRate').value = '';
+            document.getElementById('inputArea').value = '';
+            document.getElementById('inputNotes').value = '';
+            document.getElementById('inputOrganic').value = 'true';
+            document.getElementById('inputPhotoPreview').style.display = 'none';
+            ComplianceState.inputPhoto = null;
+
+            // Reset toggle buttons
+            document.querySelectorAll('#inputApplicationModal .toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === 'true');
+            });
+        }
+
+        function populateFieldDropdown(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            // Keep first option
+            select.innerHTML = '<option value="">Select Field...</option>';
+
+            // Use cached fields or AppState
+            const fields = AppState.fields || [];
+            fields.forEach(field => {
+                const opt = document.createElement('option');
+                opt.value = field.Field_ID || field.name || field;
+                opt.textContent = field.Field_Name || field.name || field;
+                select.appendChild(opt);
+            });
+        }
+
+        function setupProductAutocomplete() {
+            const input = document.getElementById('inputProduct');
+            const suggestions = document.getElementById('productSuggestions');
+            if (!input || !suggestions) return;
+
+            input.addEventListener('input', () => {
+                const query = input.value.toLowerCase();
+                if (query.length < 2) {
+                    suggestions.innerHTML = '';
+                    return;
+                }
+
+                const matches = APPROVED_INPUTS.filter(p =>
+                    p.name.toLowerCase().includes(query)
+                ).slice(0, 5);
+
+                if (matches.length > 0) {
+                    suggestions.innerHTML = matches.map(p => `
+                        <div class="suggestion-item" onclick="selectProduct('${p.name}', '${p.rate}')">
+                            <strong>${p.name}</strong>
+                            <span>${p.category} • ${p.rate}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    suggestions.innerHTML = '';
+                }
+            });
+        }
+
+        function selectProduct(name, rate) {
+            document.getElementById('inputProduct').value = name;
+            document.getElementById('inputRate').value = rate;
+            document.getElementById('productSuggestions').innerHTML = '';
+        }
+
+        function setOrganicCertified(value) {
+            ComplianceState.organicCertified = value;
+            document.getElementById('inputOrganic').value = value;
+
+            document.querySelectorAll('#inputApplicationModal .toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === String(value));
+            });
+        }
+
+        function captureInputPhoto() {
+            // Use existing camera functionality if available
+            if (typeof openCamera === 'function') {
+                openCamera((photoData) => {
+                    ComplianceState.inputPhoto = photoData;
+                    const preview = document.getElementById('inputPhotoPreview');
+                    if (preview) {
+                        preview.innerHTML = `<img src="${photoData}" alt="Product label">`;
+                        preview.style.display = 'block';
+                    }
+                });
+            } else {
+                showToast('Camera not available', 'error');
+            }
+        }
+
+        async function submitInputApplication() {
+            const fieldId = document.getElementById('inputField').value;
+            const productName = document.getElementById('inputProduct').value;
+            const rate = document.getElementById('inputRate').value;
+
+            if (!fieldId || !productName || !rate) {
+                showToast('Please fill required fields', 'error');
+                return;
+            }
+
+            const logEntry = {
+                logType: 'INPUT_APPLICATION',
+                timestamp: new Date().toISOString(),
+                employeeId: AppState.employee?.id || 'unknown',
+                employeeName: AppState.employee?.name || 'Unknown',
+                fieldId: fieldId,
+                productName: productName,
+                productRate: rate,
+                areaTreated: document.getElementById('inputArea').value || '',
+                areaUnit: document.getElementById('inputAreaUnit').value,
+                organicCertified: ComplianceState.organicCertified,
+                notes: document.getElementById('inputNotes').value,
+                gpsLat: ComplianceState.currentGps?.lat || null,
+                gpsLng: ComplianceState.currentGps?.lng || null,
+                photoBase64: ComplianceState.inputPhoto || null
+            };
+
+            try {
+                // Save locally first
+                const localId = await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync
+                await OfflineDB.queueOperation('logComplianceEntry', {
+                    ...logEntry,
+                    localId: localId
+                });
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate(50);
+
+                showToast('Input logged' + (AppState.isOnline ? '' : ' (offline)'), 'success');
+                closeInputApplicationModal();
+                loadComplianceLogs();
+
+            } catch (error) {
+                console.error('Error logging input:', error);
+                showToast('Error saving log', 'error');
+            }
+        }
+
+        // ========== HARVEST CTE (FSMA 204) ==========
+
+        function openHarvestCTEForm() {
+            populatePlantingDropdown();
+            updateLotCodePreview();
+            document.getElementById('harvestCTEModal').style.display = 'flex';
+            captureComplianceGps();
+        }
+
+        function closeHarvestCTEModal() {
+            document.getElementById('harvestCTEModal').style.display = 'none';
+            clearHarvestForm();
+        }
+
+        function clearHarvestForm() {
+            document.getElementById('harvestPlanting').value = '';
+            document.getElementById('harvestQuantity').value = '';
+            document.getElementById('harvestNotes').value = '';
+        }
+
+        function populatePlantingDropdown() {
+            const select = document.getElementById('harvestPlanting');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Select Planting...</option>';
+
+            const plantings = AppState.plantings || [];
+            plantings.forEach(p => {
+                if (p.STATUS === 'Transplanted' || p.STATUS === 'Direct Seeded' || p.STATUS === 'Growing') {
+                    const opt = document.createElement('option');
+                    opt.value = p.Batch_ID;
+                    opt.textContent = `${p.Crop} - ${p.Variety || ''} (${p.Field || 'No field'})`;
+                    opt.dataset.crop = p.Crop;
+                    opt.dataset.field = p.Field;
+                    select.appendChild(opt);
+                }
+            });
+        }
+
+        function updateLotCodePreview() {
+            const select = document.getElementById('harvestPlanting');
+            const preview = document.getElementById('lotCodePreview');
+            if (!select || !preview) return;
+
+            const selectedOption = select.options[select.selectedIndex];
+            const crop = selectedOption?.dataset?.crop || 'CROP';
+
+            preview.textContent = OfflineDB.generateLotCode(crop);
+        }
+
+        async function submitHarvestCTE() {
+            const plantingId = document.getElementById('harvestPlanting').value;
+            const quantity = document.getElementById('harvestQuantity').value;
+            const destination = document.getElementById('harvestDestination').value;
+
+            if (!plantingId || !quantity) {
+                showToast('Please fill required fields', 'error');
+                return;
+            }
+
+            const select = document.getElementById('harvestPlanting');
+            const selectedOption = select.options[select.selectedIndex];
+            const crop = selectedOption?.dataset?.crop || '';
+            const field = selectedOption?.dataset?.field || '';
+            const lotCode = OfflineDB.generateLotCode(crop);
+
+            const logEntry = {
+                logType: 'HARVEST_CTE',
+                timestamp: new Date().toISOString(),
+                employeeId: AppState.employee?.id || 'unknown',
+                employeeName: AppState.employee?.name || 'Unknown',
+                batchId: plantingId,
+                crop: crop,
+                fieldId: field,
+                quantity: parseFloat(quantity),
+                unit: document.getElementById('harvestUnit').value,
+                lotCode: lotCode,
+                destination: destination,
+                notes: document.getElementById('harvestNotes').value,
+                gpsLat: ComplianceState.currentGps?.lat || null,
+                gpsLng: ComplianceState.currentGps?.lng || null
+            };
+
+            try {
+                // Save locally first
+                const localId = await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync
+                await OfflineDB.queueOperation('logComplianceEntry', {
+                    ...logEntry,
+                    localId: localId
+                });
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+
+                showToast(`Harvest CTE logged: ${lotCode}` + (AppState.isOnline ? '' : ' (offline)'), 'success');
+                closeHarvestCTEModal();
+                loadComplianceLogs();
+
+            } catch (error) {
+                console.error('Error logging harvest CTE:', error);
+                showToast('Error saving log', 'error');
+            }
+        }
+
+        // ========== PLACEHOLDER FUNCTIONS FOR OTHER FORMS ==========
+
+        function openSeedVerificationForm() {
+            showToast('Seed Verification - Coming Soon', 'info');
+        }
+
+        function openPackingCTEForm() {
+            showToast('Packing CTE - Coming Soon', 'info');
+        }
+
+        function openEquipmentCleanForm() {
+            showToast('Equipment Cleaning - Coming Soon', 'info');
+        }
+
+        function openBufferCheckForm() {
+            showToast('Buffer Inspection - Coming Soon', 'info');
+        }
+
+        // ============================================
+        // END COMPLIANCE LOGGING MODULE
+        // ============================================
 
         function openWildlife() {
             document.getElementById('wildlifeModal').classList.add('visible');
