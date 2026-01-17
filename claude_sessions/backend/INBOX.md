@@ -198,3 +198,106 @@ First time user clicks "Import Emails", Google will prompt for Gmail authorizati
 ---
 
 *Accounting_Compliance Claude - Module ready, needs navigation integration.*
+
+---
+
+## NEW TASK: COMPLETE MOBILE BACKEND CHECKLIST
+**From:** Main Claude (System Audit)
+**Date:** 2026-01-16
+**Priority:** HIGH
+
+### URGENT: BUILD COMPLETE MOBILE BACKEND
+
+The mobile app (employee.html) needs a fully connected backend. Below is the complete checklist.
+
+---
+
+### GOOGLE SHEETS CHECKLIST
+
+#### 1. USERS Sheet (Authentication)
+Required columns:
+- `User_ID` - Unique identifier (e.g., USR-001)
+- `Full_Name` - Employee full name
+- `PIN` - 4-digit login PIN
+- `Role` - Employee, Field_Lead, Manager, Admin
+- `Is_Active` - TRUE/FALSE
+- `Language_Pref` - en or es
+- `Phone` - Employee phone number
+- `Email` - Employee email
+- `Tractor_Mode`, `Garage_Mode`, `Inventory_Mode`, `Costing_Mode`, `Delivery_Mode` - Permission checkboxes
+
+#### 2. CUSTOMERS Sheet (Deliveries) - CRITICAL
+Required columns:
+- `Customer_ID` - Unique identifier
+- `Name` or `Customer_Name` - Full name
+- `Company_Name` - Business name
+- **`Phone` or `Phone_Number`** - CRITICAL for Call/Text buttons
+- **`Email`** - CRITICAL for Email button
+- `Customer_Type` - Retail, Wholesale, CSA, Restaurant
+- `Address`, `City`, `State`, `Zip` - Delivery address
+- `Delivery_Zone`, `Delivery_Notes`
+
+#### 3. DELIVERIES Sheet
+- `Route_ID`, `Delivery_Date`, `Driver_ID`, `Status`
+
+#### 4. DELIVERY_STOPS Sheet
+- `Stop_ID`, `Route_ID`, `Order_ID`, `Customer_Name`, `Address`
+- `Stop_Order` (sequence), `Status`, `Completed_At`, `POD_Photo`, `Signature`
+
+#### 5. ORDERS / ORDER_ITEMS
+- Standard order tracking columns
+
+#### 6. EMPLOYEE_TASKS Sheet
+- `Task_ID`, `Type`, `Crop`, `Variety`, `Date`, `Bed`, `Field`
+- `Assigned_To`, `Status`, `Is_Team_Task`, `Subtasks_Total/Completed`
+
+#### 7. CROP_INVENTORY Sheet (Produce on Hand)
+- `Inventory_ID`, `Date`, `Crop`, `Variety`, `Location` (Cooler 1, Field Storage)
+- `Quantity`, `Unit` (lbs, heads, bunches, cases)
+- `Harvested_Date`, `Best_By`, `Status` (Available, Reserved, Sold)
+
+#### 8. FARM_SUPPLIES Sheet (Materials & Inputs)
+Categories to track:
+- **Row Cover**: `Item_ID`, `Type`, `Width`, `Length_Remaining`, `Location`
+- **Potting Soil**: `Brand`, `Bags_On_Hand`, `Reorder_Point`
+- **Seeds**: `Variety`, `Packets`, `Seeds_Remaining`, `Expiration`
+- **Plastic Mulch**: `Color`, `Width`, `Rolls_On_Hand`
+- **Trays/Pots**: `Size`, `Type`, `Quantity_Clean`, `Quantity_Dirty`
+- **Fertilizer**: `Product`, `Amount_Remaining`, `Unit`
+- **Pest Control**: `Product`, `Amount`, `Expiration`
+
+Common columns for all:
+- `Item_ID`, `Category`, `Item_Name`, `Quantity`, `Unit`
+- `Location`, `Reorder_Point`, `Last_Updated`, `Updated_By`
+
+#### 9. INVENTORY_COUNTS Sheet (Count Sessions)
+- `Count_ID`, `Date`, `Employee_ID`, `Count_Type` (Crop or Supplies)
+- `Location`, `Items_Counted`, `Notes`
+
+#### 10. TIME_ENTRIES Sheet
+- `Entry_ID`, `Employee_ID`, `Clock_In`, `Clock_Out`, `Hours`, `GPS_Lat`, `GPS_Lng`
+
+#### 11. HAZARDS Sheet
+- `Hazard_ID`, `Reported_Date`, `Employee_ID`, `Type`, `Severity`
+- `Description`, `Photo_URL`, `GPS_Lat/Lng`, `Status`, `Resolved_Date/By`
+
+---
+
+### SAMPLE DATA FUNCTIONS NEEDED
+
+Create these functions in MERGED TOTAL.js:
+- `createSampleCustomers()` - Add test customers with phone/email
+- `createSampleDeliveryRoute()` - Add test delivery route with stops
+- `createSampleInventoryItems()` - Add test inventory items
+
+---
+
+### PRIORITY ORDER
+
+1. **CUSTOMERS sheet** - Add Phone column (blocks delivery contact buttons)
+2. **Sample data functions** - For testing all features
+3. **Verify all API endpoints** - Fix any missing ones
+
+---
+
+*Backend Claude - Make the mobile app fully functional!*

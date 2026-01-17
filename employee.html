@@ -65,6 +65,107 @@
             overflow-x: hidden;
         }
 
+        /* ========================================
+           MOBILE UX - FIELD-FRIENDLY TOUCH TARGETS
+           All buttons & inputs min 48px for gloved hands
+           ======================================== */
+        button,
+        .btn,
+        [type="submit"],
+        [type="button"],
+        .action-btn,
+        .nav-btn,
+        .tab-btn {
+            min-height: var(--touch-min);
+            min-width: var(--touch-min);
+            touch-action: manipulation;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="tel"],
+        input[type="email"],
+        input[type="password"],
+        input[type="search"],
+        input[type="date"],
+        textarea,
+        select {
+            min-height: var(--touch-min);
+            font-size: 16px; /* Prevents iOS zoom */
+            touch-action: manipulation;
+        }
+
+        /* Large action buttons for primary actions */
+        .task-complete-btn,
+        .submit-btn,
+        .primary-action {
+            min-height: var(--touch-comfortable) !important;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Ensure no horizontal scroll on mobile */
+        .tab-content,
+        .panel-content,
+        .modal-body {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
+        /* Thumb-friendly spacing */
+        .button-group,
+        .action-row {
+            gap: 12px;
+        }
+
+        /* Full-width action buttons for mobile */
+        .task-actions button,
+        .form-actions button,
+        .modal-actions button {
+            width: 100%;
+            min-height: var(--touch-comfortable);
+        }
+
+        /* Larger click/tap areas for list items */
+        .task-item,
+        .route-stop,
+        .inventory-item,
+        .pick-item {
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        /* Big tappable checkboxes and toggles */
+        .checkbox-wrapper,
+        .toggle-wrapper,
+        .radio-wrapper {
+            min-height: var(--touch-min);
+            min-width: var(--touch-min);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Cards should have generous padding */
+        .card,
+        .panel,
+        .info-box {
+            padding: 16px;
+        }
+
+        /* Modals full-screen on mobile */
+        @media (max-width: 480px) {
+            .modal-content,
+            .popup-content {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: 100% !important;
+                max-height: 100% !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+            }
+        }
+
         /* Screen Management */
         .screen {
             display: none;
