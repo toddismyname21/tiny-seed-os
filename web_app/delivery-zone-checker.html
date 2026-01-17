@@ -502,7 +502,7 @@
       <div id="result-accepted" class="result-accepted" style="display: none;">
         <i class="fas fa-check-circle"></i>
         <h2>Great News!</h2>
-        <p>Your address is in our delivery zone.</p>
+        <p id="accepted-message">Your address is in our delivery zone.</p>
       </div>
 
       <!-- Shopify Code Box (shown when accepted) -->
@@ -607,23 +607,26 @@
       resultSection.classList.remove('show');
 
       try {
-        // Use simpler zone check endpoint
+        // Use advanced zone check that calculates distance to route LINE
         const response = await fetch(`${API_BASE}?action=checkDeliveryZone&address=${encodeURIComponent(fullAddress)}`);
         const data = await response.json();
 
         // Hide loading
         loading.classList.remove('show');
 
-        // Convert checkDeliveryZone response to expected format
         if (data.success) {
+          // Use the new detailed response format
           const result = {
             success: true,
             accepted: data.likely_in_zone,
             formattedAddress: data.formattedAddress,
-            fee: data.distanceToNearestPickup <= 2 ? 5.00 :
-                 data.distanceToNearestPickup <= 4 ? 7.50 : 10.00,
+            fee: data.fee,
+            tier: data.tier,
+            distanceToRoute: data.distanceToRoute,
+            nearestPoint: data.nearestRoutePoint,
+            routeSegment: data.routeSegment,
             reason: data.likely_in_zone ? null :
-                    `Your address is ${data.distanceToNearestPickup} miles from our nearest stop (${data.nearestPickup}). We deliver within 5 miles of our route.`,
+                    `Your address is ${data.distanceToRoute} miles from our delivery route. We deliver within 7 miles of our route.`,
             alternatives: data.nearestPickupLocations
           };
           showResult(result);
@@ -650,8 +653,14 @@
         alternativesSection.style.display = 'none';
         codeBox.style.display = 'block';
 
+        // Show distance to route in accepted message
+        const distMsg = data.distanceToRoute
+          ? `Your address is ${data.distanceToRoute} miles from our route.`
+          : 'Your address is in our delivery zone.';
+        document.getElementById('accepted-message').textContent = distMsg;
+
         document.getElementById('detail-address').textContent = data.formattedAddress || '-';
-        document.getElementById('detail-fee').textContent = data.fee ? `$${data.fee.toFixed(2)}` : 'Free';
+        document.getElementById('detail-fee').textContent = data.fee ? `$${data.fee.toFixed(2)}` : '$5.00';
         document.getElementById('detail-day').textContent = 'Wednesday';
 
         // Generate unique-ish code based on ZIP for tracking

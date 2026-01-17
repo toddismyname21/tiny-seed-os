@@ -16165,31 +16165,67 @@ const DELIVERY_ACCEPTANCE_CONFIG = {
 };
 
 /**
- * Base route stops for each delivery day
+ * Base route stops for each delivery day with full coordinates
  * These are fixed stops that happen regardless of home deliveries
+ * Coordinates are required for proper route-line distance calculations
  */
 const BASE_ROUTE_STOPS = {
   wednesday: [
-    { name: 'Farm', address: '257 Zeigler Rd, Rochester, PA 15074', type: 'start' },
-    { name: 'Zelienople CSA', address: '358 East New Castle Street, Zelienople, PA 16063', type: 'csa' },
-    { name: 'Cafe Verde', address: '111 E Spring St, Zelienople, PA 16037', type: 'wholesale' },
-    { name: 'Cranberry CSA', address: '230 Elmhurst Circle, Cranberry Township, PA 16066', type: 'csa' },
-    { name: 'Allison Park Simons', address: '4312 Middle Rd, Allison Park, PA 15101', type: 'csa' },
-    { name: 'Allison Park St Pauls', address: '1965 Ferguson Rd, Allison Park, PA 15101', type: 'csa' },
-    { name: 'Fox Chapel', address: '237 Kittanning Pike, Pittsburgh, PA 15215', type: 'csa' },
-    { name: 'Eleven', address: '1150 Smallman St, Pittsburgh, PA 15222', type: 'wholesale' },
-    { name: 'Spirit', address: '242 51st Street, Pittsburgh, PA 15201', type: 'wholesale' },
-    { name: 'Driftwood Oven', address: '3615 Butler St, Pittsburgh, PA 15201', type: 'wholesale' },
-    { name: 'Morcilla', address: '3519 Butler St, Pittsburgh, PA 15201', type: 'wholesale' },
-    { name: 'Fet Fisk', address: '4786 Liberty Ave, Pittsburgh, PA 15224', type: 'wholesale' },
-    { name: 'APTEKA', address: '4606 Penn Ave, Pittsburgh, PA 15224', type: 'wholesale' },
-    { name: 'Highland Park CSA', address: '5901 Bryant St, Pittsburgh, PA 15206', type: 'csa' },
-    { name: 'Squirrel Hill CSA', address: '5502 Kamin Street, Pittsburgh, PA 15217', type: 'csa' },
-    { name: 'Mt Lebanon CSA', address: '326 Newburn Dr, Pittsburgh, PA 15216', type: 'csa' },
-    { name: 'Mediterra', address: '292 Beverly Road, Pittsburgh, PA 15216', type: 'wholesale' },
-    { name: 'Farm', address: '257 Zeigler Rd, Rochester, PA 15074', type: 'end' }
+    { name: 'Farm', address: '257 Zeigler Rd, Rochester, PA 15074', lat: 40.7456, lng: -80.2617, type: 'start' },
+    { name: 'Zelienople CSA', address: '358 East New Castle Street, Zelienople, PA 16063', lat: 40.7948, lng: -80.1398, type: 'csa' },
+    { name: 'Cafe Verde', address: '111 E Spring St, Zelienople, PA 16037', lat: 40.7942, lng: -80.1378, type: 'wholesale' },
+    { name: 'Cranberry CSA', address: '230 Elmhurst Circle, Cranberry Township, PA 16066', lat: 40.6864, lng: -80.1018, type: 'csa' },
+    { name: 'Allison Park Simons', address: '4312 Middle Rd, Allison Park, PA 15101', lat: 40.5506, lng: -79.9562, type: 'csa' },
+    { name: 'Allison Park St Pauls', address: '1965 Ferguson Rd, Allison Park, PA 15101', lat: 40.5589, lng: -79.9612, type: 'csa' },
+    { name: 'Fox Chapel', address: '237 Kittanning Pike, Pittsburgh, PA 15215', lat: 40.5106, lng: -79.9006, type: 'csa' },
+    { name: 'Eleven', address: '1150 Smallman St, Pittsburgh, PA 15222', lat: 40.4512, lng: -79.9847, type: 'wholesale' },
+    { name: 'Spirit', address: '242 51st Street, Pittsburgh, PA 15201', lat: 40.4678, lng: -79.9601, type: 'wholesale' },
+    { name: 'Driftwood Oven', address: '3615 Butler St, Pittsburgh, PA 15201', lat: 40.4721, lng: -79.9589, type: 'wholesale' },
+    { name: 'Morcilla', address: '3519 Butler St, Pittsburgh, PA 15201', lat: 40.4716, lng: -79.9598, type: 'wholesale' },
+    { name: 'Fet Fisk', address: '4786 Liberty Ave, Pittsburgh, PA 15224', lat: 40.4622, lng: -79.9442, type: 'wholesale' },
+    { name: 'APTEKA', address: '4606 Penn Ave, Pittsburgh, PA 15224', lat: 40.4651, lng: -79.9476, type: 'wholesale' },
+    { name: 'Highland Park CSA', address: '5901 Bryant St, Pittsburgh, PA 15206', lat: 40.4784, lng: -79.9219, type: 'csa' },
+    { name: 'Squirrel Hill CSA', address: '5502 Kamin Street, Pittsburgh, PA 15217', lat: 40.4316, lng: -79.9269, type: 'csa' },
+    { name: 'Mt Lebanon CSA', address: '326 Newburn Dr, Pittsburgh, PA 15216', lat: 40.3898, lng: -80.0312, type: 'csa' },
+    { name: 'Mediterra', address: '292 Beverly Road, Pittsburgh, PA 15216', lat: 40.3856, lng: -80.0378, type: 'wholesale' },
+    { name: 'Farm', address: '257 Zeigler Rd, Rochester, PA 15074', lat: 40.7456, lng: -80.2617, type: 'end' }
   ]
 };
+
+/**
+ * All route points for delivery zone calculations (includes all stops)
+ * Used for calculating distance to route LINE, not just stops
+ */
+const ALL_ROUTE_POINTS = [
+  // Farm and Northern Route
+  { name: 'Farm', lat: 40.7456, lng: -80.2617, type: 'farm' },
+  { name: 'Zelienople CSA', lat: 40.7948, lng: -80.1398, type: 'csa' },
+  { name: 'Cafe Verde', lat: 40.7942, lng: -80.1378, type: 'wholesale' },
+  { name: 'Cranberry CSA', lat: 40.6864, lng: -80.1018, type: 'csa' },
+  // North Pittsburgh
+  { name: 'Allison Park Simons', lat: 40.5506, lng: -79.9562, type: 'csa' },
+  { name: 'Allison Park St Pauls', lat: 40.5589, lng: -79.9612, type: 'csa' },
+  { name: 'Fox Chapel', lat: 40.5106, lng: -79.9006, type: 'csa' },
+  // Strip District
+  { name: 'Eleven', lat: 40.4512, lng: -79.9847, type: 'wholesale' },
+  // Lawrenceville Cluster
+  { name: 'Spirit', lat: 40.4678, lng: -79.9601, type: 'wholesale' },
+  { name: 'Driftwood Oven', lat: 40.4721, lng: -79.9589, type: 'wholesale' },
+  { name: 'Morcilla', lat: 40.4716, lng: -79.9598, type: 'wholesale' },
+  // Bloomfield Cluster
+  { name: 'Fet Fisk', lat: 40.4622, lng: -79.9442, type: 'wholesale' },
+  { name: 'APTEKA', lat: 40.4651, lng: -79.9476, type: 'wholesale' },
+  { name: 'Bloomfield Market', lat: 40.4616, lng: -79.9458, type: 'market' },
+  // East Pittsburgh
+  { name: 'Highland Park CSA', lat: 40.4784, lng: -79.9219, type: 'csa' },
+  { name: 'Squirrel Hill CSA', lat: 40.4316, lng: -79.9269, type: 'csa' },
+  // South Hills
+  { name: 'Mt. Lebanon CSA', lat: 40.3898, lng: -80.0312, type: 'csa' },
+  { name: 'Mediterra', lat: 40.3856, lng: -80.0378, type: 'wholesale' },
+  // Markets
+  { name: 'Lawrenceville Market', lat: 40.4683, lng: -79.9622, type: 'market' },
+  { name: 'Sewickley Market', lat: 40.5353, lng: -80.1823, type: 'market' }
+];
 
 /**
  * CSA pickup locations for alternative suggestions
@@ -16348,8 +16384,102 @@ function validateHomeDeliveryAddress(params) {
 }
 
 /**
- * Quick check if address is likely in delivery zone (without full route calculation)
- * Uses distance from nearest base route stop as a proxy
+ * Calculate the minimum distance from a point to a line segment
+ * This allows checking if an address is "between" two stops on the route
+ * @param {number} px - Point latitude
+ * @param {number} py - Point longitude
+ * @param {number} ax - Line segment start latitude
+ * @param {number} ay - Line segment start longitude
+ * @param {number} bx - Line segment end latitude
+ * @param {number} by - Line segment end longitude
+ * @returns {number} - Distance in miles to the closest point on the line segment
+ */
+function distanceToLineSegment(px, py, ax, ay, bx, by) {
+  // Vector from A to B
+  const abx = bx - ax;
+  const aby = by - ay;
+
+  // Vector from A to P
+  const apx = px - ax;
+  const apy = py - ay;
+
+  // Project AP onto AB, compute parameter t
+  const abSquared = abx * abx + aby * aby;
+
+  if (abSquared === 0) {
+    // A and B are the same point
+    return calculateHaversineDistance(px, py, ax, ay);
+  }
+
+  let t = (apx * abx + apy * aby) / abSquared;
+
+  // Clamp t to [0, 1] to stay on the segment
+  t = Math.max(0, Math.min(1, t));
+
+  // Find the closest point on the segment
+  const closestX = ax + t * abx;
+  const closestY = ay + t * aby;
+
+  // Return the distance to that point
+  return calculateHaversineDistance(px, py, closestX, closestY);
+}
+
+/**
+ * Calculate minimum distance from a point to the entire delivery route
+ * Checks distance to all route segments (the lines BETWEEN stops)
+ * @param {number} lat - Customer latitude
+ * @param {number} lng - Customer longitude
+ * @param {Array} routeStops - Array of route stops with lat/lng
+ * @returns {Object} - { distance, nearestSegment, segmentStart, segmentEnd }
+ */
+function distanceToRoute(lat, lng, routeStops) {
+  let minDistance = Infinity;
+  let nearestSegment = null;
+  let segmentStart = null;
+  let segmentEnd = null;
+
+  // Check distance to each segment between consecutive stops
+  for (let i = 0; i < routeStops.length - 1; i++) {
+    const start = routeStops[i];
+    const end = routeStops[i + 1];
+
+    const distance = distanceToLineSegment(
+      lat, lng,
+      start.lat, start.lng,
+      end.lat, end.lng
+    );
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestSegment = i;
+      segmentStart = start;
+      segmentEnd = end;
+    }
+  }
+
+  // Also check distance to each individual stop (for addresses near stops)
+  routeStops.forEach((stop, i) => {
+    const distance = calculateHaversineDistance(lat, lng, stop.lat, stop.lng);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestSegment = i;
+      segmentStart = stop;
+      segmentEnd = stop;
+    }
+  });
+
+  return {
+    distance: minDistance,
+    nearestSegment: nearestSegment,
+    segmentStart: segmentStart,
+    segmentEnd: segmentEnd
+  };
+}
+
+/**
+ * Advanced delivery zone check - calculates distance to entire route LINE
+ * Not just stops, but also the paths between stops
+ * An address is in-zone if it's within threshold distance of ANY point on the route
  * @param {Object} params - { address }
  */
 function checkDeliveryZone(params) {
@@ -16365,42 +16495,117 @@ function checkDeliveryZone(params) {
     if (!geocodeResult.success) {
       return {
         success: false,
-        error: 'Could not verify address',
+        error: 'Could not verify address. Please check the address format.',
         likely_in_zone: false
       };
     }
 
+    const customerLat = geocodeResult.lat;
+    const customerLng = geocodeResult.lng;
+
+    // Get the Wednesday route (primary delivery day)
+    const routeStops = BASE_ROUTE_STOPS.wednesday;
+
+    // Calculate distance to the route LINE (not just stops)
+    const routeDistance = distanceToRoute(customerLat, customerLng, routeStops);
+
     // Calculate distance to farm
-    const farmCoords = GOOGLE_ROUTES_CONFIG.FARM_COORDS;
+    const farmCoords = { lat: 40.7456, lng: -80.2617 };
     const distanceToFarm = calculateHaversineDistance(
-      geocodeResult.lat, geocodeResult.lng,
+      customerLat, customerLng,
       farmCoords.lat, farmCoords.lng
     );
 
-    // Calculate distance to nearest pickup location
-    const pickupDistances = PICKUP_LOCATIONS.map(loc => ({
-      name: loc.name,
-      distance: calculateHaversineDistance(geocodeResult.lat, geocodeResult.lng, loc.lat, loc.lng)
+    // Calculate distances to all route points (for finding nearest)
+    const pointDistances = ALL_ROUTE_POINTS.map(point => ({
+      name: point.name,
+      type: point.type,
+      distance: calculateHaversineDistance(customerLat, customerLng, point.lat, point.lng)
     })).sort((a, b) => a.distance - b.distance);
 
-    const nearestPickup = pickupDistances[0];
+    const nearestPoint = pointDistances[0];
 
-    // Quick heuristic: likely in zone if within 5 miles of any pickup location
-    const likelyInZone = nearestPickup.distance <= 5;
+    // ACCEPTANCE CRITERIA:
+    // - Within 3 miles of the route line = AUTO ACCEPT (tier 1 fee)
+    // - Within 5 miles of the route line = ACCEPT (tier 2 fee)
+    // - Within 7 miles of the route line = ACCEPT with surcharge (tier 3 fee)
+    // - Beyond 7 miles = REJECT
 
-    return {
+    const distanceToRouteLine = Math.round(routeDistance.distance * 10) / 10;
+
+    let likelyInZone = false;
+    let fee = null;
+    let tier = null;
+
+    if (distanceToRouteLine <= 3) {
+      likelyInZone = true;
+      fee = DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_1; // $5
+      tier = 1;
+    } else if (distanceToRouteLine <= 5) {
+      likelyInZone = true;
+      fee = DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_2; // $7.50
+      tier = 2;
+    } else if (distanceToRouteLine <= 7) {
+      likelyInZone = true;
+      fee = DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_3; // $10
+      tier = 3;
+    } else {
+      likelyInZone = false;
+    }
+
+    // Get pickup alternatives
+    const pickupDistances = PICKUP_LOCATIONS.map(loc => ({
+      name: loc.name,
+      address: loc.address,
+      day: loc.day,
+      distance: Math.round(calculateHaversineDistance(customerLat, customerLng, loc.lat, loc.lng) * 10) / 10
+    })).sort((a, b) => a.distance - b.distance);
+
+    // Build response with detailed information
+    const response = {
       success: true,
       formattedAddress: geocodeResult.formatted_address,
-      coordinates: { lat: geocodeResult.lat, lng: geocodeResult.lng },
+      coordinates: { lat: customerLat, lng: customerLng },
+
+      // Route analysis
+      distanceToRoute: distanceToRouteLine,
       distanceToFarm: Math.round(distanceToFarm * 10) / 10,
-      nearestPickup: nearestPickup.name,
-      distanceToNearestPickup: Math.round(nearestPickup.distance * 10) / 10,
+      nearestRoutePoint: nearestPoint.name,
+      distanceToNearestPoint: Math.round(nearestPoint.distance * 10) / 10,
+
+      // Between which stops
+      routeSegment: routeDistance.segmentStart && routeDistance.segmentEnd
+        ? `Between ${routeDistance.segmentStart.name} and ${routeDistance.segmentEnd.name}`
+        : null,
+
+      // Acceptance decision
       likely_in_zone: likelyInZone,
+      fee: fee,
+      tier: tier,
+
+      // Messaging
       recommendation: likelyInZone
-        ? 'This address appears to be in our delivery zone. Complete your order to confirm.'
-        : 'This address may be outside our delivery zone. Consider our pickup locations.',
-      nearestPickupLocations: pickupDistances.slice(0, 3)
+        ? `Great news! Your address is ${distanceToRouteLine} miles from our delivery route. Delivery fee: $${fee.toFixed(2)}`
+        : `Your address is ${distanceToRouteLine} miles from our delivery route. We deliver within 7 miles of our route.`,
+
+      // Alternatives
+      nearestPickupLocations: pickupDistances.slice(0, 5)
     };
+
+    // Log the decision for analytics
+    try {
+      logDeliveryDecision({
+        address: geocodeResult.formatted_address,
+        distanceToRoute: distanceToRouteLine,
+        accepted: likelyInZone,
+        fee: fee,
+        nearestPoint: nearestPoint.name
+      });
+    } catch (logError) {
+      // Don't fail if logging fails
+    }
+
+    return response;
 
   } catch (error) {
     return { success: false, error: error.toString() };
