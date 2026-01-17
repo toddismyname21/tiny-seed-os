@@ -269,6 +269,90 @@
       font-size: 1.2rem;
     }
 
+    /* Shopify Code Box */
+    .code-box {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: white;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .code-box h3 {
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      opacity: 0.9;
+    }
+
+    .code-display {
+      background: rgba(255,255,255,0.2);
+      border: 2px dashed rgba(255,255,255,0.5);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin: 12px 0;
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      font-family: monospace;
+    }
+
+    .code-box p {
+      font-size: 0.9rem;
+      opacity: 0.85;
+      margin-top: 8px;
+    }
+
+    .copy-btn {
+      background: white;
+      color: var(--primary);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: transform 0.1s;
+    }
+
+    .copy-btn:hover {
+      transform: scale(1.02);
+    }
+
+    .copy-btn:active {
+      transform: scale(0.98);
+    }
+
+    .copy-btn.copied {
+      background: #22c55e;
+      color: white;
+    }
+
+    .shop-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: white;
+      color: var(--primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      text-decoration: none;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+
+    .shop-btn:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
     /* Alternatives */
     .alternatives-title {
       font-size: 1rem;
@@ -421,6 +505,20 @@
         <p>Your address is in our delivery zone.</p>
       </div>
 
+      <!-- Shopify Code Box (shown when accepted) -->
+      <div id="code-box" class="code-box" style="display: none;">
+        <h3><i class="fas fa-gift"></i> Your Home Delivery Unlock Code</h3>
+        <div class="code-display" id="delivery-code">DELIVERY2026</div>
+        <p>Enter this code at checkout to add home delivery to your cart</p>
+        <button class="copy-btn" onclick="copyCode()">
+          <i class="fas fa-copy"></i> Copy Code
+        </button>
+        <br>
+        <a href="https://tinyseedfarm.com" class="shop-btn" target="_blank">
+          <i class="fas fa-shopping-cart"></i> Shop Now
+        </a>
+      </div>
+
       <!-- Rejected Result -->
       <div id="result-rejected" class="result-rejected" style="display: none;">
         <i class="fas fa-map-marker-alt"></i>
@@ -476,7 +574,7 @@
 
   <script>
     // API Configuration
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbwmkS-mFc-0dWVxKv-J9kMT79MoYPyDh62puQs7AJVMPGnQQ8cNsC3_xPfXa6q8m1-U/exec';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
 
     // DOM Elements
     const form = document.getElementById('address-form');
@@ -527,6 +625,7 @@
 
     function showResult(data) {
       resultSection.classList.add('show');
+      const codeBox = document.getElementById('code-box');
 
       if (data.success && data.accepted) {
         // Accepted
@@ -534,12 +633,19 @@
         resultRejected.style.display = 'none';
         resultDetails.style.display = 'block';
         alternativesSection.style.display = 'none';
+        codeBox.style.display = 'block';
 
         document.getElementById('detail-address').textContent = data.formattedAddress || '-';
         document.getElementById('detail-fee').textContent = data.fee ? `$${data.fee.toFixed(2)}` : 'Free';
         document.getElementById('detail-day').textContent = 'Wednesday';
 
+        // Generate unique-ish code based on ZIP for tracking
+        const zip = document.getElementById('zip').value.trim();
+        const code = 'HOMEDELIVERY' + zip.substring(0,3);
+        document.getElementById('delivery-code').textContent = code;
+
       } else {
+        codeBox.style.display = 'none';
         // Rejected
         resultAccepted.style.display = 'none';
         resultRejected.style.display = 'block';
@@ -586,6 +692,20 @@
       resultRejected.style.display = 'none';
       resultDetails.style.display = 'none';
       alternativesSection.style.display = 'none';
+      document.getElementById('code-box').style.display = 'none';
+    }
+
+    function copyCode() {
+      const code = document.getElementById('delivery-code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fas fa-copy"></i> Copy Code';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
     }
   </script>
 </body>

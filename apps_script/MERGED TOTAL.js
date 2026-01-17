@@ -10129,8 +10129,10 @@ function getRouteStops(routeId) {
       const custId = custData[i][custHeaders.indexOf('Customer_ID')];
       customerData[custId] = {
         email: custData[i][custHeaders.indexOf('Email')],
+        phone: custData[i][custHeaders.indexOf('Phone')] || custData[i][custHeaders.indexOf('Phone_Number')] || '',
         type: custData[i][custHeaders.indexOf('Customer_Type')],
-        company: custData[i][custHeaders.indexOf('Company_Name')]
+        company: custData[i][custHeaders.indexOf('Company_Name')],
+        name: custData[i][custHeaders.indexOf('Name')] || custData[i][custHeaders.indexOf('Customer_Name')] || ''
       };
     }
   }
@@ -10183,13 +10185,20 @@ function getRouteStops(routeId) {
       headers.forEach((h, j) => stop[h] = data[i][j]);
       stop.items = getOrderItems(stop.Order_ID);
 
-      // Add customer type and email from order/customer data
+      // Add customer type, email, and phone from order/customer data
       const order = orderData[stop.Order_ID] || {};
       const customer = customerData[order.customerId] || {};
 
       stop.Customer_Type = order.customerType || customer.type || 'Retail';
       stop.Customer_Email = customer.email || '';
+      stop.Customer_Phone = customer.phone || '';
       stop.Customer_Company = customer.company || '';
+      stop.Customer_Name = customer.name || stop.Customer_Name || '';
+
+      // Also set lowercase versions for frontend compatibility
+      stop.email = customer.email || '';
+      stop.phone = customer.phone || '';
+      stop.customer = stop.Customer_Name || stop.Customer_Company || 'Customer';
 
       // Add box count and share type for CSA deliveries
       if (stop.Customer_Type === 'CSA') {
