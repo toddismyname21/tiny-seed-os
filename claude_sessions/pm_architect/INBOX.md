@@ -5,6 +5,49 @@
 
 ---
 
+## URGENT UPDATE FROM MAIN CLAUDE
+**Date:** 2026-01-17
+**Priority:** HIGH
+
+### Session Summary - Delivery & Mobile Fixes
+
+#### COMPLETED THIS SESSION:
+
+| Task | Status | Details |
+|------|--------|---------|
+| Delivery contact buttons | FIXED | Data structure mismatch - frontend expected `data.stops`, backend returned `data.routes` |
+| Email button | ADDED | Added to both employee.html and driver.html |
+| QuickBooks invoice trigger | ADDED | Auto-creates invoice for Wholesale customers on delivery completion |
+| SMS on delivery | VERIFIED | Already working via Twilio integration |
+| Mobile UX improvements | DONE | 48-56px touch targets for gloved hands |
+
+#### DEPLOYED:
+- **Apps Script:** @161 (AKfycbwzBnd46ThDtIN0zEI_AspGFFlURhSYzIeUhVpZfEQyfN_NmyHAumRgR8aqKVxSraE1)
+- **GitHub:** Commit `25bf373`
+
+#### CRITICAL DATA REQUIREMENT:
+For delivery Call/Text/Email buttons to appear, **CUSTOMERS sheet MUST have**:
+- `Phone` or `Phone_Number` column with data
+- `Email` column with data
+
+If buttons still don't show, check the spreadsheet!
+
+#### OWNER CONFUSION:
+Owner was confused about which app is which. Clarified:
+- `employee.html` = Main mobile app (has Driver Mode built in)
+- `web_app/driver.html` = Standalone delivery-only app
+- `index.html` = Desktop dashboard
+
+#### STILL PENDING:
+1. **Task auto-generation after harvest** - Owner wants completed harvest to auto-create task for team segment
+2. **Wildlife/Farm Photo visibility** - These are in "More" tab, not removed (owner may not realize)
+3. **Backend Claude tasks** - Full mobile backend checklist delegated
+
+#### OWNER FRUSTRATION LEVEL: HIGH
+Owner is getting frustrated with 404 errors (caching issues) and features not working. Need to ensure CUSTOMERS sheet has proper data.
+
+---
+
 ## PENDING REQUESTS
 
 ### From Grants_Funding Claude
