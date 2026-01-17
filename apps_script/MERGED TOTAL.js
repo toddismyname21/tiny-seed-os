@@ -25174,3 +25174,1204 @@ function getInboxHealthSummary() {
   return summary;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SMART EMAIL MANAGEMENT SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+// Complete system to never miss important emails:
+// 1. Daily Digest - Morning summary of what needs attention
+// 2. Auto-Draft Responses - Pre-written reply templates
+// 3. Follow-Up Tracker - Track emails awaiting responses
+// 4. Deadline Extractor - Find dates/deadlines in emails
+// 5. Customer SLA Alerts - Alert on unanswered customer emails
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Configuration for email management
+ */
+const EMAIL_MANAGEMENT_CONFIG = {
+  // Your email for digest delivery
+  OWNER_EMAIL: 'todd@tinyseedfarmpgh.com',
+
+  // SLA thresholds (hours)
+  CUSTOMER_SLA_HOURS: 24,      // Alert if customer email unanswered > 24h
+  WHOLESALE_SLA_HOURS: 12,     // Wholesale gets faster response
+  FOLLOWUP_ALERT_DAYS: 3,      // Alert if no response to YOUR email in 3 days
+
+  // Digest settings
+  DIGEST_TIME: 7,              // Send digest at 7 AM
+
+  // High-priority sender domains (always flag)
+  VIP_DOMAINS: [
+    'usda.gov', 'pa.gov', 'nrcs.gov',  // Government
+    'shopify.com', 'stripe.com', 'square.com',  // Money
+  ],
+
+  // Auto-response templates
+  RESPONSE_TEMPLATES: {
+    ORDER_RECEIVED: {
+      trigger: ['order', 'purchase', 'buy'],
+      subject: 'Re: {original_subject}',
+      body: `Hi {sender_name},
+
+Thanks for your order! We've received it and will confirm the details shortly.
+
+If you have any questions, just reply to this email.
+
+Best,
+Tiny Seed Farm`
+    },
+    CSA_PICKUP: {
+      trigger: ['pickup', 'csa', 'share', 'box'],
+      subject: 'Re: {original_subject}',
+      body: `Hi {sender_name},
+
+Thanks for reaching out!
+
+CSA pickup is every Tuesday from 4-7 PM at the farm (257 Zeigler Rd, Rochester PA).
+
+Let me know if you have any other questions!
+
+Best,
+Tiny Seed Farm`
+    },
+    AVAILABILITY: {
+      trigger: ['available', 'availability', 'do you have', 'looking for'],
+      subject: 'Re: {original_subject}',
+      body: `Hi {sender_name},
+
+Thanks for your interest! Let me check our current availability and get back to you shortly.
+
+In the meantime, you can see what's in season on our website.
+
+Best,
+Tiny Seed Farm`
+    },
+    WHOLESALE_INQUIRY: {
+      trigger: ['wholesale', 'restaurant', 'chef', 'menu'],
+      subject: 'Re: {original_subject}',
+      body: `Hi {sender_name},
+
+Thanks for reaching out about wholesale! We'd love to work with you.
+
+I'll send over our current availability list and pricing shortly. What's the best way to reach you to discuss your needs?
+
+Best,
+Todd
+Tiny Seed Farm`
+    },
+    GENERAL_ACKNOWLEDGE: {
+      trigger: [],  // Manual use only
+      subject: 'Re: {original_subject}',
+      body: `Hi {sender_name},
+
+Thanks for your email! I'll get back to you with a full response shortly.
+
+Best,
+Tiny Seed Farm`
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 1. DAILY DIGEST EMAIL
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate and send daily email digest
+ * Summarizes everything that needs attention
+ */
+function sendDailyDigest() {
+  Logger.log('📬 Generating daily email digest...');
+
+  try {
+    const digest = {
+      generated: new Date(),
+      urgentEmails: [],
+      unansweredCustomers: [],
+      awaitingResponse: [],
+      upcomingDeadlines: [],
+      vipEmails: [],
+      unreadCount: 0,
+      oldestUnread: null
+    };
+
+    // Get all unread emails
+    const unreadThreads = GmailApp.search('is:inbox is:unread', 0, 200);
+    digest.unreadCount = unreadThreads.length;
+
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24*60*60*1000);
+    const threeDaysAgo = new Date(now.getTime() - 3*24*60*60*1000);
+
+    // Process each unread thread
+    for (const thread of unreadThreads) {
+      const msg = thread.getMessages()[0];
+      const from = msg.getFrom();
+      const fromEmail = extractEmail(from);
+      const fromDomain = extractDomain(fromEmail);
+      const fromName = extractName(from);
+      const subject = msg.getSubject() || '(no subject)';
+      const date = msg.getDate();
+      const body = msg.getPlainBody().substring(0, 500).toLowerCase();
+
+      // Track oldest unread
+      if (!digest.oldestUnread || date < digest.oldestUnread) {
+        digest.oldestUnread = date;
+      }
+
+      const emailInfo = {
+        from: fromName,
+        email: fromEmail,
+        subject: subject.substring(0, 60),
+        date: date,
+        age: Math.floor((now - date) / (1000*60*60)), // hours old
+        threadId: thread.getId()
+      };
+
+      // Check for VIP senders
+      if (EMAIL_MANAGEMENT_CONFIG.VIP_DOMAINS.some(d => fromDomain.includes(d))) {
+        emailInfo.reason = 'VIP sender';
+        digest.vipEmails.push(emailInfo);
+      }
+
+      // Check for urgent keywords
+      if (subject.toLowerCase().match(/urgent|asap|deadline|important|action required|time sensitive|immediately/)) {
+        emailInfo.reason = 'Urgent keywords in subject';
+        digest.urgentEmails.push(emailInfo);
+      }
+
+      // Check for deadline mentions
+      const deadlineInfo = extractDeadlineFromText(subject + ' ' + body);
+      if (deadlineInfo) {
+        digest.upcomingDeadlines.push({
+          ...emailInfo,
+          deadline: deadlineInfo.date,
+          deadlineText: deadlineInfo.text
+        });
+      }
+
+      // Check SLA for customer emails (unread > 24h)
+      if (emailInfo.age > EMAIL_MANAGEMENT_CONFIG.CUSTOMER_SLA_HOURS) {
+        // Is this likely a customer email?
+        if (body.match(/order|buy|purchase|question|help|csa|delivery|available/)) {
+          emailInfo.reason = `Unanswered for ${emailInfo.age} hours`;
+          digest.unansweredCustomers.push(emailInfo);
+        }
+      }
+    }
+
+    // Check for emails YOU sent that haven't gotten responses
+    const sentThreads = GmailApp.search('in:sent after:' + formatDateForSearch(threeDaysAgo), 0, 50);
+    for (const thread of sentThreads) {
+      const messages = thread.getMessages();
+      const lastMsg = messages[messages.length - 1];
+      const lastFrom = lastMsg.getFrom().toLowerCase();
+
+      // If the last message is from YOU and it's been > 3 days
+      if (lastFrom.includes('tinyseed') || lastFrom.includes('todd')) {
+        const lastDate = lastMsg.getDate();
+        const daysSince = Math.floor((now - lastDate) / (1000*60*60*24));
+
+        if (daysSince >= EMAIL_MANAGEMENT_CONFIG.FOLLOWUP_ALERT_DAYS) {
+          const firstMsg = messages[0];
+          const originalFrom = messages.length > 1 ? extractName(messages[0].getFrom()) : extractEmail(lastMsg.getTo());
+
+          digest.awaitingResponse.push({
+            to: originalFrom,
+            subject: thread.getFirstMessageSubject().substring(0, 60),
+            sentDate: lastDate,
+            daysSince: daysSince,
+            threadId: thread.getId()
+          });
+        }
+      }
+    }
+
+    // Generate HTML digest
+    const htmlDigest = generateDigestHTML(digest);
+
+    // Send the digest
+    MailApp.sendEmail({
+      to: EMAIL_MANAGEMENT_CONFIG.OWNER_EMAIL,
+      subject: `📬 Daily Digest: ${digest.unreadCount} unread, ${digest.urgentEmails.length} urgent`,
+      htmlBody: htmlDigest
+    });
+
+    // Log to sheet
+    logDigestSent(digest);
+
+    Logger.log(`✅ Daily digest sent! ${digest.unreadCount} unread emails summarized.`);
+
+    return { success: true, digest: digest };
+
+  } catch (error) {
+    Logger.log('❌ Digest error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate HTML for daily digest email
+ */
+function generateDigestHTML(digest) {
+  const formatDate = (d) => {
+    if (!d) return 'N/A';
+    return new Date(d).toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    });
+  };
+
+  let html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .header p { margin: 5px 0 0 0; opacity: 0.9; }
+    .stat-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .stat { flex: 1; background: #f8f9fa; padding: 12px; border-radius: 6px; text-align: center; }
+    .stat-num { font-size: 28px; font-weight: bold; color: #2d5a27; }
+    .stat-label { font-size: 12px; color: #666; }
+    .section-title { font-size: 16px; font-weight: bold; color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e0e0e0; }
+    .urgent { border-left: 4px solid #dc3545; }
+    .vip { border-left: 4px solid #ffc107; }
+    .warning { border-left: 4px solid #fd7e14; }
+    .info { border-left: 4px solid #17a2b8; }
+    .email-item { padding: 10px 0; border-bottom: 1px solid #eee; }
+    .email-item:last-child { border-bottom: none; }
+    .email-from { font-weight: 600; color: #333; }
+    .email-subject { color: #666; font-size: 14px; }
+    .email-meta { font-size: 12px; color: #999; margin-top: 4px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge-urgent { background: #dc3545; color: white; }
+    .badge-hours { background: #fd7e14; color: white; }
+    .badge-days { background: #6c757d; color: white; }
+    .cta { display: inline-block; background: #2d5a27; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🌱 Tiny Seed Farm - Daily Digest</h1>
+    <p>${formatDate(digest.generated)}</p>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-num">${digest.unreadCount}</div>
+      <div class="stat-label">Unread</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color: #dc3545;">${digest.urgentEmails.length}</div>
+      <div class="stat-label">Urgent</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color: #fd7e14;">${digest.unansweredCustomers.length}</div>
+      <div class="stat-label">Need Response</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color: #17a2b8;">${digest.awaitingResponse.length}</div>
+      <div class="stat-label">Awaiting Reply</div>
+    </div>
+  </div>`;
+
+  // URGENT EMAILS
+  if (digest.urgentEmails.length > 0) {
+    html += `
+  <div class="card urgent">
+    <div class="section-title">🚨 URGENT - Respond Immediately</div>`;
+    digest.urgentEmails.slice(0, 5).forEach(e => {
+      html += `
+    <div class="email-item">
+      <div class="email-from">${e.from} <span class="badge badge-urgent">URGENT</span></div>
+      <div class="email-subject">${e.subject}</div>
+      <div class="email-meta">${formatDate(e.date)} · ${e.age}h ago</div>
+    </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // VIP EMAILS
+  if (digest.vipEmails.length > 0) {
+    html += `
+  <div class="card vip">
+    <div class="section-title">⭐ VIP Senders (Government, Payments)</div>`;
+    digest.vipEmails.slice(0, 5).forEach(e => {
+      html += `
+    <div class="email-item">
+      <div class="email-from">${e.from}</div>
+      <div class="email-subject">${e.subject}</div>
+      <div class="email-meta">${formatDate(e.date)} · ${e.reason}</div>
+    </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // UNANSWERED CUSTOMERS
+  if (digest.unansweredCustomers.length > 0) {
+    html += `
+  <div class="card warning">
+    <div class="section-title">⏰ Customers Waiting for Response</div>`;
+    digest.unansweredCustomers.slice(0, 5).forEach(e => {
+      html += `
+    <div class="email-item">
+      <div class="email-from">${e.from} <span class="badge badge-hours">${e.age}h waiting</span></div>
+      <div class="email-subject">${e.subject}</div>
+      <div class="email-meta">${formatDate(e.date)}</div>
+    </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // UPCOMING DEADLINES
+  if (digest.upcomingDeadlines.length > 0) {
+    html += `
+  <div class="card info">
+    <div class="section-title">📅 Upcoming Deadlines Mentioned</div>`;
+    digest.upcomingDeadlines.slice(0, 5).forEach(e => {
+      html += `
+    <div class="email-item">
+      <div class="email-from">${e.from}</div>
+      <div class="email-subject">${e.subject}</div>
+      <div class="email-meta">Deadline: ${e.deadlineText}</div>
+    </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // AWAITING RESPONSE
+  if (digest.awaitingResponse.length > 0) {
+    html += `
+  <div class="card">
+    <div class="section-title">📤 You're Waiting for Replies</div>`;
+    digest.awaitingResponse.slice(0, 5).forEach(e => {
+      html += `
+    <div class="email-item">
+      <div class="email-from">${e.to} <span class="badge badge-days">${e.daysSince} days</span></div>
+      <div class="email-subject">${e.subject}</div>
+      <div class="email-meta">You sent: ${formatDate(e.sentDate)}</div>
+    </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // FOOTER
+  html += `
+  <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+    <a href="https://mail.google.com" class="cta">Open Gmail</a>
+    <p style="margin-top: 15px;">Oldest unread: ${digest.oldestUnread ? formatDate(digest.oldestUnread) : 'None'}</p>
+    <p>Generated by Tiny Seed OS Email Management</p>
+  </div>
+</body>
+</html>`;
+
+  return html;
+}
+
+/**
+ * Helper: Format date for Gmail search
+ */
+function formatDateForSearch(date) {
+  return Utilities.formatDate(date, 'America/New_York', 'yyyy/MM/dd');
+}
+
+/**
+ * Log digest to tracking sheet
+ */
+function logDigestSent(digest) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName('EMAIL_DIGEST_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('EMAIL_DIGEST_LOG');
+      sheet.appendRow(['Timestamp', 'Unread', 'Urgent', 'Unanswered', 'Awaiting', 'Deadlines']);
+      sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+    }
+
+    sheet.appendRow([
+      digest.generated,
+      digest.unreadCount,
+      digest.urgentEmails.length,
+      digest.unansweredCustomers.length,
+      digest.awaitingResponse.length,
+      digest.upcomingDeadlines.length
+    ]);
+
+  } catch (e) {
+    Logger.log('Could not log digest: ' + e.toString());
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2. AUTO-DRAFT RESPONSES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Scan inbox and create draft responses for common email types
+ * Drafts are created but NOT sent - you review and send
+ */
+function generateAutoDrafts() {
+  Logger.log('📝 Generating auto-draft responses...');
+
+  try {
+    const threads = GmailApp.search('is:inbox is:unread -has:draft', 0, 50);
+    let draftsCreated = 0;
+    const results = [];
+
+    for (const thread of threads) {
+      const msg = thread.getMessages()[0];
+      const from = msg.getFrom();
+      const fromEmail = extractEmail(from);
+      const fromName = extractName(from);
+      const subject = msg.getSubject() || '';
+      const body = msg.getPlainBody().substring(0, 1000).toLowerCase();
+
+      // Skip if we already have a draft for this thread
+      const existingDrafts = GmailApp.getDrafts();
+      const hasDraft = existingDrafts.some(d => {
+        const draftMsg = d.getMessage();
+        return draftMsg.getThread().getId() === thread.getId();
+      });
+
+      if (hasDraft) continue;
+
+      // Find matching template
+      const template = findMatchingTemplate(subject, body);
+
+      if (template) {
+        // Create draft reply
+        const replySubject = template.subject.replace('{original_subject}', subject);
+        const replyBody = template.body
+          .replace('{sender_name}', fromName.split(' ')[0])
+          .replace('{original_subject}', subject);
+
+        // Create draft as reply to thread
+        const draft = thread.createDraftReply(replyBody, {
+          htmlBody: replyBody.replace(/\n/g, '<br>'),
+          subject: replySubject
+        });
+
+        draftsCreated++;
+        results.push({
+          to: fromName,
+          subject: subject.substring(0, 50),
+          template: template.name,
+          draftId: draft.getId()
+        });
+
+        Logger.log(`✅ Draft created for: ${fromName} - ${subject.substring(0, 40)}`);
+      }
+    }
+
+    Logger.log(`📝 Created ${draftsCreated} draft responses`);
+
+    return {
+      success: true,
+      draftsCreated: draftsCreated,
+      details: results
+    };
+
+  } catch (error) {
+    Logger.log('❌ Auto-draft error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Find matching response template based on content
+ */
+function findMatchingTemplate(subject, body) {
+  const text = (subject + ' ' + body).toLowerCase();
+
+  for (const [name, template] of Object.entries(EMAIL_MANAGEMENT_CONFIG.RESPONSE_TEMPLATES)) {
+    if (template.trigger.length === 0) continue; // Skip manual-only templates
+
+    const matches = template.trigger.some(trigger => text.includes(trigger));
+    if (matches) {
+      return { ...template, name: name };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Quick reply with a specific template
+ * Creates draft for a specific email
+ */
+function createQuickReply(threadId, templateName) {
+  const template = EMAIL_MANAGEMENT_CONFIG.RESPONSE_TEMPLATES[templateName];
+  if (!template) {
+    return { success: false, error: 'Template not found: ' + templateName };
+  }
+
+  const thread = GmailApp.getThreadById(threadId);
+  if (!thread) {
+    return { success: false, error: 'Thread not found' };
+  }
+
+  const msg = thread.getMessages()[0];
+  const fromName = extractName(msg.getFrom());
+  const subject = msg.getSubject();
+
+  const replyBody = template.body
+    .replace('{sender_name}', fromName.split(' ')[0])
+    .replace('{original_subject}', subject);
+
+  const draft = thread.createDraftReply(replyBody, {
+    htmlBody: replyBody.replace(/\n/g, '<br>')
+  });
+
+  return {
+    success: true,
+    draftId: draft.getId(),
+    message: `Draft created using ${templateName} template`
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3. FOLLOW-UP TRACKER
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Track emails you sent that haven't received responses
+ * Logs to sheet and can send alerts
+ */
+function trackFollowUps() {
+  Logger.log('📤 Tracking follow-ups...');
+
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName('EMAIL_FOLLOWUPS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('EMAIL_FOLLOWUPS');
+      sheet.appendRow([
+        'Thread_ID', 'To', 'Subject', 'Sent_Date', 'Days_Waiting',
+        'Status', 'Last_Checked', 'Notes'
+      ]);
+      sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30*24*60*60*1000);
+
+    // Get sent emails from last 30 days
+    const sentThreads = GmailApp.search('in:sent after:' + formatDateForSearch(thirtyDaysAgo), 0, 100);
+
+    const followUps = [];
+
+    for (const thread of sentThreads) {
+      const messages = thread.getMessages();
+      if (messages.length === 0) continue;
+
+      const lastMsg = messages[messages.length - 1];
+      const lastFrom = lastMsg.getFrom().toLowerCase();
+
+      // Check if last message is from YOU (no response yet)
+      if (lastFrom.includes('tinyseed') || lastFrom.includes('todd')) {
+        const lastDate = lastMsg.getDate();
+        const daysSince = Math.floor((now - lastDate) / (1000*60*60*24));
+
+        // Only track if waiting > 2 days
+        if (daysSince >= 2) {
+          const firstMsg = messages[0];
+          let recipient = lastMsg.getTo();
+
+          // If it's a reply thread, get original sender
+          if (messages.length > 1) {
+            const originalFrom = firstMsg.getFrom();
+            if (!originalFrom.toLowerCase().includes('tinyseed') && !originalFrom.toLowerCase().includes('todd')) {
+              recipient = originalFrom;
+            }
+          }
+
+          followUps.push({
+            threadId: thread.getId(),
+            to: extractName(recipient) || extractEmail(recipient),
+            toEmail: extractEmail(recipient),
+            subject: thread.getFirstMessageSubject(),
+            sentDate: lastDate,
+            daysSince: daysSince,
+            status: daysSince > 7 ? 'STALE' : 'WAITING'
+          });
+        }
+      }
+    }
+
+    // Update sheet
+    // Clear old data (keep header)
+    if (sheet.getLastRow() > 1) {
+      sheet.getRange(2, 1, sheet.getLastRow() - 1, 8).clear();
+    }
+
+    // Write new data
+    followUps.forEach((f, i) => {
+      sheet.getRange(i + 2, 1, 1, 8).setValues([[
+        f.threadId,
+        f.to,
+        f.subject.substring(0, 60),
+        f.sentDate,
+        f.daysSince,
+        f.status,
+        now,
+        ''
+      ]]);
+
+      // Color code by status
+      if (f.status === 'STALE') {
+        sheet.getRange(i + 2, 1, 1, 8).setBackground('#ffcccc');
+      } else if (f.daysSince > 4) {
+        sheet.getRange(i + 2, 1, 1, 8).setBackground('#fff3cd');
+      }
+    });
+
+    Logger.log(`📤 Tracking ${followUps.length} emails awaiting response`);
+
+    return {
+      success: true,
+      followUpsCount: followUps.length,
+      staleCount: followUps.filter(f => f.status === 'STALE').length,
+      followUps: followUps.slice(0, 10) // Return top 10
+    };
+
+  } catch (error) {
+    Logger.log('❌ Follow-up tracking error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send follow-up reminder for a specific thread
+ */
+function sendFollowUpReminder(threadId) {
+  const thread = GmailApp.getThreadById(threadId);
+  if (!thread) {
+    return { success: false, error: 'Thread not found' };
+  }
+
+  const subject = thread.getFirstMessageSubject();
+  const originalTo = extractEmail(thread.getMessages()[0].getTo());
+
+  const reminderBody = `Hi,
+
+Just following up on my previous email regarding "${subject}".
+
+Please let me know if you have any questions or need any additional information.
+
+Thanks!
+Todd
+Tiny Seed Farm`;
+
+  // Create draft follow-up
+  const draft = thread.createDraftReply(reminderBody, {
+    htmlBody: reminderBody.replace(/\n/g, '<br>')
+  });
+
+  return {
+    success: true,
+    draftId: draft.getId(),
+    message: 'Follow-up draft created'
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 4. DEADLINE EXTRACTOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Scan emails for deadline mentions and log them
+ */
+function extractAllDeadlines() {
+  Logger.log('📅 Extracting deadlines from emails...');
+
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName('EMAIL_DEADLINES');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('EMAIL_DEADLINES');
+      sheet.appendRow([
+        'Thread_ID', 'From', 'Subject', 'Deadline_Text', 'Deadline_Date',
+        'Email_Date', 'Status', 'Added_To_Calendar'
+      ]);
+      sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const threads = GmailApp.search('in:inbox after:' + formatDateForSearch(thirtyDaysAgo), 0, 200);
+
+    const deadlines = [];
+
+    for (const thread of threads) {
+      const msg = thread.getMessages()[0];
+      const from = extractName(msg.getFrom());
+      const subject = msg.getSubject() || '';
+      const body = msg.getPlainBody().substring(0, 2000);
+      const emailDate = msg.getDate();
+
+      // Look for deadlines in subject and body
+      const deadlineInfo = extractDeadlineFromText(subject + ' ' + body);
+
+      if (deadlineInfo) {
+        deadlines.push({
+          threadId: thread.getId(),
+          from: from,
+          subject: subject.substring(0, 60),
+          deadlineText: deadlineInfo.text,
+          deadlineDate: deadlineInfo.date,
+          emailDate: emailDate,
+          status: deadlineInfo.date && deadlineInfo.date < new Date() ? 'PASSED' : 'UPCOMING'
+        });
+      }
+    }
+
+    // Clear old data and write new
+    if (sheet.getLastRow() > 1) {
+      sheet.getRange(2, 1, sheet.getLastRow() - 1, 8).clear();
+    }
+
+    deadlines.forEach((d, i) => {
+      sheet.getRange(i + 2, 1, 1, 8).setValues([[
+        d.threadId,
+        d.from,
+        d.subject,
+        d.deadlineText,
+        d.deadlineDate || 'Could not parse',
+        d.emailDate,
+        d.status,
+        'No'
+      ]]);
+
+      // Color code
+      if (d.status === 'PASSED') {
+        sheet.getRange(i + 2, 1, 1, 8).setBackground('#ffcccc');
+      } else if (d.deadlineDate && (d.deadlineDate - new Date()) < 7*24*60*60*1000) {
+        sheet.getRange(i + 2, 1, 1, 8).setBackground('#fff3cd'); // Within 7 days
+      }
+    });
+
+    Logger.log(`📅 Found ${deadlines.length} emails with deadline mentions`);
+
+    return {
+      success: true,
+      deadlinesFound: deadlines.length,
+      upcoming: deadlines.filter(d => d.status === 'UPCOMING').length,
+      deadlines: deadlines.slice(0, 10)
+    };
+
+  } catch (error) {
+    Logger.log('❌ Deadline extraction error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Extract deadline from text using patterns
+ */
+function extractDeadlineFromText(text) {
+  text = text.toLowerCase();
+
+  // Deadline indicator words
+  const deadlineWords = [
+    'deadline', 'due by', 'due date', 'due on', 'must be received by',
+    'submit by', 'respond by', 'expires', 'expiration', 'by end of day',
+    'no later than', 'before', 'until'
+  ];
+
+  // Check if text contains deadline indicators
+  const hasDeadlineWord = deadlineWords.some(w => text.includes(w));
+  if (!hasDeadlineWord) return null;
+
+  // Date patterns to look for
+  const datePatterns = [
+    // "January 15, 2026" or "Jan 15, 2026"
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?\b/i,
+    // "1/15/2026" or "01/15/26"
+    /\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/,
+    // "15 January 2026"
+    /\b(\d{1,2})\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s*,?\s*(\d{4})?\b/i,
+    // "next Friday", "this Monday"
+    /\b(next|this)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+    // "end of January", "end of the month"
+    /\bend of (jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|the month|the week)\b/i
+  ];
+
+  for (const pattern of datePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      // Try to parse the date
+      let parsedDate = null;
+      try {
+        // For simple patterns, try direct parsing
+        const dateStr = match[0];
+        parsedDate = new Date(dateStr);
+
+        // If invalid, try more parsing
+        if (isNaN(parsedDate.getTime())) {
+          parsedDate = parseRelativeDate(dateStr);
+        }
+      } catch (e) {
+        parsedDate = null;
+      }
+
+      return {
+        text: match[0],
+        date: parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : null
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parse relative dates like "next Friday"
+ */
+function parseRelativeDate(text) {
+  const now = new Date();
+  text = text.toLowerCase();
+
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  for (let i = 0; i < days.length; i++) {
+    if (text.includes(days[i])) {
+      const targetDay = i;
+      const currentDay = now.getDay();
+      let daysToAdd = targetDay - currentDay;
+
+      if (text.includes('next')) {
+        daysToAdd += 7;
+      } else if (daysToAdd <= 0) {
+        daysToAdd += 7;
+      }
+
+      const result = new Date(now);
+      result.setDate(result.getDate() + daysToAdd);
+      return result;
+    }
+  }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 5. CUSTOMER SLA ALERTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check for customer emails exceeding SLA and send alerts
+ */
+function checkCustomerSLA() {
+  Logger.log('⏰ Checking customer SLA...');
+
+  try {
+    const now = new Date();
+    const threads = GmailApp.search('is:inbox is:unread', 0, 100);
+
+    const violations = [];
+
+    for (const thread of threads) {
+      const msg = thread.getMessages()[0];
+      const from = msg.getFrom();
+      const fromEmail = extractEmail(from);
+      const fromDomain = extractDomain(fromEmail);
+      const fromName = extractName(from);
+      const subject = msg.getSubject() || '';
+      const body = msg.getPlainBody().substring(0, 500).toLowerCase();
+      const date = msg.getDate();
+
+      const hoursOld = Math.floor((now - date) / (1000*60*60));
+
+      // Determine if this is a customer email
+      const isCustomerEmail = body.match(/order|buy|purchase|question|help|csa|delivery|available|price|wholesale|restaurant/);
+
+      if (!isCustomerEmail) continue;
+
+      // Determine SLA based on type
+      let slaHours = EMAIL_MANAGEMENT_CONFIG.CUSTOMER_SLA_HOURS;
+      let customerType = 'Customer';
+
+      if (body.match(/wholesale|restaurant|chef/)) {
+        slaHours = EMAIL_MANAGEMENT_CONFIG.WHOLESALE_SLA_HOURS;
+        customerType = 'Wholesale';
+      }
+
+      if (hoursOld > slaHours) {
+        violations.push({
+          threadId: thread.getId(),
+          from: fromName,
+          email: fromEmail,
+          subject: subject.substring(0, 60),
+          date: date,
+          hoursOld: hoursOld,
+          slaHours: slaHours,
+          customerType: customerType,
+          severity: hoursOld > slaHours * 2 ? 'CRITICAL' : 'WARNING'
+        });
+      }
+    }
+
+    // If there are critical violations, send alert
+    const criticalCount = violations.filter(v => v.severity === 'CRITICAL').length;
+
+    if (criticalCount > 0) {
+      sendSLAAlert(violations.filter(v => v.severity === 'CRITICAL'));
+    }
+
+    // Log to sheet
+    logSLACheck(violations);
+
+    Logger.log(`⏰ SLA Check: ${violations.length} violations (${criticalCount} critical)`);
+
+    return {
+      success: true,
+      totalViolations: violations.length,
+      criticalViolations: criticalCount,
+      violations: violations.slice(0, 10)
+    };
+
+  } catch (error) {
+    Logger.log('❌ SLA check error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send SLA violation alert email
+ */
+function sendSLAAlert(violations) {
+  let html = `
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #dc3545; color: white; padding: 15px; border-radius: 8px;">
+    <h2 style="margin: 0;">⚠️ Customer SLA Alert</h2>
+    <p style="margin: 5px 0 0 0;">${violations.length} customer email(s) need immediate response</p>
+  </div>
+  <div style="margin-top: 20px;">`;
+
+  violations.forEach(v => {
+    html += `
+    <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #dc3545;">
+      <strong>${v.from}</strong> (${v.customerType})<br>
+      <span style="color: #666;">${v.subject}</span><br>
+      <span style="color: #dc3545; font-weight: bold;">Waiting ${v.hoursOld} hours (SLA: ${v.slaHours}h)</span>
+    </div>`;
+  });
+
+  html += `
+  </div>
+  <a href="https://mail.google.com" style="display: inline-block; background: #dc3545; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin-top: 15px;">Open Gmail Now</a>
+</body>
+</html>`;
+
+  MailApp.sendEmail({
+    to: EMAIL_MANAGEMENT_CONFIG.OWNER_EMAIL,
+    subject: `🚨 SLA ALERT: ${violations.length} customers waiting!`,
+    htmlBody: html
+  });
+
+  Logger.log('🚨 SLA alert sent!');
+}
+
+/**
+ * Log SLA check results
+ */
+function logSLACheck(violations) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName('EMAIL_SLA_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('EMAIL_SLA_LOG');
+      sheet.appendRow(['Check_Time', 'Total_Violations', 'Critical', 'Warning', 'Oldest_Hours']);
+      sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+    }
+
+    const critical = violations.filter(v => v.severity === 'CRITICAL').length;
+    const warning = violations.filter(v => v.severity === 'WARNING').length;
+    const oldest = violations.length > 0 ? Math.max(...violations.map(v => v.hoursOld)) : 0;
+
+    sheet.appendRow([new Date(), violations.length, critical, warning, oldest]);
+
+  } catch (e) {
+    Logger.log('Could not log SLA check: ' + e.toString());
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTOMATED TRIGGERS SETUP
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Setup all email management triggers
+ * Run this once to enable full automation
+ */
+function setupEmailManagementSystem() {
+  Logger.log('🚀 Setting up complete email management system...');
+
+  // Remove existing triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  const emailTriggers = ['sendDailyDigest', 'autoSortInbox', 'checkCustomerSLA', 'trackFollowUps', 'extractAllDeadlines'];
+
+  for (const trigger of triggers) {
+    if (emailTriggers.includes(trigger.getHandlerFunction())) {
+      ScriptApp.deleteTrigger(trigger);
+      Logger.log(`🗑️ Removed existing trigger: ${trigger.getHandlerFunction()}`);
+    }
+  }
+
+  // 1. Daily Digest - Every morning at 7 AM
+  ScriptApp.newTrigger('sendDailyDigest')
+    .timeBased()
+    .atHour(EMAIL_MANAGEMENT_CONFIG.DIGEST_TIME)
+    .everyDays(1)
+    .create();
+  Logger.log('✅ Daily digest trigger: 7 AM daily');
+
+  // 2. Auto-Sort Inbox - Every hour
+  ScriptApp.newTrigger('autoSortInbox')
+    .timeBased()
+    .everyHours(1)
+    .create();
+  Logger.log('✅ Auto-sort trigger: Every hour');
+
+  // 3. Customer SLA Check - Every 4 hours
+  ScriptApp.newTrigger('checkCustomerSLA')
+    .timeBased()
+    .everyHours(4)
+    .create();
+  Logger.log('✅ SLA check trigger: Every 4 hours');
+
+  // 4. Follow-up Tracker - Daily at 9 AM
+  ScriptApp.newTrigger('trackFollowUps')
+    .timeBased()
+    .atHour(9)
+    .everyDays(1)
+    .create();
+  Logger.log('✅ Follow-up tracker trigger: 9 AM daily');
+
+  // 5. Deadline Extractor - Daily at 8 AM
+  ScriptApp.newTrigger('extractAllDeadlines')
+    .timeBased()
+    .atHour(8)
+    .everyDays(1)
+    .create();
+  Logger.log('✅ Deadline extractor trigger: 8 AM daily');
+
+  // Ensure Gmail labels exist
+  ensureGmailLabelsExist();
+
+  // Run initial analysis
+  Logger.log('📊 Running initial analysis...');
+  const inboxHealth = getInboxHealthSummary();
+
+  Logger.log('🎉 Email management system fully configured!');
+
+  return {
+    success: true,
+    message: 'Email management system activated!',
+    triggers: [
+      'Daily Digest: 7 AM',
+      'Auto-Sort: Hourly',
+      'SLA Check: Every 4 hours',
+      'Follow-ups: 9 AM daily',
+      'Deadlines: 8 AM daily'
+    ],
+    initialStatus: {
+      unreadCount: inboxHealth.unreadCount,
+      urgentCount: inboxHealth.urgent ? inboxHealth.urgent.length : 0
+    }
+  };
+}
+
+/**
+ * Disable all email management triggers
+ */
+function disableEmailManagementSystem() {
+  const triggers = ScriptApp.getProjectTriggers();
+  const emailTriggers = ['sendDailyDigest', 'autoSortInbox', 'checkCustomerSLA', 'trackFollowUps', 'extractAllDeadlines'];
+  let removed = 0;
+
+  for (const trigger of triggers) {
+    if (emailTriggers.includes(trigger.getHandlerFunction())) {
+      ScriptApp.deleteTrigger(trigger);
+      removed++;
+    }
+  }
+
+  return {
+    success: true,
+    message: `Email management disabled. Removed ${removed} triggers.`
+  };
+}
+
+/**
+ * Get status of email management system
+ */
+function getEmailManagementStatus() {
+  const triggers = ScriptApp.getProjectTriggers();
+  const emailTriggers = ['sendDailyDigest', 'autoSortInbox', 'checkCustomerSLA', 'trackFollowUps', 'extractAllDeadlines'];
+
+  const activeTriggers = triggers.filter(t => emailTriggers.includes(t.getHandlerFunction()));
+
+  const inboxHealth = getInboxHealthSummary();
+
+  return {
+    systemActive: activeTriggers.length > 0,
+    activeTriggers: activeTriggers.map(t => ({
+      function: t.getHandlerFunction(),
+      type: t.getTriggerSource()
+    })),
+    inboxStatus: {
+      unreadCount: inboxHealth.unreadCount,
+      urgentCount: inboxHealth.urgent ? inboxHealth.urgent.length : 0,
+      oldestUnread: inboxHealth.oldestUnread,
+      topDomains: inboxHealth.topUnreadDomains
+    }
+  };
+}
+
+/**
+ * Run all email management tasks now (manual trigger)
+ */
+function runAllEmailTasks() {
+  Logger.log('🚀 Running all email management tasks...');
+
+  const results = {
+    timestamp: new Date().toISOString(),
+    tasks: {}
+  };
+
+  // 1. Auto-sort
+  Logger.log('1️⃣ Running auto-sort...');
+  results.tasks.autoSort = autoSortInbox();
+
+  // 2. SLA Check
+  Logger.log('2️⃣ Running SLA check...');
+  results.tasks.slaCheck = checkCustomerSLA();
+
+  // 3. Follow-up tracking
+  Logger.log('3️⃣ Tracking follow-ups...');
+  results.tasks.followUps = trackFollowUps();
+
+  // 4. Deadline extraction
+  Logger.log('4️⃣ Extracting deadlines...');
+  results.tasks.deadlines = extractAllDeadlines();
+
+  // 5. Generate auto-drafts
+  Logger.log('5️⃣ Generating auto-drafts...');
+  results.tasks.autoDrafts = generateAutoDrafts();
+
+  Logger.log('✅ All tasks complete!');
+
+  return results;
+}
+
