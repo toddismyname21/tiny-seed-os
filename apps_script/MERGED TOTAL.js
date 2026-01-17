@@ -37859,7 +37859,7 @@ function getSmartDashboard(params) {
 function STORE_CLAUDE_KEY() {
   const key = 'YOUR_API_KEY_HERE';  // Replace with your Anthropic API key
   PropertiesService.getScriptProperties().setProperty('ANTHROPIC_API_KEY', key);
-  
+
   // Verify it was stored
   const stored = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
   if (stored === key) {
@@ -37870,4 +37870,1008 @@ function STORE_CLAUDE_KEY() {
     Logger.log('❌ FAILED TO STORE KEY');
     return { success: false, error: 'Key storage failed' };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECALL SIMULATION TOOL - FSMA 204 COMPLIANCE
+// ═══════════════════════════════════════════════════════════════════════════
+// Seed-to-sale traceability with mock recall capabilities
+// Required for FDA Food Traceability Rule compliance (effective 2026)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate a Traceability Lot Code (TLC) for a harvest
+ * Format: [CROP-3]-[FIELD]-[YYYYMMDD]
+ */
+function generateTLC(params) {
+  const { cropName, fieldName, harvestDate } = params;
+  const cropCode = (cropName || 'UNK').substring(0, 3).toUpperCase();
+  const fieldCode = (fieldName || 'F0').replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase();
+  const date = harvestDate ? new Date(harvestDate) : new Date();
+  const dateCode = Utilities.formatDate(date, 'America/New_York', 'yyyyMMdd');
+  return `${cropCode}-${fieldCode}-${dateCode}`;
+}
+
+/**
+ * RECALL SIMULATION: Trace forward from a lot to all affected customers
+ * Core function for FSMA 204 compliance testing
+ */
+function simulateRecall(params) {
+  const { lotCode, seedLotId, includeDetails = true } = params;
+  if (!lotCode && !seedLotId) return { success: false, error: 'lotCode or seedLotId required' };
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const startTime = new Date();
+
+  const report = {
+    initiated: startTime.toISOString(),
+    searchCriteria: { lotCode, seedLotId },
+    traceChain: [],
+    affectedBatches: [],
+    affectedHarvests: [],
+    affectedOrders: [],
+    affectedCustomers: [],
+    totalQuantityAffected: 0,
+    recommendations: [],
+    fsma204Compliant: true,
+    gaps: []
+  };
+
+  try {
+    // Step 1: If seedLotId provided, find plantings
+    if (seedLotId) {
+      const usageSheet = ss.getSheetByName('SEED_USAGE_LOG');
+      if (usageSheet && usageSheet.getLastRow() > 1) {
+        const data = usageSheet.getDataRange().getValues();
+        const headers = data[0];
+        const seedCol = headers.indexOf('Seed_Lot_ID');
+        const batchCol = headers.indexOf('Batch_ID');
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][seedCol] === seedLotId) {
+            const batchId = data[i][batchCol];
+            if (batchId && !report.affectedBatches.includes(batchId)) {
+              report.affectedBatches.push(batchId);
+              report.traceChain.push({ step: 1, type: 'SEED_TO_PLANTING', from: seedLotId, to: batchId });
+            }
+          }
+        }
+      }
+    }
+
+    // Step 2: Find harvests
+    const harvestSheet = ss.getSheetByName('LOG_Harvests') || ss.getSheetByName('COMPLIANCE_LOG');
+    if (harvestSheet && harvestSheet.getLastRow() > 1) {
+      const data = harvestSheet.getDataRange().getValues();
+      const headers = data[0];
+      const lotCol = headers.indexOf('Lot_Code') >= 0 ? headers.indexOf('Lot_Code') : headers.indexOf('TLC');
+      const batchCol = headers.indexOf('Batch_ID');
+      const cropCol = headers.indexOf('Crop_Name') >= 0 ? headers.indexOf('Crop_Name') : headers.indexOf('Crop');
+      const qtyCol = headers.indexOf('Quantity') >= 0 ? headers.indexOf('Quantity') : headers.indexOf('Qty');
+
+      for (let i = 1; i < data.length; i++) {
+        const rowLot = data[i][lotCol] || '';
+        const rowBatch = data[i][batchCol] || '';
+        const matchesLot = lotCode && rowLot.toString().includes(lotCode);
+        const matchesBatch = report.affectedBatches.includes(rowBatch);
+
+        if (matchesLot || matchesBatch) {
+          const qty = parseFloat(data[i][qtyCol]) || 0;
+          report.affectedHarvests.push({ lotCode: rowLot, batchId: rowBatch, crop: data[i][cropCol], quantity: qty });
+          report.totalQuantityAffected += qty;
+          report.traceChain.push({ step: 2, type: 'PLANTING_TO_HARVEST', from: rowBatch, to: rowLot });
+          if (matchesLot && rowBatch && !report.affectedBatches.includes(rowBatch)) {
+            report.affectedBatches.push(rowBatch);
+          }
+        }
+      }
+    }
+
+    // Step 3: Find orders
+    const lotsToFind = report.affectedHarvests.map(h => h.lotCode).filter(l => l);
+    if (lotCode) lotsToFind.push(lotCode);
+
+    const orderItemsSheet = ss.getSheetByName('SALES_OrderItems');
+    if (orderItemsSheet && orderItemsSheet.getLastRow() > 1) {
+      const data = orderItemsSheet.getDataRange().getValues();
+      const headers = data[0];
+      const lotCol = headers.indexOf('Lot_ID') >= 0 ? headers.indexOf('Lot_ID') : headers.indexOf('Lot_Code');
+      const orderCol = headers.indexOf('Order_ID');
+
+      for (let i = 1; i < data.length; i++) {
+        const itemLot = data[i][lotCol] || '';
+        if (lotsToFind.some(lot => itemLot.toString().includes(lot))) {
+          const orderId = data[i][orderCol];
+          if (orderId && !report.affectedOrders.some(o => o.orderId === orderId)) {
+            report.affectedOrders.push({ orderId: orderId, lotCode: itemLot });
+            report.traceChain.push({ step: 3, type: 'HARVEST_TO_ORDER', from: itemLot, to: orderId });
+          }
+        }
+      }
+    }
+
+    // Step 4: Get customers
+    if (report.affectedOrders.length > 0) {
+      const ordersSheet = ss.getSheetByName('SALES_Orders');
+      const customersSheet = ss.getSheetByName('SALES_Customers');
+      let customerLookup = {};
+
+      if (customersSheet && customersSheet.getLastRow() > 1) {
+        const custData = customersSheet.getDataRange().getValues();
+        const custHeaders = custData[0];
+        const cIdCol = custHeaders.indexOf('Customer_ID');
+        const cNameCol = custHeaders.indexOf('Company_Name') >= 0 ? custHeaders.indexOf('Company_Name') : custHeaders.indexOf('Customer_Name');
+        const cEmailCol = custHeaders.indexOf('Email');
+        const cPhoneCol = custHeaders.indexOf('Phone') >= 0 ? custHeaders.indexOf('Phone') : custHeaders.indexOf('Phone_Number');
+        const cTypeCol = custHeaders.indexOf('Customer_Type');
+
+        for (let i = 1; i < custData.length; i++) {
+          const custId = custData[i][cIdCol];
+          if (custId) {
+            customerLookup[custId] = {
+              customerId: custId,
+              name: custData[i][cNameCol] || 'Unknown',
+              email: includeDetails ? (custData[i][cEmailCol] || '') : '[REDACTED]',
+              phone: includeDetails ? (custData[i][cPhoneCol] || '') : '[REDACTED]',
+              type: custData[i][cTypeCol] || 'Unknown'
+            };
+          }
+        }
+      }
+
+      if (ordersSheet && ordersSheet.getLastRow() > 1) {
+        const ordersData = ordersSheet.getDataRange().getValues();
+        const ordersHeaders = ordersData[0];
+        const orderIdCol = ordersHeaders.indexOf('Order_ID');
+        const custIdCol = ordersHeaders.indexOf('Customer_ID');
+
+        for (const order of report.affectedOrders) {
+          for (let i = 1; i < ordersData.length; i++) {
+            if (ordersData[i][orderIdCol] === order.orderId) {
+              const custId = ordersData[i][custIdCol];
+              if (custId && customerLookup[custId] && !report.affectedCustomers.some(c => c.customerId === custId)) {
+                report.affectedCustomers.push(customerLookup[custId]);
+                report.traceChain.push({ step: 4, type: 'ORDER_TO_CUSTOMER', from: order.orderId, to: customerLookup[custId].name });
+              }
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Identify gaps
+    if (report.affectedBatches.length === 0 && report.affectedHarvests.length === 0) {
+      report.gaps.push('No planting or harvest records found');
+      report.fsma204Compliant = false;
+    }
+    if (report.affectedOrders.length === 0 && report.affectedHarvests.length > 0) {
+      report.gaps.push('Harvests found but no linked sales orders');
+      report.fsma204Compliant = false;
+    }
+
+    // Recommendations
+    if (report.affectedCustomers.length > 0) {
+      report.recommendations.push({ priority: 'CRITICAL', action: `Contact ${report.affectedCustomers.length} affected customer(s) immediately` });
+    }
+    if (report.totalQuantityAffected > 0) {
+      report.recommendations.push({ priority: 'HIGH', action: 'Quarantine remaining inventory from affected lots' });
+    }
+
+    report.completedIn = `${new Date() - startTime}ms`;
+
+    return {
+      success: true,
+      data: report,
+      summary: {
+        batchesAffected: report.affectedBatches.length,
+        harvestsAffected: report.affectedHarvests.length,
+        ordersAffected: report.affectedOrders.length,
+        customersAffected: report.affectedCustomers.length,
+        totalQuantity: report.totalQuantityAffected,
+        fsma204Compliant: report.fsma204Compliant,
+        gaps: report.gaps.length,
+        completedIn: report.completedIn
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * REVERSE TRACE: Trace backward from product to seed source
+ */
+function traceToSource(params) {
+  const { orderId, lotCode } = params;
+  if (!orderId && !lotCode) return { success: false, error: 'orderId or lotCode required' };
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const trace = { searchCriteria: { orderId, lotCode }, traceChain: [], orderInfo: null, harvestInfo: null, plantingInfo: null, seedInfo: null, complete: false };
+
+  try {
+    let lotToTrace = lotCode;
+
+    // Find lot from order
+    if (orderId) {
+      const itemsSheet = ss.getSheetByName('SALES_OrderItems');
+      if (itemsSheet && itemsSheet.getLastRow() > 1) {
+        const data = itemsSheet.getDataRange().getValues();
+        const headers = data[0];
+        const orderCol = headers.indexOf('Order_ID');
+        const lotCol = headers.indexOf('Lot_ID') >= 0 ? headers.indexOf('Lot_ID') : headers.indexOf('Lot_Code');
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][orderCol] === orderId && data[i][lotCol]) {
+            lotToTrace = data[i][lotCol];
+            trace.orderInfo = { orderId, lotCode: lotToTrace };
+            trace.traceChain.push({ step: 1, type: 'ORDER_TO_LOT', from: orderId, to: lotToTrace });
+            break;
+          }
+        }
+      }
+    }
+
+    if (!lotToTrace) return { success: true, data: trace, message: 'No lot code found' };
+
+    // Find harvest
+    const harvestSheet = ss.getSheetByName('LOG_Harvests') || ss.getSheetByName('COMPLIANCE_LOG');
+    if (harvestSheet && harvestSheet.getLastRow() > 1) {
+      const data = harvestSheet.getDataRange().getValues();
+      const headers = data[0];
+      const lotCol = headers.indexOf('Lot_Code') >= 0 ? headers.indexOf('Lot_Code') : headers.indexOf('TLC');
+      const batchCol = headers.indexOf('Batch_ID');
+      const cropCol = headers.indexOf('Crop_Name') >= 0 ? headers.indexOf('Crop_Name') : headers.indexOf('Crop');
+
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][lotCol] && data[i][lotCol].toString().includes(lotToTrace)) {
+          trace.harvestInfo = { lotCode: data[i][lotCol], batchId: data[i][batchCol], crop: data[i][cropCol] };
+          trace.traceChain.push({ step: 2, type: 'LOT_TO_HARVEST', from: lotToTrace, to: trace.harvestInfo.batchId });
+          break;
+        }
+      }
+    }
+
+    // Find planting
+    if (trace.harvestInfo && trace.harvestInfo.batchId) {
+      const plantSheet = ss.getSheetByName('PLAN_Plantings');
+      if (plantSheet && plantSheet.getLastRow() > 1) {
+        const data = plantSheet.getDataRange().getValues();
+        const headers = data[0];
+        const batchCol = headers.indexOf('Batch_ID');
+        const varietyCol = headers.indexOf('Variety');
+
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][batchCol] === trace.harvestInfo.batchId) {
+            trace.plantingInfo = { batchId: data[i][batchCol], variety: data[i][varietyCol] };
+            trace.traceChain.push({ step: 3, type: 'HARVEST_TO_PLANTING', from: trace.harvestInfo.batchId, to: trace.plantingInfo.batchId });
+            break;
+          }
+        }
+      }
+    }
+
+    // Find seed
+    if (trace.plantingInfo && trace.plantingInfo.batchId) {
+      const usageSheet = ss.getSheetByName('SEED_USAGE_LOG');
+      if (usageSheet && usageSheet.getLastRow() > 1) {
+        const data = usageSheet.getDataRange().getValues();
+        const headers = data[0];
+        const batchCol = headers.indexOf('Batch_ID');
+        const seedLotCol = headers.indexOf('Seed_Lot_ID');
+
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][batchCol] === trace.plantingInfo.batchId) {
+            const seedLotId = data[i][seedLotCol];
+            trace.seedInfo = { seedLotId };
+
+            const seedSheet = ss.getSheetByName('INV_Seeds');
+            if (seedSheet && seedSheet.getLastRow() > 1) {
+              const seedData = seedSheet.getDataRange().getValues();
+              const seedHeaders = seedData[0];
+              const lotIdCol = seedHeaders.indexOf('Seed_Lot_ID');
+              for (let j = 1; j < seedData.length; j++) {
+                if (seedData[j][lotIdCol] === seedLotId) {
+                  trace.seedInfo = {
+                    seedLotId,
+                    supplier: seedData[j][seedHeaders.indexOf('Supplier')],
+                    supplierLot: seedData[j][seedHeaders.indexOf('Supplier_Lot')]
+                  };
+                  break;
+                }
+              }
+            }
+            trace.traceChain.push({ step: 4, type: 'PLANTING_TO_SEED', from: trace.plantingInfo.batchId, to: seedLotId });
+            break;
+          }
+        }
+      }
+    }
+
+    trace.complete = !!(trace.harvestInfo && trace.plantingInfo && trace.seedInfo);
+
+    return { success: true, data: trace, summary: { complete: trace.complete, stepsTraced: trace.traceChain.length, seedSource: trace.seedInfo ? trace.seedInfo.supplier : 'Unknown' } };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * RUN RECALL DRILL: Quarterly compliance test
+ */
+function runRecallDrill(params = {}) {
+  const { lotCode } = params;
+  const drillId = 'DRILL-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd-HHmmss');
+  const testLot = lotCode || 'TEST-LOT';
+
+  const drill = { drillId, startTime: new Date().toISOString(), testLotCode: testLot, phases: [], overallResult: 'PENDING', recommendations: [] };
+
+  try {
+    // Phase 1: Forward trace
+    const p1Start = new Date();
+    const forward = simulateRecall({ lotCode: testLot });
+    drill.phases.push({ phase: 1, name: 'Forward Trace', duration: `${new Date() - p1Start}ms`, passed: forward.success && (new Date() - p1Start) < 500 });
+
+    // Phase 2: Reverse trace
+    const p2Start = new Date();
+    const reverse = traceToSource({ lotCode: testLot });
+    drill.phases.push({ phase: 2, name: 'Reverse Trace', duration: `${new Date() - p2Start}ms`, passed: reverse.success && (new Date() - p2Start) < 500 });
+
+    // Phase 3: Customer list
+    const customerCount = forward.success ? forward.data.affectedCustomers.length : 0;
+    const withContact = forward.success ? forward.data.affectedCustomers.filter(c => c.email || c.phone).length : 0;
+    drill.phases.push({ phase: 3, name: 'Customer List', result: { total: customerCount, withContact }, passed: customerCount === 0 || withContact === customerCount });
+
+    drill.endTime = new Date().toISOString();
+    drill.overallResult = drill.phases.every(p => p.passed) ? 'PASSED' : 'NEEDS_IMPROVEMENT';
+
+    if (!forward.data.fsma204Compliant) {
+      drill.recommendations.push({ priority: 'HIGH', issue: 'FSMA 204 gaps', gaps: forward.data.gaps });
+    }
+    if (!reverse.data.complete) {
+      drill.recommendations.push({ priority: 'HIGH', issue: 'Incomplete seed-to-sale chain' });
+    }
+
+    return { success: true, data: drill };
+  } catch (error) {
+    drill.overallResult = 'ERROR';
+    return { success: false, error: error.toString(), data: drill };
+  }
+}
+
+/**
+ * Get traceability health status
+ */
+function getTraceabilityStatus() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const status = { generated: new Date().toISOString(), components: {}, overallHealth: 'UNKNOWN', gaps: [] };
+
+  try {
+    const checkSheet = (name, requiredCol) => {
+      const sheet = ss.getSheetByName(name);
+      const exists = !!sheet;
+      const records = sheet ? Math.max(0, sheet.getLastRow() - 1) : 0;
+      let hasCol = false;
+      if (sheet && sheet.getLastRow() > 0) {
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        hasCol = headers.includes(requiredCol);
+      }
+      return { exists, records, hasCol };
+    };
+
+    status.components.seedInventory = checkSheet('INV_Seeds', 'Seed_Lot_ID');
+    status.components.seedUsageLog = checkSheet('SEED_USAGE_LOG', 'Seed_Lot_ID');
+    status.components.plantings = checkSheet('PLAN_Plantings', 'Batch_ID');
+    status.components.harvests = checkSheet('LOG_Harvests', 'Lot_Code') || checkSheet('COMPLIANCE_LOG', 'Lot_Code');
+    status.components.orderItems = checkSheet('SALES_OrderItems', 'Lot_ID');
+
+    let score = 0;
+    if (status.components.seedInventory.exists) score += 10;
+    if (status.components.seedInventory.hasCol) score += 10;
+    else status.gaps.push('INV_Seeds missing Seed_Lot_ID');
+
+    if (status.components.seedUsageLog.exists) score += 20;
+    else status.gaps.push('SEED_USAGE_LOG missing');
+
+    if (status.components.plantings.exists) score += 10;
+    if (status.components.plantings.hasCol) score += 10;
+    else status.gaps.push('PLAN_Plantings missing Batch_ID');
+
+    if (status.components.harvests.exists) score += 10;
+    if (status.components.harvests.hasCol) score += 10;
+    else status.gaps.push('Harvest log missing Lot_Code');
+
+    if (status.components.orderItems.exists) score += 10;
+    if (status.components.orderItems.hasCol) score += 10;
+    else status.gaps.push('SALES_OrderItems missing Lot_ID');
+
+    status.healthScore = score;
+    status.overallHealth = score >= 90 ? 'EXCELLENT' : score >= 70 ? 'GOOD' : score >= 50 ? 'FAIR' : 'POOR';
+
+    return { success: true, data: status };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Test recall simulation system
+ */
+function testRecallSimulation() {
+  Logger.log('=== TESTING RECALL SIMULATION ===');
+
+  const status = getTraceabilityStatus();
+  Logger.log('Traceability Health: ' + (status.success ? status.data.overallHealth : 'ERROR'));
+
+  const recall = simulateRecall({ lotCode: 'TOM' });
+  Logger.log('Forward Trace: ' + (recall.success ? `${recall.summary.customersAffected} customers affected` : recall.error));
+
+  const trace = traceToSource({ lotCode: 'TOM' });
+  Logger.log('Reverse Trace: ' + (trace.success ? `Complete: ${trace.summary.complete}` : trace.error));
+
+  const drill = runRecallDrill({});
+  Logger.log('Recall Drill: ' + (drill.success ? drill.data.overallResult : 'ERROR'));
+
+  return { success: true, message: 'Tests complete - check logs' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMAIL AI COMMAND CENTER
+// Talk directly to Claude about your emails, give tasks, get insights
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Ask Claude anything about your emails
+ * Can be called directly or via web interface
+ */
+function askClaudeEmail(query) {
+  if (!query) {
+    return { success: false, error: 'No query provided' };
+  }
+
+  const apiKey = CLAUDE_CONFIG.API_KEY;
+  if (!apiKey) {
+    return { success: false, error: 'Anthropic API key not configured' };
+  }
+
+  // Gather email context
+  const emailContext = gatherEmailContext();
+
+  const systemPrompt = `You are the Email AI Assistant for Tiny Seed Farm.
+You have access to the farm's email data and can help with:
+- Searching and summarizing emails
+- Finding specific information (orders, payments, deadlines)
+- Drafting replies
+- Identifying action items
+- Analyzing communication patterns
+
+Farm Context:
+- Owner: Todd
+- Business: Organic vegetable farm in Pennsylvania
+- Sells via: CSA memberships, wholesale to restaurants, farmers markets
+- Key contacts: Restaurants, CSA members, seed suppliers, USDA/grants
+
+Current Email Stats:
+${emailContext.summary}
+
+Recent Important Emails:
+${emailContext.recentImportant}
+
+Be helpful, specific, and actionable. If asked to draft something, provide the full text.
+If asked to find something, search thoroughly and report what you find.`;
+
+  const payload = {
+    model: CLAUDE_CONFIG.MODEL,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: query }]
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const textBlock = result.content.find(block => block.type === 'text');
+    const answer = textBlock ? textBlock.text : 'No response';
+
+    // Log the interaction
+    logAIInteraction(query, answer);
+
+    return {
+      success: true,
+      query: query,
+      response: answer,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Gather email context for Claude
+ */
+function gatherEmailContext() {
+  try {
+    const threads = GmailApp.search('in:inbox', 0, 50);
+    let unreadCount = 0;
+    let importantEmails = [];
+
+    for (const thread of threads) {
+      if (thread.isUnread()) unreadCount++;
+      
+      const messages = thread.getMessages();
+      const latest = messages[messages.length - 1];
+      
+      importantEmails.push({
+        from: latest.getFrom(),
+        subject: latest.getSubject(),
+        date: latest.getDate().toLocaleDateString(),
+        snippet: latest.getPlainBody().substring(0, 200)
+      });
+    }
+
+    const summary = `Total in inbox: ${threads.length} recent threads, ${unreadCount} unread`;
+    
+    const recentImportant = importantEmails.slice(0, 10).map(e => 
+      `- From: ${e.from}\n  Subject: ${e.subject}\n  Date: ${e.date}\n  Preview: ${e.snippet}...`
+    ).join('\n\n');
+
+    return { summary, recentImportant };
+  } catch (e) {
+    return { summary: 'Unable to fetch email data', recentImportant: '' };
+  }
+}
+
+/**
+ * Log AI interactions for learning
+ */
+function logAIInteraction(query, response) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('AI_INTERACTIONS');
+    
+    if (!sheet) {
+      sheet = ss.insertSheet('AI_INTERACTIONS');
+      sheet.getRange(1, 1, 1, 4).setValues([['Timestamp', 'Query', 'Response', 'Feedback']]);
+      sheet.getRange(1, 1, 1, 4).setBackground('#1a237e').setFontColor('#fff').setFontWeight('bold');
+    }
+    
+    sheet.appendRow([new Date().toISOString(), query, response.substring(0, 1000), '']);
+  } catch (e) {
+    Logger.log('Failed to log interaction: ' + e.message);
+  }
+}
+
+/**
+ * Process email commands (emails with subject starting with "AI:")
+ */
+function processEmailCommands() {
+  const threads = GmailApp.search('subject:AI: is:unread', 0, 10);
+  const results = [];
+
+  for (const thread of threads) {
+    const messages = thread.getMessages();
+    const msg = messages[messages.length - 1];
+    
+    const subject = msg.getSubject();
+    const command = subject.replace(/^AI:\s*/i, '').trim();
+    
+    if (command) {
+      Logger.log('Processing email command: ' + command);
+      const result = askClaudeEmail(command);
+      
+      // Reply with the result
+      msg.reply(
+        `🤖 Email AI Response:\n\n${result.response || result.error}\n\n---\nProcessed: ${new Date().toLocaleString()}`
+      );
+      
+      // Mark as read
+      thread.markRead();
+      
+      results.push({ command, success: result.success });
+    }
+  }
+
+  return { processed: results.length, results };
+}
+
+/**
+ * Process tasks from AI_TASKS sheet
+ */
+function processAITasks() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('AI_TASKS');
+  
+  if (!sheet) {
+    sheet = ss.insertSheet('AI_TASKS');
+    sheet.getRange(1, 1, 1, 5).setValues([['Task', 'Status', 'Created', 'Completed', 'Result']]);
+    sheet.getRange(1, 1, 1, 5).setBackground('#1a237e').setFontColor('#fff').setFontWeight('bold');
+    sheet.setColumnWidth(1, 400);
+    sheet.setColumnWidth(5, 500);
+    return { processed: 0, message: 'AI_TASKS sheet created. Add tasks in column A.' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  let processed = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const task = data[i][0];
+    const status = data[i][1];
+
+    if (task && (!status || status === 'PENDING')) {
+      Logger.log('Processing task: ' + task);
+      
+      sheet.getRange(i + 1, 2).setValue('PROCESSING');
+      
+      const result = askClaudeEmail(task);
+      
+      sheet.getRange(i + 1, 2).setValue(result.success ? 'COMPLETED' : 'ERROR');
+      sheet.getRange(i + 1, 4).setValue(new Date().toISOString());
+      sheet.getRange(i + 1, 5).setValue(result.response || result.error);
+      
+      processed++;
+      
+      // Limit to 5 tasks per run to avoid timeout
+      if (processed >= 5) break;
+    }
+  }
+
+  return { processed };
+}
+
+/**
+ * Search emails with natural language
+ */
+function searchEmailsNatural(query) {
+  return askClaudeEmail(`Search my emails and find: ${query}. List what you find with sender, date, and key details.`);
+}
+
+/**
+ * Get email summary for a time period
+ */
+function getEmailSummary(period = 'today') {
+  return askClaudeEmail(`Give me a summary of my emails from ${period}. Include: number of emails, key senders, action items, and anything urgent.`);
+}
+
+/**
+ * Draft a reply to an email
+ */
+function draftEmailReply(emailSubject, instructions) {
+  return askClaudeEmail(`Find the email with subject "${emailSubject}" and draft a reply. Instructions: ${instructions}`);
+}
+
+/**
+ * Setup email command monitoring trigger
+ */
+function setupEmailCommandTrigger() {
+  // Remove existing triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === 'processEmailCommands') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  // Add new trigger - check every 15 minutes
+  ScriptApp.newTrigger('processEmailCommands')
+    .timeBased()
+    .everyMinutes(15)
+    .create();
+
+  // Also add task processing trigger
+  ScriptApp.newTrigger('processAITasks')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  return { success: true, message: 'Email command monitoring active (every 15 min), Task processing active (every hour)' };
+}
+
+/**
+ * Serve the Email AI Chat interface
+ */
+function serveEmailAIChat() {
+  return HtmlService.createHtmlOutput(getEmailAIChatHTML())
+    .setTitle('Tiny Seed Farm - Email AI')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Get Email AI Chat HTML
+ */
+function getEmailAIChatHTML() {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email AI - Tiny Seed Farm</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 20px;
+    }
+    .header h1 { font-size: 2em; margin-bottom: 5px; }
+    .header p { opacity: 0.9; }
+    .chat-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    .messages {
+      height: 500px;
+      overflow-y: auto;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    .message {
+      margin-bottom: 16px;
+      display: flex;
+      gap: 12px;
+    }
+    .message.user { flex-direction: row-reverse; }
+    .message .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .message.ai .avatar { background: #667eea; }
+    .message.user .avatar { background: #2e7d32; }
+    .message .content {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      line-height: 1.5;
+    }
+    .message.ai .content {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 16px 16px 16px 4px;
+    }
+    .message.user .content {
+      background: #2e7d32;
+      color: white;
+      border-radius: 16px 16px 4px 16px;
+    }
+    .message .content pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    .input-area {
+      padding: 20px;
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 12px;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 2px solid #e0e0e0;
+      border-radius: 25px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-area input:focus { border-color: #667eea; }
+    .input-area button {
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .input-area button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .input-area button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .quick-actions {
+      padding: 15px 20px;
+      background: #f8f9fa;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .quick-btn {
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .quick-btn:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    .typing {
+      display: flex;
+      gap: 4px;
+      padding: 8px 12px;
+    }
+    .typing span {
+      width: 8px;
+      height: 8px;
+      background: #667eea;
+      border-radius: 50%;
+      animation: typing 1s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing {
+      0%, 100% { opacity: 0.3; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-4px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌱 Email AI Assistant</h1>
+      <p>Ask me anything about your emails - search, summarize, draft replies, find action items</p>
+    </div>
+    
+    <div class="chat-container">
+      <div class="messages" id="messages">
+        <div class="message ai">
+          <div class="avatar">🤖</div>
+          <div class="content">
+            Hi Todd! I'm your Email AI Assistant. I can help you with:
+            <br><br>
+            • <b>Search emails</b> - "Find all emails from restaurants this month"<br>
+            • <b>Summarize</b> - "What are my unread emails about?"<br>
+            • <b>Find action items</b> - "What emails need responses?"<br>
+            • <b>Draft replies</b> - "Draft a reply to the USDA grant email"<br>
+            • <b>Analyze</b> - "Which customers haven't ordered in 30 days?"
+            <br><br>
+            What would you like to know?
+          </div>
+        </div>
+      </div>
+      
+      <div class="quick-actions">
+        <button class="quick-btn" onclick="quickAction('What emails need urgent responses today?')">🔥 Urgent</button>
+        <button class="quick-btn" onclick="quickAction('Summarize my unread emails')">📬 Unread Summary</button>
+        <button class="quick-btn" onclick="quickAction('Find all wholesale/restaurant orders this week')">🍽️ Wholesale</button>
+        <button class="quick-btn" onclick="quickAction('Any grant or USDA emails I need to respond to?')">💰 Grants</button>
+        <button class="quick-btn" onclick="quickAction('List CSA member questions or complaints')">👥 CSA Issues</button>
+        <button class="quick-btn" onclick="quickAction('Find unpaid invoices or payment issues')">💵 Payments</button>
+      </div>
+      
+      <div class="input-area">
+        <input type="text" id="userInput" placeholder="Ask me about your emails..." onkeypress="if(event.key==='Enter')sendMessage()">
+        <button onclick="sendMessage()" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = '${ScriptApp.getService().getUrl()}';
+    
+    function sendMessage() {
+      const input = document.getElementById('userInput');
+      const query = input.value.trim();
+      if (!query) return;
+      
+      addMessage(query, 'user');
+      input.value = '';
+      
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+      
+      // Show typing indicator
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'message ai';
+      typingDiv.id = 'typing';
+      typingDiv.innerHTML = '<div class="avatar">🤖</div><div class="content"><div class="typing"><span></span><span></span><span></span></div></div>';
+      document.getElementById('messages').appendChild(typingDiv);
+      scrollToBottom();
+      
+      // Call the API
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('typing').remove();
+          sendBtn.disabled = false;
+          
+          if (result.success) {
+            addMessage(result.response, 'ai');
+          } else {
+            addMessage('Error: ' + (result.error || 'Unknown error'), 'ai');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('typing').remove();
+          sendBtn.disabled = false;
+          addMessage('Error: ' + error.message, 'ai');
+        })
+        .askClaudeEmail(query);
+    }
+    
+    function quickAction(query) {
+      document.getElementById('userInput').value = query;
+      sendMessage();
+    }
+    
+    function addMessage(text, type) {
+      const messagesDiv = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message ' + type;
+      
+      const avatar = type === 'ai' ? '🤖' : '👤';
+      
+      // Convert markdown-like formatting
+      let formattedText = text
+        .replace(/\\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\`\`\`([\s\S]*?)\`\`\`/g, '<pre>$1</pre>')
+        .replace(/\`(.*?)\`/g, '<code>$1</code>');
+      
+      messageDiv.innerHTML = '<div class="avatar">' + avatar + '</div><div class="content">' + formattedText + '</div>';
+      messagesDiv.appendChild(messageDiv);
+      scrollToBottom();
+    }
+    
+    function scrollToBottom() {
+      const messagesDiv = document.getElementById('messages');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+  </script>
+</body>
+</html>`;
+}
+
+// Add endpoint to doGet for serving the chat page
+function handleEmailAIChatPage(e) {
+  if (e && e.parameter && e.parameter.page === 'emailai') {
+    return serveEmailAIChat();
+  }
+  return null;
 }
