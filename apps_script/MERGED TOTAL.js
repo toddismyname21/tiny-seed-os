@@ -27975,12 +27975,24 @@ function getUnifiedComplianceDashboard() {
   // 1. Core Compliance Score
   try {
     const scoreData = getComplianceScore();
-    dashboard.sections.compliance = {
-      score: scoreData.success ? scoreData.data.overallScore : 0,
-      grade: scoreData.success ? scoreData.data.grade : 'F',
-      trend: scoreData.success ? scoreData.data.trend : 'stable',
-      breakdown: scoreData.success ? scoreData.data.categoryScores : {}
-    };
+    if (scoreData.success && scoreData.score) {
+      const score = scoreData.score.overall;
+      let grade = 'F';
+      if (score >= 90) grade = 'A';
+      else if (score >= 80) grade = 'B';
+      else if (score >= 70) grade = 'C';
+      else if (score >= 60) grade = 'D';
+
+      dashboard.sections.compliance = {
+        score: score,
+        grade: grade,
+        trend: scoreData.score.trend ? scoreData.score.trend.direction : 'stable',
+        breakdown: scoreData.score.breakdown || {},
+        auditReady: scoreData.score.auditReady || false
+      };
+    } else {
+      dashboard.sections.compliance = { score: 0, grade: 'F', error: 'No data' };
+    }
   } catch (e) {
     dashboard.sections.compliance = { error: e.message };
   }
@@ -35892,19 +35904,30 @@ function getIntelligentDashboard(params) {
     const clvData = getCustomerLifetimeValue({});
     const deliveryStats = getDeliveryAcceptanceStats({});
 
+    // Safe access with null checks
+    const stats = (deliveryStats && deliveryStats.stats) ? deliveryStats.stats : {};
+    const acceptedCount = stats.accepted || 0;
+    const totalCount = stats.total || 1;
+
     return {
       success: true,
       dashboard: {
-        actionItems: recommendations.success ? recommendations.recommendations.filter(r => r.priority === 'CRITICAL' || r.priority === 'HIGH') : [],
+        actionItems: (recommendations && recommendations.success && recommendations.recommendations) ?
+          recommendations.recommendations.filter(function(r) { return r.priority === 'CRITICAL' || r.priority === 'HIGH'; }) : [],
         keyMetrics: {
-          totalCustomers: clvData.success ? clvData.summary.totalCustomers : 0,
-          projectedAnnualRevenue: clvData.success ? clvData.summary.totalProjectedCLV : 0,
-          routeEfficiency: routeMetrics.success ? routeMetrics.metrics.efficiencyScore : 0,
-          acceptanceRate: deliveryStats.success ? ((deliveryStats.stats.accepted / (deliveryStats.stats.total || 1)) * 100).toFixed(1) : 0
+          totalCustomers: (clvData && clvData.success && clvData.summary) ? clvData.summary.totalCustomers : 0,
+          projectedAnnualRevenue: (clvData && clvData.success && clvData.summary) ? clvData.summary.totalProjectedCLV : 0,
+          routeEfficiency: (routeMetrics && routeMetrics.success && routeMetrics.metrics) ? routeMetrics.metrics.efficiencyScore : 0,
+          acceptanceRate: (deliveryStats && deliveryStats.success) ? ((acceptedCount / totalCount) * 100).toFixed(1) : '0'
         },
-        alerts: { critical: recommendations.success ? recommendations.summary.critical : 0, high: recommendations.success ? recommendations.summary.high : 0, total: recommendations.success ? recommendations.count : 0 },
-        customersAtRisk: clvData.success ? clvData.customers.filter(c => c.churnRisk === 'CRITICAL' || c.churnRisk === 'HIGH').slice(0, 5) : [],
-        recentDeliveryDecisions: deliveryStats.success ? deliveryStats.recentDecisions : []
+        alerts: {
+          critical: (recommendations && recommendations.success && recommendations.summary) ? recommendations.summary.critical : 0,
+          high: (recommendations && recommendations.success && recommendations.summary) ? recommendations.summary.high : 0,
+          total: (recommendations && recommendations.success) ? recommendations.count : 0
+        },
+        customersAtRisk: (clvData && clvData.success && clvData.customers) ?
+          clvData.customers.filter(function(c) { return c.churnRisk === 'CRITICAL' || c.churnRisk === 'HIGH'; }).slice(0, 5) : [],
+        recentDeliveryDecisions: (deliveryStats && deliveryStats.success && deliveryStats.recentDecisions) ? deliveryStats.recentDecisions : []
       },
       generatedAt: new Date().toISOString()
     };
