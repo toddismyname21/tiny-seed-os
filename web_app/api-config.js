@@ -27,7 +27,7 @@ const TINY_SEED_API = {
     // UPDATED BY: Architecture Claude
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbwzBnd46ThDtIN0zEI_AspGFFlURhSYzIeUhVpZfEQyfN_NmyHAumRgR8aqKVxSraE1/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {
