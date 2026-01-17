@@ -10054,7 +10054,7 @@
         // CONFIGURATION
         // ============================================
         const CONFIG = {
-            API_URL: 'https://script.google.com/macros/s/AKfycbyjK7Zr9DAXefhgLzLb7YYRwS7daEcuWVcNMsg1m-jAcmpKZBrHHOgMOtpb2D7udQU/exec',
+            API_URL: 'https://script.google.com/macros/s/AKfycbwuNQFyABh3ccEc-HxoSVJ6Q0Oj54MkDk8vja0p-Jy53Yxyt8yC9H0Hq63j8xwW_5vH/exec',
             DB_NAME: 'TinySeedEmployee',
             DB_VERSION: 1,
             GEOFENCE: {
@@ -16792,13 +16792,13 @@
                                         id: stop.Stop_ID || stop.id,
                                         customer: stop.customer || stop.Customer_Name || stop.Customer_Company || 'Customer',
                                         address: stop.Address || stop.address || '',
-                                        phone: stop.phone || stop.Customer_Phone || '',
-                                        email: stop.email || stop.Customer_Email || '',
+                                        phone: stop.phone || stop.Phone || stop.Customer_Phone || '',
+                                        email: stop.email || stop.Email || stop.Customer_Email || stop.Delivery_Window || '',
                                         items: stop.items || [],
-                                        notes: stop.Notes || stop.notes || stop.Delivery_Notes || '',
-                                        completed: stop.Status === 'Delivered' || stop.completed || false,
-                                        customerType: stop.Customer_Type || 'Retail',
-                                        orderId: stop.Order_ID || ''
+                                        notes: stop.Notes || stop.notes || stop.Delivery_Notes || stop.Signature_URL || '',
+                                        completed: stop.Status === 'Delivered' || stop.Arrived_At === 'Delivered' || stop.completed || false,
+                                        customerType: stop.Customer_Type || stop.ETA || 'Retail',
+                                        orderId: stop.Order_ID || stop.Stop_Order || ''
                                     });
                                 });
                             }

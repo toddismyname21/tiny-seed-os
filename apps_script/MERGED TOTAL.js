@@ -28504,32 +28504,41 @@ function insertSampleCustomers() {
 function insertSampleDeliveries() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const today = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd');
-  
-  // Create SALES_Deliveries sheet if not exists
+
+  // Delete wrongly-named sheets if they exist
+  const wrongSheet = ss.getSheetByName('SALES_Delivery_Stops');
+  if (wrongSheet) ss.deleteSheet(wrongSheet);
+
+  // Use correct sheet name: SALES_DeliveryStops (no underscore)
+  let stopsSheet = ss.getSheetByName('SALES_DeliveryStops');
+  if (!stopsSheet) {
+    stopsSheet = ss.insertSheet('SALES_DeliveryStops');
+    stopsSheet.appendRow(['Stop_ID','Route_ID','Order_ID','Customer_ID','Customer_Name','Address','Phone','Email','Customer_Type','Stop_Order','Status','Scheduled_Time','Completed_At','Notes','POD_Photo','Signature']);
+  }
+
+  // Create/clear SALES_Deliveries sheet
   let deliveriesSheet = ss.getSheetByName('SALES_Deliveries');
   if (!deliveriesSheet) {
     deliveriesSheet = ss.insertSheet('SALES_Deliveries');
-    deliveriesSheet.appendRow(['Route_ID','Delivery_Date','Driver_ID','Driver_Name','Status','Total_Stops','Completed_Stops','Start_Time','End_Time','Notes']);
+    deliveriesSheet.appendRow(['Route_ID','Delivery_Date','Driver_ID','Driver_Name','Status','Total_Stops','Completed_Stops','Est_Miles','Est_Duration','Notes']);
   }
-  
-  // Create SALES_Delivery_Stops sheet if not exists
-  let stopsSheet = ss.getSheetByName('SALES_Delivery_Stops');
-  if (!stopsSheet) {
-    stopsSheet = ss.insertSheet('SALES_Delivery_Stops');
-    stopsSheet.appendRow(['Stop_ID','Route_ID','Order_ID','Customer_ID','Customer_Name','Address','Phone','Email','Customer_Type','Stop_Order','Status','Scheduled_Time','Completed_At','Notes','POD_Photo','Signature']);
-  }
-  
-  // Create SALES_Orders sheet if not exists  
+
+  // Create/clear SALES_Orders sheet if not exists
   let ordersSheet = ss.getSheetByName('SALES_Orders');
   if (!ordersSheet) {
     ordersSheet = ss.insertSheet('SALES_Orders');
     ordersSheet.appendRow(['Order_ID','Customer_ID','Customer_Type','Order_Date','Status','Total','Notes']);
   }
-  
+
+  // Clear existing data (keep headers)
+  if (deliveriesSheet.getLastRow() > 1) deliveriesSheet.deleteRows(2, deliveriesSheet.getLastRow() - 1);
+  if (stopsSheet.getLastRow() > 1) stopsSheet.deleteRows(2, stopsSheet.getLastRow() - 1);
+  if (ordersSheet.getLastRow() > 1) ordersSheet.deleteRows(2, ordersSheet.getLastRow() - 1);
+
   // Add sample route for today
   const routeId = 'ROUTE-' + today;
-  deliveriesSheet.appendRow([routeId, today, 'EMP-001', 'Todd', 'In Progress', 4, 0, '', '', 'Sample delivery route']);
-  
+  deliveriesSheet.appendRow([routeId, today, 'EMP-001', 'Todd', 'In Progress', 4, 0, 25, '1.5 hours', 'Today delivery route']);
+
   // Add sample orders
   const orders = [
     ['ORD-001', 'CUST-001', 'Wholesale', today, 'Ready', 450, 'Weekly restaurant order'],
@@ -28538,15 +28547,15 @@ function insertSampleDeliveries() {
     ['ORD-004', 'CUST-004', 'CSA', today, 'Ready', 35, 'CSA Week 3']
   ];
   orders.forEach(row => ordersSheet.appendRow(row));
-  
-  // Add sample stops with REAL phone numbers
+
+  // Add sample stops with phone 7177255177
   const stops = [
-    ['STOP-001', routeId, 'ORD-001', 'CUST-001', 'Green Valley Restaurant', '123 Main Street, Rochester PA 15074', '7177255177', 'mike@greenvalley.com', 'Wholesale', 1, 'Pending', '9:00 AM', '', 'Use back entrance'],
-    ['STOP-002', routeId, 'ORD-002', 'CUST-002', 'Farm Fresh Market', '456 Market Ave, Beaver PA 15009', '7177255177', 'sarah@farmfresh.com', 'Wholesale', 2, 'Pending', '10:00 AM', '', 'Loading dock'],
-    ['STOP-003', routeId, 'ORD-003', 'CUST-003', 'Smith Family', '789 Oak Lane, Monaca PA 15061', '7177255177', 'smith.family@email.com', 'CSA', 3, 'Pending', '11:00 AM', '', 'Front porch cooler'],
-    ['STOP-004', routeId, 'ORD-004', 'CUST-004', 'Johnson Household', '321 Maple Drive, Aliquippa PA 15001', '7177255177', 'amy.johnson@email.com', 'CSA', 4, 'Pending', '11:30 AM', '', 'Garage side door']
+    ['STOP-001', routeId, 'ORD-001', 'CUST-001', 'Green Valley Restaurant', '123 Main Street, Rochester PA 15074', '7177255177', 'mike@greenvalley.com', 'Wholesale', 1, 'Pending', '9:00 AM', '', 'Use back entrance', '', ''],
+    ['STOP-002', routeId, 'ORD-002', 'CUST-002', 'Farm Fresh Market', '456 Market Ave, Beaver PA 15009', '7177255177', 'sarah@farmfresh.com', 'Wholesale', 2, 'Pending', '10:00 AM', '', 'Loading dock', '', ''],
+    ['STOP-003', routeId, 'ORD-003', 'CUST-003', 'Smith Family', '789 Oak Lane, Monaca PA 15061', '7177255177', 'smith.family@email.com', 'CSA', 3, 'Pending', '11:00 AM', '', 'Front porch cooler', '', ''],
+    ['STOP-004', routeId, 'ORD-004', 'CUST-004', 'Johnson Household', '321 Maple Drive, Aliquippa PA 15001', '7177255177', 'amy.johnson@email.com', 'CSA', 4, 'Pending', '11:30 AM', '', 'Garage side door', '', '']
   ];
   stops.forEach(row => stopsSheet.appendRow(row));
-  
-  return { success: true, message: 'Added sample delivery route with 4 stops for today (' + today + '). All phones: 7177255177' };
+
+  return { success: true, message: 'Fixed sheets and added 4 delivery stops for today (' + today + '). Phone: 7177255177' };
 }
