@@ -607,14 +607,29 @@
       resultSection.classList.remove('show');
 
       try {
-        const response = await fetch(`${API_BASE}?action=validateDeliveryAddress&address=${encodeURIComponent(fullAddress)}`);
+        // Use simpler zone check endpoint
+        const response = await fetch(`${API_BASE}?action=checkDeliveryZone&address=${encodeURIComponent(fullAddress)}`);
         const data = await response.json();
 
         // Hide loading
         loading.classList.remove('show');
 
-        // Show result
-        showResult(data);
+        // Convert checkDeliveryZone response to expected format
+        if (data.success) {
+          const result = {
+            success: true,
+            accepted: data.likely_in_zone,
+            formattedAddress: data.formattedAddress,
+            fee: data.distanceToNearestPickup <= 2 ? 5.00 :
+                 data.distanceToNearestPickup <= 4 ? 7.50 : 10.00,
+            reason: data.likely_in_zone ? null :
+                    `Your address is ${data.distanceToNearestPickup} miles from our nearest stop (${data.nearestPickup}). We deliver within 5 miles of our route.`,
+            alternatives: data.nearestPickupLocations
+          };
+          showResult(result);
+        } else {
+          showResult({ success: false, accepted: false, reason: data.error || 'Could not verify address' });
+        }
       } catch (error) {
         loading.classList.remove('show');
         formSection.style.display = 'block';
