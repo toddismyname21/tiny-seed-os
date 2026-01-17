@@ -96,6 +96,8 @@ function doGet(e) {
         return testConnection();
       case 'healthCheck':
         return jsonResponse(healthCheck());
+      case 'insertSampleCustomers':
+        return jsonResponse(insertSampleCustomers());
       case 'diagnoseSheets':
         return jsonResponse(diagnoseSheets());
       case 'diagnoseIntegrations':
@@ -27643,3 +27645,30 @@ function getMLEmailStatus() {
   };
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SAMPLE DATA INSERTION - RUN ONCE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function insertSampleCustomers() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('SALES_Customers');
+  
+  if (!sheet) {
+    sheet = ss.insertSheet('SALES_Customers');
+    sheet.appendRow(['Customer_ID','Customer_Type','Company_Name','Contact_Name','Email','Phone','Address','City','State','Zip','Delivery_Instructions','Payment_Terms','Price_Tier','Is_Active','Created_At','Last_Order_Date','Total_Orders','Total_Spent','Notes']);
+  }
+  
+  const sampleData = [
+    ['CUST-001','Wholesale','Green Valley Restaurant','Chef Mike','mike@greenvalley.com','7177255177','123 Main Street','Rochester','PA','15074','Use back entrance','Net 30','Wholesale',true,'2026-01-01','2026-01-15',12,4500,'Great customer - orders weekly'],
+    ['CUST-002','Wholesale','Farm Fresh Market','Sarah Johnson','sarah@farmfresh.com','7177255177','456 Market Ave','Beaver','PA','15009','Leave at loading dock','Net 15','Wholesale',true,'2026-01-01','2026-01-14',8,2800,'Co-op store'],
+    ['CUST-003','CSA','Smith Family','','smith.family@email.com','7177255177','789 Oak Lane','Monaca','PA','15061','Front porch cooler','Prepaid','CSA',true,'2026-01-01','2026-01-10',24,1200,'Veggie share - family size'],
+    ['CUST-004','CSA','Johnson Household','Amy Johnson','amy.johnson@email.com','7177255177','321 Maple Drive','Aliquippa','PA','15001','Garage side door','Prepaid','CSA',true,'2026-01-01','2026-01-10',24,800,'Veggie share - regular'],
+    ['CUST-005','Retail','Local Pickup','Walk-in Customer','walkin@tinyseed.farm','7177255177','257 Zeigler Rd','Rochester','PA','15074','Farm pickup','Cash','Retail',true,'2026-01-01','2026-01-16',5,150,'Farmers market regulars'],
+    ['CUST-006','Wholesale','Beaver County Food Bank','Director Tom','tom@bcfoodbank.org','7177255177','100 Donation Way','Beaver Falls','PA','15010','Dock 3 - call on arrival','Donation','Wholesale',true,'2026-01-01','2026-01-12',6,0,'Gleaning donations']
+  ];
+  
+  sampleData.forEach(row => sheet.appendRow(row));
+  
+  return { success: true, message: 'Added 6 sample customers with phone 7177255177' };
+}
