@@ -26770,46 +26770,85 @@ function runAllEmailTasks() {
 const ML_EMAIL_CONFIG = {
   // Behavioral weight factors (research-backed optimal weights)
   WEIGHTS: {
-    REPLY_BEHAVIOR: 0.30,      // 30% - Whether user replied to sender
-    RESPONSE_TIME: 0.25,       // 25% - How fast user responds
-    TEXT_IMPORTANCE: 0.20,     // 20% - Content analysis via Naive Bayes
-    DIRECT_RECIPIENT: 0.15,    // 15% - TO vs CC vs BCC
-    RECENCY: 0.10              // 10% - Recent behavior weighted higher
+    REPLY_BEHAVIOR: 0.30,
+    RESPONSE_TIME: 0.25,
+    TEXT_IMPORTANCE: 0.20,
+    DIRECT_RECIPIENT: 0.15,
+    RECENCY: 0.10
   },
 
-  // Exponential decay half-life (days)
   DECAY_HALF_LIFE: 30,
 
-  // Classification thresholds
   IMPORTANCE_THRESHOLDS: {
-    CRITICAL: 85,    // Must respond immediately
-    HIGH: 70,        // Respond today
-    MEDIUM: 50,      // Respond within 48h
-    LOW: 30,         // Can wait
-    BULK: 0          // Ignore/archive
+    CRITICAL: 85,
+    HIGH: 70,
+    MEDIUM: 50,
+    LOW: 30,
+    BULK: 0
   },
 
-  // SLA by importance level (hours)
   SLA_HOURS: {
     CRITICAL: 4,
     HIGH: 12,
     MEDIUM: 48,
-    LOW: 168,        // 1 week
-    BULK: 0          // No SLA
+    LOW: 168,
+    BULK: 0
   },
 
-  // Training sample sizes
-  MIN_TRAINING_EMAILS: 50,
-  MAX_TRAINING_EMAILS: 1000,
+  // NO LIMITS - process everything
+  BATCH_SIZE: 500,  // Gmail API max per query
+  MAX_BATCHES: 20,  // Up to 10,000 emails
 
-  // Storage keys
   STORAGE_KEYS: {
     SENDER_STATS: 'ML_SENDER_STATS',
     WORD_FREQUENCIES: 'ML_WORD_FREQ',
     CLASS_PRIORS: 'ML_CLASS_PRIORS',
     MODEL_VERSION: 'ML_MODEL_VERSION',
     LAST_TRAINED: 'ML_LAST_TRAINED'
-  }
+  },
+
+  // SPAM DETECTION - Aggressive filtering
+  SPAM_DOMAINS: new Set([
+    'mailchimp.com', 'sendgrid.net', 'constantcontact.com', 'hubspot.com',
+    'klaviyo.com', 'mailgun.org', 'amazonses.com', 'marketing.', 'promo.',
+    'newsletter.', 'news.', 'noreply.', 'no-reply.', 'donotreply.',
+    'campaigns.', 'mail.', 'email.', 'bulk.', 'list.', 'announce.',
+    'updates.', 'info.', 'notifications.', 'mailer.', 'bounce.',
+    'e.newsletters', 'em.', 'go.', 't.', 'click.', 'links.', 'track.'
+  ]),
+
+  SPAM_KEYWORDS: [
+    'unsubscribe', 'opt out', 'opt-out', 'click here to unsubscribe',
+    'manage preferences', 'email preferences', 'update preferences',
+    'view in browser', 'view as webpage', 'trouble viewing',
+    'add us to your address book', 'add to contacts',
+    'this email was sent to', 'you received this email because',
+    'you are receiving this', 'sent to you by', 'mailing list',
+    'newsletter', 'weekly digest', 'daily digest', 'monthly update',
+    'limited time', 'act now', 'don\'t miss', 'expires soon',
+    'special offer', 'exclusive deal', 'flash sale', '% off',
+    'free shipping', 'buy now', 'shop now', 'order now',
+    'claim your', 'redeem your', 'activate your', 'verify your account',
+    'confirm your email', 'security alert', 'unusual activity',
+    'we noticed', 'action required', 'response required',
+    'your account will be', 'suspended', 'disabled', 'locked',
+    'click below', 'click the link', 'click the button',
+    'powered by mailchimp', 'sent via', 'via mailchimp', 'via hubspot',
+    'view this email in your browser', 'email not displaying correctly',
+    'forward to a friend', 'share this email'
+  ],
+
+  // Whitelist - these are ALWAYS important
+  WHITELIST_DOMAINS: new Set([
+    'usda.gov', 'nrcs.gov', 'fsa.gov', 'pa.gov', 'state.pa.us',
+    'shopify.com', 'stripe.com', 'square.com', 'paypal.com',
+    'quickbooks.com', 'intuit.com', 'plaid.com',
+    'johnnyseeds.com', 'highmowingseeds.com', 'fedcoseeds.com',
+    'oeffa.org'
+  ]),
+
+  // Auto-archive bulk after labeling
+  AUTO_ARCHIVE_BULK: true
 };
 
 /**
@@ -27189,17 +27228,103 @@ class MLEmailClassifier {
 
     const senderMatch = from.match(/<(.+)>/) || [null, from];
     const senderEmail = (senderMatch[1] || from).toLowerCase().trim();
+    const senderDomain = senderEmail.split('@')[1] || '';
 
-    // 1. Text Analysis Score (Naive Bayes)
-    const fullText = subject + ' ' + body.substring(0, 2000);
+    const lowerSubject = subject.toLowerCase();
+    const lowerBody = body.toLowerCase().substring(0, 3000);
+    const fullText = lowerSubject + ' ' + lowerBody;
+
+    // ========== SPAM DETECTION FIRST ==========
+    let spamScore = 0;
+    let isDefinitelySpam = false;
+    let isWhitelisted = false;
+
+    // Check whitelist first - these are ALWAYS important
+    for (const whiteDomain of ML_EMAIL_CONFIG.WHITELIST_DOMAINS) {
+      if (senderDomain.endsWith(whiteDomain)) {
+        isWhitelisted = true;
+        break;
+      }
+    }
+
+    if (!isWhitelisted) {
+      // Check spam domains
+      for (const spamDomain of ML_EMAIL_CONFIG.SPAM_DOMAINS) {
+        if (senderDomain.includes(spamDomain) || senderEmail.includes(spamDomain)) {
+          spamScore += 40;
+          break;
+        }
+      }
+
+      // Check spam keywords - each match adds to spam score
+      let keywordMatches = 0;
+      for (const keyword of ML_EMAIL_CONFIG.SPAM_KEYWORDS) {
+        if (fullText.includes(keyword.toLowerCase())) {
+          keywordMatches++;
+          spamScore += 5;
+        }
+      }
+
+      // Multiple spam keywords = definitely spam
+      if (keywordMatches >= 3) {
+        isDefinitelySpam = true;
+      }
+
+      // Check for marketing patterns
+      if (/list-unsubscribe/i.test(message.getRawContent ? message.getRawContent().substring(0, 5000) : '')) {
+        spamScore += 30;  // Has unsubscribe header = marketing email
+      }
+
+      // Check for bulk sender patterns
+      if (/noreply|no-reply|donotreply|newsletter|marketing|promo|campaign|bulk|news@|info@|hello@|team@|support@/.test(senderEmail)) {
+        spamScore += 25;
+      }
+
+      // Check for image-heavy emails (common in marketing)
+      const imgCount = (body.match(/<img/gi) || []).length;
+      if (imgCount > 3) spamScore += 15;
+
+      // Check for tracking pixels/links
+      if (/utm_source|utm_medium|utm_campaign|click\./.test(lowerBody)) {
+        spamScore += 20;
+      }
+
+      // Check for "View in browser" pattern
+      if (/view.*(in|this).*(browser|email)|trouble viewing|can't see this email/i.test(fullText)) {
+        spamScore += 25;
+      }
+    }
+
+    // If spam score is high enough, immediately classify as BULK
+    if (isDefinitelySpam || spamScore >= 50) {
+      return {
+        score: Math.max(0, 20 - spamScore),
+        level: 'BULK',
+        breakdown: {
+          spamScore: spamScore,
+          spamKeywords: true,
+          senderReputation: 0,
+          isSpam: true
+        },
+        bayesClass: 'BULK',
+        bayesConfidence: 95,
+        sender: senderEmail,
+        subject: subject.substring(0, 100),
+        isSpam: true
+      };
+    }
+
+    // ========== REGULAR CLASSIFICATION ==========
+
+    // Text Analysis Score (Naive Bayes)
     const tokens = this.tfidf.tokenize(fullText);
     const bayesResult = this.classifier.classify(tokens);
     const textScore = this.classToScore(bayesResult.class) * bayesResult.confidence;
 
-    // 2. Sender Reputation Score
+    // Sender Reputation Score
     const senderScore = this.senderTracker.getReputationScore(senderEmail);
 
-    // 3. Direct Recipient Score
+    // Direct Recipient Score
     let recipientScore = 50;
     const ownerEmail = (EMAIL_MANAGEMENT_CONFIG.OWNER_EMAIL || '').toLowerCase();
     if (to.toLowerCase().includes(ownerEmail)) {
@@ -27208,21 +27333,27 @@ class MLEmailClassifier {
       recipientScore = 40;
     }
 
-    // 4. Recency Score
+    // Recency Score
     const messageAge = (new Date().getTime() - message.getDate().getTime()) / (1000 * 60 * 60 * 24);
     const recencyScore = 100 * this.senderTracker.decayWeight(messageAge);
 
-    // 5. Keyword Boost
+    // Keyword Boost (positive signals)
     let keywordBoost = 0;
-    const lowerSubject = subject.toLowerCase();
-    const lowerBody = body.toLowerCase().substring(0, 2000);
 
+    // Whitelisted domain boost
+    if (isWhitelisted) keywordBoost += 30;
+
+    // Important keywords
     if (/urgent|emergency|asap|immediate|critical/.test(lowerSubject)) keywordBoost += 20;
-    if (/order|payment|invoice|deadline|overdue/.test(lowerSubject)) keywordBoost += 15;
-    if (/grant|usda|nrcs|eqip|funding/.test(lowerSubject + ' ' + lowerBody)) keywordBoost += 15;
-    if (/unsubscribe|newsletter|promotion|discount|sale|limited time/.test(lowerBody)) keywordBoost -= 20;
+    if (/order|payment|invoice|deadline|overdue|receipt/.test(lowerSubject)) keywordBoost += 15;
+    if (/grant|usda|nrcs|eqip|funding|application/.test(fullText)) keywordBoost += 15;
+    if (/csa|farm share|pickup|delivery/.test(fullText)) keywordBoost += 10;
+    if (/wholesale|restaurant|chef|kitchen/.test(fullText)) keywordBoost += 10;
 
-    // 6. Calculate weighted final score
+    // Subtract spam score from final
+    keywordBoost -= spamScore;
+
+    // Calculate weighted final score
     const finalScore =
       (textScore * ML_EMAIL_CONFIG.WEIGHTS.TEXT_IMPORTANCE) +
       (senderScore * ML_EMAIL_CONFIG.WEIGHTS.REPLY_BEHAVIOR) +
@@ -27232,6 +27363,7 @@ class MLEmailClassifier {
 
     const clampedScore = Math.max(0, Math.min(100, finalScore));
 
+    // Determine importance level
     let importanceLevel = 'BULK';
     for (const [level, threshold] of Object.entries(ML_EMAIL_CONFIG.IMPORTANCE_THRESHOLDS)) {
       if (clampedScore >= threshold) {
@@ -27248,12 +27380,14 @@ class MLEmailClassifier {
         senderReputation: Math.round(senderScore),
         recipientType: Math.round(recipientScore),
         recency: Math.round(recencyScore),
-        keywordBoost: keywordBoost
+        keywordBoost: keywordBoost,
+        spamScore: spamScore
       },
       bayesClass: bayesResult.class,
       bayesConfidence: Math.round(bayesResult.confidence * 100),
       sender: senderEmail,
-      subject: subject.substring(0, 100)
+      subject: subject.substring(0, 100),
+      isSpam: spamScore >= 30
     };
   }
 
@@ -27292,10 +27426,10 @@ class MLEmailClassifier {
 
 /**
  * MAIN FUNCTION: Run Full Inbox Analysis
- * Analyzes ALL emails and trains the ML model
+ * Analyzes ALL emails with NO LIMITS - paginates through everything
  */
 function runFullInboxAnalysis() {
-  Logger.log('🧠 Starting FULL INBOX ANALYSIS with ML...');
+  Logger.log('🧠 Starting FULL INBOX ANALYSIS - NO LIMITS...');
 
   const mlClassifier = new MLEmailClassifier();
   mlClassifier.loadModel();
@@ -27305,114 +27439,170 @@ function runFullInboxAnalysis() {
     totalAnalyzed: 0,
     trained: 0,
     classified: 0,
+    archived: 0,
     byLevel: { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, BULK: 0 },
     topSenders: [],
+    spamDetected: 0,
     errors: []
   };
 
   try {
-    // Phase 1: Analyze ALL emails (last 90 days for training)
-    Logger.log('📧 Phase 1: Fetching emails for training...');
-
-    const trainingThreads = GmailApp.search('in:anywhere -in:trash -in:spam newer_than:90d', 0, 500);
-    Logger.log('Found ' + trainingThreads.length + ' threads for training');
+    // ========== PHASE 1: TRAIN ON ALL HISTORICAL EMAILS ==========
+    Logger.log('📧 Phase 1: Training on ALL historical emails...');
 
     const ownerEmail = EMAIL_MANAGEMENT_CONFIG.OWNER_EMAIL || '';
+    let trainingOffset = 0;
+    let batchCount = 0;
 
-    for (const thread of trainingThreads) {
-      const messages = thread.getMessages();
+    // Paginate through ALL emails (up to MAX_BATCHES * BATCH_SIZE)
+    while (batchCount < ML_EMAIL_CONFIG.MAX_BATCHES) {
+      const trainingThreads = GmailApp.search(
+        'in:anywhere -in:trash -in:spam newer_than:180d',  // 6 months of history
+        trainingOffset,
+        ML_EMAIL_CONFIG.BATCH_SIZE
+      );
 
-      for (const message of messages) {
-        try {
-          const from = message.getFrom() || '';
-          const senderMatch = from.match(/<(.+)>/) || [null, from];
-          const senderEmail = (senderMatch[1] || from).toLowerCase().trim();
+      if (trainingThreads.length === 0) break;  // No more emails
 
-          let action = 'ignored';
+      Logger.log('Training batch ' + (batchCount + 1) + ': ' + trainingThreads.length + ' threads (offset: ' + trainingOffset + ')');
 
-          if (thread.hasStarredMessages()) {
-            action = 'starred';
-          } else if (message.isInInbox() && !message.isUnread()) {
-            action = 'opened';
-          }
+      for (const thread of trainingThreads) {
+        const messages = thread.getMessages();
 
-          const nextMessages = messages.filter(m => m.getDate() > message.getDate());
-          for (const nm of nextMessages) {
-            if ((nm.getFrom() || '').includes(ownerEmail)) {
-              action = 'replied';
-              break;
+        for (const message of messages) {
+          try {
+            const from = message.getFrom() || '';
+            const senderMatch = from.match(/<(.+)>/) || [null, from];
+            const senderEmail = (senderMatch[1] || from).toLowerCase().trim();
+
+            let action = 'ignored';
+
+            if (thread.hasStarredMessages()) {
+              action = 'starred';
+            } else if (message.isInInbox() && !message.isUnread()) {
+              action = 'opened';
             }
+
+            // Check if user replied
+            const nextMessages = messages.filter(m => m.getDate() > message.getDate());
+            for (const nm of nextMessages) {
+              if ((nm.getFrom() || '').includes(ownerEmail)) {
+                action = 'replied';
+                break;
+              }
+            }
+
+            // Check if archived
+            if (!message.isInInbox() && !thread.isInSpam() && !thread.isInTrash()) {
+              if (action === 'ignored') action = 'archived';
+            }
+
+            mlClassifier.learnFromAction(message, action);
+            results.trained++;
+
+          } catch (e) {
+            // Skip individual errors, continue processing
+          }
+        }
+
+        results.totalAnalyzed += messages.length;
+      }
+
+      trainingOffset += ML_EMAIL_CONFIG.BATCH_SIZE;
+      batchCount++;
+
+      // Save periodically to avoid losing progress
+      if (batchCount % 5 === 0) {
+        mlClassifier.saveModel();
+        Logger.log('💾 Checkpoint saved at ' + results.trained + ' emails');
+      }
+    }
+
+    Logger.log('✅ Phase 1 complete: Trained on ' + results.trained + ' emails from ' + batchCount + ' batches');
+
+    // ========== PHASE 2: CLASSIFY ALL INBOX EMAILS ==========
+    Logger.log('📊 Phase 2: Classifying ALL inbox emails...');
+
+    const classifications = [];
+    let classifyOffset = 0;
+    let classifyBatch = 0;
+
+    // Process ALL inbox emails (not just unread)
+    while (classifyBatch < ML_EMAIL_CONFIG.MAX_BATCHES) {
+      const inboxThreads = GmailApp.search(
+        'in:inbox',
+        classifyOffset,
+        ML_EMAIL_CONFIG.BATCH_SIZE
+      );
+
+      if (inboxThreads.length === 0) break;
+
+      Logger.log('Classifying batch ' + (classifyBatch + 1) + ': ' + inboxThreads.length + ' threads');
+
+      for (const thread of inboxThreads) {
+        const messages = thread.getMessages();
+        const latestMessage = messages[messages.length - 1];
+
+        try {
+          const classification = mlClassifier.classifyEmail(latestMessage);
+          classifications.push(classification);
+          results.byLevel[classification.level]++;
+          results.classified++;
+
+          if (classification.isSpam) {
+            results.spamDetected++;
           }
 
-          if (!message.isInInbox() && !thread.isInSpam() && !thread.isInTrash()) {
-            if (action === 'ignored') action = 'archived';
-          }
-
-          mlClassifier.learnFromAction(message, action);
-          results.trained++;
+          // Apply label and optionally archive
+          const wasArchived = applyImportanceLabelAndOrganize(thread, classification);
+          if (wasArchived) results.archived++;
 
         } catch (e) {
-          results.errors.push('Training error: ' + e.message);
+          results.errors.push('Classification error: ' + e.message);
         }
       }
 
-      results.totalAnalyzed += messages.length;
+      classifyOffset += ML_EMAIL_CONFIG.BATCH_SIZE;
+      classifyBatch++;
     }
 
-    Logger.log('✅ Phase 1 complete: Trained on ' + results.trained + ' emails');
+    Logger.log('✅ Phase 2 complete: Classified ' + results.classified + ' emails, detected ' + results.spamDetected + ' spam');
 
-    // Phase 2: Classify all unread inbox emails
-    Logger.log('📊 Phase 2: Classifying unread inbox emails...');
-
-    const unreadThreads = GmailApp.search('in:inbox is:unread', 0, 200);
-    const classifications = [];
-
-    for (const thread of unreadThreads) {
-      const messages = thread.getMessages();
-      const latestMessage = messages[messages.length - 1];
-
-      try {
-        const classification = mlClassifier.classifyEmail(latestMessage);
-        classifications.push(classification);
-        results.byLevel[classification.level]++;
-        results.classified++;
-
-        applyImportanceLabel(thread, classification);
-
-      } catch (e) {
-        results.errors.push('Classification error: ' + e.message);
-      }
-    }
-
-    Logger.log('✅ Phase 2 complete: Classified ' + results.classified + ' unread emails');
-
-    // Phase 3: Save the trained model
+    // ========== PHASE 3: SAVE MODEL ==========
     Logger.log('💾 Phase 3: Saving trained model...');
     mlClassifier.saveModel();
 
-    // Phase 4: Generate report
+    // ========== PHASE 4: GENERATE REPORT ==========
     results.topSenders = mlClassifier.senderTracker.getVIPSenders(70).slice(0, 20);
     results.duration = (new Date().getTime() - startTime.getTime()) / 1000;
 
     writeMLAnalysisToSheet(results, classifications);
 
     Logger.log('🎉 FULL INBOX ANALYSIS COMPLETE!');
-    Logger.log('📈 Summary: ' + results.totalAnalyzed + ' analyzed, ' + results.trained + ' trained, ' + results.classified + ' classified');
-    Logger.log('⏱️ Duration: ' + results.duration + ' seconds');
+    Logger.log('📈 Summary:');
+    Logger.log('   - Emails analyzed: ' + results.totalAnalyzed);
+    Logger.log('   - Emails trained: ' + results.trained);
+    Logger.log('   - Emails classified: ' + results.classified);
+    Logger.log('   - Spam detected: ' + results.spamDetected);
+    Logger.log('   - Bulk archived: ' + results.archived);
+    Logger.log('   - Duration: ' + Math.round(results.duration) + ' seconds');
 
     return results;
 
   } catch (e) {
     Logger.log('❌ Error in full inbox analysis: ' + e.message);
     results.errors.push(e.message);
+    // Save what we have so far
+    mlClassifier.saveModel();
     return results;
   }
 }
 
 /**
- * Apply importance label to thread based on ML classification
+ * Apply importance label AND organize (archive bulk)
+ * Returns true if thread was archived
  */
-function applyImportanceLabel(thread, classification) {
+function applyImportanceLabelAndOrganize(thread, classification) {
   const labelMap = {
     'CRITICAL': '🔴 CRITICAL',
     'HIGH': '🟠 HIGH',
@@ -27423,16 +27613,652 @@ function applyImportanceLabel(thread, classification) {
 
   const labelName = labelMap[classification.level] || '🟡 MEDIUM';
 
+  // Get or create label
   let label = GmailApp.getUserLabelByName(labelName);
   if (!label) {
     label = GmailApp.createLabel(labelName);
   }
 
+  // Apply label
   thread.addLabel(label);
 
+  // Star critical emails
   if (classification.level === 'CRITICAL') {
     thread.getMessages().forEach(m => m.star());
   }
+
+  // Auto-archive BULK emails to clean inbox
+  let wasArchived = false;
+  if (classification.level === 'BULK' && ML_EMAIL_CONFIG.AUTO_ARCHIVE_BULK) {
+    thread.moveToArchive();
+    wasArchived = true;
+  }
+
+  // Also add spam label if detected as spam
+  if (classification.isSpam) {
+    let spamLabel = GmailApp.getUserLabelByName('🚫 SPAM/MARKETING');
+    if (!spamLabel) {
+      spamLabel = GmailApp.createLabel('🚫 SPAM/MARKETING');
+    }
+    thread.addLabel(spamLabel);
+  }
+
+  return wasArchived;
+}
+
+/**
+ * Legacy function for compatibility
+ */
+function applyImportanceLabel(thread, classification) {
+  return applyImportanceLabelAndOrganize(thread, classification);
+}
+
+// ============================================================================
+// SMART EMAIL INTELLIGENCE - Topic Detection, Entity Extraction, Summaries
+// ============================================================================
+
+/**
+ * Email topics/categories specific to farm business
+ */
+const EMAIL_TOPICS = {
+  ORDER: {
+    name: 'Order',
+    patterns: ['order', 'purchase', 'buy', 'ordered', 'ordering', 'confirm your order'],
+    labelColor: '#34a853'
+  },
+  PAYMENT: {
+    name: 'Payment/Invoice',
+    patterns: ['payment', 'invoice', 'receipt', 'paid', 'charge', 'transaction', 'billing'],
+    labelColor: '#ea4335'
+  },
+  CSA: {
+    name: 'CSA',
+    patterns: ['csa', 'farm share', 'subscription', 'pickup', 'box', 'weekly share', 'member'],
+    labelColor: '#4285f4'
+  },
+  WHOLESALE: {
+    name: 'Wholesale',
+    patterns: ['wholesale', 'restaurant', 'chef', 'kitchen', 'bulk order', 'case', 'distributor'],
+    labelColor: '#ff6d01'
+  },
+  GRANT: {
+    name: 'Grant/Funding',
+    patterns: ['grant', 'funding', 'usda', 'nrcs', 'eqip', 'application', 'award', 'proposal'],
+    labelColor: '#9c27b0'
+  },
+  CUSTOMER_QUESTION: {
+    name: 'Customer Question',
+    patterns: ['question', 'wondering', 'can you', 'do you', 'how do', 'availability', 'looking for'],
+    labelColor: '#00bcd4'
+  },
+  DELIVERY: {
+    name: 'Delivery',
+    patterns: ['delivery', 'shipping', 'shipped', 'tracking', 'arrive', 'delivered', 'route'],
+    labelColor: '#795548'
+  },
+  SUPPLIER: {
+    name: 'Supplier/Seeds',
+    patterns: ['seeds', 'supplies', 'equipment', 'order shipped', 'back in stock', 'johnny', 'fedco', 'high mowing'],
+    labelColor: '#607d8b'
+  },
+  MARKET: {
+    name: 'Farmers Market',
+    patterns: ['market', 'booth', 'vendor', 'farmers market', 'saturday', 'sunday market'],
+    labelColor: '#8bc34a'
+  },
+  CERTIFICATION: {
+    name: 'Certification',
+    patterns: ['organic', 'certification', 'certify', 'oeffa', 'inspection', 'compliance'],
+    labelColor: '#cddc39'
+  },
+  COMPLAINT: {
+    name: 'Complaint/Issue',
+    patterns: ['complaint', 'problem', 'issue', 'wrong', 'damaged', 'missing', 'unhappy', 'disappointed', 'refund'],
+    labelColor: '#f44336'
+  },
+  FEEDBACK: {
+    name: 'Feedback',
+    patterns: ['thank', 'thanks', 'great', 'love', 'amazing', 'delicious', 'feedback', 'review'],
+    labelColor: '#e91e63'
+  }
+};
+
+/**
+ * Smart Email Analyzer - Extracts topics, entities, and summaries
+ */
+class SmartEmailAnalyzer {
+
+  /**
+   * Detect topic/category of email
+   */
+  detectTopic(subject, body) {
+    const text = (subject + ' ' + body).toLowerCase();
+    const detectedTopics = [];
+
+    for (const [topicKey, topicConfig] of Object.entries(EMAIL_TOPICS)) {
+      let matchCount = 0;
+      for (const pattern of topicConfig.patterns) {
+        if (text.includes(pattern)) {
+          matchCount++;
+        }
+      }
+      if (matchCount > 0) {
+        detectedTopics.push({
+          key: topicKey,
+          name: topicConfig.name,
+          confidence: Math.min(100, matchCount * 30),
+          labelColor: topicConfig.labelColor
+        });
+      }
+    }
+
+    // Sort by confidence
+    detectedTopics.sort((a, b) => b.confidence - a.confidence);
+
+    return detectedTopics.slice(0, 3);  // Top 3 topics
+  }
+
+  /**
+   * Extract entities from email (dates, amounts, names, products)
+   */
+  extractEntities(subject, body) {
+    const text = subject + ' ' + body;
+    const entities = {
+      dates: [],
+      amounts: [],
+      products: [],
+      names: [],
+      phoneNumbers: [],
+      addresses: []
+    };
+
+    // Extract dates
+    const datePatterns = [
+      /\b(\d{1,2}\/\d{1,2}\/\d{2,4})\b/g,  // MM/DD/YYYY
+      /\b(\d{1,2}-\d{1,2}-\d{2,4})\b/g,     // MM-DD-YYYY
+      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?,?\s*\d{0,4}\b/gi,
+      /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s*\d{0,4}\b/gi,
+      /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi,
+      /\b(tomorrow|today|next week|this week|next month)\b/gi
+    ];
+
+    for (const pattern of datePatterns) {
+      const matches = text.match(pattern);
+      if (matches) {
+        entities.dates.push(...matches.map(m => m.trim()));
+      }
+    }
+
+    // Extract dollar amounts
+    const amountPattern = /\$[\d,]+(?:\.\d{2})?/g;
+    const amounts = text.match(amountPattern);
+    if (amounts) {
+      entities.amounts = amounts;
+    }
+
+    // Extract phone numbers
+    const phonePattern = /\b\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g;
+    const phones = text.match(phonePattern);
+    if (phones) {
+      entities.phoneNumbers = phones;
+    }
+
+    // Extract common farm products
+    const productPatterns = [
+      /\b(tomato|tomatoes|lettuce|kale|spinach|arugula|chard|beet|beets|carrot|carrots)\b/gi,
+      /\b(pepper|peppers|cucumber|cucumbers|squash|zucchini|onion|onions|garlic)\b/gi,
+      /\b(potato|potatoes|sweet potato|sweet potatoes|corn|beans|peas)\b/gi,
+      /\b(herb|herbs|basil|cilantro|parsley|dill|mint|rosemary|thyme)\b/gi,
+      /\b(greens|salad mix|microgreens|sprouts|radish|radishes|turnip|turnips)\b/gi,
+      /\b(egg|eggs|dozen|half dozen)\b/gi
+    ];
+
+    for (const pattern of productPatterns) {
+      const matches = text.match(pattern);
+      if (matches) {
+        entities.products.push(...matches.map(m => m.toLowerCase()));
+      }
+    }
+    entities.products = [...new Set(entities.products)];  // Dedupe
+
+    return entities;
+  }
+
+  /**
+   * Generate a smart summary of the email
+   */
+  generateSummary(subject, body, topics, entities) {
+    const parts = [];
+
+    // Start with primary topic
+    if (topics.length > 0) {
+      parts.push('[' + topics[0].name + ']');
+    }
+
+    // Add key entities
+    if (entities.amounts.length > 0) {
+      parts.push('Amount: ' + entities.amounts[0]);
+    }
+
+    if (entities.dates.length > 0) {
+      parts.push('Date: ' + entities.dates[0]);
+    }
+
+    if (entities.products.length > 0) {
+      parts.push('Products: ' + entities.products.slice(0, 3).join(', '));
+    }
+
+    // Extract first meaningful sentence from body
+    const sentences = body.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    if (sentences.length > 0) {
+      const firstSentence = sentences[0].trim().substring(0, 100);
+      parts.push('"' + firstSentence + (firstSentence.length >= 100 ? '...' : '') + '"');
+    }
+
+    return parts.join(' | ') || subject;
+  }
+
+  /**
+   * Full analysis of an email
+   */
+  analyzeEmail(message) {
+    const subject = message.getSubject() || '';
+    const body = message.getPlainBody() || '';
+    const from = message.getFrom() || '';
+    const date = message.getDate();
+
+    const topics = this.detectTopic(subject, body);
+    const entities = this.extractEntities(subject, body);
+    const summary = this.generateSummary(subject, body, topics, entities);
+
+    return {
+      subject: subject,
+      from: from,
+      date: date,
+      topics: topics,
+      entities: entities,
+      summary: summary,
+      primaryTopic: topics.length > 0 ? topics[0].name : 'General',
+      hasAmount: entities.amounts.length > 0,
+      hasDate: entities.dates.length > 0,
+      hasProducts: entities.products.length > 0
+    };
+  }
+}
+
+/**
+ * Apply topic labels to email thread
+ */
+function applyTopicLabels(thread, analysis) {
+  for (const topic of analysis.topics) {
+    const labelName = '📁 ' + topic.name;
+    let label = GmailApp.getUserLabelByName(labelName);
+    if (!label) {
+      label = GmailApp.createLabel(labelName);
+    }
+    thread.addLabel(label);
+  }
+}
+
+/**
+ * Run smart analysis on inbox - extracts topics, entities, summaries
+ */
+function runSmartInboxAnalysis() {
+  Logger.log('🧠 Starting SMART inbox analysis...');
+
+  const analyzer = new SmartEmailAnalyzer();
+  const results = {
+    analyzed: 0,
+    byTopic: {},
+    withAmounts: 0,
+    withDates: 0,
+    actionItems: [],
+    summaries: []
+  };
+
+  // Initialize topic counts
+  for (const topicKey of Object.keys(EMAIL_TOPICS)) {
+    results.byTopic[topicKey] = 0;
+  }
+
+  let offset = 0;
+  let batch = 0;
+
+  while (batch < 10) {  // Up to 5000 emails
+    const threads = GmailApp.search('in:inbox', offset, 500);
+    if (threads.length === 0) break;
+
+    Logger.log('Smart analysis batch ' + (batch + 1) + ': ' + threads.length + ' threads');
+
+    for (const thread of threads) {
+      const messages = thread.getMessages();
+      const latestMessage = messages[messages.length - 1];
+
+      try {
+        const analysis = analyzer.analyzeEmail(latestMessage);
+        results.analyzed++;
+
+        // Count topics
+        for (const topic of analysis.topics) {
+          results.byTopic[topic.key] = (results.byTopic[topic.key] || 0) + 1;
+        }
+
+        if (analysis.hasAmount) results.withAmounts++;
+        if (analysis.hasDate) results.withDates++;
+
+        // Apply topic labels
+        applyTopicLabels(thread, analysis);
+
+        // Store summary for important emails
+        if (analysis.topics.length > 0 && analysis.topics[0].confidence >= 50) {
+          results.summaries.push({
+            subject: analysis.subject.substring(0, 50),
+            from: analysis.from,
+            topic: analysis.primaryTopic,
+            summary: analysis.summary.substring(0, 200),
+            date: analysis.date
+          });
+        }
+
+        // Identify action items (emails that need response)
+        if (analysis.primaryTopic === 'Customer Question' ||
+            analysis.primaryTopic === 'Complaint/Issue' ||
+            analysis.primaryTopic === 'Order') {
+          results.actionItems.push({
+            subject: analysis.subject,
+            from: analysis.from,
+            topic: analysis.primaryTopic,
+            date: analysis.date
+          });
+        }
+
+      } catch (e) {
+        Logger.log('Analysis error: ' + e.message);
+      }
+    }
+
+    offset += 500;
+    batch++;
+  }
+
+  // Write results to sheet
+  writeSmartAnalysisToSheet(results);
+
+  Logger.log('✅ Smart analysis complete: ' + results.analyzed + ' emails analyzed');
+  Logger.log('📊 Action items found: ' + results.actionItems.length);
+
+  return results;
+}
+
+/**
+ * Write smart analysis to spreadsheet
+ */
+function writeSmartAnalysisToSheet(results) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('SMART_EMAIL_ANALYSIS');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('SMART_EMAIL_ANALYSIS');
+  }
+
+  sheet.clear();
+
+  const data = [
+    ['SMART EMAIL ANALYSIS', '', '', '', ''],
+    ['Generated:', new Date().toISOString(), '', '', ''],
+    ['Emails Analyzed:', results.analyzed, '', '', ''],
+    ['', '', '', '', ''],
+    ['TOPIC BREAKDOWN', '', '', '', ''],
+  ];
+
+  for (const [topicKey, count] of Object.entries(results.byTopic)) {
+    if (count > 0) {
+      const topicName = EMAIL_TOPICS[topicKey]?.name || topicKey;
+      data.push([topicName + ':', count, Math.round(count / results.analyzed * 100) + '%', '', '']);
+    }
+  }
+
+  data.push(['', '', '', '', '']);
+  data.push(['Emails with $ amounts:', results.withAmounts, '', '', '']);
+  data.push(['Emails with dates:', results.withDates, '', '', '']);
+
+  data.push(['', '', '', '', '']);
+  data.push(['ACTION ITEMS (Need Response)', '', '', '', '']);
+  data.push(['Subject', 'From', 'Topic', 'Date', '']);
+
+  for (const item of results.actionItems.slice(0, 50)) {
+    data.push([
+      item.subject.substring(0, 60),
+      item.from,
+      item.topic,
+      item.date ? Utilities.formatDate(item.date, 'America/New_York', 'MM/dd/yyyy') : '',
+      ''
+    ]);
+  }
+
+  data.push(['', '', '', '', '']);
+  data.push(['RECENT EMAIL SUMMARIES', '', '', '', '']);
+  data.push(['Subject', 'Topic', 'Summary', '', '']);
+
+  for (const summary of results.summaries.slice(0, 100)) {
+    data.push([
+      summary.subject,
+      summary.topic,
+      summary.summary,
+      '',
+      ''
+    ]);
+  }
+
+  sheet.getRange(1, 1, data.length, 5).setValues(data);
+  sheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#4285f4').setFontColor('white');
+  sheet.autoResizeColumns(1, 5);
+}
+
+/**
+ * Send daily smart digest to team
+ */
+function sendSmartEmailDigest() {
+  Logger.log('📧 Generating smart email digest...');
+
+  const analyzer = new SmartEmailAnalyzer();
+
+  // Get yesterday's emails
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dateStr = Utilities.formatDate(yesterday, 'America/New_York', 'yyyy/MM/dd');
+
+  const threads = GmailApp.search('in:inbox after:' + dateStr, 0, 100);
+
+  const digest = {
+    orders: [],
+    payments: [],
+    customerQuestions: [],
+    complaints: [],
+    grants: [],
+    wholesale: [],
+    other: []
+  };
+
+  for (const thread of threads) {
+    const messages = thread.getMessages();
+    const latestMessage = messages[messages.length - 1];
+
+    try {
+      const analysis = analyzer.analyzeEmail(latestMessage);
+
+      const item = {
+        subject: analysis.subject.substring(0, 60),
+        from: analysis.from,
+        summary: analysis.summary.substring(0, 150),
+        amounts: analysis.entities.amounts.join(', '),
+        products: analysis.entities.products.slice(0, 5).join(', ')
+      };
+
+      switch (analysis.primaryTopic) {
+        case 'Order': digest.orders.push(item); break;
+        case 'Payment/Invoice': digest.payments.push(item); break;
+        case 'Customer Question': digest.customerQuestions.push(item); break;
+        case 'Complaint/Issue': digest.complaints.push(item); break;
+        case 'Grant/Funding': digest.grants.push(item); break;
+        case 'Wholesale': digest.wholesale.push(item); break;
+        default: digest.other.push(item);
+      }
+
+    } catch (e) {
+      // Skip
+    }
+  }
+
+  // Build HTML digest
+  let html = `
+  <html>
+  <body style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+    <h1 style="color: #2e7d32;">📬 Daily Email Digest - Tiny Seed Farm</h1>
+    <p style="color: #666;">Here's what came in since yesterday:</p>
+  `;
+
+  // Complaints first (highest priority)
+  if (digest.complaints.length > 0) {
+    html += `<h2 style="color: #f44336;">🚨 Complaints/Issues (${digest.complaints.length})</h2>`;
+    for (const item of digest.complaints) {
+      html += `<div style="background: #ffebee; padding: 10px; margin: 5px 0; border-radius: 4px;">
+        <strong>${item.subject}</strong><br>
+        <span style="color: #666;">${item.from}</span><br>
+        <em>${item.summary}</em>
+      </div>`;
+    }
+  }
+
+  // Orders
+  if (digest.orders.length > 0) {
+    html += `<h2 style="color: #4caf50;">📦 Orders (${digest.orders.length})</h2>`;
+    for (const item of digest.orders) {
+      html += `<div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 4px;">
+        <strong>${item.subject}</strong> ${item.amounts ? '- ' + item.amounts : ''}<br>
+        ${item.products ? '<span style="color: #2e7d32;">Products: ' + item.products + '</span>' : ''}
+      </div>`;
+    }
+  }
+
+  // Customer Questions
+  if (digest.customerQuestions.length > 0) {
+    html += `<h2 style="color: #2196f3;">❓ Customer Questions (${digest.customerQuestions.length})</h2>`;
+    for (const item of digest.customerQuestions) {
+      html += `<div style="background: #e3f2fd; padding: 10px; margin: 5px 0; border-radius: 4px;">
+        <strong>${item.subject}</strong><br>
+        <span style="color: #666;">${item.from}</span>
+      </div>`;
+    }
+  }
+
+  // Wholesale
+  if (digest.wholesale.length > 0) {
+    html += `<h2 style="color: #ff9800;">🏪 Wholesale (${digest.wholesale.length})</h2>`;
+    for (const item of digest.wholesale) {
+      html += `<div style="background: #fff3e0; padding: 10px; margin: 5px 0; border-radius: 4px;">
+        <strong>${item.subject}</strong> ${item.amounts ? '- ' + item.amounts : ''}<br>
+        <span style="color: #666;">${item.from}</span>
+      </div>`;
+    }
+  }
+
+  // Payments
+  if (digest.payments.length > 0) {
+    html += `<h2 style="color: #9c27b0;">💰 Payments/Invoices (${digest.payments.length})</h2>`;
+    for (const item of digest.payments) {
+      html += `<div style="background: #f3e5f5; padding: 10px; margin: 5px 0; border-radius: 4px;">
+        <strong>${item.subject}</strong> ${item.amounts ? '- ' + item.amounts : ''}
+      </div>`;
+    }
+  }
+
+  // Grants
+  if (digest.grants.length > 0) {
+    html += `<h2 style="color: #673ab7;">🎓 Grants/Funding (${digest.grants.length})</h2>`;
+    for (const item of digest.grants) {
+      html += `<div style="background: #ede7f6; padding: 10px; margin: 5px 0; border-radius: 4px;">
+        <strong>${item.subject}</strong><br>
+        <em>${item.summary}</em>
+      </div>`;
+    }
+  }
+
+  html += `
+    <hr style="margin-top: 30px;">
+    <p style="color: #999; font-size: 12px;">
+      Total emails processed: ${threads.length}<br>
+      Generated by Tiny Seed OS Smart Email System
+    </p>
+  </body>
+  </html>`;
+
+  // Send digest
+  MailApp.sendEmail({
+    to: EMAIL_MANAGEMENT_CONFIG.OWNER_EMAIL,
+    subject: '📬 Daily Email Digest - ' + Utilities.formatDate(new Date(), 'America/New_York', 'EEEE, MMMM d'),
+    htmlBody: html
+  });
+
+  Logger.log('✅ Smart digest sent!');
+
+  return digest;
+}
+
+/**
+ * Setup smart email system with all triggers
+ */
+function setupSmartEmailSystem() {
+  Logger.log('🚀 Setting up SMART Email System...');
+
+  // Remove existing triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const trigger of triggers) {
+    const funcName = trigger.getHandlerFunction();
+    if (['mlAutoSortInbox', 'updateMLFromRecentActions', 'sendSmartEmailDigest', 'runSmartInboxAnalysis'].includes(funcName)) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+
+  // Run initial full analysis
+  Logger.log('📊 Running initial ML analysis...');
+  const mlResults = runFullInboxAnalysis();
+
+  Logger.log('🧠 Running initial smart analysis...');
+  const smartResults = runSmartInboxAnalysis();
+
+  // Set up triggers
+  ScriptApp.newTrigger('mlAutoSortInbox')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  ScriptApp.newTrigger('updateMLFromRecentActions')
+    .timeBased()
+    .atHour(6)
+    .everyDays(1)
+    .create();
+
+  ScriptApp.newTrigger('sendSmartEmailDigest')
+    .timeBased()
+    .atHour(7)
+    .everyDays(1)
+    .create();
+
+  Logger.log('✅ Smart Email System setup complete!');
+  Logger.log('📧 Hourly ML sorting enabled');
+  Logger.log('🧠 Daily learning + digest enabled');
+
+  return {
+    success: true,
+    mlResults: mlResults,
+    smartResults: smartResults,
+    triggers: [
+      'mlAutoSortInbox (hourly)',
+      'updateMLFromRecentActions (daily 6 AM)',
+      'sendSmartEmailDigest (daily 7 AM)'
+    ]
+  };
 }
 
 /**

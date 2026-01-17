@@ -12184,15 +12184,10 @@
                 if (btn) btn.querySelector('i').classList.remove('fa-spin');
             } catch (error) {
                 console.error('[Fleet] Error loading:', error);
-                // Use fallback data
-                FleetState.tractors = [
-                    { id: 'BCS-853', model: 'BCS 853 (15hp)', currenthours: 245, hoursremaining: 5, status: 'Active' },
-                    { id: 'K-LX3310', model: 'Kubota LX3310', currenthours: 156, hoursremaining: 44, status: 'Active' },
-                    { id: 'K-L3901', model: 'Kubota L3901', currenthours: 312, hoursremaining: 88, status: 'Active' },
-                    { id: 'MF-1840M', model: 'Massey 1840M', currenthours: 423, hoursremaining: -23, status: 'Service Due' },
-                ];
+                // No demo fallback - show empty state
+                FleetState.tractors = [];
                 renderFleetGrid();
-                populateFleetSelects();
+                showToast('Error loading fleet data', 'error');
             }
         }
 
@@ -14179,11 +14174,9 @@
                 }
             } catch (error) {
                 console.error('AI Analysis error:', error);
-
-                // Fallback: show simulated result for demo purposes
-                const simulatedResult = getSimulatedResult();
-                AIDoctor.lastResult = simulatedResult;
-                displayAIResults(simulatedResult);
+                // No simulated fallback - show error
+                showToast('AI analysis failed. Check internet connection.', 'error');
+                document.getElementById('aiResults').innerHTML = `<div class="empty-state"><p>Unable to analyze image. Please try again.</p></div>`;
             }
         }
 
@@ -16813,20 +16806,10 @@
                     }
                 }
 
-                if (stops.length > 0) {
-                    DeliveryState.stops = stops;
-                    renderDeliveryStops();
-                    updateDeliverySummary();
-                } else {
-                    // Demo data for testing when no real data
-                    DeliveryState.stops = [
-                        { id: 1, customer: 'Smith Family', address: '123 Oak Lane, Doylestown PA', phone: '2155551234', email: 'smith@email.com', items: [{name: 'Mixed Greens', qty: 2}, {name: 'Tomatoes', qty: 1}], completed: false },
-                        { id: 2, customer: 'Green Market Co-op', address: '456 Main St, New Hope PA', phone: '2155555678', email: 'orders@greenmarket.com', items: [{name: 'Bulk Carrots', qty: 10}], notes: 'Leave at back door', completed: false },
-                        { id: 3, customer: 'Johnson Restaurant', address: '789 Bridge St, Lambertville NJ', phone: '6095559012', email: 'chef@johnson.com', items: [{name: 'Chef Mix', qty: 5}, {name: 'Herbs', qty: 3}], completed: true }
-                    ];
-                    renderDeliveryStops();
-                    updateDeliverySummary();
-                }
+                // Use real data from API only - no demo fallback
+                DeliveryState.stops = stops;
+                renderDeliveryStops();
+                updateDeliverySummary();
             } catch (error) {
                 console.error('Load deliveries error:', error);
                 showToast('Error loading deliveries', 'error');
@@ -17380,8 +17363,8 @@
                     TimesheetState.payPeriod = data.payPeriod;
                     TimesheetState.hourlyRate = data.hourlyRate || 15.00;
                 } else {
-                    // Demo data
-                    generateDemoTimesheet();
+                    // No demo fallback - show empty state
+                    TimesheetState.entries = [];
                 }
 
                 detectAnomalies();
@@ -17391,49 +17374,11 @@
                 updateQBSyncStatus();
             } catch (error) {
                 console.error('Load timesheet error:', error);
-                generateDemoTimesheet();
-                detectAnomalies();
+                // No demo fallback - show empty state
+                TimesheetState.entries = [];
                 renderTimesheet();
-                renderAnomalyWarnings();
-                updatePayPeriodSummary();
+                showToast('Error loading timesheet', 'error');
             }
-        }
-
-        function generateDemoTimesheet() {
-            const today = new Date();
-            const entries = [];
-
-            // Generate last 7 days of entries
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - i);
-
-                if (date.getDay() !== 0 && date.getDay() !== 6) { // Skip weekends
-                    const clockIn = new Date(date);
-                    clockIn.setHours(7, Math.floor(Math.random() * 30), 0);
-
-                    const clockOut = new Date(date);
-                    clockOut.setHours(15 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 60), 0);
-
-                    entries.push({
-                        date: date.toISOString().split('T')[0],
-                        clockIn: clockIn.toISOString(),
-                        clockOut: i === 0 && AppState.isClockedIn ? null : clockOut.toISOString(),
-                        hours: i === 0 && AppState.isClockedIn ? null : ((clockOut - clockIn) / 1000 / 60 / 60).toFixed(2)
-                    });
-                }
-            }
-
-            // Add anomaly for demo - one day with 10+ hours
-            if (entries.length > 2) {
-                entries[2].hours = '10.5';
-            }
-
-            TimesheetState.entries = entries;
-            TimesheetState.payPeriod = {
-                start: new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0],
-                end: new Date(today.getFullYear(), today.getMonth(), 15).toISOString().split('T')[0]
-            };
         }
 
         function detectAnomalies() {
