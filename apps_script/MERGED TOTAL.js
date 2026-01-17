@@ -27360,7 +27360,7 @@ const CROP_DTM_DEFAULTS = {
  * This is what makes the system "know what to do before you"
  */
 function getGDDPredictedHarvests() {
-  const ss = SpreadsheetApp.openById(MASTER_SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const plantingSheet = ss.getSheetByName('PLANTINGS');
 
   if (!plantingSheet) {
@@ -27514,7 +27514,7 @@ function getPreHarvestChecklist(crop) {
 }
 
 function checkExistingComplianceTask(taskId) {
-  const ss = SpreadsheetApp.openById(MASTER_SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const taskSheet = ss.getSheetByName('COMPLIANCE_TASKS');
   if (!taskSheet) return null;
 
@@ -27610,7 +27610,7 @@ function getFoodSafetyEquipmentStatus() {
 }
 
 function getCoolerTemperatureStatus() {
-  const ss = SpreadsheetApp.openById(MASTER_SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const tempSheet = ss.getSheetByName('COMPLIANCE_Temperature');
 
   if (!tempSheet) {
@@ -27779,7 +27779,7 @@ function getWeatherFoodSafetyRisks() {
  * Logs compliance activities with labor tracking for Activity-Based Costing
  */
 function logComplianceActivity(data) {
-  const ss = SpreadsheetApp.openById(MASTER_SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const timelogSheet = ss.getSheetByName('TIMELOG');
 
   if (!timelogSheet) {
@@ -27827,7 +27827,7 @@ function logComplianceActivity(data) {
 }
 
 function calculateComplianceLaborCost(employee, hours) {
-  const ss = SpreadsheetApp.openById(MASTER_SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const laborSheet = ss.getSheetByName('LABOR') || ss.getSheetByName('EMPLOYEES');
 
   let hourlyRate = 15;
@@ -27854,7 +27854,7 @@ function calculateComplianceLaborCost(employee, hours) {
  * Creates complete seed-to-sale chain for FSMA 204 compliance
  */
 function getFullTraceabilityReport(lotNumber) {
-  const ss = SpreadsheetApp.openById(MASTER_SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const traceability = {
     lotNumber: lotNumber,
     chain: [],
@@ -28033,10 +28033,11 @@ function getUnifiedComplianceDashboard() {
 
   // 5. Today's Tasks
   try {
-    const taskData = getComplianceTasks({ status: 'PENDING', dateRange: 'today' });
+    const taskData = getComplianceTasks({ status: 'PENDING' });
+    const tasks = taskData.success && taskData.tasks ? taskData.tasks : [];
     dashboard.sections.tasks = {
-      today: taskData.success ? taskData.data.tasks : [],
-      count: taskData.success ? taskData.data.tasks.length : 0
+      today: tasks.slice(0, 10),
+      count: tasks.length
     };
   } catch (e) {
     dashboard.sections.tasks = { error: e.message };
@@ -28044,10 +28045,11 @@ function getUnifiedComplianceDashboard() {
 
   // 6. Active Alerts
   try {
-    const alertData = getComplianceAlerts();
+    const alertData = getComplianceAlerts({ status: 'active' });
+    const alerts = alertData.success && alertData.alerts ? alertData.alerts : [];
     dashboard.sections.alerts = {
-      active: alertData.success ? alertData.data.alerts.filter(a => !a.acknowledged).slice(0, 5) : [],
-      criticalCount: alertData.success ? alertData.data.alerts.filter(a => a.severity === 'CRITICAL' && !a.acknowledged).length : 0
+      active: alerts.filter(a => !a.Acknowledged).slice(0, 5),
+      criticalCount: alerts.filter(a => a.Severity === 'CRITICAL' && !a.Acknowledged).length
     };
   } catch (e) {
     dashboard.sections.alerts = { error: e.message };
@@ -28056,9 +28058,10 @@ function getUnifiedComplianceDashboard() {
   // 7. Compliance Gaps
   try {
     const gapData = getComplianceGaps();
+    const gaps = gapData.success && gapData.gaps ? gapData.gaps : [];
     dashboard.sections.gaps = {
-      critical: gapData.success ? gapData.data.gaps.filter(g => g.severity === 'CRITICAL') : [],
-      all: gapData.success ? gapData.data.gaps.length : 0
+      critical: gaps.filter(g => g.severity === 'CRITICAL'),
+      all: gaps.length
     };
   } catch (e) {
     dashboard.sections.gaps = { error: e.message };
@@ -28067,12 +28070,17 @@ function getUnifiedComplianceDashboard() {
   // 8. Audit Readiness
   try {
     const auditData = getAuditReadiness();
-    dashboard.sections.audit = {
-      readinessPercent: auditData.success ? auditData.data.readinessPercent : 0,
-      daysToReady: auditData.success ? auditData.data.daysToAuditReady : 'Unknown',
-      passedChecks: auditData.success ? auditData.data.checklist.filter(c => c.passed).length : 0,
-      totalChecks: auditData.success ? auditData.data.checklist.length : 0
-    };
+    if (auditData.success && auditData.readiness) {
+      dashboard.sections.audit = {
+        readinessPercent: auditData.readiness.readinessPercent || 0,
+        daysToReady: auditData.readiness.estimatedDaysToReady || 'Unknown',
+        passedChecks: auditData.readiness.checklistPassed || 0,
+        totalChecks: auditData.readiness.checklistTotal || 0,
+        isReady: auditData.readiness.isReady || false
+      };
+    } else {
+      dashboard.sections.audit = { readinessPercent: 0, error: 'No data' };
+    }
   } catch (e) {
     dashboard.sections.audit = { error: e.message };
   }
@@ -35971,3 +35979,4 @@ function formatDurationForRoute(seconds) {
   const minutes = Math.floor((seconds % 3600) / 60);
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes} minutes`;
 }
+// Last deployed: Sat Jan 17 08:28:42 EST 2026

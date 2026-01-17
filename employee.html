@@ -7357,6 +7357,128 @@
         .offline-indicator i {
             font-size: 14px;
         }
+
+        /* ========================================
+           MOBILE MORNING BRIEF
+           ======================================== */
+        .brief-card {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .brief-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .brief-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .brief-card-time {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .mobile-alerts {
+            margin-bottom: 12px;
+        }
+
+        .mobile-alert {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 3px solid #ef4444;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .mobile-alert.warning {
+            background: rgba(249, 115, 22, 0.2);
+            border-left-color: #f97316;
+        }
+
+        .mobile-alert-title {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+
+        .mobile-alert-action {
+            color: #60a5fa;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .brief-section-title {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .brief-card-section {
+            margin-bottom: 12px;
+        }
+
+        .mobile-task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mobile-task-item {
+            background: rgba(255,255,255,0.08);
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-task-item.overdue {
+            border-left: 3px solid #ef4444;
+        }
+
+        .mobile-task-name {
+            color: #fff;
+            font-size: 0.95rem;
+        }
+
+        .mobile-task-time {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .brief-quick-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .quick-stat {
+            text-align: center;
+        }
+
+        .quick-stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .quick-stat-label {
+            font-size: 0.75rem;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -7549,6 +7671,26 @@
                         <i class="fas fa-quote-left"></i>
                         <span id="encouragingMessage">Every seed you plant makes a difference.</span>
                     </div>
+                </div>
+
+                <!-- Morning Brief Card -->
+                <div class="brief-card" id="mobileBrief">
+                    <div class="brief-card-header">
+                        <span class="brief-card-title">🧠 Today's Brief</span>
+                        <span class="brief-card-time" id="mobileBriefTime"></span>
+                    </div>
+
+                    <!-- Alerts -->
+                    <div id="mobileAlerts" class="mobile-alerts"></div>
+
+                    <!-- Quick Tasks -->
+                    <div class="brief-card-section">
+                        <div class="brief-section-title">Top Tasks</div>
+                        <div id="mobileTopTasks" class="mobile-task-list"></div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="brief-quick-stats" id="mobileStats"></div>
                 </div>
 
                 <!-- Work Mode Selector (Permission-based) -->
@@ -11166,6 +11308,9 @@
             // Initialize welcome banner
             initWelcomeBanner();
 
+            // Load morning brief
+            loadMobileBrief();
+
             // Render mode selector based on permissions
             renderModeSelector();
 
@@ -11325,6 +11470,77 @@
                 99: { icon: 'fa-bolt', desc: 'Severe thunderstorm' }
             };
             return weatherMap[code] || { icon: 'fa-cloud', desc: 'Unknown' };
+        }
+
+        // ============================================
+        // MOBILE MORNING BRIEF
+        // ============================================
+        async function loadMobileBrief() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getMorningBrief`);
+                const data = await response.json();
+
+                if (!data.success || !data.brief) return;
+
+                const brief = data.brief;
+
+                // Update time
+                const timeEl = document.getElementById('mobileBriefTime');
+                if (timeEl) timeEl.textContent = brief.dayOfWeek;
+
+                // Render alerts
+                const alertsEl = document.getElementById('mobileAlerts');
+                if (alertsEl && brief.criticalAlerts && brief.criticalAlerts.length > 0) {
+                    alertsEl.innerHTML = brief.criticalAlerts.slice(0, 2).map(alert => `
+                        <div class="mobile-alert ${alert.priority > 1 ? 'warning' : ''}">
+                            <div class="mobile-alert-title">${alert.icon} ${alert.title}</div>
+                            <div class="mobile-alert-action">\u2192 ${alert.action}</div>
+                        </div>
+                    `).join('');
+                }
+
+                // Render top tasks
+                const tasksEl = document.getElementById('mobileTopTasks');
+                if (tasksEl && brief.todaysTasks) {
+                    const topTasks = brief.todaysTasks.slice(0, 3);
+                    if (topTasks.length > 0) {
+                        tasksEl.innerHTML = topTasks.map(task => `
+                            <div class="mobile-task-item ${task.priority === 'OVERDUE' ? 'overdue' : ''}">
+                                <span class="mobile-task-name">${task.task}</span>
+                                <span class="mobile-task-time">${task.duration || 30}m</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        tasksEl.innerHTML = '<div style="color: #888; padding: 8px;">No tasks today</div>';
+                    }
+                }
+
+                // Render stats
+                const statsEl = document.getElementById('mobileStats');
+                if (statsEl && brief.stats) {
+                    statsEl.innerHTML = `
+                        <div class="quick-stat">
+                            <div class="quick-stat-value">${brief.stats.totalTasks}</div>
+                            <div class="quick-stat-label">Tasks</div>
+                        </div>
+                        <div class="quick-stat">
+                            <div class="quick-stat-value" style="color: ${brief.stats.overdueTasks > 0 ? '#ef4444' : '#22c55e'}">${brief.stats.overdueTasks}</div>
+                            <div class="quick-stat-label">Overdue</div>
+                        </div>
+                        <div class="quick-stat">
+                            <div class="quick-stat-value" style="color: #22c55e">${brief.stats.harvestReady}</div>
+                            <div class="quick-stat-label">Harvest</div>
+                        </div>
+                        <div class="quick-stat">
+                            <div class="quick-stat-value">${brief.stats.estimatedHours}h</div>
+                            <div class="quick-stat-label">Time</div>
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('Mobile brief error:', error);
+            }
         }
 
         // ============================================

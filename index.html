@@ -2631,6 +2631,220 @@
             .nursery-item { grid-template-columns: 1fr; gap: 0.5rem; }
             .nursery-header { display: none; }
         }
+
+        /* Morning Brief Styles */
+        .morning-brief-section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .brief-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .brief-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #fff;
+        }
+
+        .brief-time {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .brief-weather {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brief-weather .weather-temp {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .weather-condition {
+            color: #aaa;
+            font-size: 1.1rem;
+        }
+
+        .brief-weather .weather-details {
+            display: flex;
+            gap: 16px;
+            color: #888;
+        }
+
+        .brief-alerts {
+            margin-bottom: 20px;
+        }
+
+        .alert-card {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .alert-card.critical {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-card.high {
+            background: rgba(249, 115, 22, 0.2);
+            border-left: 4px solid #f97316;
+        }
+
+        .alert-card.medium {
+            background: rgba(234, 179, 8, 0.2);
+            border-left: 4px solid #eab308;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+        }
+
+        .alert-content h4 {
+            margin: 0 0 4px 0;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .alert-content p {
+            margin: 0;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .alert-action {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: #60a5fa;
+            font-weight: 500;
+        }
+
+        .brief-priorities h3,
+        .brief-harvest h3,
+        .brief-recommendations h3 {
+            color: #fff;
+            font-size: 1.1rem;
+            margin: 0 0 12px 0;
+        }
+
+        .priority-list, .harvest-list, .recommendation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .priority-item {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .priority-item.overdue {
+            border-left: 3px solid #ef4444;
+        }
+
+        .priority-item .task-name {
+            color: #fff;
+        }
+
+        .priority-item .task-meta {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .harvest-item {
+            background: rgba(34, 197, 94, 0.1);
+            padding: 10px 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid #22c55e;
+        }
+
+        .harvest-item .crop-name {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .harvest-item .harvest-days {
+            color: #22c55e;
+            font-size: 0.9rem;
+        }
+
+        .recommendation-item {
+            background: rgba(96, 165, 250, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #60a5fa;
+        }
+
+        .recommendation-item .rec-title {
+            color: #fff;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .recommendation-item .rec-reason {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .brief-loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .brief-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-item .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .stat-item .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -2939,6 +3153,56 @@
         <div class="warnings-bar" id="warningsBar">
             <div class="warnings-list" id="warningsList">
                 <!-- Warnings populated dynamically -->
+            </div>
+        </div>
+
+        <!-- Morning Brief Section -->
+        <div class="morning-brief-section" id="morningBrief">
+            <div class="brief-header">
+                <h2>Morning Brief</h2>
+                <span class="brief-time" id="briefTime">Loading...</span>
+            </div>
+
+            <!-- Weather Summary -->
+            <div class="brief-weather" id="briefWeather">
+                <div class="weather-main">
+                    <span class="weather-temp" id="briefTemp">--F</span>
+                    <span class="weather-condition" id="briefCondition">Loading...</span>
+                </div>
+                <div class="weather-details">
+                    <span>High: <span id="briefHigh">--</span></span>
+                    <span>Low: <span id="briefLow">--</span></span>
+                    <span>Rain: <span id="briefRain">--</span>%</span>
+                </div>
+            </div>
+
+            <!-- Critical Alerts -->
+            <div class="brief-alerts" id="briefAlerts">
+                <!-- Alerts will be inserted here -->
+            </div>
+
+            <!-- Top Priorities -->
+            <div class="brief-priorities">
+                <h3>Top Priorities</h3>
+                <div id="briefPriorities" class="priority-list">
+                    <!-- Priorities will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Harvest Ready -->
+            <div class="brief-harvest" id="briefHarvestSection" style="display: none;">
+                <h3>Ready to Harvest</h3>
+                <div id="briefHarvest" class="harvest-list">
+                    <!-- Harvest items will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Smart Recommendations -->
+            <div class="brief-recommendations">
+                <h3>Recommendations</h3>
+                <div id="briefRecommendations" class="recommendation-list">
+                    <!-- Recommendations will be inserted here -->
+                </div>
             </div>
         </div>
 
@@ -3719,6 +3983,7 @@
             loadWeather();
             initKeyboardShortcuts();
             loadRecentCrops();
+            loadMorningBrief();
         });
 
         async function checkConnection() {
@@ -3770,6 +4035,131 @@
         async function refreshData() {
             showToast('Refreshing...', 'info');
             await loadAllData();
+            loadMorningBrief();
+        }
+
+        // ========================================
+        // MORNING BRIEF
+        // ========================================
+        async function loadMorningBrief() {
+            const briefSection = document.getElementById('morningBrief');
+            if (!briefSection) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getMorningBrief`);
+                const data = await response.json();
+
+                if (!data.success || !data.brief) {
+                    briefSection.innerHTML = '<div class="brief-loading">Could not load Morning Brief</div>';
+                    return;
+                }
+
+                const brief = data.brief;
+
+                // Update time
+                document.getElementById('briefTime').textContent = brief.dayOfWeek + ', ' + new Date().toLocaleDateString();
+
+                // Update weather
+                if (brief.weather && !brief.weather.error) {
+                    document.getElementById('briefTemp').textContent = brief.weather.current + 'F';
+                    document.getElementById('briefCondition').textContent = brief.weather.condition;
+                    document.getElementById('briefHigh').textContent = brief.weather.high;
+                    document.getElementById('briefLow').textContent = brief.weather.low;
+                    document.getElementById('briefRain').textContent = brief.weather.rainChance;
+                }
+
+                // Render alerts
+                const alertsContainer = document.getElementById('briefAlerts');
+                if (brief.criticalAlerts && brief.criticalAlerts.length > 0) {
+                    alertsContainer.innerHTML = brief.criticalAlerts.map(alert => `
+                        <div class="alert-card ${alert.priority === 1 ? 'critical' : alert.priority === 2 ? 'high' : 'medium'}">
+                            <span class="alert-icon">${alert.icon}</span>
+                            <div class="alert-content">
+                                <h4>${alert.title}</h4>
+                                <p>${alert.message}</p>
+                                <div class="alert-action">--> ${alert.action}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    alertsContainer.innerHTML = '<div style="color: #22c55e; padding: 12px;">No critical alerts today</div>';
+                }
+
+                // Render priorities (top 5 tasks)
+                const prioritiesContainer = document.getElementById('briefPriorities');
+                if (brief.todaysTasks && brief.todaysTasks.length > 0) {
+                    const topTasks = brief.todaysTasks.slice(0, 5);
+                    prioritiesContainer.innerHTML = topTasks.map(task => `
+                        <div class="priority-item ${task.priority === 'OVERDUE' ? 'overdue' : ''}">
+                            <div>
+                                <div class="task-name">${task.task}</div>
+                                <div class="task-meta">${task.crop || ''} ${task.category ? '- ' + task.category : ''}</div>
+                            </div>
+                            <div class="task-meta">${task.duration || 30} min</div>
+                        </div>
+                    `).join('');
+                } else {
+                    prioritiesContainer.innerHTML = '<div style="color: #888; padding: 12px;">No tasks scheduled for today</div>';
+                }
+
+                // Render harvest ready
+                const harvestSection = document.getElementById('briefHarvestSection');
+                const harvestContainer = document.getElementById('briefHarvest');
+                if (brief.harvestReady && brief.harvestReady.length > 0) {
+                    harvestSection.style.display = 'block';
+                    harvestContainer.innerHTML = brief.harvestReady.map(h => `
+                        <div class="harvest-item">
+                            <span class="crop-name">${h.crop} ${h.variety ? '(' + h.variety + ')' : ''}</span>
+                            <span class="harvest-days">${h.daysToHarvest === 0 ? 'Today!' : h.daysToHarvest + ' days'}</span>
+                        </div>
+                    `).join('');
+                }
+
+                // Render recommendations
+                const recsContainer = document.getElementById('briefRecommendations');
+                if (brief.recommendations && brief.recommendations.length > 0) {
+                    recsContainer.innerHTML = brief.recommendations.map(rec => `
+                        <div class="recommendation-item">
+                            <div class="rec-title">${rec.icon} ${rec.title}</div>
+                            <div class="rec-reason">${rec.reasoning}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    recsContainer.innerHTML = '<div style="color: #888; padding: 12px;">No specific recommendations today</div>';
+                }
+
+                // Add stats footer
+                if (brief.stats) {
+                    const statsHtml = `
+                        <div class="brief-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">${brief.stats.totalTasks}</div>
+                                <div class="stat-label">Tasks</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" style="color: ${brief.stats.overdueTasks > 0 ? '#ef4444' : '#22c55e'}">${brief.stats.overdueTasks}</div>
+                                <div class="stat-label">Overdue</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" style="color: #22c55e">${brief.stats.harvestReady}</div>
+                                <div class="stat-label">Harvest Ready</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${brief.stats.estimatedHours}h</div>
+                                <div class="stat-label">Est. Time</div>
+                            </div>
+                        </div>
+                    `;
+                    // Remove existing stats if any before adding new ones
+                    const existingStats = briefSection.querySelector('.brief-stats');
+                    if (existingStats) existingStats.remove();
+                    briefSection.insertAdjacentHTML('beforeend', statsHtml);
+                }
+
+            } catch (error) {
+                console.error('Morning Brief error:', error);
+                briefSection.innerHTML = '<div class="brief-loading">Could not load Morning Brief</div>';
+            }
         }
 
         // ========================================
