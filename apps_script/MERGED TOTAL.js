@@ -222,6 +222,14 @@ function doGet(e) {
       case 'getSmartDashboard':
         return jsonResponse(getSmartDashboard(e.parameter));
 
+      // ============ AUTO PRE-HARVEST INSPECTION SYSTEM ============
+      case 'getRequiredInspections':
+        return jsonResponse(getRequiredPreHarvestInspections(e.parameter));
+      case 'validatePreHarvestInspection':
+        return jsonResponse(validatePreHarvestInspection(e.parameter.batchId, e.parameter.fieldBlock, e.parameter.crop));
+      case 'getPreHarvestInspectionTasks':
+        return jsonResponse(getPreHarvestInspectionTasks());
+
       // ============ SOIL-TESTS.HTML ENDPOINTS ============
       case 'getComplianceRecords':
         return jsonResponse(getComplianceRecords(e.parameter));
@@ -1076,6 +1084,8 @@ function doPost(e) {
         return jsonResponse(addComplianceTemperature(data));
       case 'addCompliancePreharvest':
         return jsonResponse(addCompliancePreharvest(data));
+      case 'addLinkedPreHarvestInspection':
+        return jsonResponse(addLinkedPreHarvestInspection(data));
       case 'addCorrectiveAction':
         return jsonResponse(addCorrectiveAction(data));
       case 'updateCorrectiveAction':
@@ -38874,4 +38884,556 @@ function handleEmailAIChatPage(e) {
     return serveEmailAIChat();
   }
   return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// AUTO PRE-HARVEST INSPECTION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// Automatically generates pre-harvest inspection requirements based on GDD predictions
+// Links inspections to harvest records for full traceability
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Configuration for pre-harvest inspection requirements
+ */
+const PRE_HARVEST_CONFIG = {
+  DAYS_BEFORE_HARVEST: 3,       // Require inspection X days before predicted harvest
+  INSPECTION_VALID_DAYS: 7,     // Inspection valid for X days after completion
+  HIGH_RISK_VALID_DAYS: 3,      // High-risk crops: shorter validity window
+  REQUIRE_FOR_HARVEST: true,    // Block harvest recording without valid inspection
+  HIGH_RISK_CROPS: ['Lettuce', 'Spinach', 'Arugula', 'Kale', 'Chard', 'Strawberry',
+                    'Raspberry', 'Cilantro', 'Parsley', 'Basil', 'Microgreens', 'Sprouts']
+};
+
+/**
+ * Get all batches approaching harvest that need pre-harvest inspections
+ * Integrates with GDD predictions to identify upcoming harvests
+ */
+function getRequiredPreHarvestInspections(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const daysAhead = params && params.daysAhead ? Number(params.daysAhead) : 7;
+
+    // Get harvest predictions from GDD system
+    const predictions = getHarvestPredictions({ daysAhead: daysAhead });
+    if (!predictions.success) {
+      return { success: false, error: 'Failed to get harvest predictions: ' + predictions.error };
+    }
+
+    // Get existing pre-harvest inspections
+    const inspectionSheet = ss.getSheetByName('COMPLIANCE_PREHARVEST');
+    let existingInspections = {};
+
+    if (inspectionSheet && inspectionSheet.getLastRow() > 1) {
+      const inspData = inspectionSheet.getDataRange().getValues();
+      const headers = inspData[0];
+      const batchCol = headers.indexOf('Batch_ID');
+      const dateCol = headers.indexOf('Inspection_Date');
+      const approvedCol = headers.indexOf('Harvest_Approved');
+      const fieldCol = headers.indexOf('Field_Block');
+      const cropCol = headers.indexOf('Crop');
+
+      for (let i = 1; i < inspData.length; i++) {
+        const key = inspData[i][batchCol] || (inspData[i][fieldCol] + '|' + inspData[i][cropCol]);
+        if (!existingInspections[key]) {
+          existingInspections[key] = [];
+        }
+        existingInspections[key].push({
+          date: new Date(inspData[i][dateCol]),
+          approved: inspData[i][approvedCol],
+          row: i + 1
+        });
+      }
+    }
+
+    const today = new Date();
+    const requiredInspections = [];
+    const completedInspections = [];
+    const upcomingHarvests = [];
+
+    predictions.predictions.forEach(pred => {
+      const isHighRisk = PRE_HARVEST_CONFIG.HIGH_RISK_CROPS.some(c =>
+        pred.crop.toLowerCase().includes(c.toLowerCase())
+      );
+      const validDays = isHighRisk ? PRE_HARVEST_CONFIG.HIGH_RISK_VALID_DAYS : PRE_HARVEST_CONFIG.INSPECTION_VALID_DAYS;
+
+      // Check for existing valid inspection
+      const inspectionKey = pred.batch_id || (pred.location + '|' + pred.crop);
+      const inspections = existingInspections[inspectionKey] || [];
+
+      let hasValidInspection = false;
+      let latestInspection = null;
+
+      inspections.forEach(insp => {
+        const daysSinceInspection = Math.floor((today - insp.date) / (1000 * 60 * 60 * 24));
+        if (daysSinceInspection <= validDays && insp.approved) {
+          hasValidInspection = true;
+          latestInspection = insp;
+        }
+      });
+
+      const harvestRecord = {
+        batch_id: pred.batch_id,
+        crop: pred.crop,
+        variety: pred.variety || '',
+        location: pred.location,
+        predicted_harvest: pred.predicted_harvest,
+        days_remaining: pred.days_remaining,
+        gdd_percent: pred.gdd_percent,
+        is_high_risk: isHighRisk,
+        inspection_valid_days: validDays
+      };
+
+      upcomingHarvests.push(harvestRecord);
+
+      if (hasValidInspection) {
+        completedInspections.push({
+          ...harvestRecord,
+          inspection_date: latestInspection.date,
+          status: 'APPROVED'
+        });
+      } else {
+        // Calculate when inspection is due
+        const harvestDate = new Date(pred.predicted_harvest);
+        const inspectionDueDate = new Date(harvestDate);
+        inspectionDueDate.setDate(inspectionDueDate.getDate() - PRE_HARVEST_CONFIG.DAYS_BEFORE_HARVEST);
+
+        const daysUntilDue = Math.floor((inspectionDueDate - today) / (1000 * 60 * 60 * 24));
+
+        requiredInspections.push({
+          ...harvestRecord,
+          inspection_due: inspectionDueDate.toISOString().split('T')[0],
+          days_until_due: daysUntilDue,
+          priority: daysUntilDue <= 0 ? 'CRITICAL' : daysUntilDue <= 2 ? 'HIGH' : 'MEDIUM',
+          status: 'PENDING',
+          checklist: getPreHarvestChecklistItems(pred.crop, isHighRisk)
+        });
+      }
+    });
+
+    // Sort by priority (most urgent first)
+    requiredInspections.sort((a, b) => a.days_until_due - b.days_until_due);
+
+    return {
+      success: true,
+      summary: {
+        total_upcoming_harvests: upcomingHarvests.length,
+        inspections_required: requiredInspections.length,
+        inspections_complete: completedInspections.length,
+        critical_count: requiredInspections.filter(i => i.priority === 'CRITICAL').length,
+        high_priority_count: requiredInspections.filter(i => i.priority === 'HIGH').length
+      },
+      required_inspections: requiredInspections,
+      completed_inspections: completedInspections,
+      all_upcoming_harvests: upcomingHarvests
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get checklist items for pre-harvest inspection
+ */
+function getPreHarvestChecklistItems(crop, isHighRisk) {
+  const baseChecklist = [
+    { id: 'animal_intrusion', label: 'No signs of animal intrusion', required: true },
+    { id: 'flooding', label: 'No flooding or standing water', required: true },
+    { id: 'adjacent_land', label: 'Adjacent land activities assessed', required: true },
+    { id: 'worker_health', label: 'All workers healthy, no illness symptoms', required: true },
+    { id: 'equipment_clean', label: 'Harvest equipment clean and sanitized', required: true },
+    { id: 'phi_verified', label: 'Pre-harvest interval verified for any sprays', required: true }
+  ];
+
+  if (isHighRisk) {
+    return [
+      ...baseChecklist,
+      { id: 'irrigation_water', label: 'Irrigation water source verified safe', required: true },
+      { id: 'soil_splash', label: 'No soil splash on edible portions', required: true },
+      { id: 'wildlife_feces', label: 'No wildlife feces in harvest zone', required: true },
+      { id: 'handwashing', label: 'Handwashing station stocked and accessible', required: true },
+      { id: 'harvest_container', label: 'Harvest containers clean and food-grade', required: true },
+      { id: 'cooler_ready', label: 'Post-harvest cooling ready', required: true }
+    ];
+  }
+
+  return baseChecklist;
+}
+
+/**
+ * Validate that a batch has a valid pre-harvest inspection
+ * Used before recording harvest to ensure compliance
+ */
+function validatePreHarvestInspection(batchId, fieldBlock, crop) {
+  try {
+    if (!PRE_HARVEST_CONFIG.REQUIRE_FOR_HARVEST) {
+      return { success: true, valid: true, message: 'Pre-harvest inspection not required (disabled in config)' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('COMPLIANCE_PREHARVEST');
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return {
+        success: true,
+        valid: false,
+        message: 'No pre-harvest inspection found',
+        action_required: 'Complete pre-harvest inspection before harvesting'
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const batchCol = headers.indexOf('Batch_ID');
+    const fieldCol = headers.indexOf('Field_Block');
+    const cropCol = headers.indexOf('Crop');
+    const dateCol = headers.indexOf('Inspection_Date');
+    const approvedCol = headers.indexOf('Harvest_Approved');
+
+    const isHighRisk = PRE_HARVEST_CONFIG.HIGH_RISK_CROPS.some(c =>
+      (crop || '').toLowerCase().includes(c.toLowerCase())
+    );
+    const validDays = isHighRisk ? PRE_HARVEST_CONFIG.HIGH_RISK_VALID_DAYS : PRE_HARVEST_CONFIG.INSPECTION_VALID_DAYS;
+    const today = new Date();
+
+    let validInspection = null;
+
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+
+      // Match by batch_id or by field+crop combo
+      const matchesBatch = batchId && row[batchCol] === batchId;
+      const matchesFieldCrop = (!batchId || batchCol < 0) &&
+                               row[fieldCol] === fieldBlock &&
+                               row[cropCol] === crop;
+
+      if (matchesBatch || matchesFieldCrop) {
+        const inspDate = new Date(row[dateCol]);
+        const daysSince = Math.floor((today - inspDate) / (1000 * 60 * 60 * 24));
+
+        if (daysSince <= validDays) {
+          if (row[approvedCol] === true || row[approvedCol] === 'TRUE' || row[approvedCol] === 'Yes') {
+            validInspection = {
+              inspection_id: row[headers.indexOf('Inspection_ID')],
+              inspection_date: inspDate,
+              days_since: daysSince,
+              approved: true
+            };
+            break;
+          } else {
+            return {
+              success: true,
+              valid: false,
+              message: 'Pre-harvest inspection found but NOT APPROVED',
+              inspection_date: inspDate,
+              action_required: 'Resolve corrective actions before harvesting'
+            };
+          }
+        }
+      }
+    }
+
+    if (validInspection) {
+      return {
+        success: true,
+        valid: true,
+        message: 'Valid pre-harvest inspection found',
+        inspection: validInspection
+      };
+    } else {
+      return {
+        success: true,
+        valid: false,
+        message: isHighRisk ?
+          `No valid inspection (high-risk crop, ${validDays}-day validity)` :
+          `No valid inspection found (${validDays}-day validity window)`,
+        action_required: 'Complete pre-harvest inspection before harvesting',
+        is_high_risk: isHighRisk
+      };
+    }
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Record a pre-harvest inspection with batch linking
+ * Enhanced version that links to specific batches
+ */
+function addLinkedPreHarvestInspection(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('COMPLIANCE_PREHARVEST');
+
+    if (!sheet) {
+      // Create the sheet with proper headers including Batch_ID
+      sheet = ss.insertSheet('COMPLIANCE_PREHARVEST');
+      sheet.appendRow([
+        'Inspection_ID', 'Batch_ID', 'Inspection_Date', 'Field_Block', 'Crop', 'Variety',
+        'Animal_Intrusion', 'Animal_Details', 'Flooding_Evidence', 'Contamination_Risk',
+        'Contamination_Details', 'Adjacent_Land_OK', 'Worker_Health_OK', 'Equipment_Clean',
+        'PHI_Verified', 'Irrigation_Water_Safe', 'Harvest_Approved', 'Exclusion_Zone',
+        'Predicted_Harvest_Date', 'Inspected_By', 'Notes', 'Created_Date', 'Linked_Harvest_ID'
+      ]);
+    }
+
+    // Check if Batch_ID column exists, add if not
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (headers.indexOf('Batch_ID') < 0) {
+      sheet.insertColumnAfter(1);
+      sheet.getRange(1, 2).setValue('Batch_ID');
+    }
+
+    const inspectionId = 'PHI-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd-HHmmss');
+
+    // Determine if harvest is approved
+    const harvestApproved = !data.animalIntrusion &&
+                            !data.floodingEvidence &&
+                            !data.contaminationRisk &&
+                            data.adjacentLandOk !== false &&
+                            data.workerHealthOk !== false &&
+                            data.equipmentClean !== false &&
+                            data.phiVerified !== false;
+
+    // Get crop risk level
+    const isHighRisk = PRE_HARVEST_CONFIG.HIGH_RISK_CROPS.some(c =>
+      (data.crop || '').toLowerCase().includes(c.toLowerCase())
+    );
+
+    // Additional checks for high-risk crops
+    let highRiskApproved = true;
+    if (isHighRisk) {
+      highRiskApproved = data.irrigationWaterSafe !== false;
+    }
+
+    const finalApproved = harvestApproved && highRiskApproved;
+
+    sheet.appendRow([
+      inspectionId,
+      data.batchId || '',
+      data.inspectionDate || new Date(),
+      data.fieldBlock || '',
+      data.crop || '',
+      data.variety || '',
+      data.animalIntrusion || false,
+      data.animalDetails || '',
+      data.floodingEvidence || false,
+      data.contaminationRisk || false,
+      data.contaminationDetails || '',
+      data.adjacentLandOk !== false,
+      data.workerHealthOk !== false,
+      data.equipmentClean !== false,
+      data.phiVerified !== false,
+      isHighRisk ? (data.irrigationWaterSafe !== false) : 'N/A',
+      finalApproved,
+      data.exclusionZone || '',
+      data.predictedHarvestDate || '',
+      data.inspectedBy || '',
+      data.notes || '',
+      new Date(),
+      ''  // Linked_Harvest_ID - populated when harvest is recorded
+    ]);
+
+    // Create corrective action if not approved
+    if (!finalApproved) {
+      let issues = [];
+      if (data.animalIntrusion) issues.push('Animal intrusion detected');
+      if (data.floodingEvidence) issues.push('Flooding evidence');
+      if (data.contaminationRisk) issues.push('Contamination risk identified');
+      if (data.adjacentLandOk === false) issues.push('Adjacent land issue');
+      if (data.workerHealthOk === false) issues.push('Worker health concern');
+      if (data.equipmentClean === false) issues.push('Equipment not clean');
+      if (data.phiVerified === false) issues.push('PHI not verified');
+      if (isHighRisk && data.irrigationWaterSafe === false) issues.push('Irrigation water not verified safe');
+
+      // Add to corrective actions
+      try {
+        addCorrectiveAction({
+          issueCategory: 'Pre-Harvest',
+          relatedRecordId: inspectionId,
+          issueDescription: `Pre-harvest inspection FAILED for ${data.batchId || data.fieldBlock}: ${issues.join(', ')}`,
+          severity: data.contaminationRisk || data.floodingEvidence ? 'Critical' : 'Major',
+          immediateAction: data.exclusionZone ? `Exclusion zone marked: ${data.exclusionZone}` : 'Pending assessment',
+          responsiblePerson: data.inspectedBy,
+          rootCause: 'Pending investigation',
+          preventiveMeasures: 'Complete corrective action before harvesting'
+        });
+      } catch (e) {
+        // Log but don't fail
+        console.log('Failed to create corrective action: ' + e.toString());
+      }
+    }
+
+    // Log traceability event
+    try {
+      createTraceabilityCTE({
+        eventType: 'PRE_HARVEST_INSPECTION',
+        batchId: data.batchId,
+        lotCode: inspectionId,
+        location: data.fieldBlock,
+        crop: data.crop,
+        details: finalApproved ? 'Inspection PASSED' : 'Inspection FAILED - Corrective action required',
+        performedBy: data.inspectedBy
+      });
+    } catch (e) {
+      console.log('Failed to log traceability: ' + e.toString());
+    }
+
+    return {
+      success: true,
+      inspection_id: inspectionId,
+      approved: finalApproved,
+      is_high_risk: isHighRisk,
+      valid_until: new Date(Date.now() + (isHighRisk ?
+        PRE_HARVEST_CONFIG.HIGH_RISK_VALID_DAYS :
+        PRE_HARVEST_CONFIG.INSPECTION_VALID_DAYS) * 24 * 60 * 60 * 1000),
+      message: finalApproved ?
+        'Pre-harvest inspection approved. Harvest authorized.' :
+        'Pre-harvest inspection FAILED. See corrective actions before harvesting.'
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get pre-harvest inspection tasks for morning brief
+ * Integrates with the Smart Predictions system
+ */
+function getPreHarvestInspectionTasks() {
+  try {
+    const required = getRequiredPreHarvestInspections({ daysAhead: 7 });
+    if (!required.success) return required;
+
+    const tasks = [];
+
+    required.required_inspections.forEach(insp => {
+      let urgency = 30;
+      let weatherImpact = 40;  // Can't do inspection in heavy rain
+      let perishability = insp.is_high_risk ? 90 : 60;
+
+      // Calculate urgency based on days until due
+      if (insp.days_until_due <= 0) urgency = 100;
+      else if (insp.days_until_due <= 1) urgency = 90;
+      else if (insp.days_until_due <= 3) urgency = 70;
+      else urgency = 50;
+
+      const priority = Math.round(
+        (urgency * 0.35) +
+        (weatherImpact * 0.25) +
+        (80 * 0.20) +  // Crop value - default high
+        (perishability * 0.20)
+      );
+
+      tasks.push({
+        type: 'PRE_HARVEST_INSPECTION',
+        crop: insp.crop,
+        variety: insp.variety,
+        batch_id: insp.batch_id,
+        location: insp.location,
+        priority: priority,
+        urgency_level: insp.priority,
+        reason: insp.days_until_due <= 0 ?
+          `OVERDUE - Harvest predicted ${insp.predicted_harvest}` :
+          `Due in ${insp.days_until_due} days - Harvest ${insp.predicted_harvest}`,
+        est_time: insp.is_high_risk ? 25 : 15,  // minutes
+        is_high_risk: insp.is_high_risk,
+        checklist: insp.checklist,
+        inspection_due: insp.inspection_due,
+        harvest_date: insp.predicted_harvest
+      });
+    });
+
+    // Sort by priority
+    tasks.sort((a, b) => b.priority - a.priority);
+
+    return {
+      success: true,
+      tasks: tasks,
+      summary: required.summary
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Link a completed harvest to its pre-harvest inspection
+ */
+function linkHarvestToInspection(harvestId, batchId, fieldBlock, crop) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('COMPLIANCE_PREHARVEST');
+
+    if (!sheet || sheet.getLastRow() <= 1) return { success: false, error: 'No inspection sheet' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const batchCol = headers.indexOf('Batch_ID');
+    const fieldCol = headers.indexOf('Field_Block');
+    const cropCol = headers.indexOf('Crop');
+    const linkedCol = headers.indexOf('Linked_Harvest_ID');
+    const dateCol = headers.indexOf('Inspection_Date');
+
+    if (linkedCol < 0) return { success: false, error: 'Linked_Harvest_ID column not found' };
+
+    // Find most recent matching inspection
+    let matchRow = -1;
+    let matchDate = null;
+
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+
+      const matchesBatch = batchId && batchCol >= 0 && row[batchCol] === batchId;
+      const matchesFieldCrop = row[fieldCol] === fieldBlock && row[cropCol] === crop;
+
+      if (matchesBatch || matchesFieldCrop) {
+        const inspDate = new Date(row[dateCol]);
+        if (!matchDate || inspDate > matchDate) {
+          matchDate = inspDate;
+          matchRow = i + 1;
+        }
+      }
+    }
+
+    if (matchRow > 0) {
+      sheet.getRange(matchRow, linkedCol + 1).setValue(harvestId);
+      return { success: true, linked: true, inspection_row: matchRow };
+    }
+
+    return { success: true, linked: false, message: 'No matching inspection found' };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * API endpoint handler for pre-harvest inspection system
+ */
+function handlePreHarvestInspectionAPI(action, params, postData) {
+  switch(action) {
+    case 'getRequiredInspections':
+      return getRequiredPreHarvestInspections(params);
+
+    case 'validateInspection':
+      return validatePreHarvestInspection(
+        params.batchId,
+        params.fieldBlock,
+        params.crop
+      );
+
+    case 'addLinkedInspection':
+      return addLinkedPreHarvestInspection(postData);
+
+    case 'getInspectionTasks':
+      return getPreHarvestInspectionTasks();
+
+    default:
+      return { success: false, error: 'Unknown pre-harvest action: ' + action };
+  }
 }
