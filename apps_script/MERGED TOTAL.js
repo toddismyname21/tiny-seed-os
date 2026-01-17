@@ -10392,26 +10392,60 @@ function completeDelivery(params) {
 
     // Also update the delivery status in DELIVERY_STOPS if it exists
     const stopsSheet = ss.getSheetByName('DELIVERY_STOPS');
+    let customerType = params.customerType || '';
+    let orderId = params.orderId || '';
+
     if (stopsSheet && params.deliveryId) {
       const data = stopsSheet.getDataRange().getValues();
       const headers = data[0];
       const idCol = headers.indexOf('Stop_ID') !== -1 ? headers.indexOf('Stop_ID') : headers.indexOf('Delivery_ID');
       const statusCol = headers.indexOf('Status');
+      const typeCol = headers.indexOf('Customer_Type');
+      const orderCol = headers.indexOf('Order_ID');
 
       if (idCol !== -1 && statusCol !== -1) {
         for (let i = 1; i < data.length; i++) {
           if (data[i][idCol] === params.deliveryId) {
             stopsSheet.getRange(i + 1, statusCol + 1).setValue('Delivered');
+            // Get customer type and order ID for invoice
+            if (typeCol !== -1) customerType = data[i][typeCol];
+            if (orderCol !== -1) orderId = data[i][orderCol];
             break;
           }
         }
       }
     }
 
+    // WHOLESALE CUSTOMERS: Automatically trigger QuickBooks invoice
+    let invoiceResult = null;
+    if (customerType && customerType.toLowerCase() === 'wholesale' && orderId) {
+      try {
+        invoiceResult = createInvoiceFromOrder(orderId, 'Wholesale');
+        Logger.log('QuickBooks invoice created for wholesale delivery: ' + JSON.stringify(invoiceResult));
+      } catch (invoiceError) {
+        Logger.log('QuickBooks invoice creation failed: ' + invoiceError.toString());
+        invoiceResult = { success: false, error: invoiceError.toString() };
+      }
+    }
+
+    // Send SMS confirmation if phone provided
+    let smsResult = null;
+    if (params.customerPhone) {
+      try {
+        const smsMessage = `✅ Tiny Seed Farm: Your delivery has been completed! Thank you for your order. Questions? Reply to this text.`;
+        smsResult = sendSMS({ to: params.customerPhone, message: smsMessage });
+      } catch (smsError) {
+        Logger.log('Delivery SMS failed: ' + smsError.toString());
+      }
+    }
+
     return {
       success: true,
       message: 'Delivery logged successfully',
-      logId: logId
+      logId: logId,
+      invoiceCreated: invoiceResult?.success || false,
+      invoiceDetails: invoiceResult,
+      smsSent: smsResult?.success || false
     };
   } catch (error) {
     return { success: false, error: error.toString() };

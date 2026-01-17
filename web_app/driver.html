@@ -1504,6 +1504,11 @@
             color: var(--text-primary);
         }
 
+        .contact-btn.email {
+            background: var(--warning);
+            color: white;
+        }
+
         /* Hidden file input */
         input[type="file"] {
             display: none;
@@ -3018,6 +3023,9 @@
                                 <button class="contact-btn text" onclick="textCustomer('${stop.phone}')">
                                     <span>&#x1F4AC;</span> Text
                                 </button>
+                                <button class="contact-btn email" onclick="emailCustomer('${stop.email}', '${stop.customer}')">
+                                    <span>&#x2709;</span> Email
+                                </button>
                             </div>
 
                             <div class="stop-actions" style="margin-top: 12px;">
@@ -3494,6 +3502,16 @@
             window.open(`sms:${phone}`);
         }
 
+        function emailCustomer(email, customerName) {
+            if (!email) {
+                alert('No email address available for this customer');
+                return;
+            }
+            const subject = encodeURIComponent('Tiny Seed Farm Delivery');
+            const body = encodeURIComponent(`Hi ${customerName || 'there'},\n\nI'm your Tiny Seed Farm delivery driver and I'm on my way with your order!\n\nPlease let me know if you have any questions.\n\nThanks!`);
+            window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+        }
+
         // ============================================
         // PROOF OF DELIVERY
         // ============================================
@@ -3677,7 +3695,12 @@
                 photo: AppState.deliveryPhoto,
                 gps: AppState.gpsLocation,
                 signature: AppState.signature,
-                driverId: AppState.driver?.id
+                driverId: AppState.driver?.id,
+                // Include these for SMS and QuickBooks invoice
+                customerPhone: AppState.currentStop.phone || '',
+                customerEmail: AppState.currentStop.email || '',
+                customerType: AppState.currentStop.customerType || '',
+                orderId: AppState.currentStop.orderId || AppState.currentStop.Order_ID || ''
             };
 
             try {

@@ -16785,12 +16785,40 @@
                 const response = await fetch(`${CONFIG.API_URL}?action=getDeliveryRoute&employeeId=${AppState.employee.Employee_ID}`);
                 const data = await response.json();
 
-                if (data.success && data.stops) {
-                    DeliveryState.stops = data.stops;
+                // Handle both data.stops (direct) and data.routes (array of routes with stops)
+                let stops = [];
+                if (data.success) {
+                    if (data.stops) {
+                        stops = data.stops;
+                    } else if (data.routes && data.routes.length > 0) {
+                        // Flatten all stops from all routes, adding route context
+                        data.routes.forEach(route => {
+                            if (route.stops && route.stops.length > 0) {
+                                route.stops.forEach(stop => {
+                                    stops.push({
+                                        id: stop.Stop_ID || stop.id,
+                                        customer: stop.customer || stop.Customer_Name || stop.Customer_Company || 'Customer',
+                                        address: stop.Address || stop.address || '',
+                                        phone: stop.phone || stop.Customer_Phone || '',
+                                        email: stop.email || stop.Customer_Email || '',
+                                        items: stop.items || [],
+                                        notes: stop.Notes || stop.notes || stop.Delivery_Notes || '',
+                                        completed: stop.Status === 'Delivered' || stop.completed || false,
+                                        customerType: stop.Customer_Type || 'Retail',
+                                        orderId: stop.Order_ID || ''
+                                    });
+                                });
+                            }
+                        });
+                    }
+                }
+
+                if (stops.length > 0) {
+                    DeliveryState.stops = stops;
                     renderDeliveryStops();
                     updateDeliverySummary();
                 } else {
-                    // Demo data for testing
+                    // Demo data for testing when no real data
                     DeliveryState.stops = [
                         { id: 1, customer: 'Smith Family', address: '123 Oak Lane, Doylestown PA', phone: '2155551234', email: 'smith@email.com', items: [{name: 'Mixed Greens', qty: 2}, {name: 'Tomatoes', qty: 1}], completed: false },
                         { id: 2, customer: 'Green Market Co-op', address: '456 Main St, New Hope PA', phone: '2155555678', email: 'orders@greenmarket.com', items: [{name: 'Bulk Carrots', qty: 10}], notes: 'Leave at back door', completed: false },
