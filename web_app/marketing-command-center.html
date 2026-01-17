@@ -1324,6 +1324,10 @@
         <button class="tab-btn" onclick="switchTab('analytics')">
             <i class="fas fa-chart-bar"></i> Analytics
         </button>
+        <button class="tab-btn" onclick="switchTab('intelligence')">
+            <i class="fas fa-brain"></i> Intelligence
+            <span class="badge new">AI</span>
+        </button>
     </div>
 
     <!-- MAIN CONTENT -->
@@ -2201,6 +2205,202 @@
                             <h4 style="margin-bottom: 0.5rem;">View Insights</h4>
                             <p style="font-size: 0.85rem; color: var(--text-secondary);">Analytics populate here and on Ayrshare dashboard</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INTELLIGENCE TAB - AI-Powered Marketing -->
+        <div id="intelligenceTab" class="tab-content">
+            <!-- Intelligence Summary Cards -->
+            <div class="stats-grid">
+                <div class="stat-card" style="border-left: 4px solid var(--gold);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: rgba(255, 215, 0, 0.2);">
+                            <i class="fas fa-brain" style="color: var(--gold);"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="intelTotalCustomers">--</div>
+                    <div class="stat-label">Customers Analyzed</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-sync"></i> Loading intelligence...
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--danger);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: rgba(230, 57, 70, 0.2);">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="intelAtRisk">--</div>
+                    <div class="stat-label">At Risk of Churning</div>
+                    <div class="stat-change negative" id="intelAtRiskDesc">
+                        <i class="fas fa-arrow-down"></i> Action needed
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--success);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: rgba(42, 157, 143, 0.2);">
+                            <i class="fas fa-crown" style="color: var(--success);"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="intelChampions">--</div>
+                    <div class="stat-label">Champions (Top Tier)</div>
+                    <div class="stat-change positive" id="intelChampionsDesc">
+                        <i class="fas fa-star"></i> High value
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--info);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: rgba(67, 97, 238, 0.2);">
+                            <i class="fas fa-dollar-sign" style="color: var(--info);"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="intelAvgCLV">$--</div>
+                    <div class="stat-label">Avg Customer Value</div>
+                    <div class="stat-change neutral" id="intelAvgCLVDesc">
+                        <i class="fas fa-chart-line"></i> Lifetime value
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Best Actions -->
+            <div class="section-card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="background: linear-gradient(135deg, var(--purple) 0%, var(--info) 100%);">
+                    <h3><i class="fas fa-lightbulb"></i> Next Best Actions</h3>
+                    <span style="font-size: 0.85rem; opacity: 0.9;">AI-recommended actions to maximize customer value</span>
+                </div>
+                <div class="card-content" id="nextBestActionsContainer">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 1rem;">Analyzing customer data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Segments -->
+            <div class="section-card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="background: linear-gradient(135deg, var(--success) 0%, var(--teal) 100%);">
+                    <h3><i class="fas fa-users"></i> Customer Segments (RFM Analysis)</h3>
+                    <button class="btn btn-secondary" onclick="refreshCustomerIntelligence()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div id="customerSegmentsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <!-- Segments will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attribution Report -->
+            <div class="section-card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);">
+                    <h3><i class="fas fa-route"></i> Attribution Report</h3>
+                    <span style="font-size: 0.85rem; opacity: 0.9;">Multi-touch attribution with time-decay model</span>
+                </div>
+                <div class="card-content" id="attributionContainer">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Top Converting Channel</div>
+                            <div style="font-size: 1.5rem; font-weight: 700;" id="attrTopChannel">Loading...</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Postcard Campaign</div>
+                            <div style="font-size: 1.5rem; font-weight: 700;" id="attrPostcard">--</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">conversions</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Social Media</div>
+                            <div style="font-size: 1.5rem; font-weight: 700;" id="attrSocial">--</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">conversions</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Email Marketing</div>
+                            <div style="font-size: 1.5rem; font-weight: 700;" id="attrEmail">--</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">conversions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instagram Direct Posting (No Ayrshare) -->
+            <div class="section-card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);">
+                    <h3><i class="fab fa-instagram"></i> Instagram Direct (Graph API)</h3>
+                    <span style="font-size: 0.85rem; opacity: 0.9;">Free posting - No Ayrshare needed</span>
+                </div>
+                <div class="card-content">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                        <!-- Account 1 -->
+                        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <i class="fab fa-instagram" style="font-size: 2rem; color: var(--instagram);"></i>
+                                <div>
+                                    <div style="font-weight: 600;">@tinyseedfarm</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Main Account</div>
+                                </div>
+                                <span id="insta1Status" style="margin-left: auto; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; background: rgba(255,255,255,0.1);">Not Connected</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="configureInstagram('tinyseedfarm')" style="width: 100%;">
+                                <i class="fas fa-plug"></i> Configure API
+                            </button>
+                        </div>
+                        <!-- Account 2 -->
+                        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <i class="fab fa-instagram" style="font-size: 2rem; color: var(--instagram);"></i>
+                                <div>
+                                    <div style="font-weight: 600;">@tinyseedflowers</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Flowers Account</div>
+                                </div>
+                                <span id="insta2Status" style="margin-left: auto; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; background: rgba(255,255,255,0.1);">Not Connected</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="configureInstagram('tinyseedflowers')" style="width: 100%;">
+                                <i class="fas fa-plug"></i> Configure API
+                            </button>
+                        </div>
+                        <!-- Account 3 -->
+                        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <i class="fab fa-instagram" style="font-size: 2rem; color: var(--instagram);"></i>
+                                <div>
+                                    <div style="font-weight: 600;">@tinyseedcsa</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">CSA Account</div>
+                                </div>
+                                <span id="insta3Status" style="margin-left: auto; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; background: rgba(255,255,255,0.1);">Not Connected</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="configureInstagram('tinyseedcsa')" style="width: 100%;">
+                                <i class="fas fa-plug"></i> Configure API
+                            </button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px; border-left: 4px solid var(--info);">
+                        <h4 style="margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> Setup Instructions</h4>
+                        <ol style="padding-left: 1.5rem; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.8;">
+                            <li>Go to <a href="https://developers.facebook.com" target="_blank" style="color: var(--info);">developers.facebook.com</a></li>
+                            <li>Create a Meta App with Instagram Graph API</li>
+                            <li>Connect your Instagram Business account</li>
+                            <li>Generate a long-lived access token</li>
+                            <li>Click "Configure API" above and enter the token</li>
+                        </ol>
+                        <p style="margin-top: 1rem; font-size: 0.85rem;"><strong>Savings:</strong> $1,200/year vs Ayrshare Premium</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Neighbor Signups from Postcard Campaign -->
+            <div class="section-card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="background: linear-gradient(135deg, #FFB81C 0%, #F4A261 100%);">
+                    <h3><i class="fas fa-mailbox"></i> Neighbor Campaign Signups</h3>
+                    <button class="btn btn-secondary" onclick="loadNeighborSignups()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-content" id="neighborSignupsContainer">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 1rem;">Loading signups...</p>
                     </div>
                 </div>
             </div>
@@ -3491,6 +3691,263 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // MARKETING INTELLIGENCE FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadIntelligenceDashboard() {
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingDashboard`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const intel = data.data;
+
+                    // Update summary cards
+                    document.getElementById('intelTotalCustomers').textContent = intel.totalCustomers || 0;
+                    document.getElementById('intelAtRisk').textContent = intel.atRiskCount || 0;
+                    document.getElementById('intelChampions').textContent = intel.championCount || 0;
+                    document.getElementById('intelAvgCLV').textContent = '$' + (intel.avgCLV || 0).toFixed(0);
+
+                    // Update segments
+                    if (intel.segments) {
+                        renderCustomerSegments(intel.segments);
+                    }
+
+                    // Update attribution
+                    if (intel.attribution) {
+                        renderAttribution(intel.attribution);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading intelligence dashboard:', error);
+            }
+        }
+
+        function renderCustomerSegments(segments) {
+            const container = document.getElementById('customerSegmentsContainer');
+            if (!container) return;
+
+            const segmentColors = {
+                'Champions': 'var(--success)',
+                'Loyal': 'var(--info)',
+                'New': 'var(--purple)',
+                'At Risk': 'var(--warning)',
+                'Needs Attention': 'var(--secondary)',
+                'Lost': 'var(--danger)'
+            };
+
+            const segmentIcons = {
+                'Champions': 'fa-crown',
+                'Loyal': 'fa-heart',
+                'New': 'fa-star',
+                'At Risk': 'fa-exclamation-triangle',
+                'Needs Attention': 'fa-user-clock',
+                'Lost': 'fa-user-slash'
+            };
+
+            let html = '';
+            for (const [segment, count] of Object.entries(segments)) {
+                const color = segmentColors[segment] || 'var(--text-secondary)';
+                const icon = segmentIcons[segment] || 'fa-users';
+                html += `
+                    <div style="background: rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 10px; border-left: 4px solid ${color};">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                            <i class="fas ${icon}" style="color: ${color}; font-size: 1.25rem;"></i>
+                            <span style="font-weight: 600;">${segment}</span>
+                        </div>
+                        <div style="font-size: 2rem; font-weight: 700; color: ${color};">${count}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">customers</div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html || '<p style="color: var(--text-secondary);">No segment data available</p>';
+        }
+
+        async function loadNextBestActions() {
+            const container = document.getElementById('nextBestActionsContainer');
+            if (!container) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getNextBestAction&limit=10`);
+                const data = await response.json();
+
+                if (data.success && data.actions && data.actions.length > 0) {
+                    const priorityColors = {
+                        'critical': 'var(--danger)',
+                        'high': 'var(--warning)',
+                        'medium': 'var(--info)',
+                        'low': 'var(--success)'
+                    };
+
+                    const actionIcons = {
+                        'RETENTION_EMERGENCY': 'fa-ambulance',
+                        'REENGAGEMENT_CAMPAIGN': 'fa-redo',
+                        'REFERRAL_REQUEST': 'fa-share-alt',
+                        'ONBOARDING_SEQUENCE': 'fa-user-plus',
+                        'CSA_UPSELL': 'fa-arrow-up',
+                        'SEASONAL_REACTIVATION': 'fa-calendar-check'
+                    };
+
+                    let html = '<div style="display: grid; gap: 1rem;">';
+                    for (const action of data.actions) {
+                        const color = priorityColors[action.priority] || 'var(--text-secondary)';
+                        const icon = actionIcons[action.actionType] || 'fa-lightbulb';
+                        html += `
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; border-left: 4px solid ${color}; display: flex; align-items: center; gap: 1rem;">
+                                <i class="fas ${icon}" style="color: ${color}; font-size: 1.5rem;"></i>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600;">${action.customerName || 'Unknown Customer'}</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${action.message || action.actionType}</div>
+                                </div>
+                                <span style="padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; background: ${color}; color: #fff; text-transform: uppercase;">${action.priority}</span>
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success);"></i><p style="margin-top: 1rem;">All customers are happy! No urgent actions needed.</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading next best actions:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-exclamation-circle" style="font-size: 2rem; color: var(--danger);"></i><p style="margin-top: 1rem;">Error loading actions. Deploy the updated Apps Script.</p></div>';
+            }
+        }
+
+        function renderAttribution(attribution) {
+            if (!attribution) return;
+
+            // Find top channel
+            let topChannel = 'No data';
+            let topValue = 0;
+            for (const [channel, value] of Object.entries(attribution)) {
+                if (value > topValue) {
+                    topValue = value;
+                    topChannel = channel.charAt(0).toUpperCase() + channel.slice(1);
+                }
+            }
+
+            document.getElementById('attrTopChannel').textContent = topChannel;
+            document.getElementById('attrPostcard').textContent = attribution.postcard || 0;
+            document.getElementById('attrSocial').textContent = attribution.social || 0;
+            document.getElementById('attrEmail').textContent = attribution.email || 0;
+        }
+
+        async function loadNeighborSignups() {
+            const container = document.getElementById('neighborSignupsContainer');
+            if (!container) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getNeighborSignups`);
+                const data = await response.json();
+
+                if (data.success && data.signups) {
+                    const signups = data.signups;
+                    const byNeighborhood = data.byNeighborhood || {};
+
+                    let html = `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    `;
+
+                    // Neighborhood breakdown cards
+                    for (const [neighborhood, count] of Object.entries(byNeighborhood)) {
+                        html += `
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #FFB81C;">${count}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">${neighborhood}</div>
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+
+                    // Total count
+                    html += `<div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;"><strong>Total Signups:</strong> ${signups.length}</div>`;
+
+                    // Recent signups table
+                    if (signups.length > 0) {
+                        html += `
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <th style="text-align: left; padding: 0.75rem;">Name</th>
+                                        <th style="text-align: left; padding: 0.75rem;">Email</th>
+                                        <th style="text-align: left; padding: 0.75rem;">Neighborhood</th>
+                                        <th style="text-align: left; padding: 0.75rem;">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        for (const signup of signups.slice(0, 10)) {
+                            html += `
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem;">${signup.name || '--'}</td>
+                                    <td style="padding: 0.75rem;">${signup.email || '--'}</td>
+                                    <td style="padding: 0.75rem;">${signup.neighborhood || '--'}</td>
+                                    <td style="padding: 0.75rem;">${signup.timestamp ? new Date(signup.timestamp).toLocaleDateString() : '--'}</td>
+                                </tr>
+                            `;
+                        }
+                        html += '</tbody></table>';
+                    }
+
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-inbox" style="font-size: 2rem;"></i><p style="margin-top: 1rem;">No signups yet. Send those postcards!</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading neighbor signups:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-exclamation-circle" style="font-size: 2rem; color: var(--danger);"></i><p style="margin-top: 1rem;">Error loading signups. Deploy the updated Apps Script.</p></div>';
+            }
+        }
+
+        async function refreshCustomerIntelligence() {
+            showToast('Refreshing intelligence data...', 'info');
+            await loadIntelligenceDashboard();
+            await loadNextBestActions();
+            showToast('Intelligence refreshed!', 'success');
+        }
+
+        function configureInstagram(accountName) {
+            const token = prompt(`Enter Instagram Graph API Access Token for @${accountName}:`);
+            if (!token) return;
+
+            const businessId = prompt(`Enter Instagram Business Account ID for @${accountName}:`);
+            if (!businessId) return;
+
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'configureInstagramAccount',
+                    accountName: accountName,
+                    accessToken: token,
+                    businessAccountId: businessId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`@${accountName} connected successfully!`, 'success');
+                    // Update status badge
+                    const statusMap = {
+                        'tinyseedfarm': 'insta1Status',
+                        'tinyseedflowers': 'insta2Status',
+                        'tinyseedcsa': 'insta3Status'
+                    };
+                    const badge = document.getElementById(statusMap[accountName]);
+                    if (badge) {
+                        badge.textContent = 'Connected';
+                        badge.style.background = 'var(--success)';
+                    }
+                } else {
+                    showToast('Error: ' + (data.error || 'Connection failed'), 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error connecting: ' + error.message, 'error');
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // INITIALIZATION
         // ═══════════════════════════════════════════════════════════════════════════
 
@@ -3503,7 +3960,10 @@
                 loadFarmPics(),
                 loadCampaigns(),
                 loadSocialConnections(),
-                loadDashboardStats()
+                loadDashboardStats(),
+                loadIntelligenceDashboard(),
+                loadNextBestActions(),
+                loadNeighborSignups()
             ]);
 
             // Initialize UI components
@@ -3511,7 +3971,7 @@
             initCharts();
             checkForDraft();
 
-            console.log('Marketing Command Center loaded!');
+            console.log('Marketing Command Center loaded with Intelligence!');
         });
     </script>
 </body>
