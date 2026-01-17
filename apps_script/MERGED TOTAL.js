@@ -301,6 +301,28 @@ function doGet(e) {
       case 'getFleetDashboard':
         return jsonResponse(getFleetDashboard(e.parameter));
 
+      // ============ FOOD SAFETY COMPLIANCE ============
+      case 'initComplianceSheets':
+        return jsonResponse(initComplianceSheets());
+      case 'getComplianceWaterTests':
+        return jsonResponse(getComplianceWaterTests(e.parameter));
+      case 'getComplianceTraining':
+        return jsonResponse(getComplianceTraining(e.parameter));
+      case 'getComplianceCleaning':
+        return jsonResponse(getComplianceCleaning(e.parameter));
+      case 'getComplianceTemperature':
+        return jsonResponse(getComplianceTemperature(e.parameter));
+      case 'getCompliancePreharvest':
+        return jsonResponse(getCompliancePreharvest(e.parameter));
+      case 'getCorrectiveActions':
+        return jsonResponse(getCorrectiveActions(e.parameter));
+      case 'getComplianceDashboard':
+        return jsonResponse(getComplianceDashboard());
+      case 'generateComplianceReport':
+        return jsonResponse(generateComplianceReport(e.parameter));
+      case 'generateTracebackReport':
+        return jsonResponse(generateTracebackReport(e.parameter));
+
       // ============ LABEL GENERATION ============
       case 'getMarketSignItems':
         return jsonResponse(getMarketSignItems(e.parameter));
@@ -426,6 +448,18 @@ function doGet(e) {
         return jsonResponse(getDistanceMatrix(e.parameter));
       case 'getDeliverySchedule':
         return jsonResponse(getDeliverySchedule(e.parameter));
+
+      // ============ DELIVERY ACCEPTANCE (10-MINUTE RULE) ============
+      case 'validateDeliveryAddress':
+        return jsonResponse(validateHomeDeliveryAddress(e.parameter));
+      case 'checkDeliveryZone':
+        return jsonResponse(checkDeliveryZone(e.parameter));
+      case 'getBaseRouteConfig':
+        return jsonResponse(getBaseRouteConfig(e.parameter));
+      case 'getDeliveryAcceptanceStats':
+        return jsonResponse(getDeliveryAcceptanceStats(e.parameter));
+      case 'overrideDeliveryAcceptance':
+        return jsonResponse(overrideDeliveryAcceptance(e.parameter));
 
       // ============ REAL-TIME DELIVERY TRACKING ============
       case 'startDeliveryTracking':
@@ -859,6 +893,22 @@ function doPost(e) {
         return jsonResponse(updateAccountantTask(data));
       case 'addAccountantTask':
         return jsonResponse(addAccountantTask(data));
+
+      // ============ FOOD SAFETY COMPLIANCE ============
+      case 'addComplianceWaterTest':
+        return jsonResponse(addComplianceWaterTest(data));
+      case 'addComplianceTraining':
+        return jsonResponse(addComplianceTraining(data));
+      case 'addComplianceCleaning':
+        return jsonResponse(addComplianceCleaning(data));
+      case 'addComplianceTemperature':
+        return jsonResponse(addComplianceTemperature(data));
+      case 'addCompliancePreharvest':
+        return jsonResponse(addCompliancePreharvest(data));
+      case 'addCorrectiveAction':
+        return jsonResponse(addCorrectiveAction(data));
+      case 'updateCorrectiveAction':
+        return jsonResponse(updateCorrectiveAction(data));
 
       // ============ LEGACY POST ENDPOINTS ============
       case 'addPlanting':
@@ -12721,6 +12771,56 @@ function authenticateEmployee(params) {
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // FIRST: Always check USERS sheet (primary auth source)
+    const usersSheet = ss.getSheetByName('USERS');
+    if (usersSheet) {
+      const userData = usersSheet.getDataRange().getValues();
+      const userHeaders = userData[0];
+      const userPinCol = userHeaders.indexOf('PIN');
+      const roleCol = userHeaders.indexOf('Role');
+      const activeCol = userHeaders.indexOf('Is_Active');
+
+      for (let i = 1; i < userData.length; i++) {
+        const rowPin = (userData[i][userPinCol] || '').toString().trim();
+        const role = userData[i][roleCol];
+        const isActive = userData[i][activeCol];
+
+        if (rowPin === pin) {
+          if (isActive === false || isActive === 'FALSE') {
+            return { success: false, error: 'Account is disabled' };
+          }
+
+          // Build employee object with all fields from USERS sheet
+          const employee = {
+            Employee_ID: userData[i][userHeaders.indexOf('User_ID')],
+            First_Name: (userData[i][userHeaders.indexOf('Full_Name')] || '').split(' ')[0],
+            Last_Name: (userData[i][userHeaders.indexOf('Full_Name')] || '').split(' ').slice(1).join(' '),
+            Name: userData[i][userHeaders.indexOf('Full_Name')] || '',
+            Role: role,
+            Language_Pref: userData[i][userHeaders.indexOf('Language_Pref')] || 'en',
+            // Mode permissions (checkbox columns in USERS sheet)
+            Tractor_Mode: userData[i][userHeaders.indexOf('Tractor_Mode')] === true || userData[i][userHeaders.indexOf('Tractor_Mode')] === 'TRUE',
+            Garage_Mode: userData[i][userHeaders.indexOf('Garage_Mode')] === true || userData[i][userHeaders.indexOf('Garage_Mode')] === 'TRUE',
+            Inventory_Mode: userData[i][userHeaders.indexOf('Inventory_Mode')] === true || userData[i][userHeaders.indexOf('Inventory_Mode')] === 'TRUE',
+            Costing_Mode: userData[i][userHeaders.indexOf('Costing_Mode')] === true || userData[i][userHeaders.indexOf('Costing_Mode')] === 'TRUE',
+            Delivery_Mode: userData[i][userHeaders.indexOf('Delivery_Mode')] === true || userData[i][userHeaders.indexOf('Delivery_Mode')] === 'TRUE'
+          };
+
+          // Check if clocked in
+          const clockStatus = getClockStatus(employee.Employee_ID);
+
+          return {
+            success: true,
+            employee: employee,
+            isClockedIn: clockStatus.isClockedIn,
+            clockInTime: clockStatus.clockInTime
+          };
+        }
+      }
+    }
+
+    // SECOND: Check EMPLOYEES sheet as fallback
     let sheet = ss.getSheetByName(EMPLOYEE_SHEETS.EMPLOYEES);
 
     // If EMPLOYEES sheet doesn't exist, check USERS sheet for Employee role
@@ -16039,6 +16139,451 @@ function getDeliverySchedule(params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// DELIVERY ACCEPTANCE ALGORITHM - THE 10-MINUTE RULE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Configuration for delivery acceptance
+ */
+const DELIVERY_ACCEPTANCE_CONFIG = {
+  MAX_TIME_INCREASE: 10,  // minutes - THE 10-MINUTE RULE
+  FEE_TIER_1: 5.00,       // 0-3 minutes
+  FEE_TIER_2: 7.50,       // 4-7 minutes
+  FEE_TIER_3: 10.00,      // 8-10 minutes
+  DELIVERY_DAYS: ['wednesday']
+};
+
+/**
+ * Base route stops for each delivery day
+ * These are fixed stops that happen regardless of home deliveries
+ */
+const BASE_ROUTE_STOPS = {
+  wednesday: [
+    { name: 'Farm', address: '257 Zeigler Rd, Rochester, PA 15074', type: 'start' },
+    { name: 'Zelienople CSA', address: '358 East New Castle Street, Zelienople, PA 16063', type: 'csa' },
+    { name: 'Cafe Verde', address: '111 E Spring St, Zelienople, PA 16037', type: 'wholesale' },
+    { name: 'Cranberry CSA', address: '230 Elmhurst Circle, Cranberry Township, PA 16066', type: 'csa' },
+    { name: 'Allison Park Simons', address: '4312 Middle Rd, Allison Park, PA 15101', type: 'csa' },
+    { name: 'Allison Park St Pauls', address: '1965 Ferguson Rd, Allison Park, PA 15101', type: 'csa' },
+    { name: 'Fox Chapel', address: '237 Kittanning Pike, Pittsburgh, PA 15215', type: 'csa' },
+    { name: 'Eleven', address: '1150 Smallman St, Pittsburgh, PA 15222', type: 'wholesale' },
+    { name: 'Spirit', address: '242 51st Street, Pittsburgh, PA 15201', type: 'wholesale' },
+    { name: 'Driftwood Oven', address: '3615 Butler St, Pittsburgh, PA 15201', type: 'wholesale' },
+    { name: 'Morcilla', address: '3519 Butler St, Pittsburgh, PA 15201', type: 'wholesale' },
+    { name: 'Fet Fisk', address: '4786 Liberty Ave, Pittsburgh, PA 15224', type: 'wholesale' },
+    { name: 'APTEKA', address: '4606 Penn Ave, Pittsburgh, PA 15224', type: 'wholesale' },
+    { name: 'Highland Park CSA', address: '5901 Bryant St, Pittsburgh, PA 15206', type: 'csa' },
+    { name: 'Squirrel Hill CSA', address: '5502 Kamin Street, Pittsburgh, PA 15217', type: 'csa' },
+    { name: 'Mt Lebanon CSA', address: '326 Newburn Dr, Pittsburgh, PA 15216', type: 'csa' },
+    { name: 'Mediterra', address: '292 Beverly Road, Pittsburgh, PA 15216', type: 'wholesale' },
+    { name: 'Farm', address: '257 Zeigler Rd, Rochester, PA 15074', type: 'end' }
+  ]
+};
+
+/**
+ * CSA pickup locations for alternative suggestions
+ */
+const PICKUP_LOCATIONS = [
+  { name: 'Zelienople', address: '358 East New Castle Street, Zelienople, PA 16063', lat: 40.7948, lng: -80.1398, day: 'Wednesday' },
+  { name: 'Cranberry', address: '230 Elmhurst Circle, Cranberry Township, PA 16066', lat: 40.6864, lng: -80.1018, day: 'Wednesday' },
+  { name: 'Allison Park - Simons', address: '4312 Middle Rd, Allison Park, PA 15101', lat: 40.5506, lng: -79.9562, day: 'Wednesday' },
+  { name: 'Allison Park - St Pauls', address: '1965 Ferguson Rd, Allison Park, PA 15101', lat: 40.5589, lng: -79.9612, day: 'Wednesday' },
+  { name: 'Fox Chapel', address: '237 Kittanning Pike, Pittsburgh, PA 15215', lat: 40.5106, lng: -79.9006, day: 'Wednesday' },
+  { name: 'Highland Park', address: '5901 Bryant St, Pittsburgh, PA 15206', lat: 40.4784, lng: -79.9219, day: 'Wednesday' },
+  { name: 'Squirrel Hill', address: '5502 Kamin Street, Pittsburgh, PA 15217', lat: 40.4316, lng: -79.9269, day: 'Wednesday' },
+  { name: 'Mt. Lebanon', address: '326 Newburn Dr, Pittsburgh, PA 15216', lat: 40.3898, lng: -80.0312, day: 'Wednesday' },
+  { name: 'Bloomfield Market', address: '5050 Liberty Ave, Pittsburgh, PA 15224', lat: 40.4616, lng: -79.9458, day: 'Saturday' },
+  { name: 'Lawrenceville Market', address: '115 41st St, Pittsburgh, PA 15201', lat: 40.4683, lng: -79.9622, day: 'Tuesday' },
+  { name: 'Sewickley Market', address: '200 Walnut St, Sewickley, PA 15143', lat: 40.5353, lng: -80.1823, day: 'Saturday' }
+];
+
+/**
+ * Validate if a home delivery address should be accepted using the 10-minute rule
+ * @param {Object} params - { address, deliveryDate }
+ * @returns {Object} - { accepted, timeIncrease, message, fee, alternatives }
+ */
+function validateHomeDeliveryAddress(params) {
+  try {
+    const { address, deliveryDate } = params;
+
+    if (!address) {
+      return { success: false, error: 'No address provided' };
+    }
+
+    // 1. Determine the delivery day
+    let dayOfWeek;
+    if (deliveryDate) {
+      dayOfWeek = new Date(deliveryDate).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    } else {
+      dayOfWeek = 'wednesday'; // Default
+    }
+
+    // 2. Get base route for the day
+    const baseRoute = BASE_ROUTE_STOPS[dayOfWeek];
+    if (!baseRoute || baseRoute.length === 0) {
+      return {
+        success: true,
+        accepted: false,
+        message: 'No delivery route scheduled for this day.',
+        alternatives: getNearestPickupLocations(null, null)
+      };
+    }
+
+    // 3. Geocode the customer address
+    const geocodeResult = geocodeAddress({ address: address });
+    if (!geocodeResult.success) {
+      return {
+        success: false,
+        accepted: false,
+        message: 'Could not verify address. Please check the address and try again.',
+        error: 'geocode_failed'
+      };
+    }
+
+    // 4. Calculate current base route time
+    const baseAddresses = baseRoute.map(s => s.address);
+    const baseRouteResult = getRouteForDeliveries({
+      addresses: JSON.stringify(baseAddresses),
+      returnToFarm: 'true'
+    });
+
+    if (!baseRouteResult.success) {
+      return { success: false, error: 'Could not calculate base route time' };
+    }
+
+    const baseTime = parseInt(baseRouteResult.totalDuration);
+
+    // 5. Find optimal insertion point and calculate new route time
+    let bestTimeIncrease = Infinity;
+    let bestPosition = -1;
+
+    for (let i = 1; i < baseAddresses.length; i++) {
+      const testAddresses = [
+        ...baseAddresses.slice(0, i),
+        geocodeResult.formatted_address,
+        ...baseAddresses.slice(i)
+      ];
+
+      const testRouteResult = getRouteForDeliveries({
+        addresses: JSON.stringify(testAddresses),
+        returnToFarm: 'true'
+      });
+
+      if (testRouteResult.success) {
+        const newTime = parseInt(testRouteResult.totalDuration);
+        const timeIncrease = newTime - baseTime;
+
+        if (timeIncrease < bestTimeIncrease) {
+          bestTimeIncrease = timeIncrease;
+          bestPosition = i;
+        }
+      }
+    }
+
+    // 6. Apply the 10-minute rule
+    const maxIncrease = DELIVERY_ACCEPTANCE_CONFIG.MAX_TIME_INCREASE;
+
+    if (bestTimeIncrease <= maxIncrease) {
+      // ACCEPTED
+      const fee = calculateDeliveryFee(bestTimeIncrease);
+
+      // Log the decision
+      logDeliveryDecision({
+        address: geocodeResult.formatted_address,
+        deliveryDate: deliveryDate || 'not specified',
+        accepted: true,
+        timeIncrease: bestTimeIncrease,
+        fee: fee
+      });
+
+      return {
+        success: true,
+        accepted: true,
+        timeIncrease: bestTimeIncrease,
+        insertPosition: bestPosition,
+        message: 'Great news! Your address is on our delivery route.',
+        fee: fee,
+        formattedAddress: geocodeResult.formatted_address,
+        coordinates: { lat: geocodeResult.lat, lng: geocodeResult.lng }
+      };
+    } else {
+      // REJECTED
+      const alternatives = getNearestPickupLocations(geocodeResult.lat, geocodeResult.lng);
+
+      // Log the decision
+      logDeliveryDecision({
+        address: geocodeResult.formatted_address,
+        deliveryDate: deliveryDate || 'not specified',
+        accepted: false,
+        timeIncrease: bestTimeIncrease,
+        reason: 'Exceeds 10-minute threshold'
+      });
+
+      return {
+        success: true,
+        accepted: false,
+        timeIncrease: bestTimeIncrease,
+        message: 'Sorry, your address is outside our current delivery zone.',
+        reason: `Adding your address would increase our route by ${Math.round(bestTimeIncrease)} minutes (maximum is ${maxIncrease} minutes).`,
+        alternatives: alternatives,
+        formattedAddress: geocodeResult.formatted_address,
+        coordinates: { lat: geocodeResult.lat, lng: geocodeResult.lng }
+      };
+    }
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Quick check if address is likely in delivery zone (without full route calculation)
+ * Uses distance from nearest base route stop as a proxy
+ * @param {Object} params - { address }
+ */
+function checkDeliveryZone(params) {
+  try {
+    const { address } = params;
+
+    if (!address) {
+      return { success: false, error: 'No address provided' };
+    }
+
+    // Geocode the address
+    const geocodeResult = geocodeAddress({ address: address });
+    if (!geocodeResult.success) {
+      return {
+        success: false,
+        error: 'Could not verify address',
+        likely_in_zone: false
+      };
+    }
+
+    // Calculate distance to farm
+    const farmCoords = GOOGLE_ROUTES_CONFIG.FARM_COORDS;
+    const distanceToFarm = calculateHaversineDistance(
+      geocodeResult.lat, geocodeResult.lng,
+      farmCoords.lat, farmCoords.lng
+    );
+
+    // Calculate distance to nearest pickup location
+    const pickupDistances = PICKUP_LOCATIONS.map(loc => ({
+      name: loc.name,
+      distance: calculateHaversineDistance(geocodeResult.lat, geocodeResult.lng, loc.lat, loc.lng)
+    })).sort((a, b) => a.distance - b.distance);
+
+    const nearestPickup = pickupDistances[0];
+
+    // Quick heuristic: likely in zone if within 5 miles of any pickup location
+    const likelyInZone = nearestPickup.distance <= 5;
+
+    return {
+      success: true,
+      formattedAddress: geocodeResult.formatted_address,
+      coordinates: { lat: geocodeResult.lat, lng: geocodeResult.lng },
+      distanceToFarm: Math.round(distanceToFarm * 10) / 10,
+      nearestPickup: nearestPickup.name,
+      distanceToNearestPickup: Math.round(nearestPickup.distance * 10) / 10,
+      likely_in_zone: likelyInZone,
+      recommendation: likelyInZone
+        ? 'This address appears to be in our delivery zone. Complete your order to confirm.'
+        : 'This address may be outside our delivery zone. Consider our pickup locations.',
+      nearestPickupLocations: pickupDistances.slice(0, 3)
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Calculate delivery fee based on time increase
+ */
+function calculateDeliveryFee(timeIncrease) {
+  if (timeIncrease <= 3) return DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_1;
+  if (timeIncrease <= 7) return DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_2;
+  if (timeIncrease <= 10) return DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_3;
+  return null; // Should be rejected
+}
+
+/**
+ * Get nearest pickup locations to given coordinates
+ */
+function getNearestPickupLocations(lat, lng) {
+  if (!lat || !lng) {
+    return PICKUP_LOCATIONS.slice(0, 3);
+  }
+
+  return PICKUP_LOCATIONS
+    .map(loc => ({
+      name: loc.name,
+      address: loc.address,
+      day: loc.day,
+      distance: Math.round(calculateHaversineDistance(lat, lng, loc.lat, loc.lng) * 10) / 10
+    }))
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 3);
+}
+
+/**
+ * Calculate distance between two points using Haversine formula
+ * Returns distance in miles
+ */
+function calculateHaversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 3959; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+/**
+ * Log delivery acceptance decisions for analytics
+ */
+function logDeliveryDecision(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('DELIVERY_DECISIONS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('DELIVERY_DECISIONS');
+      sheet.appendRow([
+        'Timestamp', 'Address', 'Delivery_Date', 'Decision',
+        'Time_Increase_Min', 'Fee', 'Reason'
+      ]);
+      sheet.getRange(1, 1, 1, 7).setBackground('#16a34a').setFontColor('#ffffff');
+    }
+
+    sheet.appendRow([
+      new Date().toISOString(),
+      data.address || '',
+      data.deliveryDate || '',
+      data.accepted ? 'ACCEPTED' : 'REJECTED',
+      data.timeIncrease || '',
+      data.fee || '',
+      data.reason || ''
+    ]);
+
+    return { success: true };
+  } catch (error) {
+    // Don't fail the main request if logging fails
+    console.error('Failed to log delivery decision:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get delivery acceptance analytics
+ * @param {Object} params - { startDate, endDate }
+ */
+function getDeliveryAcceptanceStats(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('DELIVERY_DECISIONS');
+
+    if (!sheet) {
+      return { success: true, totalDecisions: 0, accepted: 0, rejected: 0, acceptanceRate: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let accepted = 0;
+    let rejected = 0;
+    let totalTimeIncrease = 0;
+    let totalFees = 0;
+
+    data.slice(1).forEach(row => {
+      const decision = row[headers.indexOf('Decision')];
+      if (decision === 'ACCEPTED') {
+        accepted++;
+        totalTimeIncrease += parseFloat(row[headers.indexOf('Time_Increase_Min')]) || 0;
+        totalFees += parseFloat(row[headers.indexOf('Fee')]) || 0;
+      } else if (decision === 'REJECTED') {
+        rejected++;
+      }
+    });
+
+    const total = accepted + rejected;
+
+    return {
+      success: true,
+      totalDecisions: total,
+      accepted: accepted,
+      rejected: rejected,
+      acceptanceRate: total > 0 ? Math.round((accepted / total) * 100) : 0,
+      avgTimeIncrease: accepted > 0 ? Math.round(totalTimeIncrease / accepted) : 0,
+      totalFeesCollected: totalFees
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Admin override for delivery acceptance
+ * @param {Object} params - { address, deliveryDate, adminUserId, reason }
+ */
+function overrideDeliveryAcceptance(params) {
+  try {
+    const { address, deliveryDate, adminUserId, reason } = params;
+
+    if (!address) {
+      return { success: false, error: 'No address provided' };
+    }
+
+    // Geocode the address
+    const geocodeResult = geocodeAddress({ address: address });
+
+    // Log the override
+    logDeliveryDecision({
+      address: geocodeResult.success ? geocodeResult.formatted_address : address,
+      deliveryDate: deliveryDate || 'not specified',
+      accepted: true,
+      reason: `ADMIN OVERRIDE by ${adminUserId}: ${reason || 'No reason provided'}`
+    });
+
+    return {
+      success: true,
+      accepted: true,
+      override: true,
+      message: 'Address manually accepted by admin.',
+      formattedAddress: geocodeResult.success ? geocodeResult.formatted_address : address,
+      coordinates: geocodeResult.success ? { lat: geocodeResult.lat, lng: geocodeResult.lng } : null
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get the base route configuration for visualization
+ */
+function getBaseRouteConfig(params) {
+  const dayOfWeek = (params.day || 'wednesday').toLowerCase();
+  const baseRoute = BASE_ROUTE_STOPS[dayOfWeek] || BASE_ROUTE_STOPS.wednesday;
+
+  return {
+    success: true,
+    day: dayOfWeek,
+    stops: baseRoute,
+    farmLocation: GOOGLE_ROUTES_CONFIG.FARM_COORDS,
+    pickupLocations: PICKUP_LOCATIONS,
+    config: {
+      maxTimeIncrease: DELIVERY_ACCEPTANCE_CONFIG.MAX_TIME_INCREASE,
+      feeTiers: {
+        tier1: { maxMinutes: 3, fee: DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_1 },
+        tier2: { maxMinutes: 7, fee: DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_2 },
+        tier3: { maxMinutes: 10, fee: DELIVERY_ACCEPTANCE_CONFIG.FEE_TIER_3 }
+      }
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PRE-SEASON PLANNING DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -19055,7 +19600,7 @@ const PLAID_CONFIG = {
     },
     ENV: 'production',
     BASE_URL: 'https://production.plaid.com',
-    PRODUCTS: ['transactions', 'auth'],
+    PRODUCTS: ['transactions'],
     COUNTRY_CODES: ['US'],
     LANGUAGE: 'en'
 };
@@ -22563,5 +23108,889 @@ function bulkUpdateFlowerCropProfiles(data) {
     updated: updated,
     added: added
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FOOD SAFETY COMPLIANCE MODULE
+// ═══════════════════════════════════════════════════════════════════════════════
+// Created: 2026-01-16 by Food_Safety Claude
+// Purpose: GAP/FSMA compliance logging and inspector report generation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const COMPLIANCE_SHEETS = {
+  WATER_TESTS: 'COMPLIANCE_WATER_TESTS',
+  TRAINING: 'COMPLIANCE_TRAINING',
+  CLEANING: 'COMPLIANCE_CLEANING',
+  TEMPERATURE: 'COMPLIANCE_TEMPERATURE',
+  PREHARVEST: 'COMPLIANCE_PREHARVEST',
+  CORRECTIVE_ACTIONS: 'COMPLIANCE_CORRECTIVE_ACTIONS'
+};
+
+const COMPLIANCE_COLORS = {
+  WATER_TESTS: '#3b82f6',
+  TRAINING: '#22c55e',
+  CLEANING: '#06b6d4',
+  TEMPERATURE: '#f97316',
+  PREHARVEST: '#eab308',
+  CORRECTIVE_ACTIONS: '#ef4444'
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHEET INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initComplianceSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Water Tests
+  createComplianceSheet(ss, COMPLIANCE_SHEETS.WATER_TESTS, [
+    'Test_ID', 'Test_Date', 'Water_Source', 'Source_Type', 'Sample_Location',
+    'Lab_Name', 'E_Coli_Result', 'E_Coli_Pass', 'Coliform_Result', 'Other_Tests',
+    'Lab_Report_URL', 'Corrective_Action', 'Tested_By', 'Notes', 'Created_Date'
+  ], COMPLIANCE_COLORS.WATER_TESTS);
+
+  // Training
+  createComplianceSheet(ss, COMPLIANCE_SHEETS.TRAINING, [
+    'Training_ID', 'Training_Date', 'Training_Type', 'Topics_Covered', 'Trainer_Name',
+    'Trainer_Certification', 'Duration_Hours', 'Attendees', 'Attendee_Count',
+    'Materials_Used', 'Certificate_URL', 'Notes', 'Created_Date'
+  ], COMPLIANCE_COLORS.TRAINING);
+
+  // Cleaning
+  createComplianceSheet(ss, COMPLIANCE_SHEETS.CLEANING, [
+    'Cleaning_ID', 'Cleaning_Date', 'Cleaning_Time', 'Location', 'Equipment_Cleaned',
+    'Cleaning_Type', 'Sanitizer_Used', 'Sanitizer_Concentration', 'Method',
+    'Cleaned_By', 'Verified_By', 'Notes', 'Created_Date'
+  ], COMPLIANCE_COLORS.CLEANING);
+
+  // Temperature
+  createComplianceSheet(ss, COMPLIANCE_SHEETS.TEMPERATURE, [
+    'Temp_ID', 'Reading_Date', 'Reading_Time', 'Location', 'Target_Temp_F',
+    'Actual_Temp_F', 'In_Range', 'Corrective_Action', 'Recorded_By', 'Notes', 'Created_Date'
+  ], COMPLIANCE_COLORS.TEMPERATURE);
+
+  // Pre-Harvest
+  createComplianceSheet(ss, COMPLIANCE_SHEETS.PREHARVEST, [
+    'Inspection_ID', 'Inspection_Date', 'Field_Block', 'Crop', 'Animal_Intrusion',
+    'Animal_Details', 'Flooding_Evidence', 'Contamination_Risk', 'Contamination_Details',
+    'Adjacent_Land_OK', 'Worker_Health_OK', 'Equipment_Clean', 'Harvest_Approved',
+    'Exclusion_Zone', 'Inspected_By', 'Notes', 'Created_Date'
+  ], COMPLIANCE_COLORS.PREHARVEST);
+
+  // Corrective Actions
+  createComplianceSheet(ss, COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS, [
+    'Action_ID', 'Issue_Date', 'Issue_Category', 'Related_Record_ID', 'Issue_Description',
+    'Severity', 'Immediate_Action', 'Root_Cause', 'Preventive_Measure', 'Responsible_Person',
+    'Due_Date', 'Completed_Date', 'Status', 'Verified_By', 'Evidence_URL', 'Notes', 'Created_Date'
+  ], COMPLIANCE_COLORS.CORRECTIVE_ACTIONS);
+
+  return { success: true, message: 'Compliance sheets initialized' };
+}
+
+function createComplianceSheet(ss, sheetName, headers, color) {
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground(color).setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+    sheet.setTabColor(color);
+  }
+  return sheet;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WATER TESTING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getComplianceWaterTests(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.WATER_TESTS);
+    if (!sheet) return { success: true, tests: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, tests: [] };
+
+    const headers = data[0];
+    let tests = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let test = {};
+      headers.forEach((h, j) => test[h] = data[i][j]);
+
+      // Filter by date range if provided
+      if (params.startDate && new Date(test.Test_Date) < new Date(params.startDate)) continue;
+      if (params.endDate && new Date(test.Test_Date) > new Date(params.endDate)) continue;
+      if (params.source && test.Water_Source !== params.source) continue;
+
+      tests.push(test);
+    }
+
+    // Sort by date descending
+    tests.sort((a, b) => new Date(b.Test_Date) - new Date(a.Test_Date));
+
+    return { success: true, tests: tests };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addComplianceWaterTest(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.WATER_TESTS);
+    if (!sheet) initComplianceSheets();
+    sheet = ss.getSheetByName(COMPLIANCE_SHEETS.WATER_TESTS);
+
+    const testId = 'WT-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd') + '-' + Math.random().toString(36).substr(2, 3).toUpperCase();
+    const ecoliPass = data.ecoliResult === 'ND' || data.ecoliResult === 0 || parseFloat(data.ecoliResult) === 0;
+
+    sheet.appendRow([
+      testId,
+      data.testDate || new Date(),
+      data.waterSource || '',
+      data.sourceType || '',
+      data.sampleLocation || '',
+      data.labName || '',
+      data.ecoliResult || 'ND',
+      ecoliPass,
+      data.coliformResult || '',
+      data.otherTests || '',
+      data.labReportUrl || '',
+      data.correctiveAction || '',
+      data.testedBy || '',
+      data.notes || '',
+      new Date()
+    ]);
+
+    // If failed, auto-create corrective action
+    if (!ecoliPass) {
+      addCorrectiveAction({
+        issueCategory: 'Water',
+        relatedRecordId: testId,
+        issueDescription: `Water test failed - E. coli detected: ${data.ecoliResult}`,
+        severity: 'Major',
+        immediateAction: data.correctiveAction || 'Pending',
+        responsiblePerson: data.testedBy
+      });
+    }
+
+    return { success: true, testId: testId, passed: ecoliPass };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRAINING RECORDS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getComplianceTraining(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TRAINING);
+    if (!sheet) return { success: true, trainings: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, trainings: [] };
+
+    const headers = data[0];
+    let trainings = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let training = {};
+      headers.forEach((h, j) => {
+        if (h === 'Attendees' && data[i][j]) {
+          try { training[h] = JSON.parse(data[i][j]); } catch (e) { training[h] = data[i][j]; }
+        } else {
+          training[h] = data[i][j];
+        }
+      });
+
+      if (params.year && new Date(training.Training_Date).getFullYear() !== parseInt(params.year)) continue;
+
+      trainings.push(training);
+    }
+
+    trainings.sort((a, b) => new Date(b.Training_Date) - new Date(a.Training_Date));
+
+    return { success: true, trainings: trainings };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addComplianceTraining(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TRAINING);
+    if (!sheet) initComplianceSheets();
+    sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TRAINING);
+
+    const trainingId = 'TR-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd') + '-' + Math.random().toString(36).substr(2, 3).toUpperCase();
+    const attendees = Array.isArray(data.attendees) ? data.attendees : [];
+
+    sheet.appendRow([
+      trainingId,
+      data.trainingDate || new Date(),
+      data.trainingType || 'Annual Refresher',
+      data.topicsCovered || '',
+      data.trainerName || '',
+      data.trainerCertification || '',
+      data.durationHours || 1,
+      JSON.stringify(attendees),
+      attendees.length,
+      data.materialsUsed || '',
+      data.certificateUrl || '',
+      data.notes || '',
+      new Date()
+    ]);
+
+    return { success: true, trainingId: trainingId, attendeeCount: attendees.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLEANING LOGS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getComplianceCleaning(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CLEANING);
+    if (!sheet) return { success: true, logs: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, logs: [] };
+
+    const headers = data[0];
+    let logs = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let log = {};
+      headers.forEach((h, j) => log[h] = data[i][j]);
+
+      if (params.startDate && new Date(log.Cleaning_Date) < new Date(params.startDate)) continue;
+      if (params.endDate && new Date(log.Cleaning_Date) > new Date(params.endDate)) continue;
+      if (params.location && log.Location !== params.location) continue;
+
+      logs.push(log);
+    }
+
+    logs.sort((a, b) => new Date(b.Cleaning_Date) - new Date(a.Cleaning_Date));
+
+    return { success: true, logs: logs };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addComplianceCleaning(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CLEANING);
+    if (!sheet) initComplianceSheets();
+    sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CLEANING);
+
+    const cleaningId = 'CL-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd') + '-' + Math.random().toString(36).substr(2, 3).toUpperCase();
+
+    sheet.appendRow([
+      cleaningId,
+      data.cleaningDate || new Date(),
+      data.cleaningTime || Utilities.formatDate(new Date(), 'America/New_York', 'HH:mm'),
+      data.location || '',
+      data.equipmentCleaned || '',
+      data.cleaningType || 'Pre-shift',
+      data.sanitizerUsed || '',
+      data.sanitizerConcentration || '',
+      data.method || '',
+      data.cleanedBy || '',
+      data.verifiedBy || '',
+      data.notes || '',
+      new Date()
+    ]);
+
+    return { success: true, cleaningId: cleaningId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPERATURE MONITORING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getComplianceTemperature(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TEMPERATURE);
+    if (!sheet) return { success: true, readings: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, readings: [] };
+
+    const headers = data[0];
+    let readings = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let reading = {};
+      headers.forEach((h, j) => reading[h] = data[i][j]);
+
+      if (params.startDate && new Date(reading.Reading_Date) < new Date(params.startDate)) continue;
+      if (params.endDate && new Date(reading.Reading_Date) > new Date(params.endDate)) continue;
+      if (params.location && reading.Location !== params.location) continue;
+
+      readings.push(reading);
+    }
+
+    readings.sort((a, b) => new Date(b.Reading_Date) - new Date(a.Reading_Date));
+
+    return { success: true, readings: readings };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addComplianceTemperature(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TEMPERATURE);
+    if (!sheet) initComplianceSheets();
+    sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TEMPERATURE);
+
+    const tempId = 'TM-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd') + '-' + Math.random().toString(36).substr(2, 3).toUpperCase();
+
+    // Default temperature ranges
+    const targetTemp = data.targetTemp || 38;
+    const actualTemp = parseFloat(data.actualTemp) || 0;
+    const inRange = actualTemp >= 32 && actualTemp <= 45; // Standard cooler range
+
+    sheet.appendRow([
+      tempId,
+      data.readingDate || new Date(),
+      data.readingTime || Utilities.formatDate(new Date(), 'America/New_York', 'HH:mm'),
+      data.location || '',
+      targetTemp,
+      actualTemp,
+      inRange,
+      data.correctiveAction || '',
+      data.recordedBy || '',
+      data.notes || '',
+      new Date()
+    ]);
+
+    // If out of range, auto-create corrective action
+    if (!inRange) {
+      addCorrectiveAction({
+        issueCategory: 'Temp',
+        relatedRecordId: tempId,
+        issueDescription: `Temperature out of range at ${data.location}: ${actualTemp}F (target: ${targetTemp}F)`,
+        severity: actualTemp > 50 ? 'Critical' : 'Major',
+        immediateAction: data.correctiveAction || 'Pending',
+        responsiblePerson: data.recordedBy
+      });
+    }
+
+    return { success: true, tempId: tempId, inRange: inRange };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRE-HARVEST INSPECTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getCompliancePreharvest(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.PREHARVEST);
+    if (!sheet) return { success: true, inspections: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, inspections: [] };
+
+    const headers = data[0];
+    let inspections = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let inspection = {};
+      headers.forEach((h, j) => inspection[h] = data[i][j]);
+
+      if (params.startDate && new Date(inspection.Inspection_Date) < new Date(params.startDate)) continue;
+      if (params.endDate && new Date(inspection.Inspection_Date) > new Date(params.endDate)) continue;
+      if (params.fieldBlock && inspection.Field_Block !== params.fieldBlock) continue;
+
+      inspections.push(inspection);
+    }
+
+    inspections.sort((a, b) => new Date(b.Inspection_Date) - new Date(a.Inspection_Date));
+
+    return { success: true, inspections: inspections };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addCompliancePreharvest(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.PREHARVEST);
+    if (!sheet) initComplianceSheets();
+    sheet = ss.getSheetByName(COMPLIANCE_SHEETS.PREHARVEST);
+
+    const inspectionId = 'PH-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd') + '-' + Math.random().toString(36).substr(2, 3).toUpperCase();
+
+    // Determine if harvest is approved
+    const harvestApproved = !data.animalIntrusion && !data.floodingEvidence &&
+                           !data.contaminationRisk && data.adjacentLandOk &&
+                           data.workerHealthOk && data.equipmentClean;
+
+    sheet.appendRow([
+      inspectionId,
+      data.inspectionDate || new Date(),
+      data.fieldBlock || '',
+      data.crop || '',
+      data.animalIntrusion || false,
+      data.animalDetails || '',
+      data.floodingEvidence || false,
+      data.contaminationRisk || false,
+      data.contaminationDetails || '',
+      data.adjacentLandOk !== false,
+      data.workerHealthOk !== false,
+      data.equipmentClean !== false,
+      harvestApproved,
+      data.exclusionZone || '',
+      data.inspectedBy || '',
+      data.notes || '',
+      new Date()
+    ]);
+
+    // If not approved, create corrective action
+    if (!harvestApproved) {
+      let issues = [];
+      if (data.animalIntrusion) issues.push('Animal intrusion detected');
+      if (data.floodingEvidence) issues.push('Flooding evidence');
+      if (data.contaminationRisk) issues.push('Contamination risk');
+      if (!data.adjacentLandOk) issues.push('Adjacent land issue');
+      if (!data.workerHealthOk) issues.push('Worker health concern');
+      if (!data.equipmentClean) issues.push('Equipment not clean');
+
+      addCorrectiveAction({
+        issueCategory: 'Field',
+        relatedRecordId: inspectionId,
+        issueDescription: `Pre-harvest inspection failed for ${data.fieldBlock}: ${issues.join(', ')}`,
+        severity: data.contaminationRisk || data.floodingEvidence ? 'Critical' : 'Major',
+        immediateAction: data.exclusionZone ? `Exclusion zone marked: ${data.exclusionZone}` : 'Pending',
+        responsiblePerson: data.inspectedBy
+      });
+    }
+
+    return { success: true, inspectionId: inspectionId, approved: harvestApproved };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CORRECTIVE ACTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getCorrectiveActions(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS);
+    if (!sheet) return { success: true, actions: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, actions: [] };
+
+    const headers = data[0];
+    let actions = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let action = {};
+      headers.forEach((h, j) => action[h] = data[i][j]);
+
+      if (params.status && action.Status !== params.status) continue;
+      if (params.category && action.Issue_Category !== params.category) continue;
+      if (params.openOnly && action.Status === 'Completed') continue;
+
+      actions.push(action);
+    }
+
+    actions.sort((a, b) => new Date(b.Issue_Date) - new Date(a.Issue_Date));
+
+    return { success: true, actions: actions };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function addCorrectiveAction(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS);
+    if (!sheet) initComplianceSheets();
+    sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS);
+
+    const actionId = 'CA-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd') + '-' + Math.random().toString(36).substr(2, 3).toUpperCase();
+
+    sheet.appendRow([
+      actionId,
+      data.issueDate || new Date(),
+      data.issueCategory || 'Other',
+      data.relatedRecordId || '',
+      data.issueDescription || '',
+      data.severity || 'Minor',
+      data.immediateAction || '',
+      data.rootCause || '',
+      data.preventiveMeasure || '',
+      data.responsiblePerson || '',
+      data.dueDate || '',
+      '', // Completed date
+      'Open',
+      '', // Verified by
+      data.evidenceUrl || '',
+      data.notes || '',
+      new Date()
+    ]);
+
+    return { success: true, actionId: actionId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateCorrectiveAction(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS);
+    if (!sheet) return { success: false, error: 'Sheet not found' };
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.actionId) {
+        const row = i + 1;
+
+        if (data.status) sheet.getRange(row, headers.indexOf('Status') + 1).setValue(data.status);
+        if (data.completedDate) sheet.getRange(row, headers.indexOf('Completed_Date') + 1).setValue(data.completedDate);
+        if (data.verifiedBy) sheet.getRange(row, headers.indexOf('Verified_By') + 1).setValue(data.verifiedBy);
+        if (data.rootCause) sheet.getRange(row, headers.indexOf('Root_Cause') + 1).setValue(data.rootCause);
+        if (data.preventiveMeasure) sheet.getRange(row, headers.indexOf('Preventive_Measure') + 1).setValue(data.preventiveMeasure);
+        if (data.notes) sheet.getRange(row, headers.indexOf('Notes') + 1).setValue(data.notes);
+
+        return { success: true, message: 'Corrective action updated' };
+      }
+    }
+
+    return { success: false, error: 'Action not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPLIANCE DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getComplianceDashboard() {
+  try {
+    const today = new Date();
+    const yearStart = new Date(today.getFullYear(), 0, 1);
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Get all data
+    const waterTests = getComplianceWaterTests({ startDate: yearStart }).tests || [];
+    const trainings = getComplianceTraining({ year: today.getFullYear().toString() }).trainings || [];
+    const cleaningLogs = getComplianceCleaning({ startDate: thirtyDaysAgo }).logs || [];
+    const tempReadings = getComplianceTemperature({ startDate: thirtyDaysAgo }).readings || [];
+    const preharvestInspections = getCompliancePreharvest({ startDate: thirtyDaysAgo }).inspections || [];
+    const openActions = getCorrectiveActions({ openOnly: true }).actions || [];
+
+    // Calculate stats
+    const waterTestsPassing = waterTests.filter(t => t.E_Coli_Pass).length;
+    const tempReadingsInRange = tempReadings.filter(t => t.In_Range).length;
+    const preharvestApproved = preharvestInspections.filter(i => i.Harvest_Approved).length;
+    const totalAttendees = trainings.reduce((sum, t) => sum + (t.Attendee_Count || 0), 0);
+
+    return {
+      success: true,
+      dashboard: {
+        waterTesting: {
+          totalTests: waterTests.length,
+          passingTests: waterTestsPassing,
+          passRate: waterTests.length > 0 ? Math.round(waterTestsPassing / waterTests.length * 100) : 100,
+          lastTestDate: waterTests[0]?.Test_Date || null
+        },
+        training: {
+          sessionsThisYear: trainings.length,
+          totalAttendees: totalAttendees,
+          lastTrainingDate: trainings[0]?.Training_Date || null
+        },
+        cleaning: {
+          logsLast30Days: cleaningLogs.length,
+          lastCleaningDate: cleaningLogs[0]?.Cleaning_Date || null
+        },
+        temperature: {
+          readingsLast30Days: tempReadings.length,
+          inRangeCount: tempReadingsInRange,
+          inRangeRate: tempReadings.length > 0 ? Math.round(tempReadingsInRange / tempReadings.length * 100) : 100,
+          lastReading: tempReadings[0]?.Actual_Temp_F || null
+        },
+        preharvest: {
+          inspectionsLast30Days: preharvestInspections.length,
+          approvedCount: preharvestApproved,
+          approvalRate: preharvestInspections.length > 0 ? Math.round(preharvestApproved / preharvestInspections.length * 100) : 100
+        },
+        correctiveActions: {
+          openCount: openActions.length,
+          criticalCount: openActions.filter(a => a.Severity === 'Critical').length,
+          majorCount: openActions.filter(a => a.Severity === 'Major').length
+        }
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INSPECTOR REPORT GENERATOR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function generateComplianceReport(params) {
+  try {
+    const startDate = params.startDate ? new Date(params.startDate) : new Date(new Date().setFullYear(new Date().getFullYear() - 1));
+    const endDate = params.endDate ? new Date(params.endDate) : new Date();
+
+    // Gather all data
+    const waterTests = getComplianceWaterTests({ startDate, endDate }).tests || [];
+    const trainings = getComplianceTraining({}).trainings || [];
+    const cleaningLogs = getComplianceCleaning({ startDate, endDate }).logs || [];
+    const tempReadings = getComplianceTemperature({ startDate, endDate }).readings || [];
+    const preharvestInspections = getCompliancePreharvest({ startDate, endDate }).inspections || [];
+    const correctiveActions = getCorrectiveActions({}).actions || [];
+
+    // Build report
+    const report = {
+      generatedDate: new Date().toISOString(),
+      reportPeriod: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString()
+      },
+      farmInfo: {
+        name: 'Tiny Seed Farm LLC',
+        address: '257 Zeigler Road, Rochester, PA 15074',
+        county: 'Beaver County',
+        certification: 'OEFFA Certified Organic #3839'
+      },
+      summary: {
+        waterTestsCount: waterTests.length,
+        waterTestsPassRate: waterTests.length > 0 ? Math.round(waterTests.filter(t => t.E_Coli_Pass).length / waterTests.length * 100) : 100,
+        trainingSessions: trainings.length,
+        cleaningLogs: cleaningLogs.length,
+        tempReadingsCount: tempReadings.length,
+        tempReadingsInRangeRate: tempReadings.length > 0 ? Math.round(tempReadings.filter(t => t.In_Range).length / tempReadings.length * 100) : 100,
+        preharvestInspections: preharvestInspections.length,
+        correctiveActionsOpen: correctiveActions.filter(a => a.Status !== 'Completed').length,
+        correctiveActionsResolved: correctiveActions.filter(a => a.Status === 'Completed').length
+      },
+      waterTesting: {
+        records: waterTests.map(t => ({
+          date: t.Test_Date,
+          source: t.Water_Source,
+          result: t.E_Coli_Result,
+          pass: t.E_Coli_Pass,
+          lab: t.Lab_Name
+        }))
+      },
+      training: {
+        records: trainings.map(t => ({
+          date: t.Training_Date,
+          type: t.Training_Type,
+          topics: t.Topics_Covered,
+          trainer: t.Trainer_Name,
+          attendeeCount: t.Attendee_Count
+        }))
+      },
+      cleaning: {
+        summary: {
+          totalLogs: cleaningLogs.length,
+          locations: [...new Set(cleaningLogs.map(l => l.Location))]
+        },
+        recentLogs: cleaningLogs.slice(0, 20).map(l => ({
+          date: l.Cleaning_Date,
+          location: l.Location,
+          equipment: l.Equipment_Cleaned,
+          cleanedBy: l.Cleaned_By
+        }))
+      },
+      temperature: {
+        summary: {
+          totalReadings: tempReadings.length,
+          inRangeRate: tempReadings.length > 0 ? Math.round(tempReadings.filter(t => t.In_Range).length / tempReadings.length * 100) : 100
+        },
+        outOfRangeEvents: tempReadings.filter(t => !t.In_Range).map(t => ({
+          date: t.Reading_Date,
+          location: t.Location,
+          actual: t.Actual_Temp_F,
+          target: t.Target_Temp_F,
+          action: t.Corrective_Action
+        }))
+      },
+      preharvest: {
+        summary: {
+          totalInspections: preharvestInspections.length,
+          approvalRate: preharvestInspections.length > 0 ? Math.round(preharvestInspections.filter(i => i.Harvest_Approved).length / preharvestInspections.length * 100) : 100
+        },
+        failedInspections: preharvestInspections.filter(i => !i.Harvest_Approved).map(i => ({
+          date: i.Inspection_Date,
+          fieldBlock: i.Field_Block,
+          crop: i.Crop,
+          issues: [
+            i.Animal_Intrusion ? 'Animal intrusion' : null,
+            i.Flooding_Evidence ? 'Flooding' : null,
+            i.Contamination_Risk ? 'Contamination risk' : null
+          ].filter(Boolean)
+        }))
+      },
+      correctiveActions: {
+        open: correctiveActions.filter(a => a.Status !== 'Completed').map(a => ({
+          id: a.Action_ID,
+          date: a.Issue_Date,
+          category: a.Issue_Category,
+          description: a.Issue_Description,
+          severity: a.Severity,
+          status: a.Status
+        })),
+        resolved: correctiveActions.filter(a => a.Status === 'Completed').length
+      }
+    };
+
+    return { success: true, report: report };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRACEABILITY REPORTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function generateTracebackReport(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const lotNumber = params.lotNumber;
+
+    if (!lotNumber) {
+      return { success: false, error: 'Lot number required' };
+    }
+
+    // 1-Up: Find seed lot source
+    let seedInfo = null;
+    const seedSheet = ss.getSheetByName('SEED_INVENTORY');
+    if (seedSheet) {
+      const seedData = seedSheet.getDataRange().getValues();
+      const seedHeaders = seedData[0];
+      for (let i = 1; i < seedData.length; i++) {
+        let row = {};
+        seedHeaders.forEach((h, j) => row[h] = seedData[i][j]);
+        if (row.Lot_Number === lotNumber || row.Seed_Lot === lotNumber) {
+          seedInfo = {
+            seedLot: row.Lot_Number || row.Seed_Lot,
+            variety: row.Variety || row.Crop_Name,
+            supplier: row.Supplier || row.Source,
+            purchaseDate: row.Purchase_Date || row.Date_Received
+          };
+          break;
+        }
+      }
+    }
+
+    // Find harvest records with this lot
+    let harvestInfo = [];
+    const harvestSheet = ss.getSheetByName('HARVEST_LOG');
+    if (harvestSheet) {
+      const harvestData = harvestSheet.getDataRange().getValues();
+      const harvestHeaders = harvestData[0];
+      for (let i = 1; i < harvestData.length; i++) {
+        let row = {};
+        harvestHeaders.forEach((h, j) => row[h] = harvestData[i][j]);
+        if (row.Lot_Number === lotNumber || row.Harvest_Lot === lotNumber) {
+          harvestInfo.push({
+            harvestDate: row.Harvest_Date || row.Date,
+            crop: row.Crop || row.Crop_Name,
+            quantity: row.Quantity || row.Amount,
+            field: row.Field || row.Location,
+            harvestedBy: row.Harvested_By || row.Employee
+          });
+        }
+      }
+    }
+
+    // 1-Down: Find customer orders with this lot
+    let customerInfo = [];
+    const ordersSheet = ss.getSheetByName('SALES_ORDERS');
+    if (ordersSheet) {
+      const ordersData = ordersSheet.getDataRange().getValues();
+      const ordersHeaders = ordersData[0];
+      for (let i = 1; i < ordersData.length; i++) {
+        let row = {};
+        ordersHeaders.forEach((h, j) => row[h] = ordersData[i][j]);
+        const items = row.Items || row.Order_Items || '';
+        if (items.includes(lotNumber)) {
+          customerInfo.push({
+            orderId: row.Order_ID,
+            orderDate: row.Order_Date || row.Date,
+            customerName: row.Customer_Name || row.Customer,
+            customerType: row.Customer_Type,
+            deliveryDate: row.Delivery_Date
+          });
+        }
+      }
+    }
+
+    // Get pre-harvest inspection for this lot's field/date
+    let preharvestInfo = null;
+    if (harvestInfo.length > 0) {
+      const inspections = getCompliancePreharvest({}).inspections || [];
+      for (const harvest of harvestInfo) {
+        const matchingInspection = inspections.find(i =>
+          i.Field_Block === harvest.field &&
+          new Date(i.Inspection_Date).toDateString() === new Date(harvest.harvestDate).toDateString()
+        );
+        if (matchingInspection) {
+          preharvestInfo = {
+            inspectionId: matchingInspection.Inspection_ID,
+            date: matchingInspection.Inspection_Date,
+            approved: matchingInspection.Harvest_Approved,
+            inspectedBy: matchingInspection.Inspected_By
+          };
+          break;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      traceback: {
+        lotNumber: lotNumber,
+        generatedDate: new Date().toISOString(),
+        oneStepBack: seedInfo,
+        harvestRecords: harvestInfo,
+        oneStepForward: customerInfo,
+        preharvestInspection: preharvestInfo,
+        affectedCustomerCount: customerInfo.length
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 

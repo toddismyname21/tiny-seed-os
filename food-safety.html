@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#2d5a27">
+    <title>Tiny Seed - Food Safety Compliance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="web_app/api-config.js"></script>
+    <style>
+        /* ========================================
+           CSS DESIGN SYSTEM - HIGH CONTRAST THEME
+           ======================================== */
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.15);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --info: #3b82f6;
+            --info-bg: rgba(59, 130, 246, 0.15);
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --bg-input: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.1);
+            --border-active: rgba(74, 124, 67, 0.5);
+            --water: #3b82f6;
+            --training: #22c55e;
+            --cleaning: #06b6d4;
+            --temperature: #f97316;
+            --preharvest: #eab308;
+            --corrective: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-left a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 i {
+            color: var(--success);
+        }
+
+        .header-actions button {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Dashboard Stats */
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-card.water { border-left: 4px solid var(--water); }
+        .stat-card.training { border-left: 4px solid var(--training); }
+        .stat-card.cleaning { border-left: 4px solid var(--cleaning); }
+        .stat-card.temperature { border-left: 4px solid var(--temperature); }
+        .stat-card.preharvest { border-left: 4px solid var(--preharvest); }
+        .stat-card.corrective { border-left: 4px solid var(--corrective); }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .stat-card.water .stat-icon { background: rgba(59, 130, 246, 0.2); color: var(--water); }
+        .stat-card.training .stat-icon { background: rgba(34, 197, 94, 0.2); color: var(--training); }
+        .stat-card.cleaning .stat-icon { background: rgba(6, 182, 212, 0.2); color: var(--cleaning); }
+        .stat-card.temperature .stat-icon { background: rgba(249, 115, 22, 0.2); color: var(--temperature); }
+        .stat-card.preharvest .stat-icon { background: rgba(234, 179, 8, 0.2); color: var(--preharvest); }
+        .stat-card.corrective .stat-icon { background: rgba(239, 68, 68, 0.2); color: var(--corrective); }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .stat-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .tab {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: var(--bg-elevated);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .tab i {
+            font-size: 16px;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Section Header */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .add-btn {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-btn:hover {
+            background: var(--primary-light);
+        }
+
+        /* Data Table */
+        .data-table {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            background: var(--bg-elevated);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            font-size: 14px;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.pass { background: var(--success-bg); color: var(--success); }
+        .badge.fail { background: var(--danger-bg); color: var(--danger); }
+        .badge.open { background: var(--warning-bg); color: var(--warning); }
+        .badge.completed { background: var(--success-bg); color: var(--success); }
+        .badge.critical { background: var(--danger-bg); color: var(--danger); }
+        .badge.major { background: var(--warning-bg); color: var(--warning); }
+        .badge.minor { background: var(--info-bg); color: var(--info); }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Checkbox Group */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-elevated);
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+        }
+
+        .checkbox-item input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .checkbox-item.checked {
+            background: var(--success-bg);
+            border-color: var(--success);
+        }
+
+        .checkbox-item.unchecked {
+            background: var(--danger-bg);
+            border-color: var(--danger);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .quick-action {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action:hover {
+            background: var(--bg-elevated);
+            transform: translateY(-2px);
+        }
+
+        .quick-action i {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .quick-action.water i { color: var(--water); }
+        .quick-action.training i { color: var(--training); }
+        .quick-action.cleaning i { color: var(--cleaning); }
+        .quick-action.temperature i { color: var(--temperature); }
+        .quick-action.preharvest i { color: var(--preharvest); }
+
+        .quick-action span {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .loading i {
+            font-size: 32px;
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 2000;
+            display: none;
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        .toast.active {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tabs {
+                flex-wrap: nowrap;
+            }
+
+            .data-table {
+                overflow-x: auto;
+            }
+
+            .data-table table {
+                min-width: 600px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <a href="index.html"><i class="fas fa-arrow-left"></i></a>
+            <h1><i class="fas fa-shield-alt"></i> Food Safety Compliance</h1>
+        </div>
+        <div class="header-actions">
+            <button onclick="generateReport()">
+                <i class="fas fa-file-pdf"></i> Inspector Report
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Dashboard Stats -->
+        <div class="dashboard-stats" id="dashboardStats">
+            <div class="stat-card water">
+                <div class="stat-header">
+                    <div class="stat-icon"><i class="fas fa-tint"></i></div>
+                    <div class="stat-label">Water Tests</div>
+                </div>
+                <div class="stat-value" id="waterTestCount">--</div>
+                <div class="stat-sub" id="waterTestSub">Loading...</div>
+            </div>
+            <div class="stat-card training">
+                <div class="stat-header">
+                    <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+                    <div class="stat-label">Training Sessions</div>
+                </div>
+                <div class="stat-value" id="trainingCount">--</div>
+                <div class="stat-sub" id="trainingSub">Loading...</div>
+            </div>
+            <div class="stat-card cleaning">
+                <div class="stat-header">
+                    <div class="stat-icon"><i class="fas fa-spray-can"></i></div>
+                    <div class="stat-label">Cleaning Logs</div>
+                </div>
+                <div class="stat-value" id="cleaningCount">--</div>
+                <div class="stat-sub" id="cleaningSub">Last 30 days</div>
+            </div>
+            <div class="stat-card temperature">
+                <div class="stat-header">
+                    <div class="stat-icon"><i class="fas fa-thermometer-half"></i></div>
+                    <div class="stat-label">Temp Readings</div>
+                </div>
+                <div class="stat-value" id="tempCount">--</div>
+                <div class="stat-sub" id="tempSub">Loading...</div>
+            </div>
+            <div class="stat-card preharvest">
+                <div class="stat-header">
+                    <div class="stat-icon"><i class="fas fa-clipboard-check"></i></div>
+                    <div class="stat-label">Pre-Harvest Checks</div>
+                </div>
+                <div class="stat-value" id="preharvestCount">--</div>
+                <div class="stat-sub" id="preharvestSub">Loading...</div>
+            </div>
+            <div class="stat-card corrective">
+                <div class="stat-header">
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-label">Open Actions</div>
+                </div>
+                <div class="stat-value" id="correctiveCount">--</div>
+                <div class="stat-sub" id="correctiveSub">Needs attention</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="quick-action water" onclick="showModal('water')">
+                <i class="fas fa-plus-circle"></i>
+                <span>Log Water Test</span>
+            </div>
+            <div class="quick-action training" onclick="showModal('training')">
+                <i class="fas fa-plus-circle"></i>
+                <span>Log Training</span>
+            </div>
+            <div class="quick-action cleaning" onclick="showModal('cleaning')">
+                <i class="fas fa-plus-circle"></i>
+                <span>Log Cleaning</span>
+            </div>
+            <div class="quick-action temperature" onclick="showModal('temperature')">
+                <i class="fas fa-plus-circle"></i>
+                <span>Log Temperature</span>
+            </div>
+            <div class="quick-action preharvest" onclick="showModal('preharvest')">
+                <i class="fas fa-plus-circle"></i>
+                <span>Pre-Harvest Check</span>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="water" onclick="switchTab('water')">
+                <i class="fas fa-tint"></i> Water Tests
+            </button>
+            <button class="tab" data-tab="training" onclick="switchTab('training')">
+                <i class="fas fa-user-graduate"></i> Training
+            </button>
+            <button class="tab" data-tab="cleaning" onclick="switchTab('cleaning')">
+                <i class="fas fa-spray-can"></i> Cleaning
+            </button>
+            <button class="tab" data-tab="temperature" onclick="switchTab('temperature')">
+                <i class="fas fa-thermometer-half"></i> Temperature
+            </button>
+            <button class="tab" data-tab="preharvest" onclick="switchTab('preharvest')">
+                <i class="fas fa-clipboard-check"></i> Pre-Harvest
+            </button>
+            <button class="tab" data-tab="corrective" onclick="switchTab('corrective')">
+                <i class="fas fa-exclamation-triangle"></i> Actions
+            </button>
+        </div>
+
+        <!-- Tab Content: Water Tests -->
+        <div class="tab-content active" id="tab-water">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-tint" style="color: var(--water)"></i> Water Test Records</div>
+                <button class="add-btn" onclick="showModal('water')"><i class="fas fa-plus"></i> Add Test</button>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Type</th>
+                            <th>E. Coli</th>
+                            <th>Result</th>
+                            <th>Lab</th>
+                            <th>Tested By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="waterTableBody">
+                        <tr><td colspan="7" class="loading"><i class="fas fa-spinner"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Content: Training -->
+        <div class="tab-content" id="tab-training">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-user-graduate" style="color: var(--training)"></i> Training Records</div>
+                <button class="add-btn" onclick="showModal('training')"><i class="fas fa-plus"></i> Add Training</button>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Topics</th>
+                            <th>Trainer</th>
+                            <th>Duration</th>
+                            <th>Attendees</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trainingTableBody">
+                        <tr><td colspan="6" class="loading"><i class="fas fa-spinner"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Content: Cleaning -->
+        <div class="tab-content" id="tab-cleaning">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-spray-can" style="color: var(--cleaning)"></i> Cleaning & Sanitization Logs</div>
+                <button class="add-btn" onclick="showModal('cleaning')"><i class="fas fa-plus"></i> Add Log</button>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Location</th>
+                            <th>Equipment</th>
+                            <th>Sanitizer</th>
+                            <th>Cleaned By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cleaningTableBody">
+                        <tr><td colspan="6" class="loading"><i class="fas fa-spinner"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Content: Temperature -->
+        <div class="tab-content" id="tab-temperature">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-thermometer-half" style="color: var(--temperature)"></i> Temperature Monitoring</div>
+                <button class="add-btn" onclick="showModal('temperature')"><i class="fas fa-plus"></i> Add Reading</button>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Location</th>
+                            <th>Target</th>
+                            <th>Actual</th>
+                            <th>Status</th>
+                            <th>Recorded By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="temperatureTableBody">
+                        <tr><td colspan="7" class="loading"><i class="fas fa-spinner"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Content: Pre-Harvest -->
+        <div class="tab-content" id="tab-preharvest">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-clipboard-check" style="color: var(--preharvest)"></i> Pre-Harvest Inspections</div>
+                <button class="add-btn" onclick="showModal('preharvest')"><i class="fas fa-plus"></i> Add Inspection</button>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Field/Block</th>
+                            <th>Crop</th>
+                            <th>Issues Found</th>
+                            <th>Approved</th>
+                            <th>Inspected By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="preharvestTableBody">
+                        <tr><td colspan="6" class="loading"><i class="fas fa-spinner"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Content: Corrective Actions -->
+        <div class="tab-content" id="tab-corrective">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-exclamation-triangle" style="color: var(--corrective)"></i> Corrective Actions</div>
+                <button class="add-btn" onclick="showModal('corrective')"><i class="fas fa-plus"></i> Add Action</button>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Issue</th>
+                            <th>Severity</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="correctiveTableBody">
+                        <tr><td colspan="7" class="loading"><i class="fas fa-spinner"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Water Test Modal -->
+    <div class="modal-overlay" id="waterModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-tint" style="color: var(--water)"></i> Log Water Test</h2>
+                <button class="modal-close" onclick="closeModal('water')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="waterForm" onsubmit="submitWaterTest(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Test Date</label>
+                            <input type="date" class="form-input" name="testDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Water Source</label>
+                            <select class="form-select" name="waterSource" required>
+                                <option value="">Select source...</option>
+                                <option value="Well #1">Well #1</option>
+                                <option value="Well #2">Well #2</option>
+                                <option value="Municipal">Municipal</option>
+                                <option value="Pond">Pond</option>
+                                <option value="Creek">Creek</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Source Type</label>
+                        <select class="form-select" name="sourceType" required>
+                            <option value="Pre-Harvest">Pre-Harvest (Irrigation)</option>
+                            <option value="Harvest">Harvest (Field washing)</option>
+                            <option value="Post-Harvest">Post-Harvest (Pack house)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">E. Coli Result (CFU/100mL)</label>
+                            <input type="text" class="form-input" name="ecoliResult" placeholder="ND or number" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Lab Name</label>
+                            <input type="text" class="form-input" name="labName" placeholder="Testing laboratory">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sample Location Description</label>
+                        <input type="text" class="form-input" name="sampleLocation" placeholder="Where was sample collected?">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tested By</label>
+                        <input type="text" class="form-input" name="testedBy" placeholder="Your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" name="notes" placeholder="Additional notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('water')">Cancel</button>
+                <button class="btn btn-primary" type="submit" form="waterForm"><i class="fas fa-save"></i> Save Test</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Modal -->
+    <div class="modal-overlay" id="trainingModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-graduate" style="color: var(--training)"></i> Log Training Session</h2>
+                <button class="modal-close" onclick="closeModal('training')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="trainingForm" onsubmit="submitTraining(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Training Date</label>
+                            <input type="date" class="form-input" name="trainingDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duration (hours)</label>
+                            <input type="number" class="form-input" name="durationHours" step="0.5" value="1" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Training Type</label>
+                        <select class="form-select" name="trainingType" required>
+                            <option value="PSA Course">PSA Grower Training Course</option>
+                            <option value="Annual Refresher">Annual Refresher</option>
+                            <option value="New Hire">New Hire Orientation</option>
+                            <option value="Topic-Specific">Topic-Specific Training</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Topics Covered</label>
+                        <input type="text" class="form-input" name="topicsCovered" placeholder="Hand washing, equipment cleaning, etc.">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Trainer Name</label>
+                            <input type="text" class="form-input" name="trainerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Trainer Certification</label>
+                            <input type="text" class="form-input" name="trainerCertification" placeholder="PSA Certified, etc.">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Attendees (one per line: Name, Employee ID)</label>
+                        <textarea class="form-textarea" name="attendees" placeholder="John Smith, EMP001&#10;Jane Doe, EMP002"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" name="notes" placeholder="Additional notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('training')">Cancel</button>
+                <button class="btn btn-primary" type="submit" form="trainingForm"><i class="fas fa-save"></i> Save Training</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cleaning Modal -->
+    <div class="modal-overlay" id="cleaningModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-spray-can" style="color: var(--cleaning)"></i> Log Cleaning</h2>
+                <button class="modal-close" onclick="closeModal('cleaning')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="cleaningForm" onsubmit="submitCleaning(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-input" name="cleaningDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Time</label>
+                            <input type="time" class="form-input" name="cleaningTime" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Location</label>
+                        <select class="form-select" name="location" required>
+                            <option value="">Select location...</option>
+                            <option value="Wash Station">Wash Station</option>
+                            <option value="Pack House">Pack House</option>
+                            <option value="Walk-in Cooler">Walk-in Cooler</option>
+                            <option value="Delivery Van">Delivery Van</option>
+                            <option value="Field Equipment">Field Equipment</option>
+                            <option value="Harvest Containers">Harvest Containers</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Equipment/Items Cleaned</label>
+                        <input type="text" class="form-input" name="equipmentCleaned" placeholder="Describe what was cleaned" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Cleaning Type</label>
+                            <select class="form-select" name="cleaningType" required>
+                                <option value="Pre-shift">Pre-shift</option>
+                                <option value="Post-shift">Post-shift</option>
+                                <option value="Weekly Deep Clean">Weekly Deep Clean</option>
+                                <option value="As-needed">As-needed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Sanitizer Used</label>
+                            <input type="text" class="form-input" name="sanitizerUsed" placeholder="Product name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sanitizer Concentration (PPM)</label>
+                        <input type="text" class="form-input" name="sanitizerConcentration" placeholder="e.g., 200 PPM">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cleaned By</label>
+                        <input type="text" class="form-input" name="cleanedBy" placeholder="Your name" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('cleaning')">Cancel</button>
+                <button class="btn btn-primary" type="submit" form="cleaningForm"><i class="fas fa-save"></i> Save Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Temperature Modal -->
+    <div class="modal-overlay" id="temperatureModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-thermometer-half" style="color: var(--temperature)"></i> Log Temperature</h2>
+                <button class="modal-close" onclick="closeModal('temperature')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="temperatureForm" onsubmit="submitTemperature(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-input" name="readingDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Time</label>
+                            <input type="time" class="form-input" name="readingTime" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Location</label>
+                        <select class="form-select" name="location" required>
+                            <option value="">Select location...</option>
+                            <option value="Walk-in Cooler">Walk-in Cooler</option>
+                            <option value="Delivery Van">Delivery Van</option>
+                            <option value="Pack Area">Pack Area</option>
+                            <option value="Cold Storage">Cold Storage</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Target Temp (F)</label>
+                            <input type="number" class="form-input" name="targetTemp" value="38" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Actual Temp (F)</label>
+                            <input type="number" class="form-input" name="actualTemp" step="0.1" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Recorded By</label>
+                        <input type="text" class="form-input" name="recordedBy" placeholder="Your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes (if out of range, describe corrective action)</label>
+                        <textarea class="form-textarea" name="notes"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('temperature')">Cancel</button>
+                <button class="btn btn-primary" type="submit" form="temperatureForm"><i class="fas fa-save"></i> Save Reading</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pre-Harvest Modal -->
+    <div class="modal-overlay" id="preharvestModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-clipboard-check" style="color: var(--preharvest)"></i> Pre-Harvest Inspection</h2>
+                <button class="modal-close" onclick="closeModal('preharvest')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="preharvestForm" onsubmit="submitPreharvest(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Inspection Date</label>
+                            <input type="date" class="form-input" name="inspectionDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Field/Block</label>
+                            <input type="text" class="form-input" name="fieldBlock" placeholder="e.g., Field A, Block 3" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Crop Being Harvested</label>
+                        <input type="text" class="form-input" name="crop" placeholder="e.g., Lettuce Mix" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Inspection Checklist</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item" id="check-animal">
+                                <input type="checkbox" name="animalIntrusion" onchange="toggleCheck(this, 'check-animal', true)">
+                                <span>No animal intrusion</span>
+                            </label>
+                            <label class="checkbox-item" id="check-flood">
+                                <input type="checkbox" name="floodingEvidence" onchange="toggleCheck(this, 'check-flood', true)">
+                                <span>No flooding</span>
+                            </label>
+                            <label class="checkbox-item" id="check-contam">
+                                <input type="checkbox" name="contaminationRisk" onchange="toggleCheck(this, 'check-contam', true)">
+                                <span>No contamination</span>
+                            </label>
+                            <label class="checkbox-item" id="check-adjacent">
+                                <input type="checkbox" name="adjacentLandOk" onchange="toggleCheck(this, 'check-adjacent')">
+                                <span>Adjacent land OK</span>
+                            </label>
+                            <label class="checkbox-item" id="check-health">
+                                <input type="checkbox" name="workerHealthOk" onchange="toggleCheck(this, 'check-health')">
+                                <span>Workers healthy</span>
+                            </label>
+                            <label class="checkbox-item" id="check-equip">
+                                <input type="checkbox" name="equipmentClean" onchange="toggleCheck(this, 'check-equip')">
+                                <span>Equipment clean</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Issues Found (if any)</label>
+                        <textarea class="form-textarea" name="issueDetails" placeholder="Describe any issues found..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Exclusion Zone (if harvest not approved)</label>
+                        <input type="text" class="form-input" name="exclusionZone" placeholder="Area to exclude from harvest">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Inspected By</label>
+                        <input type="text" class="form-input" name="inspectedBy" placeholder="Your name" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('preharvest')">Cancel</button>
+                <button class="btn btn-primary" type="submit" form="preharvestForm"><i class="fas fa-save"></i> Save Inspection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Corrective Action Modal -->
+    <div class="modal-overlay" id="correctiveModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-exclamation-triangle" style="color: var(--corrective)"></i> Log Corrective Action</h2>
+                <button class="modal-close" onclick="closeModal('corrective')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="correctiveForm" onsubmit="submitCorrective(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Issue Date</label>
+                            <input type="date" class="form-input" name="issueDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" name="issueCategory" required>
+                                <option value="">Select category...</option>
+                                <option value="Water">Water</option>
+                                <option value="Training">Training</option>
+                                <option value="Cleaning">Cleaning</option>
+                                <option value="Temp">Temperature</option>
+                                <option value="Field">Field/Pre-Harvest</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Issue Description</label>
+                        <textarea class="form-textarea" name="issueDescription" placeholder="Describe the issue..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Severity</label>
+                        <select class="form-select" name="severity" required>
+                            <option value="Minor">Minor</option>
+                            <option value="Major">Major</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Immediate Action Taken</label>
+                        <textarea class="form-textarea" name="immediateAction" placeholder="What was done immediately..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Root Cause (if known)</label>
+                        <input type="text" class="form-input" name="rootCause" placeholder="Why did this happen?">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Preventive Measure</label>
+                        <input type="text" class="form-input" name="preventiveMeasure" placeholder="How to prevent recurrence">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Responsible Person</label>
+                            <input type="text" class="form-input" name="responsiblePerson" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Due Date</label>
+                            <input type="date" class="form-input" name="dueDate">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('corrective')">Cancel</button>
+                <button class="btn btn-primary" type="submit" form="correctiveForm"><i class="fas fa-save"></i> Save Action</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // API Configuration
+        const API_URL = TINY_SEED_API.MAIN_API;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setDefaultDates();
+            loadDashboard();
+            loadWaterTests();
+        });
+
+        function setDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            const now = new Date().toTimeString().slice(0, 5);
+            document.querySelectorAll('input[type="date"]').forEach(el => el.value = today);
+            document.querySelectorAll('input[type="time"]').forEach(el => el.value = now);
+        }
+
+        // Tab Management
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // Load data for tab
+            switch(tabName) {
+                case 'water': loadWaterTests(); break;
+                case 'training': loadTraining(); break;
+                case 'cleaning': loadCleaning(); break;
+                case 'temperature': loadTemperature(); break;
+                case 'preharvest': loadPreharvest(); break;
+                case 'corrective': loadCorrectiveActions(); break;
+            }
+        }
+
+        // Modal Management
+        function showModal(type) {
+            document.getElementById(`${type}Modal`).classList.add('active');
+        }
+
+        function closeModal(type) {
+            document.getElementById(`${type}Modal`).classList.remove('active');
+        }
+
+        // Toggle Checkbox Styling
+        function toggleCheck(checkbox, elementId, inverse = false) {
+            const element = document.getElementById(elementId);
+            const isChecked = inverse ? !checkbox.checked : checkbox.checked;
+            element.classList.remove('checked', 'unchecked');
+            element.classList.add(isChecked ? 'checked' : 'unchecked');
+        }
+
+        // Toast
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast active' + (isError ? ' error' : '');
+            setTimeout(() => toast.classList.remove('active'), 3000);
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_URL}?action=getComplianceDashboard`);
+                const data = await response.json();
+
+                if (data.success && data.dashboard) {
+                    const d = data.dashboard;
+                    document.getElementById('waterTestCount').textContent = d.waterTesting.totalTests;
+                    document.getElementById('waterTestSub').textContent = `${d.waterTesting.passRate}% pass rate`;
+                    document.getElementById('trainingCount').textContent = d.training.sessionsThisYear;
+                    document.getElementById('trainingSub').textContent = `${d.training.totalAttendees} attendees`;
+                    document.getElementById('cleaningCount').textContent = d.cleaning.logsLast30Days;
+                    document.getElementById('tempCount').textContent = d.temperature.readingsLast30Days;
+                    document.getElementById('tempSub').textContent = `${d.temperature.inRangeRate}% in range`;
+                    document.getElementById('preharvestCount').textContent = d.preharvest.inspectionsLast30Days;
+                    document.getElementById('preharvestSub').textContent = `${d.preharvest.approvalRate}% approved`;
+                    document.getElementById('correctiveCount').textContent = d.correctiveActions.openCount;
+                    document.getElementById('correctiveSub').textContent = `${d.correctiveActions.criticalCount} critical`;
+                }
+            } catch (error) {
+                console.error('Dashboard error:', error);
+            }
+        }
+
+        // Format Date
+        function formatDate(date) {
+            if (!date) return '-';
+            return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Water Tests
+        async function loadWaterTests() {
+            try {
+                const response = await fetch(`${API_URL}?action=getComplianceWaterTests`);
+                const data = await response.json();
+                const tbody = document.getElementById('waterTableBody');
+
+                if (data.success && data.tests.length > 0) {
+                    tbody.innerHTML = data.tests.map(t => `
+                        <tr>
+                            <td>${formatDate(t.Test_Date)}</td>
+                            <td>${t.Water_Source}</td>
+                            <td>${t.Source_Type}</td>
+                            <td>${t.E_Coli_Result}</td>
+                            <td><span class="badge ${t.E_Coli_Pass ? 'pass' : 'fail'}">${t.E_Coli_Pass ? 'PASS' : 'FAIL'}</span></td>
+                            <td>${t.Lab_Name || '-'}</td>
+                            <td>${t.Tested_By}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-tint"></i><p>No water tests recorded yet</p></td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading water tests:', error);
+            }
+        }
+
+        async function submitWaterTest(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addComplianceWaterTest', ...data })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Water test logged successfully!');
+                    closeModal('water');
+                    form.reset();
+                    setDefaultDates();
+                    loadWaterTests();
+                    loadDashboard();
+                } else {
+                    showToast(result.error || 'Error saving', true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        // Training
+        async function loadTraining() {
+            try {
+                const response = await fetch(`${API_URL}?action=getComplianceTraining`);
+                const data = await response.json();
+                const tbody = document.getElementById('trainingTableBody');
+
+                if (data.success && data.trainings.length > 0) {
+                    tbody.innerHTML = data.trainings.map(t => `
+                        <tr>
+                            <td>${formatDate(t.Training_Date)}</td>
+                            <td>${t.Training_Type}</td>
+                            <td>${t.Topics_Covered || '-'}</td>
+                            <td>${t.Trainer_Name}</td>
+                            <td>${t.Duration_Hours}h</td>
+                            <td>${t.Attendee_Count || 0}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-user-graduate"></i><p>No training sessions recorded</p></td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading training:', error);
+            }
+        }
+
+        async function submitTraining(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Parse attendees
+            const attendeesText = data.attendees || '';
+            data.attendees = attendeesText.split('\n').filter(a => a.trim()).map(a => {
+                const [name, id] = a.split(',').map(s => s.trim());
+                return { name, employeeId: id || '' };
+            });
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addComplianceTraining', ...data })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Training session logged!');
+                    closeModal('training');
+                    form.reset();
+                    setDefaultDates();
+                    loadTraining();
+                    loadDashboard();
+                } else {
+                    showToast(result.error || 'Error saving', true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        // Cleaning
+        async function loadCleaning() {
+            try {
+                const response = await fetch(`${API_URL}?action=getComplianceCleaning`);
+                const data = await response.json();
+                const tbody = document.getElementById('cleaningTableBody');
+
+                if (data.success && data.logs.length > 0) {
+                    tbody.innerHTML = data.logs.map(l => `
+                        <tr>
+                            <td>${formatDate(l.Cleaning_Date)}</td>
+                            <td>${l.Cleaning_Time}</td>
+                            <td>${l.Location}</td>
+                            <td>${l.Equipment_Cleaned}</td>
+                            <td>${l.Sanitizer_Used || '-'}</td>
+                            <td>${l.Cleaned_By}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-spray-can"></i><p>No cleaning logs recorded</p></td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading cleaning:', error);
+            }
+        }
+
+        async function submitCleaning(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addComplianceCleaning', ...data })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Cleaning log saved!');
+                    closeModal('cleaning');
+                    form.reset();
+                    setDefaultDates();
+                    loadCleaning();
+                    loadDashboard();
+                } else {
+                    showToast(result.error || 'Error saving', true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        // Temperature
+        async function loadTemperature() {
+            try {
+                const response = await fetch(`${API_URL}?action=getComplianceTemperature`);
+                const data = await response.json();
+                const tbody = document.getElementById('temperatureTableBody');
+
+                if (data.success && data.readings.length > 0) {
+                    tbody.innerHTML = data.readings.map(r => `
+                        <tr>
+                            <td>${formatDate(r.Reading_Date)}</td>
+                            <td>${r.Reading_Time}</td>
+                            <td>${r.Location}</td>
+                            <td>${r.Target_Temp_F}F</td>
+                            <td>${r.Actual_Temp_F}F</td>
+                            <td><span class="badge ${r.In_Range ? 'pass' : 'fail'}">${r.In_Range ? 'OK' : 'OUT OF RANGE'}</span></td>
+                            <td>${r.Recorded_By}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-thermometer-half"></i><p>No temperature readings recorded</p></td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading temperature:', error);
+            }
+        }
+
+        async function submitTemperature(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addComplianceTemperature', ...data })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Temperature logged! ${result.inRange ? '' : ' - OUT OF RANGE'}`);
+                    closeModal('temperature');
+                    form.reset();
+                    setDefaultDates();
+                    loadTemperature();
+                    loadDashboard();
+                } else {
+                    showToast(result.error || 'Error saving', true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        // Pre-Harvest
+        async function loadPreharvest() {
+            try {
+                const response = await fetch(`${API_URL}?action=getCompliancePreharvest`);
+                const data = await response.json();
+                const tbody = document.getElementById('preharvestTableBody');
+
+                if (data.success && data.inspections.length > 0) {
+                    tbody.innerHTML = data.inspections.map(i => {
+                        const issues = [];
+                        if (i.Animal_Intrusion) issues.push('Animal');
+                        if (i.Flooding_Evidence) issues.push('Flooding');
+                        if (i.Contamination_Risk) issues.push('Contamination');
+                        return `
+                            <tr>
+                                <td>${formatDate(i.Inspection_Date)}</td>
+                                <td>${i.Field_Block}</td>
+                                <td>${i.Crop}</td>
+                                <td>${issues.length ? issues.join(', ') : 'None'}</td>
+                                <td><span class="badge ${i.Harvest_Approved ? 'pass' : 'fail'}">${i.Harvest_Approved ? 'APPROVED' : 'NOT APPROVED'}</span></td>
+                                <td>${i.Inspected_By}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-clipboard-check"></i><p>No pre-harvest inspections recorded</p></td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading preharvest:', error);
+            }
+        }
+
+        async function submitPreharvest(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+
+            // Handle checkboxes - inverted logic for negative checkboxes
+            const data = {
+                inspectionDate: formData.get('inspectionDate'),
+                fieldBlock: formData.get('fieldBlock'),
+                crop: formData.get('crop'),
+                animalIntrusion: !formData.has('animalIntrusion'),  // Checked = NO intrusion
+                floodingEvidence: !formData.has('floodingEvidence'),
+                contaminationRisk: !formData.has('contaminationRisk'),
+                adjacentLandOk: formData.has('adjacentLandOk'),
+                workerHealthOk: formData.has('workerHealthOk'),
+                equipmentClean: formData.has('equipmentClean'),
+                contaminationDetails: formData.get('issueDetails'),
+                exclusionZone: formData.get('exclusionZone'),
+                inspectedBy: formData.get('inspectedBy')
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addCompliancePreharvest', ...data })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Inspection saved! ${result.approved ? 'APPROVED' : 'NOT APPROVED'}`);
+                    closeModal('preharvest');
+                    form.reset();
+                    setDefaultDates();
+                    loadPreharvest();
+                    loadDashboard();
+                } else {
+                    showToast(result.error || 'Error saving', true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        // Corrective Actions
+        async function loadCorrectiveActions() {
+            try {
+                const response = await fetch(`${API_URL}?action=getCorrectiveActions`);
+                const data = await response.json();
+                const tbody = document.getElementById('correctiveTableBody');
+
+                if (data.success && data.actions.length > 0) {
+                    tbody.innerHTML = data.actions.map(a => `
+                        <tr>
+                            <td>${a.Action_ID}</td>
+                            <td>${formatDate(a.Issue_Date)}</td>
+                            <td>${a.Issue_Category}</td>
+                            <td>${a.Issue_Description.substring(0, 50)}${a.Issue_Description.length > 50 ? '...' : ''}</td>
+                            <td><span class="badge ${a.Severity.toLowerCase()}">${a.Severity}</span></td>
+                            <td><span class="badge ${a.Status === 'Completed' ? 'completed' : 'open'}">${a.Status}</span></td>
+                            <td>
+                                ${a.Status !== 'Completed' ? `<button class="btn btn-secondary" onclick="completeAction('${a.Action_ID}')" style="padding:6px 12px;font-size:12px;">Complete</button>` : ''}
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-check-circle"></i><p>No corrective actions needed!</p></td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading corrective actions:', error);
+            }
+        }
+
+        async function submitCorrective(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addCorrectiveAction', ...data })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Corrective action logged!');
+                    closeModal('corrective');
+                    form.reset();
+                    setDefaultDates();
+                    loadCorrectiveActions();
+                    loadDashboard();
+                } else {
+                    showToast(result.error || 'Error saving', true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        async function completeAction(actionId) {
+            const verifiedBy = prompt('Enter your name to verify completion:');
+            if (!verifiedBy) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateCorrectiveAction',
+                        actionId: actionId,
+                        status: 'Completed',
+                        completedDate: new Date().toISOString(),
+                        verifiedBy: verifiedBy
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Action marked complete!');
+                    loadCorrectiveActions();
+                    loadDashboard();
+                } else {
+                    showToast(result.error || 'Error updating', true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        // Generate Report
+        async function generateReport() {
+            showToast('Generating Inspector Report...');
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateComplianceReport`);
+                const data = await response.json();
+
+                if (data.success && data.report) {
+                    // Open report in new window
+                    const reportWindow = window.open('', '_blank');
+                    reportWindow.document.write(generateReportHTML(data.report));
+                    reportWindow.document.close();
+                } else {
+                    showToast('Error generating report', true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        function generateReportHTML(report) {
+            return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Food Safety Compliance Report - Tiny Seed Farm</title>
+                <style>
+                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+                    h1 { color: #2d5a27; border-bottom: 3px solid #2d5a27; padding-bottom: 10px; }
+                    h2 { color: #334155; margin-top: 30px; }
+                    .header-info { background: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+                    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+                    .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
+                    .stat-value { font-size: 28px; font-weight: bold; color: #2d5a27; }
+                    .stat-label { color: #64748b; font-size: 12px; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                    th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+                    th { background: #f1f5f9; }
+                    .pass { color: #22c55e; font-weight: bold; }
+                    .fail { color: #ef4444; font-weight: bold; }
+                    .print-btn { position: fixed; top: 20px; right: 20px; background: #2d5a27; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+                    @media print { .print-btn { display: none; } }
+                </style>
+            </head>
+            <body>
+                <button class="print-btn" onclick="window.print()">Print Report</button>
+
+                <h1>Food Safety Compliance Report</h1>
+
+                <div class="header-info">
+                    <strong>${report.farmInfo.name}</strong><br>
+                    ${report.farmInfo.address}<br>
+                    ${report.farmInfo.county}<br>
+                    <strong>Certification:</strong> ${report.farmInfo.certification}<br><br>
+                    <strong>Report Period:</strong> ${formatDate(report.reportPeriod.start)} - ${formatDate(report.reportPeriod.end)}<br>
+                    <strong>Generated:</strong> ${formatDate(report.generatedDate)}
+                </div>
+
+                <h2>Summary</h2>
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="stat-value">${report.summary.waterTestsCount}</div>
+                        <div class="stat-label">Water Tests (${report.summary.waterTestsPassRate}% pass)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${report.summary.trainingSessions}</div>
+                        <div class="stat-label">Training Sessions</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${report.summary.cleaningLogs}</div>
+                        <div class="stat-label">Cleaning Logs</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${report.summary.tempReadingsCount}</div>
+                        <div class="stat-label">Temp Readings (${report.summary.tempReadingsInRangeRate}% in range)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${report.summary.preharvestInspections}</div>
+                        <div class="stat-label">Pre-Harvest Inspections</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${report.summary.correctiveActionsOpen}</div>
+                        <div class="stat-label">Open Corrective Actions</div>
+                    </div>
+                </div>
+
+                <h2>Water Testing Records</h2>
+                <table>
+                    <tr><th>Date</th><th>Source</th><th>Result</th><th>Pass/Fail</th><th>Lab</th></tr>
+                    ${report.waterTesting.records.map(r => `
+                        <tr>
+                            <td>${formatDate(r.date)}</td>
+                            <td>${r.source}</td>
+                            <td>${r.result}</td>
+                            <td class="${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'}</td>
+                            <td>${r.lab || '-'}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+
+                <h2>Training Records</h2>
+                <table>
+                    <tr><th>Date</th><th>Type</th><th>Topics</th><th>Trainer</th><th>Attendees</th></tr>
+                    ${report.training.records.map(r => `
+                        <tr>
+                            <td>${formatDate(r.date)}</td>
+                            <td>${r.type}</td>
+                            <td>${r.topics || '-'}</td>
+                            <td>${r.trainer}</td>
+                            <td>${r.attendeeCount}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+
+                <h2>Temperature Out-of-Range Events</h2>
+                ${report.temperature.outOfRangeEvents.length > 0 ? `
+                    <table>
+                        <tr><th>Date</th><th>Location</th><th>Target</th><th>Actual</th><th>Action Taken</th></tr>
+                        ${report.temperature.outOfRangeEvents.map(r => `
+                            <tr>
+                                <td>${formatDate(r.date)}</td>
+                                <td>${r.location}</td>
+                                <td>${r.target}F</td>
+                                <td class="fail">${r.actual}F</td>
+                                <td>${r.action || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                ` : '<p>No out-of-range temperature events during this period.</p>'}
+
+                <h2>Open Corrective Actions</h2>
+                ${report.correctiveActions.open.length > 0 ? `
+                    <table>
+                        <tr><th>ID</th><th>Date</th><th>Category</th><th>Issue</th><th>Severity</th><th>Status</th></tr>
+                        ${report.correctiveActions.open.map(a => `
+                            <tr>
+                                <td>${a.id}</td>
+                                <td>${formatDate(a.date)}</td>
+                                <td>${a.category}</td>
+                                <td>${a.description}</td>
+                                <td>${a.severity}</td>
+                                <td>${a.status}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                ` : '<p class="pass">No open corrective actions. All issues have been resolved.</p>'}
+
+                <hr style="margin-top: 40px;">
+                <p style="color: #64748b; font-size: 12px; text-align: center;">
+                    This report was generated by Tiny Seed OS Food Safety Compliance Module<br>
+                    For questions, contact the farm at 257 Zeigler Road, Rochester, PA 15074
+                </p>
+            </body>
+            </html>
+            `;
+        }
+    </script>
+</body>
+</html>

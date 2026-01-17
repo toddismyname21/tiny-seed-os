@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2d5a27">
+  <title>Check Delivery Availability | Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #2d5a27;
+      --primary-light: #4a7c43;
+      --primary-dark: #1e3d1a;
+      --bg-light: #f8faf7;
+      --bg-white: #ffffff;
+      --text-dark: #1a1a1a;
+      --text-muted: #666666;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: #e5e7eb;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .header-logo {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 0.95rem;
+      opacity: 0.9;
+    }
+
+    /* Main Content */
+    .main-content {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg-white);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title i {
+      color: var(--primary);
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.1);
+    }
+
+    .form-group input::placeholder {
+      color: #aaa;
+    }
+
+    .form-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Button */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 24px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn i {
+      font-size: 1.1rem;
+    }
+
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .loading i {
+      font-size: 2rem;
+      color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Result */
+    .result {
+      display: none;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .result-accepted {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .result-accepted i {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .result-accepted h2 {
+      font-size: 1.3rem;
+      margin-bottom: 8px;
+    }
+
+    .result-accepted p {
+      opacity: 0.95;
+    }
+
+    .result-rejected {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .result-rejected i {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .result-rejected h2 {
+      font-size: 1.3rem;
+      margin-bottom: 8px;
+    }
+
+    .result-rejected p {
+      opacity: 0.95;
+    }
+
+    /* Details Card */
+    .details-card {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .detail-value {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .fee-highlight {
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+
+    /* Alternatives */
+    .alternatives-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-dark);
+    }
+
+    .alternative-item {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .alternative-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-light);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .alternative-info {
+      flex: 1;
+    }
+
+    .alternative-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .alternative-distance {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .alternative-day {
+      font-size: 0.75rem;
+      background: var(--primary);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+    }
+
+    /* Info Box */
+    .info-box {
+      background: #e0f2fe;
+      border-left: 4px solid #0ea5e9;
+      padding: 14px 16px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 20px;
+    }
+
+    .info-box p {
+      font-size: 0.9rem;
+      color: #0369a1;
+    }
+
+    /* Try Again Button */
+    .btn-secondary {
+      background: var(--bg-light);
+      color: var(--text-dark);
+      border: 2px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-logo">
+      <i class="fas fa-seedling"></i>
+    </div>
+    <h1>Tiny Seed Farm</h1>
+    <p>Check Home Delivery Availability</p>
+  </div>
+
+  <div class="main-content">
+    <!-- Input Form -->
+    <div id="form-section" class="card">
+      <h2 class="card-title">
+        <i class="fas fa-map-marker-alt"></i>
+        Enter Your Address
+      </h2>
+
+      <div class="info-box">
+        <p><i class="fas fa-info-circle"></i> We deliver to addresses within a 10-minute radius of our established route. Enter your address to check availability.</p>
+      </div>
+
+      <form id="address-form">
+        <div class="form-group">
+          <label for="address">Street Address</label>
+          <input type="text" id="address" name="address" placeholder="123 Main Street" required>
+        </div>
+
+        <div class="form-group">
+          <label for="city">City</label>
+          <input type="text" id="city" name="city" placeholder="Pittsburgh" required>
+        </div>
+
+        <div class="form-group">
+          <label for="zip">ZIP Code</label>
+          <input type="text" id="zip" name="zip" placeholder="15201" maxlength="10" required>
+          <p class="form-hint">Pennsylvania addresses only</p>
+        </div>
+
+        <button type="submit" class="btn" id="check-btn">
+          <i class="fas fa-search"></i>
+          Check Availability
+        </button>
+      </form>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <i class="fas fa-spinner"></i>
+      <p>Checking your address...</p>
+    </div>
+
+    <!-- Result Section -->
+    <div id="result-section" class="result">
+      <!-- Accepted Result -->
+      <div id="result-accepted" class="result-accepted" style="display: none;">
+        <i class="fas fa-check-circle"></i>
+        <h2>Great News!</h2>
+        <p>Your address is in our delivery zone.</p>
+      </div>
+
+      <!-- Rejected Result -->
+      <div id="result-rejected" class="result-rejected" style="display: none;">
+        <i class="fas fa-map-marker-alt"></i>
+        <h2>Outside Delivery Zone</h2>
+        <p id="rejection-reason">Your address is outside our current delivery area.</p>
+      </div>
+
+      <!-- Details -->
+      <div id="result-details" class="card" style="display: none;">
+        <h3 class="card-title">
+          <i class="fas fa-info-circle"></i>
+          Delivery Details
+        </h3>
+        <div class="details-card">
+          <div class="detail-row">
+            <span class="detail-label">Address</span>
+            <span class="detail-value" id="detail-address">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Delivery Fee</span>
+            <span class="detail-value fee-highlight" id="detail-fee">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Delivery Day</span>
+            <span class="detail-value" id="detail-day">Wednesday</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alternatives -->
+      <div id="alternatives-section" class="card" style="display: none;">
+        <h3 class="alternatives-title">
+          <i class="fas fa-store"></i>
+          Nearby Pickup Locations
+        </h3>
+        <div id="alternatives-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Try Again Button -->
+      <button class="btn btn-secondary" onclick="resetForm()">
+        <i class="fas fa-redo"></i>
+        Check Another Address
+      </button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Questions? <a href="mailto:tinyseedcsa@gmail.com">Contact Us</a></p>
+    <p style="margin-top: 8px;">Tiny Seed Farm | Rochester, PA</p>
+  </div>
+
+  <script>
+    // API Configuration
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbwmkS-mFc-0dWVxKv-J9kMT79MoYPyDh62puQs7AJVMPGnQQ8cNsC3_xPfXa6q8m1-U/exec';
+
+    // DOM Elements
+    const form = document.getElementById('address-form');
+    const formSection = document.getElementById('form-section');
+    const loading = document.getElementById('loading');
+    const resultSection = document.getElementById('result-section');
+    const resultAccepted = document.getElementById('result-accepted');
+    const resultRejected = document.getElementById('result-rejected');
+    const resultDetails = document.getElementById('result-details');
+    const alternativesSection = document.getElementById('alternatives-section');
+
+    // Form Submit Handler
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const address = document.getElementById('address').value.trim();
+      const city = document.getElementById('city').value.trim();
+      const zip = document.getElementById('zip').value.trim();
+
+      if (!address || !city || !zip) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      const fullAddress = `${address}, ${city}, PA ${zip}`;
+
+      // Show loading
+      formSection.style.display = 'none';
+      loading.classList.add('show');
+      resultSection.classList.remove('show');
+
+      try {
+        const response = await fetch(`${API_BASE}?action=validateDeliveryAddress&address=${encodeURIComponent(fullAddress)}`);
+        const data = await response.json();
+
+        // Hide loading
+        loading.classList.remove('show');
+
+        // Show result
+        showResult(data);
+      } catch (error) {
+        loading.classList.remove('show');
+        formSection.style.display = 'block';
+        alert('Error checking address. Please try again.');
+        console.error('Error:', error);
+      }
+    });
+
+    function showResult(data) {
+      resultSection.classList.add('show');
+
+      if (data.success && data.accepted) {
+        // Accepted
+        resultAccepted.style.display = 'block';
+        resultRejected.style.display = 'none';
+        resultDetails.style.display = 'block';
+        alternativesSection.style.display = 'none';
+
+        document.getElementById('detail-address').textContent = data.formattedAddress || '-';
+        document.getElementById('detail-fee').textContent = data.fee ? `$${data.fee.toFixed(2)}` : 'Free';
+        document.getElementById('detail-day').textContent = 'Wednesday';
+
+      } else {
+        // Rejected
+        resultAccepted.style.display = 'none';
+        resultRejected.style.display = 'block';
+        resultDetails.style.display = 'none';
+
+        if (data.reason) {
+          document.getElementById('rejection-reason').textContent = data.reason;
+        }
+
+        // Show alternatives
+        if (data.alternatives && data.alternatives.length > 0) {
+          alternativesSection.style.display = 'block';
+          const list = document.getElementById('alternatives-list');
+          list.innerHTML = '';
+
+          data.alternatives.forEach(alt => {
+            const item = document.createElement('div');
+            item.className = 'alternative-item';
+            item.innerHTML = `
+              <div class="alternative-icon">
+                <i class="fas fa-store"></i>
+              </div>
+              <div class="alternative-info">
+                <div class="alternative-name">
+                  ${alt.name}
+                  <span class="alternative-day">${alt.day || 'Wed'}</span>
+                </div>
+                <div class="alternative-distance">${alt.distance ? alt.distance + ' miles away' : alt.address}</div>
+              </div>
+            `;
+            list.appendChild(item);
+          });
+        } else {
+          alternativesSection.style.display = 'none';
+        }
+      }
+    }
+
+    function resetForm() {
+      resultSection.classList.remove('show');
+      formSection.style.display = 'block';
+      form.reset();
+      resultAccepted.style.display = 'none';
+      resultRejected.style.display = 'none';
+      resultDetails.style.display = 'none';
+      alternativesSection.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

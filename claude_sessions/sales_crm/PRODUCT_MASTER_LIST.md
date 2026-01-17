@@ -9,61 +9,227 @@
 
 ## SUMMARY
 
-| Category | Product Count | Price Range |
-|----------|--------------|-------------|
-| Vegetables | 15 | $3.00 - $10.00 |
-| Herbs | 4 | $3.00 - $4.00 |
-| Flowers (single) | 4 | $8.00 - $15.00 |
-| CSA Vegetable | 6 + 6 tiers | $150 - $1,000 |
-| CSA Flowers | 5 | $90 - $400 |
-| Bundles | 4 | $10.00 - $25.00 |
-| **TOTAL** | **44** | Products cataloged |
+| Category | Product Count | Retail Range | Wholesale Range |
+|----------|--------------|--------------|-----------------|
+| Tomatoes | 4 | $4 - $65 | - |
+| Peppers | 15 | $3 - $25 | $5 - $5.50/lb |
+| Salad Greens | 9 | $4 - $10 | $12.50/lb, $63-66/case |
+| Bunched Greens | 8 | $4 | $20-30/12ct |
+| Head Lettuce | 12 | $3 - $6 | $20-50/12-24ct |
+| Brassicas | 9 | $3 - $6 | $1.75 - $5.50/lb |
+| Root Vegetables | 12 | $3 - $5 | $2.25 - $3/lb |
+| Alliums | 2 | $2 - $4 | - |
+| Other Vegetables | 9 | $2 - $5 | $2.25 - $3.25/lb |
+| Herbs | 16 | $3 | $11 - $30/unit |
+| Mushrooms | 3 | $5 - $6 | $12 - $18/lb |
+| Flowers & Floral | 7 | $3 - $35 | $6/8oz |
+| CSA Vegetable | 6 + 6 Flex tiers | $150 - $1,000 | - |
+| CSA Flowers | 5 | $90 - $400 | - |
+| Specialty | 3 | TBD | TBD |
+| **TOTAL** | **~120** | Products cataloged | |
 
-*CSA pricing from tinyseedfarm.com (2026 season)*
+*Pricing from Chef Wholesale List & Flex CSA Availability List (2025)*
+*CSA subscription pricing from tinyseedfarm.com (2026 season)*
 
 ---
 
-## VEGETABLES
+## TOMATOES
 
-| Product | Variety | Category | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
-|---------|---------|----------|------|--------|-----------|--------|-------------|---------|
-| Tomatoes, Heirloom | Cherokee Purple | Fruiting | lb | $6.00 | $4.50 | Jun-Oct | TOM-HEIR-LB | Tomatoes-Heirloom |
-| Tomatoes, Cherry | Sun Gold | Fruiting | pint | $5.00 | $4.00 | Jun-Oct | TOM-CHER-PT | Tomatoes-Cherry |
-| Peppers, Sweet | Jimmy Nardello | Fruiting | lb | $5.00 | $4.00 | Jul-Oct | PEP-SWET-LB | Peppers-Sweet |
-| Peppers, Hot | Mixed | Fruiting | lb | $6.00 | $4.50 | Jul-Oct | PEP-HOT-LB | Peppers-Hot |
-| Zucchini | Dark Green | Fruiting | lb | $3.00 | $2.00 | Jun-Sep | ZUC-DRK-LB | Zucchini |
-| Lettuce Mix | Salanova Formula | Leafy | bag (6oz) | $5.00 | $3.50 | Apr-Nov | LET-MIX-BG | Lettuce-Mix |
-| Mixed Salad Greens | Spring Mix | Leafy | lb | $10.00 | $8.50 | Apr-Nov | SAL-MIX-LB | Salad-Greens |
-| Kale, Lacinato | Dinosaur | Leafy | bunch | $4.00 | $3.50 | Apr-Nov | KAL-LAC-BN | Kale-Lacinato |
-| Kale, Curly | Winterbor | Leafy | bunch | $4.00 | $3.50 | Apr-Nov | KAL-CRL-BN | Kale-Curly |
-| Arugula | Wild/Standard | Leafy | bag (4oz) | $5.00 | $4.00 | Apr-Jun, Sep-Nov | ARU-STD-BG | Arugula |
-| Spinach | Bloomsdale | Leafy | bag (6oz) | $5.00 | $4.00 | Apr-Jun, Sep-Nov | SPN-BLM-BG | Spinach |
-| Carrots | Bolero/Rainbow | Root | bunch | $4.50 | $3.50 | Jun-Nov | CAR-RBW-BN | Carrots |
-| Beets | Detroit Dark Red | Root | bunch | $5.00 | $4.00 | Jun-Nov | BET-DDR-BN | Beets |
-| Radishes | French Breakfast | Root | bunch | $4.00 | $3.00 | Apr-Jun, Sep-Oct | RAD-FRB-BN | Radishes |
-| Sugar Snap Peas | Super Sugar Snap | Legume | lb | $9.00 | $7.00 | May-Jun | PEA-SNP-LB | Peas-Sugar-Snap |
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Slicing Tomatoes | 1 lb | $4.00 | - | Jun-Oct | TOM-SLIC-LB | Tomatoes-Slicing |
+| Cherry Tomato Mix | pint | $5.00 | - | Jun-Oct | TOM-CHER-PT | Tomatoes-Cherry |
+| Canning Tomatoes (10#) | 10 lb | $30.00 | - | Jul-Sep | TOM-CAN-10 | Tomatoes-Canning-10 |
+| Canning Tomatoes (30#) | 30 lb | $65.00 | - | Jul-Sep | TOM-CAN-30 | Tomatoes-Canning-30 |
+
+---
+
+## PEPPERS
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Bell Peppers | 2 ct | $3.00 | - | Jul-Oct | PEP-BELL-2CT | Peppers-Bell |
+| Bell Peppers (1/2 Bushel) | 1/2 bu | $20.00 | - | Jul-Oct | PEP-BELL-HBU | Peppers-Bell-Bulk |
+| Banana Peppers | carton | $3.00 | $5.00/lb | Jul-Oct | PEP-BANA-CT | Peppers-Banana |
+| Banana Peppers (1/2 Bushel) | 1/2 bu | $25.00 | - | Jul-Oct | PEP-BANA-HBU | Peppers-Banana-Bulk |
+| Sweet Pepper Mix | bag | $5.00 | - | Jul-Oct | PEP-SWMX-BG | Peppers-Sweet-Mix |
+| Sweet Italian Pepper Mix | carton | $5.00 | - | Jul-Oct | PEP-ITAL-CT | Peppers-Italian |
+| Sweet Peppers (1/2 Bushel) | 1/2 bu | $20.00 | - | Jul-Oct | PEP-SWET-HBU | Peppers-Sweet-Bulk |
+| Jalapenos | carton | $3.00 | $5.50/lb | Jul-Oct | PEP-JALA-CT | Peppers-Jalapeno |
+| Poblano Pepper | bag | $4.00 | - | Jul-Oct | PEP-POBL-BG | Peppers-Poblano |
+| Shishito Pepper | bag | $3.00 | $5.50/lb | Jul-Oct | PEP-SHIS-BG | Peppers-Shishito |
+| Cayenne Peppers | bag | $3.00 | - | Jul-Oct | PEP-CAYE-BG | Peppers-Cayenne |
+| Cherry Bomb Peppers | bag | $3.00 | - | Jul-Oct | PEP-CHRB-BG | Peppers-CherryBomb |
+| Habaneros | carton | $3.00 | - | Jul-Oct | PEP-HABA-CT | Peppers-Habanero |
+| Hatch Chiles | bag | $4.00 | - | Jul-Sep | PEP-HATC-BG | Peppers-Hatch |
+| Hot Pepper Mix | bag | $5.00 | - | Jul-Oct | PEP-HOTM-BG | Peppers-Hot-Mix |
+
+---
+
+## SALAD GREENS
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| King Spring Mix | 4 oz | $4.00 | $12.50/lb | Apr-Nov | SAL-KING-4OZ | Salad-KingSpring |
+| King Spring Mix (Big Bagz) | 12 oz | $9.00 | $63/6# case | Apr-Nov | SAL-KING-12OZ | Salad-KingSpring-Big |
+| Something Fresh Mix | 4 oz | $4.00 | $12.50/lb | Apr-Nov | SAL-SOME-4OZ | Salad-SomethingFresh |
+| Something Fresh Mix (Big Bagz) | 12 oz | $10.00 | $66/6# case | Apr-Nov | SAL-SOME-12OZ | Salad-SomethingFresh-Big |
+| Fancy Pants Mix | 4 oz | $4.00 | $12.50/lb | Apr-Nov | SAL-FANC-4OZ | Salad-FancyPants |
+| Fancy Pants Mix (Big Bagz) | 12 oz | $10.00 | $66/6# case | Apr-Nov | SAL-FANC-12OZ | Salad-FancyPants-Big |
+| Arugula | 4 oz | $4.00 | $12.50/lb | Apr-Nov | ARU-STD-4OZ | Arugula |
+| Arugula (Big Bagz) | 12 oz | $10.00 | $66/6# case | Apr-Nov | ARU-STD-12OZ | Arugula-Big |
+| Tatsoi | 4 oz | $5.00 | - | Apr-Nov | SAL-TATS-4OZ | Tatsoi |
+
+---
+
+## BUNCHED GREENS
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Dino Kale (Lacinato) | bunch | $4.00 | $2.50/lb, $25/12ct | Apr-Nov | KAL-DINO-BN | Kale-Dino |
+| Curly Kale | bunch | $4.00 | $22/12ct | Apr-Nov | KAL-CURL-BN | Kale-Curly |
+| Collards | bunch | $4.00 | - | Apr-Nov | GRN-COLL-BN | Collards |
+| Mustard Greens | bunch | $4.00 | - | Apr-Nov | GRN-MUST-BN | MustardGreens |
+| Swiss Chard | bunch | $4.00 | $20/12ct | Apr-Nov | GRN-CHAR-BN | SwissChard |
+| Broccoli Raab | bunch | $4.00 | - | Apr-Jun, Sep-Nov | GRN-RAAB-BN | BroccoliRaab |
+| Dandelion Greens | bunch | $4.00 | $20/12ct | Apr-Jun | GRN-DAND-BN | DandelionGreens |
+| Escarole | head | $4.00 | $30/12ct | Apr-Nov | GRN-ESCA-HD | Escarole |
+
+---
+
+## HEAD LETTUCE
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Butter Lettuce | head | $4.00 | $24/12ct | Apr-Nov | LET-BUTR-HD | Lettuce-Butter |
+| Romaine Lettuce | head | $4.00 | $24/12ct | Apr-Nov | LET-ROMA-HD | Lettuce-Romaine |
+| Red Sweet Crisp | head | $4.00 | $24/12ct | Apr-Nov | LET-RSCP-HD | Lettuce-RedSweetCrisp |
+| Green Sweet Crisp | head | $4.00 | $24/12ct | Apr-Nov | LET-GSCP-HD | Lettuce-GreenSweetCrisp |
+| Little Gem (Green) | head | $4.00 | $24/12ct | Apr-Nov | LET-LGMG-HD | Lettuce-LittleGem-Green |
+| Little Gem (Red) | head | $4.00 | $24/12ct | Apr-Nov | LET-LGMR-HD | Lettuce-LittleGem-Red |
+| Little Gem Duo | 2 heads | $5.00 | $50/24ct | Apr-Nov | LET-LGMD-2HD | Lettuce-LittleGem-Duo |
+| Head Lettuce Mix | 3 heads | $6.00 | $26/12ct | Apr-Nov | LET-HMIX-3HD | Lettuce-HeadMix |
+| Frisée | head | $3.00 | $22/12ct | Apr-Nov | LET-FRIS-HD | Frisee |
+| Radicchio | head | $3.00 | - | Apr-Nov | LET-RADI-HD | Radicchio |
+| Celtuce | head | $3.00 | $24/12ct | Apr-Nov | LET-CELT-HD | Celtuce |
+| Endive | head | $4.00 | $20/12ct | Apr-Nov | LET-ENDI-HD | Endive |
+
+---
+
+## BRASSICAS
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Large Bok Choy | head | $5.00 | $2.00/lb, $45/12ct | Apr-Nov | BRS-BOKC-HD | BokChoy |
+| Napa Cabbage | head | $5.00 | - | Apr-Nov | BRS-NAPA-HD | Cabbage-Napa |
+| Tokyo Bekana | head | $5.00 | - | Apr-Nov | BRS-TOKY-HD | TokyoBekana |
+| Cabbage (Green Round) | head | $5.00 | $2.00/lb | Jun-Nov | BRS-CABG-HD | Cabbage-Green |
+| Cabbage (Caraflex) | head | $5.00 | $2.00/lb | Jun-Nov | BRS-CARA-HD | Cabbage-Caraflex |
+| Cabbage (Savoy) | head | $5.00 | $1.75/lb | Jun-Nov | BRS-SAVO-HD | Cabbage-Savoy |
+| Broccoli | lb | $4.00 | $4.00/lb | Jun-Oct | BRS-BROC-LB | Broccoli |
+| Broccolini | lb | $6.00 | $5.50/lb | Jun-Oct | BRS-BROL-LB | Broccolini |
+| Kohlrabi | lb | $3.00 | $2.00/lb | Apr-Nov | BRS-KOHL-LB | Kohlrabi |
+
+---
+
+## ROOT VEGETABLES
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Carrot Bunch | bunch | $5.00 | - | Jun-Nov | ROT-CARR-BN | Carrots |
+| French Breakfast Radishes | bunch | $4.00 | $2.75/lb, $22.50/12ct | Apr-Nov | ROT-FRBR-BN | Radishes-FrenchBreakfast |
+| Red Radishes | bunch | $4.00 | $2.75/lb | Apr-Nov | ROT-REDR-BN | Radishes-Red |
+| Watermelon Radishes | bunch | $4.00 | - | Apr-Nov | ROT-WTML-BN | Radishes-Watermelon |
+| Daikon Radishes | bunch | $4.00 | - | Apr-Nov | ROT-DAIK-BN | Radishes-Daikon |
+| Hakurei Turnips | bunch | $4.00 | $2.25/lb, $25/12ct | Apr-Nov | ROT-HAKU-BN | Turnips-Hakurei |
+| Hinona Kabu Turnips | bunch | $4.00 | $2.25/lb | Apr-Nov | ROT-HINO-BN | Turnips-HinonaKabu |
+| Purple Top Turnips | bunch | $4.00 | - | Sep-Nov | ROT-PRPL-BN | Turnips-PurpleTop |
+| Baby Beets | 1 lb | $4.00 | - | Jun-Nov | ROT-BEET-LB | Beets-Baby |
+| Mixed Baby Beets | bunch | $5.00 | - | Jun-Nov | ROT-BMIX-BN | Beets-Mixed |
+| Potato Mix | carton | $5.00 | $3.00/lb | Jul-Nov | ROT-POTA-CT | Potatoes-Mix |
+| Scallions | bunch | $3.00 | $14/12ct | Apr-Nov | ROT-SCAL-BN | Scallions |
+
+---
+
+## ALLIUMS
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Fresh Onions | bunch | $4.00 | - | Jun-Nov | ALL-ONIO-BN | Onions-Fresh |
+| Garlic | head | $2.00 | - | Jul-Nov | ALL-GARL-HD | Garlic |
+
+---
+
+## OTHER VEGETABLES
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Green Zucchini | lb | $3.00 | $2.25/lb | Jun-Sep | VEG-ZUCC-LB | Zucchini-Green |
+| Zephyr Zucchini | lb | $3.00 | $2.25/lb | Jun-Sep | VEG-ZEPH-LB | Zucchini-Zephyr |
+| Costata Romanesco Zuc | lb | $3.00 | $2.25/lb | Jun-Sep | VEG-COST-LB | Zucchini-Costata |
+| Patty Pan Squash | lb | $3.00 | $3.00/lb | Jun-Sep | VEG-PATY-LB | Squash-PattyPan |
+| Summer Squash Mix | bag | $5.00 | - | Jun-Sep | VEG-SQMX-BG | Squash-SummerMix |
+| Slicing Cucumbers | each | $2.00 | $2.75/lb, $11/12ct | Jun-Sep | VEG-CUCS-EA | Cucumbers-Slicing |
+| Pickling Cucumbers | carton | $3.00 | $3.25/lb | Jun-Sep | VEG-CUCP-CT | Cucumbers-Pickling |
+| Green Beans | bag | $5.00 | $2.75/lb, $44/bu | Jun-Sep | VEG-BEAN-BG | GreenBeans |
+| Fennel | head | $4.00 | $4.00/lb | Jun-Nov | VEG-FENN-HD | Fennel |
 
 ---
 
 ## HERBS
 
-| Product | Variety | Category | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
-|---------|---------|----------|------|--------|-----------|--------|-------------|---------|
-| Basil | Genovese/Prospera DMR | Culinary | bunch | $4.00 | $3.00 | Jun-Sep | BAS-GEN-BN | Basil |
-| Cilantro | Santo | Culinary | bunch | $3.00 | $2.50 | Apr-Jun, Sep-Oct | CIL-SAN-BN | Cilantro |
-| Parsley | Italian Flat-Leaf | Culinary | bunch | $3.00 | $2.50 | May-Nov | PAR-ITA-BN | Parsley |
-| Dill | Bouquet | Culinary | bunch | $3.00 | $2.50 | May-Sep | DIL-BQT-BN | Dill |
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Basil | bunch | $3.00 | $11.00/lb | Jun-Sep | HRB-BASI-BN | Basil |
+| Holy Basil (Tulsi) | bunch | $3.00 | $11.00/lb | Jun-Sep | HRB-HOLY-BN | Basil-Holy |
+| Thai Basil | bunch | $3.00 | $11.00/lb | Jun-Sep | HRB-THAI-BN | Basil-Thai |
+| Cilantro | bunch | $3.00 | $26.50/24ct | Apr-Jun, Sep-Oct | HRB-CILA-BN | Cilantro |
+| Parsley | bunch | $3.00 | $30.00/24ct | May-Nov | HRB-PARS-BN | Parsley |
+| Dill | bunch | $3.00 | $26.50/24ct | May-Sep | HRB-DILL-BN | Dill |
+| Rosemary | bunch | $3.00 | $11.00/lb | May-Nov | HRB-ROSM-BN | Rosemary |
+| Sage | bunch | $3.00 | $12.00/12ct | May-Nov | HRB-SAGE-BN | Sage |
+| Thyme | bunch | $3.00 | - | May-Nov | HRB-THYM-BN | Thyme |
+| Fresh Oregano | bunch | $3.00 | $12.00/12ct | May-Nov | HRB-OREG-BN | Oregano |
+| Spearmint | bunch | $3.00 | $11.00/lb | May-Sep | HRB-SPMN-BN | Spearmint |
+| Apple Mint | bunch | $3.00 | $11.00/lb | May-Sep | HRB-APMN-BN | Mint-Apple |
+| Lemon Balm | bunch | $3.00 | $12.00/lb | May-Sep | HRB-LEMB-BN | LemonBalm |
+| Anise Hyssop | bunch | $3.00 | - | Jun-Sep | HRB-ANIS-BN | AniseHyssop |
+| Shiso | bunch | $3.00 | - | Jun-Sep | HRB-SHIS-BN | Shiso |
+| Tarragon | bunch | $3.00 | - | May-Sep | HRB-TARR-BN | Tarragon |
 
 ---
 
-## FLOWERS
+## MUSHROOMS
 
-| Product | Variety | Category | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
-|---------|---------|----------|------|--------|-----------|--------|-------------|---------|
-| Sunflowers | ProCut Orange | Cut Flower | bunch (5 stems) | $12.00 | $10.00 | Jul-Oct | SUN-PRO-BN | Sunflowers |
-| Zinnias | Mixed | Cut Flower | bunch (10 stems) | $10.00 | $8.00 | Jul-Oct | ZIN-MIX-BN | Zinnias |
-| Dahlias | Mixed | Cut Flower | bunch (5 stems) | $15.00 | $12.00 | Aug-Oct | DAH-MIX-BN | Dahlias |
-| Cosmos | Sensation Mix | Cut Flower | bunch (10 stems) | $8.00 | $6.00 | Jul-Oct | COS-SEN-BN | Cosmos |
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Oyster Mushrooms | bag | $5.00 | $12.00/lb | Year-round | MSH-OYST-BG | Mushrooms-Oyster |
+| Oyster Mushrooms | 4 oz | $6.00 | - | Year-round | MSH-OYST-4OZ | Mushrooms-Oyster-4oz |
+| Lion's Mane | 4 oz | $6.00 | $18.00/lb | Year-round | MSH-LION-4OZ | Mushrooms-LionsMane |
+
+---
+
+## FLOWERS & FLORAL
+
+| Product | Unit | Retail | Wholesale | Season | Shopify SKU | QB Item |
+|---------|------|--------|-----------|--------|-------------|---------|
+| Small Bouquet | bouquet | $18.00 | - | Jun-Oct | FLR-SMBO-BQ | Bouquet-Small |
+| Large Bouquet | bouquet | $35.00 | - | Jun-Oct | FLR-LGBO-BQ | Bouquet-Large |
+| Zinnia Bunch | bouquet | $12.00 | - | Jul-Oct | FLR-ZINN-BQ | Zinnias |
+| Giant Marigold Bunch | bouquet | $10.00 | - | Jul-Oct | FLR-MARI-BQ | Marigold-Giant |
+| Edible Flowers | carton | $7.00 | $6.00/8oz | Jun-Oct | FLR-EDIB-CT | Flowers-Edible |
+| Bud Vases | 12 ct | Inquire | Inquire | Jun-Oct | FLR-BUDV-12CT | BudVases |
+| Catnip | bunch | $3.00 | - | Jun-Sep | FLR-CATN-BN | Catnip |
+
+---
+
+## SPECIALTY ITEMS (TBD Pricing)
+
+| Product | Unit | Status | Shopify SKU | QB Item |
+|---------|------|--------|-------------|---------|
+| Dried Chilis | TBD | Coming | SPC-DRCH | DriedChilis |
+| Smoked Peppers | TBD | Coming | SPC-SMKP | SmokedPeppers |
+| Dried Mushrooms | TBD | Coming | SPC-DRMH | DriedMushrooms |
 
 ---
 
