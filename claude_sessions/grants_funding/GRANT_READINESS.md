@@ -387,18 +387,40 @@ Status: SAM.gov Registered - YES
 - [ ] Obtain USDA Farm Number from FSA
 - [ ] Confirm eAuthentication account level
 
+### Critical (Blocks PA Ag Innovation Application)
+- [ ] **Land use authorization letter from Don** - REQUIRED for property control
+- [ ] Phone number for primary contact
+- [ ] Email for primary contact
+- [ ] Equipment invoices (high tunnel + caterpillar tunnels) for match documentation
+
 ### Important (Needed for Most Applications)
-- [ ] 3 years of revenue figures
+- [ ] 3 years of revenue figures (2023, 2024, 2025)
 - [ ] Breakdown of vegetable vs. flower acreage
 - [ ] Current loan status
-- [ ] Outcomes of previous grant applications
-- [ ] Phone and email for primary contact
+- [ ] Outcomes of previous grant applications (PA Ag Innovation, Farm Vitality, PASA Business Builder)
+- [ ] Recent bank statements (3-6 months) for cash match verification
 
 ### Helpful (Strengthens Applications)
 - [ ] Document food access programs
-- [ ] Gather letters of support
-- [ ] Create farm map/aerial photo
+- [ ] Gather letters of support (Don, restaurant partner, PASA, Penn State Extension)
+- [ ] Create farm map/aerial photo with tunnel installation sites marked
+- [ ] Photos of owned tunnels in current storage location
 - [ ] Develop formal business plan
+
+---
+
+## SESSION 4 UPDATE (2026-01-16)
+
+### New Documents Created
+- `PA_AG_INNOVATION_DRAFT.md` - Full draft application for Season Extension System
+- `GRANT_APPLICATION_CHECKLIST.md` - Comprehensive submission checklist
+
+### Equipment Match Verified (From Previous Documents)
+| Item | Value | Status |
+|------|-------|--------|
+| High Tunnel (30' x 100') | $15,000 | Owned, ready to install |
+| Caterpillar Tunnels (4 x 15' x 90') | $12,500 | Owned, ready to install |
+| **Total Equipment Match** | **$27,500** | Need invoices to document |
 
 ---
 

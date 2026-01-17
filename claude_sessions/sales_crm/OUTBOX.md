@@ -1,354 +1,164 @@
 # OUTBOX: Sales_CRM Claude
 ## To: PM_Architect
 
-**Updated:** 2026-01-16 06:30
+**Updated:** 2026-01-16 10:00
 
 ---
 
-## OVERNIGHT MISSION COMPLETE: PRODUCT STANDARDIZATION
+## STATUS: ALL DELIVERABLES COMPLETE + BONUS
 
-Completed all deliverables from the overnight directive.
-
-### Documents Created
+### Primary Mission: COMPLETE
 
 | Document | Status | Location |
 |----------|--------|----------|
-| PRODUCT_MASTER_LIST.md | COMPLETE | `/claude_sessions/sales_crm/PRODUCT_MASTER_LIST.md` |
-| AVAILABILITY_CALENDAR.md | COMPLETE | `/claude_sessions/sales_crm/AVAILABILITY_CALENDAR.md` |
-| PLATFORM_SYNC_SPEC.md | COMPLETE | `/claude_sessions/sales_crm/PLATFORM_SYNC_SPEC.md` |
-| MORNING_PRODUCT_BRIEF.md | COMPLETE | `/claude_sessions/sales_crm/MORNING_PRODUCT_BRIEF.md` |
-
-### Product Catalog Summary
-
-| Category | Count | Price Range |
-|----------|-------|-------------|
-| Vegetables | 15 | $3.00 - $10.00 |
-| Herbs | 4 | $3.00 - $4.00 |
-| Flowers | 4 | $8.00 - $15.00 |
-| CSA Shares | 4 | TBD (needs owner input) |
-| Bundles | 4 | $10.00 - $25.00 |
-| **TOTAL** | **27** | Products cataloged |
-
-### Key Deliverables
-
-1. **PRODUCT_MASTER_LIST.md**
-   - 27 products with SKUs, units, retail/wholesale prices
-   - Standardized SKU format: `[CROP-3]-[VAR-3]-[UNIT-2]`
-   - QuickBooks item naming convention
-   - Seasonal availability per product
-
-2. **AVAILABILITY_CALENDAR.md**
-   - Monthly availability matrix (H/P/L/- notation)
-   - Season breakdown (Early/Peak/Late/Storage)
-   - Farm location data: Zelienople, PA (Zone 6a)
-   - Frost dates: Spring May 20, Fall Oct 10
-   - CSA share contents by season
-
-3. **PLATFORM_SYNC_SPEC.md**
-   - Data mapping: Master → Shopify → QuickBooks
-   - Sync workflows: Products, Prices, Inventory, Orders
-   - Conflict resolution rules (REF_CropProfiles is master)
-   - Implementation checklist
-   - Monitoring metrics
-
-4. **MORNING_PRODUCT_BRIEF.md**
-   - Executive summary for owner review
-   - 13 questions for owner (pricing, products, operations, technical)
-   - Implementation priorities
-   - Ready for morning review
-
-### Questions for Owner (from MORNING_PRODUCT_BRIEF.md)
-
-**Pricing:**
-1. Are the sample prices accurate?
-2. Target wholesale discount (15%, 20%, 25%)?
-3. Actual CSA share season prices?
-
-**Products:**
-4. Any products missing?
-5. Any products to remove for 2026?
-6. Do you sell transplants to public?
-7. Any value-added products?
-
-**Operations:**
-8. Winter production?
-9. Storage crops sold through winter?
-10. Holiday/gift boxes?
-
-**Technical:**
-11. Shopify credentials ready?
-12. QuickBooks credentials ready?
-13. Preferred sync frequency?
-
-### Data Sources Used
-
-- `web_app/customer.html` - Sample retail products
-- `web_app/wholesale.html` - Sample wholesale products
-- `apps_script/MERGED TOTAL.js` - REF_CropProfiles schema
-- `calendar.html` - Crop varieties and DTM
-- `succession.html` - Crop planning data
-
-### Next Steps (After Owner Review)
-
-1. Owner reviews MORNING_PRODUCT_BRIEF.md
-2. Owner answers 13 questions
-3. Owner provides Shopify/QB credentials
-4. Finalize product prices (especially CSA)
-5. Enable platform integrations
-6. Initial product sync to Shopify/QB
+| PRODUCT_MASTER_LIST.md | **COMPLETE** | `/claude_sessions/sales_crm/PRODUCT_MASTER_LIST.md` |
+| AVAILABILITY_CALENDAR.md | **COMPLETE** | `/claude_sessions/sales_crm/AVAILABILITY_CALENDAR.md` |
+| PLATFORM_SYNC_SPEC.md | **COMPLETE** | `/claude_sessions/sales_crm/PLATFORM_SYNC_SPEC.md` |
+| MORNING_PRODUCT_BRIEF.md | **COMPLETE** | `/claude_sessions/sales_crm/MORNING_PRODUCT_BRIEF.md` |
+| TRACEABILITY_DESIGN.md | **BONUS** | `/claude_sessions/sales_crm/TRACEABILITY_DESIGN.md` |
 
 ---
 
-## INTEGRATION STATUS UPDATE
+## PRODUCT CATALOG - FINAL COUNT
 
-Previous Shopify/QuickBooks integration work is complete.
+Updated with real pricing data from owner's files:
+
+| Category | Count | Retail Range | Wholesale Range |
+|----------|-------|--------------|-----------------|
+| Tomatoes | 4 | $4 - $65 | - |
+| Peppers | 15 | $3 - $25 | $5 - $5.50/lb |
+| Salad Greens | 9 | $4 - $10 | $12.50/lb, $63-66/case |
+| Bunched Greens | 8 | $4 | $20-30/12ct |
+| Head Lettuce | 12 | $3 - $6 | $20-50/12-24ct |
+| Brassicas | 9 | $3 - $6 | $1.75 - $5.50/lb |
+| Root Vegetables | 12 | $3 - $5 | $2.25 - $3/lb |
+| Alliums | 2 | $2 - $4 | - |
+| Other Vegetables | 9 | $2 - $5 | $2.25 - $3.25/lb |
+| Herbs | 16 | $3 | $11 - $30/unit |
+| Mushrooms | 3 | $5 - $6 | $12 - $18/lb |
+| Flowers & Floral | 7 | $3 - $35 | $6/8oz |
+| CSA Vegetable | 6 + 6 Flex tiers | $150 - $1,000 | - |
+| CSA Flowers | 5 | $90 - $400 | - |
+| **TOTAL** | **~120** | Products cataloged | |
+
+---
+
+## DATA SOURCES USED
+
+### From Owner
+1. **Chef Wholesale List - CHEF LIST.csv** - Wholesale pricing for restaurants
+2. **FLEX CSA AVAILABILITY LIST - FLEXLIST.csv** - Retail pricing for Flex CSA
+
+### From Website
+3. **tinyseedfarm.com** - 2026 CSA subscription pricing
+
+### From Codebase
+4. `apps_script/MERGED TOTAL.js` - REF_CropProfiles schema
+5. `web_app/customer.html` - Sample products
+6. `calendar.html`, `succession.html` - Crop planning data
+
+---
+
+## CSA PRICING (from tinyseedfarm.com)
+
+### Vegetable Shares
+| Share | Weekly | Biweekly |
+|-------|--------|----------|
+| Small Summer | $540 | $270 |
+| Friends & Family | $720 | $360 |
+| Spring CSA | $150 (limited) | - |
+| Flex CSA | $150 - $1,000 (6 tiers) | - |
+
+### Flower Shares (Tiny Seed Fleurs)
+| Share | Weekly | Biweekly |
+|-------|--------|----------|
+| Full Bloom Bouquet | $400 | $200 |
+| Petite Bloom Bouquet | $300 | $150 |
+| DIY Bloom Bucket | $90 (season) | - |
+
+---
+
+## 2026 FARMERS MARKETS (CONFIRMED BY OWNER)
+
+| Market | Status |
+|--------|--------|
+| Lawrenceville | Returning |
+| Bloomfield | Returning |
+| Sewickley | Returning |
+| Squirrel Hill | **NEW** |
+
+*Dropped for 2026: Northside, Forest Hills*
+
+---
+
+## BONUS: TRACEABILITY DESIGN
+
+Owner requested seed-to-sale traceability research. Created comprehensive design:
+
+### Key Findings
+- FSMA 204 Food Traceability Rule (effective 2026)
+- Industry standard: Traceability Lot Codes (TLC)
+- Your system already links seeds → plantings via `deductSeedsForPlanting()`
+
+### Proposed TLC Format
+```
+[CROP-3]-[FIELD]-[YYYYMMDD]
+Example: TOM-F3-20260715
+```
+
+### Complete Chain
+```
+Seed_Lot_ID → Batch_ID → Lot_ID (TLC) → Order_ID
+INV_Seeds → PLAN_Plantings → LOG_Harvest → SALES_OrderItems
+```
+
+### Gaps Identified
+1. No Crop_ID in REF_CropProfiles
+2. No REF_Products sheet linking SKUs to crops
+3. No LOG_Harvest sheet for TLC assignment
+4. No Lot_ID in sales order items
+
+See `TRACEABILITY_DESIGN.md` for full specification.
+
+---
+
+## INTEGRATION STATUS
 
 | Component | Status |
 |-----------|--------|
-| Shopify Integration Code | READY |
-| QuickBooks Integration Code | READY |
-| Product Master Data | DRAFT - Awaiting review |
-| Platform Sync Spec | COMPLETE |
+| Shopify Integration Code | **READY** - needs credentials |
+| QuickBooks Integration Code | **READY** - needs credentials |
+| Product Master Data | **COMPLETE** - 120 products |
+| Platform Sync Spec | **COMPLETE** |
+| Traceability Design | **COMPLETE** - awaiting approval |
 | **Credentials** | **STILL NEEDS OWNER** |
 
 ---
 
-## SHOPIFY & QUICKBOOKS INTEGRATION - IMPLEMENTED
+## REMAINING QUESTIONS FOR OWNER
 
-I researched and implemented both integrations. Code is ready - just needs credentials.
+### Answered
+- ✓ CSA pricing (pulled from website)
+- ✓ 2026 farmers markets (4 confirmed)
+- ✓ Product pricing (from CSV files)
 
----
-
-## RESEARCH FINDINGS
-
-### Shopify API
-- **Authentication**: OAuth2 or Access Token (for private/custom apps)
-- **API Version**: 2024-01
-- **Key Endpoints**: `/admin/api/{version}/orders.json`, `/products.json`, `/inventory_levels/set.json`
-- **Webhooks**: Support real-time sync for orders/create, orders/updated, products/update
-- **Library**: Uses Google Apps Script OAuth2 library (ID: 1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF)
-
-### QuickBooks Online API
-- **Authentication**: OAuth2 with 60-minute token expiration (auto-refresh)
-- **Auth URL**: `https://appcenter.intuit.com/connect/oauth2`
-- **Token URL**: `https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`
-- **Scope**: `com.intuit.quickbooks.accounting`
-- **Key Endpoints**: `/invoice`, `/customer`, `/query`
-- **Note**: 2025 changes require Intuit App Partner Program registration
-
-### Sources
-- [Google Apps Script OAuth2 Library](https://github.com/googleworkspace/apps-script-oauth2)
-- [QuickBooks OAuth2 for Apps Script](https://gist.github.com/goelp/945ee0583e1df9663cc9e17ae5a2b9bb)
-- [Shopify API Examples](https://gist.github.com/jalcantarab/903121ac2a1b8879746224bf0feee770)
+### Still Need
+1. Shopify credentials (store name, API key, access token)
+2. QuickBooks credentials (client ID, client secret, company ID)
+3. Approval of traceability lot code format
+4. Any missing products or price corrections?
 
 ---
 
-## IMPLEMENTATION COMPLETE
+## NEXT STEPS
 
-### Files Modified
-**`apps_script/MERGED TOTAL.js`** - Added ~950 lines of integration code (lines 17804-18752)
-
-### New Configuration (lines 17821-17840)
-```javascript
-const SHOPIFY_CONFIG = {
-  STORE_NAME: 'YOUR_STORE_NAME',
-  API_KEY: 'YOUR_SHOPIFY_API_KEY',
-  API_SECRET: 'YOUR_SHOPIFY_API_SECRET',
-  ACCESS_TOKEN: 'YOUR_SHOPIFY_ACCESS_TOKEN',
-  API_VERSION: '2024-01',
-  ENABLED: false  // Set true after config
-};
-
-const QUICKBOOKS_CONFIG = {
-  CLIENT_ID: 'YOUR_QB_CLIENT_ID',
-  CLIENT_SECRET: 'YOUR_QB_CLIENT_SECRET',
-  COMPANY_ID: 'YOUR_QB_COMPANY_ID',
-  ENVIRONMENT: 'sandbox',  // or 'production'
-  ENABLED: false  // Set true after config
-};
-```
-
-### New Sheets Created (run `setupIntegrationSheets()`)
-| Sheet | Purpose |
-|-------|---------|
-| SHOPIFY_Orders | Synced Shopify orders |
-| SHOPIFY_Products | Synced products/variants |
-| QB_Customers | QuickBooks customers |
-| QB_Invoices | Created invoices |
-| INTEGRATION_Log | Activity logging |
-| SYS_OAuthTokens | Token storage |
+Once owner provides credentials:
+1. Enable Shopify integration
+2. Enable QuickBooks integration
+3. Initial product sync to both platforms
+4. Implement traceability system (Phase 1)
 
 ---
 
-## NEW API ENDPOINTS
-
-### GET Endpoints (doGet)
-| Endpoint | Function |
-|----------|----------|
-| `getIntegrationStatus` | Check Shopify/QB connection status |
-| `setupIntegrationSheets` | Create required sheets |
-| `getShopifyAuthUrl` | Get Shopify OAuth URL |
-| `testShopifyConnection` | Test Shopify API |
-| `syncShopifyOrders` | Pull orders from Shopify |
-| `syncShopifyProducts` | Pull products from Shopify |
-| `getShopifyOrder` | Get single order |
-| `getQuickBooksAuthUrl` | Get QB OAuth URL |
-| `testQuickBooksConnection` | Test QB API |
-| `disconnectQuickBooks` | Revoke QB access |
-| `syncQuickBooksCustomers` | Pull customers from QB |
-| `createInvoiceFromOrder` | Create QB invoice from order |
-| `syncShopifyOrderToQuickBooks` | Shopify order → QB invoice |
-
-### POST Endpoints (doPost)
-| Endpoint | Function |
-|----------|----------|
-| `shopifyWebhook` | Handle Shopify webhooks |
-| `createQuickBooksInvoice` | Create invoice directly |
-| `createQuickBooksCustomer` | Create customer directly |
-
----
-
-## SHOPIFY FEATURES IMPLEMENTED
-
-### Orders
-- `syncShopifyOrders()` - Bulk sync orders from Shopify
-- `getShopifyOrder(orderId)` - Get single order
-- `updateShopifyOrderFulfillment()` - Mark as fulfilled with tracking
-- `handleShopifyOrderWebhook()` - Real-time order sync
-
-### Products & Inventory
-- `syncShopifyProducts()` - Bulk sync products
-- `updateShopifyInventory()` - Update stock levels
-- `syncFarmInventoryToShopify()` - Push farm inventory (placeholder)
-- `handleShopifyProductWebhook()` - Real-time product sync
-
----
-
-## QUICKBOOKS FEATURES IMPLEMENTED
-
-### Customers
-- `syncQuickBooksCustomers()` - Bulk sync from QB
-- `createQuickBooksCustomer()` - Create new customer
-- `findOrCreateQBCustomer()` - Find by email or create
-
-### Invoices
-- `createQuickBooksInvoice()` - Create invoice with line items
-- `createInvoiceFromOrder()` - Create invoice from SALES_Orders
-- `syncShopifyOrderToQuickBooks()` - Shopify order → QB invoice
-
----
-
-## DATA FLOW (When Configured)
-
-```
-SHOPIFY STORE
-     ↓ (webhook or sync)
-SHOPIFY_Orders sheet
-     ↓ (syncShopifyOrderToQuickBooks)
-QUICKBOOKS INVOICE
-     ↓
-QB_Invoices sheet (tracking)
-```
-
-```
-FARM ORDER (customer.html/wholesale.html)
-     ↓
-SALES_Orders sheet
-     ↓ (createInvoiceFromOrder)
-QUICKBOOKS INVOICE
-     ↓
-QB_Invoices sheet (tracking)
-```
-
----
-
-## SETUP INSTRUCTIONS FOR OWNER
-
-### Step 1: Add OAuth2 Library to Apps Script
-1. Open Apps Script editor
-2. Libraries → Add
-3. Script ID: `1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF`
-4. Select latest version
-
-### Step 2: Create Shopify Custom App
-1. Go to: `https://admin.shopify.com/store/{store}/settings/apps/development`
-2. Create new app
-3. Configure Admin API scopes:
-   - `read_products`, `write_products`
-   - `read_orders`, `write_orders`
-   - `read_inventory`, `write_inventory`
-   - `read_customers`
-4. Install app and get Access Token
-5. Update `SHOPIFY_CONFIG` in code
-
-### Step 3: Create QuickBooks App
-1. Go to: `https://developer.intuit.com/app/developer/qbo/docs/get-started`
-2. Create new app
-3. Get Client ID and Client Secret
-4. Set redirect URI to Apps Script callback URL
-5. Update `QUICKBOOKS_CONFIG` in code
-
-### Step 4: Initialize
-1. Run `setupIntegrationSheets()` to create sheets
-2. Set `ENABLED: true` for each service
-3. For QuickBooks: Call `getQuickBooksAuthUrl()` and authorize
-4. Test connections with `testShopifyConnection()` and `testQuickBooksConnection()`
-
-### Step 5: Configure Shopify Webhooks (Optional)
-1. In Shopify Admin → Settings → Notifications → Webhooks
-2. Add webhook for `orders/create` pointing to your Apps Script URL with `?action=shopifyWebhook&topic=orders/create`
-
----
-
-## WHAT'S LEFT TO DO
-
-| Task | Owner | Notes |
-|------|-------|-------|
-| Add credentials | Owner | Shopify & QB app credentials |
-| Set ENABLED: true | Owner | In config after adding credentials |
-| Run OAuth flow | Owner | Click QB auth URL to connect |
-| Configure webhooks | Owner | Optional - for real-time sync |
-| Test end-to-end | Sales_CRM Claude | After credentials added |
-
----
-
-## TESTING (After Credentials Added)
-
-```javascript
-// Test Shopify
-testShopifyConnection()
-syncShopifyOrders({ limit: 5 })
-syncShopifyProducts()
-
-// Test QuickBooks
-testQuickBooksConnection()
-syncQuickBooksCustomers()
-
-// Test Integration
-syncShopifyOrderToQuickBooks('shopify-order-id')
-createInvoiceFromOrder('ORD-xxx', 'Sales')
-```
-
----
-
-## SUMMARY
-
-| Component | Status |
-|-----------|--------|
-| Shopify OAuth2 | IMPLEMENTED |
-| Shopify API calls | IMPLEMENTED |
-| Shopify webhooks | IMPLEMENTED |
-| QuickBooks OAuth2 | IMPLEMENTED |
-| QuickBooks invoices | IMPLEMENTED |
-| QuickBooks customers | IMPLEMENTED |
-| Shopify → QB sync | IMPLEMENTED |
-| Farm Order → QB | IMPLEMENTED |
-| Integration sheets | IMPLEMENTED |
-| API endpoints | IMPLEMENTED |
-| **Credentials** | **NEEDS OWNER** |
-
-**Code is deployed and ready. Just needs Shopify/QuickBooks app credentials from owner.**
-
----
-
-*Sales_CRM Claude - Implementation Complete*
+*Sales_CRM Claude - All deliverables complete*
+*Awaiting credentials to go live*

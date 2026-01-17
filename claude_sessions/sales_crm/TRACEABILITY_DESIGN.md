@@ -93,10 +93,37 @@ SALES_Orders (Customer Sales)
 |------|---------------|-----|
 | Unique Crop ID | None - uses Crop_Name | **MISSING** |
 | Product → Crop linking | None | **MISSING** |
-| Harvest → Lot tracking | Batch_ID exists but incomplete | **PARTIAL** |
+| Seed → Planting linking | **EXISTS** via `deductSeedsForPlanting()` | **DONE** |
+| Harvest → Batch linking | Batch_ID exists but not in harvest log | **PARTIAL** |
+| Harvest → Lot tracking | No formal harvest lot system | **MISSING** |
 | Sale → Lot linking | None | **MISSING** |
 | Pack date recording | Exists in employee.html | **EXISTS** |
 | Customer recall capability | Cannot trace product to buyer | **MISSING** |
+
+### Existing Seed-to-Planting Link (Already Working!)
+
+Your system already links seeds to plantings via `deductSeedsForPlanting()` in MERGED TOTAL.js:
+
+```javascript
+// When a planting is created, seeds are deducted and linked:
+seedDeduction = deductSeedsForPlanting({
+  crop: 'Tomatoes',
+  variety: 'Cherokee Purple',
+  plantsNeeded: 200,
+  batchId: 'TOM-2026-003',  // ← Planting batch
+  method: 'Transplant'
+});
+
+// This creates a transaction in INV_Transactions:
+// - Seed_Lot_ID: SL-TOM-2025-001
+// - Batch_ID: TOM-2026-003  ← Links seed to planting!
+// - Transaction_Type: APPLICATION
+```
+
+**What we need to add:**
+1. Capture `Seed_Lot_ID` in PLAN_Plantings (currently only in transaction log)
+2. Pass `Batch_ID` + `Seed_Lot_ID` to harvest logging
+3. Pass `Lot_ID` to sales order items
 
 ---
 
@@ -175,7 +202,7 @@ Master list of sellable products, linked to crops:
 
 ### 3. LOG_Harvest (NEW or Enhanced)
 
-Track each harvest event with traceability lot codes:
+Track each harvest event with full traceability back to seed:
 
 | Column | Type | Description | Example |
 |--------|------|-------------|---------|
@@ -183,6 +210,7 @@ Track each harvest event with traceability lot codes:
 | **Harvest_Date** | Date | Date harvested | 2026-07-15 |
 | **Crop_ID** | String | FK → REF_CropProfiles | "CROP-045" |
 | **Batch_ID** | String | FK → PLAN_Plantings | "TOM-2026-003" |
+| **Seed_Lot_ID** | String | FK → INV_Seeds (auto from Batch) | "SL-TOM-2025-001" |
 | **Field_ID** | String | Field harvested from | "F3" |
 | **Bed_IDs** | String | Specific beds | "F3-01, F3-02" |
 | **Qty_Harvested** | Number | Amount harvested | 150 |
@@ -198,6 +226,62 @@ Track each harvest event with traceability lot codes:
 | **Qty_Waste** | Number | Amount culled/waste | 5 |
 | **Status** | String | Lot status | "Active" / "Depleted" |
 | **Notes** | String | Any notes | "Beautiful fruit" |
+
+### Complete Traceability Chain
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     SEED-TO-SALE TRACEABILITY                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  INV_Seeds                PLAN_Plantings              LOG_Harvest       │
+│  ──────────               ──────────────              ───────────       │
+│  Seed_Lot_ID ──────────→  Batch_ID                                      │
+│  Supplier                 Seed_Lot_ID ←───(linked)                      │
+│  Crop                     Crop                                          │
+│  Variety                  Variety                     Lot_ID (TLC)      │
+│  Purchase_Date            Sow_Date                    Batch_ID ←────────┤
+│  QR_Code_URL              Transplant_Date             Seed_Lot_ID ←─────┤
+│                           Target_Bed_ID               Harvest_Date      │
+│                           Plants_Needed               Field_ID          │
+│                                                       Qty_Harvested     │
+│                                                              │          │
+│                                                              ▼          │
+│                                                       SALES_OrderItems  │
+│                                                       ────────────────  │
+│                                                       Order_ID          │
+│                                                       Product_ID        │
+│                                                       Lot_ID ←──────────┤
+│                                                       Qty_Sold          │
+│                                                              │          │
+│                                                              ▼          │
+│                                                       SALES_Orders      │
+│                                                       ────────────      │
+│                                                       Customer_ID       │
+│                                                       Order_Date        │
+│                                                       Delivery_Date     │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+TRACE EXAMPLE:
+══════════════
+Customer complaint about tomatoes in Order ORD-2026-0892
+                    │
+                    ▼
+Query SALES_OrderItems → Lot_ID = TOM-F3-20260715
+                    │
+                    ▼
+Query LOG_Harvest → Batch_ID = TOM-2026-003, Seed_Lot_ID = SL-TOM-2025-001
+                    │
+                    ▼
+Query PLAN_Plantings → Sow_Date = 2026-03-15, Beds = F3-01,02,03
+                    │
+                    ▼
+Query INV_Seeds → Supplier = Johnny's Seeds, Variety = Cherokee Purple
+                    │
+                    ▼
+FULL TRACE COMPLETE: Seed supplier → Sow date → Field → Harvest → Customer
+```
 
 ### 4. SALES_OrderItems (Enhanced)
 
