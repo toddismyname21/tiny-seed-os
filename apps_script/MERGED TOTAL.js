@@ -23994,3 +23994,539 @@ function generateTracebackReport(params) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GMAIL AUTO-ORGANIZER AUTOMATION
+// ═══════════════════════════════════════════════════════════════════════════
+// Automatically sorts, labels, and prioritizes inbox emails
+// Run setupGmailAutoSort() once to enable hourly automation
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Gmail label configuration
+ * Colors: Available Gmail label colors (use color name from Gmail UI)
+ */
+const GMAIL_LABELS = {
+  MONEY: { name: '🔴 MONEY', color: null },           // Orders, payments, invoices
+  CUSTOMERS: { name: '🟠 CUSTOMERS', color: null },   // Customer inquiries
+  WHOLESALE: { name: '🟡 WHOLESALE', color: null },   // Restaurant/wholesale
+  FARM_OPS: { name: '🟢 FARM-OPS', color: null },     // Suppliers, seeds, equipment
+  GRANTS: { name: '🔵 GRANTS', color: null },         // Grant applications, USDA
+  ADMIN: { name: '🟣 ADMIN', color: null },           // Legal, insurance, certs
+  CSA: { name: '⚪ CSA', color: null },               // CSA member comms
+  MARKETS: { name: '📅 MARKETS', color: null },       // Farmers market
+  BULK: { name: '_Bulk', color: null }                // Auto-archived spam
+};
+
+/**
+ * Email classification rules - order matters (first match wins)
+ */
+const EMAIL_RULES = [
+  // MONEY - Highest Priority
+  {
+    label: 'MONEY',
+    star: true,
+    important: true,
+    senderPatterns: [
+      '@shopify.com', '@square.com', '@stripe.com', '@paypal.com',
+      '@venmo.com', '@invoice', '@quickbooks'
+    ],
+    subjectKeywords: [
+      'order', 'payment', 'invoice', 'receipt', 'paid', 'purchase',
+      'transaction', 'charge', 'refund', 'confirmation'
+    ]
+  },
+  // GRANTS - Government/Funding
+  {
+    label: 'GRANTS',
+    star: true,
+    important: true,
+    senderPatterns: [
+      '@usda.gov', '@nrcs.gov', '@fsa.gov', '@pa.gov', '@state.pa.us',
+      '@agriculture', 'eqip', 'nrcs', 'fsa'
+    ],
+    subjectKeywords: [
+      'grant', 'funding', 'application', 'eqip', 'nrcs', 'usda',
+      'award', 'deadline', 'assistance', 'conservation'
+    ]
+  },
+  // WHOLESALE - Restaurant/Wholesale Accounts
+  {
+    label: 'WHOLESALE',
+    star: true,
+    important: true,
+    senderPatterns: [
+      // Add your wholesale customer domains here
+      '@restaurant', '@chef', '@kitchen', '@catering', '@bistro'
+    ],
+    subjectKeywords: [
+      'wholesale', 'restaurant', 'chef', 'kitchen', 'order',
+      'menu', 'bulk order', 'weekly order', 'standing order'
+    ]
+  },
+  // FARM-OPS - Suppliers & Equipment
+  {
+    label: 'FARM_OPS',
+    star: false,
+    important: false,
+    senderPatterns: [
+      '@johnnyseeds.com', '@highmowingseeds.com', '@fedcoseeds.com',
+      '@rareseeds.com', '@osborneseed.com', 'paperpot.co',
+      '@farmersfriend.com', '@tractorsupply', '@farmtek'
+    ],
+    subjectKeywords: [
+      'seed', 'shipping', 'tracking', 'shipment', 'delivery',
+      'equipment', 'supply', 'tractor', 'irrigation'
+    ]
+  },
+  // CSA - Member Communications
+  {
+    label: 'CSA',
+    star: false,
+    important: false,
+    senderPatterns: [],
+    subjectKeywords: [
+      'csa', 'share', 'box', 'pickup', 'member', 'subscription',
+      'weekly share', 'farm share'
+    ]
+  },
+  // MARKETS - Farmers Markets
+  {
+    label: 'MARKETS',
+    star: false,
+    important: false,
+    senderPatterns: [
+      'market', '@bloomfield', '@farmersmarket', '@localfood'
+    ],
+    subjectKeywords: [
+      'market', 'vendor', 'booth', 'farmers market', 'stall',
+      'saturday market', 'sunday market'
+    ]
+  },
+  // ADMIN - Legal/Insurance/Certs
+  {
+    label: 'ADMIN',
+    star: false,
+    important: false,
+    senderPatterns: [
+      '@insurance', '@legal', '@oeffa', '@certified', '@organic'
+    ],
+    subjectKeywords: [
+      'insurance', 'policy', 'certification', 'license', 'renewal',
+      'organic', 'compliance', 'audit', 'inspection'
+    ]
+  },
+  // CUSTOMERS - General Customer Inquiries (catch-all for customer-related)
+  {
+    label: 'CUSTOMERS',
+    star: false,
+    important: true,
+    senderPatterns: [],
+    subjectKeywords: [
+      'question', 'inquiry', 'help', 'delivery', 'produce',
+      'vegetables', 'availability', 'farm'
+    ]
+  },
+  // BULK - Spam/Newsletter auto-archive
+  {
+    label: 'BULK',
+    archive: true,
+    markRead: true,
+    senderPatterns: [
+      '@marketing', '@promo', '@newsletter', '@campaign',
+      '@mailchimp', '@constantcontact', 'noreply'
+    ],
+    subjectKeywords: [
+      'unsubscribe', 'click here', 'limited time', 'act now',
+      'special offer', 'sale ends', 'don\'t miss', 'exclusive deal'
+    ],
+    // Exclude these from bulk (whitelist)
+    excludePatterns: [
+      '@shopify', '@stripe', '@usda', '@pa.gov', '@johnnyseeds',
+      '@highmowing', '@fedco', '@square'
+    ]
+  }
+];
+
+/**
+ * Main function: Auto-sort inbox emails
+ * Call this manually or set up as a trigger
+ */
+function autoSortInbox() {
+  try {
+    Logger.log('🔄 Starting Gmail auto-sort...');
+
+    // Ensure labels exist
+    ensureGmailLabelsExist();
+
+    // Get unread emails from inbox (last 24 hours to avoid processing old emails)
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    const searchQuery = `is:inbox is:unread after:${Utilities.formatDate(oneDayAgo, 'America/New_York', 'yyyy/MM/dd')}`;
+
+    const threads = GmailApp.search(searchQuery, 0, 100); // Process up to 100 threads
+    Logger.log(`📧 Found ${threads.length} unread threads to process`);
+
+    let processed = 0;
+    let labeled = 0;
+    let starred = 0;
+    let archived = 0;
+
+    for (const thread of threads) {
+      const messages = thread.getMessages();
+      const firstMessage = messages[0];
+      const from = firstMessage.getFrom().toLowerCase();
+      const subject = firstMessage.getSubject().toLowerCase();
+      const existingLabels = thread.getLabels().map(l => l.getName());
+
+      // Skip if already has one of our labels
+      const hasOurLabel = Object.values(GMAIL_LABELS).some(l => existingLabels.includes(l.name));
+      if (hasOurLabel) {
+        continue;
+      }
+
+      processed++;
+
+      // Find matching rule
+      const matchedRule = findMatchingRule(from, subject);
+
+      if (matchedRule) {
+        // Apply label
+        const labelConfig = GMAIL_LABELS[matchedRule.label];
+        const label = GmailApp.getUserLabelByName(labelConfig.name);
+
+        if (label) {
+          thread.addLabel(label);
+          labeled++;
+          Logger.log(`✅ Labeled: "${subject.substring(0, 50)}..." → ${labelConfig.name}`);
+        }
+
+        // Star if configured
+        if (matchedRule.star) {
+          thread.getMessages().forEach(m => m.star());
+          starred++;
+        }
+
+        // Mark important if configured
+        if (matchedRule.important) {
+          thread.markImportant();
+        }
+
+        // Archive if configured (for bulk/spam)
+        if (matchedRule.archive) {
+          thread.moveToArchive();
+          archived++;
+        }
+
+        // Mark as read if configured
+        if (matchedRule.markRead) {
+          thread.markRead();
+        }
+      }
+    }
+
+    const summary = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      threadsFound: threads.length,
+      processed: processed,
+      labeled: labeled,
+      starred: starred,
+      archived: archived
+    };
+
+    Logger.log(`✅ Auto-sort complete: ${labeled} labeled, ${starred} starred, ${archived} archived`);
+
+    // Log to sheet for tracking
+    logGmailSortActivity(summary);
+
+    return summary;
+
+  } catch (error) {
+    Logger.log('❌ Gmail auto-sort error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Find matching email rule based on sender and subject
+ */
+function findMatchingRule(from, subject) {
+  for (const rule of EMAIL_RULES) {
+    // Check exclusions first (for BULK)
+    if (rule.excludePatterns) {
+      const isExcluded = rule.excludePatterns.some(pattern =>
+        from.includes(pattern.toLowerCase())
+      );
+      if (isExcluded) continue;
+    }
+
+    // Check sender patterns
+    const senderMatch = rule.senderPatterns.some(pattern =>
+      from.includes(pattern.toLowerCase())
+    );
+
+    // Check subject keywords
+    const subjectMatch = rule.subjectKeywords.some(keyword =>
+      subject.includes(keyword.toLowerCase())
+    );
+
+    // Match if either sender or subject matches
+    if (senderMatch || subjectMatch) {
+      return rule;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Ensure all required Gmail labels exist
+ */
+function ensureGmailLabelsExist() {
+  Logger.log('🏷️ Checking Gmail labels...');
+
+  for (const [key, config] of Object.entries(GMAIL_LABELS)) {
+    const existing = GmailApp.getUserLabelByName(config.name);
+
+    if (!existing) {
+      GmailApp.createLabel(config.name);
+      Logger.log(`✅ Created label: ${config.name}`);
+    }
+  }
+
+  Logger.log('🏷️ All labels verified');
+}
+
+/**
+ * Log Gmail sort activity to spreadsheet for monitoring
+ */
+function logGmailSortActivity(summary) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName('GMAIL_SORT_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('GMAIL_SORT_LOG');
+      sheet.appendRow([
+        'Timestamp', 'Threads_Found', 'Processed', 'Labeled',
+        'Starred', 'Archived', 'Status'
+      ]);
+      sheet.getRange(1, 1, 1, 7).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+
+    sheet.appendRow([
+      summary.timestamp,
+      summary.threadsFound || 0,
+      summary.processed || 0,
+      summary.labeled || 0,
+      summary.starred || 0,
+      summary.archived || 0,
+      summary.success ? 'SUCCESS' : 'ERROR: ' + (summary.error || '')
+    ]);
+
+    // Keep only last 500 rows
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 501) {
+      sheet.deleteRows(2, lastRow - 501);
+    }
+
+  } catch (e) {
+    Logger.log('Could not log to sheet: ' + e.toString());
+  }
+}
+
+/**
+ * Setup hourly trigger for Gmail auto-sort
+ * Run this once to enable automation
+ */
+function setupGmailAutoSort() {
+  // Remove existing triggers for this function
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const trigger of triggers) {
+    if (trigger.getHandlerFunction() === 'autoSortInbox') {
+      ScriptApp.deleteTrigger(trigger);
+      Logger.log('🗑️ Removed existing auto-sort trigger');
+    }
+  }
+
+  // Create new hourly trigger
+  ScriptApp.newTrigger('autoSortInbox')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  Logger.log('✅ Gmail auto-sort trigger created (runs every hour)');
+
+  // Also ensure labels exist
+  ensureGmailLabelsExist();
+
+  // Run immediately as first sort
+  const result = autoSortInbox();
+
+  return {
+    success: true,
+    message: 'Gmail auto-sort enabled! Runs every hour.',
+    triggerCreated: true,
+    initialSortResult: result
+  };
+}
+
+/**
+ * Disable Gmail auto-sort trigger
+ */
+function disableGmailAutoSort() {
+  const triggers = ScriptApp.getProjectTriggers();
+  let removed = 0;
+
+  for (const trigger of triggers) {
+    if (trigger.getHandlerFunction() === 'autoSortInbox') {
+      ScriptApp.deleteTrigger(trigger);
+      removed++;
+    }
+  }
+
+  Logger.log(`🗑️ Removed ${removed} auto-sort trigger(s)`);
+
+  return {
+    success: true,
+    message: `Gmail auto-sort disabled. Removed ${removed} trigger(s).`
+  };
+}
+
+/**
+ * Get Gmail sort status and statistics
+ */
+function getGmailSortStatus() {
+  try {
+    // Check for active trigger
+    const triggers = ScriptApp.getProjectTriggers();
+    const activeTrigger = triggers.find(t => t.getHandlerFunction() === 'autoSortInbox');
+
+    // Get recent log entries
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName('GMAIL_SORT_LOG');
+
+    let recentActivity = [];
+    let stats = { totalProcessed: 0, totalLabeled: 0, totalArchived: 0 };
+
+    if (sheet && sheet.getLastRow() > 1) {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+
+      // Get last 10 entries
+      const recent = data.slice(-10).reverse();
+      recentActivity = recent.map(row => {
+        const entry = {};
+        headers.forEach((h, i) => entry[h] = row[i]);
+        return entry;
+      });
+
+      // Calculate stats from last 24 hours
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+      for (let i = 1; i < data.length; i++) {
+        const rowDate = new Date(data[i][0]);
+        if (rowDate >= oneDayAgo) {
+          stats.totalProcessed += data[i][2] || 0;
+          stats.totalLabeled += data[i][3] || 0;
+          stats.totalArchived += data[i][5] || 0;
+        }
+      }
+    }
+
+    // Get label counts
+    const labelCounts = {};
+    for (const [key, config] of Object.entries(GMAIL_LABELS)) {
+      const label = GmailApp.getUserLabelByName(config.name);
+      if (label) {
+        labelCounts[config.name] = label.getUnreadCount();
+      }
+    }
+
+    return {
+      success: true,
+      automationEnabled: !!activeTrigger,
+      nextRun: activeTrigger ? 'Within 1 hour' : 'Disabled',
+      last24HourStats: stats,
+      unreadByLabel: labelCounts,
+      recentActivity: recentActivity.slice(0, 5)
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Manually process a specific email by subject search
+ * Useful for testing rules
+ */
+function testEmailClassification(searchSubject) {
+  const threads = GmailApp.search(`subject:${searchSubject}`, 0, 5);
+
+  const results = threads.map(thread => {
+    const msg = thread.getMessages()[0];
+    const from = msg.getFrom().toLowerCase();
+    const subject = msg.getSubject().toLowerCase();
+    const rule = findMatchingRule(from, subject);
+
+    return {
+      from: msg.getFrom(),
+      subject: msg.getSubject(),
+      matchedRule: rule ? rule.label : 'NO MATCH',
+      wouldStar: rule ? rule.star : false,
+      wouldArchive: rule ? rule.archive : false
+    };
+  });
+
+  Logger.log(JSON.stringify(results, null, 2));
+  return results;
+}
+
+/**
+ * Add a custom sender to a rule (for wholesale customers, etc.)
+ * Stores in Script Properties for persistence
+ */
+function addCustomSenderRule(labelKey, senderPattern) {
+  const props = PropertiesService.getScriptProperties();
+  const customRulesKey = 'GMAIL_CUSTOM_SENDERS_' + labelKey;
+
+  let customSenders = [];
+  const existing = props.getProperty(customRulesKey);
+  if (existing) {
+    customSenders = JSON.parse(existing);
+  }
+
+  if (!customSenders.includes(senderPattern.toLowerCase())) {
+    customSenders.push(senderPattern.toLowerCase());
+    props.setProperty(customRulesKey, JSON.stringify(customSenders));
+    Logger.log(`✅ Added "${senderPattern}" to ${labelKey} rules`);
+  }
+
+  return {
+    success: true,
+    label: labelKey,
+    customSenders: customSenders
+  };
+}
+
+/**
+ * Get custom sender rules
+ */
+function getCustomSenderRules() {
+  const props = PropertiesService.getScriptProperties();
+  const rules = {};
+
+  for (const key of Object.keys(GMAIL_LABELS)) {
+    const customRulesKey = 'GMAIL_CUSTOM_SENDERS_' + key;
+    const existing = props.getProperty(customRulesKey);
+    if (existing) {
+      rules[key] = JSON.parse(existing);
+    }
+  }
+
+  return rules;
+}
+
