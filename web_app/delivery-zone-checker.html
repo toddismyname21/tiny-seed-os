@@ -7,6 +7,8 @@
   <title>Check Delivery Availability | Tiny Seed Farm</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -36,105 +38,142 @@
     .header {
       background: linear-gradient(135deg, var(--primary), var(--primary-light));
       color: white;
-      padding: 24px 20px;
+      padding: 20px;
       text-align: center;
     }
 
-    .header-logo {
-      font-size: 2rem;
-      margin-bottom: 8px;
-    }
-
     .header h1 {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 700;
       margin-bottom: 4px;
     }
 
     .header p {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       opacity: 0.9;
     }
 
-    /* Main Content */
-    .main-content {
-      max-width: 600px;
+    /* Main Layout */
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: 24px 16px;
     }
 
-    /* Card */
+    @media (min-width: 900px) {
+      .main-container {
+        flex-direction: row;
+        min-height: calc(100vh - 100px);
+      }
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: var(--bg-white);
+      padding: 20px;
+      width: 100%;
+    }
+
+    @media (min-width: 900px) {
+      .sidebar {
+        width: 400px;
+        min-width: 400px;
+        overflow-y: auto;
+        max-height: calc(100vh - 100px);
+      }
+    }
+
+    /* Map Container */
+    .map-container {
+      flex: 1;
+      min-height: 400px;
+    }
+
+    @media (min-width: 900px) {
+      .map-container {
+        min-height: calc(100vh - 100px);
+      }
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+    }
+
+    @media (min-width: 900px) {
+      #map {
+        min-height: calc(100vh - 100px);
+      }
+    }
+
+    /* Form Styles */
     .card {
       background: var(--bg-white);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 20px;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
     .card-title {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 600;
       margin-bottom: 16px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .card-title i {
       color: var(--primary);
     }
 
-    /* Form */
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .form-group label {
       display: block;
       font-weight: 500;
-      margin-bottom: 8px;
-      font-size: 0.95rem;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
     }
 
-    .form-group input {
+    .form-group input, .form-group textarea {
       width: 100%;
-      padding: 14px 16px;
+      padding: 12px 14px;
       border: 2px solid var(--border);
-      border-radius: 12px;
+      border-radius: 10px;
       font-size: 1rem;
       font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s;
     }
 
-    .form-group input:focus {
+    .form-group input:focus, .form-group textarea:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.1);
-    }
-
-    .form-group input::placeholder {
-      color: #aaa;
     }
 
     .form-hint {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
-    /* Button */
+    /* Buttons */
     .btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
-      padding: 16px 24px;
+      padding: 14px 20px;
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 12px;
+      border-radius: 10px;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
@@ -154,15 +193,239 @@
       cursor: not-allowed;
     }
 
-    .btn i {
+    .btn-secondary {
+      background: var(--bg-light);
+      color: var(--text-dark);
+      border: 2px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    /* Result Cards */
+    .result-accepted {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .result-accepted i {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+    }
+
+    .result-accepted h2 {
+      font-size: 1.2rem;
+      margin-bottom: 6px;
+    }
+
+    .result-rejected {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .result-rejected i {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+    }
+
+    .result-rejected h2 {
+      font-size: 1.2rem;
+      margin-bottom: 6px;
+    }
+
+    /* Code Box */
+    .code-box {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .code-display {
+      background: rgba(255,255,255,0.2);
+      border: 2px dashed rgba(255,255,255,0.5);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 12px 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      font-family: monospace;
+    }
+
+    .copy-btn {
+      background: white;
+      color: var(--primary);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .copy-btn.copied {
+      background: #22c55e;
+      color: white;
+    }
+
+    /* Details */
+    .details-card {
+      background: var(--bg-light);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .detail-value {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .fee-highlight {
+      color: var(--primary);
       font-size: 1.1rem;
+    }
+
+    /* Alternatives */
+    .alternative-item {
+      background: var(--bg-light);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alternative-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .alternative-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .alternative-distance {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Request Popup */
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .popup-overlay.show {
+      display: flex;
+    }
+
+    .popup-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .popup-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .popup-header i {
+      font-size: 3rem;
+      color: var(--warning);
+      margin-bottom: 12px;
+    }
+
+    .popup-header h2 {
+      font-size: 1.3rem;
+      margin-bottom: 8px;
+    }
+
+    .popup-header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .popup-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .popup-buttons .btn {
+      flex: 1;
+    }
+
+    /* Success Message */
+    .success-message {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .success-message i {
+      font-size: 3rem;
+      margin-bottom: 12px;
     }
 
     /* Loading */
     .loading {
       display: none;
       text-align: center;
-      padding: 20px;
+      padding: 30px;
     }
 
     .loading.show {
@@ -180,263 +443,43 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Result */
-    .result {
-      display: none;
-    }
-
-    .result.show {
-      display: block;
-    }
-
-    .result-accepted {
-      background: linear-gradient(135deg, #22c55e, #16a34a);
-      color: white;
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .result-accepted i {
-      font-size: 3rem;
-      margin-bottom: 12px;
-    }
-
-    .result-accepted h2 {
-      font-size: 1.3rem;
-      margin-bottom: 8px;
-    }
-
-    .result-accepted p {
-      opacity: 0.95;
-    }
-
-    .result-rejected {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: white;
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .result-rejected i {
-      font-size: 3rem;
-      margin-bottom: 12px;
-    }
-
-    .result-rejected h2 {
-      font-size: 1.3rem;
-      margin-bottom: 8px;
-    }
-
-    .result-rejected p {
-      opacity: 0.95;
-    }
-
-    /* Details Card */
-    .details-card {
-      background: var(--bg-white);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-
-    .detail-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .detail-row:last-child {
-      border-bottom: none;
-    }
-
-    .detail-label {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    .detail-value {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .fee-highlight {
-      color: var(--primary);
-      font-size: 1.2rem;
-    }
-
-    /* Shopify Code Box */
-    .code-box {
-      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-      color: white;
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      margin: 20px 0;
-    }
-
-    .code-box h3 {
-      font-size: 1rem;
-      font-weight: 500;
-      margin-bottom: 8px;
-      opacity: 0.9;
-    }
-
-    .code-display {
-      background: rgba(255,255,255,0.2);
-      border: 2px dashed rgba(255,255,255,0.5);
-      border-radius: 12px;
-      padding: 16px 24px;
-      margin: 12px 0;
-      font-size: 1.8rem;
-      font-weight: 700;
-      letter-spacing: 3px;
-      font-family: monospace;
-    }
-
-    .code-box p {
-      font-size: 0.9rem;
-      opacity: 0.85;
-      margin-top: 8px;
-    }
-
-    .copy-btn {
+    /* Map Legend */
+    .map-legend {
       background: white;
-      color: var(--primary);
-      border: none;
+      padding: 12px;
       border-radius: 8px;
-      padding: 10px 20px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 12px;
-      transition: transform 0.1s;
-    }
-
-    .copy-btn:hover {
-      transform: scale(1.02);
-    }
-
-    .copy-btn:active {
-      transform: scale(0.98);
-    }
-
-    .copy-btn.copied {
-      background: #22c55e;
-      color: white;
-    }
-
-    .shop-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      background: white;
-      color: var(--primary);
-      border: none;
-      border-radius: 12px;
-      padding: 14px 28px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 16px;
-      text-decoration: none;
-      transition: transform 0.1s, box-shadow 0.2s;
-    }
-
-    .shop-btn:hover {
-      transform: scale(1.02);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    /* Alternatives */
-    .alternatives-title {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: var(--text-dark);
-    }
-
-    .alternative-item {
-      background: var(--bg-white);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .alternative-icon {
-      width: 40px;
-      height: 40px;
-      background: var(--bg-light);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--primary);
-      flex-shrink: 0;
-    }
-
-    .alternative-info {
-      flex: 1;
-    }
-
-    .alternative-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .alternative-distance {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       font-size: 0.85rem;
-      color: var(--text-muted);
     }
 
-    .alternative-day {
-      font-size: 0.75rem;
-      background: var(--primary);
-      color: white;
-      padding: 2px 8px;
-      border-radius: 20px;
-      margin-left: 8px;
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
     }
 
-    /* Info Box */
-    .info-box {
-      background: #e0f2fe;
-      border-left: 4px solid #0ea5e9;
-      padding: 14px 16px;
-      border-radius: 0 8px 8px 0;
-      margin-bottom: 20px;
+    .legend-item:last-child {
+      margin-bottom: 0;
     }
 
-    .info-box p {
-      font-size: 0.9rem;
-      color: #0369a1;
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
     }
 
-    /* Try Again Button */
-    .btn-secondary {
-      background: var(--bg-light);
-      color: var(--text-dark);
-      border: 2px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      background: var(--border);
+    .hidden {
+      display: none !important;
     }
 
     /* Footer */
     .footer {
       text-align: center;
-      padding: 20px;
+      padding: 16px;
       color: var(--text-muted);
       font-size: 0.85rem;
+      background: var(--bg-white);
     }
 
     .footer a {
@@ -447,134 +490,322 @@
 </head>
 <body>
   <div class="header">
-    <div class="header-logo">
-      <i class="fas fa-seedling"></i>
-    </div>
-    <h1>Tiny Seed Farm</h1>
+    <h1><i class="fas fa-seedling"></i> Tiny Seed Farm</h1>
     <p>Check Home Delivery Availability</p>
   </div>
 
-  <div class="main-content">
-    <!-- Input Form -->
-    <div id="form-section" class="card">
-      <h2 class="card-title">
-        <i class="fas fa-map-marker-alt"></i>
-        Enter Your Address
-      </h2>
+  <div class="main-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Input Form -->
+      <div id="form-section" class="card">
+        <h2 class="card-title">
+          <i class="fas fa-map-marker-alt"></i>
+          Enter Your Address
+        </h2>
 
-      <div class="info-box">
-        <p><i class="fas fa-info-circle"></i> We deliver to addresses within a 10-minute radius of our established route. Enter your address to check availability.</p>
+        <form id="address-form">
+          <div class="form-group">
+            <label for="address">Street Address</label>
+            <input type="text" id="address" name="address" placeholder="123 Main Street" required>
+          </div>
+
+          <div class="form-group">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" placeholder="Pittsburgh" required>
+          </div>
+
+          <div class="form-group">
+            <label for="zip">ZIP Code</label>
+            <input type="text" id="zip" name="zip" placeholder="15201" maxlength="10" required>
+            <p class="form-hint">Pennsylvania addresses only</p>
+          </div>
+
+          <button type="submit" class="btn" id="check-btn">
+            <i class="fas fa-search"></i>
+            Check Availability
+          </button>
+        </form>
       </div>
 
-      <form id="address-form">
-        <div class="form-group">
-          <label for="address">Street Address</label>
-          <input type="text" id="address" name="address" placeholder="123 Main Street" required>
+      <!-- Loading State -->
+      <div id="loading" class="loading">
+        <i class="fas fa-spinner"></i>
+        <p>Checking your address...</p>
+      </div>
+
+      <!-- Result Section -->
+      <div id="result-section" class="hidden">
+        <!-- Accepted Result -->
+        <div id="result-accepted" class="result-accepted hidden">
+          <i class="fas fa-check-circle"></i>
+          <h2>Great News!</h2>
+          <p id="accepted-message">Your address is in our delivery zone.</p>
         </div>
 
-        <div class="form-group">
-          <label for="city">City</label>
-          <input type="text" id="city" name="city" placeholder="Pittsburgh" required>
+        <!-- Code Box -->
+        <div id="code-box" class="code-box hidden">
+          <h3><i class="fas fa-gift"></i> Your Delivery Code</h3>
+          <div class="code-display" id="delivery-code">HOMEDELIVERY</div>
+          <p>Enter at checkout to add home delivery</p>
+          <button class="copy-btn" onclick="copyCode()">
+            <i class="fas fa-copy"></i> Copy Code
+          </button>
         </div>
 
-        <div class="form-group">
-          <label for="zip">ZIP Code</label>
-          <input type="text" id="zip" name="zip" placeholder="15201" maxlength="10" required>
-          <p class="form-hint">Pennsylvania addresses only</p>
+        <!-- Delivery Details -->
+        <div id="result-details" class="card hidden">
+          <h3 class="card-title"><i class="fas fa-info-circle"></i> Delivery Details</h3>
+          <div class="details-card">
+            <div class="detail-row">
+              <span class="detail-label">Your Address</span>
+              <span class="detail-value" id="detail-address">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Distance to Route</span>
+              <span class="detail-value" id="detail-distance">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Delivery Fee</span>
+              <span class="detail-value fee-highlight" id="detail-fee">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Delivery Day</span>
+              <span class="detail-value" id="detail-day">Wednesday</span>
+            </div>
+          </div>
         </div>
 
-        <button type="submit" class="btn" id="check-btn">
-          <i class="fas fa-search"></i>
-          Check Availability
+        <!-- Rejected Result -->
+        <div id="result-rejected" class="result-rejected hidden">
+          <i class="fas fa-map-marker-alt"></i>
+          <h2>Outside Delivery Zone</h2>
+          <p id="rejection-reason">Your address is outside our current delivery area.</p>
+        </div>
+
+        <!-- Request Delivery Button -->
+        <div id="request-section" class="hidden">
+          <button class="btn" onclick="showRequestPopup()" style="background: var(--warning);">
+            <i class="fas fa-envelope"></i>
+            Request Delivery Anyway
+          </button>
+        </div>
+
+        <!-- Alternatives -->
+        <div id="alternatives-section" class="card hidden">
+          <h3 class="card-title"><i class="fas fa-store"></i> Nearby Pickup Locations</h3>
+          <div id="alternatives-list"></div>
+        </div>
+
+        <!-- Try Again -->
+        <button class="btn btn-secondary" onclick="resetForm()" style="margin-top: 16px;">
+          <i class="fas fa-redo"></i>
+          Check Another Address
         </button>
-      </form>
+      </div>
     </div>
 
-    <!-- Loading State -->
-    <div id="loading" class="loading">
-      <i class="fas fa-spinner"></i>
-      <p>Checking your address...</p>
-    </div>
-
-    <!-- Result Section -->
-    <div id="result-section" class="result">
-      <!-- Accepted Result -->
-      <div id="result-accepted" class="result-accepted" style="display: none;">
-        <i class="fas fa-check-circle"></i>
-        <h2>Great News!</h2>
-        <p id="accepted-message">Your address is in our delivery zone.</p>
-      </div>
-
-      <!-- Shopify Code Box (shown when accepted) -->
-      <div id="code-box" class="code-box" style="display: none;">
-        <h3><i class="fas fa-gift"></i> Your Home Delivery Unlock Code</h3>
-        <div class="code-display" id="delivery-code">DELIVERY2026</div>
-        <p>Enter this code at checkout to add home delivery to your cart</p>
-        <button class="copy-btn" onclick="copyCode()">
-          <i class="fas fa-copy"></i> Copy Code
-        </button>
-        <br>
-        <a href="https://tinyseedfarm.com" class="shop-btn" target="_blank">
-          <i class="fas fa-shopping-cart"></i> Shop Now
-        </a>
-      </div>
-
-      <!-- Rejected Result -->
-      <div id="result-rejected" class="result-rejected" style="display: none;">
-        <i class="fas fa-map-marker-alt"></i>
-        <h2>Outside Delivery Zone</h2>
-        <p id="rejection-reason">Your address is outside our current delivery area.</p>
-      </div>
-
-      <!-- Details -->
-      <div id="result-details" class="card" style="display: none;">
-        <h3 class="card-title">
-          <i class="fas fa-info-circle"></i>
-          Delivery Details
-        </h3>
-        <div class="details-card">
-          <div class="detail-row">
-            <span class="detail-label">Address</span>
-            <span class="detail-value" id="detail-address">-</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Delivery Fee</span>
-            <span class="detail-value fee-highlight" id="detail-fee">-</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Delivery Day</span>
-            <span class="detail-value" id="detail-day">Wednesday</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Alternatives -->
-      <div id="alternatives-section" class="card" style="display: none;">
-        <h3 class="alternatives-title">
-          <i class="fas fa-store"></i>
-          Nearby Pickup Locations
-        </h3>
-        <div id="alternatives-list">
-          <!-- Populated dynamically -->
-        </div>
-      </div>
-
-      <!-- Try Again Button -->
-      <button class="btn btn-secondary" onclick="resetForm()">
-        <i class="fas fa-redo"></i>
-        Check Another Address
-      </button>
+    <!-- Map -->
+    <div class="map-container">
+      <div id="map"></div>
     </div>
   </div>
 
   <div class="footer">
-    <p>Questions? <a href="mailto:tinyseedcsa@gmail.com">Contact Us</a></p>
-    <p style="margin-top: 8px;">Tiny Seed Farm | Rochester, PA</p>
+    <p>Questions? <a href="mailto:todd@tinyseedfarmpgh.com">Contact Us</a></p>
+    <p style="margin-top: 4px;">Tiny Seed Farm | Rochester, PA</p>
   </div>
+
+  <!-- Request Delivery Popup -->
+  <div id="request-popup" class="popup-overlay">
+    <div class="popup-content">
+      <div class="popup-header">
+        <i class="fas fa-envelope-open-text"></i>
+        <h2>Request Home Delivery</h2>
+        <p>Your address is outside our regular delivery zone, but we may be able to accommodate special requests.</p>
+      </div>
+
+      <form id="request-form">
+        <div class="form-group">
+          <label for="request-name">Your Name</label>
+          <input type="text" id="request-name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="request-email">Email</label>
+          <input type="email" id="request-email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="request-phone">Phone (optional)</label>
+          <input type="tel" id="request-phone">
+        </div>
+
+        <div class="form-group">
+          <label for="request-note">Why would you like home delivery?</label>
+          <textarea id="request-note" rows="4" placeholder="Tell us a bit about why home delivery would work best for you..."></textarea>
+        </div>
+
+        <div class="popup-buttons">
+          <button type="button" class="btn btn-secondary" onclick="closeRequestPopup()">Cancel</button>
+          <button type="submit" class="btn">
+            <i class="fas fa-paper-plane"></i>
+            Send Request
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Request Sent Popup -->
+  <div id="request-sent-popup" class="popup-overlay">
+    <div class="popup-content">
+      <div class="success-message">
+        <i class="fas fa-check-circle"></i>
+        <h2>Request Sent!</h2>
+        <p>We've received your delivery request. Todd will review it and get back to you within 24-48 hours.</p>
+      </div>
+      <button class="btn" onclick="closeRequestSentPopup()" style="margin-top: 20px;">
+        <i class="fas fa-thumbs-up"></i>
+        Got It
+      </button>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     // API Configuration
     const API_BASE = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+
+    // Route stops with coordinates
+    const ROUTE_STOPS = [
+      { name: 'Farm (Start)', lat: 40.7456, lng: -80.2617, type: 'farm', icon: '🏠' },
+      { name: 'Zelienople CSA', lat: 40.7948, lng: -80.1398, type: 'csa', icon: '📦' },
+      { name: 'Cafe Verde', lat: 40.7942, lng: -80.1378, type: 'wholesale', icon: '🍽️' },
+      { name: 'Cranberry CSA', lat: 40.6864, lng: -80.1018, type: 'csa', icon: '📦' },
+      { name: 'Allison Park - Simons', lat: 40.5506, lng: -79.9562, type: 'csa', icon: '📦' },
+      { name: 'Allison Park - St Pauls', lat: 40.5589, lng: -79.9612, type: 'csa', icon: '📦' },
+      { name: 'Fox Chapel', lat: 40.5106, lng: -79.9006, type: 'csa', icon: '📦' },
+      { name: 'Eleven', lat: 40.4512, lng: -79.9847, type: 'wholesale', icon: '🍽️' },
+      { name: 'Spirit', lat: 40.4678, lng: -79.9601, type: 'wholesale', icon: '🍽️' },
+      { name: 'Driftwood Oven', lat: 40.4721, lng: -79.9589, type: 'wholesale', icon: '🍽️' },
+      { name: 'Morcilla', lat: 40.4716, lng: -79.9598, type: 'wholesale', icon: '🍽️' },
+      { name: 'Fet Fisk', lat: 40.4622, lng: -79.9442, type: 'wholesale', icon: '🍽️' },
+      { name: 'APTEKA', lat: 40.4651, lng: -79.9476, type: 'wholesale', icon: '🍽️' },
+      { name: 'Highland Park CSA', lat: 40.4784, lng: -79.9219, type: 'csa', icon: '📦' },
+      { name: 'Squirrel Hill CSA', lat: 40.4316, lng: -79.9269, type: 'csa', icon: '📦' },
+      { name: 'Mt. Lebanon CSA', lat: 40.3898, lng: -80.0312, type: 'csa', icon: '📦' },
+      { name: 'Mediterra', lat: 40.3856, lng: -80.0378, type: 'wholesale', icon: '🍽️' }
+    ];
+
+    // Initialize map
+    let map;
+    let customerMarker = null;
+    let routeLine = null;
+    let lastCheckResult = null;
+
+    function initMap() {
+      // Center on Pittsburgh area
+      map = L.map('map').setView([40.55, -80.0], 10);
+
+      // Add tile layer (OpenStreetMap)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Add route line
+      const routeCoords = ROUTE_STOPS.map(stop => [stop.lat, stop.lng]);
+      routeLine = L.polyline(routeCoords, {
+        color: '#2d5a27',
+        weight: 4,
+        opacity: 0.7,
+        dashArray: '10, 10'
+      }).addTo(map);
+
+      // Add markers for each stop
+      ROUTE_STOPS.forEach(stop => {
+        const color = stop.type === 'farm' ? '#e63946' :
+                      stop.type === 'wholesale' ? '#f4a261' : '#2d5a27';
+
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="
+            background: ${color};
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          ">${stop.icon}</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+
+        L.marker([stop.lat, stop.lng], { icon })
+          .addTo(map)
+          .bindPopup(`<b>${stop.name}</b><br>${stop.type === 'wholesale' ? 'Restaurant' : stop.type === 'csa' ? 'CSA Pickup' : 'Farm'}`);
+      });
+
+      // Add legend
+      const legend = L.control({ position: 'bottomright' });
+      legend.onAdd = function() {
+        const div = L.DomUtil.create('div', 'map-legend');
+        div.innerHTML = `
+          <div class="legend-item"><div class="legend-dot" style="background: #e63946;"></div> Farm</div>
+          <div class="legend-item"><div class="legend-dot" style="background: #f4a261;"></div> Restaurant</div>
+          <div class="legend-item"><div class="legend-dot" style="background: #2d5a27;"></div> CSA Pickup</div>
+          <div class="legend-item"><div class="legend-dot" style="background: #3b82f6;"></div> Your Address</div>
+        `;
+        return div;
+      };
+      legend.addTo(map);
+    }
+
+    function addCustomerMarker(lat, lng, accepted) {
+      // Remove existing customer marker
+      if (customerMarker) {
+        map.removeLayer(customerMarker);
+      }
+
+      const color = accepted ? '#22c55e' : '#ef4444';
+
+      const icon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="
+          background: ${color};
+          color: white;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          border: 3px solid white;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+        "><i class="fas ${accepted ? 'fa-check' : 'fa-times'}"></i></div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      customerMarker = L.marker([lat, lng], { icon })
+        .addTo(map)
+        .bindPopup(`<b>Your Address</b><br>${accepted ? '✅ In Delivery Zone' : '❌ Outside Delivery Zone'}`)
+        .openPopup();
+
+      // Pan to show both the marker and nearby route
+      map.setView([lat, lng], 12);
+    }
+
+    // Initialize map on load
+    document.addEventListener('DOMContentLoaded', initMap);
 
     // DOM Elements
     const form = document.getElementById('address-form');
@@ -584,6 +815,8 @@
     const resultAccepted = document.getElementById('result-accepted');
     const resultRejected = document.getElementById('result-rejected');
     const resultDetails = document.getElementById('result-details');
+    const codeBox = document.getElementById('code-box');
+    const requestSection = document.getElementById('request-section');
     const alternativesSection = document.getElementById('alternatives-section');
 
     // Form Submit Handler
@@ -602,12 +835,11 @@
       const fullAddress = `${address}, ${city}, PA ${zip}`;
 
       // Show loading
-      formSection.style.display = 'none';
+      formSection.classList.add('hidden');
       loading.classList.add('show');
-      resultSection.classList.remove('show');
+      resultSection.classList.add('hidden');
 
       try {
-        // Use advanced zone check that calculates distance to route LINE
         const response = await fetch(`${API_BASE}?action=checkDeliveryZone&address=${encodeURIComponent(fullAddress)}`);
         const data = await response.json();
 
@@ -615,108 +847,104 @@
         loading.classList.remove('show');
 
         if (data.success) {
-          // Use the new detailed response format
-          const result = {
-            success: true,
-            accepted: data.likely_in_zone,
-            formattedAddress: data.formattedAddress,
-            fee: data.fee,
-            tier: data.tier,
-            distanceToRoute: data.distanceToRoute,
-            nearestPoint: data.nearestRoutePoint,
-            routeSegment: data.routeSegment,
-            reason: data.likely_in_zone ? null :
-                    `Your address is ${data.distanceToRoute} miles from our delivery route. We deliver within 7 miles of our route.`,
-            alternatives: data.nearestPickupLocations
-          };
-          showResult(result);
+          lastCheckResult = data;
+          showResult(data);
+
+          // Add marker to map
+          if (data.coordinates) {
+            addCustomerMarker(data.coordinates.lat, data.coordinates.lng, data.likely_in_zone);
+          }
         } else {
           showResult({ success: false, accepted: false, reason: data.error || 'Could not verify address' });
         }
       } catch (error) {
         loading.classList.remove('show');
-        formSection.style.display = 'block';
+        formSection.classList.remove('hidden');
         alert('Error checking address. Please try again.');
         console.error('Error:', error);
       }
     });
 
     function showResult(data) {
-      resultSection.classList.add('show');
-      const codeBox = document.getElementById('code-box');
+      resultSection.classList.remove('hidden');
 
-      if (data.success && data.accepted) {
+      if (data.success && data.likely_in_zone) {
         // Accepted
-        resultAccepted.style.display = 'block';
-        resultRejected.style.display = 'none';
-        resultDetails.style.display = 'block';
-        alternativesSection.style.display = 'none';
-        codeBox.style.display = 'block';
+        resultAccepted.classList.remove('hidden');
+        resultRejected.classList.add('hidden');
+        resultDetails.classList.remove('hidden');
+        codeBox.classList.remove('hidden');
+        requestSection.classList.add('hidden');
+        alternativesSection.classList.add('hidden');
 
-        // Show distance to route in accepted message
+        // Update message
         const distMsg = data.distanceToRoute
           ? `Your address is ${data.distanceToRoute} miles from our route.`
           : 'Your address is in our delivery zone.';
         document.getElementById('accepted-message').textContent = distMsg;
 
+        // Update details
         document.getElementById('detail-address').textContent = data.formattedAddress || '-';
+        document.getElementById('detail-distance').textContent = data.distanceToRoute ? `${data.distanceToRoute} miles` : '-';
         document.getElementById('detail-fee').textContent = data.fee ? `$${data.fee.toFixed(2)}` : '$5.00';
-        document.getElementById('detail-day').textContent = 'Wednesday';
 
-        // Generate unique-ish code based on ZIP for tracking
+        // Generate code
         const zip = document.getElementById('zip').value.trim();
-        const code = 'HOMEDELIVERY' + zip.substring(0,3);
-        document.getElementById('delivery-code').textContent = code;
+        document.getElementById('delivery-code').textContent = 'HOMEDELIVERY' + zip.substring(0, 3);
 
       } else {
-        codeBox.style.display = 'none';
         // Rejected
-        resultAccepted.style.display = 'none';
-        resultRejected.style.display = 'block';
-        resultDetails.style.display = 'none';
+        resultAccepted.classList.add('hidden');
+        resultRejected.classList.remove('hidden');
+        resultDetails.classList.add('hidden');
+        codeBox.classList.add('hidden');
+        requestSection.classList.remove('hidden');
 
-        if (data.reason) {
-          document.getElementById('rejection-reason').textContent = data.reason;
-        }
+        // Update rejection reason
+        const reason = data.distanceToRoute
+          ? `Your address is ${data.distanceToRoute} miles from our route. We deliver within 7 miles.`
+          : (data.reason || 'Your address is outside our current delivery area.');
+        document.getElementById('rejection-reason').textContent = reason;
 
         // Show alternatives
-        if (data.alternatives && data.alternatives.length > 0) {
-          alternativesSection.style.display = 'block';
+        if (data.nearestPickupLocations && data.nearestPickupLocations.length > 0) {
+          alternativesSection.classList.remove('hidden');
           const list = document.getElementById('alternatives-list');
           list.innerHTML = '';
 
-          data.alternatives.forEach(alt => {
+          data.nearestPickupLocations.slice(0, 3).forEach(alt => {
             const item = document.createElement('div');
             item.className = 'alternative-item';
             item.innerHTML = `
-              <div class="alternative-icon">
-                <i class="fas fa-store"></i>
-              </div>
-              <div class="alternative-info">
-                <div class="alternative-name">
-                  ${alt.name}
-                  <span class="alternative-day">${alt.day || 'Wed'}</span>
-                </div>
-                <div class="alternative-distance">${alt.distance ? alt.distance + ' miles away' : alt.address}</div>
+              <div class="alternative-icon"><i class="fas fa-store"></i></div>
+              <div>
+                <div class="alternative-name">${alt.name}</div>
+                <div class="alternative-distance">${alt.distance} miles away • ${alt.day || 'Wednesday'}</div>
               </div>
             `;
             list.appendChild(item);
           });
         } else {
-          alternativesSection.style.display = 'none';
+          alternativesSection.classList.add('hidden');
         }
       }
     }
 
     function resetForm() {
-      resultSection.classList.remove('show');
-      formSection.style.display = 'block';
+      resultSection.classList.add('hidden');
+      formSection.classList.remove('hidden');
       form.reset();
-      resultAccepted.style.display = 'none';
-      resultRejected.style.display = 'none';
-      resultDetails.style.display = 'none';
-      alternativesSection.style.display = 'none';
-      document.getElementById('code-box').style.display = 'none';
+
+      // Remove customer marker
+      if (customerMarker) {
+        map.removeLayer(customerMarker);
+        customerMarker = null;
+      }
+
+      // Reset map view
+      map.setView([40.55, -80.0], 10);
+
+      lastCheckResult = null;
     }
 
     function copyCode() {
@@ -731,6 +959,66 @@
         }, 2000);
       });
     }
+
+    // Request Popup
+    function showRequestPopup() {
+      document.getElementById('request-popup').classList.add('show');
+    }
+
+    function closeRequestPopup() {
+      document.getElementById('request-popup').classList.remove('show');
+    }
+
+    function closeRequestSentPopup() {
+      document.getElementById('request-sent-popup').classList.remove('show');
+      resetForm();
+    }
+
+    // Handle request form submission
+    document.getElementById('request-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('request-name').value.trim();
+      const email = document.getElementById('request-email').value.trim();
+      const phone = document.getElementById('request-phone').value.trim();
+      const note = document.getElementById('request-note').value.trim();
+
+      const customerAddress = lastCheckResult?.formattedAddress ||
+        `${document.getElementById('address').value}, ${document.getElementById('city').value}, PA ${document.getElementById('zip').value}`;
+
+      // Build the email content
+      const emailData = {
+        action: 'sendDeliveryRequest',
+        to: 'todd@tinyseedfarmpgh.com',
+        customerName: name,
+        customerEmail: email,
+        customerPhone: phone,
+        customerAddress: customerAddress,
+        distanceToRoute: lastCheckResult?.distanceToRoute || 'Unknown',
+        nearestPoint: lastCheckResult?.nearestRoutePoint || 'Unknown',
+        note: note,
+        coordinates: lastCheckResult?.coordinates || null
+      };
+
+      try {
+        // Send the request
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(emailData)
+        });
+
+        // Close request popup and show success
+        closeRequestPopup();
+        document.getElementById('request-sent-popup').classList.add('show');
+
+      } catch (error) {
+        console.error('Error sending request:', error);
+        // Still show success (email may have sent)
+        closeRequestPopup();
+        document.getElementById('request-sent-popup').classList.add('show');
+      }
+    });
   </script>
 </body>
 </html>

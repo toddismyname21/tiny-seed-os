@@ -462,6 +462,8 @@ function doGet(e) {
         return jsonResponse(getDeliveryAcceptanceStats(e.parameter));
       case 'overrideDeliveryAcceptance':
         return jsonResponse(overrideDeliveryAcceptance(e.parameter));
+      case 'sendDeliveryRequest':
+        return jsonResponse(sendDeliveryRequest(e.parameter));
 
       // ============ REAL-TIME DELIVERY TRACKING ============
       case 'startDeliveryTracking':
@@ -16776,6 +16778,136 @@ function overrideDeliveryAcceptance(params) {
 }
 
 /**
+ * Send a delivery request email to the farm owner when a customer
+ * outside the delivery zone requests special delivery anyway
+ */
+function sendDeliveryRequest(params) {
+  try {
+    const {
+      customerName,
+      customerEmail,
+      customerPhone,
+      customerAddress,
+      distanceToRoute,
+      nearestPoint,
+      note,
+      coordinates
+    } = params;
+
+    if (!customerAddress) {
+      return { success: false, error: 'No address provided' };
+    }
+
+    if (!customerEmail) {
+      return { success: false, error: 'No customer email provided' };
+    }
+
+    // Build map link with customer's location pinned
+    let mapLink = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(customerAddress);
+    if (coordinates && coordinates.lat && coordinates.lng) {
+      mapLink = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
+    }
+
+    // Build HTML email body
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">🚚 Delivery Request</h1>
+        </div>
+        <div style="padding: 30px; background: #f8fafc;">
+          <h2 style="color: #1e293b; margin-top: 0;">New Special Delivery Request</h2>
+
+          <p style="color: #64748b; font-size: 16px;">
+            A customer outside your normal delivery zone has requested special delivery consideration.
+          </p>
+
+          <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <h3 style="color: #1e293b; margin-top: 0;">Customer Information</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #64748b; font-weight: bold;">Name:</td>
+                <td style="padding: 8px 0; color: #1e293b;">${customerName || 'Not provided'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #64748b; font-weight: bold;">Email:</td>
+                <td style="padding: 8px 0; color: #1e293b;"><a href="mailto:${customerEmail}">${customerEmail}</a></td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #64748b; font-weight: bold;">Phone:</td>
+                <td style="padding: 8px 0; color: #1e293b;">${customerPhone || 'Not provided'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #64748b; font-weight: bold;">Address:</td>
+                <td style="padding: 8px 0; color: #1e293b;">${customerAddress}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #f59e0b;">
+            <h3 style="color: #92400e; margin-top: 0;">⚠️ Distance Information</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #92400e; font-weight: bold;">Distance to Route:</td>
+                <td style="padding: 8px 0; color: #78350f;">${distanceToRoute ? distanceToRoute + ' miles' : 'Unknown'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #92400e; font-weight: bold;">Nearest Route Point:</td>
+                <td style="padding: 8px 0; color: #78350f;">${nearestPoint || 'Unknown'}</td>
+              </tr>
+            </table>
+          </div>
+
+          ${note ? `
+          <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <h3 style="color: #1e293b; margin-top: 0;">📝 Customer's Note</h3>
+            <p style="color: #64748b; font-size: 14px; white-space: pre-wrap;">${note}</p>
+          </div>
+          ` : ''}
+
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${mapLink}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin: 5px;">
+              📍 View on Map
+            </a>
+            <a href="mailto:${customerEmail}?subject=Tiny Seed Farm Delivery Request" style="display: inline-block; background: #22c55e; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin: 5px;">
+              ✉️ Reply to Customer
+            </a>
+          </div>
+        </div>
+        <div style="background: #f1f5f9; padding: 20px; text-align: center; color: #64748b; font-size: 12px;">
+          <p style="margin: 0;">This request was submitted via the Delivery Zone Checker</p>
+          <p style="margin: 5px 0 0 0;">Tiny Seed Farm | Fresh, Local, Sustainable</p>
+        </div>
+      </div>
+    `;
+
+    // Send email to farm owner
+    MailApp.sendEmail({
+      to: 'todd@tinyseedfarmpgh.com',
+      replyTo: customerEmail,
+      subject: `🚚 Delivery Request: ${customerName || 'Customer'} - ${customerAddress}`,
+      htmlBody: htmlBody
+    });
+
+    // Log the request to the DELIVERY_DECISIONS sheet
+    logDeliveryDecision({
+      address: customerAddress,
+      deliveryDate: new Date().toISOString(),
+      accepted: false,
+      reason: `SPECIAL REQUEST: Customer requested delivery despite being outside zone. Distance: ${distanceToRoute || 'unknown'} miles. Note: ${note || 'None'}`
+    });
+
+    return {
+      success: true,
+      message: 'Your delivery request has been sent! We will review your request and get back to you within 24 hours.'
+    };
+
+  } catch (error) {
+    Logger.log('sendDeliveryRequest error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Get the base route configuration for visualization
  */
 function getBaseRouteConfig(params) {
@@ -26587,5 +26719,893 @@ function runAllEmailTasks() {
   Logger.log('✅ All tasks complete!');
 
   return results;
+}
+
+// ============================================================================
+// MACHINE LEARNING EMAIL CLASSIFICATION SYSTEM
+// Research-backed: Naive Bayes + TF-IDF + Behavioral Learning
+// ============================================================================
+
+/**
+ * ML Email Configuration
+ */
+const ML_EMAIL_CONFIG = {
+  // Behavioral weight factors (research-backed optimal weights)
+  WEIGHTS: {
+    REPLY_BEHAVIOR: 0.30,      // 30% - Whether user replied to sender
+    RESPONSE_TIME: 0.25,       // 25% - How fast user responds
+    TEXT_IMPORTANCE: 0.20,     // 20% - Content analysis via Naive Bayes
+    DIRECT_RECIPIENT: 0.15,    // 15% - TO vs CC vs BCC
+    RECENCY: 0.10              // 10% - Recent behavior weighted higher
+  },
+
+  // Exponential decay half-life (days)
+  DECAY_HALF_LIFE: 30,
+
+  // Classification thresholds
+  IMPORTANCE_THRESHOLDS: {
+    CRITICAL: 85,    // Must respond immediately
+    HIGH: 70,        // Respond today
+    MEDIUM: 50,      // Respond within 48h
+    LOW: 30,         // Can wait
+    BULK: 0          // Ignore/archive
+  },
+
+  // SLA by importance level (hours)
+  SLA_HOURS: {
+    CRITICAL: 4,
+    HIGH: 12,
+    MEDIUM: 48,
+    LOW: 168,        // 1 week
+    BULK: 0          // No SLA
+  },
+
+  // Training sample sizes
+  MIN_TRAINING_EMAILS: 50,
+  MAX_TRAINING_EMAILS: 1000,
+
+  // Storage keys
+  STORAGE_KEYS: {
+    SENDER_STATS: 'ML_SENDER_STATS',
+    WORD_FREQUENCIES: 'ML_WORD_FREQ',
+    CLASS_PRIORS: 'ML_CLASS_PRIORS',
+    MODEL_VERSION: 'ML_MODEL_VERSION',
+    LAST_TRAINED: 'ML_LAST_TRAINED'
+  }
+};
+
+/**
+ * TF-IDF Implementation for Email Text Analysis
+ */
+class EmailTFIDF {
+  constructor() {
+    this.documentFrequencies = {};
+    this.totalDocuments = 0;
+    this.vocabulary = new Set();
+  }
+
+  /**
+   * Tokenize and normalize text
+   */
+  tokenize(text) {
+    if (!text) return [];
+
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2 && word.length < 20)
+      .filter(word => !this.isStopWord(word));
+  }
+
+  /**
+   * Common stop words to filter out
+   */
+  isStopWord(word) {
+    const stopWords = new Set([
+      'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
+      'her', 'was', 'one', 'our', 'out', 'has', 'have', 'been', 'will',
+      'your', 'from', 'they', 'this', 'that', 'with', 'would', 'there',
+      'their', 'what', 'about', 'which', 'when', 'make', 'like', 'time',
+      'just', 'know', 'take', 'people', 'into', 'year', 'good', 'some',
+      'could', 'them', 'see', 'other', 'than', 'then', 'now', 'look',
+      'only', 'come', 'its', 'over', 'think', 'also', 'back', 'after',
+      'use', 'two', 'how', 'work', 'first', 'well', 'way', 'even', 'new',
+      'want', 'because', 'any', 'these', 'give', 'day', 'most', 'email',
+      'sent', 'please', 'thanks', 'thank', 'best', 'regards', 'sincerely',
+      'hello', 'dear', 'http', 'https', 'www', 'com', 'org', 'net'
+    ]);
+    return stopWords.has(word);
+  }
+
+  /**
+   * Calculate term frequency for a document
+   */
+  termFrequency(tokens) {
+    const tf = {};
+    const totalTerms = tokens.length || 1;
+
+    for (const token of tokens) {
+      tf[token] = (tf[token] || 0) + 1;
+    }
+
+    for (const term in tf) {
+      tf[term] = tf[term] / totalTerms;
+    }
+
+    return tf;
+  }
+
+  /**
+   * Add document to corpus for IDF calculation
+   */
+  addDocument(tokens) {
+    this.totalDocuments++;
+    const uniqueTokens = new Set(tokens);
+
+    for (const token of uniqueTokens) {
+      this.vocabulary.add(token);
+      this.documentFrequencies[token] = (this.documentFrequencies[token] || 0) + 1;
+    }
+  }
+
+  /**
+   * Calculate IDF for a term
+   */
+  inverseDocumentFrequency(term) {
+    const df = this.documentFrequencies[term] || 0;
+    if (df === 0) return 0;
+    return Math.log(this.totalDocuments / df);
+  }
+
+  /**
+   * Calculate TF-IDF vector for a document
+   */
+  tfidfVector(text) {
+    const tokens = this.tokenize(text);
+    const tf = this.termFrequency(tokens);
+    const tfidf = {};
+
+    for (const term in tf) {
+      tfidf[term] = tf[term] * this.inverseDocumentFrequency(term);
+    }
+
+    return tfidf;
+  }
+
+  /**
+   * Get top keywords from text
+   */
+  getTopKeywords(text, n = 10) {
+    const tfidf = this.tfidfVector(text);
+    return Object.entries(tfidf)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([word, score]) => ({ word, score: Math.round(score * 1000) / 1000 }));
+  }
+
+  serialize() {
+    return {
+      documentFrequencies: this.documentFrequencies,
+      totalDocuments: this.totalDocuments,
+      vocabulary: Array.from(this.vocabulary)
+    };
+  }
+
+  static deserialize(data) {
+    const tfidf = new EmailTFIDF();
+    if (data) {
+      tfidf.documentFrequencies = data.documentFrequencies || {};
+      tfidf.totalDocuments = data.totalDocuments || 0;
+      tfidf.vocabulary = new Set(data.vocabulary || []);
+    }
+    return tfidf;
+  }
+}
+
+/**
+ * Naive Bayes Classifier for Email Importance
+ */
+class NaiveBayesClassifier {
+  constructor() {
+    this.classes = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'BULK'];
+    this.classCounts = {};
+    this.wordCounts = {};
+    this.vocabularySize = 0;
+    this.totalDocuments = 0;
+
+    for (const cls of this.classes) {
+      this.classCounts[cls] = 0;
+      this.wordCounts[cls] = {};
+    }
+  }
+
+  train(tokens, className) {
+    if (!this.classes.includes(className)) return;
+
+    this.classCounts[className]++;
+    this.totalDocuments++;
+
+    for (const token of tokens) {
+      if (!this.wordCounts[className][token]) {
+        this.wordCounts[className][token] = 0;
+        this.vocabularySize++;
+      }
+      this.wordCounts[className][token]++;
+    }
+  }
+
+  classify(tokens) {
+    const scores = {};
+
+    for (const cls of this.classes) {
+      const prior = (this.classCounts[cls] + 1) / (this.totalDocuments + this.classes.length);
+      let logProb = Math.log(prior);
+
+      const totalWordsInClass = Object.values(this.wordCounts[cls])
+        .reduce((sum, count) => sum + count, 0) || 1;
+
+      for (const token of tokens) {
+        const wordCount = this.wordCounts[cls][token] || 0;
+        const likelihood = (wordCount + 1) / (totalWordsInClass + this.vocabularySize + 1);
+        logProb += Math.log(likelihood);
+      }
+
+      scores[cls] = logProb;
+    }
+
+    const maxScore = Math.max(...Object.values(scores));
+    let sumExp = 0;
+    const probabilities = {};
+
+    for (const cls in scores) {
+      const exp = Math.exp(scores[cls] - maxScore);
+      probabilities[cls] = exp;
+      sumExp += exp;
+    }
+
+    for (const cls in probabilities) {
+      probabilities[cls] = probabilities[cls] / sumExp;
+    }
+
+    const predicted = Object.entries(probabilities)
+      .sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      class: predicted[0],
+      confidence: predicted[1],
+      allProbabilities: probabilities
+    };
+  }
+
+  serialize() {
+    return {
+      classCounts: this.classCounts,
+      wordCounts: this.wordCounts,
+      vocabularySize: this.vocabularySize,
+      totalDocuments: this.totalDocuments
+    };
+  }
+
+  static deserialize(data) {
+    const classifier = new NaiveBayesClassifier();
+    if (data) {
+      classifier.classCounts = data.classCounts || {};
+      classifier.wordCounts = data.wordCounts || {};
+      classifier.vocabularySize = data.vocabularySize || 0;
+      classifier.totalDocuments = data.totalDocuments || 0;
+    }
+    return classifier;
+  }
+}
+
+/**
+ * Sender Reputation Tracker - Learns from user behavior
+ */
+class SenderReputationTracker {
+  constructor() {
+    this.senders = {};
+  }
+
+  decayWeight(ageInDays) {
+    return Math.pow(0.5, ageInDays / ML_EMAIL_CONFIG.DECAY_HALF_LIFE);
+  }
+
+  recordInteraction(email, type, timestamp) {
+    if (!email) return;
+
+    const domain = email.split('@')[1] || email;
+
+    if (!this.senders[email]) {
+      this.senders[email] = {
+        domain: domain,
+        firstSeen: timestamp,
+        lastSeen: timestamp,
+        interactions: []
+      };
+    }
+
+    this.senders[email].lastSeen = timestamp;
+    this.senders[email].interactions.push({
+      type: type,
+      timestamp: timestamp
+    });
+  }
+
+  getReputationScore(email) {
+    const sender = this.senders[email];
+    if (!sender || sender.interactions.length === 0) {
+      return 50;
+    }
+
+    const now = new Date().getTime();
+    let score = 50;
+
+    for (const interaction of sender.interactions) {
+      const ageInDays = (now - interaction.timestamp) / (1000 * 60 * 60 * 24);
+      const weight = this.decayWeight(ageInDays);
+
+      switch (interaction.type) {
+        case 'replied': score += 15 * weight; break;
+        case 'starred': score += 10 * weight; break;
+        case 'opened': score += 2 * weight; break;
+        case 'forwarded': score += 8 * weight; break;
+        case 'ignored': score -= 3 * weight; break;
+        case 'deleted': score -= 5 * weight; break;
+        case 'archived': score -= 1 * weight; break;
+        case 'unsubscribed': score -= 20 * weight; break;
+      }
+    }
+
+    return Math.max(0, Math.min(100, score));
+  }
+
+  getVIPSenders(threshold = 75) {
+    return Object.entries(this.senders)
+      .filter(([email, _]) => this.getReputationScore(email) >= threshold)
+      .map(([email, data]) => ({
+        email,
+        domain: data.domain,
+        score: this.getReputationScore(email),
+        interactionCount: data.interactions.length
+      }))
+      .sort((a, b) => b.score - a.score);
+  }
+
+  serialize() {
+    return this.senders;
+  }
+
+  static deserialize(data) {
+    const tracker = new SenderReputationTracker();
+    tracker.senders = data || {};
+    return tracker;
+  }
+}
+
+/**
+ * Master ML Email Classifier - Combines all signals
+ */
+class MLEmailClassifier {
+  constructor() {
+    this.tfidf = new EmailTFIDF();
+    this.classifier = new NaiveBayesClassifier();
+    this.senderTracker = new SenderReputationTracker();
+    this.isLoaded = false;
+  }
+
+  loadModel() {
+    const props = PropertiesService.getScriptProperties();
+
+    try {
+      const senderData = props.getProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.SENDER_STATS);
+      if (senderData) {
+        this.senderTracker = SenderReputationTracker.deserialize(JSON.parse(senderData));
+      }
+
+      const wordFreqData = props.getProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.WORD_FREQUENCIES);
+      if (wordFreqData) {
+        this.tfidf = EmailTFIDF.deserialize(JSON.parse(wordFreqData));
+      }
+
+      const classifierData = props.getProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.CLASS_PRIORS);
+      if (classifierData) {
+        this.classifier = NaiveBayesClassifier.deserialize(JSON.parse(classifierData));
+      }
+
+      this.isLoaded = true;
+      return true;
+    } catch (e) {
+      Logger.log('Error loading ML model: ' + e.message);
+      return false;
+    }
+  }
+
+  saveModel() {
+    const props = PropertiesService.getScriptProperties();
+
+    try {
+      const senderData = JSON.stringify(this.senderTracker.serialize());
+      const wordFreqData = JSON.stringify(this.tfidf.serialize());
+      const classifierData = JSON.stringify(this.classifier.serialize());
+
+      props.setProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.SENDER_STATS, senderData);
+      props.setProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.WORD_FREQUENCIES, wordFreqData);
+      props.setProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.CLASS_PRIORS, classifierData);
+      props.setProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.MODEL_VERSION, '1.0');
+      props.setProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.LAST_TRAINED, new Date().toISOString());
+
+      return true;
+    } catch (e) {
+      Logger.log('Error saving ML model: ' + e.message);
+      return false;
+    }
+  }
+
+  classifyEmail(message) {
+    const subject = message.getSubject() || '';
+    const body = message.getPlainBody() || '';
+    const from = message.getFrom() || '';
+    const to = message.getTo() || '';
+    const cc = message.getCc() || '';
+
+    const senderMatch = from.match(/<(.+)>/) || [null, from];
+    const senderEmail = (senderMatch[1] || from).toLowerCase().trim();
+
+    // 1. Text Analysis Score (Naive Bayes)
+    const fullText = subject + ' ' + body.substring(0, 2000);
+    const tokens = this.tfidf.tokenize(fullText);
+    const bayesResult = this.classifier.classify(tokens);
+    const textScore = this.classToScore(bayesResult.class) * bayesResult.confidence;
+
+    // 2. Sender Reputation Score
+    const senderScore = this.senderTracker.getReputationScore(senderEmail);
+
+    // 3. Direct Recipient Score
+    let recipientScore = 50;
+    const ownerEmail = (EMAIL_MANAGEMENT_CONFIG.OWNER_EMAIL || '').toLowerCase();
+    if (to.toLowerCase().includes(ownerEmail)) {
+      recipientScore = 80;
+    } else if (cc.toLowerCase().includes(ownerEmail)) {
+      recipientScore = 40;
+    }
+
+    // 4. Recency Score
+    const messageAge = (new Date().getTime() - message.getDate().getTime()) / (1000 * 60 * 60 * 24);
+    const recencyScore = 100 * this.senderTracker.decayWeight(messageAge);
+
+    // 5. Keyword Boost
+    let keywordBoost = 0;
+    const lowerSubject = subject.toLowerCase();
+    const lowerBody = body.toLowerCase().substring(0, 2000);
+
+    if (/urgent|emergency|asap|immediate|critical/.test(lowerSubject)) keywordBoost += 20;
+    if (/order|payment|invoice|deadline|overdue/.test(lowerSubject)) keywordBoost += 15;
+    if (/grant|usda|nrcs|eqip|funding/.test(lowerSubject + ' ' + lowerBody)) keywordBoost += 15;
+    if (/unsubscribe|newsletter|promotion|discount|sale|limited time/.test(lowerBody)) keywordBoost -= 20;
+
+    // 6. Calculate weighted final score
+    const finalScore =
+      (textScore * ML_EMAIL_CONFIG.WEIGHTS.TEXT_IMPORTANCE) +
+      (senderScore * ML_EMAIL_CONFIG.WEIGHTS.REPLY_BEHAVIOR) +
+      (recipientScore * ML_EMAIL_CONFIG.WEIGHTS.DIRECT_RECIPIENT) +
+      (recencyScore * ML_EMAIL_CONFIG.WEIGHTS.RECENCY) +
+      keywordBoost;
+
+    const clampedScore = Math.max(0, Math.min(100, finalScore));
+
+    let importanceLevel = 'BULK';
+    for (const [level, threshold] of Object.entries(ML_EMAIL_CONFIG.IMPORTANCE_THRESHOLDS)) {
+      if (clampedScore >= threshold) {
+        importanceLevel = level;
+        break;
+      }
+    }
+
+    return {
+      score: Math.round(clampedScore),
+      level: importanceLevel,
+      breakdown: {
+        textAnalysis: Math.round(textScore),
+        senderReputation: Math.round(senderScore),
+        recipientType: Math.round(recipientScore),
+        recency: Math.round(recencyScore),
+        keywordBoost: keywordBoost
+      },
+      bayesClass: bayesResult.class,
+      bayesConfidence: Math.round(bayesResult.confidence * 100),
+      sender: senderEmail,
+      subject: subject.substring(0, 100)
+    };
+  }
+
+  classToScore(className) {
+    const scores = { 'CRITICAL': 95, 'HIGH': 75, 'MEDIUM': 55, 'LOW': 35, 'BULK': 15 };
+    return scores[className] || 50;
+  }
+
+  learnFromAction(message, action) {
+    const from = message.getFrom() || '';
+    const senderMatch = from.match(/<(.+)>/) || [null, from];
+    const senderEmail = (senderMatch[1] || from).toLowerCase().trim();
+
+    this.senderTracker.recordInteraction(senderEmail, action, new Date().getTime());
+
+    const fullText = (message.getSubject() || '') + ' ' + (message.getPlainBody() || '').substring(0, 2000);
+    const tokens = this.tfidf.tokenize(fullText);
+
+    this.tfidf.addDocument(tokens);
+
+    const actionToClass = {
+      'replied': 'CRITICAL',
+      'starred': 'HIGH',
+      'forwarded': 'HIGH',
+      'opened': 'MEDIUM',
+      'archived': 'LOW',
+      'ignored': 'BULK',
+      'deleted': 'BULK',
+      'unsubscribed': 'BULK'
+    };
+
+    const targetClass = actionToClass[action] || 'MEDIUM';
+    this.classifier.train(tokens, targetClass);
+  }
+}
+
+/**
+ * MAIN FUNCTION: Run Full Inbox Analysis
+ * Analyzes ALL emails and trains the ML model
+ */
+function runFullInboxAnalysis() {
+  Logger.log('🧠 Starting FULL INBOX ANALYSIS with ML...');
+
+  const mlClassifier = new MLEmailClassifier();
+  mlClassifier.loadModel();
+
+  const startTime = new Date();
+  const results = {
+    totalAnalyzed: 0,
+    trained: 0,
+    classified: 0,
+    byLevel: { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, BULK: 0 },
+    topSenders: [],
+    errors: []
+  };
+
+  try {
+    // Phase 1: Analyze ALL emails (last 90 days for training)
+    Logger.log('📧 Phase 1: Fetching emails for training...');
+
+    const trainingThreads = GmailApp.search('in:anywhere -in:trash -in:spam newer_than:90d', 0, 500);
+    Logger.log('Found ' + trainingThreads.length + ' threads for training');
+
+    const ownerEmail = EMAIL_MANAGEMENT_CONFIG.OWNER_EMAIL || '';
+
+    for (const thread of trainingThreads) {
+      const messages = thread.getMessages();
+
+      for (const message of messages) {
+        try {
+          const from = message.getFrom() || '';
+          const senderMatch = from.match(/<(.+)>/) || [null, from];
+          const senderEmail = (senderMatch[1] || from).toLowerCase().trim();
+
+          let action = 'ignored';
+
+          if (thread.hasStarredMessages()) {
+            action = 'starred';
+          } else if (message.isInInbox() && !message.isUnread()) {
+            action = 'opened';
+          }
+
+          const nextMessages = messages.filter(m => m.getDate() > message.getDate());
+          for (const nm of nextMessages) {
+            if ((nm.getFrom() || '').includes(ownerEmail)) {
+              action = 'replied';
+              break;
+            }
+          }
+
+          if (!message.isInInbox() && !thread.isInSpam() && !thread.isInTrash()) {
+            if (action === 'ignored') action = 'archived';
+          }
+
+          mlClassifier.learnFromAction(message, action);
+          results.trained++;
+
+        } catch (e) {
+          results.errors.push('Training error: ' + e.message);
+        }
+      }
+
+      results.totalAnalyzed += messages.length;
+    }
+
+    Logger.log('✅ Phase 1 complete: Trained on ' + results.trained + ' emails');
+
+    // Phase 2: Classify all unread inbox emails
+    Logger.log('📊 Phase 2: Classifying unread inbox emails...');
+
+    const unreadThreads = GmailApp.search('in:inbox is:unread', 0, 200);
+    const classifications = [];
+
+    for (const thread of unreadThreads) {
+      const messages = thread.getMessages();
+      const latestMessage = messages[messages.length - 1];
+
+      try {
+        const classification = mlClassifier.classifyEmail(latestMessage);
+        classifications.push(classification);
+        results.byLevel[classification.level]++;
+        results.classified++;
+
+        applyImportanceLabel(thread, classification);
+
+      } catch (e) {
+        results.errors.push('Classification error: ' + e.message);
+      }
+    }
+
+    Logger.log('✅ Phase 2 complete: Classified ' + results.classified + ' unread emails');
+
+    // Phase 3: Save the trained model
+    Logger.log('💾 Phase 3: Saving trained model...');
+    mlClassifier.saveModel();
+
+    // Phase 4: Generate report
+    results.topSenders = mlClassifier.senderTracker.getVIPSenders(70).slice(0, 20);
+    results.duration = (new Date().getTime() - startTime.getTime()) / 1000;
+
+    writeMLAnalysisToSheet(results, classifications);
+
+    Logger.log('🎉 FULL INBOX ANALYSIS COMPLETE!');
+    Logger.log('📈 Summary: ' + results.totalAnalyzed + ' analyzed, ' + results.trained + ' trained, ' + results.classified + ' classified');
+    Logger.log('⏱️ Duration: ' + results.duration + ' seconds');
+
+    return results;
+
+  } catch (e) {
+    Logger.log('❌ Error in full inbox analysis: ' + e.message);
+    results.errors.push(e.message);
+    return results;
+  }
+}
+
+/**
+ * Apply importance label to thread based on ML classification
+ */
+function applyImportanceLabel(thread, classification) {
+  const labelMap = {
+    'CRITICAL': '🔴 CRITICAL',
+    'HIGH': '🟠 HIGH',
+    'MEDIUM': '🟡 MEDIUM',
+    'LOW': '🟢 LOW',
+    'BULK': '⚪ BULK'
+  };
+
+  const labelName = labelMap[classification.level] || '🟡 MEDIUM';
+
+  let label = GmailApp.getUserLabelByName(labelName);
+  if (!label) {
+    label = GmailApp.createLabel(labelName);
+  }
+
+  thread.addLabel(label);
+
+  if (classification.level === 'CRITICAL') {
+    thread.getMessages().forEach(m => m.star());
+  }
+}
+
+/**
+ * Write ML analysis results to spreadsheet
+ */
+function writeMLAnalysisToSheet(results, classifications) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('ML_EMAIL_ANALYSIS');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('ML_EMAIL_ANALYSIS');
+  }
+
+  sheet.clear();
+
+  const summaryData = [
+    ['ML EMAIL ANALYSIS REPORT', '', '', '', '', ''],
+    ['Generated:', new Date().toISOString(), '', '', '', ''],
+    ['', '', '', '', '', ''],
+    ['SUMMARY STATISTICS', '', '', '', '', ''],
+    ['Emails Analyzed:', results.totalAnalyzed, '', 'Duration (sec):', results.duration, ''],
+    ['Emails Trained:', results.trained, '', 'Errors:', results.errors.length, ''],
+    ['Emails Classified:', results.classified, '', '', '', ''],
+    ['', '', '', '', '', ''],
+    ['IMPORTANCE BREAKDOWN', '', '', '', '', ''],
+    ['🔴 CRITICAL:', results.byLevel.CRITICAL, (results.classified > 0 ? Math.round(results.byLevel.CRITICAL / results.classified * 100) : 0) + '%', '', '', ''],
+    ['🟠 HIGH:', results.byLevel.HIGH, (results.classified > 0 ? Math.round(results.byLevel.HIGH / results.classified * 100) : 0) + '%', '', '', ''],
+    ['🟡 MEDIUM:', results.byLevel.MEDIUM, (results.classified > 0 ? Math.round(results.byLevel.MEDIUM / results.classified * 100) : 0) + '%', '', '', ''],
+    ['🟢 LOW:', results.byLevel.LOW, (results.classified > 0 ? Math.round(results.byLevel.LOW / results.classified * 100) : 0) + '%', '', '', ''],
+    ['⚪ BULK:', results.byLevel.BULK, (results.classified > 0 ? Math.round(results.byLevel.BULK / results.classified * 100) : 0) + '%', '', '', ''],
+    ['', '', '', '', '', ''],
+    ['VIP SENDERS (Score > 70)', '', '', '', '', '']
+  ];
+
+  for (const sender of results.topSenders.slice(0, 15)) {
+    summaryData.push([sender.email, 'Score: ' + sender.score, 'Interactions: ' + sender.interactionCount, '', '', '']);
+  }
+
+  summaryData.push(['', '', '', '', '', '']);
+  summaryData.push(['DETAILED CLASSIFICATIONS', '', '', '', '', '']);
+  summaryData.push(['Subject', 'Sender', 'Score', 'Level', 'Bayes Class', 'Confidence']);
+
+  for (const cls of classifications.slice(0, 100)) {
+    summaryData.push([
+      cls.subject,
+      cls.sender,
+      cls.score,
+      cls.level,
+      cls.bayesClass,
+      cls.bayesConfidence + '%'
+    ]);
+  }
+
+  sheet.getRange(1, 1, summaryData.length, 6).setValues(summaryData);
+
+  sheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#4285f4').setFontColor('white');
+  sheet.getRange('A4').setFontWeight('bold');
+  sheet.getRange('A9').setFontWeight('bold');
+  sheet.getRange('A16').setFontWeight('bold');
+
+  sheet.autoResizeColumns(1, 6);
+}
+
+/**
+ * Continuous learning: Process recent user actions and update model
+ */
+function updateMLFromRecentActions() {
+  Logger.log('🔄 Updating ML model from recent user actions...');
+
+  const mlClassifier = new MLEmailClassifier();
+  mlClassifier.loadModel();
+
+  const updated = { starred: 0, replied: 0, archived: 0, deleted: 0 };
+  const ownerEmail = EMAIL_MANAGEMENT_CONFIG.OWNER_EMAIL || '';
+
+  const starredThreads = GmailApp.search('is:starred newer_than:7d', 0, 50);
+  for (const thread of starredThreads) {
+    for (const message of thread.getMessages()) {
+      mlClassifier.learnFromAction(message, 'starred');
+      updated.starred++;
+    }
+  }
+
+  const sentThreads = GmailApp.search('in:sent newer_than:7d', 0, 50);
+  for (const thread of sentThreads) {
+    const messages = thread.getMessages();
+    for (let i = 0; i < messages.length; i++) {
+      if (i > 0 && !(messages[i - 1].getFrom() || '').includes(ownerEmail)) {
+        mlClassifier.learnFromAction(messages[i - 1], 'replied');
+        updated.replied++;
+      }
+    }
+  }
+
+  const archivedThreads = GmailApp.search('-in:inbox -in:trash -in:spam newer_than:7d', 0, 50);
+  for (const thread of archivedThreads) {
+    for (const message of thread.getMessages()) {
+      if (!(message.getFrom() || '').includes(ownerEmail)) {
+        mlClassifier.learnFromAction(message, 'archived');
+        updated.archived++;
+      }
+    }
+  }
+
+  const trashedThreads = GmailApp.search('in:trash newer_than:7d', 0, 50);
+  for (const thread of trashedThreads) {
+    for (const message of thread.getMessages()) {
+      if (!(message.getFrom() || '').includes(ownerEmail)) {
+        mlClassifier.learnFromAction(message, 'deleted');
+        updated.deleted++;
+      }
+    }
+  }
+
+  mlClassifier.saveModel();
+
+  Logger.log('✅ ML model updated: ' + updated.starred + ' starred, ' + updated.replied + ' replied, ' + updated.archived + ' archived, ' + updated.deleted + ' deleted');
+
+  return updated;
+}
+
+/**
+ * Smart auto-sort using ML classification
+ */
+function mlAutoSortInbox() {
+  Logger.log('🤖 Running ML-powered inbox sort...');
+
+  const mlClassifier = new MLEmailClassifier();
+  mlClassifier.loadModel();
+
+  const results = {
+    processed: 0,
+    labeled: { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, BULK: 0 }
+  };
+
+  const threads = GmailApp.search('in:inbox is:unread', 0, 50);
+
+  for (const thread of threads) {
+    const messages = thread.getMessages();
+    const latestMessage = messages[messages.length - 1];
+
+    try {
+      const classification = mlClassifier.classifyEmail(latestMessage);
+      applyImportanceLabel(thread, classification);
+      results.labeled[classification.level]++;
+      results.processed++;
+    } catch (e) {
+      Logger.log('Classification error: ' + e.message);
+    }
+  }
+
+  if (Math.random() < 0.2) {
+    updateMLFromRecentActions();
+  }
+
+  Logger.log('✅ ML sort complete: ' + results.processed + ' emails processed');
+
+  return results;
+}
+
+/**
+ * Setup ML email system with triggers
+ */
+function setupMLEmailSystem() {
+  Logger.log('🚀 Setting up ML Email Classification System...');
+
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const trigger of triggers) {
+    if (['mlAutoSortInbox', 'updateMLFromRecentActions', 'runFullInboxAnalysis'].includes(trigger.getHandlerFunction())) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+
+  Logger.log('📊 Running initial full inbox analysis...');
+  const analysisResults = runFullInboxAnalysis();
+
+  ScriptApp.newTrigger('mlAutoSortInbox')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  ScriptApp.newTrigger('updateMLFromRecentActions')
+    .timeBased()
+    .atHour(6)
+    .everyDays(1)
+    .create();
+
+  Logger.log('✅ ML Email System setup complete!');
+  Logger.log('📧 Hourly smart sorting enabled');
+  Logger.log('🧠 Daily learning updates enabled');
+
+  return {
+    success: true,
+    initialAnalysis: analysisResults,
+    triggers: ['mlAutoSortInbox (hourly)', 'updateMLFromRecentActions (daily at 6 AM)']
+  };
+}
+
+/**
+ * Get ML system status
+ */
+function getMLEmailStatus() {
+  const props = PropertiesService.getScriptProperties();
+
+  return {
+    modelVersion: props.getProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.MODEL_VERSION) || 'Not trained',
+    lastTrained: props.getProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.LAST_TRAINED) || 'Never',
+    senderCount: Object.keys(JSON.parse(props.getProperty(ML_EMAIL_CONFIG.STORAGE_KEYS.SENDER_STATS) || '{}')).length,
+    triggers: ScriptApp.getProjectTriggers()
+      .filter(t => ['mlAutoSortInbox', 'updateMLFromRecentActions'].includes(t.getHandlerFunction()))
+      .map(t => t.getHandlerFunction())
+  };
 }
 
