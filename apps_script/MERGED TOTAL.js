@@ -24532,3 +24532,645 @@ function getCustomSenderRules() {
   return rules;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GMAIL INBOX DEEP ANALYZER
+// ═══════════════════════════════════════════════════════════════════════════
+// Analyzes your actual email patterns to build smart sorting rules
+// Run analyzeInboxForSorting() to generate a comprehensive report
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * MAIN ANALYZER: Deep dive into inbox patterns
+ * Analyzes last 60 days of email to build intelligence
+ */
+function analyzeInboxForSorting() {
+  Logger.log('🔬 Starting deep inbox analysis...');
+
+  const analysis = {
+    timestamp: new Date().toISOString(),
+    emailsAnalyzed: 0,
+    senderProfiles: {},      // Domain -> stats
+    topSenders: [],          // Most frequent senders
+    repliedTo: [],           // Senders you reply to (HIGH VALUE)
+    starred: [],             // Emails you starred
+    neverOpened: [],         // Senders you ignore
+    spamPatterns: [],        // Detected spam indicators
+    timePatterns: {},        // When important emails arrive
+    subjectPatterns: {},     // Common subject keywords
+    proposedRules: [],       // Generated sorting rules
+    categoryProposals: {}    // Emails grouped by proposed category
+  };
+
+  try {
+    // Get emails from last 60 days
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const dateStr = Utilities.formatDate(sixtyDaysAgo, 'America/New_York', 'yyyy/MM/dd');
+
+    // Analyze INBOX emails
+    Logger.log('📥 Analyzing inbox...');
+    const inboxThreads = GmailApp.search(`in:inbox after:${dateStr}`, 0, 300);
+    processThreadsForAnalysis(inboxThreads, analysis, 'inbox');
+
+    // Analyze SENT emails (to find who you reply to)
+    Logger.log('📤 Analyzing sent mail for reply patterns...');
+    const sentThreads = GmailApp.search(`in:sent after:${dateStr}`, 0, 200);
+    processThreadsForAnalysis(sentThreads, analysis, 'sent');
+
+    // Analyze STARRED emails (explicit importance signals)
+    Logger.log('⭐ Analyzing starred emails...');
+    const starredThreads = GmailApp.search(`is:starred after:${dateStr}`, 0, 100);
+    processThreadsForAnalysis(starredThreads, analysis, 'starred');
+
+    // Analyze SPAM folder (to learn spam patterns)
+    Logger.log('🗑️ Analyzing spam patterns...');
+    const spamThreads = GmailApp.search(`in:spam after:${dateStr}`, 0, 100);
+    processThreadsForAnalysis(spamThreads, analysis, 'spam');
+
+    // Generate insights
+    Logger.log('🧠 Generating insights...');
+    generateSenderInsights(analysis);
+    generateProposedRules(analysis);
+
+    // Save report to sheet
+    saveAnalysisReport(analysis);
+
+    Logger.log(`✅ Analysis complete! ${analysis.emailsAnalyzed} emails processed.`);
+
+    return analysis;
+
+  } catch (error) {
+    Logger.log('❌ Analysis error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Process threads and extract data for analysis
+ */
+function processThreadsForAnalysis(threads, analysis, source) {
+  for (const thread of threads) {
+    try {
+      const messages = thread.getMessages();
+      const firstMsg = messages[0];
+      const lastMsg = messages[messages.length - 1];
+
+      // Extract sender info
+      const fromRaw = firstMsg.getFrom();
+      const fromEmail = extractEmail(fromRaw);
+      const fromDomain = extractDomain(fromEmail);
+      const fromName = extractName(fromRaw);
+
+      const subject = firstMsg.getSubject() || '';
+      const date = firstMsg.getDate();
+      const isStarred = thread.hasStarredMessages();
+      const isRead = !thread.isUnread();
+      const messageCount = messages.length;
+      const hasAttachment = messages.some(m => m.getAttachments().length > 0);
+
+      // Check if YOU replied to this thread
+      const youReplied = messages.some(m => {
+        const mFrom = m.getFrom().toLowerCase();
+        return mFrom.includes('tinyseed') || mFrom.includes('todd');
+      });
+
+      // Get body snippet for spam detection
+      const bodySnippet = firstMsg.getPlainBody().substring(0, 1000).toLowerCase();
+
+      // Initialize sender profile if new
+      if (!analysis.senderProfiles[fromDomain]) {
+        analysis.senderProfiles[fromDomain] = {
+          domain: fromDomain,
+          emails: [],
+          senderNames: new Set(),
+          totalEmails: 0,
+          repliedTo: 0,
+          starred: 0,
+          opened: 0,
+          ignored: 0,
+          hasAttachments: 0,
+          avgResponseTime: null,
+          subjectKeywords: {},
+          spamScore: 0,
+          importanceScore: 0
+        };
+      }
+
+      const profile = analysis.senderProfiles[fromDomain];
+      profile.totalEmails++;
+      profile.senderNames.add(fromName);
+
+      if (source === 'sent') {
+        // This is from sent folder - extract who you're writing TO
+        const toRaw = firstMsg.getTo();
+        const toEmail = extractEmail(toRaw);
+        const toDomain = extractDomain(toEmail);
+
+        if (toDomain && toDomain !== fromDomain) {
+          if (!analysis.senderProfiles[toDomain]) {
+            analysis.senderProfiles[toDomain] = {
+              domain: toDomain,
+              emails: [],
+              senderNames: new Set(),
+              totalEmails: 0,
+              repliedTo: 0,
+              starred: 0,
+              opened: 0,
+              ignored: 0,
+              hasAttachments: 0,
+              spamScore: 0,
+              importanceScore: 0,
+              subjectKeywords: {}
+            };
+          }
+          analysis.senderProfiles[toDomain].repliedTo++;
+        }
+      } else {
+        // Inbox/starred/spam analysis
+        if (youReplied) profile.repliedTo++;
+        if (isStarred) profile.starred++;
+        if (isRead) profile.opened++;
+        if (!isRead && date < new Date(Date.now() - 7*24*60*60*1000)) profile.ignored++;
+        if (hasAttachment) profile.hasAttachments++;
+
+        // Track subject keywords
+        const keywords = extractKeywords(subject);
+        keywords.forEach(kw => {
+          profile.subjectKeywords[kw] = (profile.subjectKeywords[kw] || 0) + 1;
+        });
+
+        // Spam detection signals
+        if (source === 'spam' || detectSpamSignals(bodySnippet, subject, fromEmail)) {
+          profile.spamScore += (source === 'spam' ? 10 : 2);
+        }
+
+        // Store email reference
+        profile.emails.push({
+          subject: subject.substring(0, 100),
+          date: date,
+          starred: isStarred,
+          replied: youReplied,
+          source: source
+        });
+      }
+
+      analysis.emailsAnalyzed++;
+
+      // Time pattern analysis
+      const hour = date.getHours();
+      const dayOfWeek = date.getDay();
+      const timeKey = `${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek]}_${hour}`;
+
+      if (isStarred || youReplied) {
+        analysis.timePatterns[timeKey] = (analysis.timePatterns[timeKey] || 0) + 1;
+      }
+
+    } catch (e) {
+      // Skip problematic threads
+      Logger.log('Skipped thread: ' + e.toString());
+    }
+  }
+}
+
+/**
+ * Extract email address from "Name <email>" format
+ */
+function extractEmail(fromStr) {
+  const match = fromStr.match(/<([^>]+)>/);
+  if (match) return match[1].toLowerCase();
+  return fromStr.toLowerCase().trim();
+}
+
+/**
+ * Extract domain from email
+ */
+function extractDomain(email) {
+  const parts = email.split('@');
+  return parts.length > 1 ? parts[1] : email;
+}
+
+/**
+ * Extract name from "Name <email>" format
+ */
+function extractName(fromStr) {
+  const match = fromStr.match(/^([^<]+)</);
+  if (match) return match[1].trim().replace(/"/g, '');
+  return fromStr.split('@')[0];
+}
+
+/**
+ * Extract meaningful keywords from subject
+ */
+function extractKeywords(subject) {
+  const stopWords = ['the','a','an','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','must','shall','can','need','dare','ought','used','to','of','in','for','on','with','at','by','from','as','into','through','during','before','after','above','below','between','under','again','further','then','once','here','there','when','where','why','how','all','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','just','also','now','re','fw','fwd'];
+
+  return subject.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopWords.includes(w))
+    .slice(0, 5);
+}
+
+/**
+ * Detect spam signals in email content
+ */
+function detectSpamSignals(body, subject, fromEmail) {
+  const spamIndicators = [
+    'unsubscribe',
+    'click here',
+    'act now',
+    'limited time',
+    'special offer',
+    'you have been selected',
+    'congratulations',
+    'winner',
+    'free gift',
+    'no obligation',
+    'risk free',
+    'satisfaction guaranteed',
+    'click below',
+    'view in browser',
+    'email preferences',
+    'manage subscriptions',
+    'opt out',
+    'privacy policy',
+    'terms of service'
+  ];
+
+  const text = (body + ' ' + subject).toLowerCase();
+  let spamCount = 0;
+
+  spamIndicators.forEach(indicator => {
+    if (text.includes(indicator)) spamCount++;
+  });
+
+  // Marketing domain patterns
+  const marketingDomains = ['mailchimp', 'constantcontact', 'sendgrid', 'mailgun', 'campaign', 'newsletter', 'marketing', 'promo'];
+  marketingDomains.forEach(d => {
+    if (fromEmail.includes(d)) spamCount += 3;
+  });
+
+  return spamCount >= 2;
+}
+
+/**
+ * Generate insights from sender profiles
+ */
+function generateSenderInsights(analysis) {
+  const profiles = Object.values(analysis.senderProfiles);
+
+  // Calculate importance scores
+  profiles.forEach(p => {
+    // Importance formula:
+    // +50 points for each reply
+    // +20 points for each star
+    // +5 points for each opened email
+    // -10 points for each ignored email
+    // -5 points per spam score point
+    // +10 points for attachments (invoices, etc)
+
+    p.importanceScore =
+      (p.repliedTo * 50) +
+      (p.starred * 20) +
+      (p.opened * 5) -
+      (p.ignored * 10) -
+      (p.spamScore * 5) +
+      (p.hasAttachments * 10);
+
+    // Convert Set to Array for JSON
+    p.senderNames = Array.from(p.senderNames);
+  });
+
+  // Sort by various metrics
+  analysis.topSenders = profiles
+    .sort((a, b) => b.totalEmails - a.totalEmails)
+    .slice(0, 30)
+    .map(p => ({
+      domain: p.domain,
+      count: p.totalEmails,
+      importance: p.importanceScore,
+      repliedTo: p.repliedTo,
+      starred: p.starred
+    }));
+
+  analysis.repliedTo = profiles
+    .filter(p => p.repliedTo > 0)
+    .sort((a, b) => b.repliedTo - a.repliedTo)
+    .slice(0, 20)
+    .map(p => ({
+      domain: p.domain,
+      repliedCount: p.repliedTo,
+      importance: p.importanceScore,
+      names: p.senderNames.slice(0, 3)
+    }));
+
+  analysis.neverOpened = profiles
+    .filter(p => p.ignored > 2 && p.repliedTo === 0 && p.starred === 0)
+    .sort((a, b) => b.ignored - a.ignored)
+    .slice(0, 20)
+    .map(p => ({
+      domain: p.domain,
+      ignoredCount: p.ignored,
+      spamScore: p.spamScore
+    }));
+
+  // Identify likely spam sources
+  analysis.spamPatterns = profiles
+    .filter(p => p.spamScore > 5)
+    .sort((a, b) => b.spamScore - a.spamScore)
+    .slice(0, 20)
+    .map(p => ({
+      domain: p.domain,
+      spamScore: p.spamScore,
+      totalEmails: p.totalEmails
+    }));
+}
+
+/**
+ * Generate proposed sorting rules based on analysis
+ */
+function generateProposedRules(analysis) {
+  const profiles = Object.values(analysis.senderProfiles);
+  const rules = [];
+
+  // RULE TYPE 1: High-value senders (you reply to them)
+  const highValue = profiles.filter(p => p.repliedTo >= 2 || p.importanceScore > 100);
+  highValue.forEach(p => {
+    let category = categorizeByDomain(p.domain, p.subjectKeywords);
+    rules.push({
+      type: 'HIGH_VALUE_SENDER',
+      domain: p.domain,
+      action: 'STAR_AND_LABEL',
+      proposedLabel: category,
+      confidence: Math.min(95, 50 + p.repliedTo * 10 + p.starred * 5),
+      reason: `You replied to ${p.repliedTo} emails, starred ${p.starred}`,
+      sampleSubjects: p.emails.slice(0, 3).map(e => e.subject)
+    });
+  });
+
+  // RULE TYPE 2: Auto-archive candidates (never opened, high spam score)
+  const autoArchive = profiles.filter(p =>
+    p.ignored > 3 && p.repliedTo === 0 && p.starred === 0 && p.spamScore > 0
+  );
+  autoArchive.forEach(p => {
+    rules.push({
+      type: 'AUTO_ARCHIVE',
+      domain: p.domain,
+      action: 'ARCHIVE_AND_LABEL_BULK',
+      proposedLabel: '_Bulk',
+      confidence: Math.min(90, 40 + p.ignored * 5 + p.spamScore * 3),
+      reason: `Ignored ${p.ignored} times, spam score ${p.spamScore}`,
+      sampleSubjects: p.emails.slice(0, 3).map(e => e.subject)
+    });
+  });
+
+  // RULE TYPE 3: Medium-value (opened but not replied)
+  const mediumValue = profiles.filter(p =>
+    p.opened > 3 && p.repliedTo === 0 && p.importanceScore > 0 && p.importanceScore < 100
+  );
+  mediumValue.forEach(p => {
+    let category = categorizeByDomain(p.domain, p.subjectKeywords);
+    rules.push({
+      type: 'MEDIUM_VALUE',
+      domain: p.domain,
+      action: 'LABEL_ONLY',
+      proposedLabel: category,
+      confidence: Math.min(70, 30 + p.opened * 3),
+      reason: `Opened ${p.opened} times but didn't reply`,
+      sampleSubjects: p.emails.slice(0, 3).map(e => e.subject)
+    });
+  });
+
+  // Sort by confidence
+  analysis.proposedRules = rules.sort((a, b) => b.confidence - a.confidence);
+
+  // Group by proposed category for review
+  analysis.categoryProposals = {};
+  rules.forEach(r => {
+    if (!analysis.categoryProposals[r.proposedLabel]) {
+      analysis.categoryProposals[r.proposedLabel] = [];
+    }
+    analysis.categoryProposals[r.proposedLabel].push({
+      domain: r.domain,
+      confidence: r.confidence,
+      reason: r.reason
+    });
+  });
+}
+
+/**
+ * Smart categorization based on domain and keywords
+ */
+function categorizeByDomain(domain, keywords) {
+  domain = domain.toLowerCase();
+  const kwList = Object.keys(keywords || {}).join(' ').toLowerCase();
+
+  // Payment/Money
+  if (domain.match(/shopify|stripe|square|paypal|venmo|quickbooks|invoice|payment/)) {
+    return '🔴 MONEY';
+  }
+
+  // Government/Grants
+  if (domain.match(/\.gov|usda|nrcs|fsa|agriculture|grant/)) {
+    return '🔵 GRANTS';
+  }
+
+  // Seeds/Suppliers
+  if (domain.match(/seed|johnny|highmowing|fedco|baker|territorial|osborne|paperpot|farmer/)) {
+    return '🟢 FARM-OPS';
+  }
+
+  // Markets
+  if (domain.match(/market|vendor|booth|farmersmarket/)) {
+    return '📅 MARKETS';
+  }
+
+  // Insurance/Legal/Admin
+  if (domain.match(/insurance|legal|law|certif|organic|oeffa/)) {
+    return '🟣 ADMIN';
+  }
+
+  // CSA keywords
+  if (kwList.match(/csa|share|member|box|pickup/)) {
+    return '⚪ CSA';
+  }
+
+  // Wholesale keywords
+  if (kwList.match(/order|wholesale|restaurant|chef|menu|weekly/)) {
+    return '🟡 WHOLESALE';
+  }
+
+  // Customer keywords
+  if (kwList.match(/question|help|delivery|produce|vegetable|farm/)) {
+    return '🟠 CUSTOMERS';
+  }
+
+  // Default
+  return '🟠 CUSTOMERS';
+}
+
+/**
+ * Save analysis report to spreadsheet for review
+ */
+function saveAnalysisReport(analysis) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+
+  // Create or clear the analysis sheet
+  let sheet = ss.getSheetByName('GMAIL_ANALYSIS');
+  if (sheet) {
+    sheet.clear();
+  } else {
+    sheet = ss.insertSheet('GMAIL_ANALYSIS');
+  }
+
+  // Header
+  sheet.getRange('A1').setValue('📧 GMAIL INBOX ANALYSIS REPORT');
+  sheet.getRange('A1').setFontSize(16).setFontWeight('bold');
+  sheet.getRange('A2').setValue(`Generated: ${analysis.timestamp} | Emails Analyzed: ${analysis.emailsAnalyzed}`);
+
+  let row = 4;
+
+  // Section 1: HIGH VALUE SENDERS (you reply to)
+  sheet.getRange(row, 1).setValue('⭐ HIGH VALUE SENDERS (You Reply To These)').setFontWeight('bold').setBackground('#d4edda');
+  row++;
+  sheet.getRange(row, 1, 1, 5).setValues([['Domain', 'Times Replied', 'Times Starred', 'Importance Score', 'Proposed Label']]);
+  sheet.getRange(row, 1, 1, 5).setFontWeight('bold');
+  row++;
+
+  const highValue = analysis.proposedRules.filter(r => r.type === 'HIGH_VALUE_SENDER').slice(0, 20);
+  highValue.forEach(r => {
+    sheet.getRange(row, 1, 1, 5).setValues([[r.domain, r.reason, '', r.confidence + '%', r.proposedLabel]]);
+    row++;
+  });
+
+  row += 2;
+
+  // Section 2: AUTO-ARCHIVE CANDIDATES
+  sheet.getRange(row, 1).setValue('🗑️ AUTO-ARCHIVE CANDIDATES (You Ignore These)').setFontWeight('bold').setBackground('#f8d7da');
+  row++;
+  sheet.getRange(row, 1, 1, 4).setValues([['Domain', 'Reason', 'Confidence', 'Sample Subject']]);
+  sheet.getRange(row, 1, 1, 4).setFontWeight('bold');
+  row++;
+
+  const archiveCandidates = analysis.proposedRules.filter(r => r.type === 'AUTO_ARCHIVE').slice(0, 20);
+  archiveCandidates.forEach(r => {
+    sheet.getRange(row, 1, 1, 4).setValues([[r.domain, r.reason, r.confidence + '%', (r.sampleSubjects[0] || '').substring(0, 50)]]);
+    row++;
+  });
+
+  row += 2;
+
+  // Section 3: TOP SENDERS BY VOLUME
+  sheet.getRange(row, 1).setValue('📊 TOP SENDERS BY VOLUME').setFontWeight('bold').setBackground('#cce5ff');
+  row++;
+  sheet.getRange(row, 1, 1, 5).setValues([['Domain', 'Email Count', 'Replied', 'Starred', 'Importance']]);
+  sheet.getRange(row, 1, 1, 5).setFontWeight('bold');
+  row++;
+
+  analysis.topSenders.slice(0, 25).forEach(s => {
+    sheet.getRange(row, 1, 1, 5).setValues([[s.domain, s.count, s.repliedTo, s.starred, s.importance]]);
+    row++;
+  });
+
+  row += 2;
+
+  // Section 4: PROPOSED RULES SUMMARY BY CATEGORY
+  sheet.getRange(row, 1).setValue('📋 PROPOSED RULES BY CATEGORY').setFontWeight('bold').setBackground('#fff3cd');
+  row++;
+
+  for (const [category, domains] of Object.entries(analysis.categoryProposals)) {
+    sheet.getRange(row, 1).setValue(category).setFontWeight('bold');
+    row++;
+    domains.slice(0, 10).forEach(d => {
+      sheet.getRange(row, 2, 1, 3).setValues([[d.domain, d.confidence + '% confidence', d.reason]]);
+      row++;
+    });
+    row++;
+  }
+
+  // Auto-resize columns
+  sheet.autoResizeColumns(1, 5);
+
+  Logger.log('📊 Report saved to GMAIL_ANALYSIS sheet');
+}
+
+/**
+ * Apply approved rules from analysis
+ * Call with array of domains to whitelist for each category
+ */
+function applyAnalyzedRules(approvedRules) {
+  // approvedRules format: { 'MONEY': ['domain1.com', 'domain2.com'], 'WHOLESALE': [...] }
+
+  const props = PropertiesService.getScriptProperties();
+  let applied = 0;
+
+  for (const [category, domains] of Object.entries(approvedRules)) {
+    const key = 'GMAIL_CUSTOM_SENDERS_' + category.replace(/[^A-Z]/g, '');
+
+    let existing = [];
+    const existingStr = props.getProperty(key);
+    if (existingStr) {
+      existing = JSON.parse(existingStr);
+    }
+
+    domains.forEach(d => {
+      if (!existing.includes(d.toLowerCase())) {
+        existing.push(d.toLowerCase());
+        applied++;
+      }
+    });
+
+    props.setProperty(key, JSON.stringify(existing));
+    Logger.log(`✅ Added ${domains.length} domains to ${category}`);
+  }
+
+  return { success: true, rulesApplied: applied };
+}
+
+/**
+ * Quick summary of inbox health
+ */
+function getInboxHealthSummary() {
+  const threads = GmailApp.search('is:inbox is:unread', 0, 500);
+
+  const summary = {
+    unreadCount: threads.length,
+    oldestUnread: null,
+    byDomain: {},
+    urgent: [],
+    likelySpam: []
+  };
+
+  threads.forEach(t => {
+    const msg = t.getMessages()[0];
+    const from = extractEmail(msg.getFrom());
+    const domain = extractDomain(from);
+    const subject = msg.getSubject();
+    const date = msg.getDate();
+
+    summary.byDomain[domain] = (summary.byDomain[domain] || 0) + 1;
+
+    if (!summary.oldestUnread || date < summary.oldestUnread) {
+      summary.oldestUnread = date;
+    }
+
+    // Flag urgent
+    if (subject.toLowerCase().match(/urgent|asap|deadline|important|action required/)) {
+      summary.urgent.push({ from: from, subject: subject.substring(0, 50), date: date });
+    }
+
+    // Flag likely spam
+    if (detectSpamSignals(msg.getPlainBody().substring(0, 500), subject, from)) {
+      summary.likelySpam.push({ from: from, subject: subject.substring(0, 50) });
+    }
+  });
+
+  // Top domains with unread
+  summary.topUnreadDomains = Object.entries(summary.byDomain)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([domain, count]) => ({ domain, count }));
+
+  return summary;
+}
+
