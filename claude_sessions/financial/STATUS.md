@@ -97,4 +97,30 @@ None - awaiting owner decisions
 
 ---
 
+---
+
+## NEW MISSION: Compliance Cost Tracking & ROI Analysis
+
+**Status:** COMPLETE
+
+**Deliverable:** `COMPLIANCE_COST_ROI.md`
+
+### Key Findings:
+
+| Certification | Annual Cost | ROI |
+|---------------|-------------|-----|
+| Organic | $1,400 | 500-1500% |
+| GAP | $2,000 | 300-900% |
+| FSMA | $0 (if exempt) | Regulatory |
+
+### Compliance Labor Estimate: ~267 hrs/year (~$4,000)
+
+### Recommendations:
+1. Create COMPLIANCE_COSTS tracking sheet
+2. Apply for organic cost share rebate ($500)
+3. Verify FSMA exemption status
+4. Track compliance labor in TIMELOG
+
+---
+
 *Financial Claude - Standing by for instructions*

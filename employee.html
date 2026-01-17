@@ -8276,6 +8276,25 @@
                         </div>
                     </div>
 
+                    <!-- Field/Bed Location (supplements GPS) -->
+                    <div class="form-group">
+                        <label class="form-label">Location (optional - GPS auto-tags)</label>
+                        <div class="location-row" style="display: flex; gap: 8px;">
+                            <select class="form-input" id="scoutField" style="flex: 1;">
+                                <option value="">Select Field...</option>
+                                <option value="field-1">Field 1</option>
+                                <option value="field-2">Field 2</option>
+                                <option value="field-3">Field 3</option>
+                                <option value="field-4">Field 4</option>
+                                <option value="greenhouse-1">Greenhouse 1</option>
+                                <option value="greenhouse-2">Greenhouse 2</option>
+                                <option value="high-tunnel">High Tunnel</option>
+                            </select>
+                            <input type="text" class="form-input" id="scoutBed"
+                                   placeholder="Bed #" style="flex: 0 0 80px;">
+                        </div>
+                    </div>
+
                     <!-- Photo (if not already captured via hero) -->
                     <div class="form-group" id="manualPhotoGroup">
                         <label class="form-label">Photo (optional if AI used)</label>
@@ -12289,8 +12308,16 @@
         let clockInterval;
 
         function startClock() {
+            stopClock(); // Clear any existing interval first
             updateClockDisplay();
             clockInterval = setInterval(updateClockDisplay, 1000);
+        }
+
+        function stopClock() {
+            if (clockInterval) {
+                clearInterval(clockInterval);
+                clockInterval = null;
+            }
         }
 
         function updateClockDisplay() {
@@ -15190,6 +15217,12 @@
             // Reset photo
             AppState.capturedPhoto = null;
             document.getElementById('scoutPhotoPreview').style.display = 'none';
+
+            // Reset field/bed location
+            const fieldSelect = document.getElementById('scoutField');
+            const bedInput = document.getElementById('scoutBed');
+            if (fieldSelect) fieldSelect.value = '';
+            if (bedInput) bedInput.value = '';
 
             // Reset GPS fields
             const latField = document.getElementById('scoutGpsLat');
@@ -18532,6 +18565,23 @@
 
             // Check for deliveries and show badge
             checkDeliveryBadge();
+        });
+
+        // ============================================
+        // CLEANUP HANDLERS (prevent memory leaks)
+        // ============================================
+        // Pause clock when page hidden, resume when visible
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopClock();
+            } else {
+                startClock();
+            }
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            stopClock();
         });
 
         // ============================================

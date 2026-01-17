@@ -3863,7 +3863,8 @@
         // ========================================
         // CONFIGURATION
         // ========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+        // UNIFIED API URL - See web_app/api-config.js for canonical source
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwuNQFyABh3ccEc-HxoSVJ6Q0Oj54MkDk8vja0p-Jy53Yxyt8yC9H0Hq63j8xwW_5vH/exec';
 
         // State
         let allPlantings = [];
@@ -6043,11 +6044,7 @@
             }
         }
 
-        function parseDate(dateStr) {
-            if (!dateStr) return null;
-            const d = new Date(dateStr);
-            return isNaN(d.getTime()) ? null : d;
-        }
+        // parseDate defined above in UTILITIES section - removed duplicate
 
         // ========================================
         // KEYBOARD SHORTCUTS
