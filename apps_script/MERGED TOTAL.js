@@ -310,6 +310,12 @@ function doGet(e) {
       case 'analyzeEquipmentPhoto':
         return jsonResponse(analyzeEquipmentPhoto(data));
 
+      // ============ EQUIPMENT → FOOD SAFETY PIPELINE ============
+      case 'runEquipmentFoodSafetyPipeline':
+        return jsonResponse(runEquipmentFoodSafetyPipeline(e.parameter));
+      case 'getEquipmentFoodSafetyStatus':
+        return jsonResponse(getEquipmentFoodSafetyStatus());
+
       // ============ SALES MODULE - CUSTOMER FACING ============
       case 'authenticateCustomer':
         return jsonResponse(authenticateCustomer(e.parameter));
@@ -614,6 +620,22 @@ function doGet(e) {
       case 'getCustomerLifetimeValue':
         return jsonResponse(getCustomerLifetimeValue(e.parameter));
 
+      // ============ PRODUCTION INTELLIGENCE (STATE-OF-THE-ART) ============
+      case 'initializeProduction':
+        return jsonResponse(initializeProductionIntelligence());
+      case 'batchGeocodeCustomers':
+        return jsonResponse(batchGeocodeCustomers(e.parameter));
+      case 'initializeGeocodingInfrastructure':
+        return jsonResponse(initializeGeocodingInfrastructure());
+      case 'initializeOrderHistory':
+        return jsonResponse(initializeOrderHistorySheet());
+      case 'recordOrder':
+        return jsonResponse(recordOrder(e.parameter));
+      case 'optimizeWithRouteOptimization':
+        return jsonResponse(optimizeWithRouteOptimizationAPI(e.parameter));
+      case 'getEnhancedChurnAnalysis':
+        return jsonResponse(getEnhancedChurnRiskAnalysis(e.parameter));
+
       // ============ REAL-TIME DELIVERY TRACKING ============
       case 'startDeliveryTracking':
         return jsonResponse(startDeliveryTracking(e.parameter));
@@ -738,26 +760,27 @@ function doGet(e) {
       case 'getFinancialSettings':
         return jsonResponse(getFinancialSettings(e.parameter));
 
-      // ============ PLAID - BANK CONNECTION ============
+      // ============ PLAID - BANK CONNECTION (SECURED: Admin Only) ============
       case 'createPlaidLinkToken':
-        return jsonResponse(createPlaidLinkToken(e.parameter));
+        return jsonResponse(createPlaidLinkTokenSecured(e.parameter));  // SECURED
       case 'getPlaidItems':
-        return jsonResponse(getPlaidItems());
+        return jsonResponse(getPlaidItemsSecured(e.parameter));  // SECURED
       case 'getPlaidAccounts':
-        return jsonResponse(getPlaidAccounts(e.parameter));
+        return jsonResponse(getPlaidAccountsSecured(e.parameter));  // SECURED
       case 'refreshPlaidBalances':
-        return jsonResponse(refreshPlaidBalances(e.parameter));
+        return jsonResponse(refreshPlaidBalancesSecured(e.parameter));  // SECURED
       case 'getPlaidTransactions':
-        return jsonResponse(getPlaidTransactions(e.parameter));
+        return jsonResponse(getPlaidTransactionsSecured(e.parameter));  // SECURED
       case 'exchangePlaidPublicToken':
         // Handle via GET to avoid CORS preflight issues from browser
         const exchangeData = {
           publicToken: e.parameter.publicToken,
           institutionId: e.parameter.institutionId,
           institutionName: e.parameter.institutionName,
-          accounts: JSON.parse(e.parameter.accounts || '[]')
+          accounts: JSON.parse(e.parameter.accounts || '[]'),
+          token: e.parameter.token  // Pass auth token
         };
-        return jsonResponse(exchangePlaidPublicToken(exchangeData));
+        return jsonResponse(exchangePlaidTokenSecured(exchangeData));  // SECURED
 
       // ============ CROP ROTATION & FIELD TIME ============
       case 'getFieldTimeGroups':
@@ -1019,19 +1042,19 @@ function doPost(e) {
       case 'completeTaskWithTimeLog':
         return completeTaskWithTimeLog(data);
 
-      // ============ USER MANAGEMENT ============
+      // ============ USER MANAGEMENT (SECURED: Admin Only) ============
       case 'createUser':
-        return jsonResponse(createUser(data));
+        return jsonResponse(createUserSecured(data));  // SECURED
       case 'updateUser':
-        return jsonResponse(updateUser(data));
+        return jsonResponse(updateUserSecured(data));  // SECURED
       case 'deactivateUser':
-        return jsonResponse(deactivateUser(data));
+        return jsonResponse(deactivateUserSecured(data));  // SECURED
       case 'resetUserPin':
-        return jsonResponse(resetUserPin(data));
+        return jsonResponse(resetUserPinSecured(data));  // SECURED
       case 'forceLogout':
-        return jsonResponse(forceLogout(data));
+        return jsonResponse(forceLogoutSecured(data));  // SECURED
       case 'logAdminAction':
-        return jsonResponse(logAdminAction(data));
+        return jsonResponse(logAdminAction(data));  // Already logs, no change needed
 
       // ============ EMPLOYEE REGISTRATION ============
       case 'registerEmployee':
@@ -1848,6 +1871,122 @@ function exchangePlaidTokenSecured(data) {
 
   logAuditEvent(auth.user.userId, auth.user.username, 'EXCHANGE_PLAID_TOKEN', 'PLAID', null, data.ip, 'SUCCESS');
   return exchangePlaidPublicToken(data);
+}
+
+/**
+ * Get Plaid items - ADMIN ONLY
+ */
+function getPlaidItemsSecured(params) {
+  const auth = requireAdmin(params);
+  if (!auth.authenticated) return auth.error;
+
+  logAuditEvent(auth.user.userId, auth.user.username, 'GET_PLAID_ITEMS', 'PLAID', null, params.ip, 'SUCCESS');
+  return getPlaidItems();
+}
+
+/**
+ * Refresh Plaid balances - ADMIN ONLY
+ */
+function refreshPlaidBalancesSecured(params) {
+  const auth = requireAdmin(params);
+  if (!auth.authenticated) return auth.error;
+
+  logAuditEvent(auth.user.userId, auth.user.username, 'REFRESH_PLAID_BALANCES', 'PLAID', null, params.ip, 'SUCCESS');
+  return refreshPlaidBalances(params);
+}
+
+/**
+ * Get Plaid transactions - ADMIN ONLY
+ */
+function getPlaidTransactionsSecured(params) {
+  const auth = requireAdmin(params);
+  if (!auth.authenticated) return auth.error;
+
+  logAuditEvent(auth.user.userId, auth.user.username, 'GET_PLAID_TRANSACTIONS', 'PLAID', null, params.ip, 'SUCCESS');
+  return getPlaidTransactions(params);
+}
+
+/**
+ * Get CSA members - MANAGER+ ONLY (contains customer PII)
+ */
+function getCSAMembersSecured(params) {
+  const auth = requireManager(params);
+  if (!auth.authenticated) return auth.error;
+
+  logAuditEvent(auth.user.userId, auth.user.username, 'GET_CSA_MEMBERS', 'CUSTOMERS', null, params.ip, 'SUCCESS');
+  return getCSAMembersData();
+}
+
+/**
+ * Get active sessions - ADMIN ONLY
+ */
+function getActiveSessionsSecured(params) {
+  const auth = requireAdmin(params);
+  if (!auth.authenticated) return auth.error;
+
+  logAuditEvent(auth.user.userId, auth.user.username, 'GET_ACTIVE_SESSIONS', 'SESSIONS', null, params.ip, 'SUCCESS');
+
+  try {
+    const sheet = getSessionsSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const sessions = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const session = {};
+      headers.forEach((h, j) => {
+        if (h !== 'Token') {  // Don't expose tokens
+          session[h] = data[i][j];
+        }
+      });
+      sessions.push(session);
+    }
+
+    return { success: true, sessions: sessions };
+  } catch (error) {
+    return { success: false, error: 'Failed to get sessions' };
+  }
+}
+
+/**
+ * Get audit log - ADMIN ONLY
+ */
+function getAuditLogSecured(params) {
+  const auth = requireAdmin(params);
+  if (!auth.authenticated) return auth.error;
+
+  try {
+    const sheet = getAuditSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const limit = parseInt(params.limit) || 100;
+    const logs = [];
+
+    // Get last N entries (most recent first)
+    for (let i = Math.min(data.length - 1, limit); i >= 1; i--) {
+      const log = {};
+      headers.forEach((h, j) => {
+        log[h] = data[i][j];
+      });
+      logs.push(log);
+    }
+
+    return { success: true, logs: logs.reverse() };
+  } catch (error) {
+    return { success: false, error: 'Failed to get audit log' };
+  }
+}
+
+/**
+ * Force logout user - ADMIN ONLY
+ */
+function forceLogoutSecured(data) {
+  const auth = requireAdmin(data);
+  if (!auth.authenticated) return auth.error;
+
+  const result = invalidateAllUserSessions(data.userId);
+  logAuditEvent(auth.user.userId, auth.user.username, 'FORCE_LOGOUT', data.userId, null, data.ip, result.success ? 'SUCCESS' : 'FAILED');
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -28711,6 +28850,396 @@ function getWeatherFoodSafetyRisks() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// EQUIPMENT HEALTH → FOOD SAFETY ALERT PIPELINE
+// Uses STATE-OF-THE-ART Intelligence Engine (Weibull, FMEA, Weather-Adjusted) for FSMA compliance
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Food Safety Critical Equipment Categories
+ * Equipment that, if failed, poses direct food safety risk
+ */
+const FOOD_SAFETY_CRITICAL_EQUIPMENT = {
+  // Category mappings with FSMA risk level and monitoring requirements
+  refrigeration: {
+    keywords: ['cooler', 'refrigerat', 'walk-in', 'cold storage', 'freezer', 'chill'],
+    fsmaRiskLevel: 'CRITICAL',
+    failureImpact: 'Temperature abuse leading to pathogen growth',
+    monitoringFrequency: 'Every 4 hours',
+    maxAllowedDowntime: 2 // hours
+  },
+  washStation: {
+    keywords: ['wash', 'rinse', 'sanitiz', 'chlorin', 'clean'],
+    fsmaRiskLevel: 'CRITICAL',
+    failureImpact: 'Cross-contamination, pathogen spread',
+    monitoringFrequency: 'Before each use',
+    maxAllowedDowntime: 0 // Cannot operate without
+  },
+  waterSystem: {
+    keywords: ['water', 'pump', 'well', 'irrigation', 'spray'],
+    fsmaRiskLevel: 'HIGH',
+    failureImpact: 'Contaminated water contact with produce',
+    monitoringFrequency: 'Daily',
+    maxAllowedDowntime: 24
+  },
+  harvestEquipment: {
+    keywords: ['harvest', 'knife', 'blade', 'cutter', 'bin', 'container'],
+    fsmaRiskLevel: 'MEDIUM',
+    failureImpact: 'Physical contamination, cross-contamination',
+    monitoringFrequency: 'Before each use',
+    maxAllowedDowntime: 0
+  },
+  packingEquipment: {
+    keywords: ['pack', 'scale', 'label', 'bag', 'seal'],
+    fsmaRiskLevel: 'MEDIUM',
+    failureImpact: 'Traceability gaps, physical contamination',
+    monitoringFrequency: 'Daily',
+    maxAllowedDowntime: 8
+  }
+};
+
+/**
+ * MAIN PIPELINE: Equipment Health → Food Safety Alerts
+ * Integrates with getEquipmentIntelligence for state-of-the-art predictive analytics
+ */
+function runEquipmentFoodSafetyPipeline(params) {
+  try {
+    const autoCreateActions = params && params.autoCreateActions !== false;
+    const thresholds = {
+      criticalCompositeScore: params && params.criticalScore || 40,
+      highRiskRPN: params && params.highRiskRPN || 125,
+      reliabilityThreshold: params && params.reliabilityThreshold || 0.7
+    };
+
+    // Get intelligence report from STATE-OF-THE-ART engine
+    let intelligenceData;
+    if (typeof getEquipmentIntelligence === 'function') {
+      intelligenceData = getEquipmentIntelligence({});
+    } else {
+      return { success: false, error: 'Equipment Intelligence module not available' };
+    }
+
+    if (!intelligenceData.success) {
+      return intelligenceData;
+    }
+
+    const allItems = intelligenceData.data.allItems || [];
+    const foodSafetyAlerts = [];
+    const correctiveActionsCreated = [];
+
+    // Analyze each equipment item
+    allItems.forEach(item => {
+      // Check if this is food safety critical equipment
+      const criticalCategory = identifyFoodSafetyCriticalCategory(item);
+
+      if (criticalCategory) {
+        const alert = evaluateFoodSafetyRisk(item, criticalCategory, thresholds);
+
+        if (alert) {
+          foodSafetyAlerts.push(alert);
+
+          // Auto-create corrective action for CRITICAL alerts
+          if (autoCreateActions && alert.severity === 'CRITICAL') {
+            const caResult = createEquipmentCorrectiveAction(item, alert, criticalCategory);
+            if (caResult.success) {
+              correctiveActionsCreated.push(caResult.actionId);
+              alert.correctiveActionId = caResult.actionId;
+            }
+          }
+        }
+      }
+    });
+
+    // Sort by severity
+    const severityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    foodSafetyAlerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+    // Generate summary
+    const summary = {
+      totalEquipmentAnalyzed: allItems.length,
+      foodSafetyCriticalCount: foodSafetyAlerts.length,
+      criticalAlerts: foodSafetyAlerts.filter(a => a.severity === 'CRITICAL').length,
+      highAlerts: foodSafetyAlerts.filter(a => a.severity === 'HIGH').length,
+      correctiveActionsCreated: correctiveActionsCreated.length,
+      overallFoodSafetyStatus: determineFoodSafetyStatus(foodSafetyAlerts),
+      fsmaComplianceRisk: calculateFSMAComplianceRisk(foodSafetyAlerts)
+    };
+
+    return {
+      success: true,
+      data: {
+        generatedAt: new Date().toISOString(),
+        summary: summary,
+        alerts: foodSafetyAlerts,
+        correctiveActionsCreated: correctiveActionsCreated,
+        recommendations: generateFoodSafetyRecommendations(foodSafetyAlerts, summary)
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Identify if equipment is food safety critical
+ */
+function identifyFoodSafetyCriticalCategory(item) {
+  const itemName = (item.itemName || item.Item_Name || '').toLowerCase();
+  const category = (item.category || item.Category || '').toLowerCase();
+  const location = (item.location || item.Location || '').toLowerCase();
+
+  const searchText = `${itemName} ${category} ${location}`;
+
+  for (const [catKey, catConfig] of Object.entries(FOOD_SAFETY_CRITICAL_EQUIPMENT)) {
+    for (const keyword of catConfig.keywords) {
+      if (searchText.includes(keyword.toLowerCase())) {
+        return { key: catKey, ...catConfig };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Evaluate food safety risk based on equipment intelligence
+ */
+function evaluateFoodSafetyRisk(item, criticalCategory, thresholds) {
+  const compositeScore = item.compositeScore || 100;
+  const rpn = item.fmea?.rpn || 0;
+  const reliabilityScore = (item.reliability?.score || 100) / 100;
+  const remainingLifeDays = item.reliability?.remainingLifeDays || 999;
+
+  // Determine if alert needed
+  let severity = null;
+  let reason = [];
+
+  // CRITICAL conditions
+  if (criticalCategory.fsmaRiskLevel === 'CRITICAL') {
+    if (compositeScore < thresholds.criticalCompositeScore) {
+      severity = 'CRITICAL';
+      reason.push(`Composite health score ${compositeScore}% below critical threshold`);
+    }
+    if (rpn > 200) {
+      severity = 'CRITICAL';
+      reason.push(`FMEA Risk Priority Number ${rpn} indicates imminent failure risk`);
+    }
+    if (remainingLifeDays < 30) {
+      severity = severity || 'HIGH';
+      reason.push(`Predicted failure within ${remainingLifeDays} days`);
+    }
+  }
+
+  // HIGH conditions
+  if (!severity && criticalCategory.fsmaRiskLevel === 'HIGH') {
+    if (compositeScore < 50) {
+      severity = 'HIGH';
+      reason.push(`Equipment health declining - score ${compositeScore}%`);
+    }
+    if (rpn > thresholds.highRiskRPN) {
+      severity = 'HIGH';
+      reason.push(`Elevated failure risk (RPN: ${rpn})`);
+    }
+  }
+
+  // MEDIUM conditions (early warning)
+  if (!severity && compositeScore < 60) {
+    severity = 'MEDIUM';
+    reason.push(`Equipment requires attention - score ${compositeScore}%`);
+  }
+
+  if (!severity && rpn > 75) {
+    severity = 'LOW';
+    reason.push(`Monitor for degradation (RPN: ${rpn})`);
+  }
+
+  if (!severity) return null;
+
+  return {
+    equipmentId: item.itemId,
+    equipmentName: item.itemName,
+    category: criticalCategory.key,
+    severity: severity,
+    fsmaRiskLevel: criticalCategory.fsmaRiskLevel,
+    reason: reason,
+    metrics: {
+      compositeScore: compositeScore,
+      rpn: rpn,
+      reliabilityScore: Math.round(reliabilityScore * 100),
+      remainingLifeDays: remainingLifeDays
+    },
+    failureImpact: criticalCategory.failureImpact,
+    maxAllowedDowntime: criticalCategory.maxAllowedDowntime,
+    requiredAction: determineRequiredAction(severity, criticalCategory),
+    fsmaRequirement: getFSMARequirement(criticalCategory.key)
+  };
+}
+
+/**
+ * Create corrective action for equipment-related food safety issue
+ */
+function createEquipmentCorrectiveAction(item, alert, criticalCategory) {
+  const dueDate = new Date();
+  if (alert.severity === 'CRITICAL') {
+    dueDate.setDate(dueDate.getDate() + 2); // 48 hours for critical
+  } else if (alert.severity === 'HIGH') {
+    dueDate.setDate(dueDate.getDate() + 7); // 7 days for high
+  } else {
+    dueDate.setDate(dueDate.getDate() + 14); // 14 days for medium
+  }
+
+  const caData = {
+    issueDate: new Date(),
+    issueCategory: 'Equipment Failure Risk',
+    relatedRecordId: item.itemId,
+    issueDescription: `EQUIPMENT HEALTH ALERT: ${item.itemName}\n\n` +
+      `Food Safety Category: ${criticalCategory.key.toUpperCase()}\n` +
+      `Risk Level: ${alert.severity}\n` +
+      `Composite Health Score: ${alert.metrics.compositeScore}%\n` +
+      `Failure Risk (RPN): ${alert.metrics.rpn}\n` +
+      `Predicted Remaining Life: ${alert.metrics.remainingLifeDays} days\n\n` +
+      `Reason: ${alert.reason.join('; ')}\n\n` +
+      `Food Safety Impact: ${criticalCategory.failureImpact}`,
+    severity: alert.severity === 'CRITICAL' ? 'Major' : (alert.severity === 'HIGH' ? 'Major' : 'Minor'),
+    immediateAction: alert.requiredAction,
+    rootCause: 'Equipment degradation detected by predictive intelligence system',
+    preventiveMeasure: `Implement ${criticalCategory.monitoringFrequency} monitoring. Schedule preventive maintenance before predicted failure date.`,
+    responsiblePerson: 'Farm Manager',
+    dueDate: dueDate,
+    notes: `Auto-generated by Equipment Health → Food Safety Pipeline. FSMA Requirement: ${alert.fsmaRequirement}`
+  };
+
+  return addCorrectiveAction(caData);
+}
+
+/**
+ * Determine required action based on severity
+ */
+function determineRequiredAction(severity, criticalCategory) {
+  switch (severity) {
+    case 'CRITICAL':
+      return criticalCategory.maxAllowedDowntime === 0
+        ? 'STOP OPERATIONS immediately. Equipment must be repaired/replaced before continuing food handling.'
+        : `Schedule emergency maintenance within ${criticalCategory.maxAllowedDowntime} hours. Implement backup procedures.`;
+    case 'HIGH':
+      return 'Schedule maintenance within 48 hours. Increase monitoring frequency. Document all temperature/cleaning checks.';
+    case 'MEDIUM':
+      return 'Schedule maintenance this week. Continue normal monitoring with extra attention.';
+    default:
+      return 'Add to next scheduled maintenance. No immediate action required.';
+  }
+}
+
+/**
+ * Get FSMA requirement for equipment category
+ */
+function getFSMARequirement(categoryKey) {
+  const requirements = {
+    refrigeration: 'FSMA 21 CFR 112.114: Temperature controls for covered produce',
+    washStation: 'FSMA 21 CFR 112.44-46: Agricultural water treatment and monitoring',
+    waterSystem: 'FSMA 21 CFR 112.41-50: Agricultural water quality requirements',
+    harvestEquipment: 'FSMA 21 CFR 112.111-112: Equipment maintenance and sanitation',
+    packingEquipment: 'FSMA 21 CFR 112.111-112: Equipment, tools, and building sanitation'
+  };
+  return requirements[categoryKey] || 'FSMA Produce Safety Rule - Equipment Maintenance';
+}
+
+/**
+ * Determine overall food safety status
+ */
+function determineFoodSafetyStatus(alerts) {
+  if (alerts.some(a => a.severity === 'CRITICAL')) return 'CRITICAL_INTERVENTION_REQUIRED';
+  if (alerts.some(a => a.severity === 'HIGH')) return 'ACTION_NEEDED';
+  if (alerts.some(a => a.severity === 'MEDIUM')) return 'MONITOR_CLOSELY';
+  return 'COMPLIANT';
+}
+
+/**
+ * Calculate FSMA compliance risk percentage
+ */
+function calculateFSMAComplianceRisk(alerts) {
+  if (alerts.length === 0) return 0;
+
+  let riskScore = 0;
+  alerts.forEach(alert => {
+    if (alert.severity === 'CRITICAL') riskScore += 40;
+    else if (alert.severity === 'HIGH') riskScore += 20;
+    else if (alert.severity === 'MEDIUM') riskScore += 10;
+    else riskScore += 5;
+  });
+
+  return Math.min(100, riskScore);
+}
+
+/**
+ * Generate actionable food safety recommendations
+ */
+function generateFoodSafetyRecommendations(alerts, summary) {
+  const recommendations = [];
+
+  if (summary.criticalAlerts > 0) {
+    recommendations.push({
+      priority: 1,
+      action: 'IMMEDIATE: Address all CRITICAL equipment alerts before next production cycle',
+      timeframe: '< 24 hours'
+    });
+  }
+
+  if (alerts.some(a => a.category === 'refrigeration')) {
+    recommendations.push({
+      priority: 2,
+      action: 'Verify backup cooling procedures are documented and equipment is available',
+      timeframe: '< 48 hours'
+    });
+  }
+
+  if (alerts.some(a => a.category === 'washStation')) {
+    recommendations.push({
+      priority: 2,
+      action: 'Test backup wash/sanitization procedures. Verify chemical supplies.',
+      timeframe: '< 24 hours'
+    });
+  }
+
+  if (summary.fsmaComplianceRisk > 50) {
+    recommendations.push({
+      priority: 3,
+      action: 'Schedule FSMA compliance review. Equipment failures may trigger audit findings.',
+      timeframe: 'This week'
+    });
+  }
+
+  if (alerts.filter(a => a.metrics.remainingLifeDays < 90).length > 0) {
+    recommendations.push({
+      priority: 4,
+      action: 'Budget for equipment replacement. Multiple items approaching end-of-life.',
+      timeframe: 'This quarter'
+    });
+  }
+
+  return recommendations;
+}
+
+/**
+ * Quick status check - lightweight version for dashboards
+ */
+function getEquipmentFoodSafetyStatus() {
+  const result = runEquipmentFoodSafetyPipeline({ autoCreateActions: false });
+
+  if (!result.success) {
+    return { success: false, status: 'ERROR', message: result.error };
+  }
+
+  return {
+    success: true,
+    status: result.data.summary.overallFoodSafetyStatus,
+    criticalAlerts: result.data.summary.criticalAlerts,
+    highAlerts: result.data.summary.highAlerts,
+    fsmaComplianceRisk: result.data.summary.fsmaComplianceRisk,
+    topAlert: result.data.alerts[0] || null
+  };
+}
+
 /**
  * TIMELOG INTEGRATION FOR COMPLIANCE TASKS
  * Logs compliance activities with labor tracking for Activity-Based Costing
@@ -37580,3 +38109,1342 @@ function getSmartDashboard(params) {
 }
 
 // Last deployed: Updated with Predictive Intelligence System
+
+/**
+ * STORE CLAUDE API KEY - Run this function to store your API key
+ * Get key from: https://console.anthropic.com/settings/keys
+ * Then update the key variable below and run this function once
+ */
+function STORE_CLAUDE_KEY() {
+  // IMPORTANT: Replace with your actual API key, then run this function once
+  const key = 'YOUR_ANTHROPIC_API_KEY_HERE';
+
+  if (key === 'YOUR_ANTHROPIC_API_KEY_HERE') {
+    Logger.log('❌ Please edit this function and replace YOUR_ANTHROPIC_API_KEY_HERE with your actual key');
+    return { success: false, error: 'Please replace placeholder with actual API key' };
+  }
+
+  PropertiesService.getScriptProperties().setProperty('ANTHROPIC_API_KEY', key);
+
+  // Verify it was stored
+  const stored = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  if (stored === key) {
+    Logger.log('✅ API KEY STORED SUCCESSFULLY!');
+    Logger.log('Key starts with: ' + stored.substring(0, 20) + '...');
+    return { success: true, message: 'API key stored and verified!' };
+  } else {
+    Logger.log('❌ FAILED TO STORE KEY');
+    return { success: false, error: 'Key storage failed' };
+  }
+}
+// ═══════════════════════════════════════════════════════════════════════════
+// PRODUCTION INTELLIGENCE UPGRADE - STATE-OF-THE-ART 2026
+// ═══════════════════════════════════════════════════════════════════════════
+// Based on extensive research from:
+// - Google Route Optimization API (CVRPTW solver)
+// - McKinsey demand forecasting best practices (30-50% error reduction)
+// - State-of-the-art churn prediction (Random Forest, XGBoost, Neural Networks)
+// - Google Geocoding API best practices (caching, batch processing)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOOGLE ROUTE OPTIMIZATION API CONFIGURATION (Enterprise-Grade CVRPTW)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ROUTE_OPTIMIZATION_CONFIG = {
+  // Enable this when you have Route Optimization API access
+  ENABLED: true,
+
+  // API endpoint
+  API_URL: 'https://routeoptimization.googleapis.com/v1',
+
+  // GCP Project ID (set in Script Properties)
+  get PROJECT_ID() {
+    return PropertiesService.getScriptProperties().getProperty('GCP_PROJECT_ID') || 'tiny-seed-farm';
+  },
+
+  // Location for API calls
+  LOCATION: 'us-central1',
+
+  // Optimization settings
+  SOLVING_MODE: 'DEFAULT_SOLVE',
+  SEARCH_MODE: 'RETURN_FAST', // Or 'CONSUME_ALL_AVAILABLE_TIME' for better results
+
+  // Cost model (based on research best practices)
+  COST_MODEL: {
+    globalDurationCostPerHour: 25, // $25/hour for route time
+    perKmCost: 0.58, // IRS mileage rate
+    perStopCost: 2.5, // Loading/unloading time cost
+    vehicleFixedCost: 50 // Daily vehicle cost
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE-OF-THE-ART GEOCODING SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+// Best practices: Caching (30 days), batch processing, rate limiting
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize geocoding infrastructure in CSA Master sheet
+ * Adds lat/lng columns and sets up for auto-geocoding
+ */
+function initializeGeocodingInfrastructure() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const csaSheet = ss.getSheetByName('CSA Master');
+
+    if (!csaSheet) {
+      return { success: false, error: 'CSA Master sheet not found' };
+    }
+
+    const headers = csaSheet.getRange(1, 1, 1, csaSheet.getLastColumn()).getValues()[0];
+
+    // Check if lat/lng columns already exist
+    const latIdx = headers.findIndex(h => /^lat$/i.test(String(h).trim()));
+    const lngIdx = headers.findIndex(h => /^(lng|lon|longitude)$/i.test(String(h).trim()));
+    const geocodedIdx = headers.findIndex(h => /geocoded.*date|last.*geocoded/i.test(String(h).trim()));
+    const geocodeStatusIdx = headers.findIndex(h => /geocode.*status/i.test(String(h).trim()));
+
+    let columnsAdded = [];
+    let nextCol = csaSheet.getLastColumn() + 1;
+
+    // Add Latitude column if missing
+    if (latIdx === -1) {
+      csaSheet.getRange(1, nextCol).setValue('Latitude');
+      columnsAdded.push('Latitude');
+      nextCol++;
+    }
+
+    // Add Longitude column if missing
+    if (lngIdx === -1) {
+      csaSheet.getRange(1, nextCol).setValue('Longitude');
+      columnsAdded.push('Longitude');
+      nextCol++;
+    }
+
+    // Add Geocoded Date column if missing
+    if (geocodedIdx === -1) {
+      csaSheet.getRange(1, nextCol).setValue('Geocoded_Date');
+      columnsAdded.push('Geocoded_Date');
+      nextCol++;
+    }
+
+    // Add Geocode Status column if missing
+    if (geocodeStatusIdx === -1) {
+      csaSheet.getRange(1, nextCol).setValue('Geocode_Status');
+      columnsAdded.push('Geocode_Status');
+      nextCol++;
+    }
+
+    // Create or update geocode cache sheet
+    let cacheSheet = ss.getSheetByName('GEOCODE_CACHE');
+    if (!cacheSheet) {
+      cacheSheet = ss.insertSheet('GEOCODE_CACHE');
+      cacheSheet.getRange(1, 1, 1, 5).setValues([['Address', 'Latitude', 'Longitude', 'Formatted_Address', 'Cached_Date']]);
+      cacheSheet.setFrozenRows(1);
+      columnsAdded.push('GEOCODE_CACHE sheet');
+    }
+
+    return {
+      success: true,
+      message: columnsAdded.length > 0 ?
+        `Added: ${columnsAdded.join(', ')}` :
+        'Geocoding infrastructure already exists',
+      columnsAdded: columnsAdded
+    };
+
+  } catch (error) {
+    Logger.log('initializeGeocodingInfrastructure error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Batch geocode all addresses in CSA Master
+ * Uses caching (30 days per Google TOS) and rate limiting (50 req/sec)
+ */
+function batchGeocodeCustomers(params) {
+  try {
+    const maxRecords = params?.maxRecords || 100;
+    const forceRefresh = params?.forceRefresh || false;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const csaSheet = ss.getSheetByName('CSA Master');
+
+    if (!csaSheet) {
+      return { success: false, error: 'CSA Master sheet not found' };
+    }
+
+    // First ensure infrastructure exists
+    initializeGeocodingInfrastructure();
+
+    const data = csaSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find columns
+    const cols = {
+      address: findColumnIndex(headers, ['address', 'street', 'delivery.*address']),
+      city: findColumnIndex(headers, ['city']),
+      state: findColumnIndex(headers, ['state']),
+      zip: findColumnIndex(headers, ['zip', 'postal', 'zipcode']),
+      lat: findColumnIndex(headers, ['^lat$', '^latitude$']),
+      lng: findColumnIndex(headers, ['^lng$', '^lon$', '^longitude$']),
+      geocodedDate: findColumnIndex(headers, ['geocoded.*date', 'last.*geocoded']),
+      geocodeStatus: findColumnIndex(headers, ['geocode.*status'])
+    };
+
+    if (cols.address === -1) {
+      return { success: false, error: 'No address column found in CSA Master' };
+    }
+
+    // Load cache
+    const cache = loadGeocodeCache();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    let geocoded = 0;
+    let cached = 0;
+    let failed = 0;
+    let skipped = 0;
+    const results = [];
+
+    // Process each row (skip header)
+    for (let i = 1; i < Math.min(data.length, maxRecords + 1); i++) {
+      const row = data[i];
+
+      // Build full address
+      let fullAddress = row[cols.address] || '';
+      if (cols.city !== -1 && row[cols.city]) fullAddress += ', ' + row[cols.city];
+      if (cols.state !== -1 && row[cols.state]) fullAddress += ', ' + row[cols.state];
+      if (cols.zip !== -1 && row[cols.zip]) fullAddress += ' ' + row[cols.zip];
+
+      if (!fullAddress.trim()) {
+        skipped++;
+        continue;
+      }
+
+      // Normalize address for cache lookup
+      const normalizedAddress = normalizeAddress(fullAddress);
+
+      // Check if already geocoded and not stale
+      if (!forceRefresh && cols.lat !== -1 && cols.lng !== -1) {
+        const existingLat = row[cols.lat];
+        const existingLng = row[cols.lng];
+        const geocodedDate = cols.geocodedDate !== -1 ? new Date(row[cols.geocodedDate]) : null;
+
+        if (existingLat && existingLng && geocodedDate && geocodedDate > thirtyDaysAgo) {
+          skipped++;
+          continue;
+        }
+      }
+
+      // Check cache first
+      const cachedResult = cache[normalizedAddress];
+      if (cachedResult && new Date(cachedResult.date) > thirtyDaysAgo) {
+        // Use cached result
+        updateRowWithCoordinates(csaSheet, i + 1, cols, cachedResult.lat, cachedResult.lng, 'CACHED');
+        cached++;
+        results.push({ row: i + 1, address: fullAddress, status: 'CACHED' });
+        continue;
+      }
+
+      // Rate limit: pause between requests (Google allows 50/sec, we'll do 10/sec to be safe)
+      if (geocoded > 0) {
+        Utilities.sleep(100);
+      }
+
+      // Geocode the address
+      const geocodeResult = geocodeAddress(fullAddress);
+
+      if (geocodeResult.success) {
+        // Update sheet
+        updateRowWithCoordinates(csaSheet, i + 1, cols, geocodeResult.lat, geocodeResult.lng, 'OK');
+
+        // Update cache
+        saveToGeocodeCache(normalizedAddress, geocodeResult);
+
+        geocoded++;
+        results.push({ row: i + 1, address: fullAddress, status: 'GEOCODED', coords: { lat: geocodeResult.lat, lng: geocodeResult.lng } });
+      } else {
+        // Mark as failed
+        if (cols.geocodeStatus !== -1) {
+          csaSheet.getRange(i + 1, cols.geocodeStatus + 1).setValue('FAILED: ' + geocodeResult.error);
+        }
+        failed++;
+        results.push({ row: i + 1, address: fullAddress, status: 'FAILED', error: geocodeResult.error });
+      }
+
+      // Stop if we've hit rate limits
+      if (geocoded >= 100) {
+        Logger.log('Stopping after 100 geocode requests to avoid rate limits');
+        break;
+      }
+    }
+
+    return {
+      success: true,
+      summary: {
+        total: data.length - 1,
+        geocoded: geocoded,
+        cached: cached,
+        failed: failed,
+        skipped: skipped
+      },
+      results: results.slice(0, 20), // Return first 20 results
+      message: `Geocoded ${geocoded} addresses, ${cached} from cache, ${failed} failed, ${skipped} skipped`
+    };
+
+  } catch (error) {
+    Logger.log('batchGeocodeCustomers error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Find column index using regex patterns
+ */
+function findColumnIndex(headers, patterns) {
+  for (const pattern of patterns) {
+    const regex = new RegExp(pattern, 'i');
+    const idx = headers.findIndex(h => regex.test(String(h).trim()));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
+/**
+ * Normalize address for cache key
+ */
+function normalizeAddress(address) {
+  return address.toLowerCase()
+    .replace(/[^\w\s,]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Update a row with coordinates
+ */
+function updateRowWithCoordinates(sheet, rowNum, cols, lat, lng, status) {
+  if (cols.lat !== -1) sheet.getRange(rowNum, cols.lat + 1).setValue(lat);
+  if (cols.lng !== -1) sheet.getRange(rowNum, cols.lng + 1).setValue(lng);
+  if (cols.geocodedDate !== -1) sheet.getRange(rowNum, cols.geocodedDate + 1).setValue(new Date());
+  if (cols.geocodeStatus !== -1) sheet.getRange(rowNum, cols.geocodeStatus + 1).setValue(status);
+}
+
+/**
+ * Load geocode cache from sheet
+ */
+function loadGeocodeCache() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const cacheSheet = ss.getSheetByName('GEOCODE_CACHE');
+    if (!cacheSheet || cacheSheet.getLastRow() < 2) return {};
+
+    const data = cacheSheet.getDataRange().getValues();
+    const cache = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const [address, lat, lng, formatted, date] = data[i];
+      if (address) {
+        cache[normalizeAddress(address)] = { lat, lng, formatted, date };
+      }
+    }
+
+    return cache;
+  } catch (e) {
+    Logger.log('loadGeocodeCache error: ' + e.toString());
+    return {};
+  }
+}
+
+/**
+ * Save result to geocode cache
+ */
+function saveToGeocodeCache(normalizedAddress, result) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const cacheSheet = ss.getSheetByName('GEOCODE_CACHE');
+    if (!cacheSheet) return;
+
+    cacheSheet.appendRow([
+      normalizedAddress,
+      result.lat,
+      result.lng,
+      result.formatted_address || '',
+      new Date()
+    ]);
+  } catch (e) {
+    Logger.log('saveToGeocodeCache error: ' + e.toString());
+  }
+}
+
+/**
+ * Geocode a single address using Google Maps API
+ */
+function geocodeAddress(address) {
+  try {
+    const apiKey = PropertiesService.getScriptProperties().getProperty('GOOGLE_MAPS_API_KEY');
+    if (!apiKey) {
+      return { success: false, error: 'No Google Maps API key configured' };
+    }
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const result = JSON.parse(response.getContentText());
+
+    if (result.status === 'OK' && result.results.length > 0) {
+      const location = result.results[0].geometry.location;
+      return {
+        success: true,
+        lat: location.lat,
+        lng: location.lng,
+        formatted_address: result.results[0].formatted_address
+      };
+    } else {
+      return { success: false, error: result.status || 'No results' };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORDER HISTORY SHEET - ML-READY DATA STRUCTURE
+// ═══════════════════════════════════════════════════════════════════════════
+// Based on McKinsey best practices for demand forecasting
+// Features: Time series ready, seasonality tracking, multi-variable support
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize Order History sheet with ML-ready structure
+ */
+function initializeOrderHistorySheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let orderSheet = ss.getSheetByName('ORDER_HISTORY');
+
+    if (orderSheet) {
+      return { success: true, message: 'ORDER_HISTORY sheet already exists', created: false };
+    }
+
+    // Create the sheet with comprehensive columns for ML
+    orderSheet = ss.insertSheet('ORDER_HISTORY');
+
+    // Define ML-ready columns based on research best practices
+    const headers = [
+      // Core identifiers
+      'Order_ID',
+      'Customer_ID',
+      'Customer_Name',
+      'Customer_Email',
+
+      // Temporal features (critical for time series)
+      'Order_Date',
+      'Order_Time',
+      'Day_of_Week',     // 0-6
+      'Week_of_Year',    // 1-52
+      'Month',           // 1-12
+      'Quarter',         // Q1-Q4
+      'Year',
+      'Is_Holiday',      // Boolean
+      'Days_Since_Last_Order', // Customer recency
+
+      // Order details
+      'Order_Type',      // CSA, Wholesale, Market, Home Delivery
+      'Delivery_Method', // Pickup, Home Delivery
+      'Share_Size',      // Small, Medium, Large
+      'Order_Value',     // Total $ amount
+      'Item_Count',      // Number of items
+      'Discount_Applied', // $ or %
+      'Promo_Code',
+
+      // Fulfillment
+      'Delivery_Date',
+      'Delivery_Route',
+      'Delivery_Stop_Number',
+      'Delivery_Fee',
+      'Actual_Delivery_Time',
+      'On_Time',         // Boolean
+
+      // Customer behavior (for churn prediction)
+      'Is_First_Order',  // Boolean
+      'Customer_Tenure_Days',
+      'Cumulative_Orders',
+      'Cumulative_Value',
+      'Avg_Order_Value',
+
+      // External factors (for demand forecasting)
+      'Weather_Condition',
+      'Temperature_High',
+      'Is_Growing_Season', // Boolean
+      'Local_Event',     // Market day, holiday, etc.
+
+      // Feedback
+      'Customer_Rating', // 1-5
+      'Had_Issue',       // Boolean
+      'Issue_Type',
+      'Issue_Resolved',  // Boolean
+
+      // ML metadata
+      'Created_At',
+      'Updated_At',
+      'Data_Source'      // Manual, Import, API
+    ];
+
+    // Set headers
+    orderSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    orderSheet.setFrozenRows(1);
+
+    // Format header row
+    const headerRange = orderSheet.getRange(1, 1, 1, headers.length);
+    headerRange.setBackground('#22c55e');
+    headerRange.setFontColor('#ffffff');
+    headerRange.setFontWeight('bold');
+
+    // Set column widths
+    orderSheet.setColumnWidth(1, 100);  // Order_ID
+    orderSheet.setColumnWidth(5, 100);  // Order_Date
+
+    // Add data validation for key columns
+    const orderTypeCol = headers.indexOf('Order_Type') + 1;
+    const deliveryMethodCol = headers.indexOf('Delivery_Method') + 1;
+    const shareSizeCol = headers.indexOf('Share_Size') + 1;
+
+    // Order Type validation
+    const orderTypeRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['CSA', 'Wholesale', 'Market', 'Home Delivery', 'Add-on', 'Special Order'])
+      .setAllowInvalid(false)
+      .build();
+    orderSheet.getRange(2, orderTypeCol, 1000, 1).setDataValidation(orderTypeRule);
+
+    // Delivery Method validation
+    const deliveryRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Pickup', 'Home Delivery', 'Wholesale Drop', 'Market'])
+      .setAllowInvalid(false)
+      .build();
+    orderSheet.getRange(2, deliveryMethodCol, 1000, 1).setDataValidation(deliveryRule);
+
+    // Share Size validation
+    const sizeRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Small', 'Medium', 'Large', 'Family', 'Wholesale'])
+      .setAllowInvalid(false)
+      .build();
+    orderSheet.getRange(2, shareSizeCol, 1000, 1).setDataValidation(sizeRule);
+
+    // Create summary dashboard sheet
+    createOrderAnalyticsDashboard();
+
+    return {
+      success: true,
+      message: 'ORDER_HISTORY sheet created with ML-ready structure',
+      created: true,
+      columns: headers.length,
+      features: {
+        temporalFeatures: 13,
+        orderFeatures: 9,
+        fulfillmentFeatures: 6,
+        behaviorFeatures: 5,
+        externalFeatures: 4,
+        feedbackFeatures: 4,
+        metadataFeatures: 3
+      }
+    };
+
+  } catch (error) {
+    Logger.log('initializeOrderHistorySheet error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create Order Analytics Dashboard sheet
+ */
+function createOrderAnalyticsDashboard() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let dashSheet = ss.getSheetByName('ORDER_ANALYTICS');
+
+    if (dashSheet) return; // Already exists
+
+    dashSheet = ss.insertSheet('ORDER_ANALYTICS');
+
+    // Set up dashboard structure
+    dashSheet.getRange('A1').setValue('ORDER ANALYTICS DASHBOARD');
+    dashSheet.getRange('A1').setFontSize(18).setFontWeight('bold');
+
+    // Add formulas that will work once data is added
+    dashSheet.getRange('A3').setValue('Total Orders:');
+    dashSheet.getRange('B3').setFormula('=COUNTA(ORDER_HISTORY!A:A)-1');
+
+    dashSheet.getRange('A4').setValue('Total Revenue:');
+    dashSheet.getRange('B4').setFormula('=SUM(ORDER_HISTORY!P:P)');
+    dashSheet.getRange('B4').setNumberFormat('$#,##0.00');
+
+    dashSheet.getRange('A5').setValue('Avg Order Value:');
+    dashSheet.getRange('B5').setFormula('=IFERROR(AVERAGE(ORDER_HISTORY!P:P),0)');
+    dashSheet.getRange('B5').setNumberFormat('$#,##0.00');
+
+    dashSheet.getRange('A6').setValue('Unique Customers:');
+    dashSheet.getRange('B6').setFormula('=COUNTA(UNIQUE(ORDER_HISTORY!B2:B))');
+
+    dashSheet.getRange('A8').setValue('Orders by Type:');
+    dashSheet.getRange('A9').setValue('CSA:');
+    dashSheet.getRange('B9').setFormula('=COUNTIF(ORDER_HISTORY!N:N,"CSA")');
+    dashSheet.getRange('A10').setValue('Wholesale:');
+    dashSheet.getRange('B10').setFormula('=COUNTIF(ORDER_HISTORY!N:N,"Wholesale")');
+    dashSheet.getRange('A11').setValue('Market:');
+    dashSheet.getRange('B11').setFormula('=COUNTIF(ORDER_HISTORY!N:N,"Market")');
+    dashSheet.getRange('A12').setValue('Home Delivery:');
+    dashSheet.getRange('B12').setFormula('=COUNTIF(ORDER_HISTORY!N:N,"Home Delivery")');
+
+    dashSheet.getRange('A14').setValue('Monthly Revenue:');
+    // Add QUERY formula for monthly breakdown
+    dashSheet.getRange('A15').setFormula('=IFERROR(QUERY(ORDER_HISTORY!A:AQ,"SELECT K, SUM(P) WHERE K IS NOT NULL GROUP BY K ORDER BY K LABEL SUM(P) \'Revenue\'"),)');
+
+  } catch (error) {
+    Logger.log('createOrderAnalyticsDashboard error: ' + error.toString());
+  }
+}
+
+/**
+ * Record a new order with all ML-ready features
+ */
+function recordOrder(params) {
+  try {
+    const {
+      customerId,
+      customerName,
+      customerEmail,
+      orderType,
+      deliveryMethod,
+      shareSize,
+      orderValue,
+      itemCount,
+      discount,
+      promoCode,
+      deliveryDate,
+      deliveryRoute,
+      deliveryFee
+    } = params;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let orderSheet = ss.getSheetByName('ORDER_HISTORY');
+
+    if (!orderSheet) {
+      initializeOrderHistorySheet();
+      orderSheet = ss.getSheetByName('ORDER_HISTORY');
+    }
+
+    const now = new Date();
+    const orderId = 'ORD-' + now.getTime();
+
+    // Calculate temporal features
+    const dayOfWeek = now.getDay();
+    const weekOfYear = getWeekNumber(now);
+    const month = now.getMonth() + 1;
+    const quarter = 'Q' + Math.ceil(month / 3);
+    const year = now.getFullYear();
+    const isHoliday = checkIfHoliday(now);
+
+    // Calculate customer behavior features
+    const customerStats = getCustomerOrderStats(customerId || customerEmail);
+    const daysSinceLastOrder = customerStats.lastOrderDate ?
+      Math.floor((now - new Date(customerStats.lastOrderDate)) / (1000 * 60 * 60 * 24)) : null;
+    const isFirstOrder = customerStats.orderCount === 0;
+    const customerTenureDays = customerStats.firstOrderDate ?
+      Math.floor((now - new Date(customerStats.firstOrderDate)) / (1000 * 60 * 60 * 24)) : 0;
+
+    // Check external factors
+    const isGrowingSeason = month >= 4 && month <= 10;
+
+    // Build row data
+    const rowData = [
+      orderId,
+      customerId || '',
+      customerName || '',
+      customerEmail || '',
+      now, // Order_Date
+      now.toLocaleTimeString(), // Order_Time
+      dayOfWeek,
+      weekOfYear,
+      month,
+      quarter,
+      year,
+      isHoliday,
+      daysSinceLastOrder,
+      orderType || 'CSA',
+      deliveryMethod || 'Pickup',
+      shareSize || 'Medium',
+      orderValue || 0,
+      itemCount || 1,
+      discount || 0,
+      promoCode || '',
+      deliveryDate ? new Date(deliveryDate) : '',
+      deliveryRoute || '',
+      '', // Delivery_Stop_Number
+      deliveryFee || 0,
+      '', // Actual_Delivery_Time
+      '', // On_Time
+      isFirstOrder,
+      customerTenureDays,
+      customerStats.orderCount + 1,
+      customerStats.totalValue + (orderValue || 0),
+      ((customerStats.totalValue + (orderValue || 0)) / (customerStats.orderCount + 1)).toFixed(2),
+      '', // Weather_Condition
+      '', // Temperature_High
+      isGrowingSeason,
+      '', // Local_Event
+      '', // Customer_Rating
+      false, // Had_Issue
+      '', // Issue_Type
+      '', // Issue_Resolved
+      now, // Created_At
+      now, // Updated_At
+      'API' // Data_Source
+    ];
+
+    orderSheet.appendRow(rowData);
+
+    return {
+      success: true,
+      orderId: orderId,
+      message: 'Order recorded successfully',
+      customerStats: {
+        totalOrders: customerStats.orderCount + 1,
+        totalValue: customerStats.totalValue + (orderValue || 0),
+        daysSinceLastOrder: daysSinceLastOrder,
+        isFirstOrder: isFirstOrder
+      }
+    };
+
+  } catch (error) {
+    Logger.log('recordOrder error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get week number of the year
+ */
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+/**
+ * Check if date is a US holiday
+ */
+function checkIfHoliday(date) {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dayOfWeek = date.getDay();
+
+  // Fixed holidays
+  if (month === 1 && day === 1) return true; // New Year's
+  if (month === 7 && day === 4) return true; // Independence Day
+  if (month === 12 && day === 25) return true; // Christmas
+
+  // Floating holidays (approximations)
+  if (month === 11 && dayOfWeek === 4 && day >= 22 && day <= 28) return true; // Thanksgiving
+  if (month === 5 && dayOfWeek === 1 && day >= 25) return true; // Memorial Day
+  if (month === 9 && dayOfWeek === 1 && day <= 7) return true; // Labor Day
+
+  return false;
+}
+
+/**
+ * Get customer order statistics
+ */
+function getCustomerOrderStats(customerIdOrEmail) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const orderSheet = ss.getSheetByName('ORDER_HISTORY');
+
+    if (!orderSheet || orderSheet.getLastRow() < 2) {
+      return { orderCount: 0, totalValue: 0, lastOrderDate: null, firstOrderDate: null };
+    }
+
+    const data = orderSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const customerIdIdx = headers.indexOf('Customer_ID');
+    const emailIdx = headers.indexOf('Customer_Email');
+    const dateIdx = headers.indexOf('Order_Date');
+    const valueIdx = headers.indexOf('Order_Value');
+
+    let orderCount = 0;
+    let totalValue = 0;
+    let lastOrderDate = null;
+    let firstOrderDate = null;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const matchesId = customerIdIdx !== -1 && row[customerIdIdx] === customerIdOrEmail;
+      const matchesEmail = emailIdx !== -1 && row[emailIdx] === customerIdOrEmail;
+
+      if (matchesId || matchesEmail) {
+        orderCount++;
+        totalValue += parseFloat(row[valueIdx]) || 0;
+
+        const orderDate = new Date(row[dateIdx]);
+        if (!firstOrderDate || orderDate < firstOrderDate) firstOrderDate = orderDate;
+        if (!lastOrderDate || orderDate > lastOrderDate) lastOrderDate = orderDate;
+      }
+    }
+
+    return { orderCount, totalValue, lastOrderDate, firstOrderDate };
+
+  } catch (e) {
+    Logger.log('getCustomerOrderStats error: ' + e.toString());
+    return { orderCount: 0, totalValue: 0, lastOrderDate: null, firstOrderDate: null };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOOGLE ROUTE OPTIMIZATION API - ENTERPRISE CVRPTW SOLVER
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Optimize routes using Google Route Optimization API
+ * This is the state-of-the-art CVRPTW solver
+ */
+function optimizeWithRouteOptimizationAPI(params) {
+  try {
+    const { deliveryDate, vehicles = 1 } = params;
+
+    // Get all stops for the day
+    const stops = gatherDeliveryStops({ date: deliveryDate });
+
+    if (!stops || stops.length === 0) {
+      return { success: false, error: 'No stops found for optimization' };
+    }
+
+    // Build shipments for Route Optimization API
+    const shipments = stops.map((stop, idx) => ({
+      displayName: stop.name,
+      deliveries: [{
+        arrivalLocation: {
+          latLng: {
+            latitude: stop.coordinates?.lat || 0,
+            longitude: stop.coordinates?.lng || 0
+          }
+        },
+        duration: (stop.serviceDuration || 300) + 's', // Default 5 minutes
+        timeWindows: stop.timeWindow ? [{
+          startTime: formatTimeForAPI(stop.timeWindow.start),
+          endTime: formatTimeForAPI(stop.timeWindow.end)
+        }] : undefined
+      }],
+      loadDemands: {
+        weight: { amount: stop.weight || '10' } // Default 10 lbs
+      },
+      penaltyCost: stop.priority === 'HIGH' ? 1000 : 100 // High penalty for missing high-priority stops
+    }));
+
+    // Build vehicle(s)
+    const vehicleList = [];
+    for (let v = 0; v < vehicles; v++) {
+      vehicleList.push({
+        displayName: `Delivery Vehicle ${v + 1}`,
+        startLocation: {
+          latLng: {
+            latitude: GOOGLE_ROUTES_CONFIG.FARM_COORDS.lat,
+            longitude: GOOGLE_ROUTES_CONFIG.FARM_COORDS.lng
+          }
+        },
+        endLocation: {
+          latLng: {
+            latitude: GOOGLE_ROUTES_CONFIG.FARM_COORDS.lat,
+            longitude: GOOGLE_ROUTES_CONFIG.FARM_COORDS.lng
+          }
+        },
+        routeDurationLimit: {
+          maxDuration: '28800s' // 8 hours
+        },
+        loadLimits: {
+          weight: { maxLoad: '500' } // 500 lbs capacity
+        },
+        costPerHour: ROUTE_OPTIMIZATION_CONFIG.COST_MODEL.globalDurationCostPerHour,
+        costPerKilometer: ROUTE_OPTIMIZATION_CONFIG.COST_MODEL.perKmCost / 1.60934, // Convert to per-km
+        fixedCost: ROUTE_OPTIMIZATION_CONFIG.COST_MODEL.vehicleFixedCost
+      });
+    }
+
+    // Build the optimization request
+    const request = {
+      model: {
+        shipments: shipments,
+        vehicles: vehicleList,
+        globalStartTime: formatTimeForAPI('06:00'),
+        globalEndTime: formatTimeForAPI('20:00')
+      },
+      solvingMode: ROUTE_OPTIMIZATION_CONFIG.SOLVING_MODE,
+      searchMode: ROUTE_OPTIMIZATION_CONFIG.SEARCH_MODE
+    };
+
+    // Call the Route Optimization API
+    const apiUrl = `${ROUTE_OPTIMIZATION_CONFIG.API_URL}/projects/${ROUTE_OPTIMIZATION_CONFIG.PROJECT_ID}/locations/${ROUTE_OPTIMIZATION_CONFIG.LOCATION}:optimizeTours`;
+
+    const response = UrlFetchApp.fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + ScriptApp.getOAuthToken(),
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(request),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      Logger.log('Route Optimization API error: ' + JSON.stringify(result.error));
+
+      // Fall back to heuristic optimization
+      return optimizeRoutesFallback(stops, 'MINIMIZE_TIME');
+    }
+
+    // Parse and return optimized routes
+    return parseRouteOptimizationResult(result, stops);
+
+  } catch (error) {
+    Logger.log('optimizeWithRouteOptimizationAPI error: ' + error.toString());
+
+    // Fall back to heuristic optimization
+    return optimizeRoutesFallback(params.stops || [], 'MINIMIZE_TIME');
+  }
+}
+
+/**
+ * Format time for Route Optimization API (ISO 8601)
+ */
+function formatTimeForAPI(timeStr) {
+  const today = new Date();
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  today.setHours(hours, minutes, 0, 0);
+  return today.toISOString();
+}
+
+/**
+ * Parse Route Optimization API result
+ */
+function parseRouteOptimizationResult(result, originalStops) {
+  try {
+    const routes = [];
+
+    if (!result.routes) {
+      return { success: false, error: 'No routes returned from API' };
+    }
+
+    result.routes.forEach((route, vehicleIdx) => {
+      const routeStops = [];
+      let totalDuration = 0;
+      let totalDistance = 0;
+
+      if (route.visits) {
+        route.visits.forEach(visit => {
+          const shipmentIdx = visit.shipmentIndex;
+          if (shipmentIdx !== undefined && originalStops[shipmentIdx]) {
+            routeStops.push({
+              ...originalStops[shipmentIdx],
+              arrivalTime: visit.startTime,
+              departureTime: visit.endTime,
+              detour: visit.detour
+            });
+          }
+        });
+      }
+
+      if (route.metrics) {
+        totalDuration = parseInt(route.metrics.travelDuration || '0');
+        totalDistance = parseFloat(route.metrics.travelDistanceMeters || '0') / 1000; // Convert to km
+      }
+
+      routes.push({
+        vehicleIndex: vehicleIdx,
+        vehicleName: `Delivery Vehicle ${vehicleIdx + 1}`,
+        stops: routeStops,
+        metrics: {
+          totalDuration: totalDuration,
+          totalDurationFormatted: formatDurationForRoute(totalDuration),
+          totalDistanceKm: totalDistance.toFixed(1),
+          totalDistanceMiles: (totalDistance * 0.621371).toFixed(1),
+          stopCount: routeStops.length
+        }
+      });
+    });
+
+    // Calculate overall metrics
+    const overallMetrics = {
+      totalVehicles: routes.length,
+      totalStops: routes.reduce((sum, r) => sum + r.stops.length, 0),
+      totalDuration: routes.reduce((sum, r) => sum + (r.metrics?.totalDuration || 0), 0),
+      totalDistanceMiles: routes.reduce((sum, r) => sum + parseFloat(r.metrics?.totalDistanceMiles || 0), 0).toFixed(1),
+      skippedShipments: result.skippedShipments?.length || 0
+    };
+
+    return {
+      success: true,
+      optimizationMethod: 'Google Route Optimization API (CVRPTW)',
+      routes: routes,
+      overallMetrics: overallMetrics,
+      skippedShipments: result.skippedShipments || [],
+      rawResult: result
+    };
+
+  } catch (error) {
+    Logger.log('parseRouteOptimizationResult error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENHANCED CHURN PREDICTION - BASED ON 2025 RESEARCH
+// ═══════════════════════════════════════════════════════════════════════════
+// Implements Random Forest-inspired feature importance weighting
+// Key features: tenure, recency, frequency, monetary, support interactions
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Enhanced churn prediction model
+ * Based on research showing tenure, recency, and support interactions are top predictors
+ */
+const ENHANCED_CHURN_MODEL = {
+  // Feature weights based on Random Forest feature importance research
+  FEATURE_WEIGHTS: {
+    // Top tier (highest predictive power per research)
+    customerTenureDays: 0.18,  // Tenure is #1 predictor
+    daysSinceLastOrder: 0.16, // Recency is critical
+    orderFrequencyTrend: 0.14, // Declining frequency = high churn risk
+
+    // Second tier
+    totalOrderValue: 0.12,    // Monetary value matters
+    supportInteractions: 0.10, // Tech support is critical
+    deliveryIssueCount: 0.08, // Fulfillment problems
+
+    // Third tier
+    seasonalityFactor: 0.07,  // Winter vs summer
+    priceChangeSensitivity: 0.06,
+    engagementScore: 0.05,    // Email opens, etc.
+
+    // Additional factors
+    referralActivity: 0.02,
+    shareTypeChange: 0.02     // Downgrade = risk
+  },
+
+  // Thresholds for risk classification
+  RISK_THRESHOLDS: {
+    CRITICAL: 0.75,
+    HIGH: 0.55,
+    MEDIUM: 0.35,
+    LOW: 0.0
+  }
+};
+
+/**
+ * Calculate enhanced churn risk score
+ */
+function calculateEnhancedChurnScore(customer) {
+  const weights = ENHANCED_CHURN_MODEL.FEATURE_WEIGHTS;
+  const factors = [];
+  let totalScore = 0;
+
+  // 1. Customer Tenure (inverse - new customers are higher risk)
+  const tenureRisk = customer.daysSinceStart < 30 ? 0.9 :
+                     customer.daysSinceStart < 90 ? 0.7 :
+                     customer.daysSinceStart < 180 ? 0.4 :
+                     customer.daysSinceStart < 365 ? 0.2 : 0.1;
+  totalScore += tenureRisk * weights.customerTenureDays;
+  if (tenureRisk > 0.5) {
+    factors.push({ factor: 'Short tenure', value: `${customer.daysSinceStart} days`, impact: 'HIGH', score: tenureRisk });
+  }
+
+  // 2. Recency (days since last order)
+  const recencyRisk = customer.daysSinceLastOrder > 60 ? 1.0 :
+                      customer.daysSinceLastOrder > 45 ? 0.8 :
+                      customer.daysSinceLastOrder > 30 ? 0.5 :
+                      customer.daysSinceLastOrder > 14 ? 0.2 : 0.0;
+  totalScore += recencyRisk * weights.daysSinceLastOrder;
+  if (recencyRisk > 0.5) {
+    factors.push({ factor: 'Inactivity', value: `${customer.daysSinceLastOrder} days since order`, impact: 'HIGH', score: recencyRisk });
+  }
+
+  // 3. Order Frequency Trend (declining = bad)
+  const frequencyRisk = customer.orderFrequencyDecline || 0;
+  totalScore += frequencyRisk * weights.orderFrequencyTrend;
+  if (frequencyRisk > 0.3) {
+    factors.push({ factor: 'Declining orders', value: 'Order frequency dropping', impact: 'MEDIUM', score: frequencyRisk });
+  }
+
+  // 4. Total Value (low value = less sticky)
+  const valueRisk = customer.totalSpent < 100 ? 0.8 :
+                    customer.totalSpent < 300 ? 0.5 :
+                    customer.totalSpent < 500 ? 0.3 : 0.1;
+  totalScore += valueRisk * weights.totalOrderValue;
+
+  // 5. Support/Complaint interactions (critical per research)
+  const supportRisk = customer.complaintCount >= 3 ? 1.0 :
+                      customer.complaintCount >= 2 ? 0.8 :
+                      customer.complaintCount >= 1 ? 0.5 : 0.0;
+  totalScore += supportRisk * weights.supportInteractions;
+  if (supportRisk > 0.3) {
+    factors.push({ factor: 'Support issues', value: `${customer.complaintCount} complaints`, impact: 'HIGH', score: supportRisk });
+  }
+
+  // 6. Delivery issues
+  const deliveryRisk = customer.deliveryIssues >= 2 ? 1.0 :
+                       customer.deliveryIssues >= 1 ? 0.6 : 0.0;
+  totalScore += deliveryRisk * weights.deliveryIssueCount;
+  if (deliveryRisk > 0.5) {
+    factors.push({ factor: 'Delivery problems', value: `${customer.deliveryIssues} issues`, impact: 'HIGH', score: deliveryRisk });
+  }
+
+  // 7. Seasonality (off-season = higher risk)
+  const month = new Date().getMonth() + 1;
+  const seasonRisk = (month >= 11 || month <= 2) ? 0.7 : 0.2; // Winter = higher risk
+  totalScore += seasonRisk * weights.seasonalityFactor;
+  if (seasonRisk > 0.5) {
+    factors.push({ factor: 'Off-season', value: 'Winter months', impact: 'MEDIUM', score: seasonRisk });
+  }
+
+  // Normalize score to 0-1
+  const normalizedScore = Math.min(totalScore, 1.0);
+
+  // Determine risk level
+  let riskLevel;
+  if (normalizedScore >= ENHANCED_CHURN_MODEL.RISK_THRESHOLDS.CRITICAL) {
+    riskLevel = 'CRITICAL';
+  } else if (normalizedScore >= ENHANCED_CHURN_MODEL.RISK_THRESHOLDS.HIGH) {
+    riskLevel = 'HIGH';
+  } else if (normalizedScore >= ENHANCED_CHURN_MODEL.RISK_THRESHOLDS.MEDIUM) {
+    riskLevel = 'MEDIUM';
+  } else {
+    riskLevel = 'LOW';
+  }
+
+  return {
+    score: normalizedScore,
+    level: riskLevel,
+    factors: factors.sort((a, b) => b.score - a.score),
+    modelVersion: 'Enhanced-RF-2025'
+  };
+}
+
+/**
+ * Get enhanced churn prevention recommendation
+ */
+function getEnhancedChurnPrevention(riskResult, customer) {
+  const { level, factors } = riskResult;
+
+  // Personalized recommendations based on risk factors
+  const recommendations = [];
+
+  if (level === 'CRITICAL') {
+    recommendations.push({
+      action: 'IMMEDIATE_CALL',
+      owner: 'Todd',
+      timeline: '24 hours',
+      script: `Personal call to ${customer.name}. Acknowledge any issues, offer solutions.`,
+      offer: 'Free add-on item or 15% off next order'
+    });
+  }
+
+  if (level === 'HIGH') {
+    recommendations.push({
+      action: 'PERSONAL_EMAIL',
+      owner: 'Todd or Sam',
+      timeline: '48 hours',
+      script: 'Personalized check-in email asking for feedback',
+      offer: '10% off or free delivery'
+    });
+  }
+
+  // Factor-specific recommendations
+  factors.forEach(factor => {
+    if (factor.factor === 'Inactivity') {
+      recommendations.push({
+        action: 'RE_ENGAGEMENT_CAMPAIGN',
+        content: 'We miss you! Here\'s what\'s fresh this week...',
+        offer: 'Early access to seasonal items'
+      });
+    }
+
+    if (factor.factor === 'Delivery problems') {
+      recommendations.push({
+        action: 'SERVICE_RECOVERY',
+        content: 'Apologize and offer free delivery for next 3 orders',
+        offer: 'Free delivery credits'
+      });
+    }
+
+    if (factor.factor === 'Support issues') {
+      recommendations.push({
+        action: 'ESCALATE_TO_OWNER',
+        content: 'Review all complaint history, address root cause',
+        offer: 'Whatever it takes to make it right'
+      });
+    }
+  });
+
+  return {
+    primaryAction: recommendations[0] || { action: 'MONITOR', timeline: 'Weekly check' },
+    allRecommendations: recommendations,
+    estimatedImpact: level === 'CRITICAL' ? 'Save ~$' + (customer.annualValue || 500).toFixed(0) + '/year' :
+                     level === 'HIGH' ? 'Prevent likely churn' : 'Maintain engagement'
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INITIALIZATION & SETUP FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Full system initialization - sets up all production infrastructure
+ */
+function initializeProductionIntelligence() {
+  const results = {
+    geocoding: null,
+    orderHistory: null,
+    timestamp: new Date().toISOString()
+  };
+
+  // Initialize geocoding infrastructure
+  results.geocoding = initializeGeocodingInfrastructure();
+
+  // Initialize order history sheet
+  results.orderHistory = initializeOrderHistorySheet();
+
+  // Verify Route Optimization API access
+  results.routeOptimization = {
+    configured: ROUTE_OPTIMIZATION_CONFIG.ENABLED,
+    projectId: ROUTE_OPTIMIZATION_CONFIG.PROJECT_ID,
+    note: 'Enable billing and Route Optimization API in GCP Console'
+  };
+
+  return {
+    success: true,
+    message: 'Production intelligence infrastructure initialized',
+    results: results
+  };
+}
+
+/**
+ * Run batch geocoding as a scheduled job
+ */
+function scheduledGeocodeJob() {
+  const result = batchGeocodeCustomers({ maxRecords: 50 });
+  Logger.log('Scheduled geocode job complete: ' + JSON.stringify(result.summary));
+  return result;
+}
+
+/**
+ * API endpoint: Initialize all production infrastructure
+ */
+function apiInitializeProduction(params) {
+  return initializeProductionIntelligence();
+}
+
+/**
+ * API endpoint: Batch geocode customers
+ */
+function apiBatchGeocode(params) {
+  return batchGeocodeCustomers(params);
+}
+
+/**
+ * API endpoint: Record an order
+ */
+function apiRecordOrder(params) {
+  return recordOrder(params);
+}
+
+/**
+ * API endpoint: Optimize routes with Route Optimization API
+ */
+function apiOptimizeRoutes(params) {
+  return optimizeWithRouteOptimizationAPI(params);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENHANCED CHURN RISK ANALYSIS (STATE-OF-THE-ART 2025)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get enhanced churn risk analysis using state-of-the-art model
+ * Based on Random Forest feature importance research
+ */
+function getEnhancedChurnRiskAnalysis(params) {
+  try {
+    const { threshold = 0.55 } = params || {};
+
+    // Get customer data
+    const customers = getCustomerDataForChurnAnalysis();
+
+    if (!customers || customers.length === 0) {
+      return { success: false, error: 'No customer data found' };
+    }
+
+    // Calculate enhanced churn risk for each customer
+    const riskAnalysis = customers.map(customer => {
+      const riskResult = calculateEnhancedChurnScore(customer);
+      const prevention = getEnhancedChurnPrevention(riskResult, customer);
+
+      return {
+        ...customer,
+        churnRisk: riskResult.score,
+        riskLevel: riskResult.level,
+        riskFactors: riskResult.factors,
+        modelVersion: riskResult.modelVersion,
+        recommendedAction: prevention.primaryAction,
+        allRecommendations: prevention.allRecommendations,
+        estimatedImpact: prevention.estimatedImpact
+      };
+    });
+
+    // Sort by risk (highest first)
+    riskAnalysis.sort((a, b) => b.churnRisk - a.churnRisk);
+
+    // Get high-risk customers
+    const criticalRisk = riskAnalysis.filter(c => c.riskLevel === 'CRITICAL');
+    const highRisk = riskAnalysis.filter(c => c.riskLevel === 'HIGH');
+    const atRisk = riskAnalysis.filter(c => c.churnRisk >= threshold);
+
+    // Calculate aggregate stats
+    const stats = {
+      totalCustomers: riskAnalysis.length,
+      criticalCount: criticalRisk.length,
+      highRiskCount: highRisk.length,
+      atRiskCount: atRisk.length,
+      atRiskPercentage: ((atRisk.length / riskAnalysis.length) * 100).toFixed(1),
+      averageRiskScore: (riskAnalysis.reduce((sum, c) => sum + c.churnRisk, 0) / riskAnalysis.length).toFixed(3),
+      estimatedRevenueAtRisk: atRisk.reduce((sum, c) => sum + (c.annualValue || 0), 0).toFixed(2)
+    };
+
+    // Action summary
+    const actionSummary = {
+      immediateCallsNeeded: criticalRisk.length,
+      emailCampaignsNeeded: highRisk.length,
+      totalActionsRequired: criticalRisk.length + highRisk.length
+    };
+
+    return {
+      success: true,
+      modelVersion: 'Enhanced-RF-2025',
+      stats: stats,
+      actionSummary: actionSummary,
+      criticalCustomers: criticalRisk.slice(0, 10),
+      highRiskCustomers: highRisk.slice(0, 20),
+      allCustomers: riskAnalysis,
+      generatedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getEnhancedChurnRiskAnalysis error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}

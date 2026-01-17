@@ -34,6 +34,12 @@
         // Session expiry (24 hours in milliseconds)
         SESSION_EXPIRY: 24 * 60 * 60 * 1000,
 
+        // Inactivity timeout (30 minutes in milliseconds)
+        INACTIVITY_TIMEOUT: 30 * 60 * 1000,
+
+        // Inactivity check interval (1 minute)
+        INACTIVITY_CHECK_INTERVAL: 60 * 1000,
+
         // Default login URL (relative to current page)
         DEFAULT_LOGIN_URL: 'login.html',
 
@@ -547,6 +553,81 @@
             AuthGuard.protect({ requiredRole, allowRoles });
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INACTIVITY TIMEOUT - PRODUCTION SECURITY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let lastActivityTime = Date.now();
+
+    // Track user activity
+    function updateLastActivity() {
+        lastActivityTime = Date.now();
+    }
+
+    // Listen for user activity events
+    ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(event => {
+        document.addEventListener(event, updateLastActivity, { passive: true });
+    });
+
+    // Check for inactivity periodically
+    function checkInactivity() {
+        if (!AuthGuard.isAuthenticated()) return;
+
+        const inactiveTime = Date.now() - lastActivityTime;
+
+        if (inactiveTime > AUTH_CONFIG.INACTIVITY_TIMEOUT) {
+            console.log('Session expired due to inactivity');
+
+            // Clear session
+            AuthGuard.clearSession();
+
+            // Redirect to login with reason
+            const loginUrl = AuthGuard.getLoginUrl();
+            const separator = loginUrl.includes('?') ? '&' : '?';
+            window.location.href = loginUrl + separator + 'reason=inactivity';
+        }
+    }
+
+    // Start inactivity check (only if user is authenticated)
+    if (AuthGuard.isAuthenticated()) {
+        setInterval(checkInactivity, AUTH_CONFIG.INACTIVITY_CHECK_INTERVAL);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENHANCED LOGOUT - Clear all data
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    AuthGuard.logout = async function(notifyServer = true) {
+        const session = this.getSession();
+
+        // Notify server to invalidate session
+        if (notifyServer && session?.token) {
+            try {
+                const apiUrl = window.API_CONFIG?.BASE_URL || 'https://script.google.com/macros/s/AKfycbwxe2qjNkrNvYkHv7NJWBJvemu0MGBfO7NEfiF0dBo/exec';
+                await fetch(`${apiUrl}?action=logoutUser&token=${session.token}`);
+            } catch (e) {
+                console.warn('Could not notify server of logout:', e);
+            }
+        }
+
+        // Clear all local storage
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // Clear any cached data
+        if ('caches' in window) {
+            try {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            } catch (e) {
+                console.warn('Could not clear caches:', e);
+            }
+        }
+
+        // Redirect to login
+        window.location.href = this.getLoginUrl() + '?reason=logout';
+    };
 
     // ═══════════════════════════════════════════════════════════════════════════
     // EXPORT
