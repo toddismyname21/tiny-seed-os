@@ -787,6 +787,332 @@
         .stat-value.money {
             color: var(--success);
         }
+
+        /* Smart Dashboard Styles */
+        .smart-screen {
+            display: none;
+            padding: 1rem;
+        }
+
+        .smart-screen.active {
+            display: block;
+        }
+
+        /* Health Score Card */
+        .health-card {
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-light));
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .health-score-ring {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1rem;
+        }
+
+        .health-score-bg {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 10;
+        }
+
+        .health-score-fill {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: center;
+            transition: stroke-dasharray 0.5s ease;
+        }
+
+        .health-score-fill.excellent { stroke: var(--success); }
+        .health-score-fill.good { stroke: #82c91e; }
+        .health-score-fill.fair { stroke: var(--warning); }
+        .health-score-fill.poor { stroke: var(--danger); }
+
+        .health-score-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .health-score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .health-score-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .health-summary {
+            display: flex;
+            justify-content: space-around;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            margin-top: 1rem;
+        }
+
+        .health-stat {
+            text-align: center;
+        }
+
+        .health-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .health-stat-value.good { color: var(--success); }
+        .health-stat-value.warning { color: var(--warning); }
+        .health-stat-value.danger { color: var(--danger); }
+
+        .health-stat-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        /* Actions Card */
+        .actions-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .actions-header {
+            padding: 1rem;
+            background: var(--bg-light);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .actions-header i {
+            font-size: 1.1rem;
+        }
+
+        .actions-header.critical { color: var(--danger); }
+        .actions-header.high { color: #f4a261; }
+        .actions-header.medium { color: var(--warning); }
+        .actions-header.info { color: var(--success); }
+
+        .action-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .action-item:last-child {
+            border-bottom: none;
+        }
+
+        .action-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .action-icon.critical { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+        .action-icon.high { background: rgba(244, 162, 97, 0.2); color: #f4a261; }
+        .action-icon.medium { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+        .action-icon.low { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+
+        .action-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .action-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .action-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            background: var(--bg-light);
+            border: none;
+            border-radius: 6px;
+            color: var(--primary-light);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* At Risk Equipment */
+        .risk-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .risk-item:last-child {
+            border-bottom: none;
+        }
+
+        .risk-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .risk-item-name {
+            font-weight: 500;
+        }
+
+        .risk-score {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .risk-score.high { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+        .risk-score.medium { background: rgba(244, 162, 97, 0.2); color: #f4a261; }
+        .risk-score.low { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+
+        .risk-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .risk-bar-fill.high { background: var(--danger); }
+        .risk-bar-fill.medium { background: #f4a261; }
+        .risk-bar-fill.low { background: var(--warning); }
+
+        .risk-item-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Seasonal Readiness */
+        .readiness-item {
+            padding: 12px 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .readiness-item:last-child {
+            border-bottom: none;
+        }
+
+        .readiness-icon {
+            font-size: 1rem;
+        }
+
+        .readiness-icon.ready { color: var(--success); }
+        .readiness-icon.warning { color: var(--warning); }
+        .readiness-icon.action { color: var(--danger); }
+
+        .readiness-text {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        /* Forecast Card */
+        .forecast-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .forecast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .forecast-title {
+            font-weight: 600;
+        }
+
+        .forecast-total {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .forecast-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .forecast-item:last-child {
+            border-bottom: none;
+        }
+
+        .forecast-item-name {
+            font-size: 0.9rem;
+        }
+
+        .forecast-item-detail {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .forecast-item-cost {
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Pulse animation for critical items */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
     </style>
 </head>
 <body>
@@ -1005,6 +1331,104 @@
                 <div id="categoryBreakdown"></div>
             </div>
         </div>
+
+        <!-- Smart Dashboard Screen -->
+        <div class="smart-screen" id="smartScreen">
+            <!-- Equipment Health Score -->
+            <div class="health-card">
+                <div class="health-score-ring">
+                    <svg viewBox="0 0 120 120" width="120" height="120">
+                        <circle class="health-score-bg" cx="60" cy="60" r="50"></circle>
+                        <circle class="health-score-fill good" id="healthRing" cx="60" cy="60" r="50"
+                            stroke-dasharray="0 314" style="transform: rotate(-90deg); transform-origin: center;"></circle>
+                    </svg>
+                    <div class="health-score-text">
+                        <div class="health-score-value" id="healthScore">--</div>
+                        <div class="health-score-label">Health</div>
+                    </div>
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-secondary);" id="healthMessage">Loading...</div>
+                <div class="health-summary">
+                    <div class="health-stat">
+                        <div class="health-stat-value good" id="healthGoodCount">-</div>
+                        <div class="health-stat-label">Good</div>
+                    </div>
+                    <div class="health-stat">
+                        <div class="health-stat-value warning" id="healthFairCount">-</div>
+                        <div class="health-stat-label">Fair</div>
+                    </div>
+                    <div class="health-stat">
+                        <div class="health-stat-value danger" id="healthAtRiskCount">-</div>
+                        <div class="health-stat-label">At Risk</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Critical Actions -->
+            <div class="actions-card" id="criticalActions" style="display: none;">
+                <div class="actions-header critical">
+                    <i class="fas fa-exclamation-circle pulse"></i>
+                    Critical - Act Now
+                </div>
+                <div id="criticalActionsList"></div>
+            </div>
+
+            <!-- This Week's Priorities -->
+            <div class="actions-card" id="weekActions" style="display: none;">
+                <div class="actions-header high">
+                    <i class="fas fa-clock"></i>
+                    This Week
+                </div>
+                <div id="weekActionsList"></div>
+            </div>
+
+            <!-- Seasonal Alerts -->
+            <div class="actions-card" id="seasonalAlerts" style="display: none;">
+                <div class="actions-header medium">
+                    <i class="fas fa-leaf"></i>
+                    Seasonal Readiness
+                </div>
+                <div id="seasonalAlertsList"></div>
+            </div>
+
+            <!-- At-Risk Equipment -->
+            <div class="actions-card" id="atRiskCard" style="display: none;">
+                <div class="actions-header" style="color: var(--danger);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Equipment At Risk
+                </div>
+                <div id="atRiskList"></div>
+            </div>
+
+            <!-- Upcoming Maintenance -->
+            <div class="actions-card" id="maintenanceCard" style="display: none;">
+                <div class="actions-header info">
+                    <i class="fas fa-tools"></i>
+                    Upcoming Maintenance
+                </div>
+                <div id="maintenanceList"></div>
+            </div>
+
+            <!-- Replacement Forecast -->
+            <div class="forecast-card" id="forecastCard" style="display: none;">
+                <div class="forecast-header">
+                    <span class="forecast-title"><i class="fas fa-chart-line"></i> 12-Month Replacement Forecast</span>
+                    <span class="forecast-total" id="forecastTotal">$0</span>
+                </div>
+                <div id="forecastList"></div>
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); text-align: center;">
+                    <span style="color: var(--text-secondary); font-size: 0.85rem;">Monthly reserve: </span>
+                    <span style="font-weight: 600; color: var(--primary-light);" id="monthlyReserve">$0</span>
+                </div>
+            </div>
+
+            <!-- No Data State -->
+            <div class="empty-state" id="smartEmptyState" style="display: none;">
+                <i class="fas fa-brain"></i>
+                <div style="font-weight: 600; margin-bottom: 8px;">No Smart Data Yet</div>
+                <div>Add inventory items to see intelligent insights, predictions, and recommendations.</div>
+            </div>
+        </div>
     </main>
 
     <!-- Bottom Navigation -->
@@ -1012,6 +1436,10 @@
         <button class="nav-item active" id="navHome" onclick="showHome()">
             <i class="fas fa-home"></i>
             <span>Home</span>
+        </button>
+        <button class="nav-item" id="navSmart" onclick="showSmart()">
+            <i class="fas fa-brain"></i>
+            <span>Smart</span>
         </button>
         <button class="nav-item" id="navAdd" onclick="showAddForm()">
             <i class="fas fa-plus-circle"></i>
@@ -1115,6 +1543,14 @@
             document.getElementById('formScreen').classList.remove('active');
             document.getElementById('listScreen').classList.remove('active');
             document.getElementById('statsScreen').classList.remove('active');
+            document.getElementById('smartScreen').classList.remove('active');
+        }
+
+        function showSmart() {
+            hideAllScreens();
+            document.getElementById('smartScreen').classList.add('active');
+            setActiveNav('navSmart');
+            loadSmartDashboard();
         }
 
         function setActiveNav(id) {
@@ -1474,6 +1910,258 @@
             toast.textContent = message;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ============ SMART DASHBOARD ============
+        async function loadSmartDashboard() {
+            try {
+                // Load all smart data in parallel
+                const [dashboardRes, forecastRes, maintenanceRes] = await Promise.all([
+                    fetch(`${API_URL}?action=getSmartDashboard`),
+                    fetch(`${API_URL}?action=getReplacementForecast`),
+                    fetch(`${API_URL}?action=getMaintenanceSchedule`)
+                ]);
+
+                const dashboard = await dashboardRes.json();
+                const forecast = await forecastRes.json();
+                const maintenance = await maintenanceRes.json();
+
+                if (dashboard.success) {
+                    renderSmartDashboard(dashboard.data, forecast.data, maintenance.data);
+                } else {
+                    document.getElementById('smartEmptyState').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Failed to load smart dashboard:', error);
+                showToast('Error loading smart data');
+            }
+        }
+
+        function renderSmartDashboard(data, forecast, maintenance) {
+            // Check if we have data
+            if (!data || data.totalItems === 0) {
+                document.getElementById('smartEmptyState').style.display = 'block';
+                return;
+            }
+            document.getElementById('smartEmptyState').style.display = 'none';
+
+            // Render Health Score
+            renderHealthScore(data.health);
+
+            // Render Recommendations by priority
+            renderRecommendations(data.recommendations);
+
+            // Render At-Risk Equipment
+            renderAtRiskEquipment(data.health?.atRisk || []);
+
+            // Render Maintenance Schedule
+            renderMaintenanceSchedule(maintenance);
+
+            // Render Replacement Forecast
+            renderForecast(forecast);
+        }
+
+        function renderHealthScore(health) {
+            if (!health) return;
+
+            const score = health.overallScore || 0;
+            const ring = document.getElementById('healthRing');
+            const scoreEl = document.getElementById('healthScore');
+            const messageEl = document.getElementById('healthMessage');
+
+            // Calculate stroke-dasharray for SVG circle (circumference = 2 * PI * 50 = 314)
+            const circumference = 314;
+            const progress = (score / 100) * circumference;
+            ring.style.strokeDasharray = `${progress} ${circumference}`;
+
+            // Set color based on score
+            ring.classList.remove('excellent', 'good', 'fair', 'poor');
+            if (score >= 80) {
+                ring.classList.add('excellent');
+            } else if (score >= 60) {
+                ring.classList.add('good');
+            } else if (score >= 40) {
+                ring.classList.add('fair');
+            } else {
+                ring.classList.add('poor');
+            }
+
+            scoreEl.textContent = Math.round(score) + '%';
+            messageEl.textContent = health.message || 'Equipment health status';
+
+            // Update counts
+            document.getElementById('healthGoodCount').textContent = health.goodCondition || 0;
+            document.getElementById('healthFairCount').textContent = health.fairCondition || 0;
+            document.getElementById('healthAtRiskCount').textContent = (health.atRisk || []).length;
+        }
+
+        function renderRecommendations(recommendations) {
+            if (!recommendations || recommendations.length === 0) {
+                document.getElementById('criticalActions').style.display = 'none';
+                document.getElementById('weekActions').style.display = 'none';
+                document.getElementById('seasonalAlerts').style.display = 'none';
+                return;
+            }
+
+            // Group by priority
+            const critical = recommendations.filter(r => r.Priority === 'Critical');
+            const high = recommendations.filter(r => r.Priority === 'High');
+            const medium = recommendations.filter(r => r.Priority === 'Medium' || r.Priority === 'Low');
+
+            // Render Critical
+            if (critical.length > 0) {
+                document.getElementById('criticalActions').style.display = 'block';
+                document.getElementById('criticalActionsList').innerHTML = critical.map(r => renderActionItem(r, 'critical')).join('');
+            } else {
+                document.getElementById('criticalActions').style.display = 'none';
+            }
+
+            // Render High Priority (This Week)
+            if (high.length > 0) {
+                document.getElementById('weekActions').style.display = 'block';
+                document.getElementById('weekActionsList').innerHTML = high.map(r => renderActionItem(r, 'high')).join('');
+            } else {
+                document.getElementById('weekActions').style.display = 'none';
+            }
+
+            // Render Medium/Low (Seasonal/Informational)
+            if (medium.length > 0) {
+                document.getElementById('seasonalAlerts').style.display = 'block';
+                document.getElementById('seasonalAlertsList').innerHTML = medium.map(r => renderActionItem(r, 'medium')).join('');
+            } else {
+                document.getElementById('seasonalAlerts').style.display = 'none';
+            }
+        }
+
+        function renderActionItem(rec, priority) {
+            const icons = {
+                'Maintenance': 'fa-wrench',
+                'Replacement': 'fa-sync-alt',
+                'Purchase': 'fa-shopping-cart',
+                'Inspection': 'fa-search',
+                'Seasonal': 'fa-leaf',
+                'default': 'fa-exclamation'
+            };
+            const icon = icons[rec.Category] || icons.default;
+
+            return `
+                <div class="action-item">
+                    <div class="action-icon ${priority}">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div class="action-content">
+                        <div class="action-title">${rec.Title}</div>
+                        <div class="action-meta">${rec.Details || ''}</div>
+                        ${rec.Est_Cost ? `<div class="action-meta" style="color: var(--primary-light);">Est. cost: $${Number(rec.Est_Cost).toLocaleString()}</div>` : ''}
+                    </div>
+                    <button class="action-btn" onclick="acknowledgeRecommendation('${rec.Recommendation_ID}')">
+                        Done
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderAtRiskEquipment(atRisk) {
+            if (!atRisk || atRisk.length === 0) {
+                document.getElementById('atRiskCard').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('atRiskCard').style.display = 'block';
+            document.getElementById('atRiskList').innerHTML = atRisk.slice(0, 5).map(item => {
+                const riskPercent = (item.riskScore || 0) * 100;
+                const riskLevel = riskPercent >= 70 ? 'high' : riskPercent >= 50 ? 'medium' : 'low';
+
+                return `
+                    <div class="risk-item">
+                        <div class="risk-item-header">
+                            <span class="risk-item-name">${item.name}</span>
+                            <span class="risk-score ${riskLevel}">${Math.round(riskPercent)}% Risk</span>
+                        </div>
+                        <div class="risk-bar">
+                            <div class="risk-bar-fill ${riskLevel}" style="width: ${riskPercent}%"></div>
+                        </div>
+                        <div class="risk-item-meta">
+                            ${item.category || ''} ${item.condition ? '• ' + item.condition : ''} ${item.age ? '• ' + item.age : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderMaintenanceSchedule(maintenance) {
+            if (!maintenance || !maintenance.upcoming || maintenance.upcoming.length === 0) {
+                document.getElementById('maintenanceCard').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('maintenanceCard').style.display = 'block';
+            document.getElementById('maintenanceList').innerHTML = maintenance.upcoming.slice(0, 5).map(item => `
+                <div class="action-item">
+                    <div class="action-icon low">
+                        <i class="fas fa-wrench"></i>
+                    </div>
+                    <div class="action-content">
+                        <div class="action-title">${item.itemName || item.Item_Name}</div>
+                        <div class="action-meta">Due: ${formatDate(item.nextDue || item.Next_Maintenance)}</div>
+                        ${item.estCost ? `<div class="action-meta" style="color: var(--primary-light);">Est. $${item.estCost}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderForecast(forecast) {
+            if (!forecast || !forecast.items || forecast.items.length === 0) {
+                document.getElementById('forecastCard').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('forecastCard').style.display = 'block';
+            document.getElementById('forecastTotal').textContent = '$' + (forecast.totalCost || 0).toLocaleString();
+            document.getElementById('monthlyReserve').textContent = '$' + Math.round((forecast.totalCost || 0) / 12).toLocaleString();
+
+            document.getElementById('forecastList').innerHTML = forecast.items.slice(0, 5).map(item => `
+                <div class="forecast-item">
+                    <div>
+                        <div class="forecast-item-name">${item.name}</div>
+                        <div class="forecast-item-detail">${item.reason || ''}</div>
+                    </div>
+                    <div class="forecast-item-cost">$${(item.cost || 0).toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        async function acknowledgeRecommendation(recId) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'completeRecommendation',
+                        recommendationId: recId
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Marked as complete!');
+                    loadSmartDashboard(); // Refresh
+                }
+            } catch (error) {
+                showToast('Error updating recommendation');
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'Not set';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffDays = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) return 'Overdue!';
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Tomorrow';
+            if (diffDays <= 7) return `In ${diffDays} days`;
+
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
     </script>
 </body>
