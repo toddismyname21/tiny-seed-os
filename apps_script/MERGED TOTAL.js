@@ -280,6 +280,8 @@ function doGet(e) {
         return jsonResponse(getTimesheet(e.parameter));
       case 'getDeliveryCount':
         return jsonResponse(getDeliveryCount(e.parameter));
+      case 'getDeliveryRoute':
+        return jsonResponse(getDeliveryRoutes(e.parameter));
       case 'syncToQuickBooks':
         return jsonResponse(syncToQuickBooks(e.parameter));
 
