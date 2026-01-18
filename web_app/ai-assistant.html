@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant - Tiny Seed OS</title>
+    <!-- Auth Guard - Admin only -->
+    <script src="auth-guard.js" data-required-role="Admin"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #22c55e;
+            --primary-dark: #16a34a;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%);
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-title .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mode-btn {
+            background: rgba(255,255,255,0.15);
+            border: 2px solid transparent;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .mode-btn.active {
+            background: white;
+            color: var(--accent-purple);
+            border-color: white;
+        }
+
+        /* Main Chat Area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .message.ai .avatar {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+        }
+
+        .message.user .avatar {
+            background: var(--primary);
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 16px 20px;
+            border-radius: 16px;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .message.ai .message-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px 16px 16px 4px;
+        }
+
+        .message.user .message-content {
+            background: var(--primary);
+            color: white;
+            border-radius: 16px 16px 4px 16px;
+        }
+
+        .message-content h3 {
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .message-content ul, .message-content ol {
+            margin: 12px 0;
+            padding-left: 20px;
+        }
+
+        .message-content li {
+            margin-bottom: 6px;
+        }
+
+        .message-content code {
+            background: var(--bg-input);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+        }
+
+        .message-content pre {
+            background: var(--bg-dark);
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .message-content a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 6px;
+            padding: 8px 0;
+        }
+
+        .typing-indicator span {
+            width: 10px;
+            height: 10px;
+            background: var(--accent-purple);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .quick-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 18px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-btn:hover {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+            transform: translateY(-2px);
+        }
+
+        /* Input Area */
+        .input-area {
+            display: flex;
+            gap: 12px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .input-area input {
+            flex: 1;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            color: var(--text-primary);
+            padding: 16px 20px;
+            border-radius: 28px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-area input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .input-area input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 28px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: var(--bg-card);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px;
+            }
+
+            .header-title h1 {
+                font-size: 18px;
+            }
+
+            .mode-selector {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .chat-container {
+                padding: 16px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .quick-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <span>←</span> Back to Hub
+            </a>
+            <div class="header-title">
+                <h1>AI Assistant</h1>
+                <span class="badge">Claude 3.5 Sonnet</span>
+            </div>
+        </div>
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="setMode('all')" id="mode-all">All-Purpose</button>
+            <button class="mode-btn" onclick="setMode('email')" id="mode-email">Email AI</button>
+            <button class="mode-btn" onclick="setMode('system')" id="mode-system">System Help</button>
+            <button class="mode-btn" onclick="setMode('farm')" id="mode-farm">Farm Advisor</button>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="quick-actions" id="quickActions">
+            <!-- Populated by JavaScript based on mode -->
+        </div>
+
+        <div class="messages" id="messages">
+            <div class="message ai">
+                <div class="avatar">🤖</div>
+                <div class="message-content">
+                    <h3>Hi Todd! I'm your AI Assistant.</h3>
+                    <p>I'm powered by Claude 3.5 Sonnet - the smartest AI available. I can help you with:</p>
+                    <ul>
+                        <li><strong>Emails</strong> - Search, summarize, draft replies, find action items</li>
+                        <li><strong>System Help</strong> - Navigate Tiny Seed OS, troubleshoot issues</li>
+                        <li><strong>Farm Advice</strong> - Planting schedules, pest management, best practices</li>
+                        <li><strong>General Questions</strong> - Anything else you need help with</li>
+                    </ul>
+                    <p>What can I help you with today?</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+                Send <span>→</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-dot"></span>
+            <span>Connected to Claude AI</span>
+        </div>
+        <div class="status-item">
+            <span id="modeDisplay">Mode: All-Purpose</span>
+        </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+        let currentMode = 'all';
+
+        const quickActionsByMode = {
+            all: [
+                { icon: '📧', text: 'Check urgent emails', query: 'What emails need urgent responses today?' },
+                { icon: '📊', text: 'System status', query: 'Give me a quick status of all Tiny Seed OS systems' },
+                { icon: '🌱', text: "What should I plant?", query: "What should I be planting this week based on the season?" },
+                { icon: '💰', text: 'Financial summary', query: 'Give me a quick financial summary for the farm' }
+            ],
+            email: [
+                { icon: '🔥', text: 'Urgent emails', query: 'What emails need urgent responses today?' },
+                { icon: '📬', text: 'Unread summary', query: 'Summarize my unread emails' },
+                { icon: '🍽️', text: 'Wholesale orders', query: 'Find all wholesale/restaurant orders this week' },
+                { icon: '💰', text: 'Grants & USDA', query: 'Any grant or USDA emails I need to respond to?' },
+                { icon: '👥', text: 'CSA issues', query: 'List CSA member questions or complaints' },
+                { icon: '💵', text: 'Payments', query: 'Find unpaid invoices or payment issues' }
+            ],
+            system: [
+                { icon: '🏠', text: 'Dashboard overview', query: 'How do I access the main dashboard and what does it show?' },
+                { icon: '📦', text: 'Delivery system', query: 'How does the delivery routing system work?' },
+                { icon: '👥', text: 'Customer management', query: 'How do I manage customers in the system?' },
+                { icon: '🌾', text: 'Crop planning', query: 'How do I use the crop planning and succession features?' },
+                { icon: '📱', text: 'Mobile apps', query: 'What mobile features are available?' },
+                { icon: '⚙️', text: 'Settings', query: 'How do I configure system settings and API keys?' }
+            ],
+            farm: [
+                { icon: '🌱', text: 'Planting now', query: 'What should I be planting right now in Pennsylvania?' },
+                { icon: '🐛', text: 'Pest control', query: 'What are common pests to watch for this time of year and how to manage them organically?' },
+                { icon: '🌡️', text: 'Weather prep', query: "Based on the season, what weather should I prepare for?" },
+                { icon: '💧', text: 'Irrigation', query: 'What are best practices for irrigation this time of year?' },
+                { icon: '🥬', text: 'Crop rotation', query: 'Help me plan crop rotation for my beds' },
+                { icon: '📈', text: 'Yield tips', query: 'How can I increase yields on my organic vegetable farm?' }
+            ]
+        };
+
+        function setMode(mode) {
+            currentMode = mode;
+
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('mode-' + mode).classList.add('active');
+
+            // Update status display
+            const modeNames = { all: 'All-Purpose', email: 'Email AI', system: 'System Help', farm: 'Farm Advisor' };
+            document.getElementById('modeDisplay').textContent = 'Mode: ' + modeNames[mode];
+
+            // Update quick actions
+            renderQuickActions();
+
+            // Update placeholder
+            const placeholders = {
+                all: 'Ask me anything...',
+                email: 'Ask about your emails...',
+                system: 'Ask about Tiny Seed OS...',
+                farm: 'Ask about farming...'
+            };
+            document.getElementById('userInput').placeholder = placeholders[mode];
+        }
+
+        function renderQuickActions() {
+            const container = document.getElementById('quickActions');
+            const actions = quickActionsByMode[currentMode];
+
+            container.innerHTML = actions.map(action =>
+                `<button class="quick-btn" onclick="quickAction('${action.query.replace(/'/g, "\\'")}')">
+                    <span>${action.icon}</span> ${action.text}
+                </button>`
+            ).join('');
+        }
+
+        function quickAction(query) {
+            document.getElementById('userInput').value = query;
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const query = input.value.trim();
+            if (!query) return;
+
+            // Add user message
+            addMessage(query, 'user');
+            input.value = '';
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+
+            // Add typing indicator
+            const typingId = 'typing-' + Date.now();
+            addTypingIndicator(typingId);
+
+            // Build the enhanced query with context
+            let enhancedQuery = query;
+            if (currentMode === 'email') {
+                enhancedQuery = `[EMAIL QUERY] ${query}`;
+            } else if (currentMode === 'system') {
+                enhancedQuery = `[SYSTEM HELP - Tiny Seed OS] ${query}`;
+            } else if (currentMode === 'farm') {
+                enhancedQuery = `[FARM ADVISOR - Organic vegetable farm in Pennsylvania] ${query}`;
+            }
+
+            // Call the API
+            callAPI('askAIAssistant', { query: enhancedQuery, mode: currentMode })
+                .then(result => {
+                    removeTypingIndicator(typingId);
+                    sendBtn.disabled = false;
+
+                    if (result.success) {
+                        addMessage(result.response, 'ai');
+                    } else {
+                        addMessage('Sorry, I encountered an error: ' + (result.error || 'Unknown error'), 'ai');
+                    }
+                })
+                .catch(error => {
+                    removeTypingIndicator(typingId);
+                    sendBtn.disabled = false;
+                    addMessage('Connection error. Please try again.', 'ai');
+                });
+        }
+
+        function addMessage(text, type) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + type;
+
+            const avatar = type === 'ai' ? '🤖' : '👤';
+
+            // Format the text
+            let formattedText = text
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/^- (.*)/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+            messageDiv.innerHTML = `
+                <div class="avatar">${avatar}</div>
+                <div class="message-content">${formattedText}</div>
+            `;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addTypingIndicator(id) {
+            const messagesDiv = document.getElementById('messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai';
+            typingDiv.id = id;
+            typingDiv.innerHTML = `
+                <div class="avatar">🤖</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeTypingIndicator(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // Initialize
+        renderQuickActions();
+
+        // API call helper
+        async function callAPI(action, params = {}) {
+            const API_BASE = window.TINY_SEED_API?.MAIN_API || 'https://script.google.com/macros/s/AKfycbwuNQFyABh3ccEc-HxoSVJ6Q0Oj54MkDk8vja0p-Jy53Yxyt8yC9H0Hq63j8xwW_5vH/exec';
+
+            const url = new URL(API_BASE);
+            url.searchParams.append('action', action);
+            Object.keys(params).forEach(key => {
+                url.searchParams.append(key, params[key]);
+            });
+
+            const response = await fetch(url.toString());
+            return await response.json();
+        }
+    </script>
+</body>
+</html>

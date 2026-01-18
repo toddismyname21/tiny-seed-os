@@ -114,6 +114,16 @@ function doGet(e) {
       case 'getAuditLog':
         return jsonResponse(getAuditLogSecured(e.parameter));  // SECURED: Admin only
 
+      // ============ AI ASSISTANT ENDPOINTS ============
+      case 'askAIAssistant':
+        return jsonResponse(askAIAssistant(e.parameter));
+      case 'askClaudeEmail':
+        return jsonResponse(askClaudeEmail(e.parameter.query || e.parameter.q));
+      case 'searchEmailsNatural':
+        return jsonResponse(searchEmailsNatural(e.parameter.query || e.parameter.q));
+      case 'getEmailSummary':
+        return jsonResponse(getEmailSummary(e.parameter.period));
+
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
         return testConnection();
@@ -39651,4 +39661,227 @@ function sendOwnerMasterBrief() {
       error: error.toString()
     };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MULTIPURPOSE AI ASSISTANT
+// Handles email, system help, farm advice, and general questions
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Main AI Assistant endpoint - handles all types of queries
+ */
+function askAIAssistant(params) {
+  const query = params.query || params.q;
+  const mode = params.mode || 'all';
+
+  if (!query) {
+    return { success: false, error: 'No query provided' };
+  }
+
+  const apiKey = CLAUDE_CONFIG.API_KEY;
+  if (!apiKey) {
+    return { success: false, error: 'AI not configured. Please set up the Anthropic API key.' };
+  }
+
+  // Build context based on mode
+  let systemPrompt = buildAssistantSystemPrompt(mode);
+  let contextData = '';
+
+  // Add relevant context based on mode
+  if (mode === 'email' || query.toLowerCase().includes('email')) {
+    contextData = getEmailContextForAssistant();
+  }
+
+  if (mode === 'system' || query.toLowerCase().includes('system') || query.toLowerCase().includes('tiny seed')) {
+    contextData += getSystemContextForAssistant();
+  }
+
+  if (mode === 'farm' || query.toLowerCase().includes('plant') || query.toLowerCase().includes('crop') || query.toLowerCase().includes('farm')) {
+    contextData += getFarmContextForAssistant();
+  }
+
+  const fullSystemPrompt = systemPrompt + (contextData ? '\n\nCURRENT CONTEXT:\n' + contextData : '');
+
+  const payload = {
+    model: CLAUDE_CONFIG.MODEL,
+    max_tokens: 4096,
+    system: fullSystemPrompt,
+    messages: [{ role: 'user', content: query }]
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      Logger.log('Claude Error: ' + JSON.stringify(result.error));
+      return { success: false, error: result.error.message };
+    }
+
+    const textBlock = result.content.find(block => block.type === 'text');
+    const answer = textBlock ? textBlock.text : 'No response generated';
+
+    // Log for learning
+    logAIInteraction(query, answer);
+
+    return {
+      success: true,
+      query: query,
+      mode: mode,
+      response: answer,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (e) {
+    Logger.log('AI Assistant Error: ' + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Build system prompt based on mode
+ */
+function buildAssistantSystemPrompt(mode) {
+  const baseContext = `You are the AI Assistant for Tiny Seed Farm, a small organic vegetable farm in Rochester, Pennsylvania.
+Owner: Todd
+Farm activities: CSA memberships, wholesale to restaurants, farmers markets
+You are helpful, knowledgeable, and give practical, actionable advice.`;
+
+  const modePrompts = {
+    all: `${baseContext}
+
+You are a multipurpose assistant that can help with:
+1. Email management - searching, summarizing, drafting replies
+2. System help - navigating Tiny Seed OS features
+3. Farm advice - planting, pest management, best practices
+4. General questions - anything else the user needs
+
+Be concise but thorough. Use bullet points for lists. Be specific and actionable.`,
+
+    email: `${baseContext}
+
+You are the Email AI Assistant. Your job is to help manage the farm's inbox:
+- Search for specific emails
+- Summarize email threads
+- Identify action items and deadlines
+- Draft professional replies
+- Find important communications from restaurants, CSA members, suppliers, and grant agencies
+
+Be specific about senders, dates, and required actions.`,
+
+    system: `${baseContext}
+
+You are the System Help Assistant for Tiny Seed OS. Help users navigate the farm management system:
+
+AVAILABLE FEATURES:
+- Dashboard (index.html) - Central hub for all apps
+- Customer Management (customer.html) - CSA members, wholesale accounts
+- Delivery Routing (driver.html) - Route optimization, driver tracking
+- Financial Dashboard (financial-dashboard.html) - Income, expenses, projections
+- Crop Planning (field-planner.html) - Succession planting, bed management
+- Labels (labels.html) - Print harvest and product labels
+- Marketing (marketing-command-center.html) - Social media, SMS campaigns
+- Accounting (accounting.html) - QuickBooks integration, receipts
+- AI Assistant (ai-assistant.html) - This chat interface
+
+Help users find features, explain how things work, and troubleshoot issues.`,
+
+    farm: `${baseContext}
+
+You are a Farm Advisor specializing in organic vegetable production in USDA Zone 6a (Western Pennsylvania).
+
+Your expertise includes:
+- Seasonal planting schedules
+- Crop rotation and succession planting
+- Organic pest and disease management
+- Soil health and fertility
+- Irrigation and water management
+- Harvest timing and post-harvest handling
+- Season extension techniques
+- Cover cropping
+
+Current date: ${new Date().toLocaleDateString()}
+Current season: ${getEmailFarmSeason()}
+
+Give practical, organic-certified appropriate advice.`
+  };
+
+  return modePrompts[mode] || modePrompts.all;
+}
+
+/**
+ * Get email context for assistant
+ */
+function getEmailContextForAssistant() {
+  try {
+    const threads = GmailApp.search('in:inbox', 0, 20);
+    let context = 'RECENT EMAILS:\n';
+
+    for (const thread of threads) {
+      const msg = thread.getMessages()[thread.getMessageCount() - 1];
+      context += `- From: ${msg.getFrom()} | Subject: ${msg.getSubject()} | Date: ${msg.getDate().toLocaleDateString()}\n`;
+    }
+
+    const unreadCount = GmailApp.getInboxUnreadCount();
+    context += `\nTotal unread: ${unreadCount}`;
+
+    return context;
+  } catch (e) {
+    return 'Email context unavailable.';
+  }
+}
+
+/**
+ * Get system context for assistant
+ */
+function getSystemContextForAssistant() {
+  return `
+SYSTEM STATUS:
+- Tiny Seed OS is running
+- Web App URL: https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec
+- All APIs connected
+- Triggers active for email processing
+
+AVAILABLE PAGES:
+- index.html - Main dashboard
+- customer.html - Customer management
+- driver.html - Delivery routing
+- financial-dashboard.html - Finances
+- field-planner.html - Crop planning
+- ai-assistant.html - AI chat (current)
+- accounting.html - QuickBooks
+- marketing-command-center.html - Marketing
+`;
+}
+
+/**
+ * Get farm context for assistant
+ */
+function getFarmContextForAssistant() {
+  const month = new Date().getMonth() + 1;
+  const season = getEmailFarmSeason();
+
+  return `
+FARM CONTEXT:
+- Location: Rochester, PA (USDA Zone 6a)
+- Current month: ${month}
+- Season: ${season}
+- Last frost (spring): ~May 15
+- First frost (fall): ~October 10
+- Growing season: ~150 days
+
+TYPICAL CROPS:
+Greens, tomatoes, peppers, squash, beans, cucumbers, herbs, root vegetables
+`;
 }
