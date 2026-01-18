@@ -905,6 +905,10 @@ function doGet(e) {
         return jsonResponse(syncShopifyOrders(e.parameter));
       case 'syncShopifyProducts':
         return jsonResponse(syncShopifyProducts());
+      case 'syncShopifyCustomers':
+        return jsonResponse(syncShopifyCustomers(e.parameter));
+      case 'getShopifyEmailSubscribers':
+        return jsonResponse(getShopifyEmailSubscribers());
       case 'getShopifyOrder':
         return jsonResponse(getShopifyOrder(e.parameter.orderId));
 
@@ -24646,6 +24650,14 @@ function setupIntegrationSheets() {
     'Synced_From_Farm', 'Farm_Crop_ID', 'Last_Updated'
   ], '#e8f5e9');
 
+  // Shopify Customers Sheet
+  createTabIfNotExists(ss, 'SHOPIFY_Customers', [
+    'Customer_ID', 'Shopify_ID', 'Email', 'First_Name', 'Last_Name', 'Phone',
+    'Accepts_Marketing', 'Marketing_Opt_In_Level', 'Tags', 'Orders_Count', 'Total_Spent',
+    'Address_Line1', 'Address_City', 'Address_State', 'Address_Zip', 'Address_Country',
+    'Note', 'Created_At', 'Updated_At', 'Last_Synced'
+  ], '#e3f2fd');
+
   // QuickBooks Customers Sheet
   createTabIfNotExists(ss, 'QB_Customers', [
     'Customer_ID', 'QB_Customer_ID', 'Display_Name', 'Company_Name', 'Email', 'Phone',
@@ -24876,6 +24888,120 @@ function syncShopifyProducts() {
     products: products.length,
     variants: rows.length
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY CUSTOMER SYNC - Import customers and email subscribers
+// ═══════════════════════════════════════════════════════════════════════════
+
+function syncShopifyCustomers(params = {}) {
+  const includeMarketingOnly = params.marketingOnly === 'true';
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Ensure sheet exists
+  let sheet = ss.getSheetByName('SHOPIFY_Customers');
+  if (!sheet) {
+    sheet = ss.insertSheet('SHOPIFY_Customers');
+    sheet.appendRow([
+      'Customer_ID', 'Shopify_ID', 'Email', 'First_Name', 'Last_Name', 'Phone',
+      'Accepts_Marketing', 'Marketing_Opt_In_Level', 'Tags', 'Orders_Count', 'Total_Spent',
+      'Address_Line1', 'Address_City', 'Address_State', 'Address_Zip', 'Address_Country',
+      'Note', 'Created_At', 'Updated_At', 'Last_Synced'
+    ]);
+    sheet.getRange(1, 1, 1, 20).setFontWeight('bold').setBackground('#e3f2fd');
+    sheet.setFrozenRows(1);
+  }
+
+  // Fetch all customers from Shopify (paginated)
+  let allCustomers = [];
+  let pageInfo = null;
+  let pageCount = 0;
+  const maxPages = 50; // Safety limit
+
+  do {
+    let endpoint = 'customers.json?limit=250';
+    if (pageInfo) {
+      endpoint += `&page_info=${pageInfo}`;
+    }
+
+    const result = shopifyApiCall(endpoint);
+    if (!result.success) {
+      logIntegration('Shopify', 'syncCustomers', 'ERROR', result.error);
+      return result;
+    }
+
+    const customers = result.data.customers || [];
+    allCustomers = allCustomers.concat(customers);
+
+    // Get pagination info from Link header if available
+    pageInfo = result.pageInfo || null;
+    pageCount++;
+
+  } while (pageInfo && pageCount < maxPages);
+
+  // Filter for marketing subscribers if requested
+  let customersToSync = allCustomers;
+  if (includeMarketingOnly) {
+    customersToSync = allCustomers.filter(c => c.accepts_marketing || c.email_marketing_consent?.state === 'subscribed');
+  }
+
+  // Clear existing data (except header)
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+  }
+
+  // Build rows
+  const rows = customersToSync.map((customer, index) => {
+    const defaultAddr = customer.default_address || {};
+    return [
+      `CUST-${index + 1}`,                              // Internal ID
+      customer.id,                                       // Shopify ID
+      customer.email || '',
+      customer.first_name || '',
+      customer.last_name || '',
+      customer.phone || defaultAddr.phone || '',
+      customer.accepts_marketing ? 'Yes' : 'No',
+      customer.email_marketing_consent?.state || (customer.accepts_marketing ? 'subscribed' : 'not_subscribed'),
+      (customer.tags || '').split(',').join(', '),
+      customer.orders_count || 0,
+      customer.total_spent || '0.00',
+      defaultAddr.address1 || '',
+      defaultAddr.city || '',
+      defaultAddr.province || defaultAddr.province_code || '',
+      defaultAddr.zip || '',
+      defaultAddr.country || defaultAddr.country_code || '',
+      customer.note || '',
+      customer.created_at || '',
+      customer.updated_at || '',
+      new Date().toISOString()
+    ];
+  });
+
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
+
+  // Count marketing subscribers
+  const marketingSubscribers = customersToSync.filter(c =>
+    c.accepts_marketing || c.email_marketing_consent?.state === 'subscribed'
+  ).length;
+
+  logIntegration('Shopify', 'syncCustomers', 'SUCCESS',
+    `Synced ${customersToSync.length} customers (${marketingSubscribers} email subscribers)`);
+
+  return {
+    success: true,
+    message: `Synced ${customersToSync.length} customers from Shopify`,
+    totalCustomers: allCustomers.length,
+    syncedCustomers: customersToSync.length,
+    emailSubscribers: marketingSubscribers,
+    pagesProcessed: pageCount
+  };
+}
+
+function getShopifyEmailSubscribers() {
+  // Get only customers who have opted in for marketing emails
+  return syncShopifyCustomers({ marketingOnly: 'true' });
 }
 
 function updateShopifyInventory(inventoryItemId, locationId, quantity) {

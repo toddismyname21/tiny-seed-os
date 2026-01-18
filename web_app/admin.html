@@ -1005,6 +1005,10 @@
                         <i class="fas fa-cog"></i>
                         <span>Settings</span>
                     </a>
+                    <a class="nav-item" onclick="showSection('integrations')">
+                        <i class="fas fa-plug"></i>
+                        <span>Integrations</span>
+                    </a>
                 </div>
 
                 <div class="nav-section">
@@ -1600,6 +1604,124 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     INTEGRATIONS SECTION
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-integrations">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fab fa-shopify"></i>
+                                Shopify Integration
+                            </div>
+                            <span id="shopifyStatus" class="badge-backend">Checking...</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info" style="margin-bottom: 20px;">
+                                <i class="fas fa-info-circle"></i>
+                                <div class="alert-content">
+                                    <div class="alert-title">Connect Your Shopify Store</div>
+                                    <div class="alert-message">Import customers, sync orders, and manage inventory directly from Tiny Seed OS.</div>
+                                </div>
+                            </div>
+
+                            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="shopifyCustomerCount">--</div>
+                                    <div class="stat-label">Customers</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="shopifySubscriberCount">--</div>
+                                    <div class="stat-label">Email Subscribers</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="shopifyOrderCount">--</div>
+                                    <div class="stat-label">Orders Synced</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="shopifyProductCount">--</div>
+                                    <div class="stat-label">Products</div>
+                                </div>
+                            </div>
+
+                            <h4 style="margin-bottom: 12px; color: var(--text-secondary);">Sync Operations</h4>
+                            <div class="form-row" style="gap: 12px;">
+                                <button class="btn btn-primary" onclick="syncShopifyCustomers()">
+                                    <i class="fas fa-users"></i>
+                                    Import All Customers
+                                </button>
+                                <button class="btn btn-secondary" onclick="syncShopifyEmailSubscribers()">
+                                    <i class="fas fa-envelope"></i>
+                                    Import Email Subscribers Only
+                                </button>
+                                <button class="btn btn-secondary" onclick="syncShopifyOrders()">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    Sync Orders
+                                </button>
+                                <button class="btn btn-secondary" onclick="syncShopifyProducts()">
+                                    <i class="fas fa-box"></i>
+                                    Sync Products
+                                </button>
+                            </div>
+
+                            <div id="shopifySyncResult" style="margin-top: 16px; display: none;">
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div class="alert-content">
+                                        <div class="alert-title">Sync Complete</div>
+                                        <div class="alert-message" id="shopifySyncMessage"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr style="margin: 24px 0; border-color: var(--border);">
+
+                            <h4 style="margin-bottom: 12px; color: var(--text-secondary);">Connection Settings</h4>
+                            <div class="form-group">
+                                <label class="form-label">Store Name</label>
+                                <input type="text" class="form-input" id="shopifyStoreName" placeholder="your-store-name (without .myshopify.com)">
+                                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                                    Your Shopify store URL is: https://your-store-name.myshopify.com
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Access Token</label>
+                                <input type="password" class="form-input" id="shopifyAccessToken" placeholder="shpat_xxxxx...">
+                                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                                    Create in Shopify Admin > Settings > Apps and sales channels > Develop apps
+                                </small>
+                            </div>
+
+                            <div class="form-row" style="margin-top: 16px;">
+                                <button class="btn btn-primary" onclick="testShopifyConnection()">
+                                    <i class="fas fa-plug"></i>
+                                    Test Connection
+                                </button>
+                                <button class="btn btn-secondary" onclick="saveShopifySettings()">
+                                    <i class="fas fa-save"></i>
+                                    Save Settings
+                                </button>
+                            </div>
+
+                            <div id="shopifyTestResult" style="margin-top: 16px; display: none;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-book"></i>
+                                QuickBooks Integration
+                            </div>
+                            <span class="badge-backend">Coming Soon</span>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-secondary);">QuickBooks integration for invoicing and accounting is planned for a future release.</p>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -1828,9 +1950,15 @@
                 'roles': 'Roles & Permissions',
                 'status': 'System Status',
                 'audit': 'Audit Log',
-                'settings': 'Settings'
+                'settings': 'Settings',
+                'integrations': 'Integrations'
             };
             document.getElementById('sectionTitle').textContent = titles[sectionId] || 'Dashboard';
+
+            // Load integration status when switching to integrations
+            if (sectionId === 'integrations') {
+                checkShopifyStatus();
+            }
         }
 
         // ════════════════════════════════════════════════════════════════════════════
@@ -2186,6 +2314,193 @@
                 });
             }
         });
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // SHOPIFY INTEGRATION
+        // ════════════════════════════════════════════════════════════════════════════
+
+        async function checkShopifyStatus() {
+            const statusEl = document.getElementById('shopifyStatus');
+            statusEl.textContent = 'Checking...';
+            statusEl.className = 'badge-backend';
+
+            try {
+                const response = await fetch(`${API_URL}?action=testShopifyConnection`);
+                const result = await response.json();
+
+                if (result.success && result.connected) {
+                    statusEl.textContent = 'Connected';
+                    statusEl.style.background = 'var(--success-bg)';
+                    statusEl.style.color = 'var(--success)';
+                    loadShopifyStats();
+                } else {
+                    statusEl.textContent = 'Not Connected';
+                    statusEl.style.background = 'var(--warning-bg)';
+                    statusEl.style.color = 'var(--warning)';
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error';
+                statusEl.style.background = 'var(--danger-bg)';
+                statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        async function loadShopifyStats() {
+            try {
+                const response = await fetch(`${API_URL}?action=getIntegrationStatus`);
+                const result = await response.json();
+
+                if (result.success && result.integrations?.shopify) {
+                    // Stats would come from a dedicated endpoint - for now show placeholder
+                }
+            } catch (error) {
+                console.error('Error loading Shopify stats:', error);
+            }
+        }
+
+        async function syncShopifyCustomers() {
+            showToast('Importing customers from Shopify...', 'info');
+            const resultDiv = document.getElementById('shopifySyncResult');
+
+            try {
+                const response = await fetch(`${API_URL}?action=syncShopifyCustomers`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('shopifyCustomerCount').textContent = result.syncedCustomers || 0;
+                    document.getElementById('shopifySubscriberCount').textContent = result.emailSubscribers || 0;
+                    document.getElementById('shopifySyncMessage').textContent =
+                        `Imported ${result.syncedCustomers} customers (${result.emailSubscribers} email subscribers)`;
+                    resultDiv.style.display = 'block';
+                    resultDiv.querySelector('.alert').className = 'alert alert-success';
+                    showToast('Customers imported successfully!', 'success');
+                } else {
+                    document.getElementById('shopifySyncMessage').textContent = result.error || 'Import failed';
+                    resultDiv.style.display = 'block';
+                    resultDiv.querySelector('.alert').className = 'alert alert-error';
+                    showToast('Import failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error importing customers: ' + error.message, 'error');
+            }
+        }
+
+        async function syncShopifyEmailSubscribers() {
+            showToast('Importing email subscribers from Shopify...', 'info');
+            const resultDiv = document.getElementById('shopifySyncResult');
+
+            try {
+                const response = await fetch(`${API_URL}?action=getShopifyEmailSubscribers`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('shopifySubscriberCount').textContent = result.emailSubscribers || 0;
+                    document.getElementById('shopifySyncMessage').textContent =
+                        `Imported ${result.emailSubscribers} email subscribers`;
+                    resultDiv.style.display = 'block';
+                    resultDiv.querySelector('.alert').className = 'alert alert-success';
+                    showToast('Email subscribers imported!', 'success');
+                } else {
+                    showToast('Import failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error importing subscribers: ' + error.message, 'error');
+            }
+        }
+
+        async function syncShopifyOrders() {
+            showToast('Syncing orders from Shopify...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=syncShopifyOrders`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('shopifyOrderCount').textContent = result.ordersSynced || 0;
+                    showToast(`Synced ${result.ordersSynced || 0} orders`, 'success');
+                } else {
+                    showToast('Sync failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error syncing orders: ' + error.message, 'error');
+            }
+        }
+
+        async function syncShopifyProducts() {
+            showToast('Syncing products from Shopify...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=syncShopifyProducts`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('shopifyProductCount').textContent = result.products || 0;
+                    showToast(`Synced ${result.products || 0} products`, 'success');
+                } else {
+                    showToast('Sync failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error syncing products: ' + error.message, 'error');
+            }
+        }
+
+        async function testShopifyConnection() {
+            const resultDiv = document.getElementById('shopifyTestResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Testing connection...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=testShopifyConnection`);
+                const result = await response.json();
+
+                if (result.success && result.connected) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <div class="alert-content">
+                                <div class="alert-title">Connected Successfully!</div>
+                                <div class="alert-message">Store: ${result.shop?.name || 'Unknown'}</div>
+                            </div>
+                        </div>
+                    `;
+                    checkShopifyStatus();
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-error" style="background: var(--danger-bg); border-color: var(--danger);">
+                            <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i>
+                            <div class="alert-content">
+                                <div class="alert-title" style="color: var(--danger);">Connection Failed</div>
+                                <div class="alert-message">${result.error || 'Unable to connect to Shopify. Check your credentials.'}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-error" style="background: var(--danger-bg); border-color: var(--danger);">
+                        <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i>
+                        <div class="alert-content">
+                            <div class="alert-title" style="color: var(--danger);">Error</div>
+                            <div class="alert-message">${error.message}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function saveShopifySettings() {
+            const storeName = document.getElementById('shopifyStoreName').value;
+            const accessToken = document.getElementById('shopifyAccessToken').value;
+
+            if (!storeName || !accessToken) {
+                showToast('Please fill in both Store Name and Access Token', 'warning');
+                return;
+            }
+
+            showToast('Shopify settings need to be configured in the Apps Script. Store: ' + storeName, 'info');
+            // Note: In production, these would be saved to Script Properties
+            // For now, user needs to manually update SHOPIFY_CONFIG in MERGED TOTAL.js
+        }
     </script>
 </body>
 </html>

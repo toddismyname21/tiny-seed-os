@@ -1261,12 +1261,21 @@
 
         // Print Preview Functions
         function openPrintPreview() {
+            console.log('openPrintPreview called, selectedLabels.size:', selectedLabels.size, 'labels.length:', labels.length);
+
             if (selectedLabels.size === 0) {
                 showToast('Please select labels to print');
                 return;
             }
 
             const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
+            console.log('Labels to print:', labelsToprint.length);
+
+            if (labelsToprint.length === 0) {
+                showToast('No labels found to print');
+                return;
+            }
+
             document.getElementById('printLabelCount').textContent = labelsToprint.length;
 
             // Build print preview
@@ -1289,24 +1298,31 @@
             previewHtml += '</div></div>';
             document.getElementById('printPreviewBody').innerHTML = previewHtml;
 
-            // Generate QR codes for print preview
-            labelsToprint.forEach((label, index) => {
-                const container = document.getElementById(`print-qr-${index}`);
-                if (container) {
-                    QRCode.toCanvas(document.createElement('canvas'), getQRData(label), {
-                        width: 58,
-                        margin: 0,
-                        errorCorrectionLevel: 'M'
-                    }, function(error, canvas) {
-                        if (!error) {
-                            container.innerHTML = '';
-                            container.appendChild(canvas);
-                        }
-                    });
-                }
-            });
-
+            // Show modal first, then generate QR codes
             document.getElementById('printModal').classList.add('show');
+
+            // Generate QR codes for print preview (after modal is visible)
+            setTimeout(() => {
+                labelsToprint.forEach((label, index) => {
+                    const container = document.getElementById(`print-qr-${index}`);
+                    if (container) {
+                        try {
+                            QRCode.toCanvas(document.createElement('canvas'), getQRData(label), {
+                                width: 58,
+                                margin: 0,
+                                errorCorrectionLevel: 'M'
+                            }, function(error, canvas) {
+                                if (!error && canvas) {
+                                    container.innerHTML = '';
+                                    container.appendChild(canvas);
+                                }
+                            });
+                        } catch (e) {
+                            console.error('QR code generation error:', e);
+                        }
+                    }
+                });
+            }, 100);
         }
 
         function closePrintPreview() {
