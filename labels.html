@@ -984,7 +984,8 @@
                         paperpotSpacing: s.paperpotSpacing || 0,
                         batchNumber: s.batchNumber || '',
                         seedLot: s.seedLotNum || s.seedLot || s.batchNumber || '',
-                        nurseryDays: s.nurseryDays || 0
+                        nurseryDays: s.nurseryDays || 0,
+                        field: s.field || s.bedId || s.bed || ''
                     }));
                     showToast(`Loaded ${seedings.length} seedings`);
                 } else {
@@ -1165,7 +1166,7 @@
                             <div class="label-crop">${label.crop}</div>
                             <div class="label-variety">${label.variety}</div>
                             <div class="label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
-                            <div class="label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}</div>
+                            <div class="label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
                         </div>
                     </div>
                 `;
@@ -1279,7 +1280,7 @@
                             <div class="print-label-crop">${label.crop}</div>
                             <div class="print-label-variety">${label.variety}</div>
                             <div class="print-label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
-                            <div class="print-label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}</div>
+                            <div class="print-label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
                         </div>
                     </div>
                 `;
@@ -1403,7 +1404,7 @@
                             <div class="label-crop">${label.crop}</div>
                             <div class="label-variety">${label.variety}</div>
                             <div class="label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
-                            <div class="label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}</div>
+                            <div class="label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
                         </div>
                     </div>
                 `;

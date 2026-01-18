@@ -3180,16 +3180,29 @@ function getGreenhouseSeedings() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const planSheet = ss.getSheetByName('PLANNING_2026');
     const profileSheet = ss.getSheetByName('REF_CropProfiles');
-    
+
     if (!planSheet) {
       return jsonResponse({
         success: false,
         error: 'PLANNING_2026 sheet not found'
       });
     }
-    
+
     const data = planSheet.getDataRange().getValues();
-    
+    const headers = data[0];
+
+    // Use header-based column lookup for reliability
+    const cols = {
+      batchId: headers.indexOf('Batch_ID'),
+      crop: headers.indexOf('Crop'),
+      variety: headers.indexOf('Variety'),
+      method: headers.indexOf('Planting_Method') !== -1 ? headers.indexOf('Planting_Method') : headers.indexOf('Method'),
+      ghSow: headers.indexOf('Plan_GH_Sow') !== -1 ? headers.indexOf('Plan_GH_Sow') : headers.indexOf('GH_Sow_Date'),
+      transplant: headers.indexOf('Plan_Transplant') !== -1 ? headers.indexOf('Plan_Transplant') : headers.indexOf('Transplant_Date'),
+      trays: headers.indexOf('Trays_Needed'),
+      bed: headers.indexOf('Target_Bed_ID') !== -1 ? headers.indexOf('Target_Bed_ID') : headers.indexOf('Bed_ID')
+    };
+
     let cropProfiles = {};
     if (profileSheet) {
       const profData = profileSheet.getDataRange().getValues();
@@ -3203,49 +3216,51 @@ function getGreenhouseSeedings() {
         }
       }
     }
-    
+
     const seedings = [];
     const today = new Date();
     const futureLimit = new Date();
     futureLimit.setDate(today.getDate() + 60);
-    
+
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const method = String(row[4]).toLowerCase();
-      
+      const method = cols.method >= 0 ? String(row[cols.method]).toLowerCase() : '';
+
       if (method.includes('transplant') || method.includes('paper')) {
-        const crop = row[2];
-        const variety = row[3];
-        const batchId = row[1];
-        const ghSowDate = row[9];
-        const transplantDate = row[12];
-        const traysNeeded = Number(row[8]) || 1;
-        
+        const crop = cols.crop >= 0 ? row[cols.crop] : '';
+        const variety = cols.variety >= 0 ? row[cols.variety] : '';
+        const batchId = cols.batchId >= 0 ? row[cols.batchId] : '';
+        const ghSowDate = cols.ghSow >= 0 ? row[cols.ghSow] : null;
+        const transplantDate = cols.transplant >= 0 ? row[cols.transplant] : null;
+        const traysNeeded = cols.trays >= 0 ? Number(row[cols.trays]) || 1 : 1;
+        const bedId = cols.bed >= 0 ? row[cols.bed] : '';
+
         if (ghSowDate instanceof Date && ghSowDate <= futureLimit) {
           const profile = cropProfiles[crop] || { nurseryDays: 28, traySize: 128 };
-          
+
           seedings.push({
             crop: crop,
             variety: variety,
             seedDate: ghSowDate.toISOString().split('T')[0],
-            transplantDate: transplantDate instanceof Date ? 
+            transplantDate: transplantDate instanceof Date ?
               transplantDate.toISOString().split('T')[0] : '',
             traysNeeded: traysNeeded,
             cellsPerTray: profile.traySize,
             batchNumber: batchId || `BATCH-${i}`,
-            nurseryDays: profile.nurseryDays
+            nurseryDays: profile.nurseryDays,
+            field: bedId || ''
           });
         }
       }
     }
-    
+
     return jsonResponse({
       success: true,
       data: seedings,
       count: seedings.length,
       timestamp: new Date().toISOString()
     });
-    
+
   } catch (error) {
     return jsonResponse({
       success: false,
