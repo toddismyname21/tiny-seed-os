@@ -225,52 +225,6 @@
             display: flex;
         }
 
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 24px 0;
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-
-        .divider span {
-            padding: 0 16px;
-        }
-
-        .quick-login {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .quick-btn {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-
-        .quick-btn:hover {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
         .footer-text {
             text-align: center;
             margin-top: 24px;
@@ -374,26 +328,9 @@
                 </button>
             </form>
 
-            <div class="divider"><span>or quick access</span></div>
-
-            <div class="quick-login">
-                <button class="quick-btn" onclick="quickLogin('Admin')">
-                    <i class="fas fa-user-shield"></i> Admin
-                </button>
-                <button class="quick-btn" onclick="quickLogin('Manager')">
-                    <i class="fas fa-user-tie"></i> Manager
-                </button>
-                <button class="quick-btn" onclick="quickLogin('Field_Lead')">
-                    <i class="fas fa-user-cog"></i> Field Lead
-                </button>
-                <button class="quick-btn" onclick="quickLogin('Employee')">
-                    <i class="fas fa-user"></i> Employee
-                </button>
-            </div>
-
             <div class="mobile-link">
                 <a href="employee.html">
-                    <i class="fas fa-mobile-alt"></i> Employee Mobile App (PIN Login)
+                    <i class="fas fa-mobile-alt"></i> Field Crew Mobile App
                 </a>
             </div>
         </div>
@@ -455,8 +392,12 @@
 
             const username = document.getElementById('username').value.trim();
             const pin = document.getElementById('pin').value;
-            const remember = document.getElementById('remember').checked;
             const btn = document.getElementById('loginBtn');
+
+            if (!username || !pin) {
+                showError('Please enter both username and PIN');
+                return;
+            }
 
             btn.classList.add('loading');
             btn.disabled = true;
@@ -468,20 +409,23 @@
                 const response = await fetch(`${API_URL}?action=authenticateUser&username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
                 const data = await response.json();
 
-                if (data.success) {
-                    // Store session
+                console.log('Login response:', data);
+
+                if (data.success && data.user) {
+                    // Store session with user data from API
                     const session = {
-                        userId: data.userId || data.user?.id,
-                        username: data.username || username,
-                        fullName: data.fullName || data.user?.name || username,
-                        role: data.role || data.user?.role || 'Employee',
-                        token: data.token || Date.now().toString(),
+                        userId: data.user.User_ID,
+                        username: data.user.Username,
+                        fullName: data.user.Full_Name,
+                        email: data.user.Email,
+                        role: data.role || data.user.Role,
+                        token: data.token,
                         timestamp: Date.now()
                     };
 
                     localStorage.setItem('tinyseed_session', JSON.stringify(session));
 
-                    // Redirect
+                    // Redirect to main dashboard
                     const returnUrl = new URLSearchParams(window.location.search).get('return');
                     window.location.href = returnUrl || 'index.html';
                 } else {
@@ -496,26 +440,8 @@
             }
         }
 
-        function quickLogin(role) {
-            // Demo/quick access - creates a session without server validation
-            const session = {
-                userId: 'demo-' + Date.now(),
-                username: role.toLowerCase(),
-                fullName: role + ' User',
-                role: role,
-                token: 'demo-' + Date.now(),
-                timestamp: Date.now()
-            };
-
-            localStorage.setItem('tinyseed_session', JSON.stringify(session));
-
-            // Redirect
-            const returnUrl = new URLSearchParams(window.location.search).get('return');
-            window.location.href = returnUrl || 'index.html';
-        }
-
         function showForgotPassword() {
-            alert('Please contact the farm administrator to reset your password.');
+            alert('Please contact the farm administrator to reset your PIN.');
         }
     </script>
 </body>
