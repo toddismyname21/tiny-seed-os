@@ -897,6 +897,9 @@ function doGet(e) {
         return jsonResponse(setupIntegrationSheets());
 
       // Shopify
+      case 'configureShopify':
+        // Set Shopify credentials (admin only)
+        return jsonResponse(configureShopifyCredentials(e.parameter.storeName, e.parameter.accessToken));
       case 'getShopifyAuthUrl':
         return jsonResponse({ success: true, url: getShopifyAuthorizationUrl() });
       case 'testShopifyConnection':
@@ -24593,15 +24596,58 @@ function testMarketingModule() {
 // INTEGRATION CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Shopify credentials stored securely in Script Properties
+// Set via: Apps Script Editor > Project Settings > Script Properties
+// Or run setShopifyCredentials() once from the Apps Script editor
+function getShopifyConfig() {
+  const props = PropertiesService.getScriptProperties();
+  return {
+    STORE_NAME: props.getProperty('SHOPIFY_STORE_NAME') || '',
+    ACCESS_TOKEN: props.getProperty('SHOPIFY_ACCESS_TOKEN') || '',
+    API_VERSION: '2024-01',
+    ENABLED: !!props.getProperty('SHOPIFY_ACCESS_TOKEN')
+  };
+}
+
+// Run this function ONCE from Apps Script editor to set your Shopify credentials
+function setShopifyCredentials(storeName, accessToken) {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperties({
+    'SHOPIFY_STORE_NAME': storeName || 'tiny-seed-farmers-market',
+    'SHOPIFY_ACCESS_TOKEN': accessToken || ''
+  });
+  return { success: true, message: 'Shopify credentials saved securely to Script Properties' };
+}
+
+// API endpoint to configure Shopify credentials
+function configureShopifyCredentials(storeName, accessToken) {
+  if (!storeName || !accessToken) {
+    return { success: false, error: 'Both storeName and accessToken are required' };
+  }
+
+  const props = PropertiesService.getScriptProperties();
+  props.setProperties({
+    'SHOPIFY_STORE_NAME': storeName,
+    'SHOPIFY_ACCESS_TOKEN': accessToken
+  });
+
+  // Test the connection with new credentials
+  const testResult = testShopifyConnection();
+
+  return {
+    success: true,
+    message: 'Shopify credentials configured',
+    storeName: storeName,
+    connectionTest: testResult
+  };
+}
+
+// Getter for backward compatibility with existing code
 const SHOPIFY_CONFIG = {
-  // Replace with your Shopify store credentials
-  STORE_NAME: 'YOUR_STORE_NAME',           // e.g., 'tiny-seed-farm'
-  API_KEY: 'YOUR_SHOPIFY_API_KEY',
-  API_SECRET: 'YOUR_SHOPIFY_API_SECRET',
-  ACCESS_TOKEN: 'YOUR_SHOPIFY_ACCESS_TOKEN', // For private apps
-  API_VERSION: '2024-01',
-  SCOPES: 'read_products,write_products,read_orders,write_orders,read_inventory,write_inventory,read_customers',
-  ENABLED: false  // Set to true after configuring credentials
+  get STORE_NAME() { return getShopifyConfig().STORE_NAME; },
+  get ACCESS_TOKEN() { return getShopifyConfig().ACCESS_TOKEN; },
+  get API_VERSION() { return '2024-01'; },
+  get ENABLED() { return getShopifyConfig().ENABLED; }
 };
 
 const QUICKBOOKS_CONFIG = {
