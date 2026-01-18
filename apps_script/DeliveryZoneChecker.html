@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2d5a27">
+  <title>Check Delivery Availability | Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #2d5a27;
+      --primary-light: #4a7c43;
+      --primary-dark: #1e3d1a;
+      --bg-light: #f8faf7;
+      --bg-white: #ffffff;
+      --text-dark: #1a1a1a;
+      --text-muted: #666666;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: #e5e7eb;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+    .header p { font-size: 0.9rem; opacity: 0.9; }
+    .main-container { display: flex; flex-direction: column; max-width: 1400px; margin: 0 auto; }
+    @media (min-width: 900px) {
+      .main-container { flex-direction: row; min-height: calc(100vh - 100px); }
+    }
+    .sidebar { background: var(--bg-white); padding: 20px; width: 100%; }
+    @media (min-width: 900px) {
+      .sidebar { width: 400px; min-width: 400px; overflow-y: auto; max-height: calc(100vh - 100px); }
+    }
+    .map-container { flex: 1; min-height: 400px; }
+    @media (min-width: 900px) { .map-container { min-height: calc(100vh - 100px); } }
+    #map { width: 100%; height: 100%; min-height: 400px; }
+    @media (min-width: 900px) { #map { min-height: calc(100vh - 100px); } }
+    .card { background: var(--bg-white); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .card-title i { color: var(--primary); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 0.9rem; }
+    .form-group input, .form-group textarea {
+      width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 10px;
+      font-size: 1rem; font-family: inherit; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+    .form-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+      padding: 14px 20px; background: var(--primary); color: white; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.1s;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-secondary { background: var(--bg-light); color: var(--text-dark); border: 2px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .result-accepted {
+      background: linear-gradient(135deg, #22c55e, #16a34a); color: white;
+      border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;
+    }
+    .result-accepted i { font-size: 2.5rem; margin-bottom: 8px; }
+    .result-accepted h2 { font-size: 1.2rem; margin-bottom: 6px; }
+    .result-rejected {
+      background: linear-gradient(135deg, #f59e0b, #d97706); color: white;
+      border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;
+    }
+    .result-rejected i { font-size: 2.5rem; margin-bottom: 8px; }
+    .result-rejected h2 { font-size: 1.2rem; margin-bottom: 6px; }
+    .code-box {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white;
+      border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;
+    }
+    .code-display {
+      background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.5);
+      border-radius: 10px; padding: 14px; margin: 12px 0; font-size: 1.5rem;
+      font-weight: 700; letter-spacing: 2px; font-family: monospace;
+    }
+    .copy-btn {
+      background: white; color: var(--primary); border: none; border-radius: 8px;
+      padding: 10px 16px; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-top: 8px;
+    }
+    .copy-btn.copied { background: #22c55e; color: white; }
+    .details-card { background: var(--bg-light); border-radius: 10px; padding: 14px; }
+    .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { color: var(--text-muted); font-size: 0.85rem; }
+    .detail-value { font-weight: 600; font-size: 0.9rem; }
+    .fee-highlight { color: var(--primary); font-size: 1.1rem; }
+    .alternative-item {
+      background: var(--bg-light); border-radius: 10px; padding: 12px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .alternative-icon {
+      width: 36px; height: 36px; background: var(--primary); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;
+    }
+    .alternative-name { font-weight: 600; font-size: 0.9rem; }
+    .alternative-distance { font-size: 0.8rem; color: var(--text-muted); }
+    .popup-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+    }
+    .popup-overlay.show { display: flex; }
+    .popup-content {
+      background: white; border-radius: 16px; padding: 24px; max-width: 500px; width: 100%;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .popup-header { text-align: center; margin-bottom: 20px; }
+    .popup-header i { font-size: 3rem; color: var(--warning); margin-bottom: 12px; }
+    .popup-header h2 { font-size: 1.3rem; margin-bottom: 8px; }
+    .popup-header p { color: var(--text-muted); font-size: 0.95rem; }
+    .popup-buttons { display: flex; gap: 12px; margin-top: 20px; }
+    .popup-buttons .btn { flex: 1; }
+    .success-message {
+      background: linear-gradient(135deg, #22c55e, #16a34a); color: white;
+      border-radius: 12px; padding: 20px; text-align: center;
+    }
+    .success-message i { font-size: 3rem; margin-bottom: 12px; }
+    .loading { display: none; text-align: center; padding: 30px; }
+    .loading.show { display: block; }
+    .loading i { font-size: 2rem; color: var(--primary); animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .map-legend {
+      background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 0.85rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .legend-item:last-child { margin-bottom: 0; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .hidden { display: none !important; }
+    .footer { text-align: center; padding: 16px; color: var(--text-muted); font-size: 0.85rem; background: var(--bg-white); }
+    .footer a { color: var(--primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><i class="fas fa-seedling"></i> Tiny Seed Farm</h1>
+    <p>Check Home Delivery Availability</p>
+  </div>
+
+  <div class="main-container">
+    <div class="sidebar">
+      <div id="form-section" class="card">
+        <h2 class="card-title"><i class="fas fa-map-marker-alt"></i> Enter Your Address</h2>
+        <form id="address-form">
+          <div class="form-group">
+            <label for="address">Street Address</label>
+            <input type="text" id="address" name="address" placeholder="123 Main Street" required>
+          </div>
+          <div class="form-group">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" placeholder="Pittsburgh" required>
+          </div>
+          <div class="form-group">
+            <label for="zip">ZIP Code</label>
+            <input type="text" id="zip" name="zip" placeholder="15201" maxlength="10" required>
+            <p class="form-hint">Pennsylvania addresses only</p>
+          </div>
+          <button type="submit" class="btn" id="check-btn">
+            <i class="fas fa-search"></i> Check Availability
+          </button>
+        </form>
+      </div>
+
+      <div id="loading" class="loading">
+        <i class="fas fa-spinner"></i>
+        <p>Checking your address...</p>
+      </div>
+
+      <div id="result-section" class="hidden">
+        <div id="result-accepted" class="result-accepted hidden">
+          <i class="fas fa-check-circle"></i>
+          <h2>Great News!</h2>
+          <p id="accepted-message">Your address is in our delivery zone.</p>
+        </div>
+
+        <div id="code-box" class="code-box hidden">
+          <h3><i class="fas fa-gift"></i> Your Delivery Code</h3>
+          <div class="code-display" id="delivery-code">HOMEDELIVERY</div>
+          <p>Enter at checkout to add home delivery</p>
+          <button class="copy-btn" onclick="copyCode()"><i class="fas fa-copy"></i> Copy Code</button>
+        </div>
+
+        <div id="result-details" class="card hidden">
+          <h3 class="card-title"><i class="fas fa-info-circle"></i> Delivery Details</h3>
+          <div class="details-card">
+            <div class="detail-row">
+              <span class="detail-label">Your Address</span>
+              <span class="detail-value" id="detail-address">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Distance to Route</span>
+              <span class="detail-value" id="detail-distance">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Delivery Fee</span>
+              <span class="detail-value fee-highlight" id="detail-fee">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Delivery Day</span>
+              <span class="detail-value" id="detail-day">Wednesday</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="result-rejected" class="result-rejected hidden">
+          <i class="fas fa-map-marker-alt"></i>
+          <h2>Outside Delivery Zone</h2>
+          <p id="rejection-reason">Your address is outside our current delivery area.</p>
+        </div>
+
+        <div id="request-section" class="hidden">
+          <button class="btn" onclick="showRequestPopup()" style="background: var(--warning);">
+            <i class="fas fa-envelope"></i> Request Delivery Anyway
+          </button>
+        </div>
+
+        <div id="alternatives-section" class="card hidden">
+          <h3 class="card-title"><i class="fas fa-store"></i> Nearby Pickup Locations</h3>
+          <div id="alternatives-list"></div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="resetForm()" style="margin-top: 16px;">
+          <i class="fas fa-redo"></i> Check Another Address
+        </button>
+      </div>
+    </div>
+
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Questions? <a href="mailto:todd@tinyseedfarmpgh.com">Contact Us</a></p>
+    <p style="margin-top: 4px;">Tiny Seed Farm | Rochester, PA</p>
+  </div>
+
+  <div id="request-popup" class="popup-overlay">
+    <div class="popup-content">
+      <div class="popup-header">
+        <i class="fas fa-envelope-open-text"></i>
+        <h2>Request Home Delivery</h2>
+        <p>Your address is outside our regular delivery zone, but we may be able to accommodate special requests.</p>
+      </div>
+      <form id="request-form">
+        <div class="form-group">
+          <label for="request-name">Your Name</label>
+          <input type="text" id="request-name" required>
+        </div>
+        <div class="form-group">
+          <label for="request-email">Email</label>
+          <input type="email" id="request-email" required>
+        </div>
+        <div class="form-group">
+          <label for="request-phone">Phone (optional)</label>
+          <input type="tel" id="request-phone">
+        </div>
+        <div class="form-group">
+          <label for="request-note">Why would you like home delivery?</label>
+          <textarea id="request-note" rows="4" placeholder="Tell us a bit about why home delivery would work best for you..."></textarea>
+        </div>
+        <div class="popup-buttons">
+          <button type="button" class="btn btn-secondary" onclick="closeRequestPopup()">Cancel</button>
+          <button type="submit" class="btn"><i class="fas fa-paper-plane"></i> Send Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="request-sent-popup" class="popup-overlay">
+    <div class="popup-content">
+      <div class="success-message">
+        <i class="fas fa-check-circle"></i>
+        <h2>Request Sent!</h2>
+        <p>We've received your delivery request. Todd will review it and get back to you within 24-48 hours.</p>
+      </div>
+      <button class="btn" onclick="closeRequestSentPopup()" style="margin-top: 20px;">
+        <i class="fas fa-thumbs-up"></i> Got It
+      </button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+
+    const ROUTE_STOPS = [
+      { name: 'Farm (Start)', lat: 40.7456, lng: -80.2617, type: 'farm', icon: '🏠' },
+      { name: 'Zelienople CSA', lat: 40.7948, lng: -80.1398, type: 'csa', icon: '📦' },
+      { name: 'Cafe Verde', lat: 40.7942, lng: -80.1378, type: 'wholesale', icon: '🍽️' },
+      { name: 'Cranberry CSA', lat: 40.6864, lng: -80.1018, type: 'csa', icon: '📦' },
+      { name: 'Allison Park - Simons', lat: 40.5506, lng: -79.9562, type: 'csa', icon: '📦' },
+      { name: 'Allison Park - St Pauls', lat: 40.5589, lng: -79.9612, type: 'csa', icon: '📦' },
+      { name: 'Fox Chapel', lat: 40.5106, lng: -79.9006, type: 'csa', icon: '📦' },
+      { name: 'Eleven', lat: 40.4512, lng: -79.9847, type: 'wholesale', icon: '🍽️' },
+      { name: 'Spirit', lat: 40.4678, lng: -79.9601, type: 'wholesale', icon: '🍽️' },
+      { name: 'Driftwood Oven', lat: 40.4721, lng: -79.9589, type: 'wholesale', icon: '🍽️' },
+      { name: 'Morcilla', lat: 40.4716, lng: -79.9598, type: 'wholesale', icon: '🍽️' },
+      { name: 'Fet Fisk', lat: 40.4622, lng: -79.9442, type: 'wholesale', icon: '🍽️' },
+      { name: 'APTEKA', lat: 40.4651, lng: -79.9476, type: 'wholesale', icon: '🍽️' },
+      { name: 'Highland Park CSA', lat: 40.4784, lng: -79.9219, type: 'csa', icon: '📦' },
+      { name: 'Squirrel Hill CSA', lat: 40.4316, lng: -79.9269, type: 'csa', icon: '📦' },
+      { name: 'Mt. Lebanon CSA', lat: 40.3898, lng: -80.0312, type: 'csa', icon: '📦' },
+      { name: 'Mediterra', lat: 40.3856, lng: -80.0378, type: 'wholesale', icon: '🍽️' }
+    ];
+
+    let map, customerMarker = null, routeLine = null, lastCheckResult = null;
+
+    function initMap() {
+      map = L.map('map').setView([40.55, -80.0], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      const routeCoords = ROUTE_STOPS.map(stop => [stop.lat, stop.lng]);
+      routeLine = L.polyline(routeCoords, { color: '#2d5a27', weight: 4, opacity: 0.7, dashArray: '10, 10' }).addTo(map);
+
+      ROUTE_STOPS.forEach(stop => {
+        const color = stop.type === 'farm' ? '#e63946' : stop.type === 'wholesale' ? '#f4a261' : '#2d5a27';
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background:${color};color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${stop.icon}</div>`,
+          iconSize: [30, 30], iconAnchor: [15, 15]
+        });
+        L.marker([stop.lat, stop.lng], { icon }).addTo(map)
+          .bindPopup(`<b>${stop.name}</b><br>${stop.type === 'wholesale' ? 'Restaurant' : stop.type === 'csa' ? 'CSA Pickup' : 'Farm'}`);
+      });
+
+      const legend = L.control({ position: 'bottomright' });
+      legend.onAdd = function() {
+        const div = L.DomUtil.create('div', 'map-legend');
+        div.innerHTML = `
+          <div class="legend-item"><div class="legend-dot" style="background:#e63946;"></div> Farm</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f4a261;"></div> Restaurant</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#2d5a27;"></div> CSA Pickup</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div> Your Address</div>
+        `;
+        return div;
+      };
+      legend.addTo(map);
+    }
+
+    function addCustomerMarker(lat, lng, accepted) {
+      if (customerMarker) map.removeLayer(customerMarker);
+      const color = accepted ? '#22c55e' : '#ef4444';
+      const icon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background:${color};color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.4);"><i class="fas ${accepted ? 'fa-check' : 'fa-times'}"></i></div>`,
+        iconSize: [36, 36], iconAnchor: [18, 18]
+      });
+      customerMarker = L.marker([lat, lng], { icon }).addTo(map)
+        .bindPopup(`<b>Your Address</b><br>${accepted ? '✅ In Delivery Zone' : '❌ Outside Delivery Zone'}`).openPopup();
+      map.setView([lat, lng], 12);
+    }
+
+    document.addEventListener('DOMContentLoaded', initMap);
+
+    const form = document.getElementById('address-form');
+    const formSection = document.getElementById('form-section');
+    const loading = document.getElementById('loading');
+    const resultSection = document.getElementById('result-section');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const address = document.getElementById('address').value.trim();
+      const city = document.getElementById('city').value.trim();
+      const zip = document.getElementById('zip').value.trim();
+      if (!address || !city || !zip) { alert('Please fill in all fields'); return; }
+
+      const fullAddress = `${address}, ${city}, PA ${zip}`;
+      formSection.classList.add('hidden');
+      loading.classList.add('show');
+      resultSection.classList.add('hidden');
+
+      try {
+        const response = await fetch(`${API_BASE}?action=checkDeliveryZone&address=${encodeURIComponent(fullAddress)}`);
+        const data = await response.json();
+        loading.classList.remove('show');
+        if (data.success) {
+          lastCheckResult = data;
+          showResult(data);
+          if (data.coordinates) addCustomerMarker(data.coordinates.lat, data.coordinates.lng, data.likely_in_zone);
+        } else {
+          showResult({ success: false, accepted: false, reason: data.error || 'Could not verify address' });
+        }
+      } catch (error) {
+        loading.classList.remove('show');
+        formSection.classList.remove('hidden');
+        alert('Error checking address. Please try again.');
+      }
+    });
+
+    function showResult(data) {
+      resultSection.classList.remove('hidden');
+      if (data.success && data.likely_in_zone) {
+        document.getElementById('result-accepted').classList.remove('hidden');
+        document.getElementById('result-rejected').classList.add('hidden');
+        document.getElementById('result-details').classList.remove('hidden');
+        document.getElementById('code-box').classList.remove('hidden');
+        document.getElementById('request-section').classList.add('hidden');
+        document.getElementById('alternatives-section').classList.add('hidden');
+
+        document.getElementById('accepted-message').textContent = data.distanceToRoute
+          ? `Your address is ${data.distanceToRoute} miles from our route.` : 'Your address is in our delivery zone.';
+        document.getElementById('detail-address').textContent = data.formattedAddress || '-';
+        document.getElementById('detail-distance').textContent = data.distanceToRoute ? `${data.distanceToRoute} miles` : '-';
+        document.getElementById('detail-fee').textContent = data.fee ? `$${data.fee.toFixed(2)}` : '$5.00';
+        document.getElementById('delivery-code').textContent = 'HOMEDELIVERY' + document.getElementById('zip').value.trim().substring(0, 3);
+      } else {
+        document.getElementById('result-accepted').classList.add('hidden');
+        document.getElementById('result-rejected').classList.remove('hidden');
+        document.getElementById('result-details').classList.add('hidden');
+        document.getElementById('code-box').classList.add('hidden');
+        document.getElementById('request-section').classList.remove('hidden');
+
+        document.getElementById('rejection-reason').textContent = data.distanceToRoute
+          ? `Your address is ${data.distanceToRoute} miles from our route. We deliver within 7 miles.`
+          : (data.reason || 'Your address is outside our current delivery area.');
+
+        if (data.nearestPickupLocations && data.nearestPickupLocations.length > 0) {
+          document.getElementById('alternatives-section').classList.remove('hidden');
+          const list = document.getElementById('alternatives-list');
+          list.innerHTML = '';
+          data.nearestPickupLocations.slice(0, 3).forEach(alt => {
+            const item = document.createElement('div');
+            item.className = 'alternative-item';
+            item.innerHTML = `<div class="alternative-icon"><i class="fas fa-store"></i></div>
+              <div><div class="alternative-name">${alt.name}</div>
+              <div class="alternative-distance">${alt.distance} miles away • ${alt.day || 'Wednesday'}</div></div>`;
+            list.appendChild(item);
+          });
+        } else {
+          document.getElementById('alternatives-section').classList.add('hidden');
+        }
+      }
+    }
+
+    function resetForm() {
+      resultSection.classList.add('hidden');
+      formSection.classList.remove('hidden');
+      form.reset();
+      if (customerMarker) { map.removeLayer(customerMarker); customerMarker = null; }
+      map.setView([40.55, -80.0], 10);
+      lastCheckResult = null;
+    }
+
+    function copyCode() {
+      const code = document.getElementById('delivery-code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy Code'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    function showRequestPopup() { document.getElementById('request-popup').classList.add('show'); }
+    function closeRequestPopup() { document.getElementById('request-popup').classList.remove('show'); }
+    function closeRequestSentPopup() { document.getElementById('request-sent-popup').classList.remove('show'); resetForm(); }
+
+    document.getElementById('request-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailData = {
+        action: 'sendDeliveryRequest',
+        to: 'todd@tinyseedfarmpgh.com',
+        customerName: document.getElementById('request-name').value.trim(),
+        customerEmail: document.getElementById('request-email').value.trim(),
+        customerPhone: document.getElementById('request-phone').value.trim(),
+        customerAddress: lastCheckResult?.formattedAddress || `${document.getElementById('address').value}, ${document.getElementById('city').value}, PA ${document.getElementById('zip').value}`,
+        distanceToRoute: lastCheckResult?.distanceToRoute || 'Unknown',
+        nearestPoint: lastCheckResult?.nearestRoutePoint || 'Unknown',
+        note: document.getElementById('request-note').value.trim(),
+        coordinates: lastCheckResult?.coordinates || null
+      };
+      try {
+        await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(emailData) });
+      } catch (e) {}
+      closeRequestPopup();
+      document.getElementById('request-sent-popup').classList.add('show');
+    });
+  </script>
+</body>
+</html>

@@ -1976,7 +1976,7 @@ This requires moving from reactive (user enters data) to proactive (system predi
 
 ### DEPLOYMENT STATUS
 
-- **Apps Script:** @165 (AKfycbwuNQFyABh3ccEc-HxoSVJ6Q0Oj54MkDk8vja0p-Jy53Yxyt8yC9H0Hq63j8xwW_5vH)
+- **Apps Script:** @165 (AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc)
 - **GitHub:** Commit `ac9133b`
 - **Sample Data:** 6 customers + 4 delivery stops created with phone 7177255177
 

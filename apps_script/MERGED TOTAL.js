@@ -82,6 +82,11 @@ function doGet(e) {
     if (e.parameter.page === 'emailai') {
       return serveEmailAIChat();
     }
+    if (e.parameter.page === 'delivery') {
+      return HtmlService.createHtmlOutputFromFile('DeliveryZoneChecker')
+        .setTitle('Home Delivery | Tiny Seed Farm')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
   }
 
   // Safety check for parameters
