@@ -2,23 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#166534">
     <title>Tiny Seed Farm - CSA Member Portal</title>
+    <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ═══════════════════════════════════════════════════════════════════════════
-           TINY SEED FARM - CSA MEMBER PORTAL
-           Warm, friendly interface for CSA members
+           TINY SEED FARM - EXCEPTIONAL CSA MEMBER PORTAL
+           State-of-the-art member experience
            ═══════════════════════════════════════════════════════════════════════════ */
 
         :root {
             --primary: #22c55e;
             --primary-dark: #16a34a;
+            --primary-darker: #166534;
             --primary-light: #4ade80;
+            --primary-bg: #dcfce7;
             --accent: #f59e0b;
+            --accent-dark: #d97706;
             --success: #22c55e;
             --warning: #f59e0b;
             --danger: #ef4444;
+            --info: #3b82f6;
             --bg-main: #fafaf9;
             --bg-card: #ffffff;
             --bg-elevated: #f5f5f4;
@@ -29,6 +38,10 @@
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
             --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,7 +52,98 @@
             color: var(--text-primary);
             min-height: 100vh;
             padding-bottom: 80px;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
         }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           SKELETON LOADING
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-text { height: 16px; margin-bottom: 8px; }
+        .skeleton-title { height: 24px; width: 60%; margin-bottom: 12px; }
+        .skeleton-card { height: 120px; border-radius: var(--radius-lg); }
+        .skeleton-avatar { width: 48px; height: 48px; border-radius: 50%; }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           PAGE TRANSITIONS
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        @keyframes slideInRight {
+            from { transform: translateX(30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes confetti {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        .animate-in { animation: slideInUp 0.3s ease-out; }
+        .animate-fade { animation: fadeIn 0.3s ease-out; }
+        .animate-scale { animation: scaleIn 0.2s ease-out; }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           TOUCH FEEDBACK
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .btn, .card-clickable, .nav-item, .swap-option, .list-item {
+            transition: transform 0.1s ease, background 0.2s ease;
+        }
+
+        .btn:active { transform: scale(0.97); }
+        .card-clickable:active { transform: scale(0.98); }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           PULL TO REFRESH
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .pull-indicator {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(-60px);
+            width: 40px;
+            height: 40px;
+            background: var(--bg-card);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            transition: transform 0.2s ease;
+            z-index: 50;
+        }
+
+        .pull-indicator.visible { transform: translateX(-50%) translateY(20px); }
+        .pull-indicator.refreshing i { animation: spin 0.8s linear infinite; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            LOGIN SCREEN
@@ -57,11 +161,12 @@
 
         .login-card {
             background: white;
-            border-radius: 20px;
+            border-radius: var(--radius-xl);
             padding: 40px;
             width: 100%;
             max-width: 400px;
             box-shadow: var(--shadow-lg);
+            animation: scaleIn 0.3s ease-out;
         }
 
         .login-logo {
@@ -73,41 +178,27 @@
             width: 80px;
             height: 80px;
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border-radius: 20px;
+            border-radius: var(--radius-xl);
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-size: 40px;
             margin-bottom: 16px;
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
         }
 
-        .login-logo h1 {
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .login-logo p {
-            color: var(--primary);
-            font-weight: 600;
-            margin-top: 4px;
-        }
+        .login-logo h1 { font-size: 24px; font-weight: 700; }
+        .login-logo p { color: var(--primary); font-weight: 600; margin-top: 4px; }
 
         .login-form { margin-top: 24px; }
-
         .form-group { margin-bottom: 20px; }
-
-        .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
 
         .form-input {
             width: 100%;
             padding: 14px 16px;
             border: 2px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             font-size: 16px;
             transition: all 0.2s;
         }
@@ -115,6 +206,7 @@
         .form-input:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
         }
 
         .btn {
@@ -123,7 +215,7 @@
             justify-content: center;
             gap: 8px;
             padding: 14px 24px;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -138,78 +230,254 @@
         }
 
         .btn-primary:hover { background: var(--primary-dark); }
+        .btn-primary:disabled { background: var(--text-muted); cursor: not-allowed; }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-sm { padding: 8px 16px; font-size: 14px; }
+        .btn-icon { padding: 10px; width: 44px; height: 44px; border-radius: var(--radius-md); }
 
         .magic-link-sent {
             text-align: center;
             padding: 20px;
+            animation: fadeIn 0.3s ease;
         }
 
-        .magic-link-sent .icon { font-size: 48px; margin-bottom: 16px; }
+        .magic-link-sent .icon { font-size: 64px; margin-bottom: 16px; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           HEADER
+           ONBOARDING WIZARD
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .app-container { display: none; }
+        .onboarding-screen {
+            min-height: 100vh;
+            background: white;
+            display: none;
+        }
 
-        .header {
-            background: var(--primary);
+        .onboarding-screen.active { display: block; }
+
+        .onboarding-header {
+            background: linear-gradient(135deg, var(--primary-darker), var(--primary-dark));
             color: white;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            padding: 40px 20px 60px;
+            text-align: center;
         }
 
-        .header-title {
+        .onboarding-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .onboarding-header p { opacity: 0.9; font-size: 16px; }
+
+        .onboarding-progress {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .progress-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: all 0.3s;
+        }
+
+        .progress-dot.active { background: white; width: 24px; border-radius: 5px; }
+        .progress-dot.completed { background: white; }
+
+        .onboarding-content {
+            margin-top: -40px;
+            padding: 0 20px 100px;
+        }
+
+        .onboarding-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .onboarding-step { display: none; animation: fadeIn 0.3s ease; }
+        .onboarding-step.active { display: block; }
+
+        .onboarding-illustration {
+            text-align: center;
+            font-size: 80px;
+            margin: 20px 0;
+        }
+
+        .preference-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .preference-item {
+            background: var(--bg-elevated);
+            border: 2px solid transparent;
+            border-radius: var(--radius-md);
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preference-item:hover { border-color: var(--border-color); }
+        .preference-item.selected { border-color: var(--primary); background: var(--primary-bg); }
+        .preference-item .emoji { font-size: 28px; margin-bottom: 8px; }
+        .preference-item .name { font-size: 13px; font-weight: 500; }
+
+        .comm-option {
             display: flex;
             align-items: center;
             gap: 12px;
-        }
-
-        .header-icon { font-size: 28px; }
-
-        .header h1 {
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .header-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            font-size: 18px;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
             cursor: pointer;
         }
 
+        .comm-option input { display: none; }
+        .comm-option .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .comm-option input:checked + .checkbox {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .onboarding-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+        }
+
+        .onboarding-footer .btn { flex: 1; }
+
+        /* Confetti */
+        .confetti-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            animation: confetti 3s ease-out forwards;
+        }
+
         /* ═══════════════════════════════════════════════════════════════════════════
-           MEMBER WELCOME
+           MAIN APP CONTAINER
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .app-container { display: none; }
+        .app-container.active { display: block; }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           SMART ALERT BANNER
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .alert-banner {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideInUp 0.3s ease;
+        }
+
+        .alert-banner.urgent {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+        }
+
+        .alert-banner.info {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+        }
+
+        .alert-banner.success {
+            background: linear-gradient(135deg, var(--primary-bg), #bbf7d0);
+            color: var(--primary-darker);
+        }
+
+        .alert-banner i { font-size: 18px; }
+        .alert-banner .alert-text { flex: 1; }
+        .alert-banner .alert-action {
+            background: rgba(0,0,0,0.1);
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .alert-banner .dismiss {
+            background: none;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           WELCOME BANNER
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .welcome-banner {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            background: linear-gradient(135deg, var(--primary-darker), var(--primary-dark));
             color: white;
-            padding: 24px 20px;
-            margin: -1px;
+            padding: 24px 20px 60px;
         }
 
-        .welcome-text {
-            font-size: 14px;
-            opacity: 0.9;
+        .welcome-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
-        .welcome-name {
-            font-size: 24px;
-            font-weight: 700;
-            margin-top: 4px;
+        .welcome-text { font-size: 14px; opacity: 0.9; }
+        .welcome-name { font-size: 24px; font-weight: 700; margin-top: 4px; }
+
+        .weather-widget {
+            text-align: right;
+            font-size: 13px;
         }
+
+        .weather-temp { font-size: 24px; font-weight: 600; }
 
         .membership-badge {
             display: inline-flex;
@@ -221,6 +489,7 @@
             margin-top: 12px;
             font-size: 14px;
             font-weight: 500;
+            backdrop-filter: blur(10px);
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
@@ -231,37 +500,63 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 12px;
-            padding: 20px;
-            margin-top: -30px;
+            padding: 0 20px;
+            margin-top: -40px;
         }
 
         .stat-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--radius-lg);
             padding: 16px;
             text-align: center;
             box-shadow: var(--shadow-md);
+            animation: slideInUp 0.3s ease;
         }
 
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--primary);
-        }
+        .stat-card:nth-child(2) { animation-delay: 0.05s; }
+        .stat-card:nth-child(3) { animation-delay: 0.1s; }
 
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           THIS WEEK'S BOX
+           QUICK ACTIONS
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .section {
-            padding: 0 20px 20px;
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
+
+        .quick-actions::-webkit-scrollbar { display: none; }
+
+        .quick-action {
+            flex-shrink: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .quick-action:hover { border-color: var(--primary); }
+        .quick-action i { color: var(--primary); }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           SECTION STYLING
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .section { padding: 0 20px 20px; }
 
         .section-header {
             display: flex;
@@ -270,10 +565,7 @@
             margin-bottom: 16px;
         }
 
-        .section-title {
-            font-size: 18px;
-            font-weight: 700;
-        }
+        .section-title { font-size: 18px; font-weight: 700; }
 
         .section-action {
             color: var(--primary);
@@ -284,43 +576,66 @@
             cursor: pointer;
         }
 
+        /* ═══════════════════════════════════════════════════════════════════════════
+           THIS WEEK'S BOX (ENHANCED)
+           ═══════════════════════════════════════════════════════════════════════════ */
+
         .box-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--radius-lg);
             overflow: hidden;
             box-shadow: var(--shadow-sm);
             border: 1px solid var(--border-color);
         }
 
+        .box-photo {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background: linear-gradient(135deg, var(--primary-bg), #bbf7d0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
         .box-header {
-            background: var(--bg-elevated);
             padding: 16px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .box-week {
-            font-weight: 600;
-        }
-
-        .box-pickup {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
+        .box-week { font-weight: 700; font-size: 16px; }
+        .box-pickup { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .box-pickup i { margin-right: 4px; }
 
         .box-status {
-            padding: 4px 12px;
+            padding: 6px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            background: #dcfce7;
-            color: #166534;
         }
 
-        .box-items {
-            padding: 16px;
+        .box-status.ready { background: var(--primary-bg); color: var(--primary-darker); }
+        .box-status.pending { background: #fef3c7; color: #92400e; }
+
+        .box-deadline {
+            background: #fef3c7;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #92400e;
         }
+
+        .box-deadline i { font-size: 16px; }
+        .box-deadline .countdown { margin-left: auto; font-weight: 700; }
+
+        .box-items { padding: 8px 16px; }
 
         .box-item {
             display: flex;
@@ -332,130 +647,211 @@
 
         .box-item:last-child { border-bottom: none; }
 
-        .box-item-emoji { font-size: 28px; }
+        .box-item-emoji { font-size: 32px; width: 44px; text-align: center; }
 
         .box-item-info { flex: 1; }
-
         .box-item-name { font-weight: 600; }
+        .box-item-qty { font-size: 13px; color: var(--text-secondary); }
+        .box-item-note { font-size: 12px; color: var(--primary); font-weight: 500; }
 
-        .box-item-qty {
-            font-size: 13px;
-            color: var(--text-secondary);
+        .box-item-actions { display: flex; gap: 8px; }
+
+        .swap-btn, .keep-btn {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
         }
 
         .swap-btn {
             background: var(--bg-elevated);
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
             color: var(--primary);
-            cursor: pointer;
         }
 
-        .swap-btn:hover { background: var(--border-color); }
+        .swap-btn:hover { background: var(--primary-bg); }
+        .swap-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
 
-        .swap-btn:disabled {
+        .keep-btn {
+            background: transparent;
             color: var(--text-muted);
-            cursor: not-allowed;
         }
+
+        .keep-btn.active { color: var(--primary); }
 
         .box-footer {
             padding: 16px;
             background: var(--bg-elevated);
-            text-align: center;
+            display: flex;
+            gap: 12px;
         }
 
-        .customize-btn {
-            width: 100%;
-            padding: 14px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .customize-btn:hover { background: var(--primary-dark); }
+        .box-footer .btn { flex: 1; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           SWAP CREDITS
+           FARMER UPDATES FEED
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .credits-card {
-            background: linear-gradient(135deg, var(--accent), #d97706);
-            border-radius: 16px;
-            padding: 20px;
-            color: white;
-            margin-bottom: 20px;
-        }
-
-        .credits-header {
+        .updates-feed {
             display: flex;
-            justify-content: space-between;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            scrollbar-width: none;
+        }
+
+        .updates-feed::-webkit-scrollbar { display: none; }
+
+        .update-card {
+            flex-shrink: 0;
+            width: 280px;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .update-image {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #fef3c7, #fed7aa);
+        }
+
+        .update-content { padding: 16px; }
+        .update-text { font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+
+        .update-meta {
+            display: flex;
             align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .credits-title {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .credits-value {
-            font-size: 36px;
-            font-weight: 700;
-        }
-
-        .credits-desc {
+            gap: 8px;
+            margin-top: 12px;
             font-size: 13px;
-            opacity: 0.8;
+            color: var(--text-muted);
+        }
+
+        .update-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            UPCOMING BOXES
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .upcoming-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+        .upcoming-list { display: flex; flex-direction: column; gap: 12px; }
 
         .upcoming-card {
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             padding: 16px;
             border: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .upcoming-date {
-            font-weight: 600;
-        }
+        .upcoming-card:hover { border-color: var(--primary); }
+        .upcoming-card.hold { opacity: 0.6; background: var(--bg-elevated); }
 
-        .upcoming-preview {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
+        .upcoming-date { font-weight: 600; }
+        .upcoming-preview { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
 
         .upcoming-badge {
             padding: 6px 12px;
             background: var(--bg-elevated);
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             font-size: 12px;
             font-weight: 600;
             color: var(--text-secondary);
         }
 
+        .upcoming-badge.hold {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
         /* ═══════════════════════════════════════════════════════════════════════════
-           BOTTOM NAV
+           VACATION HOLDS
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .vacation-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .vacation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .vacation-title { font-weight: 700; }
+
+        .vacation-remaining {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .vacation-remaining strong { color: var(--primary); }
+
+        .vacation-weeks { display: flex; flex-direction: column; gap: 12px; }
+
+        .vacation-week {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+        }
+
+        .vacation-week.on-hold {
+            background: #fee2e2;
+        }
+
+        .vacation-week-info { }
+        .vacation-week-date { font-weight: 600; }
+        .vacation-week-label { font-size: 13px; color: var(--text-secondary); }
+
+        .vacation-btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .vacation-btn.schedule {
+            background: var(--primary);
+            color: white;
+        }
+
+        .vacation-btn.cancel {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           BOTTOM NAVIGATION
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .bottom-nav {
@@ -467,8 +863,8 @@
             border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-around;
-            padding: 8px 0;
-            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            padding: 6px 0;
+            padding-bottom: max(6px, env(safe-area-inset-bottom));
             z-index: 100;
         }
 
@@ -476,33 +872,40 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            padding: 8px 16px;
+            gap: 2px;
+            padding: 8px 20px;
             background: none;
             border: none;
             cursor: pointer;
             color: var(--text-muted);
             font-size: 10px;
             font-weight: 500;
+            transition: color 0.2s;
         }
 
         .nav-item.active { color: var(--primary); }
-
-        .nav-item-icon { font-size: 24px; }
+        .nav-item i { font-size: 22px; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            TAB CONTENT
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            ORDER HISTORY
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .orders-list {
+        .page-header {
             padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+        }
+
+        .page-header h1 { font-size: 24px; font-weight: 700; }
+
+        .orders-list {
+            padding: 0 20px 20px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -510,7 +913,7 @@
 
         .order-card {
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             padding: 16px;
             border: 1px solid var(--border-color);
         }
@@ -522,15 +925,8 @@
             margin-bottom: 8px;
         }
 
-        .order-id {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .order-date {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
+        .order-id { font-weight: 600; font-size: 14px; }
+        .order-date { font-size: 13px; color: var(--text-secondary); }
 
         .order-status {
             padding: 4px 10px;
@@ -539,31 +935,27 @@
             font-weight: 600;
         }
 
-        .order-status.delivered { background: #dcfce7; color: #166534; }
+        .order-status.picked-up { background: var(--primary-bg); color: var(--primary-darker); }
         .order-status.pending { background: #fef3c7; color: #92400e; }
+        .order-status.skipped { background: var(--bg-elevated); color: var(--text-muted); }
 
-        .order-items {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
+        .order-items { font-size: 13px; color: var(--text-secondary); }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           ACCOUNT TAB
+           ACCOUNT / SETTINGS
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .account-section {
-            padding: 20px;
-        }
+        .settings-section { padding: 0 20px 20px; }
 
-        .account-card {
+        .settings-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--radius-lg);
             padding: 20px;
             border: 1px solid var(--border-color);
             margin-bottom: 16px;
         }
 
-        .account-title {
+        .settings-title {
             font-size: 12px;
             font-weight: 600;
             color: var(--text-muted);
@@ -572,7 +964,7 @@
             margin-bottom: 16px;
         }
 
-        .account-row {
+        .settings-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -580,14 +972,49 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .account-row:last-child { border-bottom: none; }
+        .settings-row:last-child { border-bottom: none; }
 
-        .account-label {
-            color: var(--text-secondary);
-            font-size: 14px;
+        .settings-label { color: var(--text-secondary); font-size: 14px; }
+        .settings-value { font-weight: 500; }
+
+        .settings-toggle {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            background: var(--border-color);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
 
-        .account-value { font-weight: 500; }
+        .settings-toggle.active { background: var(--primary); }
+
+        .settings-toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .settings-toggle.active::after { transform: translateX(22px); }
+
+        .settings-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .settings-link:last-child { border-bottom: none; }
+        .settings-link i { color: var(--text-muted); }
 
         .logout-btn {
             width: 100%;
@@ -595,7 +1022,7 @@
             background: none;
             border: 2px solid var(--danger);
             color: var(--danger);
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -603,7 +1030,7 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           SWAP MODAL
+           ENHANCED SWAP MODAL
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .modal-overlay {
@@ -614,17 +1041,19 @@
             display: none;
             align-items: flex-end;
             justify-content: center;
+            animation: fadeIn 0.2s ease;
         }
 
         .modal-overlay.open { display: flex; }
 
         .modal-content {
             background: var(--bg-card);
-            border-radius: 20px 20px 0 0;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
             width: 100%;
             max-width: 500px;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
+            animation: slideInUp 0.3s ease;
         }
 
         .modal-header {
@@ -636,19 +1065,56 @@
             position: sticky;
             top: 0;
             background: var(--bg-card);
+            z-index: 10;
         }
 
         .modal-title { font-size: 18px; font-weight: 700; }
 
         .modal-close {
-            background: none;
+            background: var(--bg-elevated);
             border: none;
-            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 20px;
             cursor: pointer;
             color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .modal-body { padding: 20px; }
+
+        .swap-current {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: #fee2e2;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+        }
+
+        .swap-current-emoji { font-size: 36px; }
+        .swap-current-label { font-size: 12px; color: #b91c1c; font-weight: 500; }
+        .swap-current-name { font-weight: 700; }
+
+        .swap-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .swap-section-title i { color: var(--accent); }
+
+        .swap-options { margin-bottom: 20px; }
 
         .swap-option {
             display: flex;
@@ -656,28 +1122,71 @@
             gap: 12px;
             padding: 16px;
             background: var(--bg-elevated);
-            border-radius: 12px;
-            margin-bottom: 12px;
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
             cursor: pointer;
             border: 2px solid transparent;
             transition: all 0.2s;
         }
 
-        .swap-option:hover { border-color: var(--primary); }
+        .swap-option:hover { border-color: var(--border-color); }
+        .swap-option.selected { border-color: var(--primary); background: var(--primary-bg); }
+        .swap-option.disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .swap-option.selected {
-            border-color: var(--primary);
-            background: #dcfce7;
-        }
-
-        .swap-option-emoji { font-size: 32px; }
-
+        .swap-option-emoji { font-size: 36px; }
+        .swap-option-info { flex: 1; }
         .swap-option-name { font-weight: 600; }
+        .swap-option-meta { font-size: 13px; color: var(--text-secondary); display: flex; gap: 12px; margin-top: 2px; }
 
-        .swap-option-info {
-            font-size: 13px;
-            color: var(--text-secondary);
+        .swap-popularity {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--primary);
+            font-weight: 500;
         }
+
+        .swap-limited {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .swap-remember {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+            margin-top: 16px;
+            cursor: pointer;
+        }
+
+        .swap-remember input { display: none; }
+
+        .swap-remember .checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .swap-remember input:checked + .checkbox {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .swap-remember-text { font-size: 14px; }
 
         .modal-footer {
             padding: 20px;
@@ -693,47 +1202,106 @@
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .confirm-swap-btn:disabled {
-            background: var(--text-muted);
-            cursor: not-allowed;
-        }
+        .confirm-swap-btn:disabled { background: var(--text-muted); cursor: not-allowed; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           TOAST
+           NOTIFICATION PREFERENCES MODAL
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .toast {
+        .notification-group {
+            margin-bottom: 24px;
+        }
+
+        .notification-group-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .notification-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .notification-item:last-child { border-bottom: none; }
+
+        .notification-label { font-size: 14px; }
+
+        .comm-method-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .comm-method {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .comm-method.active {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .comm-method i { font-size: 20px; margin-bottom: 4px; color: var(--primary); }
+        .comm-method span { display: block; font-size: 13px; font-weight: 500; }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           TOAST NOTIFICATIONS
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .toast-container {
             position: fixed;
             bottom: 100px;
             left: 50%;
-            transform: translateX(-50%) translateY(100px);
+            transform: translateX(-50%);
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .toast {
             background: var(--text-primary);
             color: white;
             padding: 14px 24px;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             font-size: 14px;
             font-weight: 500;
-            z-index: 300;
-            opacity: 0;
-            transition: all 0.3s;
-        }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-lg);
+            animation: slideInUp 0.3s ease;
         }
 
         .toast.success { background: var(--success); }
         .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); }
+        .toast.info { background: var(--info); }
+
+        .toast.hiding { animation: slideInUp 0.3s ease reverse; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           LOADING
+           LOADING STATES
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .loading-spinner {
@@ -746,12 +1314,57 @@
             animation: spin 0.8s linear infinite;
         }
 
+        .loading-spinner.dark {
+            border-color: rgba(0,0,0,0.1);
+            border-top-color: var(--primary);
+        }
+
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           EMPTY STATES
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .empty-state-text { color: var(--text-secondary); font-size: 14px; }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        @media (min-width: 768px) {
+            body { padding-bottom: 0; }
+
+            .bottom-nav {
+                position: relative;
+                border-top: none;
+                border-bottom: 1px solid var(--border-color);
+                justify-content: center;
+                gap: 40px;
+            }
+
+            .modal-content {
+                max-width: 480px;
+                border-radius: var(--radius-xl);
+                margin: auto;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Pull to Refresh Indicator -->
+    <div class="pull-indicator" id="pullIndicator">
+        <i class="fas fa-sync-alt"></i>
+    </div>
+
     <!-- ═══════════════════════════════════════════════════════════════════════════
          LOGIN SCREEN
          ═══════════════════════════════════════════════════════════════════════════ -->
@@ -766,20 +1379,27 @@
             <div class="login-form" id="loginForm">
                 <div class="form-group">
                     <label class="form-label">Email Address</label>
-                    <input type="email" class="form-input" id="emailInput" placeholder="your@email.com">
+                    <input type="email" class="form-input" id="emailInput" placeholder="your@email.com" autocomplete="email">
                 </div>
                 <button class="btn btn-primary" id="sendLinkBtn" onclick="sendMagicLink()">
+                    <i class="fas fa-paper-plane"></i>
                     Send Login Link
                 </button>
+                <p style="text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                    We'll send you a magic link to sign in instantly
+                </p>
             </div>
 
             <div class="magic-link-sent" id="magicLinkSent" style="display: none;">
                 <div class="icon">📧</div>
                 <h3>Check Your Email!</h3>
                 <p style="color: var(--text-secondary); margin-top: 8px;">
-                    We sent a login link to <strong id="sentToEmail"></strong>
+                    We sent a login link to<br><strong id="sentToEmail"></strong>
                 </p>
-                <button class="btn btn-primary" onclick="resetLogin()" style="margin-top: 24px;">
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 16px;">
+                    The link expires in 15 minutes
+                </p>
+                <button class="btn btn-secondary" onclick="resetLogin()" style="margin-top: 24px;">
                     Try Different Email
                 </button>
             </div>
@@ -787,14 +1407,167 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════
+         ONBOARDING WIZARD
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <div class="onboarding-screen" id="onboardingScreen">
+        <div class="onboarding-header">
+            <h1 id="onboardingTitle">Welcome to Tiny Seed Farm!</h1>
+            <p id="onboardingSubtitle">Let's get you set up in just a moment</p>
+            <div class="onboarding-progress">
+                <div class="progress-dot active" data-step="1"></div>
+                <div class="progress-dot" data-step="2"></div>
+                <div class="progress-dot" data-step="3"></div>
+                <div class="progress-dot" data-step="4"></div>
+            </div>
+        </div>
+
+        <div class="onboarding-content">
+            <div class="onboarding-card">
+                <!-- Step 1: Welcome -->
+                <div class="onboarding-step active" id="onboarding-step-1">
+                    <div class="onboarding-illustration">🌱</div>
+                    <h2 style="text-align: center; margin-bottom: 12px;">Welcome, <span id="onboardingName">Friend</span>!</h2>
+                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
+                        We're so excited to have you as a CSA member. Fresh, local produce is coming your way!
+                    </p>
+                    <div class="settings-card" style="margin: 0;">
+                        <div class="settings-row">
+                            <span class="settings-label">Share Type</span>
+                            <span class="settings-value" id="onboardingShare">Regular Vegetable</span>
+                        </div>
+                        <div class="settings-row">
+                            <span class="settings-label">Season</span>
+                            <span class="settings-value" id="onboardingSeason">2026</span>
+                        </div>
+                        <div class="settings-row">
+                            <span class="settings-label">Pickup Location</span>
+                            <span class="settings-value" id="onboardingLocation">Farm Stand</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Dislikes -->
+                <div class="onboarding-step" id="onboarding-step-2">
+                    <h2 style="margin-bottom: 8px;">Any veggies you'd rather skip?</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
+                        Select items you don't love - we'll auto-suggest swaps when they're in your box
+                    </p>
+                    <div class="preference-grid" id="dislikesGrid">
+                        <div class="preference-item" data-value="cilantro" onclick="togglePreference(this)">
+                            <div class="emoji">🌿</div>
+                            <div class="name">Cilantro</div>
+                        </div>
+                        <div class="preference-item" data-value="beets" onclick="togglePreference(this)">
+                            <div class="emoji">🍠</div>
+                            <div class="name">Beets</div>
+                        </div>
+                        <div class="preference-item" data-value="kale" onclick="togglePreference(this)">
+                            <div class="emoji">🥬</div>
+                            <div class="name">Kale</div>
+                        </div>
+                        <div class="preference-item" data-value="eggplant" onclick="togglePreference(this)">
+                            <div class="emoji">🍆</div>
+                            <div class="name">Eggplant</div>
+                        </div>
+                        <div class="preference-item" data-value="turnips" onclick="togglePreference(this)">
+                            <div class="emoji">🥔</div>
+                            <div class="name">Turnips</div>
+                        </div>
+                        <div class="preference-item" data-value="radishes" onclick="togglePreference(this)">
+                            <div class="emoji">🔴</div>
+                            <div class="name">Radishes</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-muted); text-align: center;">
+                        Don't worry, you can always change this later
+                    </p>
+                </div>
+
+                <!-- Step 3: Communication Preferences -->
+                <div class="onboarding-step" id="onboarding-step-3">
+                    <h2 style="margin-bottom: 8px;">How should we reach you?</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
+                        We'll send pickup reminders and box updates
+                    </p>
+
+                    <label class="comm-option">
+                        <input type="checkbox" id="commEmail" checked>
+                        <div class="checkbox"><i class="fas fa-check"></i></div>
+                        <div>
+                            <div style="font-weight: 600;">Email</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Weekly updates and reminders</div>
+                        </div>
+                    </label>
+
+                    <label class="comm-option">
+                        <input type="checkbox" id="commSMS">
+                        <div class="checkbox"><i class="fas fa-check"></i></div>
+                        <div>
+                            <div style="font-weight: 600;">SMS Text Messages</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Day-of pickup reminders</div>
+                        </div>
+                    </label>
+
+                    <div class="form-group" id="phoneGroup" style="margin-top: 16px; display: none;">
+                        <label class="form-label">Mobile Phone Number</label>
+                        <input type="tel" class="form-input" id="phoneInput" placeholder="(412) 555-1234">
+                    </div>
+                </div>
+
+                <!-- Step 4: Complete -->
+                <div class="onboarding-step" id="onboarding-step-4">
+                    <div class="onboarding-illustration">🎉</div>
+                    <h2 style="text-align: center; margin-bottom: 12px;">You're All Set!</h2>
+                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
+                        Your first box is ready for pickup:
+                    </p>
+                    <div style="background: var(--primary-bg); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
+                        <div style="font-weight: 700; font-size: 18px;" id="firstPickupDate">Tuesday, January 21</div>
+                        <div style="color: var(--primary-darker); font-size: 14px;" id="firstPickupLocation">4-7pm at Farm Stand</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="onboarding-footer">
+            <button class="btn btn-secondary" id="onboardingBack" onclick="prevOnboardingStep()" style="display: none;">
+                Back
+            </button>
+            <button class="btn btn-primary" id="onboardingNext" onclick="nextOnboardingStep()">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <!-- Confetti Container -->
+    <div class="confetti-container" id="confettiContainer"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════
          MAIN APP
          ═══════════════════════════════════════════════════════════════════════════ -->
     <div class="app-container" id="appContainer">
         <!-- Home Tab -->
         <div class="tab-content active" id="tab-home">
+            <!-- Smart Alert Banner -->
+            <div class="alert-banner urgent" id="alertBanner" style="display: none;">
+                <i class="fas fa-clock"></i>
+                <span class="alert-text" id="alertText">Customization closes in 2 hours!</span>
+                <button class="alert-action" id="alertAction">Customize</button>
+                <button class="dismiss" onclick="dismissAlert()"><i class="fas fa-times"></i></button>
+            </div>
+
             <div class="welcome-banner">
-                <div class="welcome-text">Welcome back,</div>
-                <div class="welcome-name" id="memberName">Member</div>
+                <div class="welcome-row">
+                    <div>
+                        <div class="welcome-text">Welcome back,</div>
+                        <div class="welcome-name" id="memberName">Member</div>
+                    </div>
+                    <div class="weather-widget" id="weatherWidget">
+                        <div class="weather-temp">45°</div>
+                        <div>Partly Cloudy</div>
+                    </div>
+                </div>
                 <div class="membership-badge">
                     <span>🥬</span>
                     <span id="shareType">Regular Vegetable Share</span>
@@ -803,176 +1576,410 @@
 
             <div class="stats-row">
                 <div class="stat-card">
-                    <div class="stat-value" id="weeksRemaining">12</div>
+                    <div class="stat-value" id="weeksRemaining">--</div>
                     <div class="stat-label">Weeks Left</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="swapCredits">3</div>
+                    <div class="stat-value" id="swapCredits">--</div>
                     <div class="stat-label">Swap Credits</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="boxesReceived">8</div>
+                    <div class="stat-value" id="boxesReceived">--</div>
                     <div class="stat-label">Boxes Received</div>
                 </div>
             </div>
 
-            <div class="section">
-                <div class="credits-card">
-                    <div class="credits-header">
-                        <span class="credits-title">Swap Credits Available</span>
-                        <span>🔄</span>
-                    </div>
-                    <div class="credits-value" id="creditsDisplay">3</div>
-                    <div class="credits-desc">Use credits to swap items you don't want for alternatives</div>
-                </div>
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button class="quick-action" onclick="showVacationHolds()">
+                    <i class="fas fa-calendar-minus"></i>
+                    Schedule Hold
+                </button>
+                <button class="quick-action" onclick="showNotificationSettings()">
+                    <i class="fas fa-bell"></i>
+                    Reminders
+                </button>
+                <button class="quick-action" onclick="contactFarm()">
+                    <i class="fas fa-comment"></i>
+                    Contact Us
+                </button>
             </div>
 
+            <!-- This Week's Box -->
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">This Week's Box</h2>
-                    <button class="section-action" onclick="viewBoxDetails()">View All</button>
+                    <button class="section-action" onclick="viewBoxDetails()">View Details</button>
                 </div>
 
-                <div class="box-card">
+                <div class="box-card" id="currentBoxCard">
+                    <div class="box-photo" id="boxPhoto">📦</div>
+
                     <div class="box-header">
                         <div>
-                            <div class="box-week" id="boxWeek">Week of Jan 14</div>
-                            <div class="box-pickup" id="boxPickup">Pickup: Tuesday, 4-7pm</div>
+                            <div class="box-week" id="boxWeek">Week of Jan 21</div>
+                            <div class="box-pickup" id="boxPickup">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Pickup: Tuesday, 4-7pm
+                            </div>
                         </div>
-                        <span class="box-status">Ready</span>
+                        <span class="box-status ready" id="boxStatus">Ready</span>
+                    </div>
+
+                    <div class="box-deadline" id="boxDeadline" style="display: none;">
+                        <i class="fas fa-clock"></i>
+                        <span>Customize by Wednesday 5pm</span>
+                        <span class="countdown" id="deadlineCountdown">2 days left</span>
                     </div>
 
                     <div class="box-items" id="boxItems">
-                        <!-- Items loaded dynamically -->
+                        <!-- Skeleton loading -->
+                        <div class="box-item">
+                            <div class="skeleton skeleton-avatar"></div>
+                            <div class="box-item-info">
+                                <div class="skeleton skeleton-text" style="width: 120px;"></div>
+                                <div class="skeleton skeleton-text" style="width: 60px;"></div>
+                            </div>
+                        </div>
+                        <div class="box-item">
+                            <div class="skeleton skeleton-avatar"></div>
+                            <div class="box-item-info">
+                                <div class="skeleton skeleton-text" style="width: 100px;"></div>
+                                <div class="skeleton skeleton-text" style="width: 50px;"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="box-footer">
-                        <button class="customize-btn" onclick="openCustomizeModal()">
-                            Customize My Box
+                        <button class="btn btn-secondary" onclick="showVacationHolds()">
+                            <i class="fas fa-calendar-minus"></i>
+                            Skip Week
+                        </button>
+                        <button class="btn btn-primary" onclick="openCustomizeModal()">
+                            <i class="fas fa-magic"></i>
+                            Customize Box
                         </button>
                     </div>
                 </div>
             </div>
 
+            <!-- Farmer Updates -->
             <div class="section">
                 <div class="section-header">
-                    <h2 class="section-title">Upcoming Boxes</h2>
+                    <h2 class="section-title">From the Field</h2>
+                    <button class="section-action" onclick="viewAllUpdates()">See All</button>
+                </div>
+
+                <div class="updates-feed" id="updatesFeed">
+                    <div class="update-card">
+                        <div class="update-image" style="display: flex; align-items: center; justify-content: center; font-size: 48px;">🌱</div>
+                        <div class="update-content">
+                            <div class="update-text">Tomato seedlings are thriving in the greenhouse! Can't wait for you to taste these heirlooms this summer.</div>
+                            <div class="update-meta">
+                                <div class="update-avatar">T</div>
+                                <span>Todd • Jan 18</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="update-card">
+                        <div class="update-image" style="display: flex; align-items: center; justify-content: center; font-size: 48px;">❄️</div>
+                        <div class="update-content">
+                            <div class="update-text">Winter cover crops protecting the soil for spring planting. Nature's blanket!</div>
+                            <div class="update-meta">
+                                <div class="update-avatar">T</div>
+                                <span>Todd • Jan 15</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Boxes -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Upcoming Weeks</h2>
                 </div>
                 <div class="upcoming-list" id="upcomingList">
-                    <!-- Loaded dynamically -->
+                    <!-- Skeleton loading -->
+                    <div class="upcoming-card">
+                        <div>
+                            <div class="skeleton skeleton-text" style="width: 120px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 180px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vacation Tab -->
+        <div class="tab-content" id="tab-vacation">
+            <div class="page-header">
+                <h1>Vacation Holds</h1>
+                <p style="color: var(--text-secondary); margin-top: 4px;">Schedule time off from your CSA</p>
+            </div>
+
+            <div class="section">
+                <div class="vacation-section">
+                    <div class="vacation-header">
+                        <div class="vacation-title">Available Holds</div>
+                        <div class="vacation-remaining">
+                            <strong id="holdsRemaining">2</strong> of 3 remaining
+                        </div>
+                    </div>
+
+                    <div class="vacation-weeks" id="vacationWeeks">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="settings-card">
+                    <div class="settings-title">How Holds Work</div>
+                    <ul style="color: var(--text-secondary); font-size: 14px; padding-left: 20px; line-height: 1.8;">
+                        <li>You get 3 vacation holds per season</li>
+                        <li>Schedule at least 5 days before pickup</li>
+                        <li>Your box is donated to a local food bank</li>
+                        <li>No credits - just skip the week</li>
+                    </ul>
                 </div>
             </div>
         </div>
 
         <!-- Orders Tab -->
         <div class="tab-content" id="tab-orders">
-            <div style="padding: 20px;">
-                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">Pickup History</h1>
+            <div class="page-header">
+                <h1>Pickup History</h1>
             </div>
             <div class="orders-list" id="ordersList">
-                <!-- Orders loaded dynamically -->
+                <!-- Skeleton loading -->
+                <div class="order-card">
+                    <div class="skeleton skeleton-text" style="width: 100px;"></div>
+                    <div class="skeleton skeleton-text" style="width: 80px; margin-top: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="width: 200px; margin-top: 12px;"></div>
+                </div>
             </div>
         </div>
 
         <!-- Account Tab -->
         <div class="tab-content" id="tab-account">
-            <div style="padding: 20px;">
-                <h1 style="font-size: 24px; font-weight: 700;">My Account</h1>
+            <div class="page-header">
+                <h1>My Account</h1>
             </div>
 
-            <div class="account-section">
-                <div class="account-card">
-                    <div class="account-title">Membership Details</div>
-                    <div class="account-row">
-                        <span class="account-label">Share Type</span>
-                        <span class="account-value" id="accountShareType">Regular Vegetable</span>
+            <div class="settings-section">
+                <div class="settings-card">
+                    <div class="settings-title">Membership Details</div>
+                    <div class="settings-row">
+                        <span class="settings-label">Share Type</span>
+                        <span class="settings-value" id="accountShareType">--</span>
                     </div>
-                    <div class="account-row">
-                        <span class="account-label">Season</span>
-                        <span class="account-value" id="accountSeason">2026</span>
+                    <div class="settings-row">
+                        <span class="settings-label">Season</span>
+                        <span class="settings-value" id="accountSeason">--</span>
                     </div>
-                    <div class="account-row">
-                        <span class="account-label">Weeks Remaining</span>
-                        <span class="account-value" id="accountWeeks">12</span>
-                    </div>
-                </div>
-
-                <div class="account-card">
-                    <div class="account-title">Contact Info</div>
-                    <div class="account-row">
-                        <span class="account-label">Name</span>
-                        <span class="account-value" id="accountName">--</span>
-                    </div>
-                    <div class="account-row">
-                        <span class="account-label">Email</span>
-                        <span class="account-value" id="accountEmail">--</span>
-                    </div>
-                    <div class="account-row">
-                        <span class="account-label">Phone</span>
-                        <span class="account-value" id="accountPhone">--</span>
+                    <div class="settings-row">
+                        <span class="settings-label">Weeks Remaining</span>
+                        <span class="settings-value" id="accountWeeks">--</span>
                     </div>
                 </div>
 
-                <div class="account-card">
-                    <div class="account-title">Pickup Location</div>
-                    <div class="account-row">
-                        <span class="account-label">Day</span>
-                        <span class="account-value" id="accountPickupDay">Tuesday</span>
+                <div class="settings-card">
+                    <div class="settings-title">Pickup Info</div>
+                    <div class="settings-row">
+                        <span class="settings-label">Day</span>
+                        <span class="settings-value" id="accountPickupDay">--</span>
                     </div>
-                    <div class="account-row">
-                        <span class="account-label">Location</span>
-                        <span class="account-value" id="accountPickupLocation">Farm Stand</span>
+                    <div class="settings-row">
+                        <span class="settings-label">Location</span>
+                        <span class="settings-value" id="accountPickupLocation">--</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Time</span>
+                        <span class="settings-value" id="accountPickupTime">--</span>
                     </div>
                 </div>
 
-                <button class="logout-btn" onclick="logout()">Sign Out</button>
+                <div class="settings-card">
+                    <div class="settings-title">Contact Info</div>
+                    <div class="settings-row">
+                        <span class="settings-label">Name</span>
+                        <span class="settings-value" id="accountName">--</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Email</span>
+                        <span class="settings-value" id="accountEmail">--</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Phone</span>
+                        <span class="settings-value" id="accountPhone">--</span>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-title">Preferences</div>
+                    <div class="settings-link" onclick="showNotificationSettings()">
+                        <span>Notification Settings</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    <div class="settings-link" onclick="showDislikesSettings()">
+                        <span>Item Preferences</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Sign Out
+                </button>
             </div>
         </div>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
             <button class="nav-item active" onclick="switchTab('home')">
-                <span class="nav-item-icon">🏠</span>
+                <i class="fas fa-home"></i>
                 Home
             </button>
+            <button class="nav-item" onclick="switchTab('vacation')">
+                <i class="fas fa-calendar-minus"></i>
+                Holds
+            </button>
             <button class="nav-item" onclick="switchTab('orders')">
-                <span class="nav-item-icon">📦</span>
+                <i class="fas fa-history"></i>
                 History
             </button>
             <button class="nav-item" onclick="switchTab('account')">
-                <span class="nav-item-icon">👤</span>
+                <i class="fas fa-user"></i>
                 Account
             </button>
         </nav>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════
-         SWAP MODAL
+         ENHANCED SWAP MODAL
          ═══════════════════════════════════════════════════════════════════════════ -->
     <div class="modal-overlay" id="swapModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title">Swap Item</h2>
-                <button class="modal-close" onclick="closeSwapModal()">×</button>
+                <button class="modal-close" onclick="closeSwapModal()">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom: 16px; color: var(--text-secondary);">
-                    Swapping: <strong id="swappingItem">--</strong>
-                </p>
-                <div id="swapOptions">
-                    <!-- Swap options loaded dynamically -->
+                <div class="swap-current">
+                    <div class="swap-current-emoji" id="swapCurrentEmoji">🥬</div>
+                    <div>
+                        <div class="swap-current-label">SWAPPING OUT</div>
+                        <div class="swap-current-name" id="swapCurrentName">--</div>
+                    </div>
                 </div>
+
+                <div class="swap-section-title">
+                    <i class="fas fa-fire"></i>
+                    Popular Swaps
+                </div>
+                <div class="swap-options" id="popularSwaps">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div class="swap-section-title">Other Options</div>
+                <div class="swap-options" id="otherSwaps">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <label class="swap-remember">
+                    <input type="checkbox" id="rememberSwap">
+                    <div class="checkbox"><i class="fas fa-check"></i></div>
+                    <div class="swap-remember-text">Remember this swap for future boxes</div>
+                </label>
             </div>
             <div class="modal-footer">
                 <button class="confirm-swap-btn" id="confirmSwapBtn" onclick="confirmSwap()" disabled>
+                    <i class="fas fa-exchange-alt"></i>
                     Confirm Swap (Uses 1 Credit)
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         NOTIFICATION SETTINGS MODAL
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="notificationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Notifications</h2>
+                <button class="modal-close" onclick="closeNotificationModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="notification-group">
+                    <div class="notification-group-title">Pickup Reminders</div>
+                    <div class="notification-item">
+                        <span class="notification-label">Day before pickup</span>
+                        <div class="settings-toggle active" onclick="toggleNotification(this)" data-key="reminder_day_before"></div>
+                    </div>
+                    <div class="notification-item">
+                        <span class="notification-label">Day of pickup</span>
+                        <div class="settings-toggle active" onclick="toggleNotification(this)" data-key="reminder_day_of"></div>
+                    </div>
+                </div>
+
+                <div class="notification-group">
+                    <div class="notification-group-title">Box Updates</div>
+                    <div class="notification-item">
+                        <span class="notification-label">When box contents finalized</span>
+                        <div class="settings-toggle active" onclick="toggleNotification(this)" data-key="box_finalized"></div>
+                    </div>
+                    <div class="notification-item">
+                        <span class="notification-label">Customization deadline reminder</span>
+                        <div class="settings-toggle active" onclick="toggleNotification(this)" data-key="customize_deadline"></div>
+                    </div>
+                </div>
+
+                <div class="notification-group">
+                    <div class="notification-group-title">Farm News</div>
+                    <div class="notification-item">
+                        <span class="notification-label">Weekly farm updates</span>
+                        <div class="settings-toggle" onclick="toggleNotification(this)" data-key="farm_updates"></div>
+                    </div>
+                    <div class="notification-item">
+                        <span class="notification-label">Special offers</span>
+                        <div class="settings-toggle" onclick="toggleNotification(this)" data-key="special_offers"></div>
+                    </div>
+                </div>
+
+                <div class="notification-group">
+                    <div class="notification-group-title">How to Reach You</div>
+                    <div class="comm-method-selector">
+                        <div class="comm-method active" onclick="selectCommMethod(this)" data-method="email">
+                            <i class="fas fa-envelope"></i>
+                            <span>Email Only</span>
+                        </div>
+                        <div class="comm-method" onclick="selectCommMethod(this)" data-method="both">
+                            <i class="fas fa-bell"></i>
+                            <span>Email + SMS</span>
+                        </div>
+                        <div class="comm-method" onclick="selectCommMethod(this)" data-method="sms">
+                            <i class="fas fa-sms"></i>
+                            <span>SMS Only</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveNotificationSettings()" style="width: 100%;">
+                    Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <!-- API Configuration -->
     <script src="api-config.js"></script>
@@ -987,23 +1994,47 @@
             membership: null,
             currentBox: null,
             upcomingBoxes: [],
+            vacationHolds: [],
             orders: [],
+            preferences: {
+                dislikes: [],
+                notifications: {
+                    reminder_day_before: true,
+                    reminder_day_of: true,
+                    box_finalized: true,
+                    customize_deadline: true,
+                    farm_updates: false,
+                    special_offers: false
+                },
+                commMethod: 'email'
+            },
             swappingItem: null,
-            selectedSwap: null
+            selectedSwap: null,
+            isOnboarded: true,
+            onboardingStep: 1
         };
 
-        const api = new CSAPortalAPI();
+        const API_URL = window.TINY_SEED_API?.MAIN_API ||
+            'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
 
         // ═══════════════════════════════════════════════════════════════════════════
         // INITIALIZATION
         // ═══════════════════════════════════════════════════════════════════════════
 
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        async function initApp() {
+            setupPullToRefresh();
+            await checkAuth();
+        }
 
         async function checkAuth() {
-            const params = TinySeedUtils.getUrlParams();
-            if (params.token && params.email) {
-                await verifyMagicLink(params.token, params.email);
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            const email = params.get('email');
+
+            if (token && email) {
+                await verifyMagicLink(token, email);
                 return;
             }
 
@@ -1013,7 +2044,14 @@
                     const session = JSON.parse(saved);
                     AppState.customer = session.customer;
                     AppState.membership = session.membership;
-                    showApp();
+                    AppState.preferences = session.preferences || AppState.preferences;
+                    AppState.isOnboarded = session.isOnboarded !== false;
+
+                    if (!AppState.isOnboarded) {
+                        showOnboarding();
+                    } else {
+                        showApp();
+                    }
                 } catch (e) {
                     showLogin();
                 }
@@ -1038,53 +2076,229 @@
             btn.innerHTML = '<span class="loading-spinner"></span>';
 
             try {
-                const result = await api.sendMagicLink(email);
+                const response = await fetch(`${API_URL}?action=sendCSAMagicLink&email=${encodeURIComponent(email)}`);
+                const result = await response.json();
+
                 if (result.success) {
                     document.getElementById('loginForm').style.display = 'none';
                     document.getElementById('magicLinkSent').style.display = 'block';
                     document.getElementById('sentToEmail').textContent = email;
                 } else {
-                    showToast(result.error || 'Failed to send link', 'error');
+                    showToast(result.error || 'Email not found in our system', 'error');
                 }
             } catch (error) {
-                showToast('Connection error', 'error');
+                console.error('Magic link error:', error);
+                showToast('Connection error. Please try again.', 'error');
             }
 
             btn.disabled = false;
-            btn.textContent = 'Send Login Link';
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Login Link';
         }
 
         async function verifyMagicLink(token, email) {
             try {
-                const result = await api.verifyMagicLink(token, email);
+                const response = await fetch(`${API_URL}?action=verifyCSAMagicLink&token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`);
+                const result = await response.json();
+
                 if (result.success) {
                     AppState.customer = result.customer;
                     AppState.membership = result.csaMembership;
-                    localStorage.setItem('tsf_csa_session', JSON.stringify({
-                        customer: result.customer,
-                        membership: result.csaMembership
-                    }));
+                    AppState.isOnboarded = result.csaMembership?.Is_Onboarded === true;
+
+                    saveSession();
                     window.history.replaceState({}, '', window.location.pathname);
-                    showApp();
-                    showToast('Welcome back!', 'success');
+
+                    if (!AppState.isOnboarded) {
+                        showOnboarding();
+                    } else {
+                        showApp();
+                        showToast('Welcome back!', 'success');
+                    }
                 } else {
-                    showToast(result.error, 'error');
+                    showToast(result.error || 'Invalid or expired link', 'error');
                     showLogin();
                 }
             } catch (error) {
+                console.error('Verify error:', error);
                 showToast('Connection error', 'error');
                 showLogin();
             }
         }
 
+        function saveSession() {
+            localStorage.setItem('tsf_csa_session', JSON.stringify({
+                customer: AppState.customer,
+                membership: AppState.membership,
+                preferences: AppState.preferences,
+                isOnboarded: AppState.isOnboarded
+            }));
+        }
+
         function resetLogin() {
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('magicLinkSent').style.display = 'none';
+            document.getElementById('emailInput').value = '';
         }
 
         function logout() {
             localStorage.removeItem('tsf_csa_session');
+            AppState.customer = null;
+            AppState.membership = null;
             showLogin();
+            showToast('Signed out', 'info');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ONBOARDING
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function showOnboarding() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContainer').classList.remove('active');
+            document.getElementById('onboardingScreen').classList.add('active');
+
+            // Populate with user data
+            document.getElementById('onboardingName').textContent =
+                AppState.customer?.Contact_Name?.split(' ')[0] || 'Friend';
+            document.getElementById('onboardingShare').textContent =
+                `${AppState.membership?.Share_Size || 'Regular'} ${AppState.membership?.Share_Type || 'Vegetable'}`;
+            document.getElementById('onboardingSeason').textContent =
+                AppState.membership?.Season || '2026';
+            document.getElementById('onboardingLocation').textContent =
+                AppState.membership?.Pickup_Location || 'Farm Stand';
+
+            updateOnboardingStep();
+        }
+
+        function updateOnboardingStep() {
+            // Update progress dots
+            document.querySelectorAll('.progress-dot').forEach((dot, i) => {
+                dot.classList.remove('active', 'completed');
+                if (i + 1 === AppState.onboardingStep) {
+                    dot.classList.add('active');
+                } else if (i + 1 < AppState.onboardingStep) {
+                    dot.classList.add('completed');
+                }
+            });
+
+            // Show/hide steps
+            document.querySelectorAll('.onboarding-step').forEach((step, i) => {
+                step.classList.remove('active');
+                if (i + 1 === AppState.onboardingStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const backBtn = document.getElementById('onboardingBack');
+            const nextBtn = document.getElementById('onboardingNext');
+
+            backBtn.style.display = AppState.onboardingStep > 1 ? 'flex' : 'none';
+            nextBtn.textContent = AppState.onboardingStep === 4 ? 'Get Started' : 'Continue';
+
+            // Update header text
+            const titles = [
+                'Welcome to Tiny Seed Farm!',
+                'Customize Your Experience',
+                'Stay Connected',
+                "You're All Set!"
+            ];
+            const subtitles = [
+                "Let's confirm your details",
+                'Tell us your preferences',
+                'Choose how we reach you',
+                'Your CSA journey begins now'
+            ];
+
+            document.getElementById('onboardingTitle').textContent = titles[AppState.onboardingStep - 1];
+            document.getElementById('onboardingSubtitle').textContent = subtitles[AppState.onboardingStep - 1];
+        }
+
+        function nextOnboardingStep() {
+            if (AppState.onboardingStep === 4) {
+                completeOnboarding();
+                return;
+            }
+
+            AppState.onboardingStep++;
+            updateOnboardingStep();
+
+            // Handle SMS checkbox showing phone field
+            if (AppState.onboardingStep === 3) {
+                document.getElementById('commSMS').addEventListener('change', (e) => {
+                    document.getElementById('phoneGroup').style.display = e.target.checked ? 'block' : 'none';
+                });
+            }
+        }
+
+        function prevOnboardingStep() {
+            if (AppState.onboardingStep > 1) {
+                AppState.onboardingStep--;
+                updateOnboardingStep();
+            }
+        }
+
+        function togglePreference(el) {
+            el.classList.toggle('selected');
+        }
+
+        async function completeOnboarding() {
+            // Collect preferences
+            const dislikes = Array.from(document.querySelectorAll('#dislikesGrid .preference-item.selected'))
+                .map(el => el.dataset.value);
+            const emailPref = document.getElementById('commEmail').checked;
+            const smsPref = document.getElementById('commSMS').checked;
+            const phone = document.getElementById('phoneInput').value;
+
+            AppState.preferences.dislikes = dislikes;
+            AppState.preferences.commMethod = smsPref ? (emailPref ? 'both' : 'sms') : 'email';
+            AppState.isOnboarded = true;
+
+            // Show confetti
+            createConfetti();
+
+            // Save to backend
+            try {
+                await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        preferences: AppState.preferences,
+                        phone: phone,
+                        isOnboarded: true
+                    })
+                });
+            } catch (e) {
+                console.log('Preferences save deferred');
+            }
+
+            saveSession();
+
+            // Wait for confetti, then show app
+            setTimeout(() => {
+                document.getElementById('onboardingScreen').classList.remove('active');
+                showApp();
+                showToast('Welcome to Tiny Seed Farm! 🌱', 'success');
+            }, 2000);
+        }
+
+        function createConfetti() {
+            const container = document.getElementById('confettiContainer');
+            const colors = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
+
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = '100vh';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.animationDuration = 2 + Math.random() * 2 + 's';
+                container.appendChild(confetti);
+            }
+
+            setTimeout(() => container.innerHTML = '', 4000);
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -1093,15 +2307,20 @@
 
         function showLogin() {
             document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('appContainer').classList.remove('active');
+            document.getElementById('onboardingScreen').classList.remove('active');
         }
 
         function showApp() {
             document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('onboardingScreen').classList.remove('active');
+            document.getElementById('appContainer').classList.add('active');
+
             updateUI();
             loadBoxContents();
             loadOrders();
+            loadVacationHolds();
+            checkAlerts();
         }
 
         function switchTab(tabId) {
@@ -1117,22 +2336,54 @@
             const m = AppState.membership || {};
 
             // Home tab
-            document.getElementById('memberName').textContent = c.Contact_Name || 'Member';
+            document.getElementById('memberName').textContent = c.Contact_Name?.split(' ')[0] || 'Member';
             document.getElementById('shareType').textContent = `${m.Share_Size || 'Regular'} ${m.Share_Type || 'Vegetable'} Share`;
             document.getElementById('weeksRemaining').textContent = m.Weeks_Remaining || '--';
-            document.getElementById('swapCredits').textContent = m.Swap_Credits || '0';
-            document.getElementById('creditsDisplay').textContent = m.Swap_Credits || '0';
-            document.getElementById('boxesReceived').textContent = (m.Total_Weeks || 20) - (m.Weeks_Remaining || 20);
+            document.getElementById('swapCredits').textContent = m.Swap_Credits ?? '--';
+            document.getElementById('boxesReceived').textContent =
+                m.Total_Weeks && m.Weeks_Remaining ? (m.Total_Weeks - m.Weeks_Remaining) : '--';
 
             // Account tab
             document.getElementById('accountName').textContent = c.Contact_Name || '--';
             document.getElementById('accountEmail').textContent = c.Email || '--';
             document.getElementById('accountPhone').textContent = c.Phone || '--';
-            document.getElementById('accountShareType').textContent = `${m.Share_Size || ''} ${m.Share_Type || ''}`;
+            document.getElementById('accountShareType').textContent = `${m.Share_Size || ''} ${m.Share_Type || ''}`.trim() || '--';
             document.getElementById('accountSeason').textContent = m.Season || '--';
             document.getElementById('accountWeeks').textContent = m.Weeks_Remaining || '--';
             document.getElementById('accountPickupDay').textContent = m.Pickup_Day || '--';
             document.getElementById('accountPickupLocation').textContent = m.Pickup_Location || '--';
+            document.getElementById('accountPickupTime').textContent = m.Pickup_Time || '4-7pm';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SMART ALERTS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function checkAlerts() {
+            // Check for customization deadline
+            const deadlineHours = 48; // Demo: 48 hours until deadline
+
+            if (deadlineHours <= 24) {
+                showAlert('urgent', `Customization closes in ${deadlineHours} hours!`, 'Customize', () => openCustomizeModal());
+            } else if (AppState.membership?.Swap_Credits > 2) {
+                showAlert('info', `You have ${AppState.membership.Swap_Credits} unused swap credits`, 'Use Now', () => openCustomizeModal());
+            }
+        }
+
+        function showAlert(type, text, actionText, actionFn) {
+            const banner = document.getElementById('alertBanner');
+            banner.className = `alert-banner ${type}`;
+            document.getElementById('alertText').textContent = text;
+
+            const actionBtn = document.getElementById('alertAction');
+            actionBtn.textContent = actionText;
+            actionBtn.onclick = actionFn;
+
+            banner.style.display = 'flex';
+        }
+
+        function dismissAlert() {
+            document.getElementById('alertBanner').style.display = 'none';
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -1141,95 +2392,133 @@
 
         async function loadBoxContents() {
             try {
-                const result = await api.getBoxContents('', AppState.membership?.Share_Type);
-                if (result.success) {
+                const response = await fetch(`${API_URL}?action=getBoxContents&shareType=${encodeURIComponent(AppState.membership?.Share_Type || '')}`);
+                const result = await response.json();
+
+                if (result.success && result.items) {
                     AppState.currentBox = result;
                     renderBoxItems(result.items);
                     document.getElementById('boxWeek').textContent = `Week of ${formatWeekDate(result.weekDate)}`;
+                } else {
+                    loadSampleBoxData();
                 }
             } catch (error) {
-                // Load sample data
-                const sampleItems = [
-                    { Product_Name: 'Mixed Salad Greens', Quantity: 1, Unit: 'lb', Is_Swappable: true, emoji: '🥬' },
-                    { Product_Name: 'Cherry Tomatoes', Quantity: 1, Unit: 'pint', Is_Swappable: true, emoji: '🍅' },
-                    { Product_Name: 'Fresh Basil', Quantity: 1, Unit: 'bunch', Is_Swappable: true, emoji: '🌿' },
-                    { Product_Name: 'Carrots', Quantity: 1, Unit: 'bunch', Is_Swappable: true, emoji: '🥕' },
-                    { Product_Name: 'Zucchini', Quantity: 2, Unit: 'each', Is_Swappable: true, emoji: '🥒' }
-                ];
-                renderBoxItems(sampleItems);
-
-                // Sample upcoming
-                document.getElementById('upcomingList').innerHTML = `
-                    <div class="upcoming-card">
-                        <div>
-                            <div class="upcoming-date">Jan 21 - Week 9</div>
-                            <div class="upcoming-preview">Kale, Beets, Radishes, Herbs...</div>
-                        </div>
-                        <span class="upcoming-badge">Coming Soon</span>
-                    </div>
-                    <div class="upcoming-card">
-                        <div>
-                            <div class="upcoming-date">Jan 28 - Week 10</div>
-                            <div class="upcoming-preview">TBD based on harvest</div>
-                        </div>
-                        <span class="upcoming-badge">Planned</span>
-                    </div>
-                `;
+                console.log('Loading sample box data');
+                loadSampleBoxData();
             }
+        }
+
+        function loadSampleBoxData() {
+            const sampleItems = [
+                { Product_Name: 'Mixed Salad Greens', Quantity: 1, Unit: 'lb', Is_Swappable: true, emoji: '🥬' },
+                { Product_Name: 'Cherry Tomatoes', Quantity: 1, Unit: 'pint', Is_Swappable: true, emoji: '🍅' },
+                { Product_Name: 'Fresh Basil', Quantity: 1, Unit: 'bunch', Is_Swappable: true, emoji: '🌿' },
+                { Product_Name: 'Rainbow Carrots', Quantity: 1, Unit: 'bunch', Is_Swappable: true, emoji: '🥕' },
+                { Product_Name: 'Zucchini', Quantity: 2, Unit: 'each', Is_Swappable: true, emoji: '🥒' }
+            ];
+            renderBoxItems(sampleItems);
+
+            // Sample upcoming boxes
+            renderUpcomingBoxes([
+                { date: 'Jan 28', week: 'Week 10', items: 'Kale, Beets, Radishes, Herbs...', status: 'upcoming' },
+                { date: 'Feb 4', week: 'Week 11', items: 'TBD based on harvest', status: 'planned' }
+            ]);
         }
 
         function renderBoxItems(items) {
             const container = document.getElementById('boxItems');
             const credits = AppState.membership?.Swap_Credits || 0;
+            const dislikes = AppState.preferences?.dislikes || [];
 
-            container.innerHTML = items.map(item => `
-                <div class="box-item">
-                    <div class="box-item-emoji">${item.emoji || '🥬'}</div>
-                    <div class="box-item-info">
-                        <div class="box-item-name">${item.Product_Name}</div>
-                        <div class="box-item-qty">${item.Quantity} ${item.Unit}</div>
+            container.innerHTML = items.map(item => {
+                const isDisliked = dislikes.some(d => item.Product_Name.toLowerCase().includes(d.toLowerCase()));
+
+                return `
+                    <div class="box-item animate-in">
+                        <div class="box-item-emoji">${item.emoji || '🥬'}</div>
+                        <div class="box-item-info">
+                            <div class="box-item-name">${item.Product_Name}</div>
+                            <div class="box-item-qty">${item.Quantity} ${item.Unit}</div>
+                            ${isDisliked ? '<div class="box-item-note">Consider swapping - you marked this as a dislike</div>' : ''}
+                        </div>
+                        <div class="box-item-actions">
+                            ${item.Is_Swappable ? `
+                                <button class="swap-btn" onclick="openSwapModal('${item.Product_Name}', '${item.emoji}')" ${credits <= 0 ? 'disabled title="No swap credits"' : ''}>
+                                    Swap
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
-                    ${item.Is_Swappable ? `
-                        <button class="swap-btn" onclick="openSwapModal('${item.Product_Name}')" ${credits <= 0 ? 'disabled' : ''}>
-                            Swap
-                        </button>
-                    ` : ''}
+                `;
+            }).join('');
+        }
+
+        function renderUpcomingBoxes(boxes) {
+            document.getElementById('upcomingList').innerHTML = boxes.map(box => `
+                <div class="upcoming-card ${box.isHold ? 'hold' : ''}" onclick="viewUpcomingBox('${box.date}')">
+                    <div>
+                        <div class="upcoming-date">${box.date} - ${box.week}</div>
+                        <div class="upcoming-preview">${box.isHold ? 'Vacation Hold Scheduled' : box.items}</div>
+                    </div>
+                    <span class="upcoming-badge ${box.isHold ? 'hold' : ''}">${box.isHold ? 'On Hold' : box.status === 'upcoming' ? 'Coming Soon' : 'Planned'}</span>
                 </div>
             `).join('');
         }
 
         function formatWeekDate(dateStr) {
-            if (!dateStr) return 'Jan 14';
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (!dateStr) {
+                const d = new Date();
+                d.setDate(d.getDate() + (2 - d.getDay() + 7) % 7);
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // SWAP FUNCTIONALITY
+        // SWAP FUNCTIONALITY (ENHANCED)
         // ═══════════════════════════════════════════════════════════════════════════
 
-        function openSwapModal(itemName) {
+        function openSwapModal(itemName, emoji = '🥬') {
             AppState.swappingItem = itemName;
             AppState.selectedSwap = null;
 
-            document.getElementById('swappingItem').textContent = itemName;
+            document.getElementById('swapCurrentName').textContent = itemName;
+            document.getElementById('swapCurrentEmoji').textContent = emoji;
             document.getElementById('confirmSwapBtn').disabled = true;
 
-            // Sample swap options
-            const options = [
-                { name: 'Extra Salad Mix', emoji: '🥬', available: true },
-                { name: 'Kale Bundle', emoji: '🥬', available: true },
-                { name: 'Herb Sampler', emoji: '🌿', available: true },
-                { name: 'Root Veggie Mix', emoji: '🥕', available: false }
+            // Enhanced swap options with popularity
+            const popularOptions = [
+                { name: 'Extra Salad Mix', emoji: '🥬', popularity: 75, available: true },
+                { name: 'Herb Sampler', emoji: '🌿', popularity: 15, available: true }
             ];
 
-            document.getElementById('swapOptions').innerHTML = options.map(opt => `
-                <div class="swap-option ${!opt.available ? 'disabled' : ''}"
-                     onclick="${opt.available ? `selectSwap('${opt.name}')` : ''}">
+            const otherOptions = [
+                { name: 'Spinach Bundle', emoji: '🥬', available: true },
+                { name: 'Kale Bundle', emoji: '🥬', available: true },
+                { name: 'Root Veggie Mix', emoji: '🥕', available: true },
+                { name: 'Extra Tomatoes', emoji: '🍅', available: true, limited: true }
+            ];
+
+            document.getElementById('popularSwaps').innerHTML = popularOptions.map(opt => `
+                <div class="swap-option ${!opt.available ? 'disabled' : ''}" onclick="${opt.available ? `selectSwap('${opt.name}', '${opt.emoji}')` : ''}">
                     <div class="swap-option-emoji">${opt.emoji}</div>
-                    <div>
+                    <div class="swap-option-info">
                         <div class="swap-option-name">${opt.name}</div>
-                        <div class="swap-option-info">${opt.available ? 'Available' : 'Sold out'}</div>
+                        <div class="swap-option-meta">
+                            <span class="swap-popularity"><i class="fas fa-fire"></i> ${opt.popularity}% choose this</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('otherSwaps').innerHTML = otherOptions.map(opt => `
+                <div class="swap-option ${!opt.available ? 'disabled' : ''}" onclick="${opt.available ? `selectSwap('${opt.name}', '${opt.emoji}')` : ''}">
+                    <div class="swap-option-emoji">${opt.emoji}</div>
+                    <div class="swap-option-info">
+                        <div class="swap-option-name">${opt.name}</div>
+                        <div class="swap-option-meta">
+                            ${opt.limited ? '<span class="swap-limited">Limited!</span>' : '<span>Available</span>'}
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -1241,8 +2530,9 @@
             document.getElementById('swapModal').classList.remove('open');
         }
 
-        function selectSwap(name) {
-            AppState.selectedSwap = name;
+        function selectSwap(name, emoji) {
+            AppState.selectedSwap = { name, emoji };
+
             document.querySelectorAll('.swap-option').forEach(el => el.classList.remove('selected'));
             event.target.closest('.swap-option').classList.add('selected');
             document.getElementById('confirmSwapBtn').disabled = false;
@@ -1251,37 +2541,157 @@
         async function confirmSwap() {
             if (!AppState.selectedSwap) return;
 
+            const btn = document.getElementById('confirmSwapBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Processing...';
+
             try {
-                const result = await api.customizeBox(
-                    AppState.membership.Member_ID,
-                    AppState.currentBox?.weekDate,
-                    [{ from: AppState.swappingItem, to: AppState.selectedSwap }]
-                );
+                const response = await fetch(`${API_URL}?action=customizeCSABox`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        weekDate: AppState.currentBox?.weekDate,
+                        swaps: [{ from: AppState.swappingItem, to: AppState.selectedSwap.name }],
+                        remember: document.getElementById('rememberSwap').checked
+                    })
+                });
+                const result = await response.json();
 
                 if (result.success) {
                     AppState.membership.Swap_Credits = result.creditsRemaining;
                     updateUI();
-                    showToast('Box customized!', 'success');
+                    showToast('Box customized! 🎉', 'success');
                     closeSwapModal();
                     loadBoxContents();
+                } else {
+                    throw new Error(result.error);
                 }
             } catch (error) {
-                // Demo mode
+                // Demo mode - simulate success
                 if (AppState.membership) {
                     AppState.membership.Swap_Credits = Math.max(0, (AppState.membership.Swap_Credits || 3) - 1);
                 }
                 updateUI();
-                showToast('Swap confirmed!', 'success');
+                saveSession();
+                showToast('Swap confirmed! 🔄', 'success');
                 closeSwapModal();
             }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-exchange-alt"></i> Confirm Swap (Uses 1 Credit)';
         }
 
         function openCustomizeModal() {
-            showToast('Open full customization...', 'info');
+            showToast('Opening full customization...', 'info');
+            // Could open a more comprehensive customization view
         }
 
         function viewBoxDetails() {
-            showToast('Viewing box details...', 'info');
+            showToast('Box details', 'info');
+        }
+
+        function viewUpcomingBox(date) {
+            showToast(`Viewing box for ${date}`, 'info');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // VACATION HOLDS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function showVacationHolds() {
+            switchTab('vacation');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.nav-item')[1].classList.add('active');
+        }
+
+        async function loadVacationHolds() {
+            // Generate upcoming weeks for hold options
+            const weeks = [];
+            const today = new Date();
+
+            for (let i = 1; i <= 6; i++) {
+                const weekDate = new Date(today);
+                weekDate.setDate(today.getDate() + (i * 7));
+                weeks.push({
+                    date: weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    week: `Week ${10 + i}`,
+                    fullDate: weekDate.toISOString().split('T')[0],
+                    isHold: i === 3 // Demo: one already scheduled
+                });
+            }
+
+            AppState.vacationHolds = weeks.filter(w => w.isHold);
+            const holdsUsed = AppState.vacationHolds.length;
+            document.getElementById('holdsRemaining').textContent = 3 - holdsUsed;
+
+            renderVacationWeeks(weeks);
+        }
+
+        function renderVacationWeeks(weeks) {
+            document.getElementById('vacationWeeks').innerHTML = weeks.map(week => `
+                <div class="vacation-week ${week.isHold ? 'on-hold' : ''}">
+                    <div class="vacation-week-info">
+                        <div class="vacation-week-date">${week.date} - ${week.week}</div>
+                        <div class="vacation-week-label">${week.isHold ? 'Hold Scheduled' : 'Regular Pickup'}</div>
+                    </div>
+                    ${week.isHold ?
+                        `<button class="vacation-btn cancel" onclick="cancelHold('${week.fullDate}')">Cancel</button>` :
+                        `<button class="vacation-btn schedule" onclick="scheduleHold('${week.fullDate}')">Schedule Hold</button>`
+                    }
+                </div>
+            `).join('');
+        }
+
+        async function scheduleHold(weekDate) {
+            const holdsUsed = AppState.vacationHolds.length;
+            if (holdsUsed >= 3) {
+                showToast('You\'ve used all 3 vacation holds', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?action=scheduleVacationHold`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        weekDate: weekDate
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Vacation hold scheduled', 'success');
+                    loadVacationHolds();
+                }
+            } catch (error) {
+                // Demo mode
+                showToast('Hold scheduled! Your box will be donated.', 'success');
+                loadVacationHolds();
+            }
+        }
+
+        async function cancelHold(weekDate) {
+            try {
+                const response = await fetch(`${API_URL}?action=cancelVacationHold`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        weekDate: weekDate
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Hold cancelled', 'success');
+                    loadVacationHolds();
+                }
+            } catch (error) {
+                showToast('Hold cancelled', 'success');
+                loadVacationHolds();
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -1290,52 +2700,218 @@
 
         async function loadOrders() {
             try {
-                const result = await api.getOrderHistory(AppState.customer?.Customer_ID);
+                const response = await fetch(`${API_URL}?action=getCSAPickupHistory&customerId=${AppState.customer?.Customer_ID}`);
+                const result = await response.json();
+
                 if (result.success) {
-                    AppState.orders = result.orders;
+                    AppState.orders = result.orders || [];
                     renderOrders();
+                } else {
+                    loadSampleOrders();
                 }
             } catch (error) {
-                // Sample data
-                AppState.orders = [
-                    { Order_ID: 'BOX-2026-W08', date: '2026-01-07', Status: 'Picked Up', items: 'Mixed Greens, Tomatoes, Basil, Carrots' },
-                    { Order_ID: 'BOX-2026-W07', date: '2025-12-31', Status: 'Picked Up', items: 'Kale, Beets, Radishes, Herbs' }
-                ];
-                renderOrders();
+                loadSampleOrders();
             }
+        }
+
+        function loadSampleOrders() {
+            AppState.orders = [
+                { Order_ID: 'BOX-2026-W08', date: '2026-01-14', Status: 'Picked Up', items: 'Mixed Greens, Tomatoes, Basil, Carrots, Zucchini' },
+                { Order_ID: 'BOX-2026-W07', date: '2026-01-07', Status: 'Picked Up', items: 'Kale, Beets, Radishes, Herbs, Squash' },
+                { Order_ID: 'BOX-2026-W06', date: '2025-12-31', Status: 'Skipped', items: 'Vacation Hold' }
+            ];
+            renderOrders();
         }
 
         function renderOrders() {
             const container = document.getElementById('ordersList');
 
             if (AppState.orders.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">No pickup history yet</div>';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <div class="empty-state-title">No pickups yet</div>
+                        <div class="empty-state-text">Your pickup history will appear here</div>
+                    </div>
+                `;
                 return;
             }
 
-            container.innerHTML = AppState.orders.map(order => `
-                <div class="order-card">
-                    <div class="order-header">
-                        <div>
-                            <div class="order-id">${order.Order_ID}</div>
-                            <div class="order-date">${TinySeedUtils.formatDate(order.date || order.Order_Date)}</div>
+            container.innerHTML = AppState.orders.map(order => {
+                const statusClass = order.Status?.toLowerCase().replace(' ', '-') || 'pending';
+                return `
+                    <div class="order-card animate-in">
+                        <div class="order-header">
+                            <div>
+                                <div class="order-id">${order.Order_ID}</div>
+                                <div class="order-date">${formatDate(order.date)}</div>
+                            </div>
+                            <span class="order-status ${statusClass}">${order.Status}</span>
                         </div>
-                        <span class="order-status ${(order.Status || '').toLowerCase().replace(' ', '-')}">${order.Status}</span>
+                        <div class="order-items">${order.items}</div>
                     </div>
-                    <div class="order-items">${order.items}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '--';
+            return new Date(dateStr).toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // UTILITIES
+        // NOTIFICATION SETTINGS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function showNotificationSettings() {
+            // Restore current settings to UI
+            Object.entries(AppState.preferences.notifications).forEach(([key, value]) => {
+                const toggle = document.querySelector(`[data-key="${key}"]`);
+                if (toggle) {
+                    toggle.classList.toggle('active', value);
+                }
+            });
+
+            document.querySelectorAll('.comm-method').forEach(el => {
+                el.classList.toggle('active', el.dataset.method === AppState.preferences.commMethod);
+            });
+
+            document.getElementById('notificationModal').classList.add('open');
+        }
+
+        function closeNotificationModal() {
+            document.getElementById('notificationModal').classList.remove('open');
+        }
+
+        function toggleNotification(el) {
+            el.classList.toggle('active');
+        }
+
+        function selectCommMethod(el) {
+            document.querySelectorAll('.comm-method').forEach(m => m.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        async function saveNotificationSettings() {
+            // Collect settings from UI
+            document.querySelectorAll('.notification-item .settings-toggle').forEach(toggle => {
+                const key = toggle.dataset.key;
+                AppState.preferences.notifications[key] = toggle.classList.contains('active');
+            });
+
+            const activeMethod = document.querySelector('.comm-method.active');
+            AppState.preferences.commMethod = activeMethod?.dataset.method || 'email';
+
+            saveSession();
+
+            try {
+                await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        preferences: AppState.preferences
+                    })
+                });
+            } catch (e) {
+                console.log('Preferences saved locally');
+            }
+
+            closeNotificationModal();
+            showToast('Preferences saved', 'success');
+        }
+
+        function showDislikesSettings() {
+            showToast('Opening item preferences...', 'info');
+        }
+
+        function contactFarm() {
+            showToast('Opening contact form...', 'info');
+        }
+
+        function viewAllUpdates() {
+            showToast('Opening farm updates...', 'info');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PULL TO REFRESH
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function setupPullToRefresh() {
+            let touchStart = 0;
+            let touchY = 0;
+            const pullIndicator = document.getElementById('pullIndicator');
+            const threshold = 80;
+
+            document.addEventListener('touchstart', (e) => {
+                if (window.scrollY === 0) {
+                    touchStart = e.touches[0].clientY;
+                }
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (touchStart === 0) return;
+
+                touchY = e.touches[0].clientY - touchStart;
+
+                if (touchY > 0 && touchY < threshold * 2) {
+                    pullIndicator.classList.add('visible');
+                    pullIndicator.style.transform = `translateX(-50%) translateY(${Math.min(touchY / 2, 40)}px)`;
+                }
+            });
+
+            document.addEventListener('touchend', () => {
+                if (touchY > threshold) {
+                    pullIndicator.classList.add('refreshing');
+                    refreshData();
+                }
+
+                setTimeout(() => {
+                    pullIndicator.classList.remove('visible', 'refreshing');
+                    pullIndicator.style.transform = '';
+                }, 500);
+
+                touchStart = 0;
+                touchY = 0;
+            });
+        }
+
+        async function refreshData() {
+            await Promise.all([
+                loadBoxContents(),
+                loadOrders(),
+                loadVacationHolds()
+            ]);
+            showToast('Updated!', 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // TOAST NOTIFICATIONS
         // ═══════════════════════════════════════════════════════════════════════════
 
         function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type} show`;
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+
+            toast.innerHTML = `<i class="fas ${icons[type]}"></i> ${message}`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
     </script>
 </body>

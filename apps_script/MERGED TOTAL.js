@@ -351,6 +351,8 @@ function doGet(e) {
         return jsonResponse(getCSAProducts(e.parameter));
       case 'getCSABoxContents':
         return jsonResponse(getCSABoxContents(e.parameter));
+      case 'getVacationHolds':
+        return jsonResponse(getVacationHolds(e.parameter));
       case 'getCustomerOrders':
         return jsonResponse(getCustomerOrders(e.parameter));
       case 'getCustomerProfile':
@@ -1195,8 +1197,18 @@ function doPost(e) {
         return jsonResponse(updateSalesCustomer(data));
       case 'createCSAMember':
         return jsonResponse(createCSAMember(data));
+      case 'importShopifyCSA':
+        return jsonResponse(importShopifyCSAMembers(data.csvData || data));
       case 'updateCSAMember':
         return jsonResponse(updateCSAMember(data));
+      case 'shopifyWebhook':
+        return jsonResponse(handleShopifyWebhook(data));
+      case 'resendCSAWelcome':
+        return jsonResponse(resendCSAWelcomeEmail(data.memberId));
+      case 'scheduleVacationHold':
+        return jsonResponse(scheduleVacationHold(data));
+      case 'cancelVacationHold':
+        return jsonResponse(cancelVacationHold(data));
       case 'completePickPackItem':
         return jsonResponse(completePickPackItem(data));
       case 'createSMSCampaign':
@@ -3904,6 +3916,185 @@ function getDTMLearningData() {
       error: error.toString()
     });
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DTM AUTO-TRAINING SYSTEM
+// Automatically trains the DTM model daily at 3 AM
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Setup daily trigger for DTM auto-training
+ * Run this once to enable automatic daily training
+ */
+function setupDTMAutoTrainingTrigger() {
+  // Delete any existing triggers for this function
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'runDTMAutoTraining') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Create new daily trigger at 3 AM
+  ScriptApp.newTrigger('runDTMAutoTraining')
+    .timeBased()
+    .atHour(3)
+    .everyDays(1)
+    .create();
+
+  Logger.log('DTM Auto-Training trigger set for 3:00 AM daily');
+  return { success: true, message: 'DTM auto-training scheduled for 3:00 AM daily' };
+}
+
+/**
+ * Automatic DTM training - runs daily
+ * Analyzes harvest data and updates learned DTM values
+ */
+function runDTMAutoTraining() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const props = PropertiesService.getScriptProperties();
+
+    Logger.log('Starting DTM auto-training...');
+
+    // Get harvest data from PLANNING_2026 sheet
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+    if (!planSheet) {
+      Logger.log('No PLANNING_2026 sheet found');
+      return;
+    }
+
+    const data = planSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find relevant columns
+    const statusIdx = headers.indexOf('Status');
+    const cropIdx = headers.indexOf('Crop') !== -1 ? headers.indexOf('Crop') : headers.indexOf('CROP');
+    const varietyIdx = headers.indexOf('Variety') !== -1 ? headers.indexOf('Variety') : headers.indexOf('VARIETY');
+    const transplantIdx = headers.indexOf('Transplant') !== -1 ? headers.indexOf('Transplant') : headers.indexOf('TRANSPLANT');
+    const harvestIdx = headers.indexOf('Harvest') !== -1 ? headers.indexOf('Harvest') : headers.indexOf('HARVEST');
+
+    // Collect completed harvests with valid dates
+    const harvests = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = row[statusIdx];
+      const crop = row[cropIdx];
+      const variety = row[varietyIdx];
+      const transplant = row[transplantIdx];
+      const harvest = row[harvestIdx];
+
+      if (status === 'Complete' && crop && transplant && harvest) {
+        const transplantDate = new Date(transplant);
+        const harvestDate = new Date(harvest);
+
+        if (!isNaN(transplantDate) && !isNaN(harvestDate)) {
+          const actualDTM = Math.round((harvestDate - transplantDate) / (1000 * 60 * 60 * 24));
+          harvests.push({
+            crop,
+            variety: variety || 'Unknown',
+            actualDTM,
+            season: getSeason(transplantDate)
+          });
+        }
+      }
+    }
+
+    Logger.log(`Found ${harvests.length} completed harvests to analyze`);
+
+    // Group by crop/variety and calculate averages
+    const groupedData = {};
+    harvests.forEach(h => {
+      const key = `${h.crop}|${h.variety}|${h.season}`;
+      if (!groupedData[key]) {
+        groupedData[key] = { values: [], crop: h.crop, variety: h.variety, season: h.season };
+      }
+      groupedData[key].values.push(h.actualDTM);
+    });
+
+    // Calculate learned DTM values (average, excluding outliers)
+    const learnedData = [];
+    Object.values(groupedData).forEach(group => {
+      if (group.values.length >= 2) {
+        // Remove outliers (values > 2 std dev from mean)
+        const mean = group.values.reduce((a, b) => a + b, 0) / group.values.length;
+        const std = Math.sqrt(group.values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / group.values.length);
+        const filtered = group.values.filter(v => Math.abs(v - mean) <= 2 * std);
+
+        const learnedDTM = Math.round(filtered.reduce((a, b) => a + b, 0) / filtered.length);
+        const confidence = Math.min(100, Math.round((filtered.length / 20) * 100));
+
+        learnedData.push({
+          crop: group.crop,
+          variety: group.variety,
+          season: group.season,
+          learnedDTM,
+          dataPoints: filtered.length,
+          confidence,
+          lastUpdated: new Date().toISOString()
+        });
+      }
+    });
+
+    // Save to DTM_LEARNING sheet
+    let dtmSheet = ss.getSheetByName('DTM_LEARNING');
+    if (!dtmSheet) {
+      dtmSheet = ss.insertSheet('DTM_LEARNING');
+      dtmSheet.appendRow(['Crop', 'Variety', 'Season', 'Learned_DTM', 'Data_Points', 'Confidence', 'Last_Updated']);
+    }
+
+    // Clear existing data and update
+    if (learnedData.length > 0) {
+      dtmSheet.getRange(2, 1, dtmSheet.getLastRow(), 7).clearContent();
+
+      learnedData.forEach(d => {
+        dtmSheet.appendRow([
+          d.crop, d.variety, d.season, d.learnedDTM, d.dataPoints, d.confidence, d.lastUpdated
+        ]);
+      });
+    }
+
+    // Store training timestamp
+    props.setProperty('DTM_LAST_TRAINED', new Date().toISOString());
+    props.setProperty('DTM_TRAINING_STATS', JSON.stringify({
+      harvestsAnalyzed: harvests.length,
+      cropsUpdated: learnedData.length,
+      timestamp: new Date().toISOString()
+    }));
+
+    Logger.log(`DTM training complete: ${learnedData.length} crop/variety combinations updated`);
+
+  } catch (error) {
+    Logger.log('DTM auto-training error: ' + error.toString());
+  }
+}
+
+/**
+ * Get season from date
+ */
+function getSeason(date) {
+  const month = date.getMonth();
+  if (month >= 2 && month <= 4) return 'spring';
+  if (month >= 5 && month <= 7) return 'summer';
+  if (month >= 8 && month <= 10) return 'fall';
+  return 'winter';
+}
+
+/**
+ * Get DTM training status
+ */
+function getDTMTrainingStatus() {
+  const props = PropertiesService.getScriptProperties();
+  const lastTrained = props.getProperty('DTM_LAST_TRAINED');
+  const stats = props.getProperty('DTM_TRAINING_STATS');
+
+  return jsonResponse({
+    success: true,
+    lastTrained: lastTrained || null,
+    stats: stats ? JSON.parse(stats) : null,
+    autoTrainingEnabled: true
+  });
 }
 
 function saveSuccessionPlan(plan) {
@@ -11605,6 +11796,8 @@ const SALES_SHEETS = {
   ORDER_ITEMS: 'SALES_OrderItems',
   CSA_MEMBERS: 'CSA_Members',
   CSA_BOX_CONTENTS: 'CSA_BoxContents',
+  CSA_PICKUP_LOCATIONS: 'CSA_Pickup_Locations',
+  CSA_PRODUCTS: 'CSA_Products',
   DELIVERIES: 'SALES_Deliveries',
   DELIVERY_STOPS: 'SALES_DeliveryStops',
   DRIVERS: 'SALES_Drivers',
@@ -11657,13 +11850,29 @@ function initializeSalesAndFleetModule() {
     'Member_ID', 'Customer_ID', 'Share_Type', 'Share_Size', 'Season',
     'Start_Date', 'End_Date', 'Total_Weeks', 'Weeks_Remaining',
     'Pickup_Day', 'Pickup_Location', 'Delivery_Address',
-    'Customization_Allowed', 'Swap_Credits', 'Vacation_Weeks_Used',
-    'Status', 'Payment_Status', 'Amount_Paid', 'Notes'
+    'Customization_Allowed', 'Swap_Credits', 'Vacation_Weeks_Used', 'Vacation_Weeks_Max',
+    'Status', 'Payment_Status', 'Amount_Paid', 'Frequency',
+    'Veg_Code', 'Floral_Code', 'Preferences', 'Is_Onboarded',
+    'Last_Pickup_Date', 'Next_Pickup_Date', 'Shopify_Order_ID',
+    'Created_Date', 'Last_Modified', 'Notes'
   ], '#8b5cf6');
 
   createSheetIfNotExists(ss, SALES_SHEETS.CSA_BOX_CONTENTS, [
     'Box_ID', 'Week_Date', 'Share_Type', 'Crop_ID', 'Product_Name',
     'Variety', 'Quantity', 'Unit', 'Is_Swappable', 'Swap_Options', 'Notes'
+  ], '#8b5cf6');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.CSA_PICKUP_LOCATIONS, [
+    'Location_ID', 'Location_Name', 'Address', 'City', 'Day',
+    'Time_Start', 'Time_End', 'Is_Delivery_Zone', 'Max_Capacity',
+    'Current_Members', 'Host_Name', 'Host_Phone', 'Notes', 'Is_Active'
+  ], '#8b5cf6');
+
+  createSheetIfNotExists(ss, SALES_SHEETS.CSA_PRODUCTS, [
+    'Product_ID', 'Product_Name', 'Shopify_Product_ID', 'Category',
+    'Size', 'Season', 'Frequency', 'Price', 'Veg_Code', 'Floral_Code',
+    'Start_Date', 'End_Date', 'Total_Weeks', 'Max_Members', 'Current_Members',
+    'Is_Active', 'Description'
   ], '#8b5cf6');
 
   createSheetIfNotExists(ss, SALES_SHEETS.DELIVERIES, [
@@ -12495,33 +12704,422 @@ function createCSAMember(data) {
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
 
     const memberId = 'CSA-' + Date.now();
+    const now = new Date();
 
     sheet.appendRow([
-      memberId,
-      data.customerId,
-      data.shareType || 'Vegetable',
-      data.shareSize || 'Regular',
-      data.season || new Date().getFullYear().toString(),
-      data.startDate,
-      data.endDate,
-      data.totalWeeks || 20,
-      data.totalWeeks || 20, // Weeks remaining starts at total
-      data.pickupDay || '',
-      data.pickupLocation || '',
-      data.deliveryAddress || '',
-      data.customizationAllowed !== false,
-      data.swapCredits || 3,
-      0, // Vacation weeks used
-      'Active',
-      data.paymentStatus || 'Unpaid',
-      data.amountPaid || 0,
-      data.notes || ''
+      memberId,                                           // Member_ID
+      data.customerId,                                    // Customer_ID
+      data.shareType || 'Vegetable',                      // Share_Type
+      data.shareSize || 'Regular',                        // Share_Size
+      data.season || new Date().getFullYear().toString(), // Season
+      data.startDate,                                     // Start_Date
+      data.endDate,                                       // End_Date
+      data.totalWeeks || 20,                              // Total_Weeks
+      data.totalWeeks || 20,                              // Weeks_Remaining
+      data.pickupDay || '',                               // Pickup_Day
+      data.pickupLocation || '',                          // Pickup_Location
+      data.deliveryAddress || '',                         // Delivery_Address
+      data.customizationAllowed !== false,                // Customization_Allowed
+      data.swapCredits || 3,                              // Swap_Credits
+      0,                                                  // Vacation_Weeks_Used
+      data.vacationWeeksMax || 4,                         // Vacation_Weeks_Max
+      'Active',                                           // Status
+      data.paymentStatus || 'Unpaid',                     // Payment_Status
+      data.amountPaid || 0,                               // Amount_Paid
+      data.frequency || 'Weekly',                         // Frequency
+      data.vegCode || 0,                                  // Veg_Code
+      data.floralCode || 0,                               // Floral_Code
+      data.preferences ? JSON.stringify(data.preferences) : '', // Preferences
+      false,                                              // Is_Onboarded
+      '',                                                 // Last_Pickup_Date
+      '',                                                 // Next_Pickup_Date
+      data.shopifyOrderId || '',                          // Shopify_Order_ID
+      now,                                                // Created_Date
+      now,                                                // Last_Modified
+      data.notes || ''                                    // Notes
     ]);
 
     return { success: true, memberId: memberId };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY CSA IMPORT SYSTEM
+// Imports CSA members from Shopify orders
+// ═══════════════════════════════════════════════════════════════════════════
+
+function importShopifyCSAMembers(csvData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const customersSheet = ss.getSheetByName('Customers');
+
+    // Parse CSV if string, otherwise use array
+    let rows = typeof csvData === 'string' ? parseCSV(csvData) : csvData;
+    const headers = rows[0];
+
+    // Map header indices
+    const idx = {
+      orderNum: headers.indexOf('Order#'),
+      email: headers.indexOf('Email'),
+      createdAt: headers.indexOf('Created at'),
+      itemName: headers.indexOf('Item Name'),
+      quantity: headers.indexOf('Quantity'),
+      customerName: headers.indexOf('Customer Name'),
+      street: headers.indexOf('Street'),
+      city: headers.indexOf('City'),
+      stopLocation: headers.indexOf('Stop Location'),
+      phone: headers.indexOf('Phone'),
+      notes: headers.indexOf('Customer Notes')
+    };
+
+    const results = { imported: 0, skipped: 0, errors: [], members: [] };
+
+    // Get existing customers and CSA members to avoid duplicates
+    const existingCustomers = getExistingCustomerEmails(customersSheet);
+    const existingCSAMembers = getExistingCSAMembersByEmail(csaSheet, customersSheet);
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row[idx.email] || row[idx.itemName] === '(blank)') {
+        results.skipped++;
+        continue;
+      }
+
+      try {
+        const email = cleanField(row[idx.email]);
+        const itemName = cleanField(row[idx.itemName]);
+        const customerName = cleanField(row[idx.customerName]);
+        const phone = cleanField(row[idx.phone]);
+        const street = cleanField(row[idx.street]);
+        const city = cleanField(row[idx.city]);
+        const stopLocation = cleanField(row[idx.stopLocation]);
+        const orderNum = cleanField(row[idx.orderNum]);
+        const notes = cleanField(row[idx.notes]);
+
+        // Skip if already imported (same email + same item)
+        const memberKey = email + '|' + itemName;
+        if (existingCSAMembers[memberKey]) {
+          results.skipped++;
+          continue;
+        }
+
+        // Find or create customer
+        let customerId = existingCustomers[email];
+        if (!customerId) {
+          customerId = createCustomerFromShopify({
+            name: customerName,
+            email: email,
+            phone: phone,
+            address: street,
+            city: city
+          });
+          existingCustomers[email] = customerId;
+        }
+
+        // Parse share type from item name
+        const shareInfo = parseShopifyShareType(itemName);
+
+        // Parse pickup location
+        const pickupInfo = parsePickupLocation(stopLocation);
+
+        // Determine season dates based on share type
+        const seasonDates = getSeasonDates(shareInfo.type, shareInfo.season);
+
+        // Create CSA member
+        const memberId = 'CSA-' + Date.now() + '-' + i;
+        const now = new Date();
+        csaSheet.appendRow([
+          memberId,                                               // Member_ID
+          customerId,                                             // Customer_ID
+          shareInfo.type,                                         // Share_Type
+          shareInfo.size,                                         // Share_Size
+          shareInfo.season,                                       // Season
+          seasonDates.start,                                      // Start_Date
+          seasonDates.end,                                        // End_Date
+          seasonDates.weeks,                                      // Total_Weeks
+          seasonDates.weeks,                                      // Weeks_Remaining
+          pickupInfo.day,                                         // Pickup_Day
+          pickupInfo.location,                                    // Pickup_Location
+          pickupInfo.isDelivery ? street + ', ' + city : '',      // Delivery_Address
+          true,                                                   // Customization_Allowed
+          3,                                                      // Swap_Credits
+          0,                                                      // Vacation_Weeks_Used
+          4,                                                      // Vacation_Weeks_Max
+          'Active',                                               // Status
+          'Paid',                                                 // Payment_Status
+          shareInfo.price || 0,                                   // Amount_Paid
+          shareInfo.frequency || 'Weekly',                        // Frequency
+          shareInfo.vegCode || 0,                                 // Veg_Code
+          shareInfo.floralCode || 0,                              // Floral_Code
+          '',                                                     // Preferences
+          false,                                                  // Is_Onboarded
+          '',                                                     // Last_Pickup_Date
+          '',                                                     // Next_Pickup_Date
+          orderNum,                                               // Shopify_Order_ID
+          now,                                                    // Created_Date
+          now,                                                    // Last_Modified
+          notes ? 'Shopify | ' + notes : 'Shopify Import'         // Notes
+        ]);
+
+        existingCSAMembers[memberKey] = memberId;
+        results.imported++;
+        results.members.push({
+          memberId: memberId,
+          name: customerName,
+          email: email,
+          shareType: shareInfo.type,
+          shareSize: shareInfo.size,
+          pickupLocation: pickupInfo.location
+        });
+
+      } catch (rowError) {
+        results.errors.push('Row ' + i + ': ' + rowError.toString());
+      }
+    }
+
+    return { success: true, results: results };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function cleanField(val) {
+  if (!val) return '';
+  return val.toString().replace(/^["']+|["']+$/g, '').trim();
+}
+
+function parseCSV(csvString) {
+  const lines = csvString.split('\n');
+  return lines.map(line => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  });
+}
+
+function getExistingCustomerEmails(sheet) {
+  const map = {};
+  if (!sheet) return map;
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const emailIdx = headers.indexOf('Email');
+  const idIdx = headers.indexOf('Customer_ID') !== -1 ? headers.indexOf('Customer_ID') : 0;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][emailIdx]) {
+      map[data[i][emailIdx].toString().toLowerCase()] = data[i][idIdx];
+    }
+  }
+  return map;
+}
+
+function getExistingCSAMembersByEmail(csaSheet, customersSheet) {
+  const map = {};
+  if (!csaSheet || !customersSheet) return map;
+
+  // Get customer ID to email mapping
+  const customerEmails = {};
+  const custData = customersSheet.getDataRange().getValues();
+  const custHeaders = custData[0];
+  const emailIdx = custHeaders.indexOf('Email');
+  const custIdIdx = custHeaders.indexOf('Customer_ID') !== -1 ? custHeaders.indexOf('Customer_ID') : 0;
+  for (let i = 1; i < custData.length; i++) {
+    customerEmails[custData[i][custIdIdx]] = custData[i][emailIdx];
+  }
+
+  // Map CSA members by email + share type
+  const csaData = csaSheet.getDataRange().getValues();
+  const csaHeaders = csaData[0];
+  const memberCustIdx = csaHeaders.indexOf('Customer_ID');
+  const shareTypeIdx = csaHeaders.indexOf('Share_Type');
+
+  for (let i = 1; i < csaData.length; i++) {
+    const custId = csaData[i][memberCustIdx];
+    const email = customerEmails[custId] || '';
+    const shareType = csaData[i][shareTypeIdx] || '';
+    if (email) {
+      map[email.toLowerCase() + '|' + shareType] = csaData[i][0];
+    }
+  }
+  return map;
+}
+
+function createCustomerFromShopify(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Customers');
+  const customerId = 'CUST-' + Date.now();
+
+  // Find or create headers
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  sheet.appendRow([
+    customerId,
+    data.name,
+    data.email,
+    data.phone,
+    data.address,
+    data.city,
+    'PA',
+    '',  // ZIP
+    'CSA',  // Customer type
+    new Date(),  // Created date
+    'Active',
+    'Shopify Import'
+  ]);
+
+  return customerId;
+}
+
+function parseShopifyShareType(itemName) {
+  const result = {
+    type: 'Vegetable',
+    size: 'Regular',
+    season: '2026',
+    frequency: 'Weekly',
+    price: 0,
+    vegCode: 0,
+    floralCode: 0
+  };
+
+  // Extract year/season
+  const yearMatch = itemName.match(/20\d\d/);
+  if (yearMatch) result.season = yearMatch[0];
+
+  // Determine type and set vegCode/floralCode
+  if (/Fleurs|Bloom|Bouquet|Flower/i.test(itemName)) {
+    result.type = 'Flower';
+    result.floralCode = /Full/i.test(itemName) ? 2 : 1;  // Full = 2, Petite = 1
+    result.vegCode = 0;
+  } else if (/Flex/i.test(itemName)) {
+    result.type = 'Flex';
+    result.vegCode = 1;  // Flex can be used for veg
+    result.floralCode = 0;
+  } else if (/Spring|Summer|Fall/i.test(itemName)) {
+    // Seasonal vegetable shares
+    if (/Spring/i.test(itemName)) result.type = 'Spring Vegetable';
+    else if (/Summer/i.test(itemName)) result.type = 'Summer Vegetable';
+    else if (/Fall/i.test(itemName)) result.type = 'Fall Vegetable';
+
+    // Set vegCode based on size
+    if (/Small/i.test(itemName)) result.vegCode = 1;
+    else if (/Family|Friends/i.test(itemName)) result.vegCode = 2;
+    else result.vegCode = 1;  // Regular
+    result.floralCode = 0;
+  } else {
+    // Default vegetable
+    result.vegCode = 1;
+    result.floralCode = 0;
+  }
+
+  // Determine size
+  if (/Petite|Small/i.test(itemName)) {
+    result.size = 'Small';
+  } else if (/Full|Large|Family|Friends/i.test(itemName)) {
+    result.size = 'Large';
+  }
+
+  // Determine frequency
+  if (/BIWEEKLY/i.test(itemName)) {
+    result.frequency = 'Biweekly';
+  }
+
+  // Try to extract price from Flex shares
+  const priceMatch = itemName.match(/\$(\d+)/);
+  if (priceMatch) result.price = parseInt(priceMatch[1]);
+
+  return result;
+}
+
+function parsePickupLocation(stopLocation) {
+  const result = { location: '', day: 'Wednesday', isDelivery: false };
+
+  if (!stopLocation) return result;
+
+  // Clean up the location string
+  const clean = stopLocation.replace(/["']/g, '').trim();
+
+  // Check for delivery
+  if (/PORCH|HOME|DELIVERY/i.test(clean)) {
+    result.isDelivery = true;
+  }
+
+  // Check for Saturday market
+  if (/SATURDAY/i.test(clean)) {
+    result.day = 'Saturday';
+  }
+
+  // Extract location name
+  const locMatch = clean.match(/^([^(]+)/);
+  if (locMatch) {
+    result.location = locMatch[1].replace(/\$\d+\s*\/\s*/g, '').trim();
+  } else {
+    result.location = clean;
+  }
+
+  return result;
+}
+
+function getSeasonDates(shareType, season) {
+  const year = parseInt(season) || 2026;
+
+  // Default vegetable season: June - October (20 weeks)
+  let start = new Date(year, 5, 1);  // June 1
+  let end = new Date(year, 9, 31);   // October 31
+  let weeks = 20;
+
+  if (/Spring/i.test(shareType)) {
+    start = new Date(year, 3, 1);   // April 1
+    end = new Date(year, 5, 30);    // June 30
+    weeks = 12;
+  } else if (/Summer/i.test(shareType)) {
+    start = new Date(year, 5, 1);   // June 1
+    end = new Date(year, 8, 30);    // September 30
+    weeks = 16;
+  } else if (/Fall/i.test(shareType)) {
+    start = new Date(year, 8, 1);   // September 1
+    end = new Date(year, 10, 30);   // November 30
+    weeks = 12;
+  } else if (/Flower/i.test(shareType)) {
+    start = new Date(year, 5, 1);   // June 1
+    end = new Date(year, 9, 15);    // October 15
+    weeks = 18;
+  } else if (/Flex/i.test(shareType)) {
+    start = new Date(year, 4, 1);   // May 1
+    end = new Date(year, 10, 30);   // November 30
+    weeks = 26;
+  }
+
+  return {
+    start: Utilities.formatDate(start, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+    end: Utilities.formatDate(end, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+    weeks: weeks
+  };
+}
+
+// API endpoint for importing from URL or direct data
+function importCSAFromShopifyCSV(params) {
+  // If a file path/URL is provided, fetch it
+  // Otherwise expect csvData in the params
+  if (params.csvData) {
+    return importShopifyCSAMembers(params.csvData);
+  }
+  return { success: false, error: 'No CSV data provided. Pass csvData parameter.' };
 }
 
 function updateCSAMember(data) {
@@ -12533,29 +13131,1582 @@ function updateCSAMember(data) {
 
     for (let i = 1; i < values.length; i++) {
       if (values[i][0] === data.memberId) {
+        const updateField = (fieldName, value) => {
+          const col = headers.indexOf(fieldName);
+          if (col >= 0) sheet.getRange(i + 1, col + 1).setValue(value);
+        };
+
         // Update provided fields
-        if (data.status) {
-          const col = headers.indexOf('Status');
-          sheet.getRange(i + 1, col + 1).setValue(data.status);
-        }
-        if (data.weeksRemaining !== undefined) {
-          const col = headers.indexOf('Weeks_Remaining');
-          sheet.getRange(i + 1, col + 1).setValue(data.weeksRemaining);
-        }
-        if (data.swapCredits !== undefined) {
-          const col = headers.indexOf('Swap_Credits');
-          sheet.getRange(i + 1, col + 1).setValue(data.swapCredits);
-        }
-        if (data.paymentStatus) {
-          const col = headers.indexOf('Payment_Status');
-          sheet.getRange(i + 1, col + 1).setValue(data.paymentStatus);
-        }
+        if (data.status) updateField('Status', data.status);
+        if (data.weeksRemaining !== undefined) updateField('Weeks_Remaining', data.weeksRemaining);
+        if (data.swapCredits !== undefined) updateField('Swap_Credits', data.swapCredits);
+        if (data.paymentStatus) updateField('Payment_Status', data.paymentStatus);
+        if (data.vacationWeeksUsed !== undefined) updateField('Vacation_Weeks_Used', data.vacationWeeksUsed);
+        if (data.frequency) updateField('Frequency', data.frequency);
+        if (data.isOnboarded !== undefined) updateField('Is_Onboarded', data.isOnboarded);
+        if (data.lastPickupDate) updateField('Last_Pickup_Date', data.lastPickupDate);
+        if (data.nextPickupDate) updateField('Next_Pickup_Date', data.nextPickupDate);
+        if (data.preferences) updateField('Preferences', JSON.stringify(data.preferences));
+
+        // Always update Last_Modified
+        updateField('Last_Modified', new Date());
 
         return { success: true, message: 'CSA membership updated' };
       }
     }
 
     return { success: false, error: 'Member not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY WEBHOOK AUTO-ONBOARDING SYSTEM
+// Automatically processes CSA purchases from Shopify and onboards members
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Handles incoming Shopify webhooks for orders/create
+ * Automatically creates CSA members and sends welcome emails
+ */
+function handleShopifyWebhook(payload) {
+  try {
+    const results = {
+      orderId: null,
+      membersCreated: [],
+      errors: [],
+      welcomeEmailsSent: 0
+    };
+
+    // Extract order data
+    const order = payload.order || payload;
+    results.orderId = order.id || order.order_number || order.name;
+
+    // Get customer info
+    const customer = order.customer || {};
+    const shippingAddress = order.shipping_address || order.billing_address || {};
+
+    const customerEmail = customer.email || order.email || '';
+    const customerName = [customer.first_name, customer.last_name].filter(Boolean).join(' ')
+      || shippingAddress.name
+      || 'CSA Member';
+    const customerPhone = customer.phone || shippingAddress.phone || '';
+    const street = shippingAddress.address1 || '';
+    const city = shippingAddress.city || '';
+
+    if (!customerEmail) {
+      return { success: false, error: 'No customer email in order', orderId: results.orderId };
+    }
+
+    // Log webhook receipt
+    logWebhookEvent('shopify_order', results.orderId, customerEmail);
+
+    // Process each line item looking for CSA products
+    const lineItems = order.line_items || [];
+
+    for (const item of lineItems) {
+      const itemName = item.title || item.name || '';
+
+      // Check if this is a CSA product (contains CSA, Share, Fleurs, etc.)
+      if (!isCSAProduct(itemName)) {
+        continue;
+      }
+
+      try {
+        // Parse share type from item name
+        const shareInfo = parseShopifyShareType(itemName);
+
+        // Check for duplicate (same email + same share type)
+        if (csaMemberExists(customerEmail, shareInfo.type)) {
+          results.errors.push(`Duplicate: ${customerEmail} already has ${shareInfo.type} share`);
+          continue;
+        }
+
+        // Find or create customer
+        const customerId = findOrCreateCustomer({
+          name: customerName,
+          email: customerEmail,
+          phone: customerPhone,
+          address: street,
+          city: city,
+          type: 'CSA',
+          source: 'Shopify'
+        });
+
+        // Parse pickup location from order tags or notes
+        const stopLocation = extractStopLocation(order);
+        const pickupInfo = parsePickupLocation(stopLocation);
+
+        // Get season dates
+        const seasonDates = getSeasonDates(shareInfo.type, shareInfo.season);
+
+        // Create CSA member
+        const memberId = createCSAMemberFromShopify({
+          customerId: customerId,
+          shareInfo: shareInfo,
+          pickupInfo: pickupInfo,
+          seasonDates: seasonDates,
+          street: street,
+          city: city,
+          orderId: results.orderId,
+          quantity: item.quantity || 1,
+          price: parseFloat(item.price) || 0
+        });
+
+        results.membersCreated.push({
+          memberId: memberId,
+          email: customerEmail,
+          name: customerName,
+          shareType: shareInfo.type,
+          shareSize: shareInfo.size
+        });
+
+        // Send welcome email with magic link
+        try {
+          sendCSAWelcomeEmail({
+            customerId: customerId,
+            memberId: memberId,
+            email: customerEmail,
+            name: customerName,
+            shareInfo: shareInfo,
+            pickupInfo: pickupInfo,
+            seasonDates: seasonDates
+          });
+          results.welcomeEmailsSent++;
+        } catch (emailErr) {
+          results.errors.push(`Email failed for ${customerEmail}: ${emailErr.toString()}`);
+        }
+
+      } catch (itemErr) {
+        results.errors.push(`Item "${itemName}": ${itemErr.toString()}`);
+      }
+    }
+
+    return {
+      success: true,
+      results: results,
+      message: `Created ${results.membersCreated.length} member(s), sent ${results.welcomeEmailsSent} email(s)`
+    };
+
+  } catch (error) {
+    Logger.log('Shopify webhook error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Checks if a product name indicates a CSA product
+ */
+function isCSAProduct(itemName) {
+  if (!itemName) return false;
+  const name = itemName.toLowerCase();
+  return name.includes('csa') ||
+         name.includes('share') ||
+         name.includes('fleurs') ||
+         name.includes('bouquet') ||
+         (name.includes('20') && (name.includes('vegetable') || name.includes('flower')));
+}
+
+/**
+ * Checks if a CSA member already exists with email + share type
+ */
+function csaMemberExists(email, shareType) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const customersSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
+    const existing = getExistingCSAMembersByEmail(csaSheet, customersSheet);
+    const key = email.toLowerCase() + '|' + shareType;
+    return !!existing[key];
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Finds existing customer by email or creates new one
+ */
+function findOrCreateCustomer(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
+    // Search for existing customer
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+    const emailIdx = headers.indexOf('Email');
+    const idIdx = headers.indexOf('Customer_ID');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][emailIdx] && values[i][emailIdx].toString().toLowerCase() === data.email.toLowerCase()) {
+        return values[i][idIdx];
+      }
+    }
+
+    // Create new customer
+    return createCustomerFromShopify(data);
+  } catch (e) {
+    return createCustomerFromShopify(data);
+  }
+}
+
+/**
+ * Extracts stop/pickup location from Shopify order
+ */
+function extractStopLocation(order) {
+  // Check order tags
+  if (order.tags) {
+    const tagMatch = order.tags.match(/(Mt\.?\s*Lebanon|Squirrel\s*Hill|Bloomfield|Allison\s*Park)[^,]*/i);
+    if (tagMatch) return tagMatch[0];
+  }
+
+  // Check note attributes
+  if (order.note_attributes) {
+    for (const attr of order.note_attributes) {
+      if (attr.name && attr.name.toLowerCase().includes('pickup') ||
+          attr.name && attr.name.toLowerCase().includes('location')) {
+        return attr.value;
+      }
+    }
+  }
+
+  // Check order note
+  if (order.note) {
+    const noteMatch = order.note.match(/(Mt\.?\s*Lebanon|Squirrel\s*Hill|Bloomfield|Allison\s*Park)[^,\n]*/i);
+    if (noteMatch) return noteMatch[0];
+  }
+
+  // Check line item properties
+  if (order.line_items) {
+    for (const item of order.line_items) {
+      if (item.properties) {
+        for (const prop of item.properties) {
+          if (prop.name && (prop.name.toLowerCase().includes('pickup') ||
+              prop.name.toLowerCase().includes('location'))) {
+            return prop.value;
+          }
+        }
+      }
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Creates CSA member record from Shopify order data
+ */
+function createCSAMemberFromShopify(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+  const memberId = 'CSA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+  // Determine veg/floral codes from share type
+  let vegCode = 0;
+  let floralCode = 0;
+
+  if (data.shareInfo.type.includes('Flower') || data.shareInfo.type.includes('Floral')) {
+    floralCode = data.shareInfo.size === 'Large' || data.shareInfo.size === 'Full' ? 2 : 1;
+  } else if (data.shareInfo.type.includes('Vegetable') || data.shareInfo.type.includes('Summer') ||
+             data.shareInfo.type.includes('Spring') || data.shareInfo.type.includes('Fall')) {
+    vegCode = data.shareInfo.size === 'Large' || data.shareInfo.size === 'Family' ? 2 : 1;
+  } else if (data.shareInfo.type === 'Flex') {
+    vegCode = 1; // Flex gets standard veg
+  }
+
+  // Calculate weeks for biweekly
+  let totalWeeks = data.seasonDates.weeks;
+  if (data.shareInfo.frequency === 'Biweekly') {
+    totalWeeks = Math.ceil(totalWeeks / 2);
+  }
+
+  sheet.appendRow([
+    memberId,
+    data.customerId,
+    data.shareInfo.type,
+    data.shareInfo.size,
+    data.shareInfo.season,
+    data.seasonDates.start,
+    data.seasonDates.end,
+    totalWeeks,
+    totalWeeks,  // Weeks_Remaining
+    data.pickupInfo.day,
+    data.pickupInfo.location,
+    data.pickupInfo.isDelivery ? (data.street + ', ' + data.city) : '',
+    true,  // Customization_Allowed
+    3,     // Swap_Credits
+    0,     // Vacation_Weeks_Used
+    4,     // Vacation_Weeks_Max
+    'Active',
+    'Paid',
+    data.price * data.quantity,
+    data.shareInfo.frequency,
+    vegCode,
+    floralCode,
+    '{}',  // Preferences JSON
+    false, // Is_Onboarded
+    '',    // Last_Pickup_Date
+    '',    // Next_Pickup_Date
+    'Shopify Order ' + data.orderId,
+    new Date(),
+    new Date()
+  ]);
+
+  return memberId;
+}
+
+/**
+ * Sends welcome email to new CSA member with magic link
+ */
+function sendCSAWelcomeEmail(data) {
+  // Generate magic link token
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
+
+  const token = Utilities.getUuid();
+  const now = new Date();
+  const expires = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days for welcome email
+
+  // Store token
+  linkSheet.appendRow([
+    token, data.customerId, data.email, 'CSA',
+    now.toISOString(), expires.toISOString(), false, ''
+  ]);
+
+  // Build portal URL
+  const portalUrl = 'https://toddismyname21.github.io/tiny-seed-os/web_app/csa.html';
+  const magicLink = portalUrl + '?token=' + token + '&email=' + encodeURIComponent(data.email);
+
+  // Generate email HTML
+  const emailHtml = generateCSAWelcomeEmailHtml(data, magicLink);
+
+  // Send email
+  MailApp.sendEmail({
+    to: data.email,
+    subject: 'Welcome to Tiny Seed Farm CSA! Your Member Portal is Ready',
+    htmlBody: emailHtml,
+    replyTo: 'tinyseedfarm@gmail.com'
+  });
+
+  // Log email sent
+  logCSAEmailSent(data.memberId, 'welcome', data.email);
+
+  return { success: true, magicLink: magicLink };
+}
+
+/**
+ * Generates the welcome email HTML for new CSA members
+ */
+function generateCSAWelcomeEmailHtml(data, magicLink) {
+  const firstName = data.name.split(' ')[0];
+  const seasonYear = data.shareInfo.season || '2026';
+  const shareDescription = `${data.shareInfo.size} ${data.shareInfo.type} Share`;
+  const frequency = data.shareInfo.frequency === 'Biweekly' ? 'every other week' : 'weekly';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8faf8;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #166534 0%, #22c55e 100%); border-radius: 16px 16px 0 0; padding: 40px 30px; text-align: center;">
+      <div style="font-size: 48px; margin-bottom: 10px;">🌱</div>
+      <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700;">Welcome to Tiny Seed Farm!</h1>
+      <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your CSA membership is confirmed</p>
+    </div>
+
+    <!-- Main Content -->
+    <div style="background: white; padding: 40px 30px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+
+      <p style="font-size: 18px; color: #1c1917; margin: 0 0 20px 0;">Hi ${firstName},</p>
+
+      <p style="color: #57534e; line-height: 1.6; margin: 0 0 25px 0;">
+        Thank you for joining our farm family for the ${seasonYear} season! We're thrilled to have you as a CSA member and can't wait to share our freshest harvests with you.
+      </p>
+
+      <!-- Share Details Box -->
+      <div style="background: #f0fdf4; border-radius: 12px; padding: 25px; margin-bottom: 30px; border: 1px solid #bbf7d0;">
+        <h2 style="color: #166534; margin: 0 0 15px 0; font-size: 18px;">Your Share Details</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #57534e; width: 40%;">Share Type:</td>
+            <td style="padding: 8px 0; color: #1c1917; font-weight: 600;">${shareDescription}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #57534e;">Frequency:</td>
+            <td style="padding: 8px 0; color: #1c1917; font-weight: 600;">${data.shareInfo.frequency} (${frequency})</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #57534e;">Pickup Day:</td>
+            <td style="padding: 8px 0; color: #1c1917; font-weight: 600;">${data.pickupInfo.day || 'TBD'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #57534e;">Location:</td>
+            <td style="padding: 8px 0; color: #1c1917; font-weight: 600;">${data.pickupInfo.location || 'TBD'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #57534e;">Season:</td>
+            <td style="padding: 8px 0; color: #1c1917; font-weight: 600;">${data.seasonDates.start} to ${data.seasonDates.end}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- CTA Button -->
+      <div style="text-align: center; margin: 35px 0;">
+        <a href="${magicLink}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);">
+          Access Your Member Portal
+        </a>
+      </div>
+
+      <!-- Portal Features -->
+      <div style="background: #fafaf9; border-radius: 12px; padding: 25px; margin-bottom: 25px;">
+        <h3 style="color: #1c1917; margin: 0 0 15px 0; font-size: 16px;">In your portal you can:</h3>
+        <ul style="color: #57534e; margin: 0; padding-left: 20px; line-height: 1.8;">
+          <li>View what's in this week's box</li>
+          <li>Customize your box (swap items you don't want)</li>
+          <li>Schedule vacation holds</li>
+          <li>See your pickup history</li>
+          <li>Update your preferences</li>
+        </ul>
+      </div>
+
+      <p style="color: #57534e; line-height: 1.6; margin: 0 0 20px 0;">
+        Questions? Just reply to this email or give us a call. We're here to help!
+      </p>
+
+      <p style="color: #1c1917; margin: 0;">
+        See you at pickup!<br>
+        <strong>The Tiny Seed Farm Team</strong>
+      </p>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; padding: 30px 20px;">
+      <p style="color: #a8a29e; font-size: 14px; margin: 0 0 10px 0;">Tiny Seed Farm - "Sort of Cool"</p>
+      <p style="color: #a8a29e; font-size: 12px; margin: 0;">257 Zeigler Rd, Rochester, PA 15074</p>
+      <p style="color: #a8a29e; font-size: 12px; margin: 5px 0 0 0;">
+        <a href="${magicLink}" style="color: #22c55e;">Member Portal</a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
+  `;
+}
+
+/**
+ * Logs webhook events for debugging
+ */
+function logWebhookEvent(type, orderId, email) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('Webhook_Log');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('Webhook_Log');
+      sheet.appendRow(['Timestamp', 'Type', 'Order_ID', 'Email', 'Status']);
+    }
+
+    sheet.appendRow([new Date(), type, orderId, email, 'Received']);
+  } catch (e) {
+    Logger.log('Webhook log error: ' + e.toString());
+  }
+}
+
+/**
+ * Logs CSA emails sent
+ */
+function logCSAEmailSent(memberId, emailType, recipientEmail) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('CSA_Email_Log');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('CSA_Email_Log');
+      sheet.appendRow(['Timestamp', 'Member_ID', 'Email_Type', 'Recipient', 'Status']);
+    }
+
+    sheet.appendRow([new Date(), memberId, emailType, recipientEmail, 'Sent']);
+  } catch (e) {
+    Logger.log('Email log error: ' + e.toString());
+  }
+}
+
+/**
+ * Manual trigger to send welcome email to existing member
+ * Useful for re-sending if original failed
+ */
+function resendCSAWelcomeEmail(memberId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const custSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
+    // Find member
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    let member = null;
+
+    for (let i = 1; i < csaData.length; i++) {
+      if (csaData[i][0] === memberId) {
+        member = {};
+        csaHeaders.forEach((h, idx) => member[h] = csaData[i][idx]);
+        break;
+      }
+    }
+
+    if (!member) {
+      return { success: false, error: 'Member not found' };
+    }
+
+    // Find customer
+    const custData = custSheet.getDataRange().getValues();
+    const custHeaders = custData[0];
+    let customer = null;
+
+    for (let i = 1; i < custData.length; i++) {
+      if (custData[i][custHeaders.indexOf('Customer_ID')] === member.Customer_ID) {
+        customer = {};
+        custHeaders.forEach((h, idx) => customer[h] = custData[i][idx]);
+        break;
+      }
+    }
+
+    if (!customer) {
+      return { success: false, error: 'Customer not found' };
+    }
+
+    // Build data object and send
+    const emailData = {
+      customerId: customer.Customer_ID,
+      memberId: memberId,
+      email: customer.Email,
+      name: customer.Contact_Name,
+      shareInfo: {
+        type: member.Share_Type,
+        size: member.Share_Size,
+        season: member.Season,
+        frequency: member.Frequency || 'Weekly'
+      },
+      pickupInfo: {
+        day: member.Pickup_Day,
+        location: member.Pickup_Location,
+        isDelivery: !!member.Delivery_Address
+      },
+      seasonDates: {
+        start: member.Start_Date,
+        end: member.End_Date,
+        weeks: member.Total_Weeks
+      }
+    };
+
+    return sendCSAWelcomeEmail(emailData);
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSA WEEKLY ORDER GENERATION
+// Generates weekly CSA orders for all active members
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Determines if a biweekly member should receive a box on a given week
+ * Uses start date parity to determine A/B week groups
+ */
+function isMemberWeek(member, targetDate) {
+  const startDate = new Date(member.Start_Date || member.startDate);
+  const target = new Date(targetDate);
+
+  // Calculate weeks since member start
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weeksSinceStart = Math.floor((target - startDate) / msPerWeek);
+
+  // Even weeks = their pickup week
+  return weeksSinceStart >= 0 && weeksSinceStart % 2 === 0;
+}
+
+/**
+ * Checks if member has a vacation hold for a given week
+ * Parses Preferences JSON for vacation_dates array
+ */
+function hasVacationHold(member, weekDate) {
+  // Check if vacation weeks are exhausted
+  const vacationUsed = parseInt(member.Vacation_Weeks_Used || 0);
+  const vacationMax = parseInt(member.Vacation_Weeks_Max || 4);
+
+  if (vacationUsed >= vacationMax) return false;
+
+  // Check preferences for vacation dates
+  try {
+    const prefs = member.Preferences ? JSON.parse(member.Preferences) : {};
+    if (prefs.vacation_dates && Array.isArray(prefs.vacation_dates)) {
+      const target = new Date(weekDate);
+      const targetWeekStart = new Date(target);
+      targetWeekStart.setDate(target.getDate() - target.getDay());
+
+      return prefs.vacation_dates.some(dateStr => {
+        const vacDate = new Date(dateStr);
+        const vacWeekStart = new Date(vacDate);
+        vacWeekStart.setDate(vacDate.getDate() - vacDate.getDay());
+        return Math.abs(targetWeekStart - vacWeekStart) < 24 * 60 * 60 * 1000;
+      });
+    }
+  } catch (e) {
+    // Invalid JSON, no vacation hold
+  }
+
+  return false;
+}
+
+/**
+ * Schedules a vacation hold for a CSA member
+ * Adds the date to their preferences.vacation_dates array
+ */
+function scheduleVacationHold(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    const memberIdIdx = 0;
+    const vacUsedIdx = headers.indexOf('Vacation_Weeks_Used');
+    const vacMaxIdx = headers.indexOf('Vacation_Weeks_Max');
+    const prefsIdx = headers.indexOf('Preferences');
+    const modifiedIdx = headers.indexOf('Last_Modified');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][memberIdIdx] === data.memberId) {
+        const vacUsed = parseInt(values[i][vacUsedIdx] || 0);
+        const vacMax = parseInt(values[i][vacMaxIdx] || 4);
+
+        if (vacUsed >= vacMax) {
+          return { success: false, error: 'Maximum vacation weeks already used' };
+        }
+
+        // Parse existing preferences
+        let prefs = {};
+        try {
+          prefs = values[i][prefsIdx] ? JSON.parse(values[i][prefsIdx]) : {};
+        } catch (e) {
+          prefs = {};
+        }
+
+        // Initialize vacation_dates array if needed
+        if (!prefs.vacation_dates) {
+          prefs.vacation_dates = [];
+        }
+
+        // Check if date already scheduled
+        const newDate = new Date(data.weekDate);
+        const dateStr = Utilities.formatDate(newDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+        if (prefs.vacation_dates.includes(dateStr)) {
+          return { success: false, error: 'Vacation already scheduled for this week' };
+        }
+
+        // Add new vacation date
+        prefs.vacation_dates.push(dateStr);
+
+        // Update sheet
+        sheet.getRange(i + 1, prefsIdx + 1).setValue(JSON.stringify(prefs));
+        sheet.getRange(i + 1, vacUsedIdx + 1).setValue(vacUsed + 1);
+        if (modifiedIdx >= 0) {
+          sheet.getRange(i + 1, modifiedIdx + 1).setValue(new Date());
+        }
+
+        return {
+          success: true,
+          message: 'Vacation hold scheduled',
+          vacationWeeksUsed: vacUsed + 1,
+          vacationWeeksRemaining: vacMax - vacUsed - 1,
+          scheduledDates: prefs.vacation_dates
+        };
+      }
+    }
+
+    return { success: false, error: 'Member not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Cancels a vacation hold for a CSA member
+ */
+function cancelVacationHold(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    const memberIdIdx = 0;
+    const vacUsedIdx = headers.indexOf('Vacation_Weeks_Used');
+    const prefsIdx = headers.indexOf('Preferences');
+    const modifiedIdx = headers.indexOf('Last_Modified');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][memberIdIdx] === data.memberId) {
+        // Parse existing preferences
+        let prefs = {};
+        try {
+          prefs = values[i][prefsIdx] ? JSON.parse(values[i][prefsIdx]) : {};
+        } catch (e) {
+          prefs = {};
+        }
+
+        if (!prefs.vacation_dates || !prefs.vacation_dates.length) {
+          return { success: false, error: 'No vacation holds to cancel' };
+        }
+
+        // Find and remove the date
+        const dateStr = Utilities.formatDate(new Date(data.weekDate), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+        const idx = prefs.vacation_dates.indexOf(dateStr);
+
+        if (idx === -1) {
+          return { success: false, error: 'No vacation hold found for this date' };
+        }
+
+        prefs.vacation_dates.splice(idx, 1);
+
+        // Update sheet
+        const vacUsed = Math.max(0, parseInt(values[i][vacUsedIdx] || 1) - 1);
+        sheet.getRange(i + 1, prefsIdx + 1).setValue(JSON.stringify(prefs));
+        sheet.getRange(i + 1, vacUsedIdx + 1).setValue(vacUsed);
+        if (modifiedIdx >= 0) {
+          sheet.getRange(i + 1, modifiedIdx + 1).setValue(new Date());
+        }
+
+        return {
+          success: true,
+          message: 'Vacation hold cancelled',
+          vacationWeeksUsed: vacUsed,
+          scheduledDates: prefs.vacation_dates
+        };
+      }
+    }
+
+    return { success: false, error: 'Member not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Gets all vacation holds for a member
+ */
+function getVacationHolds(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    const memberIdIdx = 0;
+    const vacUsedIdx = headers.indexOf('Vacation_Weeks_Used');
+    const vacMaxIdx = headers.indexOf('Vacation_Weeks_Max');
+    const prefsIdx = headers.indexOf('Preferences');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][memberIdIdx] === params.memberId) {
+        const vacUsed = parseInt(values[i][vacUsedIdx] || 0);
+        const vacMax = parseInt(values[i][vacMaxIdx] || 4);
+
+        let prefs = {};
+        try {
+          prefs = values[i][prefsIdx] ? JSON.parse(values[i][prefsIdx]) : {};
+        } catch (e) {
+          prefs = {};
+        }
+
+        return {
+          success: true,
+          vacationWeeksUsed: vacUsed,
+          vacationWeeksMax: vacMax,
+          vacationWeeksRemaining: vacMax - vacUsed,
+          scheduledDates: prefs.vacation_dates || []
+        };
+      }
+    }
+
+    return { success: false, error: 'Member not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Gets the pickup date for a given member based on their pickup day
+ */
+function getPickupDateForMember(pickupDay, weekDate) {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const targetDayIndex = days.indexOf(pickupDay);
+  if (targetDayIndex === -1) return weekDate;
+
+  const weekStart = new Date(weekDate);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+  const pickupDate = new Date(weekStart);
+  pickupDate.setDate(weekStart.getDate() + targetDayIndex);
+
+  return pickupDate;
+}
+
+/**
+ * Gets the box contents for a specific share type and week
+ */
+function getBoxContentsForShareType(shareType, shareSize, weekDate) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_BOX_CONTENTS);
+
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const contents = [];
+    const targetWeek = new Date(weekDate);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      // Match week and share type
+      const rowWeek = new Date(row.Week_Date);
+      if (Math.abs(rowWeek - targetWeek) < 24 * 60 * 60 * 1000 &&
+          row.Share_Type === shareType) {
+        contents.push({
+          cropId: row.Crop_ID,
+          product: row.Product_Name,
+          variety: row.Variety,
+          quantity: row.Quantity,
+          unit: row.Unit
+        });
+      }
+    }
+
+    return contents;
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Main function: Generates weekly CSA orders for all active members
+ * Run via trigger on Sunday evening to prepare for pickup week
+ */
+function generateWeeklyCSAOrders(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const orderSheet = ss.getSheetByName('Master_Order_Log') || ss.getSheetByName(SALES_SHEETS.ORDERS);
+
+    if (!csaSheet || !orderSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    // Determine week date
+    const weekDate = params && params.weekDate ? new Date(params.weekDate) : new Date();
+    const weekStart = new Date(weekDate);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+    // Get all CSA members
+    const data = csaSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const results = {
+      weekDate: weekStart.toISOString().split('T')[0],
+      generated: 0,
+      skipped: 0,
+      vacationHolds: 0,
+      biweeklySkipped: 0,
+      orders: [],
+      errors: []
+    };
+
+    for (let i = 1; i < data.length; i++) {
+      const member = {};
+      headers.forEach((h, j) => member[h] = data[i][j]);
+
+      // Skip non-active members
+      if (member.Status !== 'Active') {
+        results.skipped++;
+        continue;
+      }
+
+      // Skip if season ended
+      const endDate = new Date(member.End_Date);
+      if (weekStart > endDate) {
+        results.skipped++;
+        continue;
+      }
+
+      // Skip if season hasn't started
+      const startDate = new Date(member.Start_Date);
+      if (weekStart < startDate) {
+        results.skipped++;
+        continue;
+      }
+
+      // Check vacation hold
+      if (hasVacationHold(member, weekStart)) {
+        results.vacationHolds++;
+        continue;
+      }
+
+      // Check biweekly schedule
+      const frequency = member.Frequency || 'Weekly';
+      if (frequency === 'Biweekly' && !isMemberWeek(member, weekStart)) {
+        results.biweeklySkipped++;
+        continue;
+      }
+
+      try {
+        // Generate order
+        const orderId = 'CSA-' + Utilities.formatDate(weekStart, 'America/New_York', 'yyyyMMdd') + '-' + i;
+        const pickupDate = getPickupDateForMember(member.Pickup_Day, weekStart);
+        const boxContents = getBoxContentsForShareType(member.Share_Type, member.Share_Size, weekStart);
+
+        const order = {
+          orderId: orderId,
+          orderDate: new Date(),
+          customerId: member.Customer_ID,
+          memberId: member.Member_ID,
+          orderType: 'CSA',
+          shareType: member.Share_Type,
+          shareSize: member.Share_Size,
+          deliveryDate: pickupDate,
+          pickupDay: member.Pickup_Day,
+          pickupLocation: member.Pickup_Location,
+          isDelivery: !!member.Delivery_Address,
+          deliveryAddress: member.Delivery_Address,
+          items: boxContents,
+          status: 'Pending',
+          vegCode: member.Veg_Code,
+          floralCode: member.Floral_Code
+        };
+
+        // Log to order sheet
+        orderSheet.appendRow([
+          orderId,
+          new Date(),
+          member.Customer_ID,
+          '', // Customer name - could lookup
+          'CSA',
+          pickupDate,
+          member.Pickup_Day,
+          member.Delivery_Address || member.Pickup_Location,
+          'Pending',
+          0, // Subtotal (CSA prepaid)
+          0, // Tax
+          0, // Delivery fee
+          0, // Total
+          'Prepaid', // Payment status
+          'CSA Membership', // Payment method
+          'Auto-generated CSA order for ' + member.Share_Type + ' ' + member.Share_Size,
+          'System',
+          'System',
+          new Date(),
+          new Date()
+        ]);
+
+        // Update member's last/next pickup dates
+        const lastPickupCol = headers.indexOf('Last_Pickup_Date');
+        const nextPickupCol = headers.indexOf('Next_Pickup_Date');
+        const weeksRemainingCol = headers.indexOf('Weeks_Remaining');
+        const lastModifiedCol = headers.indexOf('Last_Modified');
+
+        if (weeksRemainingCol >= 0) {
+          const remaining = parseInt(member.Weeks_Remaining || 0) - 1;
+          csaSheet.getRange(i + 1, weeksRemainingCol + 1).setValue(remaining);
+        }
+        if (lastPickupCol >= 0) {
+          csaSheet.getRange(i + 1, lastPickupCol + 1).setValue(pickupDate);
+        }
+        if (nextPickupCol >= 0) {
+          const nextPickup = new Date(pickupDate);
+          nextPickup.setDate(nextPickup.getDate() + (frequency === 'Biweekly' ? 14 : 7));
+          csaSheet.getRange(i + 1, nextPickupCol + 1).setValue(nextPickup);
+        }
+        if (lastModifiedCol >= 0) {
+          csaSheet.getRange(i + 1, lastModifiedCol + 1).setValue(new Date());
+        }
+
+        results.generated++;
+        results.orders.push(order);
+
+      } catch (memberError) {
+        results.errors.push('Member ' + member.Member_ID + ': ' + memberError.toString());
+      }
+    }
+
+    return { success: true, results: results };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Gets CSA metrics for dashboard display
+ */
+function getCSAMetrics(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+    if (!csaSheet) {
+      return { success: false, error: 'CSA Members sheet not found' };
+    }
+
+    const data = csaSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const metrics = {
+      totalMembers: 0,
+      activeMembers: 0,
+      byShareType: {},
+      byShareSize: {},
+      byLocation: {},
+      byPickupDay: {},
+      byFrequency: { Weekly: 0, Biweekly: 0 },
+      thisWeek: {
+        totalPickups: 0,
+        vacationHolds: 0,
+        byDay: {}
+      },
+      needsAttention: {
+        unpaid: 0,
+        notOnboarded: 0,
+        lowWeeksRemaining: 0
+      },
+      revenue: {
+        totalPaid: 0,
+        pending: 0
+      }
+    };
+
+    const thisWeekStart = new Date();
+    thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
+
+    for (let i = 1; i < data.length; i++) {
+      const member = {};
+      headers.forEach((h, j) => member[h] = data[i][j]);
+
+      metrics.totalMembers++;
+
+      // Active members
+      if (member.Status === 'Active') {
+        metrics.activeMembers++;
+
+        // By share type
+        const shareType = member.Share_Type || 'Unknown';
+        metrics.byShareType[shareType] = (metrics.byShareType[shareType] || 0) + 1;
+
+        // By share size
+        const shareSize = member.Share_Size || 'Regular';
+        metrics.byShareSize[shareSize] = (metrics.byShareSize[shareSize] || 0) + 1;
+
+        // By location
+        const location = member.Pickup_Location || 'Unknown';
+        metrics.byLocation[location] = (metrics.byLocation[location] || 0) + 1;
+
+        // By pickup day
+        const pickupDay = member.Pickup_Day || 'Unknown';
+        metrics.byPickupDay[pickupDay] = (metrics.byPickupDay[pickupDay] || 0) + 1;
+
+        // By frequency
+        const frequency = member.Frequency || 'Weekly';
+        metrics.byFrequency[frequency] = (metrics.byFrequency[frequency] || 0) + 1;
+
+        // This week's pickups
+        const freq = member.Frequency || 'Weekly';
+        if (freq === 'Weekly' || isMemberWeek(member, thisWeekStart)) {
+          if (!hasVacationHold(member, thisWeekStart)) {
+            metrics.thisWeek.totalPickups++;
+            metrics.thisWeek.byDay[pickupDay] = (metrics.thisWeek.byDay[pickupDay] || 0) + 1;
+          } else {
+            metrics.thisWeek.vacationHolds++;
+          }
+        }
+
+        // Needs attention
+        if (member.Payment_Status !== 'Paid') metrics.needsAttention.unpaid++;
+        if (member.Is_Onboarded === false || member.Is_Onboarded === 'FALSE') {
+          metrics.needsAttention.notOnboarded++;
+        }
+        if (parseInt(member.Weeks_Remaining || 0) <= 2) {
+          metrics.needsAttention.lowWeeksRemaining++;
+        }
+      }
+
+      // Revenue tracking
+      const amountPaid = parseFloat(member.Amount_Paid || 0);
+      if (member.Payment_Status === 'Paid') {
+        metrics.revenue.totalPaid += amountPaid;
+      } else {
+        metrics.revenue.pending += amountPaid;
+      }
+    }
+
+    return { success: true, metrics: metrics };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Tests CSA weekly order generation
+ */
+function testWeeklyCSAOrders() {
+  // Test with current week
+  const result = generateWeeklyCSAOrders({});
+  Logger.log('Weekly CSA Order Generation Test:');
+  Logger.log(JSON.stringify(result, null, 2));
+
+  // Test metrics
+  const metrics = getCSAMetrics({});
+  Logger.log('CSA Metrics:');
+  Logger.log(JSON.stringify(metrics, null, 2));
+
+  return { orderResult: result, metricsResult: metrics };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSA PICKUP LOCATION MANAGEMENT
+// Manage pickup locations and member assignments
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Gets all pickup locations
+ */
+function getCSAPickupLocations(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PICKUP_LOCATIONS);
+
+    if (!sheet) {
+      return { success: false, error: 'Pickup Locations sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const locations = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const loc = {};
+      headers.forEach((h, j) => loc[h] = data[i][j]);
+
+      // Apply filters
+      if (params && params.day && loc.Day !== params.day) continue;
+      if (params && params.activeOnly && loc.Is_Active === false) continue;
+
+      locations.push(loc);
+    }
+
+    return { success: true, locations: locations };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Creates a new pickup location
+ */
+function createCSAPickupLocation(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PICKUP_LOCATIONS);
+
+    if (!sheet) {
+      return { success: false, error: 'Pickup Locations sheet not found' };
+    }
+
+    const locationId = 'LOC-' + Date.now();
+
+    sheet.appendRow([
+      locationId,
+      data.locationName,
+      data.address || '',
+      data.city || '',
+      data.day || 'Wednesday',
+      data.timeStart || '16:00',
+      data.timeEnd || '18:00',
+      data.isDeliveryZone || false,
+      data.maxCapacity || 50,
+      0, // Current members starts at 0
+      data.hostName || '',
+      data.hostPhone || '',
+      data.notes || '',
+      true // Is_Active
+    ]);
+
+    return { success: true, locationId: locationId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Gets location by name
+ */
+function getLocationByName(locationName) {
+  const result = getCSAPickupLocations({});
+  if (!result.success) return null;
+
+  return result.locations.find(loc =>
+    loc.Location_Name.toLowerCase() === locationName.toLowerCase()
+  ) || null;
+}
+
+/**
+ * Assigns a member to a pickup location
+ * Updates both member record and location count
+ */
+function assignPickupLocation(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const locSheet = ss.getSheetByName(SALES_SHEETS.CSA_PICKUP_LOCATIONS);
+
+    if (!csaSheet || !locSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    const { memberId, locationName } = params;
+
+    // Find the location
+    const locData = locSheet.getDataRange().getValues();
+    const locHeaders = locData[0];
+    let locationRow = -1;
+    let location = null;
+
+    for (let i = 1; i < locData.length; i++) {
+      const loc = {};
+      locHeaders.forEach((h, j) => loc[h] = locData[i][j]);
+      if (loc.Location_Name === locationName) {
+        locationRow = i;
+        location = loc;
+        break;
+      }
+    }
+
+    if (!location) {
+      return { success: false, error: 'Location not found: ' + locationName };
+    }
+
+    // Check capacity
+    if (location.Current_Members >= location.Max_Capacity) {
+      return { success: false, error: 'Location at capacity', location: location };
+    }
+
+    // Find the member
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    let memberRow = -1;
+    let oldLocation = '';
+
+    for (let i = 1; i < csaData.length; i++) {
+      if (csaData[i][0] === memberId) {
+        memberRow = i;
+        const locCol = csaHeaders.indexOf('Pickup_Location');
+        oldLocation = csaData[i][locCol];
+        break;
+      }
+    }
+
+    if (memberRow === -1) {
+      return { success: false, error: 'Member not found: ' + memberId };
+    }
+
+    // Update member's location and day
+    const locCol = csaHeaders.indexOf('Pickup_Location');
+    const dayCol = csaHeaders.indexOf('Pickup_Day');
+    const modCol = csaHeaders.indexOf('Last_Modified');
+
+    csaSheet.getRange(memberRow + 1, locCol + 1).setValue(location.Location_Name);
+    csaSheet.getRange(memberRow + 1, dayCol + 1).setValue(location.Day);
+    if (modCol >= 0) csaSheet.getRange(memberRow + 1, modCol + 1).setValue(new Date());
+
+    // Update new location count
+    const currentCol = locHeaders.indexOf('Current_Members');
+    locSheet.getRange(locationRow + 1, currentCol + 1).setValue(location.Current_Members + 1);
+
+    // Decrement old location count if different
+    if (oldLocation && oldLocation !== locationName) {
+      for (let i = 1; i < locData.length; i++) {
+        if (locData[i][locHeaders.indexOf('Location_Name')] === oldLocation) {
+          const oldCount = locData[i][currentCol];
+          locSheet.getRange(i + 1, currentCol + 1).setValue(Math.max(0, oldCount - 1));
+          break;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Location assigned',
+      location: location,
+      member: memberId
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Recalculates member counts for all locations
+ */
+function recalculateLocationCounts() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const locSheet = ss.getSheetByName(SALES_SHEETS.CSA_PICKUP_LOCATIONS);
+
+    if (!csaSheet || !locSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    // Count members by location
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    const locCol = csaHeaders.indexOf('Pickup_Location');
+    const statusCol = csaHeaders.indexOf('Status');
+
+    const counts = {};
+    for (let i = 1; i < csaData.length; i++) {
+      if (csaData[i][statusCol] === 'Active') {
+        const loc = csaData[i][locCol];
+        if (loc) counts[loc] = (counts[loc] || 0) + 1;
+      }
+    }
+
+    // Update location counts
+    const locData = locSheet.getDataRange().getValues();
+    const locHeaders = locData[0];
+    const nameCol = locHeaders.indexOf('Location_Name');
+    const currentCol = locHeaders.indexOf('Current_Members');
+
+    for (let i = 1; i < locData.length; i++) {
+      const locName = locData[i][nameCol];
+      const newCount = counts[locName] || 0;
+      locSheet.getRange(i + 1, currentCol + 1).setValue(newCount);
+    }
+
+    return { success: true, counts: counts };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSA PRODUCTS MANAGEMENT
+// Sync CSA products with Shopify
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Gets all CSA products
+ */
+function getCSAProducts(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PRODUCTS);
+
+    if (!sheet) {
+      return { success: false, error: 'CSA Products sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const products = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const prod = {};
+      headers.forEach((h, j) => prod[h] = data[i][j]);
+
+      // Apply filters
+      if (params && params.category && prod.Category !== params.category) continue;
+      if (params && params.season && prod.Season !== params.season) continue;
+      if (params && params.activeOnly && !prod.Is_Active) continue;
+
+      products.push(prod);
+    }
+
+    return { success: true, products: products };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Creates or updates a CSA product
+ */
+function upsertCSAProduct(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PRODUCTS);
+
+    if (!sheet) {
+      return { success: false, error: 'CSA Products sheet not found' };
+    }
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    // Check if product exists (by Shopify ID or name)
+    let existingRow = -1;
+    for (let i = 1; i < values.length; i++) {
+      if (data.shopifyProductId && values[i][headers.indexOf('Shopify_Product_ID')] === data.shopifyProductId) {
+        existingRow = i;
+        break;
+      }
+      if (data.productName && values[i][headers.indexOf('Product_Name')] === data.productName) {
+        existingRow = i;
+        break;
+      }
+    }
+
+    if (existingRow >= 0) {
+      // Update existing
+      const updateField = (fieldName, value) => {
+        const col = headers.indexOf(fieldName);
+        if (col >= 0 && value !== undefined) {
+          sheet.getRange(existingRow + 1, col + 1).setValue(value);
+        }
+      };
+
+      if (data.price !== undefined) updateField('Price', data.price);
+      if (data.isActive !== undefined) updateField('Is_Active', data.isActive);
+      if (data.currentMembers !== undefined) updateField('Current_Members', data.currentMembers);
+      if (data.maxMembers !== undefined) updateField('Max_Members', data.maxMembers);
+
+      return { success: true, action: 'updated', productId: values[existingRow][0] };
+    } else {
+      // Create new
+      const productId = 'CSAP-' + Date.now();
+      sheet.appendRow([
+        productId,
+        data.productName,
+        data.shopifyProductId || '',
+        data.category || 'Vegetable',
+        data.size || 'Regular',
+        data.season || 'Summer',
+        data.frequency || 'Weekly',
+        data.price || 0,
+        data.vegCode || 1,
+        data.floralCode || 0,
+        data.startDate || '',
+        data.endDate || '',
+        data.totalWeeks || 20,
+        data.maxMembers || 100,
+        0, // Current members
+        true, // Is_Active
+        data.description || ''
+      ]);
+
+      return { success: true, action: 'created', productId: productId };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Syncs CSA products from Shopify
+ * Should be called periodically to keep products in sync
+ */
+function syncCSAProductsFromShopify(shopifyProducts) {
+  try {
+    const results = { synced: 0, errors: [] };
+
+    // Default products if no Shopify data provided
+    const defaultProducts = [
+      { productName: '2026 Small Summer CSA Share (BIWEEKLY)', category: 'Summer Vegetable', size: 'Small', frequency: 'Biweekly', vegCode: 1, price: 400 },
+      { productName: '2026 Friends and Family Summer CSA Share (BIWEEKLY)', category: 'Summer Vegetable', size: 'Large', frequency: 'Biweekly', vegCode: 2, price: 700 },
+      { productName: '2026 SPRING CSA SHARE (LIMITED QUANTITIES)', category: 'Spring Vegetable', size: 'Regular', frequency: 'Weekly', vegCode: 1, price: 300 },
+      { productName: '2026 Tiny Seed Fleurs Petite Bloom Bouquet Share (BIWEEKLY)', category: 'Flower', size: 'Small', frequency: 'Biweekly', floralCode: 1, price: 200 },
+      { productName: '2026 Tiny Seed Fleurs Full Bloom Bouquet Share (BIWEEKLY)', category: 'Flower', size: 'Large', frequency: 'Biweekly', floralCode: 2, price: 350 },
+      { productName: '2026 Flex CSA Share ($150)', category: 'Flex', size: 'Small', frequency: 'Flex', vegCode: 1, price: 150 },
+      { productName: '2026 Flex CSA Share ($300)', category: 'Flex', size: 'Regular', frequency: 'Flex', vegCode: 1, price: 300 }
+    ];
+
+    const products = shopifyProducts && shopifyProducts.length > 0 ? shopifyProducts : defaultProducts;
+
+    for (const prod of products) {
+      try {
+        const result = upsertCSAProduct(prod);
+        if (result.success) {
+          results.synced++;
+        } else {
+          results.errors.push(prod.productName + ': ' + result.error);
+        }
+      } catch (e) {
+        results.errors.push(prod.productName + ': ' + e.toString());
+      }
+    }
+
+    return { success: true, results: results };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Recalculates member counts for all products
+ */
+function recalculateProductCounts() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const prodSheet = ss.getSheetByName(SALES_SHEETS.CSA_PRODUCTS);
+
+    if (!csaSheet || !prodSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    // Count members by share type + size
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    const typeCol = csaHeaders.indexOf('Share_Type');
+    const sizeCol = csaHeaders.indexOf('Share_Size');
+    const statusCol = csaHeaders.indexOf('Status');
+
+    const counts = {};
+    for (let i = 1; i < csaData.length; i++) {
+      if (csaData[i][statusCol] === 'Active') {
+        const key = csaData[i][typeCol] + '|' + csaData[i][sizeCol];
+        counts[key] = (counts[key] || 0) + 1;
+      }
+    }
+
+    // Update product counts
+    const prodData = prodSheet.getDataRange().getValues();
+    const prodHeaders = prodData[0];
+    const catCol = prodHeaders.indexOf('Category');
+    const pSizeCol = prodHeaders.indexOf('Size');
+    const currentCol = prodHeaders.indexOf('Current_Members');
+
+    for (let i = 1; i < prodData.length; i++) {
+      const key = prodData[i][catCol] + '|' + prodData[i][pSizeCol];
+      const newCount = counts[key] || 0;
+      prodSheet.getRange(i + 1, currentCol + 1).setValue(newCount);
+    }
+
+    return { success: true, counts: counts };
   } catch (error) {
     return { success: false, error: error.toString() };
   }

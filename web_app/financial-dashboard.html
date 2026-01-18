@@ -976,24 +976,24 @@
         <div id="tab-overview" class="tab-content active">
             <!-- Net Worth Display -->
             <div class="net-worth-display">
-                <div class="net-worth-amount positive" id="total-net-worth">$127,450</div>
+                <div class="net-worth-amount positive" id="total-net-worth">Loading...</div>
                 <div class="net-worth-label">Total Net Worth</div>
                 <div class="net-worth-breakdown">
                     <div class="breakdown-item">
                         <div class="label">Total Assets</div>
-                        <div class="value positive" id="total-assets">$189,200</div>
+                        <div class="value positive" id="total-assets">--</div>
                     </div>
                     <div class="breakdown-item">
                         <div class="label">Total Debt</div>
-                        <div class="value negative" id="total-debt">-$61,750</div>
+                        <div class="value negative" id="total-debt">--</div>
                     </div>
                     <div class="breakdown-item">
                         <div class="label">Monthly Income</div>
-                        <div class="value positive" id="monthly-income">$12,400</div>
+                        <div class="value positive" id="monthly-income">--</div>
                     </div>
                     <div class="breakdown-item">
                         <div class="label">Monthly Expenses</div>
-                        <div class="value negative" id="monthly-expenses">-$8,200</div>
+                        <div class="value negative" id="monthly-expenses">--</div>
                     </div>
                 </div>
             </div>
@@ -1004,7 +1004,7 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Emergency Fund</div>
-                            <div class="stat-value" id="emergency-fund">$24,600</div>
+                            <div class="stat-value" id="emergency-fund">--</div>
                         </div>
                         <div class="stat-icon green">
                             <i class="fas fa-shield-alt"></i>
@@ -1025,7 +1025,7 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Investment Portfolio</div>
-                            <div class="stat-value" id="investment-total">$47,250</div>
+                            <div class="stat-value" id="investment-total">--</div>
                         </div>
                         <div class="stat-icon gold">
                             <i class="fas fa-chart-line"></i>
@@ -1041,7 +1041,7 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Total Debt Remaining</div>
-                            <div class="stat-value" id="debt-remaining">$61,750</div>
+                            <div class="stat-value" id="debt-remaining">--</div>
                         </div>
                         <div class="stat-icon red">
                             <i class="fas fa-fire"></i>
@@ -3221,12 +3221,26 @@
             try {
                 const accounts = await fetchFromSheet('getPlaidAccounts');
 
-                if (accounts && accounts.success && accounts.accounts) {
+                if (accounts && accounts.success && accounts.accounts && accounts.accounts.length > 0) {
                     displayPlaidAccounts(accounts.accounts);
+                } else {
+                    // No accounts connected - show placeholder message
+                    showNoAccountsMessage();
                 }
             } catch (error) {
                 console.error('Failed to load accounts:', error);
+                showNoAccountsMessage();
             }
+        }
+
+        function showNoAccountsMessage() {
+            const netWorthEl = document.getElementById('total-net-worth');
+            const assetsEl = document.getElementById('total-assets');
+            const debtEl = document.getElementById('total-debt');
+
+            if (netWorthEl) netWorthEl.textContent = 'Connect bank accounts';
+            if (assetsEl) assetsEl.textContent = '--';
+            if (debtEl) debtEl.textContent = '--';
         }
 
         function displayPlaidAccounts(accounts) {
@@ -3279,6 +3293,97 @@
                     </div>
                 `;
                 connectedSection.appendChild(accountDiv);
+            });
+
+            // Calculate and update financial totals
+            updateFinancialTotals(accounts);
+        }
+
+        function updateFinancialTotals(accounts) {
+            if (!accounts || accounts.length === 0) {
+                return;
+            }
+
+            // Categorize accounts and calculate totals
+            let totalAssets = 0;
+            let totalDebt = 0;
+            let emergencyFund = 0;
+            let investmentTotal = 0;
+
+            accounts.forEach(account => {
+                const balance = account.balance_current || 0;
+                const subtype = (account.subtype || '').toLowerCase();
+                const type = (account.type || '').toLowerCase();
+
+                // Assets: checking, savings, investment, money market, CD
+                if (subtype === 'checking' || subtype === 'savings' ||
+                    subtype === 'money market' || subtype === 'cd' ||
+                    type === 'depository') {
+                    totalAssets += balance;
+
+                    // Emergency fund = savings accounts
+                    if (subtype === 'savings' || subtype === 'money market') {
+                        emergencyFund += balance;
+                    }
+                }
+
+                // Investments
+                if (type === 'investment' || subtype === 'investment' ||
+                    subtype === 'brokerage' || subtype === '401k' || subtype === 'ira') {
+                    totalAssets += balance;
+                    investmentTotal += balance;
+                }
+
+                // Debt: credit cards, loans, mortgages
+                if (subtype === 'credit card' || type === 'credit' ||
+                    type === 'loan' || subtype === 'loan' ||
+                    subtype === 'mortgage' || subtype === 'student') {
+                    totalDebt += Math.abs(balance);
+                }
+            });
+
+            const netWorth = totalAssets - totalDebt;
+
+            // Update the UI
+            const netWorthEl = document.getElementById('total-net-worth');
+            const assetsEl = document.getElementById('total-assets');
+            const debtEl = document.getElementById('total-debt');
+            const emergencyEl = document.getElementById('emergency-fund');
+            const investmentEl = document.getElementById('investment-total');
+            const debtRemainingEl = document.getElementById('debt-remaining');
+
+            if (netWorthEl) {
+                netWorthEl.textContent = '$' + netWorth.toLocaleString();
+                netWorthEl.classList.remove('positive', 'negative');
+                netWorthEl.classList.add(netWorth >= 0 ? 'positive' : 'negative');
+            }
+
+            if (assetsEl) {
+                assetsEl.textContent = '$' + totalAssets.toLocaleString();
+            }
+
+            if (debtEl) {
+                debtEl.textContent = totalDebt > 0 ? '-$' + totalDebt.toLocaleString() : '$0';
+            }
+
+            if (emergencyEl) {
+                emergencyEl.textContent = '$' + emergencyFund.toLocaleString();
+            }
+
+            if (investmentEl) {
+                investmentEl.textContent = '$' + investmentTotal.toLocaleString();
+            }
+
+            if (debtRemainingEl) {
+                debtRemainingEl.textContent = '$' + totalDebt.toLocaleString();
+            }
+
+            console.log('Financial totals updated:', {
+                totalAssets,
+                totalDebt,
+                netWorth,
+                emergencyFund,
+                investmentTotal
             });
         }
 

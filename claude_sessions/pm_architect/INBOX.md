@@ -1,7 +1,179 @@
 # INBOX: PM_Architect
 ## Incoming Requests & Assignments
 
-**Last Checked:** 2026-01-17
+**Last Checked:** 2026-01-18
+
+---
+
+## SALES_CRM: CSA DATA INTEGRATION COMPLETE
+**Date:** 2026-01-18
+**Priority:** HIGHEST - MISSION COMPLETE
+**From:** Sales_CRM Claude
+**Status:** DEPLOYED v214
+
+---
+
+### MISSION: CSA Member Data Integration
+
+> Ensure CSA member data flows correctly between Shopify → Customer_Bridge → SALES_Customers → CSA_Members → Weekly Orders
+
+**DELIVERED: Full CSA data integration with weekly order generation, biweekly scheduling, pickup location management, and metrics dashboard.**
+
+---
+
+### WHAT WAS BUILT (~600 lines new code)
+
+#### 1. Sheet Structure Alignment
+**CSA_Members sheet expanded from 19 → 30 columns:**
+```
+NEW COLUMNS:
+- Vacation_Weeks_Max    (default: 4)
+- Frequency             (Weekly/Biweekly)
+- Veg_Code              (0, 1, 2)
+- Floral_Code           (0, 1, 2)
+- Preferences           (JSON: dislikes, allergies, vacation_dates)
+- Is_Onboarded          (Boolean)
+- Last_Pickup_Date
+- Next_Pickup_Date
+- Shopify_Order_ID
+- Created_Date
+- Last_Modified
+```
+
+**New Sheets Created:**
+- `CSA_Pickup_Locations` - 14 columns for location management
+- `CSA_Products` - 17 columns for product catalog
+
+#### 2. Weekly Order Generation
+| Function | Purpose |
+|----------|---------|
+| `generateWeeklyCSAOrders()` | Creates orders for all active members |
+| `isMemberWeek()` | Biweekly A/B week scheduling logic |
+| `hasVacationHold()` | Vacation hold detection from Preferences JSON |
+| `getPickupDateForMember()` | Calculates pickup date from member's day |
+| `getBoxContentsForShareType()` | Gets box contents for the week |
+
+**Order Generation Logic:**
+```
+1. Run via trigger on Sunday evening
+2. For each active CSA member:
+   - Check season dates (skip if not started or ended)
+   - Check vacation holds
+   - Check biweekly schedule (A/B week logic)
+   - If due: create order in Master_Order_Log
+3. Auto-update member's:
+   - Weeks_Remaining (decrement)
+   - Last_Pickup_Date
+   - Next_Pickup_Date
+   - Last_Modified
+```
+
+#### 3. CSA Metrics Dashboard
+`getCSAMetrics()` returns comprehensive data:
+```javascript
+{
+  totalMembers, activeMembers,
+  byShareType: { Vegetable, Flower, Flex },
+  byShareSize: { Small, Regular, Large },
+  byLocation: { "Location Name": count },
+  byPickupDay: { Tuesday, Wednesday, Saturday },
+  byFrequency: { Weekly, Biweekly },
+  thisWeek: { totalPickups, vacationHolds, byDay },
+  needsAttention: { unpaid, notOnboarded, lowWeeksRemaining },
+  revenue: { totalPaid, pending }
+}
+```
+
+#### 4. Pickup Location Management
+| Function | Purpose |
+|----------|---------|
+| `getCSAPickupLocations()` | Get all locations with filters |
+| `createCSAPickupLocation()` | Create new location |
+| `assignPickupLocation()` | Assign member to location with capacity check |
+| `recalculateLocationCounts()` | Recalculate all location counts |
+
+#### 5. CSA Products Sync
+| Function | Purpose |
+|----------|---------|
+| `getCSAProducts()` | Get all products |
+| `upsertCSAProduct()` | Create or update product |
+| `syncCSAProductsFromShopify()` | Sync from Shopify (with 7 defaults pre-loaded) |
+| `recalculateProductCounts()` | Recalculate member counts per product |
+
+---
+
+### DEPLOYMENT STATUS
+
+| Component | Status |
+|-----------|--------|
+| Apps Script | **v214** via clasp push |
+| CSA_Members (30 cols) | Sheet columns defined |
+| CSA_Pickup_Locations | Sheet defined |
+| CSA_Products | Sheet defined |
+| 15 new functions | DEPLOYED |
+
+---
+
+### DATA FLOW (IMPLEMENTED)
+
+```
+SHOPIFY ORDER
+     │
+     v
+[importShopifyCSAMembers()]
+     │
+     ├──> SALES_Customers (create/update)
+     │
+     └──> CSA_Members (all 30 fields)
+           │
+           v
+WEEKLY TRIGGER (Sunday)
+           │
+           v
+[generateWeeklyCSAOrders()]
+           │
+           ├──> hasVacationHold() check
+           ├──> isMemberWeek() check
+           └──> Create order → Master_Order_Log
+                    │
+                    ├──> Pick/Pack sheets
+                    └──> Delivery routes
+```
+
+---
+
+### NEXT STEPS FOR OWNER
+
+1. **Run `initializeSalesAndFleetModule()`** to create the new sheets
+2. **Set up weekly trigger:**
+   - Function: `generateWeeklyCSAOrders`
+   - Event: Time-driven > Week timer > Sunday 6-7pm
+3. **Add pickup locations** via `createCSAPickupLocation()`
+4. **Run `syncCSAProductsFromShopify()`** to populate default products
+
+---
+
+### TEST FUNCTIONS
+
+```javascript
+testWeeklyCSAOrders()      // Test order generation + metrics
+getCSAMetrics({})           // Check dashboard data
+getCSAPickupLocations({})   // Verify locations
+getCSAProducts({})          // Verify products
+```
+
+---
+
+### COORDINATION
+
+- **Backend Claude:** Webhook integration ready for Shopify orders
+- **UX Claude:** `getCSAMetrics()` provides dashboard data
+- **Full documentation:** `/claude_sessions/sales_crm/OUTBOX.md`
+
+---
+
+*Sales_CRM Claude - CSA Data Integration Complete*
+*Ready for weekly order trigger setup*
 
 ---
 
