@@ -1,186 +1,175 @@
 # OUTBOX: Business_Foundation Claude
 ## To: PM_Architect & Owner
 
-**Updated:** 2026-01-16 (Overnight Session Complete)
+**Updated:** 2026-01-17
 
 ---
 
-## STATUS: OVERNIGHT MISSION COMPLETE
+## STATUS: SESSION COMPLETE - TWO MAJOR DELIVERABLES
 
-All deliverables from the overnight assignment are ready.
+### 1. Overnight Lease Mission: COMPLETE
+### 2. Collections Action for Alberta's Food Group: COMPLETE (NEW)
 
 ---
 
-## OVERNIGHT DELIVERABLES
+## SESSION SUMMARY
 
-### Research Completed
+| Task | Status | Files Created |
+|------|--------|---------------|
+| Market rate research | COMPLETE | Incorporated in proposals |
+| Land succession research | COMPLETE | Incorporated in proposals |
+| Land trust research | COMPLETE | Incorporated in proposals |
+| Proposal A (Conservative) | COMPLETE | `proposals/PROPOSAL_A_CONSERVATIVE.md` |
+| Proposal B (Collaborative) | COMPLETE | `proposals/PROPOSAL_B_COLLABORATIVE.md` |
+| Proposal C (Land Trust) | COMPLETE | `proposals/PROPOSAL_C_LAND_TRUST.md` |
+| Morning Reading List | COMPLETE | `MORNING_READING_LIST.md` |
+| Alberta's Collection Action | COMPLETE | `collections/` folder |
+
+---
+
+## DELIVERABLE 1: LEASE PROPOSALS
+
+### Three Distinct Proposals Ready
+
+| Proposal | Approach | Term | Key Feature |
+|----------|----------|------|-------------|
+| **A: Conservative** | Maximum legal protection | 10 years | 24-month termination notice |
+| **B: Collaborative** | Partnership model | 5 years | Rent-to-own equipment path |
+| **C: Land Trust** | 99-year equitable lease | 3 yrs → 99 yrs | Matches Don's stated vision |
+
+### Research Findings
 
 | Topic | Key Finding |
 |-------|-------------|
-| **Market Rates** | Todd pays $500/acre vs PA average $108/acre - premium but includes infrastructure |
-| **Land Succession** | Land For Good offers free coaching; non-family succession is increasing |
-| **Land Trusts** | Agrarian Trust 99-year lease model matches Don's stated vision |
-| **Tax Benefits** | Don could deduct 100% of income for 15 years via conservation easement |
+| **Market Rates** | Todd pays $500/acre vs PA avg $108 - premium but includes infrastructure |
+| **Land Succession** | Land For Good offers free coaching; non-family transfers increasing |
+| **Land Trusts** | Agrarian Commons 99-year model matches Don's public commitment |
+| **Tax Benefits** | Don could save $500K+ via conservation easement deduction |
 
-### Three Proposals Created
-
-| Proposal | File | Philosophy |
-|----------|------|------------|
-| **A: Conservative** | `proposals/PROPOSAL_A_CONSERVATIVE.md` | Maximum legal protection, 10-year term |
-| **B: Collaborative** | `proposals/PROPOSAL_B_COLLABORATIVE.md` | Partnership approach, rent-to-own path |
-| **C: Land Trust** | `proposals/PROPOSAL_C_LAND_TRUST.md` | 99-year equitable lease via land trust |
-
-### Morning Reading List
-
-**Location:** `/business_docs/lease/MORNING_READING_LIST.md`
-
-Includes:
-- Summary of all research findings
-- Comparison of three proposals
-- My recommendation (B → C path)
-- Key talking points for Don conversation
-- Resource links
-- Next steps checklist
+### Recommendation
+**Start with Proposal B, work toward Proposal C.** Preserves relationship while building toward the land trust structure Don publicly promised.
 
 ---
 
-## RECOMMENDATION
+## DELIVERABLE 2: ALBERTA'S FOOD GROUP COLLECTION
 
-**Start with Proposal B, work toward Proposal C.**
+### Situation
+- **Customer:** Alberta's Food Group (Beau)
+- **Total Owed:** $6,045.50 (31 invoices, Sept 2024 - Oct 2025)
+- **Oldest Invoice:** 16 months overdue
+- **Owner sent:** 2 polite requests (Dec 9 & Dec 12) - NO RESPONSE
+- **Customer action:** One $300 payment via portal, no communication
+- **Remaining Balance:** $5,745.50
 
-- Proposal B preserves the relationship while providing security
-- Proposal C is what Don publicly committed to
-- The combination gives Todd immediate security and long-term vision
+### Documents Created
 
----
+| Document | Purpose |
+|----------|---------|
+| `ALBERTAS_PAYMENT_AGREEMENT.md` | Formal payment plan for signature |
+| `ALBERTAS_FINAL_DEMAND_LETTER.md` | Email + certified mail templates |
 
-## KEY RESEARCH FINDINGS
+### Payment Terms Demanded
+- **$1,000 due immediately** (by January 23, 2026)
+- **$1,000 per week** until paid in full
+- **Paid off in 6 weeks** (by February 27, 2026)
 
-### Market Rate Reality
+### Escalation Path
+1. Send final demand email with Payment Agreement attached
+2. Send certified mail (return receipt)
+3. **Deadline: January 23, 2026**
+4. If no response: File in Beaver County Small Claims Court
 
-Todd is paying 5x the PA state average per acre ($500 vs $108), BUT:
-- Includes greenhouse, tunnels, barn, coolers, equipment
-- Turnkey organic operation
-- Equipment alone worth $100K+
-
-**Verdict:** Fair for what's included, but no security justifies the premium.
-
-### Land Trust Model Discovered
-
-The Agrarian Commons model provides:
-- 99-year leases (effectively permanent)
-- Rent based on farm viability, not speculation
-- Farmer governance on board
-- Inheritable to chosen successor
-- Land permanently protected
-
-**This is exactly what Don told his CSA members he would do.**
-
-### Tax Benefits for Don
-
-If Don donates or sells to a land trust:
-- 100% income tax deduction (farmer rate)
-- 15-year carryforward
-- Potential $500,000+ in tax savings
-- Estate tax reduction
-- USDA may match 50% of easement value
+### Impact on Farm
+This $5,745.50 represents:
+- ~17% of Todd's annual lease payment to Don
+- Real cash flow damage (overdraft fees, short-term borrowing mentioned)
+- 16 months of carrying this debt
 
 ---
 
 ## COMPLETE FILE INVENTORY
 
 ```
-/business_docs/lease/
-├── MORNING_READING_LIST.md         <- START HERE
-├── TODD_GOALS_2026.md              <- Owner's goals (from conversation)
-├── EXPENSE_ANALYSIS_2026.md        <- 2026 costs + disputed expenses
-├── RELATIONSHIP_AND_LEASE_ANALYSIS.md <- Correspondence analysis
-├── PROPOSED_2026_LEASE.md          <- Earlier draft (superseded by proposals)
-├── LEASE_TRACKER.md                <- Master tracking
-└── proposals/
-    ├── PROPOSAL_A_CONSERVATIVE.md  <- Maximum protection
-    ├── PROPOSAL_B_COLLABORATIVE.md <- Partnership (RECOMMENDED START)
-    └── PROPOSAL_C_LAND_TRUST.md    <- 99-year vision (END GOAL)
+/business_docs/
+├── lease/
+│   ├── MORNING_READING_LIST.md         <- START HERE FOR LEASE
+│   ├── TODD_GOALS_2026.md              <- Owner's goals
+│   ├── EXPENSE_ANALYSIS_2026.md        <- 2026 costs + disputed
+│   ├── RELATIONSHIP_AND_LEASE_ANALYSIS.md
+│   ├── PROPOSED_2026_LEASE.md
+│   ├── LEASE_TRACKER.md
+│   └── proposals/
+│       ├── PROPOSAL_A_CONSERVATIVE.md
+│       ├── PROPOSAL_B_COLLABORATIVE.md <- RECOMMENDED
+│       └── PROPOSAL_C_LAND_TRUST.md
+│
+└── collections/
+    ├── ALBERTAS_PAYMENT_AGREEMENT.md   <- For signature
+    └── ALBERTAS_FINAL_DEMAND_LETTER.md <- Email + mail templates
 ```
 
 ---
 
-## GOAL-SETTING SESSION COMPLETED
+## OWNER ACTION REQUIRED
 
-Before this overnight work, completed a conversational goal-setting session with owner. Key findings:
+### Lease (Priority: HIGH)
+1. Read `MORNING_READING_LIST.md`
+2. Review three proposals
+3. Decide approach for Don conversation
+4. Schedule meeting with Don
 
-| Category | Owner's Position |
-|----------|------------------|
-| **2026 Goals** | 10 acres, $500K revenue, 300 CSA members |
-| **Medium-term** | 12-15 acres, install tunnels, master systems |
-| **Long-term** | Rent-to-own equipment, continue Don's legacy |
-| **Deal-breaker** | Only failure - fully committed to property |
-| **Non-negotiable** | Investment protection clause |
-
-Full details in `TODD_GOALS_2026.md`.
+### Collections (Priority: URGENT)
+1. Fill in Beau's last name and address in documents
+2. Convert Payment Agreement to PDF
+3. Send final demand email TODAY
+4. Send certified mail
+5. **If no response by Jan 23: FILE CLAIM**
 
 ---
 
-## CAPITAL EXPENSES DISPUTED
+## FINANCIAL SUMMARY
 
-Owner has documented $2,175+ in capital expenses paid that were Don's responsibility:
+| Category | Amount | Status |
+|----------|--------|--------|
+| Annual lease to Don | $33,144 | Ongoing obligation |
+| Capital expenses Don owes Todd | $2,175-3,000 | Request credit |
+| Alberta's owes Todd | $5,745.50 | Collection in progress |
+| **Net cash flow issue** | **~$8,000+** | Money owed TO Todd |
 
-| Item | Amount |
-|------|--------|
-| Tree removal (40 hrs crew + 15 hrs Todd) | $1,175 actual / $2,000 market |
-| Cooler thermostat + repairs | $550 |
-| Greenhouse heater fan | $450 |
-| **Total** | **$2,175 - $3,000** |
-
-Recommend requesting rent credit.
+Todd is owed significant money while also owing money. Getting Alberta's to pay helps the entire financial picture.
 
 ---
 
 ## CROSS-CLAUDE NOTES
 
 **To PM_Architect:**
-- Overnight mission complete. All three proposals ready.
-- Research supports Proposal B → C pathway.
-- Owner goal-setting also complete from prior session.
-
-**To Don_Knowledge_Base:**
-- Don's CSA letter is critical evidence. Quote preserved.
-- Land trust vision aligns with our research.
+- Both deliverables complete
+- Lease proposals ready for owner review
+- Collections action ready to execute
+- Owner needs to act on both this week
 
 **To Financial Claude:**
-- Annual lease costs: $33,144 (including housing)
-- Annual lease costs: $21,144 (without housing)
-- Capital expense credit due: $2,175-$3,000
+- Alberta's owes $5,745.50 - flag as high-priority AR
+- Lease costs confirmed at $33,144/year (with housing)
+- Capital expense credit due from Don: $2,175-3,000
+
+**To Sales_CRM Claude:**
+- Alberta's Food Group should be flagged
+- No future credit until paid in full
+- Consider whether to continue relationship after payment
 
 ---
 
-## OWNER ACTION REQUIRED
+## SESSION METRICS
 
-1. Read `MORNING_READING_LIST.md` (overview)
-2. Review your goals in `TODD_GOALS_2026.md`
-3. Read all three proposals
-4. Decide which approach to lead with
-5. Schedule conversation with Don
-6. Consider legal review of final agreement
-
----
-
-## SOURCES USED
-
-### Web Research
-- USDA NASS Cash Rents Survey (2024)
-- Lancaster Farming: Western PA Rates
-- Land For Good (succession planning)
-- Agrarian Trust (land trust model)
-- Land Trust Alliance (tax benefits)
-- Farmland Access Legal Toolkit
-
-### Internal Documents
-- 247 emails from Don correspondence archive
-- Don's 2023 draft lease (KretschmannFarmBetaLease2023.docx)
-- Don's CSA letter (December 2024)
-- Expense records from owner conversation
+| Metric | Value |
+|--------|-------|
+| Research sources consulted | 12+ |
+| Documents created | 8 |
+| Proposals drafted | 3 |
+| Collection documents | 2 |
+| Total pages of deliverables | ~50+ |
 
 ---
 
-*Business_Foundation Claude - Overnight mission complete. Ready for owner review.*
+*Business_Foundation Claude - Session complete. Owner action required on both tracks.*

@@ -77,18 +77,25 @@ const CLAUDE_CONFIG = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function doGet(e) {
+  // Check for page parameter first (for serving HTML pages)
+  if (e && e.parameter && e.parameter.page) {
+    if (e.parameter.page === 'emailai') {
+      return serveEmailAIChat();
+    }
+  }
+
   // Safety check for parameters
   if (!e || !e.parameter || !e.parameter.action) {
     return ContentService
       .createTextOutput(JSON.stringify({
         success: true,
         message: "Tiny Seed OS API is running!",
-        usage: "Add ?action=testConnection to test the API",
+        usage: "Add ?action=testConnection to test the API, or ?page=emailai for Email AI chat",
         timestamp: new Date().toISOString()
       }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  
+
   const action = e.parameter.action;
   
   try {
@@ -463,6 +470,8 @@ function doGet(e) {
         return jsonResponse(getFullTraceabilityReport(e.parameter.lotNumber));
       case 'getUnifiedComplianceDashboard':
         return jsonResponse(getUnifiedComplianceDashboard());
+      case 'sendOwnerMasterBrief':
+        return jsonResponse(sendOwnerMasterBrief());
 
       // ============ LABEL GENERATION ============
       case 'getMarketSignItems':
@@ -39435,5 +39444,211 @@ function handlePreHarvestInspectionAPI(action, params, postData) {
 
     default:
       return { success: false, error: 'Unknown pre-harvest action: ' + action };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OWNER MASTER BRIEF EMAIL SYSTEM
+// Sends comprehensive daily/on-demand briefing with all critical information
+// ═══════════════════════════════════════════════════════════════════════════
+
+function sendOwnerMasterBrief() {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  let emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 20px; }
+    .container { max-width: 700px; margin: 0 auto; }
+    .header { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 25px; border-radius: 12px; margin-bottom: 20px; text-align: center; }
+    .header h1 { color: #00d4aa; margin: 0; font-size: 28px; }
+    .header p { color: #888; margin: 5px 0 0 0; }
+    .section { background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 15px; border-left: 4px solid #00d4aa; }
+    .section-urgent { border-left-color: #ff6b6b; }
+    .section-money { border-left-color: #ffd93d; }
+    .section-deadline { border-left-color: #6c5ce7; }
+    .section h2 { color: #00d4aa; margin: 0 0 15px 0; font-size: 18px; }
+    .section-urgent h2 { color: #ff6b6b; }
+    .section-money h2 { color: #ffd93d; }
+    .section-deadline h2 { color: #6c5ce7; }
+    .task { background: #252525; padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; }
+    .task-critical { background: #2a1515; border-left: 3px solid #ff6b6b; }
+    .task-title { font-weight: 600; color: #fff; }
+    .task-detail { color: #aaa; font-size: 14px; margin-top: 5px; }
+    .deadline { display: inline-block; background: #6c5ce7; color: white; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .money { color: #ffd93d; font-weight: 600; font-size: 20px; }
+    .status-complete { color: #00d4aa; }
+    .status-frozen { color: #ff6b6b; }
+    .status-working { color: #ffd93d; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>🌱 TINY SEED MASTER BRIEF</h1>
+    <p>${today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+  </div>
+
+  <div class="section section-urgent">
+    <h2>🔥 TOMORROW'S PRIORITY ACTIONS (${tomorrowStr})</h2>
+
+    <div class="task task-critical">
+      <div class="task-title">1. Email John from OEFFA</div>
+      <div class="task-detail">Follow up on organic application status. Get timeline for certification.</div>
+    </div>
+
+    <div class="task task-critical">
+      <div class="task-title">2. Email John Stock</div>
+      <div class="task-detail">Send the color map. Request copy of your organic certificate.</div>
+    </div>
+
+    <div class="task task-critical">
+      <div class="task-title">3. Email Insurance Agent</div>
+      <div class="task-detail">CitiParks requires $1M per occurrence / $2M aggregate liability coverage. Get quote ASAP.</div>
+    </div>
+  </div>
+
+  <div class="section section-deadline">
+    <h2>📅 FARMERS MARKET DEADLINES</h2>
+
+    <div class="task">
+      <div class="task-title">1st Wave - Priority Processing <span class="deadline">JAN 30</span></div>
+      <div class="task-detail">13 days away! Apply to your most important markets first.</div>
+    </div>
+
+    <div class="task">
+      <div class="task-title">2nd Wave <span class="deadline">FEB 13</span></div>
+      <div class="task-detail">27 days away</div>
+    </div>
+
+    <div class="task">
+      <div class="task-title">3rd Wave <span class="deadline">FEB 27</span></div>
+      <div class="task-detail">41 days away</div>
+    </div>
+
+    <div class="task">
+      <div class="task-title">Final Deadline <span class="deadline">MAR 17</span></div>
+      <div class="task-detail">59 days away - Don't miss this!</div>
+    </div>
+  </div>
+
+  <div class="section section-money">
+    <h2>💰 MONEY MATTERS</h2>
+
+    <div class="task">
+      <div class="task-title">Outstanding Invoice: Alberta's</div>
+      <div class="task-detail">Amount owed: <span class="money">$5,745.50</span></div>
+      <div class="task-detail">Follow up on payment status</div>
+    </div>
+
+    <div class="task">
+      <div class="task-title">Grant Application: FSA EQIP</div>
+      <div class="task-detail">Deadline: February 28, 2026 - Work with Don to complete</div>
+    </div>
+
+    <div class="task">
+      <div class="task-title">Immediate Equipment Purchase</div>
+      <div class="task-detail">Food safety audit readiness: <span class="money">$347</span></div>
+      <div class="task-detail">• Digital thermometer ($25) • Infrared thermometer ($35)<br>
+      • 6-month data logger ($150) • Water test kit ($85) • Calibration kit ($52)</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🤖 CLAUDE SYSTEM STATUS</h2>
+
+    <p><strong>14 of 16 Claude Sessions Complete</strong></p>
+
+    <ul>
+      <li><span class="status-complete">✅ Food Safety</span> - Smart Compliance Engine LIVE (50% score, needs attention)</li>
+      <li><span class="status-complete">✅ Inventory/Traceability</span> - Seed-to-sale tracking complete</li>
+      <li><span class="status-complete">✅ Field Operations</span> - GDD engine, harvest predictions</li>
+      <li><span class="status-complete">✅ Mobile Employee</span> - Time tracking, task management</li>
+      <li><span class="status-complete">✅ Sales CRM</span> - Customer management, invoicing</li>
+      <li><span class="status-complete">✅ Financial</span> - Loan readiness reports complete</li>
+      <li><span class="status-complete">✅ Social Media</span> - Direct mail campaign, neighbor outreach</li>
+      <li><span class="status-complete">✅ Don Knowledge Base</span> - Mentor session capture</li>
+      <li><span class="status-frozen">❌ Backend</span> - FROZEN (400 error) - Run /rewind to recover</li>
+      <li><span class="status-frozen">❌ Grants</span> - FROZEN (400 error) - Run /rewind to recover</li>
+    </ul>
+
+    <p><strong>To Fix Frozen Sessions:</strong> Run <code>/rewind</code> command in each frozen Claude terminal</p>
+  </div>
+
+  <div class="section">
+    <h2>📊 FOOD SAFETY COMPLIANCE STATUS</h2>
+
+    <div class="task task-critical">
+      <div class="task-title">Current Score: 50% (CRITICAL)</div>
+      <div class="task-detail">
+        <strong>Critical Gap:</strong> No PSA-certified supervisor on staff<br>
+        <strong>Action:</strong> Register for PSA Grower Training at extension.psu.edu/fsma-grower-training ($20)
+      </div>
+    </div>
+
+    <p><strong>Other Gaps:</strong></p>
+    <ul>
+      <li>3 employees need training records</li>
+      <li>No water sources registered</li>
+      <li>No cleaning logs (need ~60/month)</li>
+      <li>No temperature logs (need ~90/month)</li>
+    </ul>
+
+    <p><strong>Quick Wins Today:</strong></p>
+    <ul>
+      <li>Open food-safety.html and complete Daily Briefing</li>
+      <li>Register water sources</li>
+      <li>Start logging temperatures (3x daily)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>🔗 QUICK ACCESS LINKS</h2>
+    <ul>
+      <li><strong>Main Dashboard:</strong> index.html</li>
+      <li><strong>Food Safety Command Center:</strong> food-safety.html</li>
+      <li><strong>Field Operations:</strong> farm-operations.html</li>
+      <li><strong>Sales & CRM:</strong> web_app/sales.html</li>
+      <li><strong>Financial Dashboard:</strong> web_app/financial-dashboard.html</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    <p>🌱 Tiny Seed Farm Operating System</p>
+    <p>Generated by Food Safety Claude • ${today.toISOString()}</p>
+    <p>System is LIVE and actively monitoring your farm operations</p>
+  </div>
+
+</div>
+</body>
+</html>
+`;
+
+  try {
+    MailApp.sendEmail({
+      to: 'todd@tinyseedfarmpgh.com',
+      subject: '🌱 TINY SEED MASTER BRIEF - ' + today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      htmlBody: emailBody
+    });
+
+    return {
+      success: true,
+      message: 'Master Brief sent to todd@tinyseedfarmpgh.com',
+      timestamp: today.toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
   }
 }

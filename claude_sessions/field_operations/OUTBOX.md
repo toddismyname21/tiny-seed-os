@@ -1,13 +1,58 @@
 # OUTBOX: Field Operations Claude
 ## To: PM_Architect, Owner
 
-**Updated:** 2026-01-17 (MAJOR UPDATE #2)
+**Updated:** 2026-01-17 (MAJOR UPDATE #3 - Auto Pre-Harvest Inspections)
 
 ---
 
-## STATUS: PREDICTIVE INTELLIGENCE SYSTEM DEPLOYED
+## STATUS: PREDICTIVE INTELLIGENCE + AUTO INSPECTIONS DEPLOYED
 
-**STATE OF THE ART** predictive intelligence system built and operational on website.
+**STATE OF THE ART** predictive intelligence system with auto pre-harvest inspections - built and operational.
+
+---
+
+## NEW: AUTO PRE-HARVEST INSPECTION SYSTEM
+
+### What It Does
+Automatically identifies crops approaching harvest based on GDD predictions and generates required pre-harvest inspections.
+
+### How It Works
+1. **GDD Predictions** → System predicts harvest dates using Growing Degree Days
+2. **Auto-Generation** → Inspections required 3 days before predicted harvest
+3. **Risk-Based Validity** → High-risk crops (lettuce, spinach, etc.): 3-day validity. Others: 7-day validity
+4. **Harvest Blocking** → Can't record harvest without valid inspection (configurable)
+5. **Full Traceability** → Inspections linked to batch IDs and harvest records
+
+### API Endpoints Added (4 new)
+```
+getRequiredInspections          - Lists batches needing inspection
+validatePreHarvestInspection    - Validates inspection before harvest
+getPreHarvestInspectionTasks    - Gets inspection tasks for morning brief
+addLinkedPreHarvestInspection   - Records inspection with batch linkage
+```
+
+### High-Risk Crops (Stricter Requirements)
+- Lettuce, Spinach, Arugula, Kale, Chard
+- Strawberry, Raspberry
+- Cilantro, Parsley, Basil
+- Microgreens, Sprouts
+
+### Checklist Items (Auto-Generated)
+**Base Checklist (All Crops):**
+- No signs of animal intrusion
+- No flooding or standing water
+- Adjacent land activities assessed
+- All workers healthy
+- Equipment clean and sanitized
+- PHI verified for any sprays
+
+**Additional for High-Risk:**
+- Irrigation water source verified safe
+- No soil splash on edible portions
+- No wildlife feces in harvest zone
+- Handwashing station stocked
+- Harvest containers clean
+- Post-harvest cooling ready
 
 ---
 
