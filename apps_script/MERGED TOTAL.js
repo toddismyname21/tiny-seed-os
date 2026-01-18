@@ -1075,6 +1075,10 @@ function doPost(e) {
       case 'rejectRegistration':
         return jsonResponse(rejectRegistration(data));
 
+      // ============ AI VISION ANALYSIS ============
+      case 'analyzeSeedPacket':
+        return jsonResponse(analyzeSeedPacket(data));
+
       // ============ SOCIAL MEDIA INTEGRATION ============
       case 'publishSocialPost':
         return jsonResponse(publishToAyrshare({
@@ -11405,6 +11409,115 @@ function analyzeEquipmentPhoto(params) {
 
     return { success: true, data: { itemName, analysisTimestamp: new Date().toISOString(), assessment, source: 'claude-vision' } };
   } catch (error) { return { success: false, error: error.toString() }; }
+}
+
+/**
+ * CLAUDE VISION - SEED PACKET ANALYZER
+ * Analyzes a photo of a seed packet and extracts crop info, variety, vendor, lot number, etc.
+ */
+function analyzeSeedPacket(params) {
+  try {
+    let imageBase64 = params && params.image;
+    if (!imageBase64) return { success: false, error: 'image is required' };
+
+    // Remove data URL prefix if present
+    if (imageBase64.startsWith('data:')) {
+      imageBase64 = imageBase64.split(',')[1];
+    }
+
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'ANTHROPIC_API_KEY not configured',
+        fallback: { method: 'manual' }
+      };
+    }
+
+    const prompt = `Analyze this seed packet photo and extract all visible information. Return a JSON object with these fields:
+{
+  "crop": "the main crop name (e.g., Tomato, Lettuce, Pepper)",
+  "variety": "the specific variety name",
+  "vendor": "the seed company/brand name",
+  "lotNumber": "lot number if visible",
+  "seedsPerPacket": number of seeds per packet if listed (just the number),
+  "germRate": germination rate percentage if listed (just the number, e.g., 95),
+  "organic": true if certified organic, false otherwise,
+  "dtm": days to maturity if listed (just the number),
+  "plantingDepth": planting depth if listed,
+  "spacing": plant spacing if listed,
+  "notes": any other relevant info from the packet
+}
+
+Only include fields where you can clearly see the information. Use null for fields you cannot determine.
+Return ONLY the JSON object, no other text.`;
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/jpeg',
+                data: imageBase64
+              }
+            },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      Logger.log('Claude API error: ' + JSON.stringify(result.error));
+      return { success: false, error: result.error.message };
+    }
+
+    const claudeResponse = result.content[0].text;
+
+    // Parse the JSON from Claude's response
+    let parsedData;
+    try {
+      const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
+      parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    } catch (parseError) {
+      Logger.log('JSON parse error: ' + parseError.toString());
+      parsedData = { raw: claudeResponse, parseError: parseError.toString() };
+    }
+
+    if (!parsedData || parsedData.parseError) {
+      return {
+        success: false,
+        error: 'Could not parse seed packet data',
+        raw: claudeResponse
+      };
+    }
+
+    return {
+      success: true,
+      data: parsedData,
+      source: 'claude-vision',
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('analyzeSeedPacket error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
 }
 
 /**

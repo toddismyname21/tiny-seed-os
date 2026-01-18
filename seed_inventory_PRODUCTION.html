@@ -591,6 +591,7 @@
                 <div style="display: flex; gap: 10px;">
                     <button class="btn scan-btn" onclick="openQRScanner()">📷 Scan QR</button>
                     <button class="btn btn-success" onclick="openAddSeed()">➕ Add New Seed</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;" onclick="openPacketScanner()">📸 Scan Packet</button>
                     <button class="btn btn-primary" onclick="openSeedCalculator()">🧮 Seed Calculator</button>
                 </div>
             </div>
@@ -705,6 +706,75 @@
                 <button class="btn btn-secondary" onclick="closeSeedDetail()">Close</button>
                 <button class="btn btn-qr" onclick="printSeedLabel()">🏷️ Print Label</button>
                 <button class="btn btn-primary" onclick="viewUsageHistory()">📋 View History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Packet Scanner Modal (AI Vision) -->
+    <div class="modal-overlay" id="packetScannerModal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">📸 Scan Seed Packet</div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Take a photo of your seed packet and AI will extract the information automatically.
+            </p>
+
+            <div id="packetCaptureArea" style="margin-bottom: 20px;">
+                <!-- Camera preview or image preview -->
+                <video id="packetVideo" autoplay playsinline style="width: 100%; max-height: 300px; border-radius: 8px; background: #000; display: none;"></video>
+                <canvas id="packetCanvas" style="display: none;"></canvas>
+                <img id="packetPreview" style="width: 100%; max-height: 300px; border-radius: 8px; object-fit: contain; display: none; background: var(--bg-light);">
+
+                <div id="packetPlaceholder" style="width: 100%; height: 200px; border: 2px dashed var(--border); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-secondary);">
+                    <span style="font-size: 48px;">📦</span>
+                    <span>Take a photo or upload an image</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="startPacketCamera()" id="startCameraBtn">
+                    📷 Open Camera
+                </button>
+                <button class="btn btn-primary" onclick="capturePacketPhoto()" id="captureBtn" style="display: none;">
+                    📸 Capture Photo
+                </button>
+                <label class="btn btn-secondary" style="cursor: pointer;">
+                    📁 Upload Image
+                    <input type="file" accept="image/*" onchange="handlePacketUpload(event)" style="display: none;">
+                </label>
+                <button class="btn btn-secondary" onclick="retakePacketPhoto()" id="retakeBtn" style="display: none;">
+                    🔄 Retake
+                </button>
+            </div>
+
+            <!-- AI Analysis Results -->
+            <div id="packetAnalysisSection" style="display: none;">
+                <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1)); border: 1px solid #8b5cf6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="font-size: 24px;">🤖</span>
+                        <strong style="color: #a78bfa;">AI Analysis Results</strong>
+                        <span id="analysisStatus" style="font-size: 12px; color: var(--text-secondary);"></span>
+                    </div>
+                    <div id="analysisResults" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+
+                <button class="btn btn-success" onclick="applyParsedData()" style="width: 100%;">
+                    ✓ Use This Data & Open Add Form
+                </button>
+            </div>
+
+            <!-- Loading state -->
+            <div id="packetAnalyzing" style="display: none; text-align: center; padding: 30px;">
+                <div style="font-size: 48px; animation: spin 1s linear infinite;">🔄</div>
+                <p style="color: var(--text-secondary); margin-top: 10px;">Analyzing seed packet with AI...</p>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closePacketScanner()">Cancel</button>
+                <button class="btn btn-primary" onclick="analyzePacket()" id="analyzeBtn" style="display: none;">
+                    🤖 Analyze with AI
+                </button>
             </div>
         </div>
     </div>
@@ -1249,6 +1319,206 @@
         }
 
         init();
+
+        // ============ PACKET SCANNER (AI VISION) ============
+
+        let packetStream = null;
+        let capturedPacketImage = null;
+        let parsedPacketData = null;
+
+        function openPacketScanner() {
+            document.getElementById('packetScannerModal').classList.add('active');
+            resetPacketScanner();
+        }
+
+        function closePacketScanner() {
+            stopPacketCamera();
+            document.getElementById('packetScannerModal').classList.remove('active');
+            resetPacketScanner();
+        }
+
+        function resetPacketScanner() {
+            document.getElementById('packetVideo').style.display = 'none';
+            document.getElementById('packetPreview').style.display = 'none';
+            document.getElementById('packetPlaceholder').style.display = 'flex';
+            document.getElementById('startCameraBtn').style.display = 'inline-block';
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'none';
+            document.getElementById('analyzeBtn').style.display = 'none';
+            document.getElementById('packetAnalysisSection').style.display = 'none';
+            document.getElementById('packetAnalyzing').style.display = 'none';
+            capturedPacketImage = null;
+            parsedPacketData = null;
+        }
+
+        async function startPacketCamera() {
+            try {
+                packetStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+
+                const video = document.getElementById('packetVideo');
+                video.srcObject = packetStream;
+                video.style.display = 'block';
+
+                document.getElementById('packetPlaceholder').style.display = 'none';
+                document.getElementById('startCameraBtn').style.display = 'none';
+                document.getElementById('captureBtn').style.display = 'inline-block';
+            } catch (err) {
+                console.error('Camera error:', err);
+                alert('Could not access camera. Please upload an image instead.');
+            }
+        }
+
+        function stopPacketCamera() {
+            if (packetStream) {
+                packetStream.getTracks().forEach(track => track.stop());
+                packetStream = null;
+            }
+        }
+
+        function capturePacketPhoto() {
+            const video = document.getElementById('packetVideo');
+            const canvas = document.getElementById('packetCanvas');
+            const preview = document.getElementById('packetPreview');
+
+            // Set canvas size to video size
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw video frame to canvas
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            // Convert to data URL
+            capturedPacketImage = canvas.toDataURL('image/jpeg', 0.8);
+
+            // Show preview
+            preview.src = capturedPacketImage;
+            preview.style.display = 'block';
+            video.style.display = 'none';
+
+            // Stop camera
+            stopPacketCamera();
+
+            // Update buttons
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'inline-block';
+            document.getElementById('analyzeBtn').style.display = 'inline-block';
+        }
+
+        function handlePacketUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                capturedPacketImage = e.target.result;
+
+                const preview = document.getElementById('packetPreview');
+                preview.src = capturedPacketImage;
+                preview.style.display = 'block';
+
+                document.getElementById('packetPlaceholder').style.display = 'none';
+                document.getElementById('packetVideo').style.display = 'none';
+                document.getElementById('startCameraBtn').style.display = 'none';
+                document.getElementById('captureBtn').style.display = 'none';
+                document.getElementById('retakeBtn').style.display = 'inline-block';
+                document.getElementById('analyzeBtn').style.display = 'inline-block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function retakePacketPhoto() {
+            resetPacketScanner();
+            startPacketCamera();
+        }
+
+        async function analyzePacket() {
+            if (!capturedPacketImage) {
+                alert('Please capture or upload an image first.');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('packetAnalyzing').style.display = 'block';
+            document.getElementById('analyzeBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'none';
+
+            try {
+                // Send image to backend for AI analysis
+                const response = await fetch(`${API_URL}?action=analyzeSeedPacket`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: capturedPacketImage })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    parsedPacketData = result.data;
+                    displayAnalysisResults(result.data);
+                } else {
+                    throw new Error(result.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('Analysis error:', error);
+
+                // Fallback: Try to extract basic info or show manual entry
+                alert('AI analysis unavailable. Please enter the information manually.');
+                closePacketScanner();
+                openAddSeed();
+            } finally {
+                document.getElementById('packetAnalyzing').style.display = 'none';
+            }
+        }
+
+        function displayAnalysisResults(data) {
+            const resultsDiv = document.getElementById('analysisResults');
+
+            const fields = [
+                { label: 'Crop', value: data.crop, key: 'crop' },
+                { label: 'Variety', value: data.variety, key: 'variety' },
+                { label: 'Vendor/Brand', value: data.vendor, key: 'vendor' },
+                { label: 'Lot Number', value: data.lotNumber, key: 'lotNumber' },
+                { label: 'Seeds/Packet', value: data.seedsPerPacket, key: 'seedsPerPacket' },
+                { label: 'Germination %', value: data.germRate, key: 'germRate' },
+                { label: 'Organic', value: data.organic ? 'Yes' : 'No', key: 'organic' },
+                { label: 'Days to Maturity', value: data.dtm, key: 'dtm' }
+            ];
+
+            resultsDiv.innerHTML = fields.map(f => `
+                <div style="background: var(--bg-light); padding: 10px; border-radius: 6px;">
+                    <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">${f.label}</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">${f.value || 'Not found'}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('packetAnalysisSection').style.display = 'block';
+            document.getElementById('retakeBtn').style.display = 'inline-block';
+            document.getElementById('analysisStatus').textContent = '✓ Analysis complete';
+        }
+
+        function applyParsedData() {
+            if (!parsedPacketData) return;
+
+            closePacketScanner();
+            openAddSeed();
+
+            // Fill form with parsed data
+            setTimeout(() => {
+                if (parsedPacketData.crop) document.getElementById('newCrop').value = parsedPacketData.crop;
+                if (parsedPacketData.variety) document.getElementById('newVariety').value = parsedPacketData.variety;
+                if (parsedPacketData.vendor) document.getElementById('newVendor').value = parsedPacketData.vendor;
+                if (parsedPacketData.lotNumber) document.getElementById('newLotNumber').value = parsedPacketData.lotNumber;
+                if (parsedPacketData.seedsPerPacket) document.getElementById('newSeedsPerPacket').value = parsedPacketData.seedsPerPacket;
+                if (parsedPacketData.germRate) document.getElementById('newGermRate').value = parsedPacketData.germRate;
+                if (parsedPacketData.organic !== undefined) document.getElementById('newOrganic').value = parsedPacketData.organic ? 'yes' : 'no';
+
+                // Default quantity to 1 packet
+                document.getElementById('newQuantity').value = 1;
+            }, 100);
+        }
     </script>
 </body>
 </html>
