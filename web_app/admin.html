@@ -4058,5 +4058,836 @@
             }
         });
     </script>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════
+         CHIEF OF STAFF - AI ASSISTANT CHAT WIDGET
+         ════════════════════════════════════════════════════════════════════════════ -->
+    <style>
+        /* Chief of Staff Chat Widget */
+        .cos-chat-toggle {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2d5a27, #4a7c43);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(45, 90, 39, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .cos-chat-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(45, 90, 39, 0.5);
+        }
+
+        .cos-chat-toggle i {
+            font-size: 28px;
+            color: white;
+        }
+
+        .cos-chat-toggle .cos-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 24px;
+            height: 24px;
+            background: var(--danger);
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg-dark);
+        }
+
+        .cos-chat-window {
+            position: fixed;
+            bottom: 100px;
+            right: 24px;
+            width: 420px;
+            height: 600px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .cos-chat-window.open {
+            display: flex;
+            animation: cosSlideUp 0.3s ease;
+        }
+
+        @keyframes cosSlideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .cos-chat-header {
+            background: linear-gradient(135deg, #2d5a27, #1e3d1a);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cos-avatar {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .cos-header-info h3 {
+            color: white;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .cos-header-info span {
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+        }
+
+        .cos-status-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .cos-close-btn {
+            margin-left: auto;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cos-close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .cos-quick-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .cos-quick-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cos-quick-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .cos-quick-btn i {
+            margin-right: 6px;
+        }
+
+        .cos-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cos-message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .cos-message.assistant {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .cos-message.user {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .cos-message.system {
+            background: linear-gradient(135deg, rgba(45, 90, 39, 0.2), rgba(74, 124, 67, 0.2));
+            border: 1px solid rgba(74, 124, 67, 0.3);
+            color: var(--text-primary);
+            align-self: center;
+            text-align: center;
+            max-width: 95%;
+        }
+
+        .cos-message h4 {
+            color: var(--primary-light);
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .cos-message ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .cos-message li {
+            margin-bottom: 4px;
+        }
+
+        .cos-typing {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border-radius: 16px;
+            align-self: flex-start;
+            width: fit-content;
+        }
+
+        .cos-typing span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .cos-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .cos-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+
+        .cos-chat-input {
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .cos-chat-input input {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 12px 20px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .cos-chat-input input:focus {
+            border-color: var(--primary);
+        }
+
+        .cos-chat-input input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .cos-voice-btn, .cos-send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .cos-voice-btn {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .cos-voice-btn:hover {
+            background: var(--info-bg);
+            color: var(--info);
+            border-color: var(--info);
+        }
+
+        .cos-voice-btn.listening {
+            background: var(--danger);
+            color: white;
+            animation: voicePulse 1s infinite;
+        }
+
+        @keyframes voicePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+
+        .cos-send-btn {
+            background: var(--primary);
+            color: white;
+        }
+
+        .cos-send-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Weather Card in Chat */
+        .cos-weather-card {
+            background: linear-gradient(135deg, #1e3a5f, #2d5a87);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .cos-weather-card .temp {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .cos-weather-card .condition {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        /* Alert Card in Chat */
+        .cos-alert-card {
+            background: var(--warning-bg);
+            border-left: 3px solid var(--warning);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .cos-alert-card.critical {
+            background: var(--danger-bg);
+            border-color: var(--danger);
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            .cos-chat-window {
+                width: calc(100vw - 24px);
+                right: 12px;
+                bottom: 80px;
+                height: calc(100vh - 120px);
+            }
+
+            .cos-chat-toggle {
+                right: 16px;
+                bottom: 16px;
+            }
+        }
+    </style>
+
+    <!-- Chief of Staff Chat Button -->
+    <button class="cos-chat-toggle" onclick="toggleCOSChat()" title="Chief of Staff AI">
+        <i class="fas fa-robot"></i>
+        <span class="cos-badge" id="cosBadge" style="display: none;">0</span>
+    </button>
+
+    <!-- Chief of Staff Chat Window -->
+    <div class="cos-chat-window" id="cosChatWindow">
+        <div class="cos-chat-header">
+            <div class="cos-avatar">🤖</div>
+            <div class="cos-header-info">
+                <h3>Chief of Staff</h3>
+                <span><span class="cos-status-dot"></span>Online • AI Assistant</span>
+            </div>
+            <button class="cos-close-btn" onclick="toggleCOSChat()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="cos-quick-actions">
+            <button class="cos-quick-btn" onclick="cosQuickAction('brief')">
+                <i class="fas fa-sun"></i>Morning Brief
+            </button>
+            <button class="cos-quick-btn" onclick="cosQuickAction('weather')">
+                <i class="fas fa-cloud-sun"></i>Weather
+            </button>
+            <button class="cos-quick-btn" onclick="cosQuickAction('alerts')">
+                <i class="fas fa-bell"></i>Alerts
+            </button>
+            <button class="cos-quick-btn" onclick="cosQuickAction('ideas')">
+                <i class="fas fa-lightbulb"></i>Ideas
+            </button>
+        </div>
+
+        <div class="cos-chat-messages" id="cosChatMessages">
+            <!-- Messages will be added here -->
+        </div>
+
+        <div class="cos-chat-input">
+            <button class="cos-voice-btn" id="cosVoiceBtn" onclick="toggleVoiceInput()">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" id="cosInput" placeholder="Ask me anything about the farm..."
+                   onkeypress="if(event.key === 'Enter') sendCOSMessage()">
+            <button class="cos-send-btn" onclick="sendCOSMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ════════════════════════════════════════════════════════════════════════════
+        // CHIEF OF STAFF CHAT FUNCTIONALITY
+        // ════════════════════════════════════════════════════════════════════════════
+
+        let cosFirstOpen = true;
+        let cosConversation = [];
+        let recognition = null;
+
+        function toggleCOSChat() {
+            const chatWindow = document.getElementById('cosChatWindow');
+            const isOpen = chatWindow.classList.toggle('open');
+
+            if (isOpen && cosFirstOpen) {
+                cosFirstOpen = false;
+                showWelcomeMessage();
+            }
+        }
+
+        function showWelcomeMessage() {
+            addCOSMessage('system', `
+                <h4>👋 Welcome, Todd!</h4>
+                <p>I'm your Chief of Staff AI. I can help you with:</p>
+                <ul>
+                    <li>Daily briefs & priorities</li>
+                    <li>Weather & field recommendations</li>
+                    <li>Email drafts in your voice</li>
+                    <li>Customer insights & churn alerts</li>
+                    <li>Business ideas & reminders</li>
+                </ul>
+                <p style="margin-top: 10px; opacity: 0.8;">Try the quick buttons above or just ask me anything!</p>
+            `);
+
+            // Auto-fetch morning brief summary
+            fetchMorningBriefSummary();
+        }
+
+        async function fetchMorningBriefSummary() {
+            showTyping();
+            try {
+                const response = await fetch(API_BASE + '?action=getUltimateMorningBrief');
+                const data = await response.json();
+                hideTyping();
+
+                if (data.sections) {
+                    let summary = '<h4>📊 Today\'s Quick Summary</h4>';
+
+                    // Weather
+                    if (data.sections.weather?.success) {
+                        const w = data.sections.weather.current;
+                        summary += `<div class="cos-weather-card">
+                            <div class="temp">${Math.round(w.temp)}°F</div>
+                            <div class="condition">${w.description} • Feels like ${Math.round(w.feels_like)}°F</div>
+                        </div>`;
+                    }
+
+                    // Calendar
+                    if (data.sections.calendar?.success) {
+                        const c = data.sections.calendar;
+                        summary += `<p>📅 <strong>${c.summary?.totalEvents || 0}</strong> events today</p>`;
+                    }
+
+                    // Alerts
+                    if (data.sections.proactive?.data?.summary) {
+                        const p = data.sections.proactive.data.summary;
+                        if (p.criticalCount > 0) {
+                            summary += `<div class="cos-alert-card critical">⚠️ ${p.criticalCount} critical alert(s) need attention</div>`;
+                        }
+                    }
+
+                    summary += `<p style="margin-top: 10px; font-size: 12px; opacity: 0.7;">Click "Morning Brief" for full details</p>`;
+
+                    addCOSMessage('assistant', summary);
+                }
+            } catch (error) {
+                hideTyping();
+                addCOSMessage('assistant', 'Having trouble fetching your brief. Try again in a moment.');
+            }
+        }
+
+        async function cosQuickAction(action) {
+            let endpoint, userMsg, parseResponse;
+
+            switch(action) {
+                case 'brief':
+                    userMsg = 'Show me today\'s morning brief';
+                    endpoint = 'getUltimateMorningBrief';
+                    parseResponse = parseBriefResponse;
+                    break;
+                case 'weather':
+                    userMsg = 'What\'s the weather like?';
+                    endpoint = 'getWeatherRecommendations';
+                    parseResponse = parseWeatherResponse;
+                    break;
+                case 'alerts':
+                    userMsg = 'Show me any active alerts';
+                    endpoint = 'getActiveAlerts';
+                    parseResponse = parseAlertsResponse;
+                    break;
+                case 'ideas':
+                    userMsg = 'Give me some business ideas';
+                    endpoint = 'getProactiveSuggestions';
+                    parseResponse = parseIdeasResponse;
+                    break;
+            }
+
+            addCOSMessage('user', userMsg);
+            showTyping();
+
+            try {
+                const response = await fetch(API_BASE + '?action=' + endpoint);
+                const data = await response.json();
+                hideTyping();
+                addCOSMessage('assistant', parseResponse(data));
+            } catch (error) {
+                hideTyping();
+                addCOSMessage('assistant', 'Sorry, I couldn\'t fetch that information. Please try again.');
+            }
+        }
+
+        function parseBriefResponse(data) {
+            let html = '<h4>📋 Today\'s Full Brief</h4>';
+
+            if (data.sections?.weather?.success) {
+                const w = data.sections.weather;
+                html += `<div class="cos-weather-card">
+                    <div class="temp">${Math.round(w.current.temp)}°F - ${w.current.description}</div>
+                    <div class="condition">Wind: ${w.current.wind_speed} mph • Humidity: ${w.current.humidity}%</div>
+                </div>`;
+
+                if (w.recommendations?.length > 0) {
+                    html += '<p><strong>Recommendations:</strong></p><ul>';
+                    w.recommendations.forEach(r => {
+                        html += `<li>${r.message}</li>`;
+                    });
+                    html += '</ul>';
+                }
+            }
+
+            if (data.sections?.calendar?.success) {
+                const c = data.sections.calendar;
+                html += `<p>📅 <strong>Calendar:</strong> ${c.summary?.totalEvents || 0} events, ${c.summary?.focusMinutes || 0} min focus time</p>`;
+            }
+
+            if (data.sections?.email?.success) {
+                const e = data.sections.email.data?.summary;
+                if (e) {
+                    html += `<p>📧 <strong>Email:</strong> ${e.totalNew || 0} new (${e.critical || 0} critical, ${e.high || 0} high priority)</p>`;
+                }
+            }
+
+            return html;
+        }
+
+        function parseWeatherResponse(data) {
+            if (!data.success) return 'Unable to fetch weather data.';
+
+            let html = '<h4>🌤️ Weather Report</h4>';
+            html += `<div class="cos-weather-card">
+                <div class="temp">${Math.round(data.current.temp)}°F</div>
+                <div class="condition">${data.current.description} • Feels like ${Math.round(data.current.feels_like)}°F</div>
+                <div style="margin-top: 8px; font-size: 12px;">
+                    Wind: ${data.current.wind_speed} mph • Humidity: ${data.current.humidity}%
+                </div>
+            </div>`;
+
+            if (data.forecast?.length > 0) {
+                html += '<p><strong>Next 3 Days:</strong></p><ul>';
+                data.forecast.slice(0, 3).forEach(d => {
+                    html += `<li>${d.date}: ${Math.round(d.high)}°/${Math.round(d.low)}° - ${d.condition} (${d.rain_chance}% rain)</li>`;
+                });
+                html += '</ul>';
+            }
+
+            if (data.recommendations?.length > 0) {
+                html += '<p><strong>Farm Recommendations:</strong></p><ul>';
+                data.recommendations.forEach(r => {
+                    const icon = r.type === 'warning' ? '⚠️' : r.type === 'opportunity' ? '✨' : 'ℹ️';
+                    html += `<li>${icon} ${r.message}</li>`;
+                });
+                html += '</ul>';
+            }
+
+            return html;
+        }
+
+        function parseAlertsResponse(data) {
+            if (!data.success || !data.data?.length) {
+                return '<h4>✅ All Clear!</h4><p>No active alerts at the moment. Keep up the great work!</p>';
+            }
+
+            let html = `<h4>🔔 Active Alerts (${data.data.length})</h4>`;
+            data.data.forEach(alert => {
+                const priority = alert.priority?.toLowerCase() || 'medium';
+                const cls = priority === 'critical' || priority === 'high' ? 'critical' : '';
+                html += `<div class="cos-alert-card ${cls}">
+                    <strong>${alert.title || alert.alert_type}</strong><br>
+                    ${alert.message || 'No details available'}
+                </div>`;
+            });
+
+            return html;
+        }
+
+        function parseIdeasResponse(data) {
+            let html = '<h4>💡 Business Ideas & Suggestions</h4>';
+
+            if (data.success && data.data?.length > 0) {
+                html += '<ul>';
+                data.data.forEach(idea => {
+                    html += `<li><strong>${idea.type}:</strong> ${idea.suggestion || idea.message}</li>`;
+                });
+                html += '</ul>';
+            } else {
+                html += `<p>Here are some ideas to grow Tiny Seed Farm:</p>
+                <ul>
+                    <li>🥬 <strong>CSA Expansion:</strong> Consider adding a "mini share" option for smaller households</li>
+                    <li>📱 <strong>Social Media:</strong> Post weekly "farm fresh" reels showing harvest day</li>
+                    <li>🤝 <strong>Restaurant Outreach:</strong> Reach out to 2-3 new restaurants this month</li>
+                    <li>📧 <strong>Email Campaign:</strong> Send a "What's Growing" newsletter this week</li>
+                    <li>🎉 <strong>Farm Event:</strong> Plan a spring farm tour for CSA members</li>
+                </ul>
+                <p style="font-size: 12px; opacity: 0.7; margin-top: 10px;">Ask me about any of these for more details!</p>`;
+            }
+
+            return html;
+        }
+
+        async function sendCOSMessage() {
+            const input = document.getElementById('cosInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addCOSMessage('user', message);
+            input.value = '';
+
+            // Process the message
+            await processCOSMessage(message);
+        }
+
+        async function processCOSMessage(message) {
+            showTyping();
+
+            const lowerMsg = message.toLowerCase();
+
+            // Route to appropriate action based on keywords
+            if (lowerMsg.includes('weather') || lowerMsg.includes('temperature') || lowerMsg.includes('rain')) {
+                await cosQuickAction('weather');
+                return;
+            }
+
+            if (lowerMsg.includes('brief') || lowerMsg.includes('summary') || lowerMsg.includes('today')) {
+                await cosQuickAction('brief');
+                return;
+            }
+
+            if (lowerMsg.includes('alert') || lowerMsg.includes('urgent') || lowerMsg.includes('critical')) {
+                await cosQuickAction('alerts');
+                return;
+            }
+
+            if (lowerMsg.includes('idea') || lowerMsg.includes('suggestion') || lowerMsg.includes('grow')) {
+                await cosQuickAction('ideas');
+                return;
+            }
+
+            if (lowerMsg.includes('email') || lowerMsg.includes('draft') || lowerMsg.includes('write')) {
+                hideTyping();
+                addCOSMessage('assistant', `<h4>✍️ Email Assistance</h4>
+                    <p>I can help draft emails in your voice! Tell me:</p>
+                    <ul>
+                        <li>Who is it to? (customer, vendor, etc.)</li>
+                        <li>What's the purpose?</li>
+                    </ul>
+                    <p style="font-size: 12px; opacity: 0.7;">Example: "Draft an email to a customer about delayed delivery"</p>`);
+                return;
+            }
+
+            if (lowerMsg.includes('customer') || lowerMsg.includes('churn') || lowerMsg.includes('member')) {
+                try {
+                    const response = await fetch(API_BASE + '?action=predictCustomerChurn');
+                    const data = await response.json();
+                    hideTyping();
+
+                    if (data.success && data.data?.length > 0) {
+                        let html = '<h4>👥 Customer Insights</h4><p>Members at risk of churning:</p><ul>';
+                        data.data.slice(0, 5).forEach(c => {
+                            html += `<li><strong>${c.name || c.email}</strong> - Risk: ${c.churnRisk || 'Unknown'}%</li>`;
+                        });
+                        html += '</ul><p style="font-size: 12px; opacity: 0.7;">Consider reaching out to these members!</p>';
+                        addCOSMessage('assistant', html);
+                    } else {
+                        addCOSMessage('assistant', '<h4>👥 Customer Insights</h4><p>No customers are currently flagged as high churn risk. Great job maintaining relationships!</p>');
+                    }
+                } catch (e) {
+                    hideTyping();
+                    addCOSMessage('assistant', 'I couldn\'t fetch customer data right now. Please try again.');
+                }
+                return;
+            }
+
+            // Default helpful response
+            hideTyping();
+            addCOSMessage('assistant', `<p>I understand you're asking about: <em>"${message}"</em></p>
+                <p>Here's what I can help with:</p>
+                <ul>
+                    <li><strong>Weather:</strong> "What's the weather like?"</li>
+                    <li><strong>Brief:</strong> "Show me today's summary"</li>
+                    <li><strong>Alerts:</strong> "Any urgent alerts?"</li>
+                    <li><strong>Customers:</strong> "Who might churn?"</li>
+                    <li><strong>Email:</strong> "Help me draft an email"</li>
+                    <li><strong>Ideas:</strong> "Give me business ideas"</li>
+                </ul>
+                <p style="font-size: 12px; opacity: 0.7;">Try asking one of these!</p>`);
+        }
+
+        function addCOSMessage(type, content) {
+            const container = document.getElementById('cosChatMessages');
+            const msg = document.createElement('div');
+            msg.className = 'cos-message ' + type;
+            msg.innerHTML = content;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showTyping() {
+            const container = document.getElementById('cosChatMessages');
+            const typing = document.createElement('div');
+            typing.className = 'cos-typing';
+            typing.id = 'cosTyping';
+            typing.innerHTML = '<span></span><span></span><span></span>';
+            container.appendChild(typing);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('cosTyping');
+            if (typing) typing.remove();
+        }
+
+        // Voice Input
+        function toggleVoiceInput() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Voice input is not supported in this browser. Try Chrome or Edge.');
+                return;
+            }
+
+            const btn = document.getElementById('cosVoiceBtn');
+
+            if (recognition && recognition.listening) {
+                recognition.stop();
+                btn.classList.remove('listening');
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                btn.classList.add('listening');
+                btn.innerHTML = '<i class="fas fa-stop"></i>';
+            };
+
+            recognition.onend = () => {
+                btn.classList.remove('listening');
+                btn.innerHTML = '<i class="fas fa-microphone"></i>';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('cosInput').value = transcript;
+                sendCOSMessage();
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                btn.classList.remove('listening');
+                btn.innerHTML = '<i class="fas fa-microphone"></i>';
+            };
+
+            recognition.start();
+        }
+
+        // Check for alerts periodically
+        setInterval(async () => {
+            try {
+                const response = await fetch(API_BASE + '?action=getActiveAlerts');
+                const data = await response.json();
+                const badge = document.getElementById('cosBadge');
+
+                if (data.success && data.data?.length > 0) {
+                    const critical = data.data.filter(a => a.priority === 'CRITICAL' || a.priority === 'HIGH').length;
+                    if (critical > 0) {
+                        badge.textContent = critical;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (e) {
+                // Silent fail for background check
+            }
+        }, 5 * 60 * 1000); // Check every 5 minutes
+    </script>
 </body>
 </html>

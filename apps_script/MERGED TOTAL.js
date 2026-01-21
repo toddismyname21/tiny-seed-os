@@ -23,6 +23,25 @@
 
 const SPREADSHEET_ID = '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc';
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * RUN THIS TO AUTHORIZE CALENDAR ACCESS
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * 1. Select this function from the dropdown above
+ * 2. Click Run
+ * 3. Click "Review permissions" when prompted
+ * 4. Click "Advanced" → "Go to Tiny Seed" → Allow
+ */
+function AUTHORIZE_CALENDAR_ACCESS() {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const calName = calendar.getName();
+  Logger.log('✅ Calendar authorized successfully!');
+  Logger.log('Calendar: ' + calName);
+  Logger.log('You can now use all Chief of Staff calendar features.');
+  return { success: true, calendar: calName, message: 'Calendar access authorized!' };
+}
+
 const FARM_CONFIG = {
   LAT: 40.7456217,
   LONG: -80.1610431,
@@ -474,6 +493,10 @@ function doGet(e) {
         return jsonResponse(sendCSAMagicLink(e.parameter));
       case 'verifyCSAMagicLink':
         return jsonResponse(verifyCSAMagicLink(e.parameter));
+      case 'sendCSASMSCode':
+        return jsonResponse(sendCSASMSCode(e.parameter));
+      case 'verifyCSASMSCode':
+        return jsonResponse(verifyCSASMSCode(e.parameter));
       case 'getWholesaleProducts':
         return jsonResponse(getWholesaleProducts(e.parameter));
       case 'getCSAProducts':
@@ -492,6 +515,8 @@ function doGet(e) {
         return jsonResponse(debugBoxContents());
       case 'fixBoxContentsData':
         return jsonResponse(fixBoxContentsData(e.parameter));
+      case 'addTestCSAMember':
+        return jsonResponse(addTestCSAMember(e.parameter));
 
       // ============ CLAUDE AUTOMATION ENDPOINTS ============
       case 'sendSeasonAnnouncement':
@@ -1083,6 +1108,12 @@ function doGet(e) {
       case 'setupIntegrationSheets':
         return jsonResponse(setupIntegrationSheets());
 
+      // Twilio SMS
+      case 'configureTwilio':
+        return jsonResponse(configureTwilioCredentials(e.parameter.accountSid, e.parameter.authToken, e.parameter.phoneNumber));
+      case 'testTwilioSMS':
+        return jsonResponse(testTwilioSMS(e.parameter.to));
+
       // Shopify
       case 'configureShopify':
         // Set Shopify credentials (admin only)
@@ -1109,6 +1140,10 @@ function doGet(e) {
         return jsonResponse(listShopifyWebhooks());
       case 'deleteShopifyWebhook':
         return jsonResponse(deleteShopifyWebhook(e.parameter.webhookId));
+      case 'findShopifyCSAProducts':
+        return jsonResponse(findShopifyCSAProducts());
+      case 'processHistoricalCSAOrders':
+        return jsonResponse(processHistoricalCSAOrders());
 
       // QuickBooks
       case 'getQuickBooksAuthUrl':
@@ -3926,7 +3961,7 @@ function generateSeedLotId(crop) {
  */
 function generateSeedQRCode(seedLotId) {
   // Full URL so any phone camera can scan and open tracking page directly
-  const trackingUrl = `https://tinyseedfarm.github.io/TIny_Seed_OS/seed_track.html?id=${seedLotId}`;
+  const trackingUrl = `https://toddismyname21.github.io/tiny-seed-os/seed_track.html?id=${seedLotId}`;
   const data = encodeURIComponent(trackingUrl);
   // Size 200x200 is good for 1" labels
   return `https://quickchart.io/chart?cht=qr&chs=200x200&chl=${data}&choe=UTF-8`;
@@ -12739,7 +12774,7 @@ function sendCSAMagicLink(params) {
     ]);
 
     // Build login URL
-    const portalUrl = 'https://tinyseedfarm.github.io/TIny_Seed_OS/web_app/csa.html';
+    const portalUrl = 'https://toddismyname21.github.io/tiny-seed-os/web_app/csa.html';
     const loginUrl = portalUrl + '?token=' + token + '&email=' + encodeURIComponent(customer.email);
 
     // Send email
@@ -12956,6 +12991,355 @@ function verifyCSAMagicLink(params) {
 
   } catch (error) {
     Logger.log('verifyCSAMagicLink error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMS LOGIN FOR CSA PORTAL
+// Sends 6-digit verification codes via Twilio SMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Send SMS verification code to CSA member's phone
+ * @param {Object} params - { phone: string }
+ */
+function sendCSASMSCode(params) {
+  try {
+    const phone = params.phone;
+    if (!phone) {
+      return { success: false, error: 'Phone number is required' };
+    }
+
+    // Format phone number
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (formattedPhone.length === 10) {
+      formattedPhone = '+1' + formattedPhone;
+    } else if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+' + formattedPhone;
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+    if (!customerSheet || !csaSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    // Get CSA members first to know which customers have memberships
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    const csaCustIdCol = csaHeaders.indexOf('Customer_ID');
+    const csaStatusCol = csaHeaders.indexOf('Status');
+
+    // Build set of customer IDs with active CSA memberships
+    const csaCustomerIds = new Set();
+    for (let i = 1; i < csaData.length; i++) {
+      const status = csaData[i][csaStatusCol];
+      if (status === 'Active' || status === 'Pending' || !status) {
+        csaCustomerIds.add(csaData[i][csaCustIdCol]);
+      }
+    }
+
+    // Find customer by phone - prioritize those with CSA memberships
+    const customerData = customerSheet.getDataRange().getValues();
+    const custHeaders = customerData[0];
+    const phoneCol = custHeaders.indexOf('Phone');
+    const idCol = custHeaders.indexOf('Customer_ID');
+    const nameCol = custHeaders.indexOf('Contact_Name');
+    const emailCol = custHeaders.indexOf('Email');
+
+    let customer = null;
+    let fallbackCustomer = null; // Customer without CSA membership
+    const searchPhone = formattedPhone.replace(/\D/g, '').slice(-10);
+
+    for (let i = 1; i < customerData.length; i++) {
+      const custPhone = (customerData[i][phoneCol] || '').toString().replace(/\D/g, '');
+      // Match last 10 digits
+      if (custPhone.slice(-10) === searchPhone) {
+        const custId = customerData[i][idCol];
+        const customerObj = {
+          id: custId,
+          name: customerData[i][nameCol],
+          email: customerData[i][emailCol],
+          phone: customerData[i][phoneCol]
+        };
+
+        // Prioritize customers with CSA memberships
+        if (csaCustomerIds.has(custId)) {
+          customer = customerObj;
+          break; // Found a CSA member with this phone - use them
+        } else if (!fallbackCustomer) {
+          fallbackCustomer = customerObj; // Keep first match as fallback
+        }
+      }
+    }
+
+    // Use CSA member if found, otherwise fallback
+    if (!customer) {
+      customer = fallbackCustomer;
+    }
+
+    if (!customer) {
+      return { success: false, error: 'No account found with this phone number. Please use email login or contact the farm.' };
+    }
+
+    // Verify they have an active CSA membership
+    if (!csaCustomerIds.has(customer.id)) {
+      return { success: false, error: 'No active CSA membership found. Please contact the farm.' };
+    }
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date();
+    expires.setMinutes(expires.getMinutes() + 10); // 10 minute expiry
+
+    // Store code in Magic_Links sheet (reusing the structure)
+    const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
+    if (!linkSheet) {
+      return { success: false, error: 'Magic Links sheet not found' };
+    }
+
+    linkSheet.appendRow([
+      'SMS-' + code,  // Token (prefixed to identify SMS codes)
+      customer.id,
+      customer.email,
+      'CSA-SMS',
+      new Date().toISOString(),
+      expires.toISOString(),
+      false,
+      '',
+      formattedPhone  // Store phone for verification
+    ]);
+
+    // Send SMS via Twilio
+    const smsMessage = `Your Tiny Seed Farm login code is: ${code}\n\nThis code expires in 10 minutes.`;
+
+    // Try to use the existing sendSMS function
+    let smsResult;
+    try {
+      // Check if Twilio is configured
+      const props = PropertiesService.getScriptProperties();
+      const twilioSid = props.getProperty('TWILIO_ACCOUNT_SID');
+      const twilioToken = props.getProperty('TWILIO_AUTH_TOKEN');
+      const twilioPhone = props.getProperty('TWILIO_PHONE_NUMBER');
+
+      if (!twilioSid || !twilioToken || !twilioPhone) {
+        // Twilio not configured - log for testing
+        Logger.log('SMS CODE FOR ' + formattedPhone + ': ' + code);
+        return {
+          success: true,
+          message: 'Code sent! Check your phone.',
+          firstName: customer.name ? customer.name.split(' ')[0] : 'Member',
+          // In dev mode, return code for testing
+          _devCode: code,
+          _devNote: 'Twilio not configured - code returned for testing'
+        };
+      }
+
+      // Send via Twilio
+      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+      const response = UrlFetchApp.fetch(twilioUrl, {
+        method: 'post',
+        headers: {
+          'Authorization': 'Basic ' + Utilities.base64Encode(twilioSid + ':' + twilioToken)
+        },
+        payload: {
+          To: formattedPhone,
+          From: twilioPhone,
+          Body: smsMessage
+        },
+        muteHttpExceptions: true
+      });
+
+      const responseCode = response.getResponseCode();
+      if (responseCode >= 200 && responseCode < 300) {
+        smsResult = { success: true };
+      } else {
+        Logger.log('Twilio error: ' + response.getContentText());
+        smsResult = { success: false, error: 'SMS delivery failed' };
+      }
+    } catch (smsError) {
+      Logger.log('SMS error: ' + smsError.toString());
+      smsResult = { success: false, error: smsError.toString() };
+    }
+
+    if (!smsResult.success) {
+      return { success: false, error: 'Failed to send SMS. Please try email login instead.' };
+    }
+
+    return {
+      success: true,
+      message: 'Verification code sent! Check your phone.',
+      firstName: customer.name ? customer.name.split(' ')[0] : 'Member'
+    };
+
+  } catch (error) {
+    Logger.log('sendCSASMSCode error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Verify SMS code and log in CSA member
+ * @param {Object} params - { phone: string, code: string }
+ */
+function verifyCSASMSCode(params) {
+  try {
+    const phone = params.phone;
+    const code = params.code;
+
+    if (!phone || !code) {
+      return { success: false, error: 'Phone number and code are required' };
+    }
+
+    // Format phone number
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (formattedPhone.length === 10) {
+      formattedPhone = '+1' + formattedPhone;
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
+    const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+    if (!linkSheet || !customerSheet || !csaSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    // Find and validate code
+    const linkData = linkSheet.getDataRange().getValues();
+    const now = new Date();
+    let tokenRow = -1;
+    let customerId = null;
+    let customerEmail = null;
+
+    for (let i = 1; i < linkData.length; i++) {
+      const storedToken = linkData[i][0];
+      const storedPhone = (linkData[i][8] || '').toString().replace(/\D/g, '');
+
+      // Check if this is an SMS code (token starts with SMS-)
+      if (storedToken === 'SMS-' + code && storedPhone.slice(-10) === formattedPhone.slice(-10)) {
+        // Check if used
+        if (linkData[i][6] === true) {
+          return { success: false, error: 'This code has already been used. Please request a new one.' };
+        }
+
+        // Check expiry
+        const expires = new Date(linkData[i][5]);
+        if (now > expires) {
+          return { success: false, error: 'This code has expired. Please request a new one.' };
+        }
+
+        tokenRow = i;
+        customerId = linkData[i][1];
+        customerEmail = linkData[i][2];
+        break;
+      }
+    }
+
+    if (tokenRow === -1) {
+      return { success: false, error: 'Invalid code. Please check and try again.' };
+    }
+
+    // Mark code as used
+    linkSheet.getRange(tokenRow + 1, 7).setValue(true);
+    linkSheet.getRange(tokenRow + 1, 8).setValue(now.toISOString());
+
+    // Get customer details
+    const customerData = customerSheet.getDataRange().getValues();
+    const customerHeaders = customerData[0];
+    const custIdCol = customerHeaders.indexOf('Customer_ID');
+    const nameCol = customerHeaders.indexOf('Contact_Name');
+    const emailCol = customerHeaders.indexOf('Email');
+    const phoneCol = customerHeaders.indexOf('Phone');
+
+    let customer = null;
+    for (let i = 1; i < customerData.length; i++) {
+      if (customerData[i][custIdCol] === customerId) {
+        customer = {
+          customerId: customerData[i][custIdCol],
+          name: customerData[i][nameCol],
+          email: customerData[i][emailCol],
+          phone: customerData[i][phoneCol]
+        };
+        break;
+      }
+    }
+
+    if (!customer) {
+      return { success: false, error: 'Customer not found' };
+    }
+
+    // Get CSA membership (same logic as verifyCSAMagicLink)
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    const getCol = (name) => csaHeaders.indexOf(name);
+
+    let membership = null;
+    for (let i = 1; i < csaData.length; i++) {
+      if (csaData[i][getCol('Customer_ID')] === customerId) {
+        const status = csaData[i][getCol('Status')];
+        if (status === 'Active' || status === 'Pending' || !status) {
+          membership = {
+            memberId: csaData[i][getCol('Member_ID')],
+            shareType: csaData[i][getCol('Share_Type')],
+            shareSize: csaData[i][getCol('Share_Size')],
+            season: csaData[i][getCol('Season')],
+            startDate: csaData[i][getCol('Start_Date')],
+            endDate: csaData[i][getCol('End_Date')],
+            totalWeeks: csaData[i][getCol('Total_Weeks')],
+            weeksRemaining: csaData[i][getCol('Weeks_Remaining')],
+            pickupDay: csaData[i][getCol('Pickup_Day')],
+            pickupLocation: csaData[i][getCol('Pickup_Location')],
+            swapCredits: csaData[i][getCol('Swap_Credits')] || 3,
+            vacationWeeksUsed: csaData[i][getCol('Vacation_Weeks_Used')] || 0,
+            vacationWeeksMax: csaData[i][getCol('Vacation_Weeks_Max')] || 4,
+            frequency: csaData[i][getCol('Frequency')],
+            isOnboarded: csaData[i][getCol('Is_Onboarded')] || false,
+            status: status || 'Active'
+          };
+          break;
+        }
+      }
+    }
+
+    if (!membership) {
+      return { success: false, error: 'No active CSA membership found' };
+    }
+
+    // Get preferences
+    let preferences = { dislikes: [], notifications: {} };
+    try {
+      const prefSheet = ss.getSheetByName('CSA_Preferences');
+      if (prefSheet) {
+        const prefData = prefSheet.getDataRange().getValues();
+        const prefHeaders = prefData[0];
+        const memberIdCol = prefHeaders.indexOf('Member_ID');
+        const itemCol = prefHeaders.indexOf('Item_ID');
+        const ratingCol = prefHeaders.indexOf('Rating');
+
+        for (let i = 1; i < prefData.length; i++) {
+          if (prefData[i][memberIdCol] === membership.memberId && prefData[i][ratingCol] === 0) {
+            preferences.dislikes.push(prefData[i][itemCol]);
+          }
+        }
+      }
+    } catch (e) {
+      // Preferences sheet may not exist
+    }
+
+    return {
+      success: true,
+      customer: customer,
+      membership: membership,
+      preferences: preferences
+    };
+
+  } catch (error) {
+    Logger.log('verifyCSASMSCode error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -13581,6 +13965,126 @@ function getSalesCSAMembers(params) {
   return getCSAMembers(params || {});
 }
 
+/**
+ * Add a test CSA member for portal testing
+ * Creates both customer record and CSA membership
+ * Uses header-based insertion to handle any column structure
+ */
+function addTestCSAMember(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+    if (!customerSheet || !csaSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    const email = params.email || 'todd@tinyseedfarmpgh.com';
+    const name = params.name || 'Todd Wilson';
+    const shareType = params.shareType || 'Vegetable';
+    const shareSize = params.shareSize || 'Regular';
+    const deleteExisting = params.deleteExisting === 'true';
+
+    // Check if customer already exists
+    const customerData = customerSheet.getDataRange().getValues();
+    const custHeaders = customerData[0];
+    const emailCol = custHeaders.indexOf('Email');
+    const idCol = custHeaders.indexOf('Customer_ID');
+
+    let customerId = null;
+    let customerRowIndex = -1;
+    for (let i = 1; i < customerData.length; i++) {
+      if (customerData[i][emailCol] && customerData[i][emailCol].toString().toLowerCase() === email.toLowerCase()) {
+        customerId = customerData[i][idCol];
+        customerRowIndex = i + 1;
+        break;
+      }
+    }
+
+    // Create customer if not exists
+    if (!customerId) {
+      customerId = 'CUST-TEST-' + Date.now();
+      customerSheet.appendRow([
+        customerId, 'CSA', name + ' Family', name, email,
+        '7177255177', '4312 Middle Rd', 'Allison Park', 'PA', '15101',
+        '', 'Prepaid', 'CSA', true, new Date(), new Date(), 0, 0, 'Test CSA member'
+      ]);
+    }
+
+    // Check if CSA membership already exists
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    const custIdCol = csaHeaders.indexOf('Customer_ID');
+    const memberIdCol = csaHeaders.indexOf('Member_ID');
+
+    // Delete existing membership if requested
+    for (let i = csaData.length - 1; i >= 1; i--) {
+      if (csaData[i][custIdCol] === customerId) {
+        if (deleteExisting) {
+          csaSheet.deleteRow(i + 1);
+        } else {
+          return { success: true, message: 'CSA member already exists. Use deleteExisting=true to replace.', customerId, email };
+        }
+      }
+    }
+
+    // Create CSA membership using header-based mapping
+    const memberId = 'CSA-TEST-' + Date.now();
+    const now = new Date();
+
+    // Map field names to values
+    const fieldValues = {
+      'Member_ID': memberId,
+      'Customer_ID': customerId,
+      'Share_Type': shareType,
+      'Share_Size': shareSize,
+      'Season': '2026',
+      'Start_Date': new Date(2026, 0, 1),
+      'End_Date': new Date(2026, 11, 31),
+      'Total_Weeks': 20,
+      'Weeks_Remaining': 20,
+      'Pickup_Day': 'Thursday',
+      'Pickup_Location': 'Farm Pickup',
+      'Delivery_Address': '',
+      'Customization_Allowed': true,
+      'Swap_Credits': 3,
+      'Vacation_Weeks_Used': 0,
+      'Vacation_Weeks_Max': 4,
+      'Status': 'Active',
+      'Payment_Status': 'Paid',
+      'Amount_Paid': 800,
+      'Frequency': 'Weekly',
+      'Veg_Code': 0,
+      'Floral_Code': 0,
+      'Preferences': '',
+      'Is_Onboarded': false,
+      'Last_Pickup_Date': '',
+      'Next_Pickup_Date': '',
+      'Shopify_Order_ID': '',
+      'Created_Date': now,
+      'Last_Modified': now,
+      'Notes': 'Test member for portal'
+    };
+
+    // Build row based on actual headers
+    const newRow = csaHeaders.map(header => fieldValues[header] !== undefined ? fieldValues[header] : '');
+    csaSheet.appendRow(newRow);
+
+    return {
+      success: true,
+      message: 'Test CSA member created! Try logging in now.',
+      customerId,
+      memberId,
+      email,
+      columnsUsed: csaHeaders.length
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
 function createCSAMember(data) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -14181,6 +14685,210 @@ function handleShopifyWebhook(payload) {
 
   } catch (error) {
     Logger.log('Shopify webhook error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Process historical Shopify orders to create CSA members
+ * Scans SHOPIFY_Orders sheet for orders containing CSA products
+ * and creates CSA member records for any that don't already exist
+ */
+function processHistoricalCSAOrders() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ordersSheet = ss.getSheetByName('SHOPIFY_Orders');
+
+    if (!ordersSheet) {
+      return { success: false, error: 'SHOPIFY_Orders sheet not found' };
+    }
+
+    const ordersData = ordersSheet.getDataRange().getValues();
+    const ordersHeaders = ordersData[0];
+
+    // Find column indices
+    const orderIdCol = ordersHeaders.indexOf('Order_ID');
+    const orderNumCol = ordersHeaders.indexOf('Shopify_Order_Number');
+    const custNameCol = ordersHeaders.indexOf('Customer_Name');
+    const custEmailCol = ordersHeaders.indexOf('Customer_Email');
+    const lineItemsCol = ordersHeaders.indexOf('Line_Items');
+    const shippingCol = ordersHeaders.indexOf('Shipping_Address');
+
+    const results = {
+      ordersScanned: 0,
+      csaOrdersFound: 0,
+      membersCreated: [],
+      skipped: [],
+      errors: []
+    };
+
+    for (let i = 1; i < ordersData.length; i++) {
+      results.ordersScanned++;
+      const row = ordersData[i];
+
+      const orderId = row[orderIdCol];
+      const orderNumber = row[orderNumCol];
+      const customerName = row[custNameCol] || 'CSA Member';
+      const customerEmail = row[custEmailCol];
+      const lineItemsJson = row[lineItemsCol];
+      const shippingAddress = row[shippingCol];
+
+      if (!customerEmail) {
+        continue;
+      }
+
+      // Parse line items
+      let lineItems = [];
+      try {
+        if (typeof lineItemsJson === 'string' && lineItemsJson.startsWith('[')) {
+          lineItems = JSON.parse(lineItemsJson);
+        }
+      } catch (e) {
+        results.errors.push(`Order ${orderNumber}: Invalid line items JSON`);
+        continue;
+      }
+
+      // Check each line item for CSA products
+      for (const item of lineItems) {
+        const itemName = item.title || item.name || '';
+
+        if (!isCSAProduct(itemName)) {
+          continue;
+        }
+
+        results.csaOrdersFound++;
+
+        try {
+          // Parse share type from item name
+          const shareInfo = parseShopifyShareType(itemName);
+
+          // Check for duplicate
+          if (csaMemberExists(customerEmail, shareInfo.type)) {
+            results.skipped.push({
+              email: customerEmail,
+              shareType: shareInfo.type,
+              reason: 'Already exists'
+            });
+            continue;
+          }
+
+          // Find or create customer
+          const customerId = findOrCreateCustomer({
+            name: customerName,
+            email: customerEmail,
+            phone: '',
+            address: shippingAddress,
+            city: '',
+            type: 'CSA',
+            source: 'Shopify'
+          });
+
+          // Parse pickup location from shipping address or order
+          const pickupInfo = parsePickupLocation(shippingAddress || '');
+
+          // Get season dates
+          const seasonDates = getSeasonDates(shareInfo.type, shareInfo.season);
+
+          // Create CSA member
+          const memberId = createCSAMemberFromShopify({
+            customerId: customerId,
+            shareInfo: shareInfo,
+            pickupInfo: pickupInfo,
+            seasonDates: seasonDates,
+            street: shippingAddress,
+            city: '',
+            orderId: orderId,
+            quantity: item.quantity || 1,
+            price: parseFloat(item.price) || 0
+          });
+
+          results.membersCreated.push({
+            memberId: memberId,
+            email: customerEmail,
+            name: customerName,
+            shareType: shareInfo.type,
+            shareSize: shareInfo.size,
+            orderNumber: orderNumber
+          });
+
+          // Send welcome email
+          try {
+            sendCSAWelcomeEmail({
+              customerId: customerId,
+              memberId: memberId,
+              email: customerEmail,
+              name: customerName,
+              shareInfo: shareInfo,
+              pickupInfo: pickupInfo,
+              seasonDates: seasonDates
+            });
+          } catch (emailErr) {
+            results.errors.push(`Email failed for ${customerEmail}: ${emailErr.toString()}`);
+          }
+
+        } catch (itemErr) {
+          results.errors.push(`Order ${orderNumber} - "${itemName}": ${itemErr.toString()}`);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      results: results,
+      message: `Scanned ${results.ordersScanned} orders, found ${results.csaOrdersFound} CSA items, created ${results.membersCreated.length} members`
+    };
+
+  } catch (error) {
+    Logger.log('processHistoricalCSAOrders error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Find CSA products in Shopify catalog
+ * Returns all products that match CSA criteria
+ */
+function findShopifyCSAProducts() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const productsSheet = ss.getSheetByName('SHOPIFY_Products');
+
+    if (!productsSheet) {
+      return { success: false, error: 'SHOPIFY_Products sheet not found' };
+    }
+
+    const data = productsSheet.getDataRange().getValues();
+    const headers = data[0];
+    const titleCol = headers.indexOf('Title');
+    const productIdCol = headers.indexOf('Product_ID');
+    const variantIdCol = headers.indexOf('Variant_ID');
+    const priceCol = headers.indexOf('Price');
+    const statusCol = headers.indexOf('Status');
+
+    const csaProducts = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const title = data[i][titleCol] || '';
+
+      if (isCSAProduct(title)) {
+        csaProducts.push({
+          productId: data[i][productIdCol],
+          variantId: data[i][variantIdCol],
+          title: title,
+          price: data[i][priceCol],
+          status: data[i][statusCol],
+          shareInfo: parseShopifyShareType(title)
+        });
+      }
+    }
+
+    return {
+      success: true,
+      count: csaProducts.length,
+      products: csaProducts
+    };
+
+  } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
@@ -32016,6 +32724,97 @@ function setShopifyCredentials(storeName, accessToken) {
     'SHOPIFY_ACCESS_TOKEN': accessToken || ''
   });
   return { success: true, message: 'Shopify credentials saved securely to Script Properties' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TWILIO CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Configure Twilio credentials for SMS
+ */
+function configureTwilioCredentials(accountSid, authToken, phoneNumber) {
+  if (!accountSid || !authToken || !phoneNumber) {
+    return { success: false, error: 'accountSid, authToken, and phoneNumber are all required' };
+  }
+
+  const props = PropertiesService.getScriptProperties();
+  props.setProperties({
+    'TWILIO_ACCOUNT_SID': accountSid,
+    'TWILIO_AUTH_TOKEN': authToken,
+    'TWILIO_PHONE_NUMBER': phoneNumber
+  });
+
+  return {
+    success: true,
+    message: 'Twilio credentials configured successfully',
+    phoneNumber: phoneNumber
+  };
+}
+
+/**
+ * Test Twilio SMS by sending a test message
+ */
+function testTwilioSMS(to) {
+  const props = PropertiesService.getScriptProperties();
+  const accountSid = props.getProperty('TWILIO_ACCOUNT_SID');
+  const authToken = props.getProperty('TWILIO_AUTH_TOKEN');
+  const fromPhone = props.getProperty('TWILIO_PHONE_NUMBER');
+
+  if (!accountSid || !authToken || !fromPhone) {
+    return { success: false, error: 'Twilio not configured. Use configureTwilio first.' };
+  }
+
+  if (!to) {
+    return { success: false, error: 'Phone number (to) is required' };
+  }
+
+  // Format phone number
+  let formattedTo = to.replace(/\D/g, '');
+  if (formattedTo.length === 10) {
+    formattedTo = '+1' + formattedTo;
+  } else if (!formattedTo.startsWith('+')) {
+    formattedTo = '+' + formattedTo;
+  }
+
+  try {
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const response = UrlFetchApp.fetch(twilioUrl, {
+      method: 'post',
+      headers: {
+        'Authorization': 'Basic ' + Utilities.base64Encode(accountSid + ':' + authToken)
+      },
+      payload: {
+        To: formattedTo,
+        From: fromPhone,
+        Body: '🌱 Tiny Seed Farm SMS test successful! Your Twilio integration is working.'
+      },
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (responseCode >= 200 && responseCode < 300) {
+      const result = JSON.parse(responseText);
+      return {
+        success: true,
+        message: 'Test SMS sent successfully!',
+        to: formattedTo,
+        sid: result.sid
+      };
+    } else {
+      const error = JSON.parse(responseText);
+      return {
+        success: false,
+        error: error.message || 'SMS failed',
+        code: error.code,
+        status: responseCode
+      };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 // API endpoint to configure Shopify credentials
@@ -51100,7 +51899,7 @@ function sendCSADashboardStatusToPM() {
 
       <div class="section">
         <div class="section-title">📍 Portal URL</div>
-        <div class="code-block">https://tinyseedfarm.github.io/TIny_Seed_OS/web_app/csa.html</div>
+        <div class="code-block">https://toddismyname21.github.io/tiny-seed-os/web_app/csa.html</div>
       </div>
     </div>
 

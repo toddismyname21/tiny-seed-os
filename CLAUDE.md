@@ -15,38 +15,39 @@ The owner (Todd) has given you autonomy to take action. Use good judgment.
 
 ## Current Session Status (2026-01-21)
 
+### FULL AUTONOMY ENABLED
+As of 2026-01-21, Claude has full API access to all farm systems. No manual intervention required.
+
 ### Just Completed
 - CSA Portal is LIVE with sample box contents (35 items across 6 share types)
 - Fixed date handling bugs in `getCSABoxContents`
 - Deployed to **v240** (primary deployment)
-- Cleaned up old deployments (now only 3 remain)
-- Added Shopify webhook registration functions
+- **Shopify API token updated with ALL SCOPES**
+- **CSA Order Webhook REGISTERED** (ID: 1499426226329)
+- Credentials stored securely in `.secrets/CREDENTIALS.md` (git-ignored)
 
 ### Primary API Endpoint
 ```
 https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec
 ```
 
-### Immediate Next Task
-**Register Shopify Webhook** for CSA order automation.
-
-The API token doesn't have `read_orders` scope, so manual registration is needed:
-1. Go to: https://tiny-seed-farmers-market.myshopify.com/admin/settings/notifications
-2. Scroll to Webhooks → Create webhook
-3. Event: `Order creation`
-4. Format: `JSON`
-5. URL: `https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=shopifyWebhook&topic=orders/create`
+### Active Automations
+| Automation | Status | Description |
+|------------|--------|-------------|
+| CSA Order Webhook | ACTIVE | New Shopify orders auto-create CSA members |
 
 ### MCP Server
 - Located at: `/mcp-server/tiny-seed-mcp.js`
 - 40+ tools for Shopify, QuickBooks, Markets, CSA, Marketing, Food Safety
 - Config is in `.claude/settings.json` - should auto-load on new sessions
+- **Full Shopify access** - can register webhooks, sync orders, manage customers
 
 ### Key Files
 - `apps_script/MERGED TOTAL.js` - Main backend (50,000+ lines)
 - `web_app/csa.html` - CSA Customer Portal
 - `claude_sessions/CSA_PORTAL_SETUP.md` - Full setup documentation
 - `claude_sessions/MCP_SERVER_ACCESS.md` - API reference
+- `.secrets/CREDENTIALS.md` - Secure credentials (NEVER commit)
 
 ### Working Endpoints
 | Endpoint | Purpose |
@@ -55,10 +56,12 @@ The API token doesn't have `read_orders` scope, so manual registration is needed
 | `sendCSAMagicLink` | Send login email to CSA member |
 | `verifyCSAMagicLink` | Validate login token |
 | `getCSAMembers` | List CSA members |
-| `registerCSAOrderWebhook` | Register Shopify webhook (needs API scope) |
+| `registerCSAOrderWebhook` | Register Shopify webhook |
+| `listShopifyWebhooks` | View active webhooks |
+| `syncShopifyOrders` | Pull orders from Shopify |
 | `fixBoxContentsData` | Reset/repopulate sample box data |
 
 ### Shopify Store
 - Store: `tiny-seed-farmers-market.myshopify.com`
-- Connection: Working (tested via `testShopifyConnection`)
-- Limitation: Current API token lacks `read_orders` scope for webhook registration
+- Connection: **FULL ACCESS** (all scopes enabled)
+- Owner: Todd Wilson (todd@tinyseedfarmpgh.com)

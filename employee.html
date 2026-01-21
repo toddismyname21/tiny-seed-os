@@ -20547,5 +20547,328 @@
             setTimeout(() => TutorialMode.init(), 500);
         };
     </script>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════
+         CHIEF OF STAFF - AI ASSISTANT (ADMIN ONLY)
+         ════════════════════════════════════════════════════════════════════════════ -->
+    <style>
+        /* Chief of Staff Chat Widget - Admin Only */
+        .cos-chat-toggle {
+            position: fixed;
+            bottom: 90px;
+            right: 16px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2d5a27, #4a7c43);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(45, 90, 39, 0.4);
+            display: none; /* Hidden by default, shown for admin */
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .cos-chat-toggle.admin-visible { display: flex; }
+        .cos-chat-toggle:hover { transform: scale(1.1); }
+        .cos-chat-toggle i { font-size: 24px; color: white; }
+        .cos-chat-toggle .cos-badge {
+            position: absolute; top: -4px; right: -4px;
+            width: 20px; height: 20px; background: var(--danger);
+            border-radius: 50%; font-size: 11px; font-weight: 700;
+            color: white; display: flex; align-items: center;
+            justify-content: center; border: 2px solid var(--bg-dark);
+        }
+        .cos-chat-window {
+            position: fixed; bottom: 160px; right: 16px;
+            width: calc(100vw - 32px); max-width: 380px;
+            height: calc(100vh - 200px); max-height: 500px;
+            background: var(--bg-card); border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            display: none; flex-direction: column; z-index: 1000;
+            overflow: hidden; border: 1px solid var(--border);
+        }
+        .cos-chat-window.open { display: flex; animation: cosSlideUp 0.3s ease; }
+        @keyframes cosSlideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .cos-chat-header {
+            background: linear-gradient(135deg, #2d5a27, #1e3d1a);
+            padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+        }
+        .cos-avatar {
+            width: 40px; height: 40px; background: rgba(255,255,255,0.15);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        .cos-header-info h3 { color: white; font-size: 14px; margin: 0; }
+        .cos-header-info span { color: rgba(255,255,255,0.7); font-size: 11px; }
+        .cos-status-dot {
+            width: 6px; height: 6px; background: #22c55e;
+            border-radius: 50%; display: inline-block; margin-right: 4px;
+        }
+        .cos-close-btn {
+            margin-left: auto; background: rgba(255,255,255,0.1);
+            border: none; color: white; width: 32px; height: 32px;
+            border-radius: 8px; cursor: pointer;
+        }
+        .cos-quick-actions {
+            display: flex; gap: 6px; padding: 10px 12px;
+            background: var(--bg-elevated); border-bottom: 1px solid var(--border);
+            overflow-x: auto; flex-wrap: nowrap;
+        }
+        .cos-quick-btn {
+            background: var(--bg-card); border: 1px solid var(--border);
+            color: var(--text-secondary); padding: 6px 10px;
+            border-radius: 16px; font-size: 11px; white-space: nowrap;
+            cursor: pointer; min-height: 32px;
+        }
+        .cos-quick-btn:active { background: var(--primary); color: white; }
+        .cos-quick-btn i { margin-right: 4px; }
+        .cos-chat-messages {
+            flex: 1; overflow-y: auto; padding: 12px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .cos-message {
+            max-width: 90%; padding: 10px 14px; border-radius: 14px;
+            font-size: 13px; line-height: 1.4;
+        }
+        .cos-message.assistant {
+            background: var(--bg-elevated); color: var(--text-primary);
+            align-self: flex-start; border-bottom-left-radius: 4px;
+        }
+        .cos-message.user {
+            background: var(--primary); color: white;
+            align-self: flex-end; border-bottom-right-radius: 4px;
+        }
+        .cos-message.system {
+            background: linear-gradient(135deg, rgba(45,90,39,0.2), rgba(74,124,67,0.2));
+            border: 1px solid rgba(74,124,67,0.3); color: var(--text-primary);
+            align-self: center; text-align: center; max-width: 95%;
+        }
+        .cos-message h4 { color: var(--primary-light); margin-bottom: 6px; font-size: 12px; }
+        .cos-message ul { margin: 6px 0; padding-left: 18px; }
+        .cos-message li { margin-bottom: 3px; }
+        .cos-typing {
+            display: flex; gap: 4px; padding: 10px 14px;
+            background: var(--bg-elevated); border-radius: 14px;
+            align-self: flex-start; width: fit-content;
+        }
+        .cos-typing span {
+            width: 6px; height: 6px; background: var(--text-muted);
+            border-radius: 50%; animation: typingBounce 1.4s infinite;
+        }
+        .cos-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .cos-typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+        .cos-chat-input {
+            padding: 12px; background: var(--bg-elevated);
+            border-top: 1px solid var(--border);
+            display: flex; gap: 8px; align-items: center;
+        }
+        .cos-chat-input input {
+            flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 20px; padding: 10px 16px; color: var(--text-primary);
+            font-size: 14px; outline: none; min-height: 44px;
+        }
+        .cos-chat-input input:focus { border-color: var(--primary); }
+        .cos-voice-btn, .cos-send-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: none; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+        }
+        .cos-voice-btn {
+            background: var(--bg-card); color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .cos-voice-btn.listening { background: var(--danger); color: white; }
+        .cos-send-btn { background: var(--primary); color: white; }
+        .cos-weather-card {
+            background: linear-gradient(135deg, #1e3a5f, #2d5a87);
+            border-radius: 10px; padding: 10px; margin: 6px 0;
+        }
+        .cos-weather-card .temp { font-size: 24px; font-weight: 700; }
+        .cos-weather-card .condition { font-size: 12px; opacity: 0.9; }
+        .cos-alert-card {
+            background: var(--warning-bg); border-left: 3px solid var(--warning);
+            padding: 8px 10px; border-radius: 6px; margin: 6px 0; font-size: 12px;
+        }
+        .cos-alert-card.critical { background: var(--danger-bg); border-color: var(--danger); }
+    </style>
+
+    <!-- Chief of Staff Chat Button (Admin Only) -->
+    <button class="cos-chat-toggle" id="cosChatToggle" onclick="toggleCOSChat()" title="Chief of Staff AI">
+        <i class="fas fa-robot"></i>
+        <span class="cos-badge" id="cosBadge" style="display: none;">0</span>
+    </button>
+
+    <!-- Chief of Staff Chat Window -->
+    <div class="cos-chat-window" id="cosChatWindow">
+        <div class="cos-chat-header">
+            <div class="cos-avatar">🤖</div>
+            <div class="cos-header-info">
+                <h3>Chief of Staff</h3>
+                <span><span class="cos-status-dot"></span>Online</span>
+            </div>
+            <button class="cos-close-btn" onclick="toggleCOSChat()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="cos-quick-actions">
+            <button class="cos-quick-btn" onclick="cosQuickAction('brief')"><i class="fas fa-sun"></i>Brief</button>
+            <button class="cos-quick-btn" onclick="cosQuickAction('weather')"><i class="fas fa-cloud-sun"></i>Weather</button>
+            <button class="cos-quick-btn" onclick="cosQuickAction('alerts')"><i class="fas fa-bell"></i>Alerts</button>
+            <button class="cos-quick-btn" onclick="cosQuickAction('ideas')"><i class="fas fa-lightbulb"></i>Ideas</button>
+        </div>
+        <div class="cos-chat-messages" id="cosChatMessages"></div>
+        <div class="cos-chat-input">
+            <button class="cos-voice-btn" id="cosVoiceBtn" onclick="toggleCOSVoice()">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" id="cosInput" placeholder="Ask anything..."
+                   onkeypress="if(event.key==='Enter')sendCOSMessage()">
+            <button class="cos-send-btn" onclick="sendCOSMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Chief of Staff - Admin Only
+        let cosFirstOpen = true;
+        let cosRecognition = null;
+
+        // Show COS button only for Admin
+        function initCOSForAdmin() {
+            if (AppState.employee && AppState.employee.Role === 'Admin') {
+                document.getElementById('cosChatToggle').classList.add('admin-visible');
+            }
+        }
+
+        // Hook into showMainApp to init COS
+        const _origShowMainApp = showMainApp;
+        showMainApp = function() {
+            _origShowMainApp.apply(this, arguments);
+            setTimeout(initCOSForAdmin, 100);
+        };
+
+        function toggleCOSChat() {
+            const win = document.getElementById('cosChatWindow');
+            const isOpen = win.classList.toggle('open');
+            if (isOpen && cosFirstOpen) {
+                cosFirstOpen = false;
+                addCOSMsg('system', `<h4>👋 Hey Todd!</h4><p>I'm your Chief of Staff. Ask me about weather, alerts, ideas, or your daily brief!</p>`);
+                fetchCOSBrief();
+            }
+        }
+
+        async function fetchCOSBrief() {
+            showCOSTyping();
+            try {
+                const r = await fetch(CONFIG.API_URL + '?action=getUltimateMorningBrief');
+                const d = await r.json();
+                hideCOSTyping();
+                if (d.sections?.weather?.success) {
+                    const w = d.sections.weather.current;
+                    addCOSMsg('assistant', `<div class="cos-weather-card"><div class="temp">${Math.round(w.temp)}°F</div><div class="condition">${w.description}</div></div><p>📅 ${d.sections.calendar?.summary?.totalEvents || 0} events today</p>`);
+                }
+            } catch(e) { hideCOSTyping(); }
+        }
+
+        async function cosQuickAction(action) {
+            const actions = {
+                brief: ['getUltimateMorningBrief', "What's my brief?"],
+                weather: ['getWeatherRecommendations', "What's the weather?"],
+                alerts: ['getActiveAlerts', "Any alerts?"],
+                ideas: ['getProactiveSuggestions', "Give me ideas"]
+            };
+            const [endpoint, msg] = actions[action];
+            addCOSMsg('user', msg);
+            showCOSTyping();
+            try {
+                const r = await fetch(CONFIG.API_URL + '?action=' + endpoint);
+                const d = await r.json();
+                hideCOSTyping();
+                addCOSMsg('assistant', parseCOSResponse(action, d));
+            } catch(e) { hideCOSTyping(); addCOSMsg('assistant', 'Error fetching data.'); }
+        }
+
+        function parseCOSResponse(type, d) {
+            if (type === 'weather' && d.success) {
+                let h = `<div class="cos-weather-card"><div class="temp">${Math.round(d.current.temp)}°F</div><div class="condition">${d.current.description}</div></div>`;
+                if (d.recommendations?.length) {
+                    h += '<ul>' + d.recommendations.map(r => `<li>${r.message}</li>`).join('') + '</ul>';
+                }
+                return h;
+            }
+            if (type === 'alerts') {
+                if (!d.success || !d.data?.length) return '<h4>✅ All Clear!</h4><p>No alerts.</p>';
+                return '<h4>🔔 Alerts</h4>' + d.data.map(a => `<div class="cos-alert-card ${a.priority==='CRITICAL'?'critical':''}">${a.title || a.message}</div>`).join('');
+            }
+            if (type === 'brief' && d.sections) {
+                let h = '<h4>📋 Today</h4>';
+                if (d.sections.weather?.success) h += `<p>🌡️ ${Math.round(d.sections.weather.current.temp)}°F - ${d.sections.weather.current.description}</p>`;
+                if (d.sections.calendar?.success) h += `<p>📅 ${d.sections.calendar.summary?.totalEvents || 0} events</p>`;
+                return h;
+            }
+            if (type === 'ideas') {
+                return `<h4>💡 Ideas</h4><ul><li>Send a "What's Growing" email</li><li>Post harvest day on social</li><li>Reach out to 2 restaurants</li></ul>`;
+            }
+            return 'Done!';
+        }
+
+        async function sendCOSMessage() {
+            const inp = document.getElementById('cosInput');
+            const msg = inp.value.trim();
+            if (!msg) return;
+            addCOSMsg('user', msg);
+            inp.value = '';
+            const lm = msg.toLowerCase();
+            if (lm.includes('weather')) { await cosQuickAction('weather'); return; }
+            if (lm.includes('brief') || lm.includes('today')) { await cosQuickAction('brief'); return; }
+            if (lm.includes('alert')) { await cosQuickAction('alerts'); return; }
+            if (lm.includes('idea')) { await cosQuickAction('ideas'); return; }
+            addCOSMsg('assistant', '<p>Try: weather, brief, alerts, or ideas!</p>');
+        }
+
+        function addCOSMsg(type, content) {
+            const c = document.getElementById('cosChatMessages');
+            const m = document.createElement('div');
+            m.className = 'cos-message ' + type;
+            m.innerHTML = content;
+            c.appendChild(m);
+            c.scrollTop = c.scrollHeight;
+        }
+
+        function showCOSTyping() {
+            const c = document.getElementById('cosChatMessages');
+            const t = document.createElement('div');
+            t.className = 'cos-typing'; t.id = 'cosTyping';
+            t.innerHTML = '<span></span><span></span><span></span>';
+            c.appendChild(t); c.scrollTop = c.scrollHeight;
+        }
+
+        function hideCOSTyping() {
+            const t = document.getElementById('cosTyping');
+            if (t) t.remove();
+        }
+
+        function toggleCOSVoice() {
+            if (!('webkitSpeechRecognition' in window)) { alert('Voice not supported'); return; }
+            const btn = document.getElementById('cosVoiceBtn');
+            if (cosRecognition) { cosRecognition.stop(); cosRecognition = null; btn.classList.remove('listening'); return; }
+            cosRecognition = new webkitSpeechRecognition();
+            cosRecognition.continuous = false;
+            cosRecognition.onstart = () => btn.classList.add('listening');
+            cosRecognition.onend = () => { btn.classList.remove('listening'); cosRecognition = null; };
+            cosRecognition.onresult = (e) => { document.getElementById('cosInput').value = e.results[0][0].transcript; sendCOSMessage(); };
+            cosRecognition.start();
+        }
+    </script>
 </body>
 </html>

@@ -21,6 +21,7 @@ credentials.json
 creds.json
 CREDENTIALS_PRIVATE.txt
 SOCIAL_CREDENTIALS.md  # Social media passwords - NEVER commit
+.secrets/              # Secure credentials folder - NEVER commit
 apps_script/   # Contains Twilio credentials - never commit to public repo
 
 # Claude Code

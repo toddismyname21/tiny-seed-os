@@ -378,6 +378,101 @@ const TOOLS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // CHIEF OF STAFF - AI EMAIL ASSISTANT (11 Modules, 95/100 Score)
+  // ═══════════════════════════════════════════════════════════════════════════
+  cos_get_ultimate_brief: {
+    description: "Get THE ultimate morning brief - combines all AI insights",
+    parameters: {},
+    action: "getUltimateMorningBrief"
+  },
+  cos_get_weather: {
+    description: "Get current weather with farm-specific recommendations",
+    parameters: {},
+    action: "getWeatherRecommendations"
+  },
+  cos_get_style_profile: {
+    description: "Get Todd's writing style profile (trained on 1,470 emails)",
+    parameters: {},
+    action: "getStyleProfile"
+  },
+  cos_apply_style: {
+    description: "Apply Todd's writing style to a draft email",
+    parameters: {
+      draft: "The email draft to style",
+      recipientType: "Type: customer, vendor, personal"
+    },
+    action: "applyStyleToDraft"
+  },
+  cos_get_available_agents: {
+    description: "Get list of 7 specialized AI agents",
+    parameters: {},
+    action: "getAvailableAgents"
+  },
+  cos_run_agent_task: {
+    description: "Run a task with a specific AI agent",
+    parameters: {
+      agentType: "Agent: triage, response, research, scheduling, finance, customer",
+      task: "JSON task description"
+    },
+    action: "runAgentTask"
+  },
+  cos_get_autonomy_status: {
+    description: "Get autonomy system status - 29 actions across L0-L4 levels",
+    parameters: {},
+    action: "getAutonomyStatus"
+  },
+  cos_run_proactive_scan: {
+    description: "Run proactive intelligence scan for issues",
+    parameters: {},
+    action: "runProactiveScanning"
+  },
+  cos_get_active_alerts: {
+    description: "Get active proactive alerts",
+    parameters: {
+      priority: "Filter: CRITICAL, HIGH, MEDIUM, LOW"
+    },
+    action: "getActiveAlerts"
+  },
+  cos_recall_contact: {
+    description: "Recall everything known about a contact from memory",
+    parameters: {
+      email: "Contact email address"
+    },
+    action: "recallContact"
+  },
+  cos_search_files: {
+    description: "Search files using natural language",
+    parameters: {
+      query: "Natural language query like 'Johnny's seed invoices'"
+    },
+    action: "searchFilesNaturalLanguage"
+  },
+  cos_predict_churn: {
+    description: "Predict which customers are at risk of churning",
+    parameters: {},
+    action: "predictCustomerChurn"
+  },
+  cos_forecast_workload: {
+    description: "Forecast email workload for coming days",
+    parameters: {
+      days: "Number of days to forecast (default 7)"
+    },
+    action: "forecastWorkload"
+  },
+  cos_parse_voice: {
+    description: "Parse a voice command like 'Hey Chief, what's urgent today?'",
+    parameters: {
+      transcript: "Voice command transcript"
+    },
+    action: "parseVoiceCommand"
+  },
+  cos_verify_system: {
+    description: "Verify Chief of Staff system health (should be 100%)",
+    parameters: {},
+    action: "verifyChiefOfStaffSystem"
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // SYSTEM
   // ═══════════════════════════════════════════════════════════════════════════
   health_check: {
