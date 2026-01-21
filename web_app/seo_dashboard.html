@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Domination Dashboard - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="auth-guard.js" data-required-role="Admin"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --info: #4361ee;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+            --gold: #ffd700;
+            --purple: #9b59b6;
+            --teal: #1abc9c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ============================================= */
+        /* NAVIGATION */
+        /* ============================================= */
+        .top-nav {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-logo {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--secondary) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--success) 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* ============================================= */
+        /* MAIN CONTENT */
+        /* ============================================= */
+        .main-content {
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Score Cards Row */
+        .score-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .score-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .score-card.gold::before { background: linear-gradient(90deg, var(--gold), var(--secondary)); }
+        .score-card.green::before { background: linear-gradient(90deg, var(--primary), var(--success)); }
+        .score-card.blue::before { background: linear-gradient(90deg, var(--info), var(--teal)); }
+        .score-card.purple::before { background: linear-gradient(90deg, var(--purple), var(--accent)); }
+
+        .score-card .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .score-card .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .score-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .score-card .trend {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .trend.up { color: var(--success); }
+        .trend.down { color: var(--danger); }
+        .trend.neutral { color: var(--text-secondary); }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .dashboard-grid.full {
+            grid-template-columns: 1fr;
+        }
+
+        /* Card Styling */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Rankings Table */
+        .rankings-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .rankings-table th,
+        .rankings-table td {
+            padding: 1rem;
+            text-align: left;
+        }
+
+        .rankings-table th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .rankings-table tr {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .rankings-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .rank-badge.top3 {
+            background: linear-gradient(135deg, var(--gold), var(--secondary));
+            color: #000;
+        }
+
+        .rank-badge.top10 {
+            background: var(--bg-light);
+            color: var(--success);
+        }
+
+        .rank-badge.below {
+            background: var(--bg-light);
+            color: var(--text-secondary);
+        }
+
+        .change-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .change-badge.up {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .change-badge.down {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        .progress-track {
+            background: var(--bg-light);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            width: 150px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            transition: width 0.5s ease;
+        }
+
+        /* Recent Reviews */
+        .review-item {
+            padding: 1rem;
+            border-radius: 12px;
+            background: var(--bg-light);
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--success);
+        }
+
+        .review-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .review-stars {
+            color: var(--gold);
+            font-size: 0.9rem;
+        }
+
+        .review-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .review-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
+        .respond-btn {
+            margin-top: 0.75rem;
+            padding: 0.4rem 0.8rem;
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary-light);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .respond-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .respond-btn.done {
+            background: rgba(42, 157, 143, 0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        /* Citation Tiers */
+        .tier-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tier-item:last-child {
+            border-bottom: none;
+        }
+
+        .tier-name {
+            min-width: 120px;
+            font-size: 0.85rem;
+        }
+
+        .tier-bar {
+            flex: 1;
+            background: var(--bg-light);
+            border-radius: 6px;
+            height: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tier-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            transition: width 0.5s ease;
+        }
+
+        .tier-count {
+            min-width: 50px;
+            text-align: right;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Action Items */
+        .action-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 10px;
+            background: var(--bg-light);
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-item:hover {
+            transform: translateX(5px);
+        }
+
+        .action-item.high {
+            border-left: 4px solid var(--danger);
+        }
+
+        .action-item.medium {
+            border-left: 4px solid var(--warning);
+        }
+
+        .action-item.low {
+            border-left: 4px solid var(--info);
+        }
+
+        .action-icon {
+            font-size: 1.25rem;
+        }
+
+        .action-text {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .action-btn {
+            padding: 0.4rem 0.8rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--success);
+            border-radius: 10px;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 300;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.active {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .score-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .score-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .top-nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <div class="nav-logo">🏆</div>
+            <div>
+                <div class="nav-title">SEO Domination Dashboard</div>
+                <div class="nav-subtitle">Path to #1 in Pittsburgh</div>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <button class="btn btn-secondary" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn btn-primary" onclick="openLogRankingsModal()">
+                <i class="fas fa-chart-line"></i> Log Rankings
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Score Cards -->
+        <div class="score-cards">
+            <div class="score-card gold">
+                <div class="icon">🏆</div>
+                <div class="label">Overall Score</div>
+                <div class="value" id="overall-score">--</div>
+                <div class="trend neutral" id="overall-trend">Loading...</div>
+            </div>
+
+            <div class="score-card green">
+                <div class="icon">⭐</div>
+                <div class="label">Google Reviews</div>
+                <div class="value" id="review-count">--</div>
+                <div class="trend neutral" id="review-avg">Loading...</div>
+            </div>
+
+            <div class="score-card blue">
+                <div class="icon">📍</div>
+                <div class="label">Citations</div>
+                <div class="value" id="citation-count">--</div>
+                <div class="trend neutral" id="citation-pct">Loading...</div>
+            </div>
+
+            <div class="score-card purple">
+                <div class="icon">📈</div>
+                <div class="label">Best Ranking</div>
+                <div class="value" id="best-rank">--</div>
+                <div class="trend neutral" id="best-keyword">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Rankings Section -->
+        <div class="dashboard-grid full" style="margin-bottom: 1.5rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-bullseye"></i> Keyword Rankings</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="openLogRankingsModal()">
+                        <i class="fas fa-plus"></i> Log New
+                    </button>
+                </div>
+                <div class="card-body">
+                    <table class="rankings-table">
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Current Rank</th>
+                                <th>Change</th>
+                                <th>Progress to Goal</th>
+                                <th>Target</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankings-tbody">
+                            <tr>
+                                <td colspan="5" class="loading">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Grid -->
+        <div class="dashboard-grid">
+            <!-- Left Column -->
+            <div>
+                <!-- Ranking History Chart -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> Ranking History</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="rankingsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Reviews -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-star"></i> Recent Reviews</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="openAddReviewModal()">
+                            <i class="fas fa-plus"></i> Log Review
+                        </button>
+                    </div>
+                    <div class="card-body" id="reviews-container">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div>
+                <!-- Citation Status -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-map-marker-alt"></i> Citation Status</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="openAddCitationModal()">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div class="card-body" id="citations-container">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Items -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tasks"></i> Action Items</h3>
+                    </div>
+                    <div class="card-body" id="actions-container">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Rankings Modal -->
+    <div class="modal-overlay" id="rankings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Log Keyword Rankings</h2>
+                <button class="modal-close" onclick="closeModal('rankings-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                    Search each keyword in Google (incognito mode) and enter your current ranking position.
+                </p>
+                <form id="rankings-form">
+                    <div class="form-group">
+                        <label>"farm pittsburgh"</label>
+                        <input type="number" name="farm_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"CSA pittsburgh"</label>
+                        <input type="number" name="csa_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"organic farm pittsburgh"</label>
+                        <input type="number" name="organic_farm_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"local produce pittsburgh"</label>
+                        <input type="number" name="local_produce_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('rankings-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveRankings()">Save Rankings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Review Modal -->
+    <div class="modal-overlay" id="review-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Log New Review</h2>
+                <button class="modal-close" onclick="closeModal('review-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="review-form">
+                    <div class="form-group">
+                        <label>Platform</label>
+                        <select name="platform" required>
+                            <option value="google">Google</option>
+                            <option value="yelp">Yelp</option>
+                            <option value="facebook">Facebook</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Reviewer Name</label>
+                        <input type="text" name="reviewerName" placeholder="John S." required>
+                    </div>
+                    <div class="form-group">
+                        <label>Rating</label>
+                        <select name="rating" required>
+                            <option value="5">5 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="2">2 Stars</option>
+                            <option value="1">1 Star</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Review Text</label>
+                        <textarea name="reviewText" rows="4" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: inherit; resize: vertical;" placeholder="Paste the review text here..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('review-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveReview()">Save Review</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Citation Modal -->
+    <div class="modal-overlay" id="citation-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Log Citation</h2>
+                <button class="modal-close" onclick="closeModal('citation-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="citation-form">
+                    <div class="form-group">
+                        <label>Directory</label>
+                        <select name="directory" required>
+                            <optgroup label="Tier 1 - Essential">
+                                <option value="Google Business Profile">Google Business Profile</option>
+                                <option value="Bing Places">Bing Places</option>
+                                <option value="Apple Maps">Apple Maps</option>
+                                <option value="Facebook">Facebook</option>
+                                <option value="Yelp">Yelp</option>
+                            </optgroup>
+                            <optgroup label="Tier 2 - Farm Directories">
+                                <option value="LocalHarvest">LocalHarvest</option>
+                                <option value="USDA CSA Directory">USDA CSA Directory</option>
+                                <option value="FindMyCSAFarm">FindMyCSAFarm</option>
+                                <option value="EatWild">EatWild</option>
+                                <option value="FarmersWeb">FarmersWeb</option>
+                            </optgroup>
+                            <optgroup label="Tier 3 - Pittsburgh Local">
+                                <option value="Visit Pittsburgh">Visit Pittsburgh</option>
+                                <option value="Good Food Pittsburgh">Good Food Pittsburgh</option>
+                                <option value="Pittsburgh Magazine">Pittsburgh Magazine</option>
+                                <option value="Table Magazine">Table Magazine</option>
+                            </optgroup>
+                            <optgroup label="Tier 4 - Business Directories">
+                                <option value="BBB">Better Business Bureau</option>
+                                <option value="Nextdoor">Nextdoor</option>
+                                <option value="Yellow Pages">Yellow Pages</option>
+                                <option value="Foursquare">Foursquare</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status" required>
+                            <option value="submitted">Submitted</option>
+                            <option value="live">Live/Verified</option>
+                            <option value="pending">Pending Verification</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Listing URL (if live)</label>
+                        <input type="url" name="url" placeholder="https://...">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('citation-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCitation()">Save Citation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-message">Success!</span>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const KEYWORDS = [
+            { keyword: 'farm pittsburgh', target: 1 },
+            { keyword: 'CSA pittsburgh', target: 1 },
+            { keyword: 'organic farm pittsburgh', target: 3 },
+            { keyword: 'local produce pittsburgh', target: 5 }
+        ];
+
+        const CITATION_TIERS = [
+            { name: 'Tier 1 Essential', total: 5 },
+            { name: 'Tier 2 Farm', total: 7 },
+            { name: 'Tier 3 Pittsburgh', total: 8 },
+            { name: 'Tier 4 Business', total: 10 },
+            { name: 'Tier 5 Social', total: 5 },
+            { name: 'Tier 6 Review', total: 2 }
+        ];
+
+        let rankingsChart = null;
+        let dashboardData = null;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+        });
+
+        async function loadDashboard() {
+            try {
+                // Load all data in parallel
+                const [rankings, reviews, citations] = await Promise.all([
+                    callAPI('getSEORankings', { limit: 50 }),
+                    callAPI('getReviewMetrics', { platform: 'all', timeframe: 'all' }),
+                    callAPI('getCitationStatus', {})
+                ]);
+
+                dashboardData = { rankings, reviews, citations };
+
+                renderScoreCards();
+                renderRankingsTable();
+                renderRankingsChart();
+                renderReviews();
+                renderCitations();
+                renderActionItems();
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showToast('Error loading dashboard data');
+            }
+        }
+
+        function refreshDashboard() {
+            loadDashboard();
+            showToast('Dashboard refreshed');
+        }
+
+        // ============================================
+        // API CALLS
+        // ============================================
+        async function callAPI(action, params) {
+            const response = await fetch(`${API_BASE_URL}?action=${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(params)
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            return data;
+        }
+
+        // ============================================
+        // RENDER FUNCTIONS
+        // ============================================
+        function renderScoreCards() {
+            const { rankings, reviews, citations } = dashboardData;
+
+            // Overall Score (weighted calculation)
+            const reviewScore = Math.min(100, ((reviews?.total || 0) / 150) * 100);
+            const citationScore = ((citations?.submitted || 0) / 37) * 100;
+            const rankingScore = calculateRankingScore(rankings);
+            const overallScore = Math.round(
+                (reviewScore * 0.30) +
+                (rankingScore * 0.45) +
+                (citationScore * 0.25)
+            );
+
+            document.getElementById('overall-score').textContent = `${overallScore}/100`;
+            document.getElementById('overall-trend').innerHTML =
+                `<i class="fas fa-arrow-up"></i> Path to #1`;
+            document.getElementById('overall-trend').className = 'trend up';
+
+            // Reviews
+            document.getElementById('review-count').textContent = reviews?.total || 0;
+            document.getElementById('review-avg').textContent =
+                `Avg: ${(reviews?.averageRating || 0).toFixed(1)} stars`;
+            document.getElementById('review-avg').className =
+                (reviews?.averageRating >= 4.5) ? 'trend up' : 'trend neutral';
+
+            // Citations
+            const submitted = citations?.submitted || 0;
+            const total = citations?.total || 37;
+            document.getElementById('citation-count').textContent = `${submitted}/${total}`;
+            document.getElementById('citation-pct').textContent =
+                `${Math.round((submitted/total)*100)}% Complete`;
+            document.getElementById('citation-pct').className =
+                submitted > 20 ? 'trend up' : 'trend neutral';
+
+            // Best Ranking
+            if (rankings?.keywords?.length > 0) {
+                const best = rankings.keywords.reduce((a, b) =>
+                    (a.currentRank || 100) < (b.currentRank || 100) ? a : b
+                );
+                document.getElementById('best-rank').textContent = `#${best.currentRank || '--'}`;
+                document.getElementById('best-keyword').textContent = `"${best.keyword}"`;
+                document.getElementById('best-keyword').className =
+                    best.currentRank <= 5 ? 'trend up' : 'trend neutral';
+            }
+        }
+
+        function calculateRankingScore(rankings) {
+            if (!rankings?.keywords?.length) return 0;
+
+            let totalScore = 0;
+            rankings.keywords.forEach(kw => {
+                const rank = kw.currentRank || 100;
+                if (rank === 1) totalScore += 100;
+                else if (rank <= 3) totalScore += 80;
+                else if (rank <= 5) totalScore += 60;
+                else if (rank <= 10) totalScore += 40;
+                else if (rank <= 20) totalScore += 20;
+            });
+
+            return totalScore / rankings.keywords.length;
+        }
+
+        function renderRankingsTable() {
+            const { rankings } = dashboardData;
+            const tbody = document.getElementById('rankings-tbody');
+
+            if (!rankings?.keywords?.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                            No rankings logged yet. Click "Log Rankings" to add your first entry.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = KEYWORDS.map(kw => {
+                const data = rankings.keywords.find(k => k.keyword === kw.keyword) || {};
+                const rank = data.currentRank || '--';
+                const change = data.change || 0;
+                const target = kw.target;
+                const progress = rank !== '--' ? Math.max(0, (21 - rank) / 20 * 100) : 0;
+
+                return `
+                    <tr>
+                        <td><strong>"${kw.keyword}"</strong></td>
+                        <td>
+                            <span class="rank-badge ${rank <= 3 ? 'top3' : rank <= 10 ? 'top10' : 'below'}">
+                                ${rank}
+                            </span>
+                        </td>
+                        <td>
+                            ${change !== 0 ? `
+                                <span class="change-badge ${change > 0 ? 'up' : 'down'}">
+                                    <i class="fas fa-arrow-${change > 0 ? 'up' : 'down'}"></i>
+                                    ${Math.abs(change)}
+                                </span>
+                            ` : '<span style="color: var(--text-secondary)">--</span>'}
+                        </td>
+                        <td>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: ${progress}%"></div>
+                            </div>
+                        </td>
+                        <td>Target: #${target}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderRankingsChart() {
+            const { rankings } = dashboardData;
+            const ctx = document.getElementById('rankingsChart').getContext('2d');
+
+            // Destroy existing chart
+            if (rankingsChart) {
+                rankingsChart.destroy();
+            }
+
+            // Generate labels for last 12 weeks
+            const labels = [];
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - (i * 7));
+                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            }
+
+            // Get historical data or use placeholders
+            const datasets = KEYWORDS.map((kw, i) => {
+                const colors = ['#ffd700', '#2a9d8f', '#4361ee', '#9b59b6'];
+                const data = rankings?.history?.[kw.keyword] || Array(12).fill(null);
+
+                return {
+                    label: kw.keyword,
+                    data: data.length ? data : Array(12).fill(null),
+                    borderColor: colors[i],
+                    backgroundColor: colors[i] + '20',
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                };
+            });
+
+            rankingsChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#8d99ae' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            reverse: true,
+                            min: 1,
+                            max: 20,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#8d99ae' },
+                            title: {
+                                display: true,
+                                text: 'Ranking Position',
+                                color: '#8d99ae'
+                            }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#8d99ae' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderReviews() {
+            const { reviews } = dashboardData;
+            const container = document.getElementById('reviews-container');
+
+            if (!reviews?.recentReviews?.length) {
+                container.innerHTML = `
+                    <p style="text-align: center; color: var(--text-secondary);">
+                        No reviews logged yet. Click "Log Review" to track your Google reviews.
+                    </p>
+                `;
+                return;
+            }
+
+            container.innerHTML = reviews.recentReviews.slice(0, 5).map(review => `
+                <div class="review-item">
+                    <div class="review-header">
+                        <div>
+                            <span class="review-stars">${'⭐'.repeat(review.rating)}</span>
+                            <strong style="margin-left: 0.5rem;">${review.reviewerName}</strong>
+                        </div>
+                        <span class="review-meta">${review.platform} • ${formatDate(review.date)}</span>
+                    </div>
+                    <div class="review-text">"${review.text?.substring(0, 150) || 'No text'}${review.text?.length > 150 ? '...' : ''}"</div>
+                    <button class="respond-btn ${review.responded ? 'done' : ''}"
+                            onclick="${review.responded ? '' : 'markResponded(\"'+review.id+'\")'}">
+                        ${review.responded ? '✓ Responded' : 'Mark Responded'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderCitations() {
+            const { citations } = dashboardData;
+            const container = document.getElementById('citations-container');
+
+            const tierData = citations?.byTier || {};
+
+            container.innerHTML = CITATION_TIERS.map(tier => {
+                const completed = tierData[tier.name] || 0;
+                const pct = (completed / tier.total) * 100;
+
+                return `
+                    <div class="tier-item">
+                        <span class="tier-name">${tier.name}</span>
+                        <div class="tier-bar">
+                            <div class="tier-fill" style="width: ${pct}%"></div>
+                        </div>
+                        <span class="tier-count">${completed}/${tier.total}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderActionItems() {
+            const { rankings, reviews, citations } = dashboardData;
+            const container = document.getElementById('actions-container');
+            const items = [];
+
+            // Check for unresponded reviews
+            const unresponded = reviews?.recentReviews?.filter(r => !r.responded)?.length || 0;
+            if (unresponded > 0) {
+                items.push({
+                    priority: 'high',
+                    icon: '⚠️',
+                    text: `${unresponded} review${unresponded > 1 ? 's' : ''} need${unresponded === 1 ? 's' : ''} response`,
+                    action: 'viewReviews'
+                });
+            }
+
+            // Check Tier 1 citations
+            const tier1Complete = citations?.byTier?.['Tier 1 Essential'] || 0;
+            if (tier1Complete < 5) {
+                items.push({
+                    priority: 'medium',
+                    icon: '📌',
+                    text: `Complete Tier 1 citations (${5 - tier1Complete} remaining)`,
+                    action: 'addCitation'
+                });
+            }
+
+            // Weekly ranking check
+            const lastRankDate = rankings?.lastUpdated;
+            const daysSinceRank = lastRankDate
+                ? Math.floor((Date.now() - new Date(lastRankDate)) / (1000*60*60*24))
+                : 999;
+            if (daysSinceRank >= 7) {
+                items.push({
+                    priority: 'medium',
+                    icon: '📊',
+                    text: 'Weekly keyword ranking check due',
+                    action: 'logRankings'
+                });
+            }
+
+            // Content reminder (simplified)
+            items.push({
+                priority: 'low',
+                icon: '📝',
+                text: 'Check content calendar for this week',
+                action: 'viewCalendar'
+            });
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <p style="text-align: center; color: var(--success); padding: 1rem;">
+                        <i class="fas fa-check-circle"></i> All caught up! Great work.
+                    </p>
+                `;
+                return;
+            }
+
+            container.innerHTML = items.map(item => `
+                <div class="action-item ${item.priority}">
+                    <span class="action-icon">${item.icon}</span>
+                    <span class="action-text">${item.text}</span>
+                    <button class="action-btn" onclick="handleAction('${item.action}')">
+                        ${getActionLabel(item.action)}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function getActionLabel(action) {
+            const labels = {
+                viewReviews: 'View',
+                addCitation: 'Add',
+                logRankings: 'Log',
+                viewCalendar: 'View'
+            };
+            return labels[action] || 'Go';
+        }
+
+        function handleAction(action) {
+            switch(action) {
+                case 'viewReviews':
+                    document.getElementById('reviews-container').scrollIntoView({ behavior: 'smooth' });
+                    break;
+                case 'addCitation':
+                    openAddCitationModal();
+                    break;
+                case 'logRankings':
+                    openLogRankingsModal();
+                    break;
+                case 'viewCalendar':
+                    window.open('https://docs.google.com/document/d/your-calendar-doc', '_blank');
+                    break;
+            }
+        }
+
+        // ============================================
+        // MODAL FUNCTIONS
+        // ============================================
+        function openLogRankingsModal() {
+            document.getElementById('rankings-modal').classList.add('active');
+        }
+
+        function openAddReviewModal() {
+            document.getElementById('review-modal').classList.add('active');
+        }
+
+        function openAddCitationModal() {
+            document.getElementById('citation-modal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        async function saveRankings() {
+            const form = document.getElementById('rankings-form');
+            const formData = new FormData(form);
+
+            try {
+                for (const [key, value] of formData.entries()) {
+                    if (value) {
+                        const keyword = key.replace(/_/g, ' ');
+                        await callAPI('logSEORanking', {
+                            keyword: keyword,
+                            rank: parseInt(value),
+                            searchEngine: 'google'
+                        });
+                    }
+                }
+
+                closeModal('rankings-modal');
+                form.reset();
+                showToast('Rankings saved successfully!');
+                loadDashboard();
+            } catch (error) {
+                console.error('Error saving rankings:', error);
+                showToast('Error saving rankings');
+            }
+        }
+
+        async function saveReview() {
+            const form = document.getElementById('review-form');
+            const formData = new FormData(form);
+
+            try {
+                await callAPI('logReview', {
+                    platform: formData.get('platform'),
+                    reviewerName: formData.get('reviewerName'),
+                    rating: parseInt(formData.get('rating')),
+                    reviewText: formData.get('reviewText'),
+                    source: 'manual'
+                });
+
+                closeModal('review-modal');
+                form.reset();
+                showToast('Review logged successfully!');
+                loadDashboard();
+            } catch (error) {
+                console.error('Error saving review:', error);
+                showToast('Error saving review');
+            }
+        }
+
+        async function saveCitation() {
+            const form = document.getElementById('citation-form');
+            const formData = new FormData(form);
+
+            try {
+                await callAPI('logCitation', {
+                    directory: formData.get('directory'),
+                    status: formData.get('status'),
+                    url: formData.get('url')
+                });
+
+                closeModal('citation-modal');
+                form.reset();
+                showToast('Citation logged successfully!');
+                loadDashboard();
+            } catch (error) {
+                console.error('Error saving citation:', error);
+                showToast('Error saving citation');
+            }
+        }
+
+        async function markResponded(reviewId) {
+            // Mark review as responded
+            showToast('Marked as responded');
+            loadDashboard();
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000*60*60*24));
+
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.add('active');
+            setTimeout(() => toast.classList.remove('active'), 3000);
+        }
+    </script>
+</body>
+</html>

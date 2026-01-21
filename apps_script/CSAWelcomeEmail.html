@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome to Tiny Seed Farm CSA</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    /* Reset */
+    body, table, td, p, a, li { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+
+    /* Base */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7f6;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .wrapper {
+      width: 100%;
+      background-color: #f4f7f6;
+      padding: 40px 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+      padding: 40px 30px;
+      text-align: center;
+    }
+
+    .header-logo {
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header h1 {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .header p {
+      color: rgba(255,255,255,0.9);
+      font-size: 16px;
+      margin: 0;
+    }
+
+    /* Content */
+    .content {
+      padding: 40px 30px;
+    }
+
+    .greeting {
+      font-size: 20px;
+      color: #059669;
+      margin-bottom: 20px;
+    }
+
+    .intro-text {
+      font-size: 16px;
+      color: #4b5563;
+      margin-bottom: 30px;
+    }
+
+    /* Share Details Box */
+    .share-details {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+
+    .share-details h3 {
+      color: #059669;
+      font-size: 18px;
+      margin: 0 0 15px;
+      display: flex;
+      align-items: center;
+    }
+
+    .detail-row {
+      display: flex;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      font-weight: 600;
+      color: #374151;
+      width: 140px;
+      flex-shrink: 0;
+    }
+
+    .detail-value {
+      color: #059669;
+      font-weight: 500;
+    }
+
+    /* CTA Button */
+    .cta-section {
+      text-align: center;
+      margin: 35px 0;
+    }
+
+    .cta-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 16px 40px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .cta-button:hover {
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .cta-note {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-top: 12px;
+    }
+
+    /* Features List */
+    .features {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 25px;
+      margin: 30px 0;
+    }
+
+    .features h4 {
+      color: #374151;
+      font-size: 16px;
+      margin: 0 0 15px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .feature-icon {
+      width: 24px;
+      height: 24px;
+      background: #10b981;
+      border-radius: 50%;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+
+    .feature-text {
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    /* Quick Tips */
+    .tips-box {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 20px;
+      border-radius: 0 12px 12px 0;
+      margin: 30px 0;
+    }
+
+    .tips-box h4 {
+      color: #92400e;
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .tips-box p {
+      color: #78350f;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* Footer */
+    .footer {
+      background: #f9fafb;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .footer-logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: #059669;
+      margin-bottom: 15px;
+    }
+
+    .footer-contact {
+      color: #6b7280;
+      font-size: 13px;
+      margin-bottom: 15px;
+    }
+
+    .footer-contact a {
+      color: #059669;
+      text-decoration: none;
+    }
+
+    .social-links {
+      margin: 20px 0;
+    }
+
+    .social-links a {
+      display: inline-block;
+      width: 36px;
+      height: 36px;
+      background: #e5e7eb;
+      border-radius: 50%;
+      margin: 0 5px;
+      text-decoration: none;
+    }
+
+    .footer-legal {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 20px;
+    }
+
+    /* Responsive */
+    @media screen and (max-width: 600px) {
+      .wrapper { padding: 20px 10px; }
+      .container { border-radius: 12px; }
+      .header { padding: 30px 20px; }
+      .header h1 { font-size: 24px; }
+      .content { padding: 30px 20px; }
+      .detail-row { flex-direction: column; }
+      .detail-label { width: 100%; margin-bottom: 4px; }
+      .cta-button { padding: 14px 30px; font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table class="container" cellpadding="0" cellspacing="0" width="100%">
+      <!-- Header -->
+      <tr>
+        <td class="header">
+          <div class="header-logo">
+            <span style="font-size: 40px;">🌱</span>
+          </div>
+          <h1>Welcome to Tiny Seed Farm!</h1>
+          <p>Your CSA membership is confirmed</p>
+        </td>
+      </tr>
+
+      <!-- Content -->
+      <tr>
+        <td class="content">
+          <p class="greeting">Hi <?= customer.First_Name || 'Friend' ?>,</p>
+
+          <p class="intro-text">
+            Thank you for joining the Tiny Seed Farm CSA family for the <?= member.Season || '2026' ?> season!
+            We're thrilled to have you, and we can't wait to share our freshest harvests with you.
+          </p>
+
+          <!-- Share Details -->
+          <div class="share-details">
+            <h3>📦 Your Share Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Share Type:</span>
+              <span class="detail-value"><?= member.Share_Type || 'Summer CSA' ?></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Size:</span>
+              <span class="detail-value"><?= member.Share_Size || 'Regular' ?></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Frequency:</span>
+              <span class="detail-value"><?= member.Frequency || 'Weekly' ?></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Pickup Location:</span>
+              <span class="detail-value"><?= member.Pickup_Location || 'To be assigned' ?></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Season Dates:</span>
+              <span class="detail-value"><?= member.Start_Date || 'June' ?> - <?= member.End_Date || 'October' ?></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Total Deliveries:</span>
+              <span class="detail-value"><?= member.Total_Weeks || '18' ?> boxes</span>
+            </div>
+          </div>
+
+          <!-- CTA Button -->
+          <div class="cta-section">
+            <a href="<?= magicLink ?>" class="cta-button">
+              Access Your Member Portal →
+            </a>
+            <p class="cta-note">This link expires in 24 hours. You can always request a new one.</p>
+          </div>
+
+          <!-- Features -->
+          <div class="features">
+            <h4>In your portal, you can:</h4>
+            <div class="feature-item">
+              <div class="feature-icon">✓</div>
+              <span class="feature-text">View this week's box contents before pickup</span>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">✓</div>
+              <span class="feature-text">Customize your box by swapping items you don't want</span>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">✓</div>
+              <span class="feature-text">Schedule vacation holds when you're away</span>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">✓</div>
+              <span class="feature-text">Update your taste preferences for better boxes</span>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">✓</div>
+              <span class="feature-text">See your pickup history and past orders</span>
+            </div>
+          </div>
+
+          <!-- Quick Tips -->
+          <div class="tips-box">
+            <h4>🌟 Quick Tip</h4>
+            <p>Take 60 seconds to complete your taste profile in the portal. It helps us pack boxes you'll love!</p>
+          </div>
+
+          <p style="color: #4b5563; font-size: 15px;">
+            Questions? Just reply to this email or give us a call. We're here to help!
+          </p>
+
+          <p style="color: #059669; font-weight: 600; margin-top: 30px;">
+            See you at pickup!<br>
+            — The Tiny Seed Farm Team
+          </p>
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td class="footer">
+          <div class="footer-logo">🌱 Tiny Seed Farm</div>
+          <div class="footer-contact">
+            📧 <a href="mailto:tinyseedfarm@gmail.com">tinyseedfarm@gmail.com</a><br>
+            📍 Zelienople, PA
+          </div>
+          <div class="footer-legal">
+            You're receiving this email because you signed up for Tiny Seed Farm CSA.<br>
+            © 2026 Tiny Seed Farm. All rights reserved.
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>
