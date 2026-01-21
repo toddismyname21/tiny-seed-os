@@ -20829,11 +20829,63 @@
             addCOSMsg('user', msg);
             inp.value = '';
             const lm = msg.toLowerCase();
-            if (lm.includes('weather')) { await cosQuickAction('weather'); return; }
-            if (lm.includes('brief') || lm.includes('today')) { await cosQuickAction('brief'); return; }
-            if (lm.includes('alert')) { await cosQuickAction('alerts'); return; }
-            if (lm.includes('idea')) { await cosQuickAction('ideas'); return; }
-            addCOSMsg('assistant', '<p>Try: weather, brief, alerts, or ideas!</p>');
+
+            // Weather queries
+            if (lm.includes('weather') || lm.includes('rain') || lm.includes('temperature') || lm.includes('forecast') || lm.includes('cold') || lm.includes('hot') || lm.includes('frost')) {
+                await cosQuickAction('weather'); return;
+            }
+            // Morning brief / today
+            if (lm.includes('brief') || lm.includes('morning') || lm.includes('today') || lm.includes('summary') || lm.includes('overview') || lm.includes('status')) {
+                await cosQuickAction('brief'); return;
+            }
+            // Alerts
+            if (lm.includes('alert') || lm.includes('warning') || lm.includes('urgent') || lm.includes('problem') || lm.includes('issue')) {
+                await cosQuickAction('alerts'); return;
+            }
+            // Ideas / suggestions
+            if (lm.includes('idea') || lm.includes('suggest') || lm.includes('recommend') || lm.includes('what should') || lm.includes('help me')) {
+                await cosQuickAction('ideas'); return;
+            }
+            // Tasks
+            if (lm.includes('task') || lm.includes('todo') || lm.includes('to do') || lm.includes('work') || lm.includes('schedule')) {
+                addCOSMsg('assistant', '<h4>📋 Your Tasks</h4><p>Check the <strong>Tasks tab</strong> for today\'s assignments. Need me to pull specific task data?</p>'); return;
+            }
+            // Time / clock
+            if (lm.includes('clock') || lm.includes('time') || lm.includes('hours') || lm.includes('punch')) {
+                addCOSMsg('assistant', '<h4>⏰ Time Tracking</h4><p>Use the <strong>Time Clock tab</strong> to clock in/out. Your hours are tracked automatically.</p>'); return;
+            }
+            // Harvest
+            if (lm.includes('harvest') || lm.includes('pick') || lm.includes('yield')) {
+                addCOSMsg('assistant', '<h4>🥬 Harvest</h4><p>Log harvests in the <strong>Harvest tab</strong>. I can pull harvest reports if you need them!</p>'); return;
+            }
+            // Customers / sales
+            if (lm.includes('customer') || lm.includes('sale') || lm.includes('order') || lm.includes('delivery')) {
+                addCOSMsg('assistant', '<h4>👥 Customers</h4><p>Check the <strong>Admin Panel</strong> for customer orders and delivery schedules.</p>'); return;
+            }
+            // Greetings
+            if (lm.match(/^(hi|hello|hey|good morning|good afternoon|yo|sup)/)) {
+                const greetings = ['Hey Todd! 👋 How can I help?', 'Hello! Ready to assist. What do you need?', 'Hey! What\'s on your mind?'];
+                addCOSMsg('assistant', `<p>${greetings[Math.floor(Math.random()*greetings.length)]}</p>`); return;
+            }
+            // Thanks
+            if (lm.match(/thank|thanks|thx|appreciate/)) {
+                addCOSMsg('assistant', '<p>You\'re welcome! 🌱 Anything else?</p>'); return;
+            }
+            // Help
+            if (lm.includes('help') || lm.includes('what can you')) {
+                addCOSMsg('assistant', `<h4>🤖 I can help with:</h4>
+                    <ul>
+                        <li><strong>Weather</strong> - forecasts & farm recommendations</li>
+                        <li><strong>Brief</strong> - daily summary & priorities</li>
+                        <li><strong>Alerts</strong> - urgent items needing attention</li>
+                        <li><strong>Ideas</strong> - marketing & business suggestions</li>
+                        <li><strong>Tasks, Harvest, Time</strong> - quick navigation help</li>
+                    </ul>`); return;
+            }
+            // Default - more helpful response
+            addCOSMsg('assistant', `<p>I'm not sure about "<em>${msg}</em>". Try asking about:</p>
+                <ul><li>Weather / forecast</li><li>Today's brief</li><li>Alerts</li><li>Ideas</li></ul>
+                <p>Or type <strong>help</strong> to see everything I can do!</p>`);
         }
 
         function addCOSMsg(type, content) {
