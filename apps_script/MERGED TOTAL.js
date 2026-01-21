@@ -102,8 +102,16 @@ function doGet(e) {
   }
 
   const action = e.parameter.action;
-  
+  const startTime = Date.now();
+
   try {
+    // Try optimized endpoint first
+    const optimizedResult = routeToOptimizedEndpoint(action, e.parameter);
+    if (optimizedResult !== null) {
+      PerformanceMonitor.logStats(action + ' (FAST)', startTime);
+      return jsonResponse(optimizedResult);
+    }
+
     switch(action) {
       // ============ USER AUTHENTICATION ============
       case 'authenticateUser':
@@ -26887,6 +26895,359 @@ function testMarketingModule() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SEO DOMINATION MODULE
+// Track rankings, manage reviews, automate SEO tasks
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize SEO tracking sheets
+ */
+function initializeSEOModule() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // SEO Rankings Tracker
+    createSheetIfNotExists(ss, 'SEO_Rankings', [
+      'Date', 'Keyword', 'Target_URL', 'Rank_Google', 'Rank_Maps',
+      'Rank_AI_Overview', 'Competitor_1', 'Competitor_2', 'Competitor_3',
+      'Notes', 'Tracked_By'
+    ], '#16a34a');
+
+    // Review Tracker
+    createSheetIfNotExists(ss, 'SEO_Reviews', [
+      'Review_ID', 'Platform', 'Customer_Name', 'Customer_Email', 'Rating',
+      'Review_Text', 'Review_Date', 'Response_Date', 'Response_Text',
+      'Responded_By', 'Keywords_Mentioned', 'Sentiment'
+    ], '#16a34a');
+
+    // Citation Tracker
+    createSheetIfNotExists(ss, 'SEO_Citations', [
+      'Citation_ID', 'Platform', 'URL', 'Status', 'NAP_Accurate',
+      'Has_Link', 'Date_Created', 'Date_Verified', 'Notes'
+    ], '#16a34a');
+
+    // Review Requests
+    createSheetIfNotExists(ss, 'SEO_ReviewRequests', [
+      'Request_ID', 'Customer_ID', 'Customer_Name', 'Customer_Email',
+      'Request_Date', 'Request_Method', 'Reminder_Sent', 'Review_Received',
+      'Platform', 'Notes'
+    ], '#16a34a');
+
+    return { success: true, message: 'SEO module initialized' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log keyword ranking
+ */
+function logSEORanking(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_Rankings');
+    if (!sheet) { initializeSEOModule(); sheet = ss.getSheetByName('SEO_Rankings'); }
+
+    sheet.appendRow([
+      new Date(), params.keyword || '', params.targetUrl || '',
+      params.rankGoogle || '', params.rankMaps || '', params.rankAIOverview || '',
+      params.competitor1 || '', params.competitor2 || '', params.competitor3 || '',
+      params.notes || '', params.trackedBy || 'System'
+    ]);
+    return { success: true, message: 'Ranking logged' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get SEO rankings history
+ */
+function getSEORankings(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_Rankings');
+    if (!sheet) return { success: true, rankings: [], latest: [] };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const rankings = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+      if (params && params.keyword && row.Keyword !== params.keyword) continue;
+      rankings.push(row);
+    }
+
+    const latestByKeyword = {};
+    rankings.forEach(r => {
+      if (!latestByKeyword[r.Keyword] || new Date(r.Date) > new Date(latestByKeyword[r.Keyword].Date)) {
+        latestByKeyword[r.Keyword] = r;
+      }
+    });
+
+    return { success: true, rankings: rankings, latest: Object.values(latestByKeyword) };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log a new review
+ */
+function logReview(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_Reviews');
+    if (!sheet) { initializeSEOModule(); sheet = ss.getSheetByName('SEO_Reviews'); }
+
+    const reviewId = 'REV-' + Date.now();
+    const text = (params.reviewText || '').toLowerCase();
+
+    // Simple sentiment analysis
+    let sentiment = 'neutral';
+    if (['great', 'amazing', 'love', 'best', 'excellent', 'fresh'].some(w => text.includes(w))) sentiment = 'positive';
+    if (['bad', 'terrible', 'worst', 'poor', 'disappointed'].some(w => text.includes(w))) sentiment = 'negative';
+
+    // Keyword detection
+    const keywords = ['pittsburgh', 'csa', 'organic', 'fresh', 'local', 'delivery'].filter(kw => text.includes(kw));
+
+    sheet.appendRow([
+      reviewId, params.platform || 'Google', params.customerName || '', params.customerEmail || '',
+      params.rating || 5, params.reviewText || '', params.reviewDate || new Date(),
+      '', '', '', keywords.join(', '), sentiment
+    ]);
+
+    return { success: true, reviewId: reviewId, sentiment: sentiment, keywords: keywords };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get review metrics
+ */
+function getReviewMetrics(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_Reviews');
+
+    const metrics = {
+      totalReviews: 0, totalRating: 0, averageRating: 0,
+      byPlatform: {}, bySentiment: { positive: 0, neutral: 0, negative: 0 },
+      keywordMentions: {}, needsResponse: 0
+    };
+
+    if (!sheet) return { success: true, metrics: metrics };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      metrics.totalReviews++;
+      metrics.totalRating += parseInt(row.Rating) || 0;
+      metrics.byPlatform[row.Platform || 'Unknown'] = (metrics.byPlatform[row.Platform || 'Unknown'] || 0) + 1;
+      metrics.bySentiment[row.Sentiment || 'neutral']++;
+      if (!row.Response_Date) metrics.needsResponse++;
+
+      (row.Keywords_Mentioned || '').split(', ').filter(k => k).forEach(kw => {
+        metrics.keywordMentions[kw] = (metrics.keywordMentions[kw] || 0) + 1;
+      });
+    }
+
+    metrics.averageRating = metrics.totalReviews > 0 ? (metrics.totalRating / metrics.totalReviews).toFixed(1) : 0;
+    return { success: true, metrics: metrics };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a review request for a customer
+ */
+function createReviewRequest(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_ReviewRequests');
+    if (!sheet) { initializeSEOModule(); sheet = ss.getSheetByName('SEO_ReviewRequests'); }
+
+    const requestId = 'REVREQ-' + Date.now();
+    sheet.appendRow([
+      requestId, params.customerId || '', params.customerName || '', params.customerEmail || '',
+      new Date(), params.method || 'email', false, false, params.platform || 'Google', params.notes || ''
+    ]);
+
+    return { success: true, requestId: requestId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get customers who should receive review requests (recent CSA pickups)
+ */
+function getReviewRequestCandidates(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const csaSheet = ss.getSheetByName('CSA_Members');
+    const requestSheet = ss.getSheetByName('SEO_ReviewRequests');
+
+    if (!csaSheet) return { success: false, error: 'CSA_Members sheet not found' };
+
+    const existingRequests = new Set();
+    if (requestSheet) {
+      const requestData = requestSheet.getDataRange().getValues();
+      for (let i = 1; i < requestData.length; i++) existingRequests.add(requestData[i][1]);
+    }
+
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    const candidates = [];
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    for (let i = 1; i < csaData.length; i++) {
+      const member = {};
+      csaHeaders.forEach((h, j) => member[h] = csaData[i][j]);
+
+      if (member.Status !== 'Active') continue;
+      const lastPickup = new Date(member.Last_Pickup_Date);
+      if (isNaN(lastPickup) || lastPickup < thirtyDaysAgo) continue;
+      if (existingRequests.has(member.Customer_ID)) continue;
+
+      candidates.push({
+        customerId: member.Customer_ID, memberId: member.Member_ID,
+        shareType: member.Share_Type, pickupLocation: member.Pickup_Location,
+        lastPickup: member.Last_Pickup_Date,
+        weeksAsCustomer: member.Total_Weeks - (member.Weeks_Remaining || 0)
+      });
+    }
+
+    candidates.sort((a, b) => b.weeksAsCustomer - a.weeksAsCustomer);
+    return { success: true, candidates: candidates.slice(0, params.limit || 10), totalCandidates: candidates.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log a citation
+ */
+function logCitation(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_Citations');
+    if (!sheet) { initializeSEOModule(); sheet = ss.getSheetByName('SEO_Citations'); }
+
+    const citationId = 'CIT-' + Date.now();
+    sheet.appendRow([
+      citationId, params.platform || '', params.url || '', params.status || 'Pending',
+      params.napAccurate !== false, params.hasLink || false, new Date(), '', params.notes || ''
+    ]);
+
+    return { success: true, citationId: citationId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get citation status summary
+ */
+function getCitationStatus(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_Citations');
+
+    const summary = { total: 0, verified: 0, pending: 0, withLinks: 0, napIssues: 0 };
+    const citations = [];
+
+    if (!sheet) return { success: true, summary: summary, citations: citations };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      summary.total++;
+      if (row.Status === 'Verified') summary.verified++;
+      if (row.Status === 'Pending') summary.pending++;
+      if (row.Has_Link === true || row.Has_Link === 'TRUE') summary.withLinks++;
+      if (row.NAP_Accurate === false || row.NAP_Accurate === 'FALSE') summary.napIssues++;
+      citations.push(row);
+    }
+
+    return { success: true, summary: summary, citations: citations };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get comprehensive SEO dashboard data
+ */
+function getSEODashboard(params) {
+  try {
+    const rankings = getSEORankings({});
+    const reviews = getReviewMetrics({});
+    const citations = getCitationStatus({});
+    const candidates = getReviewRequestCandidates({ limit: 5 });
+
+    const targetKeywords = ['farm pittsburgh', 'CSA pittsburgh', 'organic farm pittsburgh', 'local produce pittsburgh'];
+    const keywordStatus = targetKeywords.map(kw => {
+      const latest = rankings.success && rankings.latest ? rankings.latest.find(r => r.Keyword === kw) : null;
+      return { keyword: kw, currentRank: latest ? latest.Rank_Google : 'Not tracked', targetRank: kw === 'farm pittsburgh' ? 1 : 3 };
+    });
+
+    return {
+      success: true,
+      dashboard: {
+        lastUpdated: new Date().toISOString(),
+        rankings: { tracked: rankings.latest?.length || 0, keywords: keywordStatus },
+        reviews: reviews.success ? reviews.metrics : {},
+        citations: citations.success ? citations.summary : {},
+        actionItems: {
+          reviewsNeedingResponse: reviews.metrics?.needsResponse || 0,
+          citationsPending: citations.summary?.pending || 0,
+          reviewCandidates: candidates.totalCandidates || 0
+        },
+        goals: {
+          targetReviews: 100, currentReviews: reviews.metrics?.totalReviews || 0,
+          targetCitations: 37, currentCitations: citations.summary?.verified || 0
+        }
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Test SEO module
+ */
+function testSEOModule() {
+  Logger.log('=== Testing SEO Module ===');
+  const initResult = initializeSEOModule();
+  Logger.log('Initialize: ' + JSON.stringify(initResult));
+
+  const rankResult = logSEORanking({ keyword: 'farm pittsburgh', rankGoogle: 15, rankMaps: 8 });
+  Logger.log('Log Ranking: ' + JSON.stringify(rankResult));
+
+  const reviewResult = logReview({ platform: 'Google', customerName: 'Test', rating: 5, reviewText: 'Best organic CSA in Pittsburgh!' });
+  Logger.log('Log Review: ' + JSON.stringify(reviewResult));
+
+  const dashResult = getSEODashboard({});
+  Logger.log('Dashboard: ' + JSON.stringify(dashResult));
+  Logger.log('=== SEO Module Tests Complete ===');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SHOPIFY & QUICKBOOKS INTEGRATION MODULE
 // ═══════════════════════════════════════════════════════════════════════════
 //
@@ -43023,21 +43384,70 @@ function getEquipmentFoodSafetyStatus() {
 // ═══════════════════════════════════════════════════════════════════════════════════
 
 const CSA_PRODUCT_CATALOG = {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FLOWER SHARES
+  // ═══════════════════════════════════════════════════════════════════════════
   'Full Bloom Weekly': { price: 400, type: 'Flower', size: 'Full', frequency: 'Weekly', weeks: 16, stems: '15-20', floralCode: 2, vegCode: 0 },
   'Full Bloom Biweekly': { price: 200, type: 'Flower', size: 'Full', frequency: 'Biweekly', weeks: 8, stems: '15-20', floralCode: 2, vegCode: 0 },
   'Petite Bloom Weekly': { price: 300, type: 'Flower', size: 'Petite', frequency: 'Weekly', weeks: 16, stems: '12-15', floralCode: 1, vegCode: 0 },
   'Petite Bloom Biweekly': { price: 150, type: 'Flower', size: 'Petite', frequency: 'Biweekly', weeks: 8, stems: '12-15', floralCode: 1, vegCode: 0 },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VEGETABLE SHARES
+  // ═══════════════════════════════════════════════════════════════════════════
   'Small Summer Weekly': { price: 540, type: 'Summer Vegetable', size: 'Small', frequency: 'Weekly', weeks: 18, items: '6-9', floralCode: 0, vegCode: 1 },
   'Small Summer Biweekly': { price: 270, type: 'Summer Vegetable', size: 'Small', frequency: 'Biweekly', weeks: 9, items: '6-9', floralCode: 0, vegCode: 1 },
   'Friends Family Weekly': { price: 720, type: 'Summer Vegetable', size: 'Family', frequency: 'Weekly', weeks: 18, items: '7-11', floralCode: 0, vegCode: 2 },
   'Friends Family Biweekly': { price: 360, type: 'Summer Vegetable', size: 'Family', frequency: 'Biweekly', weeks: 9, items: '7-11', floralCode: 0, vegCode: 2 },
   'Spring CSA': { price: 150, type: 'Spring Vegetable', size: 'Regular', frequency: 'Weekly', weeks: 4, floralCode: 0, vegCode: 1 },
-  'Flex 150': { price: 150, type: 'Flex', size: 'Light', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1 },
-  'Flex 300': { price: 300, type: 'Flex', size: 'Small Biweekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1 },
-  'Flex 400': { price: 400, type: 'Flex', size: 'Family Biweekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1 },
-  'Flex 600': { price: 600, type: 'Flex', size: 'Small Weekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1 },
-  'Flex 800': { price: 800, type: 'Flex', size: 'Family Weekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 2 },
-  'Flex 1000': { price: 1000, type: 'Flex', size: 'Ultimate', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 2 }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FLEX SHARES (Prepaid Credit)
+  // ═══════════════════════════════════════════════════════════════════════════
+  'Flex 150': { price: 150, type: 'Flex', size: 'Light', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1, credit: 150 },
+  'Flex 300': { price: 300, type: 'Flex', size: 'Small Biweekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1, credit: 300 },
+  'Flex 400': { price: 400, type: 'Flex', size: 'Family Biweekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1, credit: 400 },
+  'Flex 600': { price: 600, type: 'Flex', size: 'Small Weekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1, credit: 600 },
+  'Flex 800': { price: 800, type: 'Flex', size: 'Family Weekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 2, credit: 800 },
+  'Flex 1000': { price: 1000, type: 'Flex', size: 'Ultimate', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 2, credit: 1000 },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HOME DELIVERY OPTIONS (NEW - 2026)
+  // Combines CSA share + delivery fee
+  // ═══════════════════════════════════════════════════════════════════════════
+  'Home Delivery Small Biweekly': { price: 270, type: 'Home Delivery', size: 'Small', frequency: 'Biweekly', weeks: 9, items: '6-9', floralCode: 0, vegCode: 1, delivery: true },
+  'Home Delivery Small Weekly': { price: 540, type: 'Home Delivery', size: 'Small', frequency: 'Weekly', weeks: 18, items: '6-9', floralCode: 0, vegCode: 1, delivery: true },
+  'Home Delivery Family Biweekly': { price: 360, type: 'Home Delivery', size: 'Family', frequency: 'Biweekly', weeks: 9, items: '7-11', floralCode: 0, vegCode: 2, delivery: true },
+  'Home Delivery Family Weekly': { price: 720, type: 'Home Delivery', size: 'Family', frequency: 'Weekly', weeks: 18, items: '7-11', floralCode: 0, vegCode: 2, delivery: true },
+  'Home Delivery Flower Petite Weekly': { price: 300, type: 'Home Delivery Flower', size: 'Petite', frequency: 'Weekly', weeks: 16, stems: '12-15', floralCode: 1, vegCode: 0, delivery: true },
+  'Home Delivery Flower Full Weekly': { price: 400, type: 'Home Delivery Flower', size: 'Full', frequency: 'Weekly', weeks: 16, stems: '15-20', floralCode: 2, vegCode: 0, delivery: true },
+  'Home Delivery Combo': { price: 990, type: 'Home Delivery Combo', size: 'Family+Flower', frequency: 'Weekly', weeks: 16, floralCode: 2, vegCode: 2, delivery: true },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CSA ADD-ONS (Partner Products)
+  // ═══════════════════════════════════════════════════════════════════════════
+  'Local Bread Weekly': { price: 190, type: 'Add-On', category: 'Bread', frequency: 'Weekly', weeks: 18, partner: 'Local Bakery' },
+  'Local Bread Biweekly': { price: 95, type: 'Add-On', category: 'Bread', frequency: 'Biweekly', weeks: 9, partner: 'Local Bakery' },
+  'Redhawk Coffee Weekly': { price: 390, type: 'Add-On', category: 'Coffee', frequency: 'Weekly', weeks: 18, partner: 'Redhawk Coffee' },
+  'Redhawk Coffee Biweekly': { price: 190, type: 'Add-On', category: 'Coffee', frequency: 'Biweekly', weeks: 9, partner: 'Redhawk Coffee' },
+  'Mushroom Weekly': { price: 150, type: 'Add-On', category: 'Mushroom', frequency: 'Weekly', weeks: 18, partner: 'Tiny Seed Farm' },
+  'Mushroom Biweekly': { price: 75, type: 'Add-On', category: 'Mushroom', frequency: 'Biweekly', weeks: 9, partner: 'Tiny Seed Farm' },
+  'Goat Cheese Weekly': { price: 150, type: 'Add-On', category: 'Cheese', frequency: 'Weekly', weeks: 18, partner: 'Goat Rodeo' },
+  'Goat Cheese Biweekly': { price: 75, type: 'Add-On', category: 'Cheese', frequency: 'Biweekly', weeks: 9, partner: 'Goat Rodeo' },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INDIVIDUAL FLEX ITEMS (A La Carte)
+  // ═══════════════════════════════════════════════════════════════════════════
+  'Flex Item Lettuce': { price: 5, type: 'Flex Item', category: 'Greens', unit: 'head' },
+  'Flex Item Kohlrabi': { price: 3, type: 'Flex Item', category: 'Brassica', unit: 'each' },
+  'Flex Item Carrots': { price: 4, type: 'Flex Item', category: 'Root', unit: 'bunch' },
+  'Flex Item Arugula': { price: 5, type: 'Flex Item', category: 'Greens', unit: 'bag' },
+  'Flex Item Tomato': { price: 6, type: 'Flex Item', category: 'Fruit', unit: 'lb' },
+  'Flex Item Scallions': { price: 3, type: 'Flex Item', category: 'Allium', unit: 'bunch' },
+  'Flex Item Peppers': { price: 5, type: 'Flex Item', category: 'Fruit', unit: 'lb' },
+  'Flex Item Mint': { price: 4, type: 'Flex Item', category: 'Herb', unit: 'bunch' },
+  'Flex Item Helichrysum': { price: 8, type: 'Flex Item', category: 'Dried Flower', unit: 'stem' },
+  'Flex Item Branch': { price: 16, type: 'Flex Item', category: 'Floral', unit: 'branch' }
 };
 
 const CSA_PICKUP_LOCATIONS_MAP = {
@@ -43171,7 +43581,125 @@ function parseShopifyShareTypeEnhanced(itemName) {
     }
     result.confidence = 95;
   }
-  // FALLBACK
+  // HOME DELIVERY OPTIONS (2026 - includes delivery fee)
+  else if (/HOME\s*DELIVERY/i.test(name)) {
+    result.type = 'Home Delivery'; result.season = 'Summer';
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.SUMMER.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.SUMMER.end;
+    result.delivery = true;
+
+    if (/FRIENDS|FAMILY/i.test(name)) {
+      result.size = 'Family'; result.vegCode = 2; result.itemsPerBox = '7-11';
+      if (/BIWEEKLY/i.test(name)) {
+        result.frequency = 'Biweekly'; result.price = 360; result.weeks = 9;
+        result.productKey = 'Home Delivery Family Biweekly';
+      } else {
+        result.frequency = 'Weekly'; result.price = 990; result.weeks = 18;
+        result.productKey = 'Home Delivery Family Weekly';
+      }
+    } else {
+      result.size = 'Small'; result.vegCode = 1; result.itemsPerBox = '6-9';
+      if (/BIWEEKLY/i.test(name)) {
+        result.frequency = 'Biweekly'; result.price = 270; result.weeks = 9;
+        result.productKey = 'Home Delivery Small Biweekly';
+      } else {
+        result.frequency = 'Weekly'; result.price = 720; result.weeks = 18;
+        result.productKey = 'Home Delivery Small Weekly';
+      }
+    }
+    result.confidence = 95;
+  }
+  // CSA ADD-ONS: LOCAL BREAD
+  else if (/LOCAL\s*BREAD|BREAD\s*ADD/i.test(name)) {
+    result.type = 'Add-On'; result.category = 'Bread'; result.partner = 'Local Bakery';
+    result.season = 'Summer'; result.vegCode = 0; result.floralCode = 0;
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.SUMMER.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.SUMMER.end;
+    if (/BIWEEKLY/i.test(name)) {
+      result.frequency = 'Biweekly'; result.price = 95; result.weeks = 9;
+      result.productKey = 'Local Bread Biweekly';
+    } else {
+      result.frequency = 'Weekly'; result.price = 190; result.weeks = 18;
+      result.productKey = 'Local Bread Weekly';
+    }
+    result.confidence = 95;
+  }
+  // CSA ADD-ONS: REDHAWK COFFEE
+  else if (/REDHAWK|COFFEE/i.test(name)) {
+    result.type = 'Add-On'; result.category = 'Coffee'; result.partner = 'Redhawk Coffee';
+    result.season = 'Summer'; result.vegCode = 0; result.floralCode = 0;
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.SUMMER.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.SUMMER.end;
+    if (/BIWEEKLY/i.test(name)) {
+      result.frequency = 'Biweekly'; result.price = 195; result.weeks = 9;
+      result.productKey = 'Redhawk Coffee Biweekly';
+    } else {
+      result.frequency = 'Weekly'; result.price = 390; result.weeks = 18;
+      result.productKey = 'Redhawk Coffee Weekly';
+    }
+    result.confidence = 95;
+  }
+  // CSA ADD-ONS: MUSHROOMS
+  else if (/MUSHROOM/i.test(name)) {
+    result.type = 'Add-On'; result.category = 'Mushroom'; result.partner = 'Tiny Seed Farm';
+    result.season = 'Summer'; result.vegCode = 0; result.floralCode = 0;
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.SUMMER.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.SUMMER.end;
+    if (/BIWEEKLY/i.test(name)) {
+      result.frequency = 'Biweekly'; result.price = 75; result.weeks = 9;
+      result.productKey = 'Mushroom Biweekly';
+    } else {
+      result.frequency = 'Weekly'; result.price = 150; result.weeks = 18;
+      result.productKey = 'Mushroom Weekly';
+    }
+    result.confidence = 95;
+  }
+  // CSA ADD-ONS: GOAT CHEESE
+  else if (/GOAT\s*CHEESE|GOAT\s*RODEO/i.test(name)) {
+    result.type = 'Add-On'; result.category = 'Cheese'; result.partner = 'Goat Rodeo';
+    result.season = 'Summer'; result.vegCode = 0; result.floralCode = 0;
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.SUMMER.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.SUMMER.end;
+    if (/BIWEEKLY/i.test(name)) {
+      result.frequency = 'Biweekly'; result.price = 75; result.weeks = 9;
+      result.productKey = 'Goat Cheese Biweekly';
+    } else {
+      result.frequency = 'Weekly'; result.price = 150; result.weeks = 18;
+      result.productKey = 'Goat Cheese Weekly';
+    }
+    result.confidence = 95;
+  }
+  // INDIVIDUAL FLEX ITEMS (Single vegetable/floral purchases)
+  else if (/LETTUCE|KOHLRABI|CARROTS?|ARUGULA|TOMATO|SCALLIONS?|PEPPERS?|MINT|HELICHRYSUM|BRANCH/i.test(name)) {
+    result.type = 'Flex Item'; result.frequency = 'One-Time'; result.weeks = 1;
+    result.vegCode = 0; result.floralCode = 0;
+
+    // Map individual items to their categories and pricing
+    const flexItemMap = {
+      'LETTUCE':     { category: 'Greens', unit: 'head', price: 5 },
+      'KOHLRABI':    { category: 'Root', unit: 'bunch', price: 4 },
+      'CARROT':      { category: 'Root', unit: 'bunch', price: 4 },
+      'ARUGULA':     { category: 'Greens', unit: 'bunch', price: 4 },
+      'TOMATO':      { category: 'Fruiting', unit: 'lb', price: 5 },
+      'SCALLION':    { category: 'Allium', unit: 'bunch', price: 3 },
+      'PEPPER':      { category: 'Fruiting', unit: 'each', price: 2 },
+      'MINT':        { category: 'Herb', unit: 'bunch', price: 4 },
+      'HELICHRYSUM': { category: 'Dried Floral', unit: 'bunch', price: 12 },
+      'BRANCH':      { category: 'Dried Floral', unit: 'bunch', price: 15 }
+    };
+
+    for (const [pattern, info] of Object.entries(flexItemMap)) {
+      if (new RegExp(pattern, 'i').test(name)) {
+        result.category = info.category;
+        result.unit = info.unit;
+        result.price = info.price;
+        result.productKey = 'Flex Item ' + pattern.charAt(0) + pattern.slice(1).toLowerCase();
+        break;
+      }
+    }
+    result.confidence = 90;
+  }
+  // FALLBACK - Attempt reasonable defaults
   else {
     result.type = 'Summer Vegetable'; result.season = 'Summer';
     result.seasonStart = CSA_SEASON_DATES_2026_MAP.SUMMER.start;
@@ -43182,6 +43710,7 @@ function parseShopifyShareTypeEnhanced(itemName) {
     result.confidence = 50;
   }
 
+  // Calculate per-delivery value for cost analysis
   if (result.weeks > 0 && result.price > 0) {
     result.estimatedValue = Math.round((result.price / result.weeks) * 100) / 100;
   }
@@ -43621,3 +44150,418 @@ function sendShopifyTagsReminderNow() {
 // ═══════════════════════════════════════════════════════════════════════════════════
 // END TASK REMINDER SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKEND OPTIMIZATION LAYER - <3 SECOND API TARGET
+// ═══════════════════════════════════════════════════════════════════════════
+// Caching, batch operations, query optimization for blazing fast responses
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * SMART CACHE - Uses Google's CacheService for fast data retrieval
+ * Cache durations optimized per data type
+ */
+const SmartCache = {
+  // Cache duration in seconds
+  DURATIONS: {
+    SHORT: 60,        // 1 minute - for frequently changing data
+    MEDIUM: 300,      // 5 minutes - for semi-static data
+    LONG: 900,        // 15 minutes - for rarely changing data
+    VERY_LONG: 3600   // 1 hour - for static reference data
+  },
+
+  /**
+   * Get cached data or fetch fresh
+   */
+  get(key, fetchFn, duration = 300) {
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get(key);
+    
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {
+        // Invalid cache, fetch fresh
+      }
+    }
+    
+    const fresh = fetchFn();
+    try {
+      cache.put(key, JSON.stringify(fresh), duration);
+    } catch (e) {
+      // Data too large for cache, skip caching
+      Logger.log('Cache put failed for ' + key + ': ' + e.message);
+    }
+    return fresh;
+  },
+
+  /**
+   * Invalidate specific cache key
+   */
+  invalidate(key) {
+    CacheService.getScriptCache().remove(key);
+  },
+
+  /**
+   * Invalidate multiple keys by prefix
+   */
+  invalidateByPrefix(prefix) {
+    // CacheService doesn't support prefix deletion, 
+    // so we track keys separately for bulk invalidation
+    const cache = CacheService.getScriptCache();
+    const keysToInvalidate = this.getTrackedKeys(prefix);
+    keysToInvalidate.forEach(k => cache.remove(k));
+  },
+
+  /**
+   * Batch get multiple cache keys
+   */
+  getAll(keys) {
+    const cache = CacheService.getScriptCache();
+    return cache.getAll(keys);
+  },
+
+  /**
+   * Batch put multiple cache entries
+   */
+  putAll(entries, duration = 300) {
+    const cache = CacheService.getScriptCache();
+    const serialized = {};
+    for (const [key, value] of Object.entries(entries)) {
+      try {
+        serialized[key] = JSON.stringify(value);
+      } catch (e) {
+        // Skip non-serializable values
+      }
+    }
+    cache.putAll(serialized, duration);
+  },
+
+  getTrackedKeys(prefix) {
+    // Simple implementation - in production, track keys in Properties
+    return [];
+  }
+};
+
+/**
+ * OPTIMIZED SHEET READER - Batch reads with caching
+ */
+const OptimizedSheetReader = {
+  // Sheet data cache
+  _sheetDataCache: {},
+  _lastRead: {},
+
+  /**
+   * Get sheet data with caching
+   */
+  getSheetData(sheetName, forceRefresh = false) {
+    const cacheKey = 'sheet_' + sheetName;
+    const cacheTime = this._lastRead[sheetName] || 0;
+    const now = Date.now();
+    
+    // Use in-memory cache if less than 30 seconds old
+    if (!forceRefresh && this._sheetDataCache[sheetName] && (now - cacheTime) < 30000) {
+      return this._sheetDataCache[sheetName];
+    }
+
+    // Try CacheService
+    return SmartCache.get(cacheKey, () => {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return { headers: [], data: [], rowCount: 0 };
+      
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0] || [];
+      const rows = data.slice(1);
+      
+      const result = {
+        headers: headers,
+        data: rows,
+        rowCount: rows.length,
+        columnMap: headers.reduce((map, h, i) => { map[h] = i; return map; }, {})
+      };
+      
+      // Store in memory cache too
+      this._sheetDataCache[sheetName] = result;
+      this._lastRead[sheetName] = now;
+      
+      return result;
+    }, SmartCache.DURATIONS.SHORT);
+  },
+
+  /**
+   * Get specific columns only (faster for large sheets)
+   */
+  getColumns(sheetName, columnNames) {
+    const sheetData = this.getSheetData(sheetName);
+    const indices = columnNames.map(name => sheetData.columnMap[name]).filter(i => i !== undefined);
+    
+    return sheetData.data.map(row => {
+      const result = {};
+      columnNames.forEach((name, i) => {
+        const idx = sheetData.columnMap[name];
+        if (idx !== undefined) result[name] = row[idx];
+      });
+      return result;
+    });
+  },
+
+  /**
+   * Search with index (much faster than full scan)
+   */
+  findByColumn(sheetName, columnName, value) {
+    const sheetData = this.getSheetData(sheetName);
+    const colIdx = sheetData.columnMap[columnName];
+    if (colIdx === undefined) return [];
+    
+    return sheetData.data
+      .filter(row => row[colIdx] === value)
+      .map(row => {
+        const result = {};
+        sheetData.headers.forEach((h, i) => result[h] = row[i]);
+        return result;
+      });
+  },
+
+  /**
+   * Clear cache for a sheet (call after writes)
+   */
+  clearCache(sheetName) {
+    delete this._sheetDataCache[sheetName];
+    delete this._lastRead[sheetName];
+    SmartCache.invalidate('sheet_' + sheetName);
+  }
+};
+
+/**
+ * BATCH OPERATIONS - Process multiple operations efficiently
+ */
+const BatchOperations = {
+  /**
+   * Batch read multiple sheets at once
+   */
+  readMultipleSheets(sheetNames) {
+    const results = {};
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    sheetNames.forEach(name => {
+      const sheet = ss.getSheetByName(name);
+      if (sheet) {
+        results[name] = sheet.getDataRange().getValues();
+      }
+    });
+    
+    return results;
+  },
+
+  /**
+   * Batch write to multiple cells
+   */
+  writeMultipleCells(sheetName, updates) {
+    // updates: [{row, col, value}, ...]
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return false;
+    
+    updates.forEach(u => {
+      sheet.getRange(u.row, u.col).setValue(u.value);
+    });
+    
+    // Clear cache after write
+    OptimizedSheetReader.clearCache(sheetName);
+    return true;
+  },
+
+  /**
+   * Batch append rows
+   */
+  appendRows(sheetName, rows) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet || rows.length === 0) return false;
+    
+    const startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
+    
+    OptimizedSheetReader.clearCache(sheetName);
+    return true;
+  }
+};
+
+/**
+ * FAST API WRAPPERS - Optimized versions of common endpoints
+ */
+
+// Fast dashboard stats with caching
+function getDashboardStatsFast(params) {
+  return SmartCache.get('dashboard_stats', () => {
+    return getDashboardStats(params);
+  }, SmartCache.DURATIONS.SHORT);
+}
+
+// Fast planning data with caching
+function getPlanningDataFast(params) {
+  const cacheKey = 'planning_' + (params.year || new Date().getFullYear());
+  return SmartCache.get(cacheKey, () => {
+    return getPlanningData(params);
+  }, SmartCache.DURATIONS.MEDIUM);
+}
+
+// Fast crops list (rarely changes)
+function getCropsFast(params) {
+  return SmartCache.get('crops_list', () => {
+    return getCrops(params);
+  }, SmartCache.DURATIONS.LONG);
+}
+
+// Fast beds list (rarely changes)
+function getBedsFast(params) {
+  return SmartCache.get('beds_list', () => {
+    return getBeds(params);
+  }, SmartCache.DURATIONS.LONG);
+}
+
+// Fast weather (external API, cache to reduce calls)
+function getWeatherFast(params) {
+  return SmartCache.get('weather_current', () => {
+    return getWeather(params);
+  }, SmartCache.DURATIONS.MEDIUM);
+}
+
+// Fast morning brief with heavy caching
+function getMorningBriefFast(params) {
+  return SmartCache.get('morning_brief', () => {
+    return getMorningBrief(params);
+  }, SmartCache.DURATIONS.MEDIUM);
+}
+
+/**
+ * PRELOAD CRITICAL DATA - Call on app startup
+ */
+function preloadCriticalData() {
+  const startTime = Date.now();
+  
+  // Preload most-used sheets in parallel (conceptually)
+  const criticalSheets = ['CROPS', 'PLANNING', 'BEDS', 'CUSTOMERS', 'TASKS'];
+  
+  criticalSheets.forEach(sheet => {
+    OptimizedSheetReader.getSheetData(sheet);
+  });
+  
+  const elapsed = Date.now() - startTime;
+  Logger.log('Preloaded ' + criticalSheets.length + ' sheets in ' + elapsed + 'ms');
+  
+  return { success: true, elapsed: elapsed, sheets: criticalSheets };
+}
+
+/**
+ * PERFORMANCE MONITOR - Track API response times
+ */
+const PerformanceMonitor = {
+  /**
+   * Wrap a function with timing
+   */
+  timed(name, fn) {
+    const start = Date.now();
+    const result = fn();
+    const elapsed = Date.now() - start;
+    
+    if (elapsed > 3000) {
+      Logger.log('SLOW API: ' + name + ' took ' + elapsed + 'ms');
+    }
+    
+    return result;
+  },
+
+  /**
+   * Log performance stats
+   */
+  logStats(endpoint, startTime) {
+    const elapsed = Date.now() - startTime;
+    const status = elapsed < 1000 ? 'FAST' : elapsed < 3000 ? 'OK' : 'SLOW';
+    Logger.log('[' + status + '] ' + endpoint + ': ' + elapsed + 'ms');
+  }
+};
+
+/**
+ * OPTIMIZED API ROUTER - Use fast versions where available
+ */
+function routeToOptimizedEndpoint(action, params) {
+  const fastEndpoints = {
+    'getDashboardStats': getDashboardStatsFast,
+    'getPlanningData': getPlanningDataFast,
+    'getCrops': getCropsFast,
+    'getBeds': getBedsFast,
+    'getWeather': getWeatherFast,
+    'getMorningBrief': getMorningBriefFast
+  };
+  
+  if (fastEndpoints[action]) {
+    return fastEndpoints[action](params);
+  }
+  
+  return null; // Fall back to standard endpoint
+}
+
+/**
+ * Clear all caches (use after bulk data changes)
+ */
+function clearAllCaches() {
+  OptimizedSheetReader._sheetDataCache = {};
+  OptimizedSheetReader._lastRead = {};
+  
+  // Clear specific known cache keys
+  const cache = CacheService.getScriptCache();
+  const keysToInvalidate = [
+    'dashboard_stats', 'planning_', 'crops_list', 'beds_list', 
+    'weather_current', 'morning_brief', 'sheet_CROPS', 'sheet_PLANNING',
+    'sheet_BEDS', 'sheet_CUSTOMERS', 'sheet_TASKS'
+  ];
+  
+  keysToInvalidate.forEach(key => {
+    try { cache.remove(key); } catch(e) {}
+  });
+  
+  return { success: true, message: 'All caches cleared' };
+}
+
+/**
+ * WARMUP FUNCTION - Run periodically to keep caches hot
+ */
+function warmupCaches() {
+  const startTime = Date.now();
+  
+  // Preload critical data
+  preloadCriticalData();
+  
+  // Pre-warm common API responses
+  getDashboardStatsFast({});
+  getCropsFast({});
+  getBedsFast({});
+  
+  const elapsed = Date.now() - startTime;
+  Logger.log('Cache warmup completed in ' + elapsed + 'ms');
+  
+  return { success: true, elapsed: elapsed };
+}
+
+/**
+ * Setup cache warmup trigger
+ */
+function setupCacheWarmupTrigger() {
+  // Remove existing warmup triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === 'warmupCaches') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  // Add new trigger - warm up every 10 minutes
+  ScriptApp.newTrigger('warmupCaches')
+    .timeBased()
+    .everyMinutes(10)
+    .create();
+
+  return { success: true, message: 'Cache warmup trigger active (every 10 min)' };
+}
