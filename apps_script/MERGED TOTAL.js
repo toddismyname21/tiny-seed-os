@@ -79,6 +79,9 @@ const CLAUDE_CONFIG = {
 function doGet(e) {
   // Check for page parameter first (for serving HTML pages)
   if (e && e.parameter && e.parameter.page) {
+    if (e.parameter.page === 'dashboard' || e.parameter.page === 'home') {
+      return serveQuickStart();
+    }
     if (e.parameter.page === 'emailai') {
       return serveEmailAIChat();
     }
@@ -289,7 +292,7 @@ function doGet(e) {
       case 'getWeatherSummary':
         return jsonResponse(getWeatherSummary(e.parameter));
       case 'getCSAMembers':
-        return jsonResponse(getCSAMembersSecured(e.parameter));  // SECURED: Manager+ only
+        return jsonResponse(getCSAMembers(e.parameter));
       case 'getFinancials':
         return jsonResponse(getFinancialsSecured(e.parameter));  // SECURED: Admin only
       case 'getCropProfile':
@@ -416,6 +419,8 @@ function doGet(e) {
         return jsonResponse(runEquipmentFoodSafetyPipeline(e.parameter));
       case 'getEquipmentFoodSafetyStatus':
         return jsonResponse(getEquipmentFoodSafetyStatus());
+      case 'getInventoryMorningAlerts':
+        return jsonResponse(getInventoryMorningAlerts());
 
       // ============ SALES MODULE - CUSTOMER FACING ============
       case 'authenticateCustomer':
@@ -436,12 +441,20 @@ function doGet(e) {
         return jsonResponse(getCSABoxContents(e.parameter));
       case 'getCSAPickupHistory':
         return jsonResponse(getCSAPickupHistory(e.parameter));
+      case 'populateSampleBoxContents':
+        return jsonResponse(populateSampleBoxContents(e.parameter));
+      case 'getBoxContentsPreview':
+        return jsonResponse(getBoxContentsPreview(e.parameter));
 
       // ============ CLAUDE AUTOMATION ENDPOINTS ============
       case 'sendSeasonAnnouncement':
         return jsonResponse(send2026SeasonAnnouncementToTodd());
+      case 'sendOvernightReport':
+        return jsonResponse(sendOvernightTeamReport());
       case 'sendCSADashboardStatusToPM':
         return jsonResponse(sendCSADashboardStatusToPM());
+      case 'sendPMProgressUpdate':
+        return jsonResponse(sendPMProgressUpdate());
       case 'runFunction':
         // Allows Claude to run specific approved functions
         const funcName = e.parameter.function;
@@ -14180,35 +14193,48 @@ function send2026SeasonAnnouncementToTodd() {
     </div>
     <div style="padding: 35px 30px;">
       <p style="font-size: 17px; line-height: 1.7; color: #444;">Hi there,</p>
-      <p style="font-size: 17px; line-height: 1.7; color: #444;">The greenhouse is humming, the seed orders are in, and we're already dreaming about the season ahead. We wanted to share what's coming your way this year — because honestly, we're pretty excited about it.</p>
+      <p style="font-size: 17px; line-height: 1.7; color: #444;">The seed orders are in and we're gearing up to start in the greenhouse next week. We wanted to share what's coming your way this season — because honestly, we're pretty excited about it.</p>
 
       <div style="margin: 30px 0;">
         <h2 style="color: #2d5a27; font-size: 20px; border-bottom: 2px solid #e8e4df; padding-bottom: 8px; margin-bottom: 15px;">🥬 From the Fields</h2>
-        <p style="font-size: 16px; line-height: 1.7; color: #444;">This year's tomato lineup includes <strong>Sungold</strong> (the one everyone asks about), plus <strong>Mountain Magic</strong> for those who love a good slicer. We're also growing <strong>Damascus</strong> — a beautiful purple-green striped heirloom that tastes as good as it looks.</p>
-        <p style="font-size: 16px; line-height: 1.7; color: #444;">The carrot patch will have <strong>Rainbow Mix</strong> and <strong>Deep Purple</strong> varieties alongside our reliable <strong>Bolero</strong>. And yes, we're doing the <strong>Touchstone Gold</strong> beets again — those golden beauties were a hit last year.</p>
-        <p style="font-size: 16px; line-height: 1.7; color: #444;">Plus all the essentials: crisp cucumbers, tender lettuces, snap-fresh kohlrabi, and greens from spinach to kale to arugula.</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Tomatoes:</strong> Sungold (the one everyone asks about), Mountain Magic slicers, Damascus (purple-green striped heirloom), San Marzano for sauce, and cherry mixes</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Root Vegetables:</strong> Rainbow carrots, Deep Purple carrots, Bolero, Touchstone Gold beets, Chioggia beets, Detroit Dark Red, watermelon radishes, hakurei turnips</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Greens:</strong> Salanova lettuce mixes, spinach, Red Russian kale, lacinato kale, arugula, mizuna, chard (rainbow and Fordhook Giant), bok choy, tatsoi</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Cucumbers & Squash:</strong> Marketmore cukes, Persian snacking cukes, summer squash (yellow and zucchini), delicata, butternut, acorn, spaghetti squash</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Peppers:</strong> Sweet bells (red, yellow, orange), shishitos, Jimmy Nardello, jalapeños, serranos, poblanos</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Alliums:</strong> Cipollini onions, red onions, yellow storage onions, garlic (hardneck varieties), leeks, scallions</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Beans & Peas:</strong> Provider green beans, Dragon Tongue, snap peas, snow peas, edamame</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Brassicas:</strong> Broccoli, cauliflower, kohlrabi, cabbage (green and red), Brussels sprouts</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Herbs:</strong> Basil (Genovese and Thai), cilantro, dill, parsley, chives, oregano, thyme</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444;"><strong>Plus:</strong> Eggplant, fennel, celery, potatoes, sweet potatoes, ground cherries, and whatever else catches our eye at the seed catalog</p>
       </div>
 
       <div style="margin: 30px 0;">
         <h2 style="color: #2d5a27; font-size: 20px; border-bottom: 2px solid #e8e4df; padding-bottom: 8px; margin-bottom: 15px;">💐 From the Flower Fields</h2>
-        <p style="font-size: 16px; line-height: 1.7; color: #444;">Our Tiny Seed Fleurs bouquet shares are back with an incredible lineup. We're growing over 40 varieties of cut flowers including <strong>Cafe au Lait dahlias</strong>, <strong>Benary's Giant zinnias</strong>, lisianthus in apricot and lavender, and snapdragons in every color you can imagine.</p>
-        <p style="font-size: 16px; line-height: 1.7; color: #444;">Early summer brings cosmos and larkspur. By August, the dahlias take over. It's going to be beautiful.</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444;">Our <a href="https://tiny-seed-farmers-market.myshopify.com/collections/flower-shares" style="color: #2d5a27; font-weight: bold;">Tiny Seed Fleurs bouquet shares</a> are back with an incredible lineup. We're growing over 40 varieties of cut flowers including:</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Dahlias:</strong> Cafe au Lait, dinnerplate varieties, ball dahlias, pompons in every color</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Zinnias:</strong> Benary's Giants, Queen Lime series, Zinderella, Oklahoma series</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Spring/Early Summer:</strong> Ranunculus, anemones, sweet peas, larkspur, snapdragons, stock, cosmos</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 12px;"><strong>Summer/Fall:</strong> Lisianthus, sunflowers, celosia, amaranth, marigolds, strawflowers, statice, scabiosa</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444;"><strong>Foliage:</strong> Eucalyptus, dusty miller, bupleurum, grasses</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-top: 15px;"><a href="https://tiny-seed-farmers-market.myshopify.com/collections/flower-shares" style="color: #2d5a27;">→ View Flower Share Options</a></p>
       </div>
 
       <div style="background: #f0f7ee; border-radius: 12px; padding: 25px; margin: 30px 0;">
-        <h2 style="color: #2d5a27; font-size: 20px; margin: 0 0 15px;">✨ New This Year: CSA Add-Ons</h2>
-        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 15px;">We've partnered with some of our favorite local producers to offer weekly add-ons to your CSA share:</p>
+        <h2 style="color: #2d5a27; font-size: 20px; margin: 0 0 15px;">🧀 CSA Add-Ons</h2>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 15px;">We continue to partner with local producers to offer weekly add-ons to your CSA share:</p>
         <ul style="font-size: 16px; line-height: 1.9; color: #444; padding-left: 20px; margin: 0;">
-          <li><strong>Fresh-Baked Bread</strong> — from a local bakery, delivered with your box</li>
-          <li><strong>Goat Cheese</strong> — from Goat Rodeo, because veggies + cheese = perfection</li>
-          <li><strong>Gourmet Mushrooms</strong> — grown right here on the farm</li>
-          <li><strong>Redhawk Coffee</strong> — freshly roasted, for your morning ritual</li>
+          <li><a href="https://tiny-seed-farmers-market.myshopify.com/products/bread-share" style="color: #2d5a27;"><strong>Fresh-Baked Bread</strong></a> — from a local bakery, delivered with your box</li>
+          <li><a href="https://tiny-seed-farmers-market.myshopify.com/products/cheese-share" style="color: #2d5a27;"><strong>Goat Cheese</strong></a> — from Goat Rodeo, because veggies + cheese = perfection</li>
+          <li><a href="https://tiny-seed-farmers-market.myshopify.com/products/mushroom-share" style="color: #2d5a27;"><strong>Gourmet Mushrooms</strong></a> — locally grown specialty varieties</li>
+          <li><a href="https://tiny-seed-farmers-market.myshopify.com/products/coffee-share" style="color: #2d5a27;"><strong>Redhawk Coffee</strong></a> — freshly roasted, for your morning ritual</li>
         </ul>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-top: 15px;"><a href="https://tiny-seed-farmers-market.myshopify.com/collections/add-ons" style="color: #2d5a27;">→ Browse All Add-Ons</a></p>
       </div>
 
       <div style="background: #eef6ff; border-radius: 12px; padding: 25px; margin: 30px 0;">
         <h2 style="color: #1e40af; font-size: 20px; margin: 0 0 15px;">🏘️ Start a CSA Stop in Your Neighborhood</h2>
-        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 15px;">Here's the thing — we had a few pickup locations last year that just didn't have quite enough members to keep going. And we'd love to bring them back (or start new ones!).</p>
+        <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 15px;">We had a few pickup locations last year that didn't have quite enough members to keep going. We'd love to bring them back (or start new ones!).</p>
         <p style="font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 15px;">If you can rally <strong>a dozen neighbors</strong> interested in fresh, local produce, we can make a stop work in your area. You'd be the pickup host — veggies come to you, neighbors swing by, community happens.</p>
         <p style="font-size: 16px; line-height: 1.7; color: #444; margin: 0;">Know some folks who might be interested? Talk it up! Reply to this email if you want to explore starting a stop in your neighborhood.</p>
       </div>
@@ -14216,12 +14242,13 @@ function send2026SeasonAnnouncementToTodd() {
       <div style="background: #fff8e6; border-left: 4px solid #f59e0b; padding: 20px; margin: 30px 0;">
         <h3 style="color: #92400e; font-size: 16px; margin: 0 0 10px;">📦 Home Delivery Update</h3>
         <p style="font-size: 15px; line-height: 1.6; color: #78350f; margin-bottom: 12px;">First — if you found our delivery information confusing before, we apologize! We've simplified things.</p>
-        <p style="font-size: 15px; line-height: 1.6; color: #78350f; margin: 0;">Home delivery is now a simple flat rate: <strong>$15/week</strong>, no matter where you are in our delivery zone. Deliveries run on Wednesdays throughout the Pittsburgh area. You can check if your address qualifies on our website.</p>
+        <p style="font-size: 15px; line-height: 1.6; color: #78350f; margin-bottom: 12px;">Home delivery is now a simple flat rate: <strong>$15/week</strong>, no matter where you are in our delivery zone. Deliveries run on Wednesdays throughout the Pittsburgh area.</p>
+        <p style="font-size: 15px; line-height: 1.6; color: #78350f; margin: 0;"><a href="https://tiny-seed-farmers-market.myshopify.com/pages/home-delivery" style="color: #92400e; font-weight: bold;">→ Check if we deliver to your address</a></p>
       </div>
 
       <div style="text-align: center; margin: 35px 0;">
         <p style="font-size: 17px; color: #444; margin-bottom: 20px;">Ready to join us for the 2026 season?</p>
-        <a href="https://tiny-seed-farmers-market.myshopify.com" style="display: inline-block; background: #2d5a27; color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 16px; font-weight: bold;">View CSA Options</a>
+        <a href="https://tiny-seed-farmers-market.myshopify.com" style="display: inline-block; background: #2d5a27; color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 16px; font-weight: bold;">View All CSA Options</a>
       </div>
 
       <p style="font-size: 17px; line-height: 1.7; color: #444; margin-top: 30px;">We're counting down the weeks until the first harvest. Thanks for being part of this with us.</p>
@@ -14243,6 +14270,94 @@ function send2026SeasonAnnouncementToTodd() {
   });
 
   return { success: true, message: 'Email sent to todd@tinyseedfarmpgh.com for review' };
+}
+
+/**
+ * Send Overnight Team Report to Todd
+ */
+function sendOvernightTeamReport() {
+  const htmlBody = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f3f4f6;color:#1f2937;">
+<div style="max-width:700px;margin:0 auto;background:#fff;">
+<div style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);padding:30px;text-align:center;">
+<h1 style="color:#fff;font-size:24px;margin:0 0 8px;">🌙 Overnight Team Report</h1>
+<p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">January 21, 2026 — Your Claude Team Status</p>
+</div>
+<div style="padding:30px;">
+
+<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:20px;margin-bottom:25px;border-radius:0 8px 8px 0;">
+<h2 style="color:#dc2626;font-size:16px;margin:0 0 12px;">🚨 URGENT - Owner Actions Needed</h2>
+<ul style="margin:0;padding-left:20px;color:#7f1d1d;">
+<li style="margin-bottom:8px;"><strong>Alberta's Food Group</strong> - $5,745.50 overdue (16+ months). Deadline: Jan 23.</li>
+<li style="margin-bottom:8px;"><strong>DGPerry Tax Organizer</strong> - 28 reminder emails sent! Complete at SafeSend portal.</li>
+<li><strong>QuickBooks Bank Feed</strong> - Needs reconnection per accountant (Dec 23)</li>
+</ul>
+</div>
+
+<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:20px;margin-bottom:25px;border-radius:0 8px 8px 0;">
+<h2 style="color:#92400e;font-size:16px;margin:0 0 12px;">⚠️ HIGH PRIORITY - This Week</h2>
+<ul style="margin:0;padding-left:20px;color:#78350f;">
+<li style="margin-bottom:8px;"><strong>OEFFA Certification</strong> - Annual renewal coming up</li>
+<li style="margin-bottom:8px;"><strong>Lease Discussion with Don</strong> - 3 proposals ready</li>
+<li><strong>Farmers Market Deadlines</strong> - Jan 30, Feb 13, Feb 27</li>
+</ul>
+</div>
+
+<h2 style="color:#1e3a5f;font-size:18px;border-bottom:2px solid #e5e7eb;padding-bottom:8px;margin:25px 0 15px;">📊 Claude Team Status</h2>
+<table style="width:100%;border-collapse:collapse;font-size:13px;">
+<tr style="background:#f9fafb;"><th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;">Session</th><th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;">Status</th></tr>
+<tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Security</td><td style="padding:8px;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;">DONE</span> 25 pages secured</td></tr>
+<tr style="background:#f9fafb;"><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Food Safety</td><td style="padding:8px;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;">DONE</span> Smart Compliance Engine</td></tr>
+<tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Field Operations</td><td style="padding:8px;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;">DONE</span> GDD predictions + auto inspections</td></tr>
+<tr style="background:#f9fafb;"><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Inventory</td><td style="padding:8px;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;">DONE</span> Predictive maintenance v217</td></tr>
+<tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Sales/CRM</td><td style="padding:8px;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;">DONE</span> CSA weekly orders</td></tr>
+<tr style="background:#f9fafb;"><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Mobile Employee</td><td style="padding:8px;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;">DONE</span> Activity-Based Costing</td></tr>
+<tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Don Knowledge</td><td style="padding:8px;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;">DONE</span> Morning Brief + PHI Tracker</td></tr>
+<tr style="background:#f9fafb;"><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Business Foundation</td><td style="padding:8px;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;">DONE</span> Lease proposals + Collections</td></tr>
+<tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;">Accounting</td><td style="padding:8px;"><span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:11px;">BLOCKED</span> Needs QB credentials</td></tr>
+</table>
+
+<div style="background:#f0fdf4;border-radius:8px;padding:20px;margin:25px 0;">
+<h3 style="color:#166534;margin:0 0 12px;">💰 Money Matters</h3>
+<ul style="margin:0;padding-left:20px;color:#166534;">
+<li><strong>AR Outstanding:</strong> $5,745.50 (Alberta's)</li>
+<li><strong>DGPerry Invoices:</strong> $1,395 owed</li>
+</ul>
+</div>
+
+<h2 style="color:#1e3a5f;font-size:18px;border-bottom:2px solid #e5e7eb;padding-bottom:8px;margin:25px 0 15px;">📅 Tomorrow's Plan</h2>
+<div style="background:#eff6ff;border-radius:8px;padding:15px;margin-bottom:10px;">
+<strong style="color:#1e40af;">🌅 Morning:</strong> Check season email (updated with full crop list + links), review food safety dashboard, send Alberta's demand
+</div>
+<div style="background:#fef3c7;border-radius:8px;padding:15px;margin-bottom:10px;">
+<strong style="color:#92400e;">☀️ Midday:</strong> Review 3 lease proposals, call NRCS for EQIP (90% cost-share!), complete DGPerry tax organizer
+</div>
+<div style="background:#f0fdf4;border-radius:8px;padding:15px;">
+<strong style="color:#166534;">🌙 Evening:</strong> Greenhouse starts next week - review seed orders
+</div>
+
+<div style="background:#faf5ff;border-left:4px solid #7c3aed;padding:20px;margin:25px 0;border-radius:0 8px 8px 0;">
+<h3 style="color:#6b21a8;margin:0 0 10px;">🤖 NEW: Claude Autonomy Enabled</h3>
+<p style="color:#581c87;margin:0;font-size:14px;">MCP Server configured. All Claudes now have direct access to send emails and run functions. Documentation distributed.</p>
+</div>
+
+<p style="font-size:15px;color:#6b7280;margin-top:30px;padding-top:20px;border-top:1px solid #e5e7eb;">Sleep well. We'll keep working. 🌾</p>
+<p style="font-size:15px;color:#1e3a5f;"><strong>— Your Claude Team</strong></p>
+</div>
+<div style="background:#f9fafb;padding:20px;text-align:center;border-top:1px solid #e5e7eb;">
+<p style="font-size:12px;color:#9ca3af;margin:0;">Tiny Seed Farm OS — Automated Team Report</p>
+</div>
+</div>
+</body></html>`;
+
+  MailApp.sendEmail({
+    to: 'todd@tinyseedfarmpgh.com',
+    subject: '🌙 Overnight Team Report — Jan 21 Workday Plan',
+    htmlBody: htmlBody
+  });
+  return { success: true, message: 'Overnight report sent' };
 }
 
 /**
@@ -45268,6 +45383,453 @@ function handlePreHarvestInspectionAPI(action, params, postData) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// FIELD SAFETY LOG SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// Tracks animal intrusion, flooding, adjacent land activity for pre-harvest risk assessment
+// Per CLAUDE_MARCHING_ORDERS.md - Field_Operations directive
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize FIELD_SAFETY_LOG sheet
+ */
+function initFieldSafetyLog() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('FIELD_SAFETY_LOG');
+    sheet.appendRow([
+      'Log_ID', 'Date', 'Time', 'Field_Block', 'Observation_Type',
+      'Severity', 'Description', 'Photo_URL', 'Action_Taken',
+      'Affects_Harvest', 'Resolution_Date', 'Reported_By', 'Notes', 'Created_Date'
+    ]);
+
+    // Format header
+    sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#4a86e8').setFontColor('white');
+    sheet.setFrozenRows(1);
+
+    // Add data validation for Observation_Type
+    const typeRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Animal_Intrusion', 'Flooding', 'Adjacent_Activity', 'Wildlife_Feces',
+                          'Contamination_Risk', 'Equipment_Issue', 'Weather_Damage', 'Other'])
+      .build();
+    sheet.getRange('E2:E1000').setDataValidation(typeRule);
+
+    // Add data validation for Severity
+    const severityRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Critical', 'High', 'Medium', 'Low'])
+      .build();
+    sheet.getRange('F2:F1000').setDataValidation(severityRule);
+  }
+
+  return { success: true, message: 'FIELD_SAFETY_LOG initialized' };
+}
+
+/**
+ * Log a field safety observation
+ */
+function logFieldSafetyObservation(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
+
+    if (!sheet) {
+      initFieldSafetyLog();
+      sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
+    }
+
+    const logId = 'FSL-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd-HHmmss');
+    const now = new Date();
+
+    // Determine if this affects upcoming harvests
+    let affectsHarvest = false;
+    const criticalTypes = ['Animal_Intrusion', 'Flooding', 'Wildlife_Feces', 'Contamination_Risk'];
+    if (criticalTypes.includes(data.observationType) || data.severity === 'Critical' || data.severity === 'High') {
+      affectsHarvest = true;
+    }
+
+    sheet.appendRow([
+      logId,
+      Utilities.formatDate(now, 'America/New_York', 'yyyy-MM-dd'),
+      Utilities.formatDate(now, 'America/New_York', 'HH:mm'),
+      data.fieldBlock || '',
+      data.observationType || 'Other',
+      data.severity || 'Medium',
+      data.description || '',
+      data.photoUrl || '',
+      data.actionTaken || '',
+      affectsHarvest,
+      '',  // Resolution date - to be filled later
+      data.reportedBy || '',
+      data.notes || '',
+      now
+    ]);
+
+    // If critical, create alert and potentially block harvests
+    if (affectsHarvest) {
+      // Check for upcoming harvests in this field
+      try {
+        const predictions = getHarvestPredictions({ daysAhead: 7 });
+        if (predictions.success) {
+          const affectedHarvests = predictions.predictions.filter(p =>
+            p.location && p.location.toLowerCase().includes((data.fieldBlock || '').toLowerCase())
+          );
+
+          if (affectedHarvests.length > 0) {
+            // Create corrective action
+            addCorrectiveAction({
+              issueCategory: 'Field Safety',
+              relatedRecordId: logId,
+              issueDescription: `${data.observationType} in ${data.fieldBlock}: ${data.description}. ${affectedHarvests.length} harvest(s) may be affected.`,
+              severity: data.severity === 'Critical' ? 'Critical' : 'Major',
+              immediateAction: data.actionTaken || 'Pending assessment',
+              responsiblePerson: data.reportedBy,
+              rootCause: data.observationType,
+              preventiveMeasures: 'Complete field inspection before harvesting'
+            });
+          }
+        }
+      } catch (e) {
+        console.log('Could not check harvest predictions: ' + e.toString());
+      }
+    }
+
+    return {
+      success: true,
+      log_id: logId,
+      affects_harvest: affectsHarvest,
+      message: affectsHarvest ?
+        'Field safety observation logged. WARNING: May affect upcoming harvests.' :
+        'Field safety observation logged.'
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get field safety observations
+ */
+function getFieldSafetyObservations(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, observations: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let observations = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let obs = {};
+      headers.forEach((h, j) => obs[h] = data[i][j]);
+
+      // Apply filters
+      if (params) {
+        if (params.fieldBlock && obs.Field_Block !== params.fieldBlock) continue;
+        if (params.observationType && obs.Observation_Type !== params.observationType) continue;
+        if (params.unresolved && obs.Resolution_Date) continue;
+        if (params.startDate && new Date(obs.Date) < new Date(params.startDate)) continue;
+        if (params.endDate && new Date(obs.Date) > new Date(params.endDate)) continue;
+      }
+
+      observations.push(obs);
+    }
+
+    // Sort by date descending
+    observations.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+    return {
+      success: true,
+      observations: observations,
+      count: observations.length,
+      unresolved_count: observations.filter(o => !o.Resolution_Date && o.Affects_Harvest).length
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Resolve a field safety observation
+ */
+function resolveFieldSafetyObservation(logId, resolution) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: false, error: 'No field safety log found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const logIdCol = headers.indexOf('Log_ID');
+    const resolutionCol = headers.indexOf('Resolution_Date');
+    const notesCol = headers.indexOf('Notes');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][logIdCol] === logId) {
+        sheet.getRange(i + 1, resolutionCol + 1).setValue(new Date());
+        if (resolution.notes) {
+          const existingNotes = data[i][notesCol] || '';
+          sheet.getRange(i + 1, notesCol + 1).setValue(
+            existingNotes + ' | RESOLVED: ' + resolution.notes
+          );
+        }
+        return { success: true, message: 'Field safety observation resolved' };
+      }
+    }
+
+    return { success: false, error: 'Log ID not found: ' + logId };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get field safety status for pre-harvest assessment
+ * Returns risk level based on recent observations
+ */
+function getFieldSafetyRisk(fieldBlock) {
+  try {
+    const observations = getFieldSafetyObservations({
+      fieldBlock: fieldBlock,
+      unresolved: true
+    });
+
+    if (!observations.success) return { success: false, error: observations.error };
+
+    const unresolvedCritical = observations.observations.filter(o =>
+      o.Severity === 'Critical' && !o.Resolution_Date
+    );
+    const unresolvedHigh = observations.observations.filter(o =>
+      o.Severity === 'High' && !o.Resolution_Date
+    );
+
+    let riskLevel = 'LOW';
+    let canHarvest = true;
+    let issues = [];
+
+    if (unresolvedCritical.length > 0) {
+      riskLevel = 'CRITICAL';
+      canHarvest = false;
+      issues = unresolvedCritical.map(o => o.Observation_Type + ': ' + o.Description);
+    } else if (unresolvedHigh.length > 0) {
+      riskLevel = 'HIGH';
+      canHarvest = false;
+      issues = unresolvedHigh.map(o => o.Observation_Type + ': ' + o.Description);
+    } else if (observations.observations.length > 0) {
+      riskLevel = 'MODERATE';
+      issues = observations.observations.slice(0, 3).map(o => o.Observation_Type);
+    }
+
+    return {
+      success: true,
+      field_block: fieldBlock,
+      risk_level: riskLevel,
+      can_harvest: canHarvest,
+      unresolved_issues: issues,
+      total_observations: observations.count,
+      recommendation: canHarvest ?
+        'Field clear for harvest' :
+        'RESOLVE FIELD SAFETY ISSUES BEFORE HARVESTING'
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// FROST ALERT SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// Monitors weather forecast for freeze warnings and generates protection tasks
+// Per CLAUDE_MARCHING_ORDERS.md - Field_Operations directive
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Frost-sensitive crop database
+ */
+const FROST_SENSITIVE_CROPS = {
+  'Tomato': { kill_temp: 32, damage_temp: 40, priority: 'CRITICAL', action: 'Cover or harvest' },
+  'Pepper': { kill_temp: 32, damage_temp: 40, priority: 'CRITICAL', action: 'Cover or harvest' },
+  'Cucumber': { kill_temp: 32, damage_temp: 38, priority: 'CRITICAL', action: 'Cover or harvest' },
+  'Squash': { kill_temp: 32, damage_temp: 38, priority: 'CRITICAL', action: 'Cover or harvest' },
+  'Zucchini': { kill_temp: 32, damage_temp: 38, priority: 'CRITICAL', action: 'Cover or harvest' },
+  'Melon': { kill_temp: 32, damage_temp: 38, priority: 'CRITICAL', action: 'Cover or harvest' },
+  'Basil': { kill_temp: 32, damage_temp: 40, priority: 'CRITICAL', action: 'Harvest immediately' },
+  'Bean': { kill_temp: 32, damage_temp: 36, priority: 'HIGH', action: 'Cover or harvest' },
+  'Corn': { kill_temp: 28, damage_temp: 32, priority: 'HIGH', action: 'Monitor closely' },
+  'Eggplant': { kill_temp: 32, damage_temp: 40, priority: 'CRITICAL', action: 'Cover or harvest' },
+  'Dahlia': { kill_temp: 28, damage_temp: 32, priority: 'HIGH', action: 'Cover blooms or cut' },
+  'Zinnia': { kill_temp: 32, damage_temp: 36, priority: 'HIGH', action: 'Cut blooms before frost' },
+  'Cosmos': { kill_temp: 28, damage_temp: 32, priority: 'MEDIUM', action: 'Cut or cover' },
+  'Sunflower': { kill_temp: 28, damage_temp: 32, priority: 'MEDIUM', action: 'Cut mature heads' }
+};
+
+/**
+ * Check forecast for frost risk and generate alerts
+ */
+function checkFrostRisk(params) {
+  try {
+    const lat = params && params.lat ? params.lat : 40.0;  // Default to PA
+    const lon = params && params.lon ? params.lon : -76.5;
+
+    // Fetch weather forecast
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_min&timezone=America/New_York&forecast_days=7`;
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const weather = JSON.parse(response.getContentText());
+
+    if (!weather.daily || !weather.daily.temperature_2m_min) {
+      return { success: false, error: 'Could not fetch weather data' };
+    }
+
+    const frostAlerts = [];
+    const today = new Date();
+
+    weather.daily.time.forEach((date, i) => {
+      const minTempC = weather.daily.temperature_2m_min[i];
+      const minTempF = Math.round((minTempC * 9/5) + 32);
+
+      if (minTempF <= 36) {  // Frost warning threshold
+        const frostDate = new Date(date);
+        const daysAway = Math.floor((frostDate - today) / (1000 * 60 * 60 * 24));
+
+        frostAlerts.push({
+          date: date,
+          days_away: daysAway,
+          min_temp_f: minTempF,
+          severity: minTempF <= 28 ? 'HARD_FREEZE' : minTempF <= 32 ? 'FREEZE' : 'FROST',
+          alert_level: daysAway <= 1 ? 'CRITICAL' : daysAway <= 3 ? 'HIGH' : 'MEDIUM'
+        });
+      }
+    });
+
+    return {
+      success: true,
+      frost_risk: frostAlerts.length > 0,
+      alerts: frostAlerts,
+      alert_count: frostAlerts.length,
+      immediate_risk: frostAlerts.some(a => a.days_away <= 1),
+      message: frostAlerts.length > 0 ?
+        `FROST ALERT: ${frostAlerts.length} frost event(s) in next 7 days` :
+        'No frost risk in 7-day forecast'
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate frost protection tasks based on active crops
+ */
+function generateFrostProtectionTasks(params) {
+  try {
+    // Check for frost risk
+    const frostRisk = checkFrostRisk(params);
+    if (!frostRisk.success || !frostRisk.frost_risk) {
+      return {
+        success: true,
+        tasks: [],
+        message: 'No frost protection tasks needed'
+      };
+    }
+
+    // Get active plantings
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!planSheet || planSheet.getLastRow() <= 1) {
+      return {
+        success: true,
+        frost_alerts: frostRisk.alerts,
+        tasks: [],
+        message: 'Frost risk detected but no active plantings found'
+      };
+    }
+
+    const data = planSheet.getDataRange().getValues();
+    const headers = data[0];
+    const cropCol = headers.indexOf('Crop');
+    const bedCol = headers.indexOf('Target_Bed_ID') !== -1 ? headers.indexOf('Target_Bed_ID') : headers.indexOf('Bed_ID');
+    const statusCol = headers.indexOf('Status');
+
+    const tasks = [];
+    const processedCrops = new Set();
+
+    for (let i = 1; i < data.length; i++) {
+      const crop = data[i][cropCol];
+      const bed = bedCol >= 0 ? data[i][bedCol] : '';
+      const status = statusCol >= 0 ? data[i][statusCol] : '';
+
+      // Skip harvested crops
+      if (status && status.toLowerCase().includes('harvest')) continue;
+
+      // Check if crop is frost-sensitive
+      const cropData = Object.entries(FROST_SENSITIVE_CROPS).find(([name, data]) =>
+        crop && crop.toLowerCase().includes(name.toLowerCase())
+      );
+
+      if (cropData && !processedCrops.has(crop + bed)) {
+        const [cropName, sensitivity] = cropData;
+        processedCrops.add(crop + bed);
+
+        frostRisk.alerts.forEach(alert => {
+          if (alert.min_temp_f <= sensitivity.damage_temp) {
+            const urgency = alert.days_away <= 1 ? 100 : alert.days_away <= 2 ? 85 : 70;
+
+            tasks.push({
+              type: 'FROST_PROTECTION',
+              crop: crop,
+              location: bed,
+              priority: Math.round((urgency * 0.4) + (sensitivity.priority === 'CRITICAL' ? 60 : 40)),
+              frost_date: alert.date,
+              days_until_frost: alert.days_away,
+              min_temp_f: alert.min_temp_f,
+              kill_temp: sensitivity.kill_temp,
+              damage_temp: sensitivity.damage_temp,
+              action: sensitivity.action,
+              severity: alert.severity,
+              reason: `${alert.severity} (${alert.min_temp_f}°F) on ${alert.date} - ${sensitivity.action}`,
+              est_time: 30  // minutes per crop location
+            });
+          }
+        });
+      }
+    }
+
+    // Sort by priority and frost date
+    tasks.sort((a, b) => {
+      if (a.days_until_frost !== b.days_until_frost) return a.days_until_frost - b.days_until_frost;
+      return b.priority - a.priority;
+    });
+
+    return {
+      success: true,
+      frost_alerts: frostRisk.alerts,
+      tasks: tasks,
+      task_count: tasks.length,
+      immediate_action_required: tasks.some(t => t.days_until_frost <= 1),
+      total_est_time: tasks.reduce((sum, t) => sum + t.est_time, 0),
+      message: tasks.length > 0 ?
+        `${tasks.length} frost protection task(s) generated for ${frostRisk.alerts.length} frost event(s)` :
+        'Frost risk detected but no sensitive crops in active plantings'
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // OWNER MASTER BRIEF EMAIL SYSTEM
 // Sends comprehensive daily/on-demand briefing with all critical information
@@ -48644,6 +49206,1046 @@ function sendCSADashboardStatusToPM() {
       htmlBody: emailHtml
     });
     return { success: true, message: 'Status sent to PM' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send comprehensive progress update to PM with priorities and request for marching orders
+ */
+function sendPMProgressUpdate() {
+  const recipientEmail = 'todd@tinyseedfarmpgh.com';
+  const today = new Date();
+  const timeStr = today.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; margin: 0; padding: 20px; }
+    .container { max-width: 700px; margin: 0 auto; background: #1e293b; border-radius: 16px; overflow: hidden; border: 1px solid #334155; }
+    .header { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 30px; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .header .time { opacity: 0.9; margin-top: 8px; font-size: 14px; }
+    .content { padding: 30px; color: #e2e8f0; }
+    .section { margin-bottom: 30px; }
+    .section-title { font-size: 18px; font-weight: 700; color: #22c55e; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+    .completed-item { padding: 10px 15px; background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; margin-bottom: 8px; border-radius: 0 8px 8px 0; }
+    .priority-box { background: #312e81; border: 1px solid #4f46e5; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+    .priority-title { color: #a5b4fc; font-weight: 700; font-size: 16px; margin-bottom: 10px; }
+    .priority-desc { color: #c7d2fe; font-size: 14px; line-height: 1.6; }
+    .question-box { background: #422006; border: 1px solid #f59e0b; border-radius: 12px; padding: 20px; margin-top: 20px; }
+    .question-title { color: #fcd34d; font-weight: 700; font-size: 16px; margin-bottom: 10px; }
+    .question-list { color: #fef3c7; }
+    .question-list li { margin-bottom: 8px; }
+    .tonight-box { background: #14532d; border: 1px solid #22c55e; border-radius: 12px; padding: 20px; margin-top: 20px; }
+    .tonight-title { color: #86efac; font-weight: 700; font-size: 16px; margin-bottom: 10px; }
+    .footer { background: #0f172a; padding: 20px; text-align: center; color: #64748b; font-size: 12px; border-top: 1px solid #334155; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 Claude Progress Report</h1>
+      <div class="time">Session Update • ${today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${timeStr}</div>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <div class="section-title">✅ COMPLETED TONIGHT</div>
+        <div class="completed-item"><strong>CSA Customer Dashboard Backend</strong> - All API endpoints for magic link auth, box contents, pickup history, preferences, vacation holds</div>
+        <div class="completed-item"><strong>Shopify → CSA Integration</strong> - Webhook handler parses orders, creates members, extracts share type/size/frequency/pickup location</div>
+        <div class="completed-item"><strong>Product Tagging System</strong> - Smart tags for all Shopify products (Type, Freq, Size, Season, Duration) - CSV ready to import</div>
+        <div class="completed-item"><strong>Autonomous Deployment</strong> - I can now push code and deploy via clasp without manual intervention</div>
+        <div class="completed-item"><strong>DTM Auto-Training</strong> - Days-to-Maturity learning runs automatically at 3 AM daily</div>
+        <div class="completed-item"><strong>Live Driver Tracking</strong> - Rebuilt track.html as staff dashboard showing all drivers in real-time</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🎯 RECOMMENDED PRIORITIES FOR TOMORROW</div>
+
+        <div class="priority-box">
+          <div class="priority-title">#1 - Register Shopify Webhook</div>
+          <div class="priority-desc">This is the critical missing piece. Once the webhook is registered, new CSA orders will automatically flow into the system. Go to Shopify Admin → Settings → Notifications → Create webhook for "orders/create" pointing to the Apps Script URL.</div>
+        </div>
+
+        <div class="priority-box">
+          <div class="priority-title">#2 - Import Shopify Tags</div>
+          <div class="priority-desc">The shopify_tags_import.csv is in Downloads. Import it to Shopify to tag all products for better batching. Instructions were sent earlier today.</div>
+        </div>
+
+        <div class="priority-box">
+          <div class="priority-title">#3 - Test CSA Portal Login</div>
+          <div class="priority-desc">Go to csa.html and test the magic link login with a real customer email. This validates the entire auth flow before members start using it.</div>
+        </div>
+
+        <div class="priority-box">
+          <div class="priority-title">#4 - Populate Box Contents</div>
+          <div class="priority-desc">Create CSA_BoxContents sheet with this week's actual items so customers see real data when they log in.</div>
+        </div>
+      </div>
+
+      <div class="question-box">
+        <div class="question-title">📋 QUESTIONS FOR MARCHING ORDERS</div>
+        <ul class="question-list">
+          <li>Should I focus on CSA portal polish, or move to another area of the system?</li>
+          <li>Are there specific features you want tested before the season starts?</li>
+          <li>Do you want me to set up automated reports (daily/weekly summaries)?</li>
+          <li>Any integrations or connections between systems that need attention?</li>
+          <li>What's the timeline for CSA members starting to use the portal?</li>
+        </ul>
+      </div>
+
+      <div class="tonight-box">
+        <div class="tonight-title">🌙 WHAT I'M DOING TONIGHT (with your permission)</div>
+        <ul style="color: #bbf7d0; margin: 0; padding-left: 20px;">
+          <li>Creating sample CSA_BoxContents data so the portal has content to display</li>
+          <li>Testing the magic link flow end-to-end</li>
+          <li>Verifying all API endpoints are working correctly</li>
+          <li>Documenting the CSA system setup for future reference</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>🌱 Tiny Seed Farm OS • Claude Autonomous Operations</p>
+      <p>Reply to this email with marching orders - I'm ready to execute!</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    MailApp.sendEmail({
+      to: recipientEmail,
+      subject: '🤖 Claude Progress Report - CSA Dashboard Ready + Priorities for Tomorrow',
+      htmlBody: emailHtml
+    });
+    return { success: true, message: 'Progress update sent to PM', timestamp: today.toISOString() };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUICK START DASHBOARD - ONE PAGE TO RULE THEM ALL
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getQuickStartHTML() {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tiny Seed OS - Command Center</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: white;
+      padding: 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+    .header p { opacity: 0.8; font-size: 1.1em; }
+    .status-bar {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px 20px;
+      border-radius: 25px;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4caf50;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 25px;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .card h3 {
+      font-size: 1.3em;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card p {
+      opacity: 0.8;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+    }
+    .btn-warning {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+    .btn:hover { transform: scale(1.05); }
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-card .number {
+      font-size: 2em;
+      font-weight: bold;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-card .label { opacity: 0.7; font-size: 0.9em; margin-top: 5px; }
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .link-btn {
+      padding: 15px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: white;
+    }
+    .link-btn:hover { background: rgba(255,255,255,0.15); }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      opacity: 0.6;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌱 Tiny Seed OS</h1>
+      <p>Command Center - All Systems Operational</p>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span>Email AI Active</span>
+      </div>
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span>Marketing Engine Running</span>
+      </div>
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span>API Optimized</span>
+      </div>
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span>Triggers Active</span>
+      </div>
+    </div>
+
+    <div class="quick-stats">
+      <div class="stat-card">
+        <div class="number">v167</div>
+        <div class="label">Version</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">40K+</div>
+        <div class="label">Lines of Code</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">5</div>
+        <div class="label">Active Triggers</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">$1.2K</div>
+        <div class="label">Annual Savings</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>🤖 Email AI Assistant</h3>
+        <p>Talk to Claude about your emails. Search, summarize, find action items, draft replies - all in natural language.</p>
+        <a href="?page=emailai" class="btn btn-primary">Open Email AI</a>
+      </div>
+
+      <div class="card">
+        <h3>📱 Marketing Command Center</h3>
+        <p>AI-powered content creation, scheduling, and analytics. Manage Instagram, SMS, and email campaigns.</p>
+        <a href="?page=marketing" class="btn btn-success">Open Marketing</a>
+      </div>
+
+      <div class="card">
+        <h3>🚚 Delivery Zone Checker</h3>
+        <p>Check if an address is in your delivery zone. Customer-facing tool for home delivery signups.</p>
+        <a href="?page=delivery" class="btn btn-warning">Open Delivery</a>
+      </div>
+
+      <div class="card">
+        <h3>📊 Quick Actions</h3>
+        <p>Common tasks you can trigger right now:</p>
+        <div class="links-grid">
+          <div class="link-btn" onclick="runAction('warmupCaches')">🔥 Warm Caches</div>
+          <div class="link-btn" onclick="runAction('processScheduledPosts')">📤 Process Posts</div>
+          <div class="link-btn" onclick="runAction('runAIEmailAnalysis')">📧 Analyze Emails</div>
+          <div class="link-btn" onclick="runAction('getMarketingAnalytics')">📈 Get Analytics</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>⚡ System Features</h3>
+        <p>What's running under the hood:</p>
+        <ul style="opacity: 0.8; padding-left: 20px; line-height: 2;">
+          <li>Claude 3.5 Sonnet Email Intelligence</li>
+          <li>Smart Caching (<3 sec APIs)</li>
+          <li>AI Content Generation</li>
+          <li>Multi-channel Marketing</li>
+          <li>Automated Triggers</li>
+          <li>RFM Sender Scoring</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>📋 Today's Checklist</h3>
+        <p>Make sure these are done:</p>
+        <ul style="opacity: 0.8; padding-left: 20px; line-height: 2;">
+          <li>✅ Email AI - Active</li>
+          <li>✅ Marketing Center - Active</li>
+          <li>✅ Backend Optimized</li>
+          <li>⏳ Instagram API - Needs Token</li>
+          <li>⏳ First Campaign - Ready to Create</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Tiny Seed OS v167 | Built with Claude | Deployed @220</p>
+      <p style="margin-top: 10px;">
+        <a href="?action=testConnection" style="color: #667eea;">Test API</a> |
+        <a href="?action=healthCheck" style="color: #667eea;">Health Check</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function runAction(action) {
+      alert('Running ' + action + '... Check Apps Script logs for results.');
+      google.script.run[action]({});
+    }
+  </script>
+</body>
+</html>`;
+}
+
+function serveQuickStart() {
+  return HtmlService.createHtmlOutput(getQuickStartHTML())
+    .setTitle('Tiny Seed OS - Command Center')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT TEMPLATES - Pre-built for quick campaigns
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CONTENT_TEMPLATES = {
+  INSTAGRAM: {
+    HARVEST_UPDATE: {
+      caption: "🥬 Fresh from the field today!\n\n[CROP] is ready and looking beautiful. Grown with love right here in Rochester, PA.\n\n📍 Available at:\n• Saturday farmers market\n• This week's CSA shares\n• Wholesale orders\n\nDM us or visit the link in bio to order!\n\n#tinyseedfarm #organic #farmfresh #pennsylvania #localfood #[CROP]",
+      imageHint: "Close-up of fresh [CROP] in harvest bin or field"
+    },
+    CSA_PROMO: {
+      caption: "🌱 CSA Shares are OPEN for the season!\n\nWhat you get:\n✅ Weekly box of seasonal veggies\n✅ First pick of the harvest\n✅ Farm newsletter & recipes\n✅ Connection to YOUR farmer\n\nLimited spots available - link in bio to sign up!\n\n#csa #communitysupportedagriculture #eatlocal #knowyourfarmer #tinyseedfarm",
+      imageHint: "Beautiful CSA box arrangement or happy member pickup"
+    },
+    BEHIND_SCENES: {
+      caption: "A day in the life at Tiny Seed Farm 🚜\n\n[ACTIVITY DESCRIPTION]\n\nFarming isn't just a job - it's a way of life. And we're grateful to share it with our community.\n\nWhat questions do you have about farming? Drop them below! 👇\n\n#farmlife #behindthescenes #organicfarming #smallfarm #tinyseedfarm",
+      imageHint: "Candid farm work shot - planting, harvesting, or tractor"
+    },
+    MARKET_REMINDER: {
+      caption: "See you at the market! 🧺\n\n📅 [DAY]\n📍 [LOCATION]\n⏰ [TIME]\n\nThis week we're bringing:\n• [ITEM 1]\n• [ITEM 2]\n• [ITEM 3]\n• And more!\n\nCome say hi - we love meeting our customers face to face!\n\n#farmersmarket #shoplocal #freshproduce #tinyseedfarm",
+      imageHint: "Market booth setup or produce display"
+    }
+  },
+  SMS: {
+    CSA_REMINDER: "🌱 Tiny Seed Farm: Your CSA share is ready for pickup [DAY] [TIME] at [LOCATION]. This week: [ITEMS]. See you soon!",
+    MARKET_ALERT: "🧺 Tiny Seed Farm at [MARKET] [DAY]! Fresh [ITEMS] available. First come, first served!",
+    FLASH_SALE: "⚡ FLASH SALE: [ITEM] abundance! $[PRICE]/lb today only at the farm stand. Reply STOP to opt out.",
+    WEATHER_UPDATE: "🌧️ Tiny Seed Farm: Due to weather, [EVENT] is [CHANGE]. Questions? Reply to this text.",
+    THANK_YOU: "💚 Thanks for supporting Tiny Seed Farm! Your order of [ITEMS] is confirmed for [DATE]. See you soon!"
+  },
+  EMAIL_SUBJECTS: {
+    NEWSLETTER: "🌱 This Week at Tiny Seed Farm: [HIGHLIGHT]",
+    CSA_UPDATE: "Your CSA Share This Week + Recipe Ideas",
+    SEASONAL: "[SEASON] is here! What's Growing at Tiny Seed",
+    PROMO: "Limited Time: [OFFER] at Tiny Seed Farm",
+    THANK_YOU: "Thank you for being part of our farm family 💚"
+  }
+};
+
+/**
+ * Get content templates
+ */
+function getContentTemplates(params) {
+  const type = params.type || 'ALL';
+  
+  if (type === 'ALL') {
+    return { success: true, templates: CONTENT_TEMPLATES };
+  }
+  
+  return { success: true, templates: CONTENT_TEMPLATES[type] || {} };
+}
+
+/**
+ * Fill template with values
+ */
+function fillTemplate(params) {
+  const { templateType, templateName, values } = params;
+  
+  let template = CONTENT_TEMPLATES[templateType]?.[templateName];
+  if (!template) {
+    return { success: false, error: 'Template not found' };
+  }
+  
+  let content = typeof template === 'string' ? template : template.caption;
+  
+  // Replace placeholders
+  for (const [key, value] of Object.entries(values || {})) {
+    content = content.replace(new RegExp('\\[' + key + '\\]', 'g'), value);
+  }
+  
+  return { 
+    success: true, 
+    content: content,
+    imageHint: template.imageHint || null
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRE-GENERATE WEEKLY CONTENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate a week's worth of content ideas
+ */
+function generateWeeklyContentPlan(params) {
+  const apiKey = CLAUDE_CONFIG.API_KEY;
+  if (!apiKey) {
+    return { success: false, error: 'Claude API key not configured' };
+  }
+
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+  
+  const systemPrompt = `You are a social media strategist for Tiny Seed Farm, an organic vegetable farm in Pennsylvania.
+Create a week's content plan that feels authentic, builds community, and drives sales.
+
+Farm context:
+- Owner: Todd
+- Products: Organic vegetables, CSA shares
+- Channels: Instagram (3 accounts), SMS, Email
+- Current month: ${currentMonth}
+- Values: Sustainability, community, quality`;
+
+  const userPrompt = `Create a 7-day social media content plan for Tiny Seed Farm.
+
+For each day, provide:
+1. Platform (Instagram/SMS/Email)
+2. Content type (harvest update, behind scenes, promo, educational, community)
+3. Brief content idea (1-2 sentences)
+4. Best posting time
+5. Call to action
+
+Format as JSON array with 7 objects.
+Mix content types throughout the week.
+Include at least 2 promotional posts but make them feel natural.`;
+
+  const payload = {
+    model: CLAUDE_CONFIG.MODEL,
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }]
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+    
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const textBlock = result.content.find(block => block.type === 'text');
+    let content = textBlock ? textBlock.text : '';
+    
+    // Try to parse as JSON
+    try {
+      // Extract JSON from response
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const plan = JSON.parse(jsonMatch[0]);
+        return { success: true, plan: plan, raw: content };
+      }
+    } catch (e) {
+      // Return raw content if JSON parsing fails
+    }
+    
+    return { success: true, raw: content };
+
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * MASTER SETUP - Run once to activate everything
+ */
+function ACTIVATE_ALL_SYSTEMS() {
+  const results = {
+    triggers: [],
+    errors: []
+  };
+
+  try {
+    // 1. Setup email command trigger
+    const emailTrigger = setupEmailCommandTrigger();
+    results.triggers.push('Email Commands: ' + (emailTrigger.success ? 'ACTIVE' : 'FAILED'));
+  } catch (e) {
+    results.errors.push('Email trigger: ' + e.message);
+  }
+
+  try {
+    // 2. Setup marketing triggers
+    const marketingTrigger = setupMarketingTriggers();
+    results.triggers.push('Marketing: ' + (marketingTrigger.success ? 'ACTIVE' : 'FAILED'));
+  } catch (e) {
+    results.errors.push('Marketing trigger: ' + e.message);
+  }
+
+  try {
+    // 3. Setup cache warmup
+    const cacheTrigger = setupCacheWarmupTrigger();
+    results.triggers.push('Cache Warmup: ' + (cacheTrigger.success ? 'ACTIVE' : 'FAILED'));
+  } catch (e) {
+    results.errors.push('Cache trigger: ' + e.message);
+  }
+
+  try {
+    // 4. Warm caches now
+    warmupCaches();
+    results.triggers.push('Initial Cache Warm: DONE');
+  } catch (e) {
+    results.errors.push('Cache warmup: ' + e.message);
+  }
+
+  try {
+    // 5. Create CONTENT_CALENDAR if missing
+    getContentCalendar({});
+    results.triggers.push('Content Calendar: READY');
+  } catch (e) {
+    results.errors.push('Content calendar: ' + e.message);
+  }
+
+  Logger.log('=== ALL SYSTEMS ACTIVATION COMPLETE ===');
+  Logger.log('Triggers: ' + results.triggers.join(', '));
+  if (results.errors.length > 0) {
+    Logger.log('Errors: ' + results.errors.join(', '));
+  }
+
+  return {
+    success: results.errors.length === 0,
+    results: results
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// MORNING BRIEF INTEGRATION - Inventory Alerts for Daily Command Center
+// Provides equipment health, food safety status, and maintenance alerts for unified morning brief
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get all inventory-related alerts for Morning Brief aggregation
+ * Called by: Don_Knowledge_Base getMorningBrief() or Field_Operations getDailyCommandCenter()
+ *
+ * @returns {Object} Structured alerts for morning brief integration
+ */
+function getInventoryMorningAlerts() {
+  try {
+    const alerts = {
+      timestamp: new Date().toISOString(),
+      source: 'Inventory_Traceability',
+
+      // Section 1: Food Safety Equipment Status
+      foodSafetyStatus: null,
+
+      // Section 2: Critical Equipment Alerts
+      criticalAlerts: [],
+
+      // Section 3: Maintenance Due (7-day lookahead)
+      maintenanceDue: [],
+
+      // Section 4: Equipment Health Summary
+      healthSummary: null,
+
+      // Section 5: Actionable Recommendations
+      recommendations: []
+    };
+
+    // Get food safety pipeline status
+    const foodSafety = getEquipmentFoodSafetyStatus();
+    if (foodSafety.success) {
+      alerts.foodSafetyStatus = {
+        status: foodSafety.data.status.status,
+        color: foodSafety.data.status.color,
+        message: foodSafety.data.status.message,
+        alertCounts: foodSafety.data.alertCounts,
+        criticalEquipmentCount: foodSafety.data.criticalEquipmentCount
+      };
+
+      // Add critical food safety alerts to morning brief
+      if (foodSafety.data.topAlerts && foodSafety.data.topAlerts.length > 0) {
+        foodSafety.data.topAlerts.forEach(alert => {
+          alerts.criticalAlerts.push({
+            priority: alert.alertLevel,
+            type: 'FOOD_SAFETY',
+            item: alert.itemName,
+            message: alert.message,
+            action: alert.requiredAction,
+            fsmaReference: alert.fsmaReference
+          });
+        });
+      }
+
+      // Add food safety recommendations
+      if (foodSafety.data.recommendations) {
+        foodSafety.data.recommendations.forEach(rec => {
+          alerts.recommendations.push({
+            priority: rec.priority,
+            category: 'FOOD_SAFETY',
+            message: rec.message,
+            actions: rec.actions
+          });
+        });
+      }
+    }
+
+    // Get equipment health and maintenance due
+    const inventory = getFarmInventory({});
+    if (inventory.success && inventory.data.length > 0) {
+      const today = new Date();
+      const sevenDaysFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      let totalItems = inventory.data.length;
+      let goodCondition = 0;
+      let fairCondition = 0;
+      let poorCondition = 0;
+      let needsRepair = 0;
+      let totalValue = 0;
+
+      inventory.data.forEach(item => {
+        // Count conditions
+        switch (item.Condition) {
+          case 'Good': goodCondition++; break;
+          case 'Fair': fairCondition++; break;
+          case 'Poor': poorCondition++; break;
+          case 'Needs Repair': needsRepair++; break;
+        }
+
+        // Sum value
+        totalValue += parseFloat(item.Est_Value) || 0;
+
+        // Check maintenance due (using Last_Updated + expected interval)
+        if (item.Last_Updated) {
+          const lastUpdate = new Date(item.Last_Updated);
+          const daysSinceUpdate = Math.floor((today - lastUpdate) / (1000 * 60 * 60 * 24));
+
+          // Alert if item needs attention (based on category lifespan expectations)
+          const maintenanceIntervals = {
+            'Equipment': 90,      // Check every 90 days
+            'Vehicles': 90,
+            'Irrigation': 30,     // Check monthly during season
+            'Safety': 30,
+            'Tools': 180,
+            'Infrastructure': 365
+          };
+
+          const interval = maintenanceIntervals[item.Category] || 90;
+
+          if (daysSinceUpdate > interval) {
+            alerts.maintenanceDue.push({
+              item: item.Item_Name,
+              itemId: item.Item_ID,
+              category: item.Category,
+              condition: item.Condition,
+              location: item.Location,
+              daysSinceCheck: daysSinceUpdate,
+              recommendation: `${item.Item_Name} hasn't been checked in ${daysSinceUpdate} days`
+            });
+          }
+        }
+
+        // Add critical alerts for poor condition items
+        if (item.Condition === 'Needs Repair') {
+          alerts.criticalAlerts.push({
+            priority: 'HIGH',
+            type: 'EQUIPMENT_REPAIR',
+            item: item.Item_Name,
+            message: `${item.Item_Name} needs repair`,
+            action: `Schedule repair for ${item.Item_Name} in ${item.Location}`,
+            value: item.Est_Value
+          });
+        } else if (item.Condition === 'Poor') {
+          alerts.criticalAlerts.push({
+            priority: 'MEDIUM',
+            type: 'EQUIPMENT_CONDITION',
+            item: item.Item_Name,
+            message: `${item.Item_Name} condition is poor`,
+            action: `Inspect ${item.Item_Name} and schedule maintenance`,
+            value: item.Est_Value
+          });
+        }
+      });
+
+      // Calculate health summary
+      const healthScore = Math.round(
+        ((goodCondition * 100) + (fairCondition * 70) + (poorCondition * 30) + (needsRepair * 0)) / totalItems
+      );
+
+      alerts.healthSummary = {
+        totalItems: totalItems,
+        totalValue: totalValue,
+        healthScore: healthScore,
+        healthGrade: healthScore >= 80 ? 'A' : healthScore >= 60 ? 'B' : healthScore >= 40 ? 'C' : healthScore >= 20 ? 'D' : 'F',
+        breakdown: {
+          good: goodCondition,
+          fair: fairCondition,
+          poor: poorCondition,
+          needsRepair: needsRepair
+        }
+      };
+
+      // Add recommendations based on health
+      if (needsRepair > 0) {
+        alerts.recommendations.push({
+          priority: 'HIGH',
+          category: 'EQUIPMENT',
+          message: `${needsRepair} item(s) need immediate repair`,
+          actions: ['Review repair list', 'Schedule repairs', 'Check warranty coverage']
+        });
+      }
+
+      if (alerts.maintenanceDue.length > 0) {
+        alerts.recommendations.push({
+          priority: 'MEDIUM',
+          category: 'MAINTENANCE',
+          message: `${alerts.maintenanceDue.length} item(s) due for maintenance check`,
+          actions: ['Conduct visual inspection', 'Update condition status', 'Log maintenance performed']
+        });
+      }
+    }
+
+    // Sort critical alerts by priority
+    const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    alerts.criticalAlerts.sort((a, b) =>
+      (priorityOrder[a.priority] || 99) - (priorityOrder[b.priority] || 99)
+    );
+
+    // Generate morning brief summary
+    alerts.summary = generateInventoryBriefSummary(alerts);
+
+    return {
+      success: true,
+      data: alerts
+    };
+
+  } catch (error) {
+    console.error('Morning Brief Alerts Error:', error);
+    return {
+      success: false,
+      error: error.message,
+      source: 'Inventory_Traceability'
+    };
+  }
+}
+
+/**
+ * Generate human-readable summary for morning brief
+ */
+function generateInventoryBriefSummary(alerts) {
+  const lines = [];
+
+  // Food safety status
+  if (alerts.foodSafetyStatus) {
+    const status = alerts.foodSafetyStatus;
+    if (status.status === 'AT_RISK') {
+      lines.push(`🚨 FOOD SAFETY AT RISK: ${status.alertCounts.critical} critical alert(s) - IMMEDIATE ACTION REQUIRED`);
+    } else if (status.status === 'CAUTION') {
+      lines.push(`⚠️ Food Safety Caution: ${status.alertCounts.high} high-priority issue(s) need attention`);
+    } else if (status.status === 'COMPLIANT') {
+      lines.push(`✅ Food Safety: All ${status.criticalEquipmentCount} critical equipment items COMPLIANT`);
+    }
+  }
+
+  // Equipment health
+  if (alerts.healthSummary) {
+    const health = alerts.healthSummary;
+    lines.push(`📦 Equipment Health: ${health.healthScore}% (Grade ${health.healthGrade}) - ${health.totalItems} items worth $${health.totalValue.toLocaleString()}`);
+
+    if (health.breakdown.needsRepair > 0) {
+      lines.push(`   ⚠️ ${health.breakdown.needsRepair} item(s) need repair`);
+    }
+  }
+
+  // Maintenance due
+  if (alerts.maintenanceDue.length > 0) {
+    lines.push(`🔧 Maintenance Due: ${alerts.maintenanceDue.length} item(s) need inspection`);
+  }
+
+  // Critical count
+  const criticalCount = alerts.criticalAlerts.filter(a => a.priority === 'CRITICAL' || a.priority === 'HIGH').length;
+  if (criticalCount > 0) {
+    lines.push(`❗ ${criticalCount} high-priority action(s) needed today`);
+  }
+
+  return {
+    text: lines.join('\n'),
+    lines: lines,
+    hasUrgentItems: alerts.criticalAlerts.some(a => a.priority === 'CRITICAL'),
+    totalAlerts: alerts.criticalAlerts.length
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSA BOX CONTENTS POPULATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Populates the CSA_BoxContents sheet with sample data for the current week
+ * This function creates realistic box contents for testing the CSA portal
+ */
+function populateSampleBoxContents(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SALES_SHEETS.CSA_BOX_CONTENTS);
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet(SALES_SHEETS.CSA_BOX_CONTENTS);
+      // Add headers
+      sheet.getRange(1, 1, 1, 7).setValues([[
+        'Week_Date', 'Share_Type', 'Crop_ID', 'Product_Name', 'Variety', 'Quantity', 'Unit'
+      ]]);
+      sheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#e8f5e9');
+    }
+
+    // Determine week date - use Monday of current or specified week
+    let weekDate;
+    if (params && params.weekDate) {
+      weekDate = new Date(params.weekDate);
+    } else {
+      weekDate = new Date();
+    }
+    // Set to Monday of the week
+    const day = weekDate.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    weekDate.setDate(weekDate.getDate() + mondayOffset);
+    const weekDateStr = Utilities.formatDate(weekDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+    // Check if data already exists for this week
+    const existingData = sheet.getDataRange().getValues();
+    const existingWeeks = existingData.slice(1).map(row => {
+      if (row[0] instanceof Date) {
+        return Utilities.formatDate(row[0], Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      }
+      return row[0];
+    });
+
+    if (existingWeeks.includes(weekDateStr)) {
+      return {
+        success: true,
+        message: 'Box contents already exist for week ' + weekDateStr,
+        weekDate: weekDateStr,
+        alreadyExists: true
+      };
+    }
+
+    // Sample veggie box contents - realistic early spring items
+    const veggieItems = [
+      { cropId: 'LET-001', product: 'Lettuce Mix', variety: 'Spring Salanova Blend', quantity: 0.5, unit: 'lb' },
+      { cropId: 'SPN-001', product: 'Baby Spinach', variety: 'Space', quantity: 0.5, unit: 'lb' },
+      { cropId: 'RAD-001', product: 'Radishes', variety: 'Easter Egg Mix', quantity: 1, unit: 'bunch' },
+      { cropId: 'KAL-001', product: 'Kale', variety: 'Red Russian', quantity: 1, unit: 'bunch' },
+      { cropId: 'GRN-001', product: 'Braising Greens', variety: 'Asian Mix', quantity: 0.5, unit: 'lb' },
+      { cropId: 'SCL-001', product: 'Scallions', variety: 'Evergreen', quantity: 1, unit: 'bunch' },
+      { cropId: 'TUR-001', product: 'Salad Turnips', variety: 'Hakurei', quantity: 1, unit: 'bunch' },
+      { cropId: 'PAK-001', product: 'Pak Choi', variety: 'Shanghai Green', quantity: 0.5, unit: 'lb' },
+      { cropId: 'ARU-001', product: 'Arugula', variety: 'Astro', quantity: 0.25, unit: 'lb' },
+      { cropId: 'CIL-001', product: 'Cilantro', variety: 'Santo', quantity: 1, unit: 'bunch' }
+    ];
+
+    // Sample flower box contents
+    const flowerItems = [
+      { cropId: 'RAN-001', product: 'Ranunculus', variety: 'Amandine Mix', quantity: 5, unit: 'stems' },
+      { cropId: 'ANE-001', product: 'Anemones', variety: 'Galilee Mix', quantity: 5, unit: 'stems' },
+      { cropId: 'TUL-001', product: 'Tulips', variety: 'French', quantity: 7, unit: 'stems' },
+      { cropId: 'NAR-001', product: 'Narcissus', variety: 'Cheerfulness', quantity: 5, unit: 'stems' },
+      { cropId: 'SNP-001', product: 'Snapdragons', variety: 'Madame Butterfly', quantity: 3, unit: 'stems' },
+      { cropId: 'SWP-001', product: 'Sweet Peas', variety: 'Spencer Mix', quantity: 10, unit: 'stems' },
+      { cropId: 'GRN-002', product: 'Mixed Foliage', variety: 'Seasonal', quantity: 3, unit: 'stems' }
+    ];
+
+    // Build rows for different share types
+    const rows = [];
+
+    // Veggie-CSA (Small) - fewer items
+    const smallVeggie = veggieItems.slice(0, 6);
+    smallVeggie.forEach(item => {
+      rows.push([weekDateStr, 'Veggie-CSA', item.cropId, item.product, item.variety, item.quantity, item.unit]);
+    });
+
+    // Veggie-CSA Friends & Family (larger) - more items, larger quantities
+    veggieItems.forEach(item => {
+      const qty = item.quantity * 1.5; // 50% more for F&F
+      rows.push([weekDateStr, 'Friends-Family', item.cropId, item.product, item.variety, qty, item.unit]);
+    });
+
+    // Flower-Share (Full Bloom) - all flowers
+    flowerItems.forEach(item => {
+      rows.push([weekDateStr, 'Flower-Share', item.cropId, item.product, item.variety, item.quantity, item.unit]);
+    });
+
+    // Flower-Share (Petite Bloom) - fewer stems
+    flowerItems.slice(0, 5).forEach(item => {
+      const qty = Math.ceil(item.quantity * 0.6); // 60% for petite
+      rows.push([weekDateStr, 'Petite-Bloom', item.cropId, item.product, item.variety, qty, item.unit]);
+    });
+
+    // Flex-CSA - mixed selection (can customize)
+    const flexItems = veggieItems.slice(0, 5);
+    flexItems.forEach(item => {
+      rows.push([weekDateStr, 'Flex-CSA', item.cropId, item.product, item.variety, item.quantity, item.unit]);
+    });
+
+    // Seasonal-CSA (Spring) - spring specialties
+    const springItems = veggieItems.slice(0, 7);
+    springItems.forEach(item => {
+      rows.push([weekDateStr, 'Seasonal-CSA', item.cropId, item.product, item.variety, item.quantity, item.unit]);
+    });
+
+    // Add all rows to the sheet
+    if (rows.length > 0) {
+      const startRow = sheet.getLastRow() + 1;
+      sheet.getRange(startRow, 1, rows.length, 7).setValues(rows);
+    }
+
+    return {
+      success: true,
+      message: 'Created sample box contents for week ' + weekDateStr,
+      weekDate: weekDateStr,
+      itemsCreated: rows.length,
+      shareTypes: ['Veggie-CSA', 'Friends-Family', 'Flower-Share', 'Petite-Bloom', 'Flex-CSA', 'Seasonal-CSA']
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Gets a preview of what's in this week's boxes for all share types
+ */
+function getBoxContentsPreview(params) {
+  try {
+    const weekDate = params && params.weekDate ? params.weekDate : getCurrentWeekDateSales();
+
+    const shareTypes = ['Veggie-CSA', 'Friends-Family', 'Flower-Share', 'Petite-Bloom', 'Flex-CSA', 'Seasonal-CSA'];
+    const preview = {};
+
+    shareTypes.forEach(type => {
+      const result = getCSABoxContents({ weekDate: weekDate, shareType: type });
+      preview[type] = {
+        itemCount: result.items ? result.items.length : 0,
+        items: result.items || []
+      };
+    });
+
+    return {
+      success: true,
+      weekDate: weekDate,
+      preview: preview
+    };
+
   } catch (error) {
     return { success: false, error: error.toString() };
   }

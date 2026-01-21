@@ -8552,6 +8552,11 @@
                         <span class="compliance-emoji">🧹</span>
                         <span class="compliance-name" data-i18n="compliance.buffer">Buffer Check</span>
                     </button>
+                    <button class="compliance-btn preharvest" onclick="openPreHarvestInspectionForm()">
+                        <span class="compliance-emoji">🔍</span>
+                        <span class="compliance-name" data-i18n="compliance.preharvest">Pre-Harvest</span>
+                        <span class="cte-badge">GAP</span>
+                    </button>
                 </div>
 
                 <!-- Today's Log Summary -->
@@ -9051,6 +9056,146 @@
                         <button class="btn-submit compliance-submit" onclick="submitBufferInspection()">
                             <i class="fas fa-check"></i>
                             <span data-i18n="compliance.logBuffer">Log Inspection</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pre-Harvest Inspection Form Modal (GAP/Food Safety) -->
+            <div id="preHarvestInspectionModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content compliance-modal">
+                    <div class="modal-header fsma-header">
+                        <h2><i class="fas fa-search"></i> Pre-Harvest Inspection</h2>
+                        <span class="fsma-badge" style="background: #22c55e;">GAP</span>
+                        <button class="modal-close" onclick="closePreHarvestInspectionModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="fsma-notice" style="background: rgba(34, 197, 94, 0.1); border-color: #22c55e;">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Required before harvest - validates field safety conditions</span>
+                        </div>
+
+                        <!-- Required Inspections List -->
+                        <div id="requiredInspectionsSection" style="display: none; margin-bottom: 16px;">
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Required Inspections Due:</label>
+                            <div id="requiredInspectionsList" class="required-inspections-list" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Field/Block *</label>
+                            <select id="preharvestField" class="form-select" required onchange="updatePreHarvestCrops()">
+                                <option value="">Select Field...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Crop *</label>
+                            <select id="preharvestCrop" class="form-select" required>
+                                <option value="">Select Crop...</option>
+                            </select>
+                        </div>
+
+                        <!-- Safety Checklist -->
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 12px; display: block;">
+                                <i class="fas fa-clipboard-check"></i> Safety Checklist
+                            </label>
+                            <div class="preharvest-checklist" id="preharvestChecklist" style="display: flex; flex-direction: column; gap: 8px;">
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-card); border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" name="preharvest_check" value="no_animal_intrusion" style="width: 24px; height: 24px;">
+                                    <span>No signs of animal intrusion</span>
+                                </label>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-card); border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" name="preharvest_check" value="no_flooding" style="width: 24px; height: 24px;">
+                                    <span>No flooding or standing water</span>
+                                </label>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-card); border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" name="preharvest_check" value="adjacent_land_safe" style="width: 24px; height: 24px;">
+                                    <span>Adjacent land activities assessed</span>
+                                </label>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-card); border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" name="preharvest_check" value="workers_healthy" style="width: 24px; height: 24px;">
+                                    <span>All workers healthy</span>
+                                </label>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-card); border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" name="preharvest_check" value="equipment_clean" style="width: 24px; height: 24px;">
+                                    <span>Equipment clean and sanitized</span>
+                                </label>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-card); border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" name="preharvest_check" value="phi_verified" style="width: 24px; height: 24px;">
+                                    <span>Pre-harvest interval verified for sprays</span>
+                                </label>
+                            </div>
+                            <!-- High-risk additional items (shown for leafy greens, etc.) -->
+                            <div id="highRiskChecklist" style="display: none; margin-top: 8px;">
+                                <div style="color: var(--warning); font-size: 12px; margin-bottom: 8px;">
+                                    <i class="fas fa-exclamation-triangle"></i> High-Risk Crop - Additional Checks:
+                                </div>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" name="preharvest_check" value="irrigation_safe" style="width: 24px; height: 24px;">
+                                    <span>Irrigation water source verified safe</span>
+                                </label>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; cursor: pointer; margin-top: 8px;">
+                                    <input type="checkbox" name="preharvest_check" value="no_soil_splash" style="width: 24px; height: 24px;">
+                                    <span>No soil splash on edible portions</span>
+                                </label>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; cursor: pointer; margin-top: 8px;">
+                                    <input type="checkbox" name="preharvest_check" value="no_wildlife_feces" style="width: 24px; height: 24px;">
+                                    <span>No wildlife feces in harvest zone</span>
+                                </label>
+                                <label class="checklist-item" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; cursor: pointer; margin-top: 8px;">
+                                    <input type="checkbox" name="preharvest_check" value="handwash_stocked" style="width: 24px; height: 24px;">
+                                    <span>Handwashing station stocked</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Overall Assessment *</label>
+                            <div class="toggle-buttons" style="display: flex; gap: 8px;">
+                                <button type="button" class="toggle-btn pass-btn active" onclick="setPreHarvestResult('PASS')" style="flex: 1; padding: 12px; border-radius: 8px; background: var(--success); color: white; border: none; font-weight: 600;">
+                                    <i class="fas fa-check"></i> PASS
+                                </button>
+                                <button type="button" class="toggle-btn fail-btn" onclick="setPreHarvestResult('FAIL')" style="flex: 1; padding: 12px; border-radius: 8px; background: var(--bg-card); color: var(--text-secondary); border: 2px solid var(--border); font-weight: 600;">
+                                    <i class="fas fa-times"></i> FAIL
+                                </button>
+                            </div>
+                            <input type="hidden" id="preharvestResult" value="PASS">
+                        </div>
+
+                        <div class="form-group" id="failReasonGroup" style="display: none;">
+                            <label>Reason for Failure *</label>
+                            <textarea id="preharvestFailReason" class="form-textarea" rows="2" placeholder="Describe the issue..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Photo (optional)</label>
+                            <button type="button" class="photo-capture-btn" onclick="capturePreHarvestPhoto()">
+                                <i class="fas fa-camera"></i> Take Photo
+                            </button>
+                            <div id="preharvestPhotoPreview" class="photo-preview" style="display: none;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea id="preharvestNotes" class="form-textarea" rows="2" placeholder="Any observations..."></textarea>
+                        </div>
+
+                        <div class="gps-status" id="preharvestGpsStatus">
+                            <i class="fas fa-location-dot"></i>
+                            <span>GPS:</span>
+                            <span id="preharvestGpsCoords">Acquiring...</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick="closePreHarvestInspectionModal()">
+                            Cancel
+                        </button>
+                        <button class="btn-submit compliance-submit" onclick="submitPreHarvestInspection()" style="background: #22c55e;">
+                            <i class="fas fa-check"></i>
+                            Log Inspection
                         </button>
                     </div>
                 </div>
@@ -17125,7 +17270,8 @@
                 'HARVEST_CTE': 'Harvest CTE',
                 'PACKING_CTE': 'Packing CTE',
                 'EQUIPMENT_CLEANING': 'Equipment Cleaning',
-                'BUFFER_INSPECTION': 'Buffer Inspection'
+                'BUFFER_INSPECTION': 'Buffer Inspection',
+                'PRE_HARVEST_INSPECTION': 'Pre-Harvest Inspection'
             };
             return labels[type] || type;
         }
@@ -17639,6 +17785,224 @@
                 showToast('Error saving: ' + error.message, 'error');
             }
         }
+
+        // ========== PRE-HARVEST INSPECTION FORM ==========
+
+        const HIGH_RISK_CROPS = ['lettuce', 'spinach', 'arugula', 'kale', 'chard', 'greens',
+                                  'strawberry', 'raspberry', 'cilantro', 'parsley', 'basil',
+                                  'microgreens', 'sprouts', 'mesclun', 'salad'];
+
+        let preHarvestState = {
+            result: 'PASS',
+            photo: null,
+            requiredInspections: []
+        };
+
+        function openPreHarvestInspectionForm() {
+            document.getElementById('preHarvestInspectionModal').style.display = 'flex';
+            captureComplianceGps('preharvestGpsCoords');
+            populatePreHarvestFields();
+            loadRequiredInspections();
+            resetPreHarvestForm();
+        }
+
+        function closePreHarvestInspectionModal() {
+            document.getElementById('preHarvestInspectionModal').style.display = 'none';
+            resetPreHarvestForm();
+        }
+
+        function resetPreHarvestForm() {
+            document.getElementById('preharvestField').value = '';
+            document.getElementById('preharvestCrop').value = '';
+            document.getElementById('preharvestNotes').value = '';
+            document.getElementById('preharvestFailReason').value = '';
+            document.getElementById('failReasonGroup').style.display = 'none';
+            document.getElementById('highRiskChecklist').style.display = 'none';
+            document.querySelectorAll('#preharvestChecklist input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('#highRiskChecklist input[type="checkbox"]').forEach(cb => cb.checked = false);
+            setPreHarvestResult('PASS');
+            preHarvestState.photo = null;
+            document.getElementById('preharvestPhotoPreview').style.display = 'none';
+        }
+
+        function populatePreHarvestFields() {
+            const fieldSelect = document.getElementById('preharvestField');
+            fieldSelect.innerHTML = '<option value="">Select Field...</option>';
+            if (AppState.fields) {
+                AppState.fields.forEach(f => {
+                    fieldSelect.innerHTML += `<option value="${f}">${f}</option>`;
+                });
+            }
+        }
+
+        function updatePreHarvestCrops() {
+            const cropSelect = document.getElementById('preharvestCrop');
+            cropSelect.innerHTML = '<option value="">Select Crop...</option>';
+
+            // Get crops for the selected field (simplified - in production, fetch from API)
+            const crops = ['Lettuce', 'Spinach', 'Kale', 'Arugula', 'Tomatoes', 'Peppers',
+                          'Cucumbers', 'Zucchini', 'Carrots', 'Beets', 'Beans', 'Basil',
+                          'Cilantro', 'Parsley', 'Chard', 'Microgreens'];
+            crops.forEach(c => {
+                cropSelect.innerHTML += `<option value="${c.toLowerCase()}">${c}</option>`;
+            });
+
+            // Listen for crop selection to show/hide high-risk checklist
+            cropSelect.onchange = function() {
+                const isHighRisk = HIGH_RISK_CROPS.some(hr =>
+                    this.value.toLowerCase().includes(hr.toLowerCase())
+                );
+                document.getElementById('highRiskChecklist').style.display = isHighRisk ? 'block' : 'none';
+            };
+        }
+
+        async function loadRequiredInspections() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getRequiredInspections`);
+                const data = await response.json();
+
+                if (data.success && data.inspections && data.inspections.length > 0) {
+                    preHarvestState.requiredInspections = data.inspections;
+                    document.getElementById('requiredInspectionsSection').style.display = 'block';
+
+                    const listHtml = data.inspections.map(insp => `
+                        <div class="required-inspection-item"
+                             onclick="selectRequiredInspection('${insp.batchId}', '${insp.fieldBlock}', '${insp.crop}')"
+                             style="padding: 10px; margin-bottom: 6px; background: rgba(245, 158, 11, 0.1); border-radius: 6px; cursor: pointer; border: 1px solid var(--warning);">
+                            <div style="font-weight: 600; color: var(--warning);">
+                                <i class="fas fa-exclamation-circle"></i> ${insp.crop}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                ${insp.fieldBlock} • Harvest ${insp.daysToHarvest} days • ${insp.riskLevel} risk
+                            </div>
+                        </div>
+                    `).join('');
+
+                    document.getElementById('requiredInspectionsList').innerHTML = listHtml;
+                } else {
+                    document.getElementById('requiredInspectionsSection').style.display = 'none';
+                }
+            } catch (error) {
+                console.log('Could not load required inspections:', error);
+                document.getElementById('requiredInspectionsSection').style.display = 'none';
+            }
+        }
+
+        function selectRequiredInspection(batchId, fieldBlock, crop) {
+            // Auto-fill the form with the required inspection
+            document.getElementById('preharvestField').value = fieldBlock;
+            updatePreHarvestCrops();
+            setTimeout(() => {
+                document.getElementById('preharvestCrop').value = crop.toLowerCase();
+                document.getElementById('preharvestCrop').dispatchEvent(new Event('change'));
+            }, 100);
+        }
+
+        function setPreHarvestResult(result) {
+            preHarvestState.result = result;
+            document.getElementById('preharvestResult').value = result;
+
+            const passBtn = document.querySelector('.pass-btn');
+            const failBtn = document.querySelector('.fail-btn');
+            const failGroup = document.getElementById('failReasonGroup');
+
+            if (result === 'PASS') {
+                passBtn.style.background = 'var(--success)';
+                passBtn.style.color = 'white';
+                passBtn.style.border = 'none';
+                failBtn.style.background = 'var(--bg-card)';
+                failBtn.style.color = 'var(--text-secondary)';
+                failBtn.style.border = '2px solid var(--border)';
+                failGroup.style.display = 'none';
+            } else {
+                failBtn.style.background = 'var(--danger)';
+                failBtn.style.color = 'white';
+                failBtn.style.border = 'none';
+                passBtn.style.background = 'var(--bg-card)';
+                passBtn.style.color = 'var(--text-secondary)';
+                passBtn.style.border = '2px solid var(--border)';
+                failGroup.style.display = 'block';
+            }
+        }
+
+        function capturePreHarvestPhoto() {
+            showToast('Photo capture coming soon', 'info');
+        }
+
+        async function submitPreHarvestInspection() {
+            const field = document.getElementById('preharvestField').value;
+            const crop = document.getElementById('preharvestCrop').value;
+            const result = preHarvestState.result;
+            const failReason = document.getElementById('preharvestFailReason').value;
+            const notes = document.getElementById('preharvestNotes').value;
+
+            if (!field || !crop) {
+                showToast('Please select field and crop', 'error');
+                return;
+            }
+
+            if (result === 'FAIL' && !failReason) {
+                showToast('Please provide a reason for failure', 'error');
+                return;
+            }
+
+            // Gather checklist items
+            const checklistItems = [];
+            document.querySelectorAll('input[name="preharvest_check"]:checked').forEach(cb => {
+                checklistItems.push(cb.value);
+            });
+
+            const logEntry = {
+                logType: 'PRE_HARVEST_INSPECTION',
+                timestamp: new Date().toISOString(),
+                employeeId: AppState.employee?.id || 'unknown',
+                employeeName: AppState.employee?.name || 'Unknown',
+                fieldId: field,
+                crop: crop,
+                result: result,
+                checklistItems: checklistItems,
+                failReason: result === 'FAIL' ? failReason : null,
+                notes: notes,
+                gpsLat: ComplianceState.currentGps?.lat || null,
+                gpsLng: ComplianceState.currentGps?.lng || null,
+                synced: false,
+                createdOffline: !navigator.onLine
+            };
+
+            try {
+                // Save locally first
+                await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync to backend
+                await OfflineDB.queueOperation('addLinkedPreHarvestInspection', {
+                    fieldBlock: field,
+                    crop: crop,
+                    result: result,
+                    inspector: AppState.employee?.name || 'Unknown',
+                    checklistItems: checklistItems,
+                    failReason: result === 'FAIL' ? failReason : null,
+                    notes: notes,
+                    gpsLat: ComplianceState.currentGps?.lat || null,
+                    gpsLng: ComplianceState.currentGps?.lng || null
+                });
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+
+                const statusIcon = result === 'PASS' ? '✅' : '⚠️';
+                showToast(`${statusIcon} Pre-harvest inspection logged: ${result}` + (AppState.isOnline ? '' : ' (offline)'), 'success');
+                closePreHarvestInspectionModal();
+                loadComplianceLogs();
+                updateComplianceBadge();
+
+            } catch (error) {
+                console.error('Error logging pre-harvest inspection:', error);
+                showToast('Error saving inspection: ' + error.message, 'error');
+            }
+        }
+
+        // Update LOG_TYPE_ICONS to include pre-harvest
+        LOG_TYPE_ICONS['PRE_HARVEST_INSPECTION'] = '🔍';
 
         // ============================================
         // END COMPLIANCE LOGGING MODULE
