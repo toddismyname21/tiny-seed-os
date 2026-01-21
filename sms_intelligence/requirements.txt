@@ -1,0 +1,56 @@
+# SMS Intelligence System - Python Dependencies
+# =============================================
+#
+# Install with: pip install -r requirements.txt
+#
+# For development, also install:
+#   pip install pytest pytest-asyncio black flake8 mypy
+
+# Core LLM API
+anthropic>=0.40.0
+
+# File system monitoring (uses FSEvents on macOS)
+watchdog>=4.0.0
+
+# Vector database for semantic search
+chromadb>=0.4.0
+
+# Redis client for caching and queues (optional but recommended)
+redis>=5.0.0
+
+# HTTP requests for Google Sheets sync
+requests>=2.31.0
+
+# Secure credential storage (for API keys)
+keyring>=25.0.0
+
+# Data validation and serialization
+pydantic>=2.0.0
+
+# Date/time utilities
+python-dateutil>=2.8.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Optional: For enhanced NLP (entity extraction)
+# Uncomment if you want local NLP processing:
+# spacy>=3.7.0
+
+# Optional: For email digest functionality
+# Uncomment if you want email reports:
+# sendgrid>=6.10.0
+
+# Optional: For web dashboard
+# Uncomment if building a local dashboard:
+# fastapi>=0.110.0
+# uvicorn>=0.27.0
+
+# Optional: For PostgreSQL storage (instead of/in addition to ChromaDB)
+# Uncomment for production database:
+# psycopg2-binary>=2.9.0
+# sqlalchemy>=2.0.0
+
+# Optional: For encryption of stored data
+# Uncomment for enhanced security:
+# cryptography>=42.0.0

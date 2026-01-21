@@ -1503,3 +1503,297 @@ function getActionQueue(params = {}) {
 
   return { success: true, actions };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOG COMMITMENT WEB APP
+// Mobile-optimized web interface for logging SMS commitments
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getCommitmentAppHtml() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Log Promise">
+    <title>Log Commitment | Tiny Seed</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+            min-height: 100vh; margin: 0; padding: 20px;
+            padding-top: env(safe-area-inset-top, 20px);
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 24px; }
+        .header h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px 0; }
+        .header p { font-size: 14px; opacity: 0.9; margin: 0; }
+        .card {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); margin-bottom: 16px;
+        }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+        .input-group textarea, .input-group input {
+            width: 100%; padding: 14px 16px; font-size: 16px;
+            border: 2px solid #e5e7eb; border-radius: 12px;
+            transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+        }
+        .input-group textarea:focus, .input-group input:focus {
+            outline: none; border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+        }
+        .input-group textarea { min-height: 120px; resize: vertical; }
+        .paste-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; font-size: 13px; color: #059669;
+            background: #ecfdf5; border: 1px solid #a7f3d0;
+            border-radius: 8px; cursor: pointer; margin-top: 8px; font-weight: 500;
+        }
+        .paste-btn:active { background: #d1fae5; }
+        .direction-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+        .direction-btn {
+            flex: 1; padding: 12px; font-size: 14px; font-weight: 600;
+            border: 2px solid #e5e7eb; border-radius: 10px;
+            background: white; cursor: pointer; transition: all 0.2s;
+        }
+        .direction-btn.active { background: #059669; color: white; border-color: #059669; }
+        .submit-btn {
+            width: 100%; padding: 16px; font-size: 18px; font-weight: 600;
+            color: white; background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border: none; border-radius: 12px; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .submit-btn:active { transform: scale(0.98); }
+        .submit-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .submit-btn.loading { position: relative; color: transparent; }
+        .submit-btn.loading::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 24px; height: 24px; margin: -12px 0 0 -12px;
+            border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .results-card { display: none; }
+        .results-card.visible { display: block; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; }
+        .result-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .result-icon.success { background: #d1fae5; }
+        .result-icon.error { background: #fee2e2; }
+        .result-title { flex: 1; }
+        .result-title h3 { font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 4px 0; }
+        .result-title p { font-size: 14px; color: #6b7280; margin: 0; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .metric { text-align: center; padding: 12px 8px; background: #f9fafb; border-radius: 10px; }
+        .metric-value { font-size: 24px; font-weight: 700; color: #059669; }
+        .metric-value.urgent { color: #dc2626; }
+        .metric-value.warning { color: #f59e0b; }
+        .metric-value.neutral { color: #6b7280; }
+        .metric-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+        .summary-box { background: #f0fdf4; border-left: 4px solid #059669; padding: 16px; border-radius: 0 10px 10px 0; margin-bottom: 20px; }
+        .summary-box h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #065f46; margin: 0 0 8px 0; }
+        .summary-box p { font-size: 15px; color: #047857; margin: 0; line-height: 1.5; }
+        .action-item { display: flex; gap: 12px; padding: 14px; background: #fffbeb; border-radius: 10px; margin-bottom: 10px; }
+        .action-icon { font-size: 20px; }
+        .action-content h5 { font-size: 14px; font-weight: 600; color: #92400e; margin: 0 0 4px 0; }
+        .action-content p { font-size: 13px; color: #a16207; margin: 0; }
+        .commitment-badge { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; background: #dbeafe; color: #1e40af; border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 16px; }
+        .new-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; color: #059669; background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 12px; cursor: pointer; margin-top: 16px; }
+        .new-btn:active { background: #d1fae5; }
+        .error-box { background: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; border-radius: 0 10px 10px 0; margin-bottom: 20px; }
+        .error-box h4 { color: #991b1b; margin: 0 0 8px 0; font-size: 14px; }
+        .error-box p { color: #b91c1c; margin: 0; font-size: 14px; }
+        .history-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; color: white; opacity: 0.9; font-size: 14px; cursor: pointer; }
+        .history-card { display: none; }
+        .history-card.visible { display: block; }
+        .history-item { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid #e5e7eb; }
+        .history-item:last-child { border-bottom: none; }
+        .history-time { font-size: 12px; color: #9ca3af; min-width: 50px; }
+        .history-content { flex: 1; }
+        .history-contact { font-size: 14px; font-weight: 600; color: #111827; }
+        .history-message { font-size: 13px; color: #6b7280; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .empty-history { text-align: center; padding: 24px; color: #9ca3af; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Log Commitment</h1>
+            <p>AI-powered promise tracking</p>
+        </div>
+        <div class="card input-card" id="inputCard">
+            <div class="input-group">
+                <label>Message</label>
+                <textarea id="messageInput" placeholder="Paste or type the message..."></textarea>
+                <button class="paste-btn" onclick="pasteFromClipboard()">📋 Paste from Clipboard</button>
+            </div>
+            <div class="input-group">
+                <label>Contact Name</label>
+                <input type="text" id="contactInput" placeholder="Who is this from/to?">
+            </div>
+            <div class="direction-toggle">
+                <button class="direction-btn active" data-direction="OUTBOUND" onclick="setDirection('OUTBOUND')">📤 My Promise</button>
+                <button class="direction-btn" data-direction="INBOUND" onclick="setDirection('INBOUND')">📥 Their Promise</button>
+            </div>
+            <button class="submit-btn" id="submitBtn" onclick="logCommitment()">Log Commitment</button>
+        </div>
+        <div class="card results-card" id="resultsCard">
+            <div class="result-header">
+                <div class="result-icon success" id="resultIcon">✓</div>
+                <div class="result-title">
+                    <h3 id="resultTitle">Logged Successfully</h3>
+                    <p id="resultSubtitle">AI analysis complete</p>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric"><div class="metric-value" id="priorityScore">--</div><div class="metric-label">Priority</div></div>
+                <div class="metric"><div class="metric-value" id="urgencyScore">--</div><div class="metric-label">Urgency</div></div>
+                <div class="metric"><div class="metric-value" id="sentimentScore">--</div><div class="metric-label">Sentiment</div></div>
+            </div>
+            <div class="summary-box" id="summaryBox">
+                <h4>AI Summary</h4>
+                <p id="summaryText">Analyzing message...</p>
+            </div>
+            <div id="commitmentBadge" class="commitment-badge" style="display: none;"><span>🤝</span><span id="commitmentCount">1 commitment tracked</span></div>
+            <div id="actionsContainer"></div>
+            <button class="new-btn" onclick="resetForm()">+ Log Another</button>
+        </div>
+        <div class="card results-card" id="errorCard">
+            <div class="result-header">
+                <div class="result-icon error">!</div>
+                <div class="result-title"><h3>Something Went Wrong</h3><p>Please try again</p></div>
+            </div>
+            <div class="error-box"><h4>Error Details</h4><p id="errorMessage">Unknown error occurred</p></div>
+            <button class="new-btn" onclick="resetForm()">Try Again</button>
+        </div>
+        <div class="history-toggle" onclick="toggleHistory()"><span>📜</span><span>Recent Logs</span><span id="historyArrow">▼</span></div>
+        <div class="card history-card" id="historyCard"><div id="historyList"><div class="empty-history">No recent logs</div></div></div>
+    </div>
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+        let currentDirection = 'OUTBOUND';
+        let history = JSON.parse(localStorage.getItem('sms_log_history') || '[]');
+        document.addEventListener('DOMContentLoaded', () => { renderHistory(); autoReadClipboard(); });
+        async function autoReadClipboard() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.length > 0 && text.length < 1000) {
+                        document.getElementById('messageInput').value = text;
+                    }
+                }
+            } catch (e) {}
+        }
+        async function pasteFromClipboard() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    document.getElementById('messageInput').value = text;
+                } else { alert('Clipboard access not available. Please paste manually.'); }
+            } catch (e) { alert('Could not access clipboard. Please paste manually.'); }
+        }
+        function setDirection(dir) {
+            currentDirection = dir;
+            document.querySelectorAll('.direction-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.direction === dir);
+            });
+        }
+        async function logCommitment() {
+            const message = document.getElementById('messageInput').value.trim();
+            const contact = document.getElementById('contactInput').value.trim();
+            if (!message) { alert('Please enter a message'); return; }
+            if (!contact) { alert('Please enter a contact name'); return; }
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            try {
+                const params = new URLSearchParams({
+                    action: 'logSMS', message: message, senderName: contact, direction: currentDirection
+                });
+                const response = await fetch(API_URL + '?' + params.toString());
+                const data = await response.json();
+                if (data.success) { showResults(data, message, contact); addToHistory(message, contact, data); }
+                else { showError(data.error || 'Failed to log commitment'); }
+            } catch (error) { showError(error.message || 'Network error - please try again'); }
+            finally { submitBtn.disabled = false; submitBtn.classList.remove('loading'); }
+        }
+        function showResults(data, message, contact) {
+            document.getElementById('inputCard').style.display = 'none';
+            document.getElementById('errorCard').classList.remove('visible');
+            document.getElementById('resultsCard').classList.add('visible');
+            const priority = data.priorityScore || 0;
+            const priorityEl = document.getElementById('priorityScore');
+            priorityEl.textContent = priority;
+            priorityEl.className = 'metric-value ' + (priority >= 70 ? 'urgent' : priority >= 40 ? 'warning' : 'neutral');
+            const urgency = Math.round((data.urgency || 0) * 100);
+            const urgencyEl = document.getElementById('urgencyScore');
+            urgencyEl.textContent = urgency + '%';
+            urgencyEl.className = 'metric-value ' + (urgency >= 70 ? 'urgent' : urgency >= 40 ? 'warning' : 'neutral');
+            const sentiment = data.sentiment || 'NEUTRAL';
+            document.getElementById('sentimentScore').textContent = sentiment === 'POSITIVE' ? '😊' : sentiment === 'NEGATIVE' ? '😟' : '😐';
+            document.getElementById('summaryText').textContent = data.summary || 'Message logged successfully';
+            const commitCount = data.commitmentsCreated || 0;
+            const commitBadge = document.getElementById('commitmentBadge');
+            if (commitCount > 0) { commitBadge.style.display = 'inline-flex'; document.getElementById('commitmentCount').textContent = commitCount === 1 ? '1 commitment tracked' : commitCount + ' commitments tracked'; }
+            else { commitBadge.style.display = 'none'; }
+            const actionsContainer = document.getElementById('actionsContainer');
+            actionsContainer.innerHTML = '';
+            if (data.fullAnalysis && data.fullAnalysis.recommendedActions) {
+                data.fullAnalysis.recommendedActions.forEach(action => {
+                    const actionEl = document.createElement('div');
+                    actionEl.className = 'action-item';
+                    actionEl.innerHTML = '<div class="action-icon">⚡</div><div class="action-content"><h5>' + (action.action || 'Take action') + '</h5><p>' + (action.rationale || '') + '</p></div>';
+                    actionsContainer.appendChild(actionEl);
+                });
+            }
+            if (data.immediateAction && !data.fullAnalysis?.recommendedActions?.length) {
+                const actionEl = document.createElement('div');
+                actionEl.className = 'action-item';
+                actionEl.innerHTML = '<div class="action-icon">⚡</div><div class="action-content"><h5>Recommended Action</h5><p>' + data.immediateAction + '</p></div>';
+                actionsContainer.appendChild(actionEl);
+            }
+        }
+        function showError(message) {
+            document.getElementById('inputCard').style.display = 'none';
+            document.getElementById('resultsCard').classList.remove('visible');
+            document.getElementById('errorCard').classList.add('visible');
+            document.getElementById('errorMessage').textContent = message;
+        }
+        function resetForm() {
+            document.getElementById('inputCard').style.display = 'block';
+            document.getElementById('resultsCard').classList.remove('visible');
+            document.getElementById('errorCard').classList.remove('visible');
+            document.getElementById('messageInput').value = '';
+            document.getElementById('contactInput').value = '';
+        }
+        function addToHistory(message, contact, data) {
+            const entry = { time: new Date().toISOString(), contact: contact, message: message.substring(0, 100), priority: data.priorityScore || 0 };
+            history.unshift(entry);
+            if (history.length > 10) history.pop();
+            localStorage.setItem('sms_log_history', JSON.stringify(history));
+            renderHistory();
+        }
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (history.length === 0) { list.innerHTML = '<div class="empty-history">No recent logs</div>'; return; }
+            list.innerHTML = history.map(entry => {
+                const time = new Date(entry.time);
+                const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return '<div class="history-item"><div class="history-time">' + timeStr + '</div><div class="history-content"><div class="history-contact">' + entry.contact + '</div><div class="history-message">' + entry.message + '</div></div></div>';
+            }).join('');
+        }
+        function toggleHistory() {
+            const card = document.getElementById('historyCard');
+            const arrow = document.getElementById('historyArrow');
+            card.classList.toggle('visible');
+            arrow.textContent = card.classList.contains('visible') ? '▲' : '▼';
+        }
+    </script>
+</body>
+</html>`;
+}

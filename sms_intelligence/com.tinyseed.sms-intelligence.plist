@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+SMS Intelligence System - launchd Configuration
+================================================
+
+This plist configures the SMS Intelligence daemon to run automatically
+on macOS. It monitors the iMessage database for new messages and
+processes them using Claude AI.
+
+Installation:
+    1. Copy to ~/Library/LaunchAgents/
+    2. Update paths below to match your installation
+    3. Load with: launchctl load ~/Library/LaunchAgents/com.tinyseed.sms-intelligence.plist
+
+Management:
+    Start:   launchctl start com.tinyseed.sms-intelligence
+    Stop:    launchctl stop com.tinyseed.sms-intelligence
+    Unload:  launchctl unload ~/Library/LaunchAgents/com.tinyseed.sms-intelligence.plist
+    Status:  launchctl list | grep tinyseed
+
+Logs:
+    stdout: /tmp/sms-intelligence.log
+    stderr: /tmp/sms-intelligence.error.log
+
+IMPORTANT:
+    - Ensure Full Disk Access is granted to Python
+    - Set ANTHROPIC_API_KEY environment variable or store in keyring
+-->
+<plist version="1.0">
+<dict>
+    <!-- Unique identifier for this service -->
+    <key>Label</key>
+    <string>com.tinyseed.sms-intelligence</string>
+
+    <!-- Human-readable description -->
+    <key>ServiceDescription</key>
+    <string>SMS Intelligence System - Real-time iMessage analysis daemon</string>
+
+    <!-- Program to execute -->
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Use the Python 3 interpreter -->
+        <!-- UPDATE THIS PATH if your Python is installed elsewhere -->
+        <string>/usr/local/bin/python3</string>
+
+        <!-- Path to the daemon script -->
+        <!-- UPDATE THIS PATH to match your installation -->
+        <string>/Users/samanthapollack/Documents/TIny_Seed_OS/sms_intelligence/sms_daemon.py</string>
+
+        <!-- Run in daemon mode -->
+        <string>--mode</string>
+        <string>daemon</string>
+    </array>
+
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/samanthapollack/Documents/TIny_Seed_OS/sms_intelligence</string>
+
+    <!-- Environment variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Set your Anthropic API key here, or use keyring -->
+        <!-- Uncomment and set your key: -->
+        <!-- <key>ANTHROPIC_API_KEY</key> -->
+        <!-- <string>sk-ant-api03-YOUR-KEY-HERE</string> -->
+
+        <!-- Python path to include the project directory -->
+        <key>PYTHONPATH</key>
+        <string>/Users/samanthapollack/Documents/TIny_Seed_OS/sms_intelligence</string>
+
+        <!-- Ensure proper UTF-8 encoding -->
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>LC_ALL</key>
+        <string>en_US.UTF-8</string>
+
+        <!-- Home directory (needed for accessing ~/Library paths) -->
+        <key>HOME</key>
+        <string>/Users/samanthapollack</string>
+    </dict>
+
+    <!-- Run at load (system startup / user login) -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Keep the service alive -->
+    <key>KeepAlive</key>
+    <dict>
+        <!-- Restart if it crashes -->
+        <key>SuccessfulExit</key>
+        <false/>
+
+        <!-- Only run when system is not sleeping -->
+        <key>AfterInitialDemand</key>
+        <false/>
+    </dict>
+
+    <!-- Watch for changes to the Messages database -->
+    <!-- This triggers the daemon when files change -->
+    <key>WatchPaths</key>
+    <array>
+        <string>/Users/samanthapollack/Library/Messages/chat.db</string>
+        <string>/Users/samanthapollack/Library/Messages/chat.db-wal</string>
+    </array>
+
+    <!-- Throttle interval (minimum seconds between launches) -->
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <!-- Standard output log -->
+    <key>StandardOutPath</key>
+    <string>/tmp/sms-intelligence.log</string>
+
+    <!-- Standard error log -->
+    <key>StandardErrorPath</key>
+    <string>/tmp/sms-intelligence.error.log</string>
+
+    <!-- Process configuration -->
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <!-- Nice value (lower priority to not impact system performance) -->
+    <key>Nice</key>
+    <integer>10</integer>
+
+    <!-- Limit resource usage -->
+    <key>SoftResourceLimits</key>
+    <dict>
+        <!-- Limit memory to 500MB -->
+        <key>MemoryLimit</key>
+        <integer>524288000</integer>
+    </dict>
+
+    <!-- Session attributes -->
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+
+    <!-- AbandonProcessGroup - clean shutdown -->
+    <key>AbandonProcessGroup</key>
+    <false/>
+</dict>
+</plist>
