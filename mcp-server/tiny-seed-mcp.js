@@ -15,8 +15,8 @@
 const https = require('https');
 const readline = require('readline');
 
-// API Configuration
-const API_BASE = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+// API Configuration - Updated to latest deployment (v240+)
+const API_BASE = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
 
 // Available tools for Claude
 const TOOLS = {
@@ -144,6 +144,23 @@ const TOOLS = {
     description: "Get email marketing subscribers from Shopify",
     parameters: {},
     action: "getShopifyEmailSubscribers"
+  },
+  shopify_register_csa_webhook: {
+    description: "Register the CSA order webhook with Shopify (auto-creates CSA members from orders)",
+    parameters: {},
+    action: "registerCSAOrderWebhook"
+  },
+  shopify_list_webhooks: {
+    description: "List all registered Shopify webhooks",
+    parameters: {},
+    action: "listShopifyWebhooks"
+  },
+  shopify_delete_webhook: {
+    description: "Delete a Shopify webhook by ID",
+    parameters: {
+      webhookId: "The webhook ID to delete"
+    },
+    action: "deleteShopifyWebhook"
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -325,6 +342,30 @@ const TOOLS = {
       applicator: "Person who applied"
     },
     action: "logSprayApplication"
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SMS INTEGRATION
+  // ═══════════════════════════════════════════════════════════════════════════
+  sms_get_dashboard: {
+    description: "Get SMS integration dashboard with message stats and commitments",
+    parameters: {},
+    action: "getSMSDashboard"
+  },
+  sms_get_commitments: {
+    description: "Get open SMS commitments (promises made via text)",
+    parameters: {
+      status: "Filter by status: OPEN, COMPLETED",
+      priority: "Filter by priority: HIGH, MEDIUM, LOW"
+    },
+    action: "getOpenSMSCommitments"
+  },
+  sms_complete_commitment: {
+    description: "Mark an SMS commitment as completed",
+    parameters: {
+      commitmentId: "The commitment ID to complete"
+    },
+    action: "completeSMSCommitment"
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

@@ -194,6 +194,23 @@ function doGet(e) {
         return jsonResponse(diagnoseIntegrations());
       case 'getSystemStatus':
         return jsonResponse(getSystemStatus());
+
+      // ============ SCRIPT PROPERTY MANAGEMENT ============
+      case 'setScriptProperty':
+        const props = PropertiesService.getScriptProperties();
+        props.setProperty(e.parameter.key, e.parameter.value);
+        return jsonResponse({ success: true, key: e.parameter.key, message: 'Property set successfully' });
+      case 'getScriptProperty':
+        const propValue = PropertiesService.getScriptProperties().getProperty(e.parameter.key);
+        return jsonResponse({ success: true, key: e.parameter.key, value: propValue ? '***SET***' : null });
+      case 'listScriptProperties':
+        const allProps = PropertiesService.getScriptProperties().getProperties();
+        const maskedProps = {};
+        for (const key in allProps) {
+          maskedProps[key] = allProps[key] ? '***SET***' : null;
+        }
+        return jsonResponse({ success: true, properties: maskedProps });
+
       case 'populateTraySizes':
         return jsonResponse(populateTraySizesFromProfiles());
 
@@ -271,6 +288,20 @@ function doGet(e) {
         return jsonResponse(generateContentCalendar(e.parameter));
       case 'classifyCommentPriority':
         return jsonResponse(classifyCommentPriority(e.parameter));
+
+      // ============ MARKETING AUTOMATION SYSTEM (GET) ============
+      case 'getEmailQueue':
+        return jsonResponse(getEmailQueue(e.parameter));
+      case 'getCSARenewalsNeeded':
+        return jsonResponse(getCSARenewalsNeeded(e.parameter));
+      case 'getReferralStats':
+        return jsonResponse(getReferralStats(e.parameter));
+      case 'getReferralLeaderboard':
+        return jsonResponse(getReferralLeaderboard(e.parameter));
+      case 'getCompetitorAlerts':
+        return jsonResponse(getCompetitorAlerts(e.parameter));
+      case 'getMarketingAutomationDashboard':
+        return jsonResponse(getMarketingAutomationDashboard(e.parameter));
 
       // ============ LEGACY ENDPOINTS ============
       case 'getPlanning':
@@ -1427,6 +1458,14 @@ function doGet(e) {
       case 'getShopifyMarketReport':
         return jsonResponse(getShopifyMarketReport(e.parameter));
 
+      // ============ SMS INTEGRATION ============
+      case 'initSMSSystem':
+        return jsonResponse(initializeSMSSystem());
+      case 'getSMSDashboard':
+        return jsonResponse(getSMSDashboard());
+      case 'getOpenSMSCommitments':
+        return jsonResponse(getOpenSMSCommitments(e.parameter));
+
       // ============ BOOK IMPORT ============
       case 'getBookImportedTasks':
         return jsonResponse(getBookImportedTasks(e.parameter));
@@ -1801,6 +1840,41 @@ function doPost(e) {
       case 'sendSocialBrainAlert':
         return jsonResponse(sendSocialBrainAlert(data));
 
+      // ============ MARKETING AUTOMATION SYSTEM (POST) ============
+      // Email Marketing
+      case 'createEmailCampaign':
+        return jsonResponse(createEmailCampaign(data));
+      case 'runEmailAutomation':
+        return jsonResponse(runEmailAutomation(data));
+      case 'processEmailQueue':
+        return jsonResponse(processEmailQueue(data));
+
+      // CSA Renewal Campaigns
+      case 'scanCSARenewals':
+        return jsonResponse(scanCSARenewals(data));
+      case 'sendCSARenewalReminder':
+        return jsonResponse(sendCSARenewalReminder(data));
+      case 'runCSARenewalCampaign':
+        return jsonResponse(runCSARenewalCampaign(data));
+
+      // Referral Tracking
+      case 'generateReferralCode':
+        return jsonResponse(generateReferralCode(data));
+      case 'trackReferral':
+        return jsonResponse(trackReferral(data));
+      case 'convertReferral':
+        return jsonResponse(convertReferral(data));
+
+      // Enhanced Competitor Monitoring
+      case 'logCompetitorAlert':
+        return jsonResponse(logCompetitorAlert(data));
+      case 'runCompetitorMonitoring':
+        return jsonResponse(runCompetitorMonitoring(data));
+      case 'acknowledgeCompetitorAlert':
+        return jsonResponse(acknowledgeCompetitorAlert(data));
+      case 'setupCompetitorMonitoringTrigger':
+        return jsonResponse(setupCompetitorMonitoringTrigger());
+
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
         return jsonResponse(addSeedLot(data));
@@ -1885,6 +1959,12 @@ function doPost(e) {
         return jsonResponse(addFlowerCriticalDate(data));
       case 'bulkUpdateFlowerCropProfiles':
         return jsonResponse(bulkUpdateFlowerCropProfiles(data));
+
+      // ============ SMS INTEGRATION ============
+      case 'receiveSMS':
+        return jsonResponse(receiveSMS(data));
+      case 'completeSMSCommitment':
+        return jsonResponse(completeSMSCommitment(data));
 
       // ============ BOOK IMPORT ============
       case 'extractTasksFromImage':
@@ -27753,6 +27833,850 @@ function getAttributionReport(params) {
         return { success: true, period: { start: startDate.toISOString().split('T')[0], end: endDate.toISOString().split('T')[0] }, totalRevenue: totalRevenue.toFixed(2), channels: channels };
     } catch (error) { Logger.log('Error getting attribution report: ' + error.toString()); return { success: false, error: error.toString() }; }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EMAIL MARKETING AUTOMATION SYSTEM
+// Trigger-based campaigns from Customer Intelligence
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initEmailCampaignsSheet() {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('EMAIL_Campaigns');
+    if (!sheet) {
+        sheet = ss.insertSheet('EMAIL_Campaigns');
+        sheet.getRange(1, 1, 1, 12).setValues([[
+            'Campaign_ID', 'Name', 'Type', 'Trigger', 'Subject', 'Template_ID',
+            'Status', 'Sent_Count', 'Open_Rate', 'Click_Rate', 'Created', 'Last_Sent'
+        ]]);
+        sheet.setFrozenRows(1);
+    }
+    return sheet;
+}
+
+function initEmailQueueSheet() {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('EMAIL_Queue');
+    if (!sheet) {
+        sheet = ss.insertSheet('EMAIL_Queue');
+        sheet.getRange(1, 1, 1, 10).setValues([[
+            'Queue_ID', 'Customer_ID', 'Email', 'Campaign_ID', 'Subject', 'Body',
+            'Scheduled_Time', 'Status', 'Sent_At', 'Personalization'
+        ]]);
+        sheet.setFrozenRows(1);
+    }
+    return sheet;
+}
+
+/**
+ * Create automated email campaign
+ */
+function createEmailCampaign(params) {
+    try {
+        const sheet = initEmailCampaignsSheet();
+        const campaignId = 'CAMP_' + Date.now();
+        sheet.appendRow([
+            campaignId,
+            params.name || 'Untitled Campaign',
+            params.type || 'promotional', // promotional, winback, welcome, renewal, referral
+            params.trigger || 'manual', // manual, churn_risk, new_customer, csa_expiring, segment
+            params.subject || '',
+            params.templateId || '',
+            'active',
+            0, 0, 0,
+            new Date().toISOString(),
+            ''
+        ]);
+        return { success: true, campaignId: campaignId };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Run automated email campaigns based on customer intelligence triggers
+ */
+function runEmailAutomation(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const intelligence = getCustomerIntelligence({});
+        if (!intelligence.success) return { success: false, error: 'Customer intelligence not available' };
+
+        const queueSheet = initEmailQueueSheet();
+        const results = { queued: 0, campaigns: {} };
+
+        // Get active campaigns
+        const campaignSheet = ss.getSheetByName('EMAIL_Campaigns');
+        const campaigns = campaignSheet ? campaignSheet.getDataRange().getValues().slice(1).filter(r => r[6] === 'active') : [];
+
+        intelligence.customers.forEach(customer => {
+            const email = customer.email;
+            if (!email) return;
+
+            // TRIGGER: High Churn Risk Win-back
+            if (parseFloat(customer.churn_risk) > 0.7 && parseFloat(customer.predicted_clv) > 100) {
+                queueEmailIfNotSent(queueSheet, {
+                    customerId: customer.customer_id,
+                    email: email,
+                    campaignId: 'AUTO_WINBACK',
+                    subject: `We miss you, ${customer.email.split('@')[0]}! Here's 20% off`,
+                    trigger: 'churn_risk',
+                    personalization: JSON.stringify({ churnRisk: customer.churn_risk, clv: customer.predicted_clv, segment: customer.segment })
+                });
+                results.queued++;
+                results.campaigns['winback'] = (results.campaigns['winback'] || 0) + 1;
+            }
+
+            // TRIGGER: At Risk segment re-engagement
+            if (customer.segment === 'At Risk' || customer.segment === 'Needs Attention') {
+                queueEmailIfNotSent(queueSheet, {
+                    customerId: customer.customer_id,
+                    email: email,
+                    campaignId: 'AUTO_REENGAGEMENT',
+                    subject: 'Fresh picks are waiting for you!',
+                    trigger: 'segment_atrisk',
+                    personalization: JSON.stringify({ segment: customer.segment, lastPurchase: customer.recency_days + ' days ago' })
+                });
+                results.queued++;
+                results.campaigns['reengagement'] = (results.campaigns['reengagement'] || 0) + 1;
+            }
+
+            // TRIGGER: Champion VIP appreciation
+            if (customer.segment === 'Champions' && parseFloat(customer.predicted_clv) > 500) {
+                queueEmailIfNotSent(queueSheet, {
+                    customerId: customer.customer_id,
+                    email: email,
+                    campaignId: 'AUTO_VIP',
+                    subject: 'You\'re one of our favorite customers!',
+                    trigger: 'vip_champion',
+                    personalization: JSON.stringify({ clv: customer.predicted_clv, totalSpend: customer.total_spend })
+                });
+                results.queued++;
+                results.campaigns['vip'] = (results.campaigns['vip'] || 0) + 1;
+            }
+        });
+
+        return { success: true, ...results };
+    } catch (error) {
+        Logger.log('Error running email automation: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+function queueEmailIfNotSent(sheet, params) {
+    const data = sheet.getDataRange().getValues();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    for (let i = 1; i < data.length; i++) {
+        if (data[i][2] === params.email && data[i][3] === params.campaignId) {
+            const sentAt = data[i][8] ? new Date(data[i][8]) : null;
+            if (sentAt && sentAt > thirtyDaysAgo) return false; // Already sent in last 30 days
+        }
+    }
+    const queueId = 'Q_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const scheduledTime = new Date(Date.now() + 60 * 60 * 1000); // Schedule 1 hour from now
+    sheet.appendRow([queueId, params.customerId, params.email, params.campaignId, params.subject, '', scheduledTime.toISOString(), 'queued', '', params.personalization || '']);
+    return true;
+}
+
+function getEmailQueue(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('EMAIL_Queue');
+        if (!sheet) return { success: true, queue: [] };
+        const data = sheet.getDataRange().getValues();
+        const queue = [];
+        for (let i = 1; i < data.length; i++) {
+            if (params.status && data[i][7] !== params.status) continue;
+            queue.push({ queueId: data[i][0], customerId: data[i][1], email: data[i][2], campaignId: data[i][3], subject: data[i][4], scheduledTime: data[i][6], status: data[i][7] });
+        }
+        return { success: true, queue: queue, count: queue.length };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function processEmailQueue(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('EMAIL_Queue');
+        if (!sheet) return { success: true, processed: 0 };
+        const data = sheet.getDataRange().getValues();
+        const now = new Date();
+        let processed = 0;
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][7] !== 'queued') continue;
+            const scheduledTime = new Date(data[i][6]);
+            if (scheduledTime > now) continue;
+            // Mark as sent (actual sending would integrate with email provider)
+            sheet.getRange(i + 1, 8).setValue('sent');
+            sheet.getRange(i + 1, 9).setValue(now.toISOString());
+            processed++;
+            if (processed >= 50) break; // Process max 50 per run
+        }
+        return { success: true, processed: processed };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CSA RENEWAL CAMPAIGN SYSTEM
+// Track expirations and automate renewal outreach
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initCSARenewalsSheet() {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('CSA_Renewals');
+    if (!sheet) {
+        sheet = ss.insertSheet('CSA_Renewals');
+        sheet.getRange(1, 1, 1, 14).setValues([[
+            'Member_ID', 'Email', 'Name', 'Share_Type', 'Start_Date', 'End_Date',
+            'Days_Until_Expiry', 'Renewal_Status', 'Reminder_1_Sent', 'Reminder_2_Sent',
+            'Reminder_3_Sent', 'Renewed_Date', 'Renewal_Offer', 'Notes'
+        ]]);
+        sheet.setFrozenRows(1);
+    }
+    return sheet;
+}
+
+/**
+ * Scan CSA members and identify upcoming renewals
+ */
+function scanCSARenewals(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const csaSheet = ss.getSheetByName('CSA_Members') || ss.getSheetByName('CSAMembers');
+        if (!csaSheet) return { success: false, error: 'CSA_Members sheet not found' };
+
+        const renewalSheet = initCSARenewalsSheet();
+        const csaData = csaSheet.getDataRange().getValues();
+        const headers = csaData[0];
+        const colMap = {};
+        headers.forEach((h, i) => colMap[h.toLowerCase().replace(/\s+/g, '_')] = i);
+
+        const today = new Date();
+        const results = { expiringSoon: 0, expired: 0, renewed: 0 };
+
+        // Clear existing renewal tracking and rebuild
+        const existingRenewals = {};
+        const renewalData = renewalSheet.getDataRange().getValues();
+        for (let i = 1; i < renewalData.length; i++) {
+            existingRenewals[renewalData[i][0]] = { row: i + 1, data: renewalData[i] };
+        }
+
+        for (let i = 1; i < csaData.length; i++) {
+            const row = csaData[i];
+            const memberId = row[colMap['member_id'] || colMap['id']] || row[0];
+            const email = row[colMap['email']] || row[1];
+            const name = row[colMap['name'] || colMap['full_name']] || row[2];
+            const shareType = row[colMap['share_type'] || colMap['membership_type']] || row[3];
+            const endDate = row[colMap['end_date'] || colMap['expiration']] ? new Date(row[colMap['end_date'] || colMap['expiration']]) : null;
+            const status = row[colMap['status']] || 'active';
+
+            if (!endDate || status === 'cancelled') continue;
+
+            const daysUntilExpiry = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
+
+            if (daysUntilExpiry <= 60 && daysUntilExpiry > -30) {
+                const renewalStatus = daysUntilExpiry < 0 ? 'expired' : daysUntilExpiry <= 14 ? 'urgent' : daysUntilExpiry <= 30 ? 'due_soon' : 'upcoming';
+
+                if (existingRenewals[memberId]) {
+                    // Update existing record
+                    const rowNum = existingRenewals[memberId].row;
+                    renewalSheet.getRange(rowNum, 7).setValue(daysUntilExpiry);
+                    renewalSheet.getRange(rowNum, 8).setValue(renewalStatus);
+                } else {
+                    // Add new record
+                    renewalSheet.appendRow([
+                        memberId, email, name, shareType, '', endDate.toISOString().split('T')[0],
+                        daysUntilExpiry, renewalStatus, '', '', '', '', '', ''
+                    ]);
+                }
+
+                if (renewalStatus === 'expired') results.expired++;
+                else results.expiringSoon++;
+            }
+        }
+
+        return { success: true, ...results };
+    } catch (error) {
+        Logger.log('Error scanning CSA renewals: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get CSA members needing renewal outreach
+ */
+function getCSARenewalsNeeded(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('CSA_Renewals');
+        if (!sheet) return { success: true, renewals: [] };
+
+        const data = sheet.getDataRange().getValues();
+        const renewals = { urgent: [], dueSoon: [], upcoming: [], expired: [] };
+
+        for (let i = 1; i < data.length; i++) {
+            const status = data[i][7];
+            const renewal = {
+                memberId: data[i][0], email: data[i][1], name: data[i][2],
+                shareType: data[i][3], endDate: data[i][5], daysUntilExpiry: data[i][6],
+                status: status, reminder1Sent: !!data[i][8], reminder2Sent: !!data[i][9], reminder3Sent: !!data[i][10]
+            };
+
+            if (status === 'urgent') renewals.urgent.push(renewal);
+            else if (status === 'due_soon') renewals.dueSoon.push(renewal);
+            else if (status === 'upcoming') renewals.upcoming.push(renewal);
+            else if (status === 'expired') renewals.expired.push(renewal);
+        }
+
+        return { success: true, renewals: renewals, summary: {
+            urgent: renewals.urgent.length, dueSoon: renewals.dueSoon.length,
+            upcoming: renewals.upcoming.length, expired: renewals.expired.length
+        }};
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Send CSA renewal reminder
+ */
+function sendCSARenewalReminder(params) {
+    try {
+        const { memberId, reminderType, customMessage } = params;
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('CSA_Renewals');
+        if (!sheet) return { success: false, error: 'Renewals sheet not found' };
+
+        const data = sheet.getDataRange().getValues();
+        let memberRow = -1;
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][0] === memberId) { memberRow = i + 1; break; }
+        }
+
+        if (memberRow === -1) return { success: false, error: 'Member not found' };
+
+        const member = { email: data[memberRow - 1][1], name: data[memberRow - 1][2], shareType: data[memberRow - 1][3], daysUntilExpiry: data[memberRow - 1][6] };
+
+        // Queue renewal email
+        const queueSheet = initEmailQueueSheet();
+        const subjects = {
+            reminder1: `${member.name}, your CSA share expires in ${member.daysUntilExpiry} days!`,
+            reminder2: `Don't miss out! Renew your ${member.shareType} share now`,
+            reminder3: `LAST CHANCE: Your CSA membership expires soon`
+        };
+
+        queueSheet.appendRow([
+            'Q_RENEWAL_' + Date.now(), memberId, member.email, 'CSA_RENEWAL_' + reminderType,
+            subjects[reminderType] || 'Time to renew your CSA share!', customMessage || '',
+            new Date().toISOString(), 'queued', '', JSON.stringify(member)
+        ]);
+
+        // Mark reminder as sent
+        const reminderCol = reminderType === 'reminder1' ? 9 : reminderType === 'reminder2' ? 10 : 11;
+        sheet.getRange(memberRow, reminderCol).setValue(new Date().toISOString());
+
+        return { success: true, queued: true, email: member.email };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Run automated CSA renewal campaign
+ */
+function runCSARenewalCampaign(params) {
+    try {
+        // First scan for renewals
+        scanCSARenewals({});
+
+        const renewals = getCSARenewalsNeeded({});
+        if (!renewals.success) return renewals;
+
+        const results = { reminder1Sent: 0, reminder2Sent: 0, reminder3Sent: 0 };
+
+        // Send appropriate reminders based on urgency
+        renewals.renewals.urgent.forEach(m => {
+            if (!m.reminder3Sent) {
+                sendCSARenewalReminder({ memberId: m.memberId, reminderType: 'reminder3' });
+                results.reminder3Sent++;
+            }
+        });
+
+        renewals.renewals.dueSoon.forEach(m => {
+            if (!m.reminder2Sent) {
+                sendCSARenewalReminder({ memberId: m.memberId, reminderType: 'reminder2' });
+                results.reminder2Sent++;
+            }
+        });
+
+        renewals.renewals.upcoming.forEach(m => {
+            if (!m.reminder1Sent) {
+                sendCSARenewalReminder({ memberId: m.memberId, reminderType: 'reminder1' });
+                results.reminder1Sent++;
+            }
+        });
+
+        return { success: true, ...results, summary: renewals.summary };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REFERRAL TRACKING SYSTEM
+// Track referrals, generate codes, reward referrers
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initReferralsSheet() {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('REFERRAL_Tracking');
+    if (!sheet) {
+        sheet = ss.insertSheet('REFERRAL_Tracking');
+        sheet.getRange(1, 1, 1, 12).setValues([[
+            'Referral_ID', 'Referrer_ID', 'Referrer_Email', 'Referrer_Code', 'Referred_ID',
+            'Referred_Email', 'Referred_Date', 'Conversion_Date', 'Order_Value',
+            'Referrer_Reward', 'Referred_Reward', 'Status'
+        ]]);
+        sheet.setFrozenRows(1);
+    }
+    return sheet;
+}
+
+function initReferralCodesSheet() {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('REFERRAL_Codes');
+    if (!sheet) {
+        sheet = ss.insertSheet('REFERRAL_Codes');
+        sheet.getRange(1, 1, 1, 8).setValues([[
+            'Code', 'Customer_ID', 'Customer_Email', 'Created_Date', 'Total_Referrals',
+            'Successful_Referrals', 'Total_Earned', 'Status'
+        ]]);
+        sheet.setFrozenRows(1);
+    }
+    return sheet;
+}
+
+/**
+ * Generate unique referral code for customer
+ */
+function generateReferralCode(params) {
+    try {
+        const { customerId, email } = params;
+        if (!customerId && !email) return { success: false, error: 'Customer ID or email required' };
+
+        const codesSheet = initReferralCodesSheet();
+        const data = codesSheet.getDataRange().getValues();
+
+        // Check if customer already has a code
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][1] === customerId || data[i][2] === email) {
+                return { success: true, code: data[i][0], existing: true };
+            }
+        }
+
+        // Generate new code: TSEED + first 4 chars of name + random 4
+        const namePrefix = (email ? email.split('@')[0].substring(0, 4) : 'FARM').toUpperCase();
+        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const code = 'TSEED' + namePrefix + randomSuffix;
+
+        codesSheet.appendRow([
+            code, customerId || '', email || '', new Date().toISOString(),
+            0, 0, 0, 'active'
+        ]);
+
+        return { success: true, code: code, existing: false };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Track a referral when someone uses a code
+ */
+function trackReferral(params) {
+    try {
+        const { referralCode, referredEmail, referredCustomerId } = params;
+        if (!referralCode || !referredEmail) return { success: false, error: 'Referral code and referred email required' };
+
+        const codesSheet = initReferralCodesSheet();
+        const codesData = codesSheet.getDataRange().getValues();
+
+        // Find the referrer
+        let referrerRow = -1, referrer = null;
+        for (let i = 1; i < codesData.length; i++) {
+            if (codesData[i][0].toUpperCase() === referralCode.toUpperCase()) {
+                referrerRow = i + 1;
+                referrer = { id: codesData[i][1], email: codesData[i][2] };
+                break;
+            }
+        }
+
+        if (!referrer) return { success: false, error: 'Invalid referral code' };
+
+        // Prevent self-referral
+        if (referrer.email === referredEmail) return { success: false, error: 'Cannot refer yourself' };
+
+        // Check if already referred
+        const trackingSheet = initReferralsSheet();
+        const trackingData = trackingSheet.getDataRange().getValues();
+        for (let i = 1; i < trackingData.length; i++) {
+            if (trackingData[i][5] === referredEmail) {
+                return { success: false, error: 'This email has already been referred' };
+            }
+        }
+
+        // Record referral
+        const referralId = 'REF_' + Date.now();
+        trackingSheet.appendRow([
+            referralId, referrer.id, referrer.email, referralCode, referredCustomerId || '',
+            referredEmail, new Date().toISOString(), '', 0, 0, 0, 'pending'
+        ]);
+
+        // Update referrer's total referrals
+        const currentTotal = parseInt(codesData[referrerRow - 1][4]) || 0;
+        codesSheet.getRange(referrerRow, 5).setValue(currentTotal + 1);
+
+        return { success: true, referralId: referralId, referrerEmail: referrer.email };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Convert referral when referred customer makes a purchase
+ */
+function convertReferral(params) {
+    try {
+        const { referredEmail, orderValue, orderId } = params;
+        if (!referredEmail) return { success: false, error: 'Referred email required' };
+
+        const trackingSheet = initReferralsSheet();
+        const trackingData = trackingSheet.getDataRange().getValues();
+
+        let referralRow = -1, referralCode = null;
+        for (let i = 1; i < trackingData.length; i++) {
+            if (trackingData[i][5] === referredEmail && trackingData[i][11] === 'pending') {
+                referralRow = i + 1;
+                referralCode = trackingData[i][3];
+                break;
+            }
+        }
+
+        if (referralRow === -1) return { success: true, converted: false, message: 'No pending referral found' };
+
+        // Calculate rewards (configurable)
+        const referrerReward = Math.min(parseFloat(orderValue) * 0.1, 25); // 10% up to $25
+        const referredReward = 10; // $10 off first order
+
+        // Update referral record
+        trackingSheet.getRange(referralRow, 8).setValue(new Date().toISOString()); // Conversion date
+        trackingSheet.getRange(referralRow, 9).setValue(orderValue);
+        trackingSheet.getRange(referralRow, 10).setValue(referrerReward);
+        trackingSheet.getRange(referralRow, 11).setValue(referredReward);
+        trackingSheet.getRange(referralRow, 12).setValue('converted');
+
+        // Update referrer's successful count and earnings
+        const codesSheet = initReferralCodesSheet();
+        const codesData = codesSheet.getDataRange().getValues();
+        for (let i = 1; i < codesData.length; i++) {
+            if (codesData[i][0] === referralCode) {
+                const successfulCount = parseInt(codesData[i][5]) || 0;
+                const totalEarned = parseFloat(codesData[i][6]) || 0;
+                codesSheet.getRange(i + 1, 6).setValue(successfulCount + 1);
+                codesSheet.getRange(i + 1, 7).setValue(totalEarned + referrerReward);
+                break;
+            }
+        }
+
+        return { success: true, converted: true, referrerReward: referrerReward, referredReward: referredReward };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get referral stats for a customer
+ */
+function getReferralStats(params) {
+    try {
+        const { customerId, email, code } = params;
+        const codesSheet = initReferralCodesSheet();
+        const codesData = codesSheet.getDataRange().getValues();
+
+        let stats = null;
+        for (let i = 1; i < codesData.length; i++) {
+            if (codesData[i][0] === code || codesData[i][1] === customerId || codesData[i][2] === email) {
+                stats = {
+                    code: codesData[i][0],
+                    totalReferrals: codesData[i][4],
+                    successfulReferrals: codesData[i][5],
+                    totalEarned: codesData[i][6],
+                    conversionRate: codesData[i][4] > 0 ? ((codesData[i][5] / codesData[i][4]) * 100).toFixed(1) + '%' : '0%'
+                };
+                break;
+            }
+        }
+
+        if (!stats) {
+            // Generate code if they don't have one
+            const newCode = generateReferralCode({ customerId, email });
+            return { success: true, stats: { code: newCode.code, totalReferrals: 0, successfulReferrals: 0, totalEarned: 0, conversionRate: '0%' }, newCode: true };
+        }
+
+        return { success: true, stats: stats };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get referral leaderboard
+ */
+function getReferralLeaderboard(params) {
+    try {
+        const codesSheet = initReferralCodesSheet();
+        const data = codesSheet.getDataRange().getValues();
+        const leaderboard = [];
+
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][5] > 0) { // Has successful referrals
+                leaderboard.push({
+                    code: data[i][0],
+                    email: data[i][2],
+                    successfulReferrals: data[i][5],
+                    totalEarned: data[i][6]
+                });
+            }
+        }
+
+        leaderboard.sort((a, b) => b.successfulReferrals - a.successfulReferrals);
+
+        return { success: true, leaderboard: leaderboard.slice(0, params.limit || 10) };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENHANCED COMPETITOR MONITORING
+// Automated alerts for competitor activity
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initCompetitorAlertsSheet() {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('COMPETITOR_Alerts');
+    if (!sheet) {
+        sheet = ss.insertSheet('COMPETITOR_Alerts');
+        sheet.getRange(1, 1, 1, 10).setValues([[
+            'Alert_ID', 'Competitor', 'Alert_Type', 'Title', 'Details',
+            'Severity', 'Detected_At', 'Acknowledged', 'Action_Taken', 'Notes'
+        ]]);
+        sheet.setFrozenRows(1);
+    }
+    return sheet;
+}
+
+/**
+ * Log competitor alert
+ */
+function logCompetitorAlert(params) {
+    try {
+        const sheet = initCompetitorAlertsSheet();
+        const alertId = 'COMPALERT_' + Date.now();
+        sheet.appendRow([
+            alertId,
+            params.competitor || '',
+            params.alertType || 'activity', // activity, pricing, viral_content, campaign
+            params.title || '',
+            params.details || '',
+            params.severity || 'medium', // low, medium, high
+            new Date().toISOString(),
+            false,
+            '',
+            params.notes || ''
+        ]);
+
+        // Send SMS for high severity alerts
+        if (params.severity === 'high') {
+            const props = PropertiesService.getScriptProperties();
+            const ownerPhone = props.getProperty('OWNER_PHONE');
+            if (ownerPhone) {
+                sendSMS({
+                    to: ownerPhone,
+                    message: `🔔 COMPETITOR ALERT\n\n${params.competitor}: ${params.title}\n\n${params.details || ''}`
+                });
+            }
+        }
+
+        return { success: true, alertId: alertId };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Run competitor monitoring check
+ */
+function runCompetitorMonitoring(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const apiKey = props.getProperty('ANTHROPIC_API_KEY') || props.getProperty('OPENAI_API_KEY');
+
+        const competitors = getCompetitors({});
+        if (!competitors.success || !competitors.competitors.length) {
+            return { success: true, message: 'No competitors configured', alertsGenerated: 0 };
+        }
+
+        const alerts = [];
+
+        competitors.competitors.forEach(competitor => {
+            // Check for follower growth spikes
+            const prevFollowers = parseInt(competitor.followers) || 0;
+            // In production, compare with previous check - for now just log if high engagement
+            if (parseFloat(competitor.avgEngagement) > 5) {
+                alerts.push({
+                    competitor: competitor.name,
+                    alertType: 'high_engagement',
+                    title: 'High engagement detected',
+                    details: `${competitor.name} has ${competitor.avgEngagement}% avg engagement`,
+                    severity: 'medium'
+                });
+            }
+        });
+
+        // Log all alerts
+        alerts.forEach(alert => logCompetitorAlert(alert));
+
+        return { success: true, alertsGenerated: alerts.length, alerts: alerts };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get competitor alerts
+ */
+function getCompetitorAlerts(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('COMPETITOR_Alerts');
+        if (!sheet) return { success: true, alerts: [] };
+
+        const data = sheet.getDataRange().getValues();
+        const alerts = [];
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+        for (let i = 1; i < data.length; i++) {
+            const alertDate = new Date(data[i][6]);
+            if (params.unacknowledgedOnly && data[i][7]) continue;
+            if (params.recentOnly && alertDate < sevenDaysAgo) continue;
+
+            alerts.push({
+                alertId: data[i][0],
+                competitor: data[i][1],
+                alertType: data[i][2],
+                title: data[i][3],
+                details: data[i][4],
+                severity: data[i][5],
+                detectedAt: data[i][6],
+                acknowledged: data[i][7]
+            });
+        }
+
+        alerts.sort((a, b) => new Date(b.detectedAt) - new Date(a.detectedAt));
+
+        return { success: true, alerts: params.limit ? alerts.slice(0, params.limit) : alerts };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Acknowledge competitor alert
+ */
+function acknowledgeCompetitorAlert(params) {
+    try {
+        const { alertId, actionTaken, notes } = params;
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('COMPETITOR_Alerts');
+        if (!sheet) return { success: false, error: 'Alerts sheet not found' };
+
+        const data = sheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][0] === alertId) {
+                sheet.getRange(i + 1, 8).setValue(true);
+                if (actionTaken) sheet.getRange(i + 1, 9).setValue(actionTaken);
+                if (notes) sheet.getRange(i + 1, 10).setValue(notes);
+                return { success: true, acknowledged: true };
+            }
+        }
+
+        return { success: false, error: 'Alert not found' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Setup competitor monitoring trigger (daily check)
+ */
+function setupCompetitorMonitoringTrigger() {
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(trigger => {
+        if (trigger.getHandlerFunction() === 'runCompetitorMonitoring') {
+            ScriptApp.deleteTrigger(trigger);
+        }
+    });
+
+    ScriptApp.newTrigger('runCompetitorMonitoring')
+        .timeBased()
+        .atHour(8)
+        .everyDays(1)
+        .inTimezone('America/New_York')
+        .create();
+
+    return { success: true, message: 'Competitor monitoring trigger set for 8 AM daily' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARKETING AUTOMATION DASHBOARD
+// Unified view of all marketing systems
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getMarketingAutomationDashboard(params) {
+    try {
+        const emailQueue = getEmailQueue({ status: 'queued' });
+        const csaRenewals = getCSARenewalsNeeded({});
+        const referralLeaderboard = getReferralLeaderboard({ limit: 5 });
+        const competitorAlerts = getCompetitorAlerts({ unacknowledgedOnly: true, limit: 5 });
+
+        return {
+            success: true,
+            timestamp: new Date().toISOString(),
+            email: {
+                queuedEmails: emailQueue.count || 0,
+                campaigns: { winback: 0, reengagement: 0, vip: 0 }
+            },
+            csaRenewals: csaRenewals.summary || { urgent: 0, dueSoon: 0, upcoming: 0, expired: 0 },
+            referrals: {
+                topReferrers: referralLeaderboard.leaderboard || [],
+                totalActiveReferrers: (referralLeaderboard.leaderboard || []).length
+            },
+            competitors: {
+                unacknowledgedAlerts: (competitorAlerts.alerts || []).length,
+                recentAlerts: competitorAlerts.alerts || []
+            }
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// END MARKETING AUTOMATION SYSTEMS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function getOptimalSendTime(params) {
     try {
