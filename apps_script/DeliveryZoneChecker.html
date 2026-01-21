@@ -173,7 +173,15 @@
   </div>
 
   <div class="how-it-works">
-    <h2><i class="fas fa-truck"></i> Want Home Delivery? Here's How It Works!</h2>
+    <h2><i class="fas fa-truck"></i> Home Delivery - A Premium Convenience</h2>
+    <div style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+      <p style="color: #991b1b; font-weight: 600; margin: 0; font-size: 1rem;">
+        <i class="fas fa-gem"></i> Delivery Fee: <strong>$15/week</strong> (flat rate for all addresses)
+      </p>
+      <p style="color: #7f1d1d; margin: 6px 0 0; font-size: 0.85rem;">
+        Home delivery is a luxury option. We encourage joining one of our <strong>FREE community pickup locations</strong> to save money and meet your neighbors!
+      </p>
+    </div>
     <div class="steps">
       <div class="step">
         <span class="step-num">1</span>
@@ -181,11 +189,11 @@
       </div>
       <div class="step">
         <span class="step-num">2</span>
-        <span>If approved, you'll receive a <span class="highlight">delivery code</span> and see your delivery fee</span>
+        <span>If approved, you'll receive a <span class="highlight">delivery code</span> for checkout</span>
       </div>
       <div class="step">
         <span class="step-num">3</span>
-        <span>Enter your code at checkout to add home delivery to your order</span>
+        <span>Delivery fee is <strong>$15/week</strong> added to your share cost</span>
       </div>
     </div>
     <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">Deliveries are made on <strong>Wednesdays</strong> throughout the Pittsburgh area.</p>
@@ -224,7 +232,18 @@
         <div id="result-accepted" class="result-accepted hidden">
           <i class="fas fa-check-circle"></i>
           <h2>Great News!</h2>
-          <p id="accepted-message">Your address is in our delivery zone.</p>
+          <p id="accepted-message">Your address qualifies for home delivery!</p>
+        </div>
+
+        <div id="pickup-suggestion" class="card hidden" style="background: #ecfdf5; border: 2px solid #10b981;">
+          <h3 style="color: #059669; font-size: 1rem; margin-bottom: 8px;">
+            <i class="fas fa-users"></i> Consider a FREE Community Pickup!
+          </h3>
+          <p style="color: #047857; font-size: 0.9rem; margin-bottom: 12px;">
+            Save <strong>$270/season</strong> by joining one of our community pickup locations.
+            It's a great way to meet fellow CSA members and support your local community!
+          </p>
+          <div id="nearby-pickups-for-approved"></div>
         </div>
 
         <div id="code-box" class="code-box hidden">
@@ -242,12 +261,12 @@
               <span class="detail-value" id="detail-address">-</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Distance to Route</span>
-              <span class="detail-value" id="detail-distance">-</span>
+              <span class="detail-label">Delivery Fee</span>
+              <span class="detail-value fee-highlight" id="detail-fee">$15/week</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Delivery Fee</span>
-              <span class="detail-value fee-highlight" id="detail-fee">-</span>
+              <span class="detail-label">Season Total</span>
+              <span class="detail-value" id="detail-season-fee">$270 (18 weeks)</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Delivery Day</span>
@@ -454,13 +473,31 @@
         document.getElementById('request-section').classList.add('hidden');
         document.getElementById('alternatives-section').classList.add('hidden');
 
-        document.getElementById('accepted-message').textContent = data.distanceToRoute
-          ? `Your address is ${data.distanceToRoute} miles from our route.` : 'Your address is in our delivery zone.';
+        document.getElementById('accepted-message').textContent = 'Your address qualifies for home delivery!';
         document.getElementById('detail-address').textContent = data.formattedAddress || '-';
-        document.getElementById('detail-distance').textContent = data.distanceToRoute ? `${data.distanceToRoute} miles` : '-';
-        document.getElementById('detail-fee').textContent = data.fee ? `$${data.fee.toFixed(2)}` : '$5.00';
-        document.getElementById('delivery-code').textContent = 'HOMEDELIVERY' + document.getElementById('zip').value.trim().substring(0, 3);
+        document.getElementById('detail-fee').textContent = '$15/week';
+        document.getElementById('detail-season-fee').textContent = '$270 (18 weeks)';
+        document.getElementById('delivery-code').textContent = 'HOMEDELIVERY';
+
+        // Show nearby FREE community pickups as an alternative
+        if (data.nearestPickupLocations && data.nearestPickupLocations.length > 0) {
+          document.getElementById('pickup-suggestion').classList.remove('hidden');
+          const pickupList = document.getElementById('nearby-pickups-for-approved');
+          pickupList.innerHTML = '';
+          data.nearestPickupLocations.slice(0, 2).forEach(loc => {
+            const item = document.createElement('div');
+            item.className = 'alternative-item';
+            item.style.background = '#d1fae5';
+            item.innerHTML = `<div class="alternative-icon" style="background: #059669;"><i class="fas fa-map-marker-alt"></i></div>
+              <div><div class="alternative-name">${loc.name}</div>
+              <div class="alternative-distance" style="color: #047857;">${loc.distance} miles away • FREE pickup!</div></div>`;
+            pickupList.appendChild(item);
+          });
+        } else {
+          document.getElementById('pickup-suggestion').classList.add('hidden');
+        }
       } else {
+        document.getElementById('pickup-suggestion').classList.add('hidden');
         document.getElementById('result-accepted').classList.add('hidden');
         document.getElementById('result-rejected').classList.remove('hidden');
         document.getElementById('result-details').classList.add('hidden');
@@ -492,6 +529,7 @@
     function resetForm() {
       resultSection.classList.add('hidden');
       formSection.classList.remove('hidden');
+      document.getElementById('pickup-suggestion').classList.add('hidden');
       form.reset();
       if (customerMarker) { map.removeLayer(customerMarker); customerMarker = null; }
       map.setView([40.55, -80.0], 10);
