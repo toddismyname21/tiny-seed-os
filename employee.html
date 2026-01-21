@@ -8736,6 +8736,326 @@
                 </div>
             </div>
 
+            <!-- Seed Verification Form Modal (USDA NOP) -->
+            <div id="seedVerificationModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content compliance-modal">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-seedling"></i> <span data-i18n="compliance.seedTitle">Seed Verification</span></h2>
+                        <button class="modal-close" onclick="closeSeedVerificationModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label data-i18n="compliance.seedLot">Seed Lot/SKU *</label>
+                            <input type="text" id="seedLotId" class="form-input" placeholder="e.g., SL-2026-001" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.seedCrop">Crop *</label>
+                            <input type="text" id="seedCrop" class="form-input" placeholder="e.g., Lettuce" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.seedVariety">Variety *</label>
+                            <input type="text" id="seedVariety" class="form-input" placeholder="e.g., Salanova Green Butter" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.seedSupplier">Supplier *</label>
+                            <input type="text" id="seedSupplier" class="form-input" placeholder="e.g., Johnny's Selected Seeds" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.organicStatus">Organic Status *</label>
+                            <select id="seedOrganicStatus" class="form-select" required>
+                                <option value="certified_organic">Certified Organic</option>
+                                <option value="untreated_conventional">Untreated Conventional</option>
+                                <option value="treated">Treated (NOT for organic)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.certNumber">Certification # (if organic)</label>
+                            <input type="text" id="seedCertNumber" class="form-input" placeholder="e.g., USDA-ORG-12345">
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.photo">Photo of Label/Certificate</label>
+                            <button type="button" class="photo-capture-btn" onclick="captureSeedPhoto()">
+                                <i class="fas fa-camera"></i> <span data-i18n="compliance.takePhoto">Take Photo</span>
+                            </button>
+                            <div id="seedPhotoPreview" class="photo-preview" style="display: none;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.notes">Notes</label>
+                            <textarea id="seedNotes" class="form-textarea" rows="2" placeholder="Any notes about sourcing..."></textarea>
+                        </div>
+
+                        <div class="gps-status" id="seedGpsStatus">
+                            <i class="fas fa-location-dot"></i>
+                            <span data-i18n="compliance.gps">GPS:</span>
+                            <span id="seedGpsCoords">Acquiring...</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick="closeSeedVerificationModal()">
+                            <span data-i18n="common.cancel">Cancel</span>
+                        </button>
+                        <button class="btn-submit compliance-submit" onclick="submitSeedVerification()">
+                            <i class="fas fa-check"></i>
+                            <span data-i18n="compliance.logSeed">Verify Seed</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Packing CTE Form Modal (FSMA 204) -->
+            <div id="packingCTEModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content compliance-modal">
+                    <div class="modal-header fsma-header">
+                        <h2><i class="fas fa-box"></i> <span data-i18n="compliance.packingCteTitle">Packing CTE</span></h2>
+                        <span class="fsma-badge">FSMA 204</span>
+                        <button class="modal-close" onclick="closePackingCTEModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="fsma-notice">
+                            <i class="fas fa-info-circle"></i>
+                            <span data-i18n="compliance.cteNotice">Critical Tracking Event - links to harvest lot</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.sourceLot">Source Lot Code *</label>
+                            <select id="packingSourceLot" class="form-select" required>
+                                <option value="">Select Harvest Lot...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.packQuantity">Quantity Packed *</label>
+                            <div class="input-row">
+                                <input type="number" id="packQuantity" class="form-input" step="0.1" required>
+                                <select id="packUnit" class="form-select-small">
+                                    <option value="lbs">lbs</option>
+                                    <option value="cases">cases</option>
+                                    <option value="bags">bags</option>
+                                    <option value="units">units</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.packType">Package Type *</label>
+                            <select id="packType" class="form-select" required>
+                                <option value="clamshell">Clamshell</option>
+                                <option value="bag">Bag</option>
+                                <option value="case">Case</option>
+                                <option value="bunch">Bunch</option>
+                                <option value="bulk">Bulk</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.destination">Destination *</label>
+                            <select id="packDestination" class="form-select" required>
+                                <option value="coldstorage">Cold Storage</option>
+                                <option value="directsale">Direct Sale</option>
+                                <option value="wholesale">Wholesale</option>
+                                <option value="farmers_market">Farmers Market</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.notes">Notes</label>
+                            <textarea id="packNotes" class="form-textarea" rows="2" placeholder="Any packing notes..."></textarea>
+                        </div>
+
+                        <div class="gps-status" id="packGpsStatus">
+                            <i class="fas fa-location-dot"></i>
+                            <span data-i18n="compliance.gps">GPS:</span>
+                            <span id="packGpsCoords">Acquiring...</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick="closePackingCTEModal()">
+                            <span data-i18n="common.cancel">Cancel</span>
+                        </button>
+                        <button class="btn-submit compliance-submit fsma-submit" onclick="submitPackingCTE()">
+                            <i class="fas fa-check"></i>
+                            <span data-i18n="compliance.logPacking">Log Packing CTE</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment Cleaning Form Modal (USDA NOP) -->
+            <div id="equipmentCleanModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content compliance-modal">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-broom"></i> <span data-i18n="compliance.equipmentTitle">Equipment Cleaning</span></h2>
+                        <button class="modal-close" onclick="closeEquipmentCleanModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label data-i18n="compliance.equipment">Equipment *</label>
+                            <select id="cleanEquipment" class="form-select" required>
+                                <option value="">Select Equipment...</option>
+                                <option value="tractor">Tractor</option>
+                                <option value="tiller">Tiller/Cultivator</option>
+                                <option value="sprayer">Sprayer</option>
+                                <option value="seeder">Seeder</option>
+                                <option value="transplanter">Transplanter</option>
+                                <option value="harvester">Harvester</option>
+                                <option value="wash_station">Wash Station</option>
+                                <option value="cooler">Cooler/Cold Storage</option>
+                                <option value="truck">Delivery Truck</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="otherEquipmentGroup" style="display: none;">
+                            <label data-i18n="compliance.otherEquipment">Other Equipment Name</label>
+                            <input type="text" id="cleanOtherEquipment" class="form-input" placeholder="Describe equipment">
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.cleaningReason">Reason for Cleaning *</label>
+                            <select id="cleanReason" class="form-select" required>
+                                <option value="before_organic">Before use on organic fields</option>
+                                <option value="between_fields">Between fields</option>
+                                <option value="after_spray">After spray application</option>
+                                <option value="routine">Routine maintenance</option>
+                                <option value="contamination">Contamination event</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.cleaningMethod">Cleaning Method *</label>
+                            <select id="cleanMethod" class="form-select" required>
+                                <option value="pressure_wash">Pressure Wash</option>
+                                <option value="brush_scrub">Brush/Scrub</option>
+                                <option value="air_blow">Air Blow</option>
+                                <option value="sanitizer">Sanitizer Application</option>
+                                <option value="full_clean">Full Clean (multiple methods)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.photo">Photo of Cleaned Equipment</label>
+                            <button type="button" class="photo-capture-btn" onclick="captureCleanPhoto()">
+                                <i class="fas fa-camera"></i> <span data-i18n="compliance.takePhoto">Take Photo</span>
+                            </button>
+                            <div id="cleanPhotoPreview" class="photo-preview" style="display: none;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.notes">Notes</label>
+                            <textarea id="cleanNotes" class="form-textarea" rows="2" placeholder="Any cleaning notes..."></textarea>
+                        </div>
+
+                        <div class="gps-status" id="cleanGpsStatus">
+                            <i class="fas fa-location-dot"></i>
+                            <span data-i18n="compliance.gps">GPS:</span>
+                            <span id="cleanGpsCoords">Acquiring...</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick="closeEquipmentCleanModal()">
+                            <span data-i18n="common.cancel">Cancel</span>
+                        </button>
+                        <button class="btn-submit compliance-submit" onclick="submitEquipmentClean()">
+                            <i class="fas fa-check"></i>
+                            <span data-i18n="compliance.logCleaning">Log Cleaning</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buffer Zone Inspection Form Modal (USDA NOP) -->
+            <div id="bufferInspectionModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content compliance-modal">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-ruler-horizontal"></i> <span data-i18n="compliance.bufferTitle">Buffer Inspection</span></h2>
+                        <button class="modal-close" onclick="closeBufferInspectionModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label data-i18n="compliance.bufferLocation">Buffer Zone Location *</label>
+                            <select id="bufferLocation" class="form-select" required>
+                                <option value="">Select Location...</option>
+                                <option value="north_boundary">North Boundary</option>
+                                <option value="south_boundary">South Boundary</option>
+                                <option value="east_boundary">East Boundary</option>
+                                <option value="west_boundary">West Boundary</option>
+                                <option value="road_buffer">Road Buffer</option>
+                                <option value="neighbor_buffer">Neighbor Property Buffer</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.bufferWidth">Buffer Width (ft) *</label>
+                            <input type="number" id="bufferWidth" class="form-input" step="1" placeholder="25" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.bufferStatus">Inspection Status *</label>
+                            <select id="bufferStatus" class="form-select" required>
+                                <option value="compliant">Compliant - No Issues</option>
+                                <option value="minor_issue">Minor Issue - Corrected</option>
+                                <option value="drift_suspected">Drift Suspected</option>
+                                <option value="encroachment">Encroachment Detected</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.neighborActivity">Neighboring Activity Observed</label>
+                            <select id="neighborActivity" class="form-select">
+                                <option value="none">None Observed</option>
+                                <option value="spraying">Spraying Activity</option>
+                                <option value="tillage">Tillage/Cultivation</option>
+                                <option value="harvest">Harvesting</option>
+                                <option value="other">Other Activity</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.photo">Photo of Buffer Zone</label>
+                            <button type="button" class="photo-capture-btn" onclick="captureBufferPhoto()">
+                                <i class="fas fa-camera"></i> <span data-i18n="compliance.takePhoto">Take Photo</span>
+                            </button>
+                            <div id="bufferPhotoPreview" class="photo-preview" style="display: none;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-i18n="compliance.notes">Notes</label>
+                            <textarea id="bufferNotes" class="form-textarea" rows="2" placeholder="Any observations..."></textarea>
+                        </div>
+
+                        <div class="gps-status" id="bufferGpsStatus">
+                            <i class="fas fa-location-dot"></i>
+                            <span data-i18n="compliance.gps">GPS:</span>
+                            <span id="bufferGpsCoords">Acquiring...</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick="closeBufferInspectionModal()">
+                            <span data-i18n="common.cancel">Cancel</span>
+                        </button>
+                        <button class="btn-submit compliance-submit" onclick="submitBufferInspection()">
+                            <i class="fas fa-check"></i>
+                            <span data-i18n="compliance.logBuffer">Log Inspection</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Wildlife Tracker Tab -->
             <div id="wildlifeTab" class="tab-panel">
                 <div class="section-header">
@@ -17080,22 +17400,244 @@
             }
         }
 
-        // ========== PLACEHOLDER FUNCTIONS FOR OTHER FORMS ==========
+        // ========== SEED VERIFICATION FORM ==========
 
         function openSeedVerificationForm() {
-            showToast('Seed Verification - Coming Soon', 'info');
+            document.getElementById('seedVerificationModal').style.display = 'flex';
+            captureComplianceGps('seedGpsCoords');
         }
+
+        function closeSeedVerificationModal() {
+            document.getElementById('seedVerificationModal').style.display = 'none';
+        }
+
+        function captureSeedPhoto() {
+            // TODO: Implement photo capture
+            showToast('Photo capture coming soon', 'info');
+        }
+
+        async function submitSeedVerification() {
+            const lotId = document.getElementById('seedLotId').value.trim();
+            const crop = document.getElementById('seedCrop').value.trim();
+            const variety = document.getElementById('seedVariety').value.trim();
+            const supplier = document.getElementById('seedSupplier').value.trim();
+            const organicStatus = document.getElementById('seedOrganicStatus').value;
+
+            if (!lotId || !crop || !variety || !supplier) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+
+            const logEntry = {
+                logType: 'SEED_VERIFICATION',
+                timestamp: new Date().toISOString(),
+                employeeId: AppState.employee?.id || 'unknown',
+                employeeName: AppState.employee?.name || 'Unknown',
+                productName: `${crop} - ${variety}`,
+                productRate: supplier,
+                organicCertified: organicStatus === 'certified_organic',
+                notes: `Lot: ${lotId}, Status: ${organicStatus}, Cert#: ${document.getElementById('seedCertNumber').value || 'N/A'}. ${document.getElementById('seedNotes').value || ''}`,
+                gpsLat: ComplianceState.currentGps?.lat || null,
+                gpsLng: ComplianceState.currentGps?.lng || null,
+                synced: false,
+                createdOffline: !navigator.onLine
+            };
+
+            try {
+                await OfflineDB.saveComplianceLog(logEntry);
+                showToast('Seed verification logged!', 'success');
+                closeSeedVerificationModal();
+                loadComplianceLogs();
+                updateComplianceBadge();
+            } catch (error) {
+                showToast('Error saving: ' + error.message, 'error');
+            }
+        }
+
+        // ========== PACKING CTE FORM (FSMA 204) ==========
 
         function openPackingCTEForm() {
-            showToast('Packing CTE - Coming Soon', 'info');
+            document.getElementById('packingCTEModal').style.display = 'flex';
+            captureComplianceGps('packGpsCoords');
+            loadHarvestLotsForPacking();
         }
+
+        function closePackingCTEModal() {
+            document.getElementById('packingCTEModal').style.display = 'none';
+        }
+
+        async function loadHarvestLotsForPacking() {
+            const select = document.getElementById('packingSourceLot');
+            select.innerHTML = '<option value="">Select Harvest Lot...</option>';
+
+            try {
+                // Get recent harvest CTEs from local storage
+                const logs = await OfflineDB.getComplianceLogs({ logType: 'HARVEST_CTE' });
+                const recentLots = logs.slice(0, 20);
+
+                recentLots.forEach(log => {
+                    if (log.lotCode) {
+                        const option = document.createElement('option');
+                        option.value = log.lotCode;
+                        option.textContent = `${log.lotCode} - ${log.crop || 'Unknown'} (${log.quantity || '?'} ${log.unit || 'units'})`;
+                        select.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading harvest lots:', error);
+            }
+        }
+
+        async function submitPackingCTE() {
+            const sourceLot = document.getElementById('packingSourceLot').value;
+            const quantity = document.getElementById('packQuantity').value;
+            const unit = document.getElementById('packUnit').value;
+            const packType = document.getElementById('packType').value;
+            const destination = document.getElementById('packDestination').value;
+
+            if (!sourceLot || !quantity) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+
+            const logEntry = {
+                logType: 'PACKING_CTE',
+                timestamp: new Date().toISOString(),
+                employeeId: AppState.employee?.id || 'unknown',
+                employeeName: AppState.employee?.name || 'Unknown',
+                lotCode: sourceLot,
+                quantity: parseFloat(quantity),
+                unit: unit,
+                destination: destination,
+                notes: `Pack type: ${packType}. ${document.getElementById('packNotes').value || ''}`,
+                gpsLat: ComplianceState.currentGps?.lat || null,
+                gpsLng: ComplianceState.currentGps?.lng || null,
+                synced: false,
+                createdOffline: !navigator.onLine
+            };
+
+            try {
+                await OfflineDB.saveComplianceLog(logEntry);
+                showToast('Packing CTE logged!', 'success');
+                closePackingCTEModal();
+                loadComplianceLogs();
+                updateComplianceBadge();
+            } catch (error) {
+                showToast('Error saving: ' + error.message, 'error');
+            }
+        }
+
+        // ========== EQUIPMENT CLEANING FORM ==========
 
         function openEquipmentCleanForm() {
-            showToast('Equipment Cleaning - Coming Soon', 'info');
+            document.getElementById('equipmentCleanModal').style.display = 'flex';
+            captureComplianceGps('cleanGpsCoords');
+
+            // Show/hide other equipment field
+            document.getElementById('cleanEquipment').addEventListener('change', function() {
+                document.getElementById('otherEquipmentGroup').style.display =
+                    this.value === 'other' ? 'block' : 'none';
+            });
         }
 
+        function closeEquipmentCleanModal() {
+            document.getElementById('equipmentCleanModal').style.display = 'none';
+        }
+
+        function captureCleanPhoto() {
+            showToast('Photo capture coming soon', 'info');
+        }
+
+        async function submitEquipmentClean() {
+            let equipment = document.getElementById('cleanEquipment').value;
+            const reason = document.getElementById('cleanReason').value;
+            const method = document.getElementById('cleanMethod').value;
+
+            if (!equipment || !reason || !method) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+
+            if (equipment === 'other') {
+                equipment = document.getElementById('cleanOtherEquipment').value || 'Other Equipment';
+            }
+
+            const logEntry = {
+                logType: 'EQUIPMENT_CLEANING',
+                timestamp: new Date().toISOString(),
+                employeeId: AppState.employee?.id || 'unknown',
+                employeeName: AppState.employee?.name || 'Unknown',
+                productName: equipment,
+                productRate: method,
+                notes: `Reason: ${reason}. ${document.getElementById('cleanNotes').value || ''}`,
+                gpsLat: ComplianceState.currentGps?.lat || null,
+                gpsLng: ComplianceState.currentGps?.lng || null,
+                synced: false,
+                createdOffline: !navigator.onLine
+            };
+
+            try {
+                await OfflineDB.saveComplianceLog(logEntry);
+                showToast('Equipment cleaning logged!', 'success');
+                closeEquipmentCleanModal();
+                loadComplianceLogs();
+                updateComplianceBadge();
+            } catch (error) {
+                showToast('Error saving: ' + error.message, 'error');
+            }
+        }
+
+        // ========== BUFFER ZONE INSPECTION FORM ==========
+
         function openBufferCheckForm() {
-            showToast('Buffer Inspection - Coming Soon', 'info');
+            document.getElementById('bufferInspectionModal').style.display = 'flex';
+            captureComplianceGps('bufferGpsCoords');
+        }
+
+        function closeBufferInspectionModal() {
+            document.getElementById('bufferInspectionModal').style.display = 'none';
+        }
+
+        function captureBufferPhoto() {
+            showToast('Photo capture coming soon', 'info');
+        }
+
+        async function submitBufferInspection() {
+            const location = document.getElementById('bufferLocation').value;
+            const width = document.getElementById('bufferWidth').value;
+            const status = document.getElementById('bufferStatus').value;
+            const neighborActivity = document.getElementById('neighborActivity').value;
+
+            if (!location || !width || !status) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+
+            const logEntry = {
+                logType: 'BUFFER_INSPECTION',
+                timestamp: new Date().toISOString(),
+                employeeId: AppState.employee?.id || 'unknown',
+                employeeName: AppState.employee?.name || 'Unknown',
+                fieldId: location,
+                quantity: parseFloat(width),
+                unit: 'ft',
+                organicCertified: status === 'compliant',
+                notes: `Status: ${status}, Width: ${width}ft, Neighbor activity: ${neighborActivity}. ${document.getElementById('bufferNotes').value || ''}`,
+                gpsLat: ComplianceState.currentGps?.lat || null,
+                gpsLng: ComplianceState.currentGps?.lng || null,
+                synced: false,
+                createdOffline: !navigator.onLine
+            };
+
+            try {
+                await OfflineDB.saveComplianceLog(logEntry);
+                showToast('Buffer inspection logged!', 'success');
+                closeBufferInspectionModal();
+                loadComplianceLogs();
+                updateComplianceBadge();
+            } catch (error) {
+                showToast('Error saving: ' + error.message, 'error');
+            }
         }
 
         // ============================================
