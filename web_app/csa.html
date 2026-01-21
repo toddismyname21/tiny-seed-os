@@ -252,6 +252,51 @@
         .btn-sm { padding: 8px 16px; font-size: 14px; }
         .btn-icon { padding: 10px; width: 44px; height: 44px; border-radius: var(--radius-md); }
 
+        /* Login Method Tabs */
+        .login-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            padding: 4px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+        }
+
+        .login-tab {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .login-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .login-tab.active {
+            background: white;
+            color: var(--primary-dark);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .sms-code-input {
+            font-size: 24px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 8px;
+            font-family: monospace;
+        }
+
         .magic-link-sent {
             text-align: center;
             padding: 20px;
@@ -1382,6 +1427,17 @@
                 <p>CSA Member Portal</p>
             </div>
 
+            <!-- Login Method Tabs -->
+            <div class="login-tabs" id="loginTabs">
+                <button class="login-tab active" data-method="email" onclick="switchLoginMethod('email')">
+                    <i class="fas fa-envelope"></i> Email
+                </button>
+                <button class="login-tab" data-method="phone" onclick="switchLoginMethod('phone')">
+                    <i class="fas fa-sms"></i> Text Code
+                </button>
+            </div>
+
+            <!-- Email Login Form -->
             <div class="login-form" id="loginForm">
                 <div class="form-group">
                     <label class="form-label">Email Address</label>
@@ -1396,6 +1452,40 @@
                 </p>
             </div>
 
+            <!-- Phone Login Form -->
+            <div class="login-form" id="phoneLoginForm" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" class="form-input" id="phoneInput" placeholder="(412) 555-1234" autocomplete="tel">
+                </div>
+                <button class="btn btn-primary" id="sendCodeBtn" onclick="sendSMSCode()">
+                    <i class="fas fa-sms"></i>
+                    Send Verification Code
+                </button>
+                <p style="text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                    We'll text you a 6-digit code to sign in
+                </p>
+            </div>
+
+            <!-- SMS Code Entry -->
+            <div class="login-form" id="smsCodeForm" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Enter Verification Code</label>
+                    <input type="text" class="form-input sms-code-input" id="smsCodeInput" placeholder="123456" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+                </div>
+                <button class="btn btn-primary" id="verifyCodeBtn" onclick="verifySMSCode()">
+                    <i class="fas fa-check"></i>
+                    Verify Code
+                </button>
+                <p style="text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                    Code sent to <strong id="sentToPhone"></strong>
+                </p>
+                <button class="btn btn-link" onclick="resetPhoneLogin()" style="margin-top: 8px; background: none; color: var(--primary);">
+                    Use different number
+                </button>
+            </div>
+
+            <!-- Magic Link Sent -->
             <div class="magic-link-sent" id="magicLinkSent" style="display: none;">
                 <div class="icon">📧</div>
                 <h3>Check Your Email!</h3>
@@ -2141,9 +2231,133 @@
         }
 
         function resetLogin() {
+            document.getElementById('loginTabs').style.display = 'flex';
             document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('phoneLoginForm').style.display = 'none';
+            document.getElementById('smsCodeForm').style.display = 'none';
             document.getElementById('magicLinkSent').style.display = 'none';
             document.getElementById('emailInput').value = '';
+            // Reset to email tab
+            document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('.login-tab[data-method="email"]').classList.add('active');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SMS LOGIN
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let smsLoginPhone = '';
+
+        function switchLoginMethod(method) {
+            // Update tabs
+            document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.login-tab[data-method="${method}"]`).classList.add('active');
+
+            // Show/hide forms
+            document.getElementById('loginForm').style.display = method === 'email' ? 'block' : 'none';
+            document.getElementById('phoneLoginForm').style.display = method === 'phone' ? 'block' : 'none';
+            document.getElementById('smsCodeForm').style.display = 'none';
+            document.getElementById('magicLinkSent').style.display = 'none';
+        }
+
+        async function sendSMSCode() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            if (!phone) {
+                showToast('Please enter your phone number', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('sendCodeBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=sendCSASMSCode&phone=${encodeURIComponent(phone)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    smsLoginPhone = phone;
+                    document.getElementById('loginTabs').style.display = 'none';
+                    document.getElementById('phoneLoginForm').style.display = 'none';
+                    document.getElementById('smsCodeForm').style.display = 'block';
+                    document.getElementById('sentToPhone').textContent = formatPhoneDisplay(phone);
+                    document.getElementById('smsCodeInput').focus();
+                    showToast('Code sent!', 'success');
+
+                    // For dev/testing - if code is returned, show it
+                    if (result._devCode) {
+                        console.log('DEV MODE - Code:', result._devCode);
+                        showToast(`Dev mode - Code: ${result._devCode}`, 'info');
+                    }
+                } else {
+                    showToast(result.error || 'Failed to send code', 'error');
+                }
+            } catch (error) {
+                console.error('SMS code error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sms"></i> Send Verification Code';
+        }
+
+        async function verifySMSCode() {
+            const code = document.getElementById('smsCodeInput').value.trim();
+            if (!code || code.length !== 6) {
+                showToast('Please enter the 6-digit code', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('verifyCodeBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=verifyCSASMSCode&phone=${encodeURIComponent(smsLoginPhone)}&code=${encodeURIComponent(code)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    AppState.customer = result.customer;
+                    AppState.membership = result.membership;
+                    AppState.preferences = result.preferences || { dislikes: [] };
+                    AppState.isOnboarded = result.membership.isOnboarded;
+
+                    saveSession();
+
+                    if (!AppState.isOnboarded) {
+                        showOnboarding();
+                    } else {
+                        showDashboard();
+                    }
+
+                    showToast(`Welcome back, ${result.customer.name.split(' ')[0]}!`, 'success');
+                } else {
+                    showToast(result.error || 'Invalid code', 'error');
+                }
+            } catch (error) {
+                console.error('Verify code error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Verify Code';
+        }
+
+        function resetPhoneLogin() {
+            document.getElementById('loginTabs').style.display = 'flex';
+            document.getElementById('phoneLoginForm').style.display = 'block';
+            document.getElementById('smsCodeForm').style.display = 'none';
+            document.getElementById('phoneInput').value = '';
+            document.getElementById('smsCodeInput').value = '';
+            smsLoginPhone = '';
+        }
+
+        function formatPhoneDisplay(phone) {
+            const digits = phone.replace(/\D/g, '').slice(-10);
+            if (digits.length === 10) {
+                return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+            }
+            return phone;
         }
 
         function logout() {
