@@ -455,6 +455,8 @@ function doGet(e) {
         return jsonResponse(sendCSADashboardStatusToPM());
       case 'sendPMProgressUpdate':
         return jsonResponse(sendPMProgressUpdate());
+      case 'sendOvernightSummary':
+        return jsonResponse(sendOvernightSummary());
       case 'runFunction':
         // Allows Claude to run specific approved functions
         const funcName = e.parameter.function;
@@ -50246,6 +50248,96 @@ function getBoxContentsPreview(params) {
       preview: preview
     };
 
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Sends overnight work summary to PM
+ */
+function sendOvernightSummary() {
+  const recipientEmail = 'todd@tinyseedfarm.com';
+  const today = new Date();
+
+  const emailHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #1a1a2e; }
+    .container { max-width: 600px; margin: 0 auto; background: #16213e; color: white; border-radius: 12px; overflow: hidden; margin-top: 20px; margin-bottom: 20px; }
+    .header { background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); padding: 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; color: #1a1a2e; }
+    .header p { margin: 10px 0 0; opacity: 0.9; color: #1a1a2e; }
+    .content { padding: 30px; }
+    .section { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .section-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+    .check-item { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: flex-start; gap: 10px; }
+    .check-item:last-child { border-bottom: none; }
+    .blocker { background: rgba(239, 68, 68, 0.2); border-left: 4px solid #ef4444; padding: 15px; border-radius: 8px; margin: 20px 0; }
+    .blocker-title { font-weight: bold; color: #fca5a5; margin-bottom: 10px; }
+    .footer { text-align: center; padding: 20px; opacity: 0.7; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Overnight Work Complete</h1>
+      <p>Claude Session - ${today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <div class="section-title">Completed Tonight</div>
+        <div class="check-item">Added <code>populateSampleBoxContents()</code> function for CSA box data</div>
+        <div class="check-item">Added <code>getBoxContentsPreview()</code> function</div>
+        <div class="check-item">Fixed <code>getCSAMembers</code> API bug (was calling non-existent secured function)</div>
+        <div class="check-item">Updated MCP_SERVER_ACCESS.md with correct API URLs</div>
+        <div class="check-item">Created comprehensive CSA_PORTAL_SETUP.md documentation</div>
+        <div class="check-item">Tested magic link endpoint - working on v229 deployment</div>
+        <div class="check-item">Verified CSA portal using correct API URL</div>
+      </div>
+
+      <div class="blocker">
+        <div class="blocker-title">ACTION REQUIRED: Version Limit Reached</div>
+        <p>Apps Script has a 200 version limit. We're at 229 versions.</p>
+        <p><strong>Code is pushed but cannot be deployed until old versions are deleted.</strong></p>
+        <p>Go to Apps Script IDE > Deploy > Manage deployments > Delete unused deployments</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Ready for Tomorrow</div>
+        <div class="check-item"><strong>Priority 1:</strong> Delete old Apps Script versions</div>
+        <div class="check-item"><strong>Priority 2:</strong> Deploy pending code via clasp</div>
+        <div class="check-item"><strong>Priority 3:</strong> Import Shopify tags (file ready)</div>
+        <div class="check-item"><strong>Priority 4:</strong> Register Shopify webhook for orders</div>
+        <div class="check-item"><strong>Priority 5:</strong> Create box contents data & test portal</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Files Created</div>
+        <div class="check-item"><code>claude_sessions/MCP_SERVER_ACCESS.md</code> - Updated API documentation</div>
+        <div class="check-item"><code>claude_sessions/CSA_PORTAL_SETUP.md</code> - Complete setup guide</div>
+        <div class="check-item"><code>Downloads/shopify_tags_import.csv</code> - Ready for import</div>
+        <div class="check-item"><code>Downloads/PICKUP_LOCATION_GUIDE.csv</code> - Reference guide</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Tiny Seed Farm OS - Claude Autonomous Operations</p>
+      <p>Session completed at ${today.toISOString()}</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    MailApp.sendEmail({
+      to: recipientEmail,
+      subject: 'Overnight Work Complete - Action Required: Delete Old Versions',
+      htmlBody: emailHtml
+    });
+    return { success: true, message: 'Overnight summary sent to PM', timestamp: today.toISOString() };
   } catch (error) {
     return { success: false, error: error.toString() };
   }

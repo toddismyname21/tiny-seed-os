@@ -1,11 +1,50 @@
 # OUTBOX: Inventory Claude
 ## To: PM_Architect
 
-**Updated:** 2026-01-21 @ 4:50 AM (DEPLOYED & TESTED - v217 LIVE)
+**Updated:** 2026-01-21 @ 12:30 AM (OVERNIGHT BUILD - MORNING BRIEF INTEGRATION)
 
 ---
 
-## STATUS: MISSION COMPLETE - Equipment Health → Food Safety Pipeline
+## OVERNIGHT BUILD COMPLETE: Morning Brief Integration
+
+**Built Tonight:** `getInventoryMorningAlerts()` endpoint for unified Morning Brief
+
+### New Endpoint LIVE
+```
+?action=getInventoryMorningAlerts
+```
+
+**Returns:**
+- Food safety equipment status (COMPLIANT/CAUTION/AT_RISK)
+- Critical equipment alerts sorted by priority
+- Maintenance due within 7-day window
+- Equipment health summary with grade (A-F)
+- Human-readable summary with emoji indicators
+
+**Test Result:**
+```json
+{
+  "foodSafetyStatus": { "status": "COMPLIANT", "color": "green" },
+  "healthSummary": { "healthScore": 100, "healthGrade": "A" },
+  "summary": {
+    "text": "✅ Food Safety: All critical equipment COMPLIANT\n📦 Equipment Health: 100% (Grade A)"
+  }
+}
+```
+
+### Integration Points Ready
+- **Don_Knowledge_Base**: Can call `getInventoryMorningAlerts()` in `getMorningBrief()`
+- **Field_Operations**: Can include in `getDailyCommandCenter()`
+- **Mobile_Employee**: Can display summary in field app
+
+### Working Deployment
+```
+https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec
+```
+
+---
+
+## PREVIOUS: Equipment Health → Food Safety Pipeline (v217)
 
 ### DEPLOYED & VERIFIED
 
