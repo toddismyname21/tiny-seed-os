@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Intelligence Engine | Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --info: #4361ee;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121a;
+            --bg-light: #1a1a24;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.08);
+            --gold: #ffd700;
+            --purple: #9b59b6;
+            --instagram: #E1306C;
+            --facebook: #4267B2;
+            --tiktok: #fe2c55;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Top Header */
+        .top-header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-light) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--instagram), var(--purple), var(--info));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .logo-text h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--instagram), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text span {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(42, 157, 143, 0.2);
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .status-indicator.healthy { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .status-indicator.warning { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+        .status-indicator.crisis { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.healthy .status-dot { background: var(--success); }
+        .status-indicator.warning .status-dot { background: var(--warning); }
+        .status-indicator.crisis .status-dot { background: var(--danger); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            padding: 0 2rem;
+        }
+
+        .nav-tab {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .nav-tab.active {
+            color: var(--instagram);
+            border-bottom-color: var(--instagram);
+        }
+
+        .nav-tab .badge {
+            background: var(--danger);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .stat-change {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-change.positive { color: var(--success); }
+        .stat-change.negative { color: var(--danger); }
+        .stat-change.neutral { color: var(--text-secondary); }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--instagram), var(--purple));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(225, 48, 108, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--instagram);
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* Content Generator */
+        .generator-box {
+            background: linear-gradient(135deg, rgba(225, 48, 108, 0.1), rgba(155, 89, 182, 0.1));
+            border: 1px solid rgba(225, 48, 108, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .generated-content {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .voice-score {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+        }
+
+        .voice-score-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .voice-score-value.high { color: var(--success); }
+        .voice-score-value.medium { color: var(--warning); }
+        .voice-score-value.low { color: var(--danger); }
+
+        /* Comment Cards */
+        .comment-card {
+            background: var(--bg-light);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .comment-priority {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .comment-priority.high { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+        .comment-priority.medium { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+        .comment-priority.low { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+
+        .comment-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .comment-reply-draft {
+            background: var(--bg-card);
+            border-left: 3px solid var(--instagram);
+            padding: 0.75rem;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+        }
+
+        /* Scheduler */
+        .schedule-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            align-items: center;
+        }
+
+        .schedule-time {
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .schedule-time .date {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .schedule-time .time {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .schedule-content {
+            flex: 1;
+        }
+
+        .schedule-platforms {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .platform-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .platform-icon.instagram { background: linear-gradient(135deg, var(--instagram), var(--purple)); }
+        .platform-icon.facebook { background: var(--facebook); }
+        .platform-icon.tiktok { background: var(--tiktok); }
+
+        /* Evergreen Library */
+        .evergreen-item {
+            background: var(--bg-light);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .evergreen-content {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .evergreen-meta {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .evergreen-score {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--gold);
+        }
+
+        /* Competitor Cards */
+        .competitor-card {
+            background: var(--bg-light);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .competitor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .competitor-handle {
+            font-weight: 600;
+            color: var(--instagram);
+        }
+
+        /* Revenue Attribution */
+        .revenue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .revenue-amount {
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        /* Crisis Dashboard */
+        .crisis-banner {
+            background: linear-gradient(135deg, rgba(230, 57, 70, 0.2), rgba(230, 57, 70, 0.1));
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .crisis-banner.active {
+            display: block;
+        }
+
+        .crisis-banner h3 {
+            color: var(--danger);
+            margin-bottom: 0.5rem;
+        }
+
+        /* API Config */
+        .api-config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .api-card {
+            background: var(--bg-light);
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .api-card h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .api-status {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+
+        .api-status.configured { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .api-status.missing { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-tabs { padding: 0 1rem; }
+            .main-content { padding: 1rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--info); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Grid Planner */
+        .grid-planner {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            max-width: 450px;
+        }
+
+        .grid-cell {
+            aspect-ratio: 1;
+            background: var(--bg-light);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .grid-cell:hover {
+            border-color: var(--instagram);
+            background: rgba(225, 48, 108, 0.1);
+        }
+
+        .grid-cell.filled {
+            border-style: solid;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .grid-cell i {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header -->
+    <header class="top-header">
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div class="logo-text">
+                <h1>Social Intelligence Engine</h1>
+                <span>Autonomous Digital Partner</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="status-indicator healthy" id="systemStatus">
+                <span class="status-dot"></span>
+                <span id="statusText">System Healthy</span>
+            </div>
+            <a href="marketing-command-center.html" class="btn btn-secondary btn-sm">
+                <i class="fas fa-bullhorn"></i> Marketing
+            </a>
+            <a href="index.html" class="btn btn-secondary btn-sm">
+                <i class="fas fa-home"></i> Hub
+            </a>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('dashboard')">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </button>
+        <button class="nav-tab" onclick="switchTab('brandvoice')">
+            <i class="fas fa-microphone"></i> Brand Voice
+        </button>
+        <button class="nav-tab" onclick="switchTab('content')">
+            <i class="fas fa-magic"></i> Content Studio
+        </button>
+        <button class="nav-tab" onclick="switchTab('scheduler')">
+            <i class="fas fa-calendar-alt"></i> Scheduler
+        </button>
+        <button class="nav-tab" onclick="switchTab('comments')" id="commentsTab">
+            <i class="fas fa-comments"></i> Comments
+            <span class="badge" id="commentsBadge" style="display:none;">0</span>
+        </button>
+        <button class="nav-tab" onclick="switchTab('evergreen')">
+            <i class="fas fa-recycle"></i> Evergreen
+        </button>
+        <button class="nav-tab" onclick="switchTab('revenue')">
+            <i class="fas fa-dollar-sign"></i> Revenue
+        </button>
+        <button class="nav-tab" onclick="switchTab('competitors')">
+            <i class="fas fa-binoculars"></i> Competitors
+        </button>
+        <button class="nav-tab" onclick="switchTab('crisis')">
+            <i class="fas fa-shield-alt"></i> Crisis
+        </button>
+        <button class="nav-tab" onclick="switchTab('settings')">
+            <i class="fas fa-cog"></i> Settings
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Crisis Banner (shown when needed) -->
+        <div class="crisis-banner" id="crisisBanner">
+            <h3><i class="fas fa-exclamation-triangle"></i> CRISIS DETECTED</h3>
+            <p id="crisisMessage">Negative sentiment spike detected. All scheduled posts have been paused.</p>
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                <button class="btn btn-danger btn-sm" onclick="viewCrisis()">View Details</button>
+                <button class="btn btn-success btn-sm" onclick="resumePosts()">Resume Posts</button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div id="dashboardTab" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Scheduled Posts</div>
+                    <div class="stat-value" id="scheduledCount">--</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-calendar"></i> Ready to publish
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Comments Pending</div>
+                    <div class="stat-value" id="pendingComments">--</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-reply"></i> Need response
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Sentiment Score</div>
+                    <div class="stat-value" id="sentimentScore">--</div>
+                    <div class="stat-change neutral" id="sentimentStatus">
+                        <i class="fas fa-heart"></i> Healthy
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Revenue Attributed</div>
+                    <div class="stat-value" id="totalRevenue">$--</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-chart-line"></i> From social
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    </div>
+                    <div class="card-content">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <button class="btn btn-primary" onclick="switchTab('content')">
+                                <i class="fas fa-magic"></i> Generate Content
+                            </button>
+                            <button class="btn btn-secondary" onclick="switchTab('scheduler')">
+                                <i class="fas fa-plus"></i> Schedule Post
+                            </button>
+                            <button class="btn btn-secondary" onclick="recycleContent()">
+                                <i class="fas fa-recycle"></i> Recycle Top Post
+                            </button>
+                            <button class="btn btn-secondary" onclick="switchTab('comments')">
+                                <i class="fas fa-comments"></i> Review Comments
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clock"></i> Optimal Times Today</h3>
+                    </div>
+                    <div class="card-content" id="optimalTimesContainer">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Upcoming Posts</h3>
+                    <button class="btn btn-sm btn-secondary" onclick="switchTab('scheduler')">View All</button>
+                </div>
+                <div class="card-content" id="upcomingPostsContainer">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BRAND VOICE TAB -->
+        <div id="brandvoiceTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-microphone"></i> Train Your Brand Voice</h3>
+                    <span id="trainingCount" style="color: var(--text-secondary);">0 posts loaded</span>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Add your best-performing posts to train the AI to write exactly like you.
+                        The more posts you add, the better it learns your voice.
+                    </p>
+
+                    <div class="form-group">
+                        <label class="form-label">Paste Your Post Content</label>
+                        <textarea class="form-textarea" id="trainingContent" placeholder="Paste one of your best social media posts here..."></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Platform</label>
+                            <select class="form-select" id="trainingPlatform">
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="tiktok">TikTok</option>
+                                <option value="twitter">Twitter/X</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="trainingCategory">
+                                <option value="harvest">Harvest</option>
+                                <option value="behind-scenes">Behind the Scenes</option>
+                                <option value="educational">Educational</option>
+                                <option value="promotional">Promotional</option>
+                                <option value="community">Community</option>
+                                <option value="seasonal">Seasonal</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Engagement Score (1-100)</label>
+                            <input type="number" class="form-input" id="trainingScore" min="1" max="100" value="50">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="addTrainingPost()">
+                        <i class="fas fa-plus"></i> Add to Training Data
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-check-circle"></i> Voice Match Analyzer</h3>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Test if content sounds like your brand before posting.
+                    </p>
+
+                    <div class="form-group">
+                        <label class="form-label">Content to Analyze</label>
+                        <textarea class="form-textarea" id="analyzeContent" placeholder="Paste content to check if it sounds like your brand..."></textarea>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="analyzeVoice()">
+                        <i class="fas fa-search"></i> Analyze Voice Match
+                    </button>
+
+                    <div id="voiceAnalysisResult" style="display: none; margin-top: 1rem;">
+                        <div class="voice-score">
+                            <div>
+                                <div class="voice-score-value" id="voiceScoreValue">--</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Voice Match</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div id="voiceFeedback" style="font-size: 0.9rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENT STUDIO TAB -->
+        <div id="contentTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-magic"></i> AI Content Generator</h3>
+                </div>
+                <div class="card-content">
+                    <div class="generator-box">
+                        <div class="form-group">
+                            <label class="form-label">What should we write about?</label>
+                            <textarea class="form-textarea" id="contentPrompt" placeholder="e.g., We just harvested the first tomatoes of the season! They're beautiful heirloom varieties..."></textarea>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Platform</label>
+                                <select class="form-select" id="contentPlatform">
+                                    <option value="instagram">Instagram</option>
+                                    <option value="facebook">Facebook</option>
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="twitter">Twitter/X</option>
+                                    <option value="linkedin">LinkedIn</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" id="contentCategory">
+                                    <option value="harvest">Harvest Update</option>
+                                    <option value="behind-scenes">Behind the Scenes</option>
+                                    <option value="educational">Educational</option>
+                                    <option value="promotional">Promotional</option>
+                                    <option value="community">Community</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="generateContent()" id="generateBtn">
+                            <i class="fas fa-sparkles"></i> Generate Content
+                        </button>
+                    </div>
+
+                    <div id="generatedContentBox" style="display: none; margin-top: 1.5rem;">
+                        <label class="form-label">Generated Content</label>
+                        <div class="generated-content" id="generatedContent"></div>
+
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button class="btn btn-success" onclick="scheduleGenerated()">
+                                <i class="fas fa-calendar-plus"></i> Schedule
+                            </button>
+                            <button class="btn btn-secondary" onclick="copyContent()">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                            <button class="btn btn-secondary" onclick="regenerateContent()">
+                                <i class="fas fa-redo"></i> Regenerate
+                            </button>
+                            <button class="btn btn-secondary" onclick="addToEvergreen()">
+                                <i class="fas fa-archive"></i> Save to Evergreen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCHEDULER TAB -->
+        <div id="schedulerTab" class="tab-content">
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-alt"></i> Schedule New Post</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label class="form-label">Post Content</label>
+                            <textarea class="form-textarea" id="scheduleContent" placeholder="Write your post content..."></textarea>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Platform</label>
+                                <select class="form-select" id="schedulePlatform">
+                                    <option value="instagram">Instagram</option>
+                                    <option value="facebook">Facebook</option>
+                                    <option value="tiktok">TikTok</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Date</label>
+                                <input type="date" class="form-input" id="scheduleDate">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Time</label>
+                                <input type="time" class="form-input" id="scheduleTime" value="16:00">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="scheduleCategory">
+                                <option value="harvest">Harvest</option>
+                                <option value="behind-scenes">Behind the Scenes</option>
+                                <option value="educational">Educational</option>
+                                <option value="promotional">Promotional</option>
+                            </select>
+                        </div>
+
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary" onclick="schedulePost()">
+                                <i class="fas fa-calendar-plus"></i> Schedule Post
+                            </button>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="scheduleEvergreen">
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">Add to Evergreen Library</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-th"></i> Visual Grid Preview</h3>
+                    </div>
+                    <div class="card-content">
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Preview how your feed will look
+                        </p>
+                        <div class="grid-planner" id="gridPlanner">
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                            <div class="grid-cell"><i class="fas fa-plus"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Scheduled Posts Queue</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm btn-danger" onclick="pauseAll()">
+                            <i class="fas fa-pause"></i> Pause All
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="resumeAll()">
+                            <i class="fas fa-play"></i> Resume All
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content" id="scheduledPostsContainer">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMMENTS TAB -->
+        <div id="commentsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-comments"></i> Comments Needing Response</h3>
+                    <button class="btn btn-sm btn-secondary" onclick="refreshComments()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-content" id="commentsContainer">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus"></i> Log New Comment (Manual)</h3>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.85rem;">
+                        Manually log comments from platforms to analyze sentiment and generate reply drafts.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Author</label>
+                            <input type="text" class="form-input" id="commentAuthor" placeholder="@username">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Platform</label>
+                            <select class="form-select" id="commentPlatform">
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="tiktok">TikTok</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Comment Text</label>
+                        <textarea class="form-textarea" id="commentText" placeholder="Paste the comment here..."></textarea>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="logComment()">
+                        <i class="fas fa-plus"></i> Log & Analyze Comment
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- EVERGREEN TAB -->
+        <div id="evergreenTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-recycle"></i> Evergreen Content Library</h3>
+                    <button class="btn btn-primary btn-sm" onclick="recycleContent()">
+                        <i class="fas fa-magic"></i> Auto-Recycle Best Post
+                    </button>
+                </div>
+                <div class="card-content" id="evergreenContainer">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus"></i> Add to Library</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label class="form-label">Content</label>
+                        <textarea class="form-textarea" id="evergreenContent" placeholder="Past high-performing content to save..."></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="evergreenCategory">
+                                <option value="educational">Educational</option>
+                                <option value="promotional">Promotional</option>
+                                <option value="harvest">Harvest</option>
+                                <option value="behind-scenes">Behind the Scenes</option>
+                                <option value="community">Community</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Platform</label>
+                            <select class="form-select" id="evergreenPlatform">
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="all">All Platforms</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Performance Score</label>
+                            <input type="number" class="form-input" id="evergreenScore" min="1" max="100" value="75">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="addEvergreen()">
+                        <i class="fas fa-archive"></i> Add to Library
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- REVENUE TAB -->
+        <div id="revenueTab" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card" style="border-left: 4px solid var(--success);">
+                    <div class="stat-label">Total Revenue from Social</div>
+                    <div class="stat-value" id="revTotalRevenue">$--</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--instagram);">
+                    <div class="stat-label">Instagram Revenue</div>
+                    <div class="stat-value" id="revInstagram">$--</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--facebook);">
+                    <div class="stat-label">Facebook Revenue</div>
+                    <div class="stat-value" id="revFacebook">$--</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--info);">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value" id="revOrders">--</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-bar"></i> Revenue by Post</h3>
+                </div>
+                <div class="card-content" id="revenueByPostContainer">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus"></i> Track Attribution (Manual)</h3>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.85rem;">
+                        Link a Shopify order to a social post. Use UTM parameters in your links for automatic tracking.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Order ID</label>
+                            <input type="text" class="form-input" id="attrOrderId" placeholder="Shopify order #">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Order Total</label>
+                            <input type="number" class="form-input" id="attrOrderTotal" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Platform</label>
+                            <select class="form-select" id="attrPlatform">
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="tiktok">TikTok</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">UTM Campaign (optional)</label>
+                        <input type="text" class="form-input" id="attrUtm" placeholder="e.g., spring_sale_ig">
+                    </div>
+
+                    <button class="btn btn-primary" onclick="trackAttribution()">
+                        <i class="fas fa-link"></i> Track Attribution
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPETITORS TAB -->
+        <div id="competitorsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-binoculars"></i> Competitor Watch</h3>
+                    <button class="btn btn-primary btn-sm" onclick="showAddCompetitor()">
+                        <i class="fas fa-plus"></i> Add Competitor
+                    </button>
+                </div>
+                <div class="card-content" id="competitorsContainer">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="addCompetitorCard" style="display: none;">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus"></i> Add Competitor</h3>
+                </div>
+                <div class="card-content">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-input" id="compName" placeholder="Farm name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Handle</label>
+                            <input type="text" class="form-input" id="compHandle" placeholder="@handle">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Platform</label>
+                            <select class="form-select" id="compPlatform">
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="tiktok">TikTok</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Followers</label>
+                            <input type="number" class="form-input" id="compFollowers" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="compNotes" placeholder="What are they doing well?"></textarea>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="addCompetitor()">
+                        <i class="fas fa-plus"></i> Add Competitor
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRISIS TAB -->
+        <div id="crisisTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-shield-alt"></i> Crisis Monitor</h3>
+                    <div id="crisisStatus" class="status-indicator healthy">
+                        <span class="status-dot"></span>
+                        <span>All Clear</span>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Negative Comments (24h)</div>
+                            <div class="stat-value" id="crisisNegativeCount">--</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Average Sentiment</div>
+                            <div class="stat-value" id="crisisAvgSentiment">--</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Posts Status</div>
+                            <div class="stat-value" id="crisisPostsStatus">Active</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-danger" onclick="pauseAll()">
+                            <i class="fas fa-pause"></i> Pause All Posts
+                        </button>
+                        <button class="btn btn-success" onclick="resumeAll()">
+                            <i class="fas fa-play"></i> Resume All Posts
+                        </button>
+                        <button class="btn btn-secondary" onclick="checkSentiment()">
+                            <i class="fas fa-sync"></i> Check Sentiment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-search"></i> Analyze Text Sentiment</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label class="form-label">Text to Analyze</label>
+                        <textarea class="form-textarea" id="sentimentText" placeholder="Paste a comment, review, or any text to analyze sentiment..."></textarea>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="analyzeSingleSentiment()">
+                        <i class="fas fa-brain"></i> Analyze Sentiment
+                    </button>
+
+                    <div id="sentimentResult" style="display: none; margin-top: 1rem;">
+                        <div class="voice-score">
+                            <div>
+                                <div class="voice-score-value" id="singleSentimentScore">--</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);" id="singleSentimentLabel">Neutral</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div id="singleSentimentFeedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="settingsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-key"></i> API Configuration</h3>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        Configure your API keys to enable AI features. Keys are stored securely in Google Apps Script.
+                    </p>
+
+                    <div class="api-config-grid">
+                        <div class="api-card">
+                            <h4>
+                                <i class="fas fa-brain" style="color: var(--success);"></i>
+                                OpenAI API
+                                <span class="api-status" id="openaiStatus">Checking...</span>
+                            </h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                Powers content generation, voice matching, and sentiment analysis.
+                            </p>
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
+                                <input type="password" class="form-input" id="openaiKey" placeholder="sk-...">
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="saveOpenAI()">Save Key</button>
+                        </div>
+
+                        <div class="api-card">
+                            <h4>
+                                <i class="fas fa-image" style="color: var(--purple);"></i>
+                                Stability AI
+                                <span class="api-status" id="stabilityStatus">Optional</span>
+                            </h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                Powers image outpainting (horizontal to vertical conversion).
+                            </p>
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
+                                <input type="password" class="form-input" id="stabilityKey" placeholder="sk-...">
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="saveStability()">Save Key</button>
+                        </div>
+
+                        <div class="api-card">
+                            <h4>
+                                <i class="fas fa-cut" style="color: var(--info);"></i>
+                                Photoroom
+                                <span class="api-status" id="photoroomStatus">Optional</span>
+                            </h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                Powers background removal for product photos.
+                            </p>
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
+                                <input type="password" class="form-input" id="photoroomKey" placeholder="API key...">
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="savePhotoroom()">Save Key</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-database"></i> Data Management</h3>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Your data is stored in Google Sheets within your Tiny Seed OS spreadsheet.
+                    </p>
+
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary btn-sm" onclick="exportData('training')">
+                            <i class="fas fa-download"></i> Export Training Data
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="exportData('evergreen')">
+                            <i class="fas fa-download"></i> Export Evergreen Library
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="exportData('attribution')">
+                            <i class="fas fa-download"></i> Export Attribution Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // API Configuration
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwXXgBRlSpv5ygo4joqHLsWh6AKhxRLJ_C6gzCdxOFphE6cX-NdE9f7u16JmNr57mN0/exec';
+
+        // State
+        let dashboardData = null;
+        let currentGeneratedContent = '';
+
+        // Tab Navigation
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId + 'Tab').classList.add('active');
+
+            // Load tab-specific data
+            switch(tabId) {
+                case 'dashboard': loadDashboard(); break;
+                case 'brandvoice': loadTrainingCount(); break;
+                case 'scheduler': loadScheduledPosts(); break;
+                case 'comments': loadComments(); break;
+                case 'evergreen': loadEvergreen(); break;
+                case 'revenue': loadRevenue(); break;
+                case 'competitors': loadCompetitors(); break;
+                case 'crisis': loadCrisisData(); break;
+            }
+        }
+
+        // Toast Notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        // API Helpers
+        async function apiGet(action, params = {}) {
+            const url = new URL(API_URL);
+            url.searchParams.append('action', action);
+            Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+
+            const response = await fetch(url);
+            return await response.json();
+        }
+
+        async function apiPost(action, data = {}) {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action, ...data })
+            });
+            return await response.json();
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                const data = await apiGet('getSocialIntelligenceDashboard');
+                if (data.success) {
+                    dashboardData = data;
+
+                    // Update stats
+                    document.getElementById('scheduledCount').textContent = data.health?.scheduledCount || 0;
+                    document.getElementById('pendingComments').textContent = data.health?.pendingComments || 0;
+
+                    const sentiment = data.health?.sentiment;
+                    if (sentiment) {
+                        const score = sentiment.avgSentiment || 0;
+                        document.getElementById('sentimentScore').textContent = score.toFixed(2);
+
+                        const status = sentiment.status;
+                        const statusEl = document.getElementById('sentimentStatus');
+                        const systemStatus = document.getElementById('systemStatus');
+                        const statusText = document.getElementById('statusText');
+
+                        if (status === 'crisis') {
+                            statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Crisis!';
+                            statusEl.className = 'stat-change negative';
+                            systemStatus.className = 'status-indicator crisis';
+                            statusText.textContent = 'Crisis Detected';
+                            document.getElementById('crisisBanner').classList.add('active');
+                        } else if (status === 'warning') {
+                            statusEl.innerHTML = '<i class="fas fa-exclamation"></i> Warning';
+                            statusEl.className = 'stat-change neutral';
+                            systemStatus.className = 'status-indicator warning';
+                            statusText.textContent = 'Warning';
+                        } else {
+                            statusEl.innerHTML = '<i class="fas fa-heart"></i> Healthy';
+                            statusEl.className = 'stat-change positive';
+                            systemStatus.className = 'status-indicator healthy';
+                            statusText.textContent = 'System Healthy';
+                            document.getElementById('crisisBanner').classList.remove('active');
+                        }
+                    }
+
+                    // Update revenue
+                    const revenue = data.analytics?.revenueByPlatform;
+                    let total = 0;
+                    if (revenue) {
+                        Object.values(revenue).forEach(p => total += p.revenue || 0);
+                    }
+                    document.getElementById('totalRevenue').textContent = '$' + total.toFixed(2);
+
+                    // Update comments badge
+                    const pendingCount = data.health?.pendingComments || 0;
+                    const badge = document.getElementById('commentsBadge');
+                    if (pendingCount > 0) {
+                        badge.textContent = pendingCount;
+                        badge.style.display = 'inline';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+
+                    // Optimal times
+                    const times = data.analytics?.optimalTimes;
+                    if (times) {
+                        let timesHtml = '';
+                        Object.keys(times).forEach(platform => {
+                            timesHtml += `
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                    <span style="text-transform: capitalize;">${platform}</span>
+                                    <strong>${times[platform].join(', ')}</strong>
+                                </div>
+                            `;
+                        });
+                        document.getElementById('optimalTimesContainer').innerHTML = timesHtml;
+                    }
+
+                    // Upcoming posts
+                    const scheduled = data.content?.scheduled || [];
+                    if (scheduled.length > 0) {
+                        let postsHtml = '';
+                        scheduled.slice(0, 5).forEach(post => {
+                            postsHtml += `
+                                <div class="schedule-item">
+                                    <div class="schedule-time">
+                                        <div class="date">${new Date(post.scheduledTime).toLocaleDateString()}</div>
+                                        <div class="time">${new Date(post.scheduledTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                    </div>
+                                    <div class="schedule-content">
+                                        <div style="font-size: 0.9rem;">${post.content.substring(0, 80)}...</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                            ${post.platform} | ${post.category}
+                                        </div>
+                                    </div>
+                                    <div class="platform-icon ${post.platform}">
+                                        <i class="fab fa-${post.platform}"></i>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        document.getElementById('upcomingPostsContainer').innerHTML = postsHtml;
+                    } else {
+                        document.getElementById('upcomingPostsContainer').innerHTML = `
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fas fa-calendar-plus" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                <p>No scheduled posts. Create one!</p>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Brand Voice
+        async function loadTrainingCount() {
+            const data = await apiGet('getTrainingPosts');
+            if (data.success) {
+                document.getElementById('trainingCount').textContent = `${data.count} posts loaded`;
+            }
+        }
+
+        async function addTrainingPost() {
+            const content = document.getElementById('trainingContent').value;
+            if (!content.trim()) {
+                showToast('Please enter post content', 'error');
+                return;
+            }
+
+            const data = await apiPost('addTrainingPost', {
+                content: content,
+                platform: document.getElementById('trainingPlatform').value,
+                category: document.getElementById('trainingCategory').value,
+                engagementScore: parseInt(document.getElementById('trainingScore').value)
+            });
+
+            if (data.success) {
+                showToast('Post added to training data!', 'success');
+                document.getElementById('trainingContent').value = '';
+                loadTrainingCount();
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        async function analyzeVoice() {
+            const content = document.getElementById('analyzeContent').value;
+            if (!content.trim()) {
+                showToast('Please enter content to analyze', 'error');
+                return;
+            }
+
+            showToast('Analyzing voice match...', 'info');
+
+            const data = await apiPost('analyzeVoiceMatch', { content });
+
+            if (data.success) {
+                document.getElementById('voiceAnalysisResult').style.display = 'block';
+                const scoreEl = document.getElementById('voiceScoreValue');
+                scoreEl.textContent = data.score || '--';
+                scoreEl.className = 'voice-score-value ' + (data.score >= 70 ? 'high' : data.score >= 40 ? 'medium' : 'low');
+                document.getElementById('voiceFeedback').innerHTML = data.feedback || data.rawAnalysis || '';
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        // Content Generation
+        async function generateContent() {
+            const prompt = document.getElementById('contentPrompt').value;
+            if (!prompt.trim()) {
+                showToast('Please describe what to write about', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+            const data = await apiPost('generateContent', {
+                prompt: prompt,
+                platform: document.getElementById('contentPlatform').value
+            });
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sparkles"></i> Generate Content';
+
+            if (data.success) {
+                currentGeneratedContent = data.content;
+                document.getElementById('generatedContent').textContent = data.content;
+                document.getElementById('generatedContentBox').style.display = 'block';
+                showToast('Content generated!', 'success');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        function copyContent() {
+            navigator.clipboard.writeText(currentGeneratedContent);
+            showToast('Copied to clipboard!', 'success');
+        }
+
+        function regenerateContent() {
+            generateContent();
+        }
+
+        function scheduleGenerated() {
+            document.getElementById('scheduleContent').value = currentGeneratedContent;
+            document.getElementById('schedulePlatform').value = document.getElementById('contentPlatform').value;
+            switchTab('scheduler');
+        }
+
+        // Scheduler
+        async function loadScheduledPosts() {
+            const data = await apiGet('getScheduledPosts', { status: 'all' });
+            if (data.success) {
+                const container = document.getElementById('scheduledPostsContainer');
+                if (data.posts.length > 0) {
+                    let html = '';
+                    data.posts.forEach(post => {
+                        const statusClass = post.status === 'paused' ? 'style="opacity: 0.6;"' : '';
+                        html += `
+                            <div class="schedule-item" ${statusClass}>
+                                <div class="schedule-time">
+                                    <div class="date">${post.scheduledTime ? new Date(post.scheduledTime).toLocaleDateString() : '--'}</div>
+                                    <div class="time">${post.scheduledTime ? new Date(post.scheduledTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--'}</div>
+                                </div>
+                                <div class="schedule-content">
+                                    <div style="font-size: 0.9rem;">${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                        ${post.platform} | ${post.category} | <span style="color: ${post.status === 'paused' ? 'var(--warning)' : 'var(--success)'};">${post.status}</span>
+                                    </div>
+                                </div>
+                                <div class="platform-icon ${post.platform}">
+                                    <i class="fab fa-${post.platform}"></i>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-calendar-plus" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>No scheduled posts yet</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function schedulePost() {
+            const content = document.getElementById('scheduleContent').value;
+            if (!content.trim()) {
+                showToast('Please enter post content', 'error');
+                return;
+            }
+
+            const date = document.getElementById('scheduleDate').value;
+            const time = document.getElementById('scheduleTime').value;
+            const scheduledTime = date && time ? new Date(`${date}T${time}`).toISOString() : '';
+
+            const data = await apiPost('schedulePost', {
+                content: content,
+                platform: document.getElementById('schedulePlatform').value,
+                scheduledTime: scheduledTime,
+                category: document.getElementById('scheduleCategory').value,
+                isEvergreen: document.getElementById('scheduleEvergreen').checked
+            });
+
+            if (data.success) {
+                showToast('Post scheduled!', 'success');
+                document.getElementById('scheduleContent').value = '';
+                loadScheduledPosts();
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        async function pauseAll() {
+            const data = await apiPost('pauseAllScheduledPosts', { reason: 'Manual pause from dashboard' });
+            if (data.success) {
+                showToast(`Paused ${data.pausedCount} posts`, 'success');
+                loadScheduledPosts();
+                loadDashboard();
+            }
+        }
+
+        async function resumeAll() {
+            const data = await apiPost('resumeScheduledPosts', {});
+            if (data.success) {
+                showToast(`Resumed ${data.resumedCount} posts`, 'success');
+                loadScheduledPosts();
+                loadDashboard();
+                document.getElementById('crisisBanner').classList.remove('active');
+            }
+        }
+
+        // Comments
+        async function loadComments() {
+            const data = await apiGet('getCommentsNeedingResponse');
+            const container = document.getElementById('commentsContainer');
+
+            if (data.success && data.comments.length > 0) {
+                let html = '';
+                data.comments.forEach(comment => {
+                    html += `
+                        <div class="comment-card">
+                            <div class="comment-header">
+                                <span class="comment-author">
+                                    <i class="fab fa-${comment.platform}"></i>
+                                    ${comment.author}
+                                </span>
+                                <span class="comment-priority ${comment.priority}">${comment.priority.toUpperCase()}</span>
+                            </div>
+                            <div class="comment-text">"${comment.text}"</div>
+                            ${comment.aiDraftReply ? `
+                                <div class="comment-reply-draft">
+                                    <strong style="font-size: 0.75rem; color: var(--text-secondary);">AI Draft Reply:</strong><br>
+                                    ${comment.aiDraftReply}
+                                </div>
+                            ` : ''}
+                            <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                                <button class="btn btn-sm btn-success" onclick="copyReply('${comment.aiDraftReply?.replace(/'/g, "\\'")}')">
+                                    <i class="fas fa-copy"></i> Copy Reply
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="regenerateReply('${comment.id}', '${comment.text?.replace(/'/g, "\\'")}')">
+                                    <i class="fas fa-redo"></i> New Reply
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem; color: var(--success);"></i>
+                        <p>All caught up! No comments need responses.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function copyReply(reply) {
+            if (reply) {
+                navigator.clipboard.writeText(reply);
+                showToast('Reply copied!', 'success');
+            }
+        }
+
+        async function regenerateReply(commentId, commentText) {
+            showToast('Generating new reply...', 'info');
+            const data = await apiPost('generateCommentReply', {
+                comment: commentText,
+                sentiment: 0
+            });
+            if (data.success) {
+                showToast('New reply generated!', 'success');
+                loadComments();
+            }
+        }
+
+        async function logComment() {
+            const text = document.getElementById('commentText').value;
+            if (!text.trim()) {
+                showToast('Please enter comment text', 'error');
+                return;
+            }
+
+            const data = await apiPost('logComment', {
+                author: document.getElementById('commentAuthor').value,
+                platform: document.getElementById('commentPlatform').value,
+                text: text
+            });
+
+            if (data.success) {
+                showToast('Comment logged and analyzed!', 'success');
+                document.getElementById('commentText').value = '';
+                document.getElementById('commentAuthor').value = '';
+                loadComments();
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        function refreshComments() {
+            loadComments();
+            showToast('Comments refreshed', 'info');
+        }
+
+        // Evergreen
+        async function loadEvergreen() {
+            const data = await apiGet('getEvergreenContent');
+            const container = document.getElementById('evergreenContainer');
+
+            if (data.success && data.content.length > 0) {
+                let html = '';
+                data.content.forEach(item => {
+                    html += `
+                        <div class="evergreen-item">
+                            <div class="evergreen-content">
+                                <div>${item.content.substring(0, 150)}${item.content.length > 150 ? '...' : ''}</div>
+                                <div class="evergreen-meta">
+                                    <span><i class="fab fa-${item.platform}"></i> ${item.platform}</span>
+                                    <span><i class="fas fa-tag"></i> ${item.category}</span>
+                                    <span><i class="fas fa-redo"></i> Used ${item.timesUsed}x</span>
+                                    <span class="evergreen-score"><i class="fas fa-star"></i> ${item.performanceScore}</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="recycleSpecific('${item.id}')">
+                                <i class="fas fa-recycle"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-archive" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>No evergreen content yet. Add your best posts!</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function addEvergreen() {
+            const content = document.getElementById('evergreenContent').value;
+            if (!content.trim()) {
+                showToast('Please enter content', 'error');
+                return;
+            }
+
+            const data = await apiPost('addToEvergreen', {
+                content: content,
+                category: document.getElementById('evergreenCategory').value,
+                platform: document.getElementById('evergreenPlatform').value,
+                performanceScore: parseInt(document.getElementById('evergreenScore').value)
+            });
+
+            if (data.success) {
+                showToast('Added to evergreen library!', 'success');
+                document.getElementById('evergreenContent').value = '';
+                loadEvergreen();
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        async function recycleContent() {
+            showToast('Finding best content to recycle...', 'info');
+            const data = await apiPost('recycleEvergreenPost', {});
+
+            if (data.success) {
+                showToast('Content recycled with fresh hook!', 'success');
+                document.getElementById('contentPrompt').value = data.newContent;
+                currentGeneratedContent = data.newContent;
+                document.getElementById('generatedContent').textContent = data.newContent;
+                document.getElementById('generatedContentBox').style.display = 'block';
+                switchTab('content');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        // Revenue
+        async function loadRevenue() {
+            const byPost = await apiGet('getRevenueByPost');
+            const byPlatform = await apiGet('getRevenueByPlatform');
+
+            if (byPost.success) {
+                document.getElementById('revTotalRevenue').textContent = '$' + (byPost.totalRevenue || 0).toFixed(2);
+                document.getElementById('revOrders').textContent = byPost.totalOrders || 0;
+
+                const container = document.getElementById('revenueByPostContainer');
+                if (byPost.posts && byPost.posts.length > 0) {
+                    let html = '';
+                    byPost.posts.slice(0, 10).forEach(post => {
+                        html += `
+                            <div class="revenue-item">
+                                <div>
+                                    <div style="font-weight: 500;">${post.postId}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">${post.platform} | ${post.orders} orders</div>
+                                </div>
+                                <div class="revenue-amount">$${post.revenue.toFixed(2)}</div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>No attribution data yet. Track your first sale!</p>
+                        </div>
+                    `;
+                }
+            }
+
+            if (byPlatform.success && byPlatform.platforms) {
+                document.getElementById('revInstagram').textContent = '$' + (byPlatform.platforms.instagram?.revenue || 0).toFixed(2);
+                document.getElementById('revFacebook').textContent = '$' + (byPlatform.platforms.facebook?.revenue || 0).toFixed(2);
+            }
+        }
+
+        async function trackAttribution() {
+            const orderId = document.getElementById('attrOrderId').value;
+            const orderTotal = document.getElementById('attrOrderTotal').value;
+
+            if (!orderId || !orderTotal) {
+                showToast('Please enter order ID and total', 'error');
+                return;
+            }
+
+            const data = await apiPost('trackAttribution', {
+                orderId: orderId,
+                orderTotal: parseFloat(orderTotal),
+                platform: document.getElementById('attrPlatform').value,
+                utmCampaign: document.getElementById('attrUtm').value
+            });
+
+            if (data.success) {
+                showToast('Attribution tracked!', 'success');
+                document.getElementById('attrOrderId').value = '';
+                document.getElementById('attrOrderTotal').value = '';
+                document.getElementById('attrUtm').value = '';
+                loadRevenue();
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        // Competitors
+        async function loadCompetitors() {
+            const data = await apiGet('getCompetitors');
+            const container = document.getElementById('competitorsContainer');
+
+            if (data.success && data.competitors.length > 0) {
+                let html = '';
+                data.competitors.forEach(comp => {
+                    html += `
+                        <div class="competitor-card">
+                            <div class="competitor-header">
+                                <div>
+                                    <div style="font-weight: 600;">${comp.name}</div>
+                                    <div class="competitor-handle">${comp.handle}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 1.25rem; font-weight: 700;">${comp.followers?.toLocaleString() || '--'}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">followers</div>
+                                </div>
+                            </div>
+                            ${comp.notes ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">${comp.notes}</div>` : ''}
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-binoculars" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>No competitors tracked yet. Add some to watch!</p>
+                    </div>
+                `;
+            }
+        }
+
+        function showAddCompetitor() {
+            document.getElementById('addCompetitorCard').style.display = 'block';
+        }
+
+        async function addCompetitor() {
+            const name = document.getElementById('compName').value;
+            if (!name.trim()) {
+                showToast('Please enter competitor name', 'error');
+                return;
+            }
+
+            const data = await apiPost('addCompetitor', {
+                name: name,
+                handle: document.getElementById('compHandle').value,
+                platform: document.getElementById('compPlatform').value,
+                followers: parseInt(document.getElementById('compFollowers').value) || 0,
+                notes: document.getElementById('compNotes').value
+            });
+
+            if (data.success) {
+                showToast('Competitor added!', 'success');
+                document.getElementById('compName').value = '';
+                document.getElementById('compHandle').value = '';
+                document.getElementById('compFollowers').value = '';
+                document.getElementById('compNotes').value = '';
+                document.getElementById('addCompetitorCard').style.display = 'none';
+                loadCompetitors();
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        // Crisis
+        async function loadCrisisData() {
+            const data = await apiGet('checkSentimentHealth');
+            if (data.success) {
+                document.getElementById('crisisNegativeCount').textContent = data.negativeCount || 0;
+                document.getElementById('crisisAvgSentiment').textContent = (data.avgSentiment || 0).toFixed(2);
+
+                const statusEl = document.getElementById('crisisStatus');
+                statusEl.className = `status-indicator ${data.status}`;
+                statusEl.innerHTML = `<span class="status-dot"></span><span>${data.status === 'crisis' ? 'CRISIS' : data.status === 'warning' ? 'Warning' : 'All Clear'}</span>`;
+            }
+        }
+
+        function checkSentiment() {
+            loadCrisisData();
+            showToast('Sentiment checked', 'info');
+        }
+
+        async function analyzeSingleSentiment() {
+            const text = document.getElementById('sentimentText').value;
+            if (!text.trim()) {
+                showToast('Please enter text to analyze', 'error');
+                return;
+            }
+
+            showToast('Analyzing sentiment...', 'info');
+            const data = await apiPost('analyzeSentiment', { text });
+
+            if (data.success) {
+                document.getElementById('sentimentResult').style.display = 'block';
+                const scoreEl = document.getElementById('singleSentimentScore');
+                scoreEl.textContent = data.score?.toFixed(2) || '--';
+                scoreEl.className = 'voice-score-value ' + (data.score > 0.3 ? 'high' : data.score < -0.3 ? 'low' : 'medium');
+                document.getElementById('singleSentimentLabel').textContent = data.label || 'Unknown';
+
+                let feedback = '';
+                if (data.emotions) feedback += `<strong>Emotions:</strong> ${data.emotions.join(', ')}<br>`;
+                if (data.urgency) feedback += `<strong>Urgency:</strong> ${data.urgency}/10<br>`;
+                if (data.suggestedResponse) feedback += `<strong>Suggested Response:</strong> ${data.suggestedResponse}`;
+                document.getElementById('singleSentimentFeedback').innerHTML = feedback;
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        function viewCrisis() {
+            switchTab('crisis');
+        }
+
+        function resumePosts() {
+            resumeAll();
+        }
+
+        // Settings
+        async function saveOpenAI() {
+            const key = document.getElementById('openaiKey').value;
+            if (!key.trim()) {
+                showToast('Please enter API key', 'error');
+                return;
+            }
+
+            const data = await apiPost('configureOpenAI', { apiKey: key });
+            if (data.success) {
+                showToast('OpenAI API key saved!', 'success');
+                document.getElementById('openaiStatus').textContent = 'Configured';
+                document.getElementById('openaiStatus').className = 'api-status configured';
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
+        async function saveStability() {
+            const key = document.getElementById('stabilityKey').value;
+            if (!key.trim()) {
+                showToast('Please enter API key', 'error');
+                return;
+            }
+
+            const data = await apiPost('configureStabilityAI', { apiKey: key });
+            if (data.success) {
+                showToast('Stability AI key saved!', 'success');
+                document.getElementById('stabilityStatus').textContent = 'Configured';
+                document.getElementById('stabilityStatus').className = 'api-status configured';
+            }
+        }
+
+        async function savePhotoroom() {
+            const key = document.getElementById('photoroomKey').value;
+            if (!key.trim()) {
+                showToast('Please enter API key', 'error');
+                return;
+            }
+
+            const data = await apiPost('configurePhotoroom', { apiKey: key });
+            if (data.success) {
+                showToast('Photoroom key saved!', 'success');
+                document.getElementById('photoroomStatus').textContent = 'Configured';
+                document.getElementById('photoroomStatus').className = 'api-status configured';
+            }
+        }
+
+        function exportData(type) {
+            showToast(`Exporting ${type} data... Check your Google Sheet`, 'info');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('scheduleDate').value = today;
+
+            // Load dashboard
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>
