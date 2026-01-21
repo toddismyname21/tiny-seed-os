@@ -2,12 +2,12 @@
   "name": "Tiny Seed Farm - Field App",
   "short_name": "Field App",
   "description": "Employee field app for Tiny Seed Farm - time clock, tasks, harvest logging, and scouting",
-  "start_url": "/employee.html",
+  "start_url": "./employee.html",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#2d5a27",
   "orientation": "portrait-primary",
-  "scope": "/",
+  "scope": "./",
   "icons": [
     {
       "src": "icons/icon-72.png",
@@ -63,14 +63,14 @@
       "name": "Clock In",
       "short_name": "Clock In",
       "description": "Quick clock in",
-      "url": "/employee.html?action=clockin",
+      "url": "./employee.html?action=clockin",
       "icons": [{ "src": "icons/clock-icon.png", "sizes": "96x96" }]
     },
     {
       "name": "My Tasks",
       "short_name": "Tasks",
       "description": "View today's tasks",
-      "url": "/employee.html?tab=tasks",
+      "url": "./employee.html?tab=tasks",
       "icons": [{ "src": "icons/tasks-icon.png", "sizes": "96x96" }]
     }
   ],
