@@ -20711,7 +20711,175 @@
             padding: 8px 10px; border-radius: 6px; margin: 6px 0; font-size: 12px;
         }
         .cos-alert-card.critical { background: var(--danger-bg); border-color: var(--danger); }
+
+        /* Phone Mode - Hands-Free Voice Interface */
+        .phone-mode-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .phone-mode-btn:hover { transform: scale(1.1); }
+        .phone-mode-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse-phone 2s infinite;
+        }
+        @keyframes pulse-phone {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 87, 108, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(245, 87, 108, 0); }
+        }
+
+        /* Full-screen Phone Mode Overlay */
+        .phone-mode-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .phone-mode-overlay.active { display: flex; }
+
+        .phone-mode-visual {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .phone-mode-visual::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.2);
+            animation: phone-ring 2s linear infinite;
+        }
+        @keyframes phone-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .phone-mode-icon {
+            font-size: 80px;
+            opacity: 0.9;
+        }
+        .phone-mode-icon.listening { animation: mic-pulse 1s ease-in-out infinite; }
+        @keyframes mic-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .phone-mode-status {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .phone-mode-transcript {
+            font-size: 18px;
+            opacity: 0.7;
+            max-width: 80%;
+            text-align: center;
+            min-height: 50px;
+            margin-bottom: 20px;
+        }
+        .phone-mode-response {
+            font-size: 16px;
+            max-width: 85%;
+            text-align: center;
+            opacity: 0.9;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .phone-mode-controls {
+            display: flex;
+            gap: 20px;
+        }
+        .phone-mode-end-btn {
+            background: #e74c3c;
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .phone-mode-end-btn:hover { background: #c0392b; }
+
+        .phone-mode-wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 40px;
+            margin-top: 20px;
+        }
+        .phone-mode-wave span {
+            width: 4px;
+            height: 10px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 2px;
+            animation: wave-bar 0.5s ease-in-out infinite;
+        }
+        .phone-mode-wave span:nth-child(1) { animation-delay: 0s; }
+        .phone-mode-wave span:nth-child(2) { animation-delay: 0.1s; }
+        .phone-mode-wave span:nth-child(3) { animation-delay: 0.2s; }
+        .phone-mode-wave span:nth-child(4) { animation-delay: 0.3s; }
+        .phone-mode-wave span:nth-child(5) { animation-delay: 0.4s; }
+        @keyframes wave-bar {
+            0%, 100% { height: 10px; }
+            50% { height: 30px; }
+        }
+        .phone-mode-wave.speaking span { background: #4ade80; }
+        .phone-mode-wave.paused span { animation: none; height: 10px; opacity: 0.4; }
     </style>
+
+    <!-- Phone Mode Full-Screen Overlay -->
+    <div class="phone-mode-overlay" id="phoneModeOverlay">
+        <div class="phone-mode-visual">
+            <div class="phone-mode-icon" id="phoneModeIcon">🎙️</div>
+        </div>
+        <div class="phone-mode-status" id="phoneModeStatus">Listening...</div>
+        <div class="phone-mode-transcript" id="phoneModeTranscript">Say something...</div>
+        <div class="phone-mode-response" id="phoneModeResponse" style="display:none;"></div>
+        <div class="phone-mode-wave" id="phoneModeWave">
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="phone-mode-controls">
+            <button class="phone-mode-end-btn" onclick="endPhoneMode()">
+                <i class="fas fa-phone-slash"></i> End Call
+            </button>
+        </div>
+    </div>
 
     <!-- Chief of Staff Chat Button (Admin Only) -->
     <button class="cos-chat-toggle" id="cosChatToggle" onclick="toggleCOSChat()" title="Chief of Staff AI">
@@ -20727,6 +20895,9 @@
                 <h3>Chief of Staff</h3>
                 <span><span class="cos-status-dot"></span>Online</span>
             </div>
+            <button class="phone-mode-btn" id="phoneModeBtn" onclick="startPhoneMode()" title="Phone Mode - Hands-Free Voice">
+                <i class="fas fa-phone"></i>
+            </button>
             <button class="cos-close-btn" onclick="toggleCOSChat()">
                 <i class="fas fa-times"></i>
             </button>
@@ -20979,6 +21150,295 @@
             cosFirstOpen = true;
             addCOSMsg('system', '<p>Conversation cleared. How can I help?</p>');
         }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // PHONE MODE - Hands-Free Continuous Voice Interface
+        // ════════════════════════════════════════════════════════════════════════════
+        let phoneModeActive = false;
+        let phoneRecognition = null;
+        let phoneSpeaking = false;
+        let phoneSynthesis = window.speechSynthesis;
+        let phoneVoice = null;
+
+        // Find the best voice for TTS
+        function getPreferredVoice() {
+            const voices = phoneSynthesis.getVoices();
+            // Prefer natural-sounding voices
+            const preferred = voices.find(v => v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Daniel'));
+            const english = voices.find(v => v.lang.startsWith('en') && v.localService);
+            return preferred || english || voices[0];
+        }
+
+        // Initialize voices when available
+        if (phoneSynthesis.onvoiceschanged !== undefined) {
+            phoneSynthesis.onvoiceschanged = () => { phoneVoice = getPreferredVoice(); };
+        }
+
+        function startPhoneMode() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Voice input not supported in this browser. Please use Chrome or Safari.');
+                return;
+            }
+
+            phoneModeActive = true;
+            document.getElementById('phoneModeOverlay').classList.add('active');
+            document.getElementById('phoneModeBtn').classList.add('active');
+
+            // Keep screen awake if possible
+            if ('wakeLock' in navigator) {
+                navigator.wakeLock.request('screen').catch(() => {});
+            }
+
+            // Start with a greeting
+            speakResponse("Phone mode activated. I'm listening. What do you need?");
+
+            // Initialize continuous recognition
+            initPhoneRecognition();
+        }
+
+        function endPhoneMode() {
+            phoneModeActive = false;
+            document.getElementById('phoneModeOverlay').classList.remove('active');
+            document.getElementById('phoneModeBtn').classList.remove('active');
+
+            // Stop recognition
+            if (phoneRecognition) {
+                phoneRecognition.abort();
+                phoneRecognition = null;
+            }
+
+            // Stop any speaking
+            phoneSynthesis.cancel();
+
+            // Reset UI
+            document.getElementById('phoneModeStatus').textContent = 'Listening...';
+            document.getElementById('phoneModeTranscript').textContent = 'Say something...';
+            document.getElementById('phoneModeResponse').style.display = 'none';
+            document.getElementById('phoneModeWave').classList.remove('speaking', 'paused');
+            document.getElementById('phoneModeIcon').classList.remove('listening');
+        }
+
+        function initPhoneRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            phoneRecognition = new SpeechRecognition();
+            phoneRecognition.continuous = true;
+            phoneRecognition.interimResults = true;
+            phoneRecognition.maxAlternatives = 1;
+
+            phoneRecognition.onstart = () => {
+                if (!phoneModeActive) return;
+                document.getElementById('phoneModeIcon').classList.add('listening');
+                document.getElementById('phoneModeWave').classList.remove('paused');
+                if (!phoneSpeaking) {
+                    document.getElementById('phoneModeStatus').textContent = 'Listening...';
+                }
+            };
+
+            phoneRecognition.onresult = (event) => {
+                if (!phoneModeActive || phoneSpeaking) return;
+
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Show interim results
+                if (interimTranscript) {
+                    document.getElementById('phoneModeTranscript').textContent = interimTranscript;
+                }
+
+                // Process final result
+                if (finalTranscript.trim()) {
+                    processPhoneCommand(finalTranscript.trim());
+                }
+            };
+
+            phoneRecognition.onerror = (event) => {
+                console.log('Phone recognition error:', event.error);
+                if (event.error === 'no-speech' && phoneModeActive && !phoneSpeaking) {
+                    // Just restart silently
+                    restartPhoneRecognition();
+                }
+            };
+
+            phoneRecognition.onend = () => {
+                // Auto-restart if still in phone mode and not speaking
+                if (phoneModeActive && !phoneSpeaking) {
+                    restartPhoneRecognition();
+                }
+            };
+
+            phoneRecognition.start();
+        }
+
+        function restartPhoneRecognition() {
+            if (!phoneModeActive || phoneSpeaking) return;
+
+            setTimeout(() => {
+                if (phoneModeActive && !phoneSpeaking) {
+                    try {
+                        if (phoneRecognition) {
+                            phoneRecognition.start();
+                        } else {
+                            initPhoneRecognition();
+                        }
+                    } catch (e) {
+                        // Recognition might still be running
+                        setTimeout(restartPhoneRecognition, 500);
+                    }
+                }
+            }, 100);
+        }
+
+        async function processPhoneCommand(text) {
+            if (!phoneModeActive) return;
+
+            // Check for end command
+            const endPhrases = ['end call', 'hang up', 'goodbye', 'bye', 'stop', 'exit', 'close'];
+            if (endPhrases.some(phrase => text.toLowerCase().includes(phrase))) {
+                speakResponse("Ending phone mode. Talk to you later.");
+                setTimeout(endPhoneMode, 2000);
+                return;
+            }
+
+            // Update UI
+            document.getElementById('phoneModeStatus').textContent = 'Processing...';
+            document.getElementById('phoneModeTranscript').textContent = `"${text}"`;
+            document.getElementById('phoneModeWave').classList.add('paused');
+
+            // Stop listening while processing
+            if (phoneRecognition) {
+                phoneRecognition.abort();
+            }
+
+            // Add to conversation history
+            cosConversationHistory.push({ role: 'user', content: text });
+
+            try {
+                // Call the AI
+                const response = await fetch(CONFIG.API_URL + '?action=chatWithChiefOfStaff&message=' + encodeURIComponent(text) + '&conversationHistory=' + encodeURIComponent(JSON.stringify(cosConversationHistory)));
+                const data = await response.json();
+
+                if (data.success && data.message) {
+                    // Add to history
+                    cosConversationHistory.push({ role: 'assistant', content: data.message });
+                    if (cosConversationHistory.length > 20) {
+                        cosConversationHistory = cosConversationHistory.slice(-20);
+                    }
+
+                    // Show and speak response
+                    document.getElementById('phoneModeResponse').style.display = 'block';
+                    document.getElementById('phoneModeResponse').textContent = data.message;
+                    speakResponse(data.message);
+                } else {
+                    speakResponse("Sorry, I couldn't process that. Please try again.");
+                    resumeListeningAfterSpeech();
+                }
+            } catch (e) {
+                console.error('Phone mode error:', e);
+                speakResponse("I'm having trouble connecting. Please try again.");
+                resumeListeningAfterSpeech();
+            }
+        }
+
+        function speakResponse(text) {
+            if (!phoneModeActive) return;
+
+            // Stop recognition while speaking
+            phoneSpeaking = true;
+            if (phoneRecognition) {
+                phoneRecognition.abort();
+            }
+
+            // Update UI
+            document.getElementById('phoneModeStatus').textContent = 'Speaking...';
+            document.getElementById('phoneModeWave').classList.add('speaking');
+            document.getElementById('phoneModeWave').classList.remove('paused');
+            document.getElementById('phoneModeIcon').classList.remove('listening');
+
+            // Clean text for speech (remove markdown, etc.)
+            let cleanText = text
+                .replace(/\*\*/g, '')
+                .replace(/\*/g, '')
+                .replace(/#{1,6}\s/g, '')
+                .replace(/[-•]\s/g, '')
+                .replace(/\n\n/g, '. ')
+                .replace(/\n/g, '. ');
+
+            // Create utterance
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.voice = phoneVoice || getPreferredVoice();
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            utterance.onend = () => {
+                resumeListeningAfterSpeech();
+            };
+
+            utterance.onerror = () => {
+                resumeListeningAfterSpeech();
+            };
+
+            // Cancel any pending speech and start new
+            phoneSynthesis.cancel();
+            phoneSynthesis.speak(utterance);
+        }
+
+        function resumeListeningAfterSpeech() {
+            if (!phoneModeActive) return;
+
+            phoneSpeaking = false;
+            document.getElementById('phoneModeStatus').textContent = 'Listening...';
+            document.getElementById('phoneModeTranscript').textContent = 'Say something...';
+            document.getElementById('phoneModeWave').classList.remove('speaking');
+            document.getElementById('phoneModeIcon').classList.add('listening');
+
+            // Restart recognition
+            setTimeout(() => {
+                if (phoneModeActive && !phoneSpeaking) {
+                    initPhoneRecognition();
+                }
+            }, 300);
+        }
+
+        // Add team quick actions for voice
+        function addTeamQuickActions() {
+            const quickBtns = document.querySelector('.cos-quick-actions');
+            if (quickBtns && !document.getElementById('teamQuickBtn')) {
+                const teamBtn = document.createElement('button');
+                teamBtn.id = 'teamQuickBtn';
+                teamBtn.className = 'cos-quick-btn';
+                teamBtn.innerHTML = '<i class="fas fa-users"></i>Team';
+                teamBtn.onclick = () => cosQuickAction('team');
+                quickBtns.appendChild(teamBtn);
+            }
+        }
+
+        // Extend quick actions to include team
+        const _origCosQuickAction = cosQuickAction;
+        cosQuickAction = function(action) {
+            if (action === 'team') {
+                const prompt = "Give me a team status update - who's clocked in, what are they working on, and are there any blockers I should know about?";
+                document.getElementById('cosInput').value = prompt;
+                sendCOSMessage();
+            } else {
+                _origCosQuickAction(action);
+            }
+        };
+
+        // Add team button when COS initializes
+        const _origInitCOS = initCOSForAdmin;
+        initCOSForAdmin = function() {
+            _origInitCOS();
+            setTimeout(addTeamQuickActions, 100);
+        };
     </script>
 </body>
 </html>

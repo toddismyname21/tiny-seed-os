@@ -322,6 +322,44 @@ function gatherChiefOfStaffContext() {
     context.recentDecisions = [];
   }
 
+  // 11. TEAM STATUS - Who's working and on what (Field Command Center)
+  try {
+    if (typeof getTeamStatusSummary === 'function') {
+      context.teamStatus = getTeamStatusSummary();
+    }
+  } catch (e) {
+    context.teamStatus = null;
+  }
+
+  // 12. WHO'S CLOCKED IN - Real-time field awareness
+  try {
+    if (typeof getWhosCurrentlyClockedIn === 'function') {
+      context.clockedIn = getWhosCurrentlyClockedIn();
+    }
+  } catch (e) {
+    context.clockedIn = [];
+  }
+
+  // 13. ACTIVE ASSIGNMENTS - Task delegation status
+  try {
+    if (typeof getAllActiveAssignments === 'function') {
+      const assignments = getAllActiveAssignments();
+      context.activeAssignments = assignments.assignments || [];
+      context.assignmentStats = assignments.stats || null;
+    }
+  } catch (e) {
+    context.activeAssignments = [];
+  }
+
+  // 14. RECENT CHECK-INS - Team communication
+  try {
+    if (typeof getRecentCheckins === 'function') {
+      context.recentCheckins = getRecentCheckins(120); // Last 2 hours
+    }
+  } catch (e) {
+    context.recentCheckins = [];
+  }
+
   return context;
 }
 
@@ -595,6 +633,49 @@ CURRENT FARM STATUS
     prompt += `\n`;
   }
 
+  // Add team status (Field Command Center)
+  if (context.clockedIn && context.clockedIn.length > 0) {
+    prompt += `👥 TEAM ON THE CLOCK (${context.clockedIn.length} active):\n`;
+    context.clockedIn.forEach(emp => {
+      const duration = emp.hoursWorked ? ` (${emp.hoursWorked}h)` : '';
+      prompt += `- ${emp.name}${duration}${emp.currentTask ? ': ' + emp.currentTask : ''}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  // Add active assignments
+  if (context.activeAssignments && context.activeAssignments.length > 0) {
+    prompt += `📋 ACTIVE TASK ASSIGNMENTS (${context.activeAssignments.length}):\n`;
+    context.activeAssignments.slice(0, 8).forEach(a => {
+      const status = a.status || 'pending';
+      const statusIcon = status === 'in_progress' ? '🔄' : status === 'blocked' ? '🚫' : '⏳';
+      prompt += `${statusIcon} ${a.employeeName || 'Unassigned'}: ${a.taskDescription} [${a.priority || 'normal'}]\n`;
+    });
+    if (context.assignmentStats) {
+      prompt += `   Stats: ${context.assignmentStats.inProgress || 0} in progress, ${context.assignmentStats.blocked || 0} blocked, ${context.assignmentStats.pending || 0} pending\n`;
+    }
+    prompt += `\n`;
+  }
+
+  // Add recent check-ins
+  if (context.recentCheckins && context.recentCheckins.length > 0) {
+    prompt += `💬 RECENT TEAM CHECK-INS:\n`;
+    context.recentCheckins.slice(0, 5).forEach(c => {
+      const time = c.timestamp ? new Date(c.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+      const blockerNote = c.blocker ? ' ⚠️ BLOCKED: ' + c.blocker : '';
+      prompt += `- ${time} ${c.employeeName}: ${c.status}${c.progressPct ? ' (' + c.progressPct + '%)' : ''}${blockerNote}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  // Add team status summary
+  if (context.teamStatus && context.teamStatus.summary) {
+    const s = context.teamStatus.summary;
+    if (s.blockers && s.blockers > 0) {
+      prompt += `🚨 TEAM ALERT: ${s.blockers} employee(s) reporting blockers - need immediate attention!\n\n`;
+    }
+  }
+
   prompt += `═══════════════════════════════════════════════════════════════════════════════
 HOW TO RESPOND
 ═══════════════════════════════════════════════════════════════════════════════
@@ -607,7 +688,24 @@ HOW TO RESPOND
 6. If you don't have specific data, say so and suggest how to get it
 7. When giving advice, tie it back to farm priorities and goals
 
-Remember: You're not just answering questions - you're actively helping Todd run a successful farm. Be proactive. Be direct. Be helpful.`;
+═══════════════════════════════════════════════════════════════════════════════
+TEAM MANAGEMENT CAPABILITIES (Field Command Center)
+═══════════════════════════════════════════════════════════════════════════════
+
+You can help Todd manage the field team:
+- Track who is clocked in and what they're working on
+- Monitor task assignments and progress
+- Identify blockers that need Todd's attention
+- Suggest task reassignments based on workload
+- Remind about overdue check-ins from team members
+- Help delegate tasks effectively
+
+When team members are blocked or behind:
+- Surface the issue immediately and clearly
+- Suggest specific actions Todd can take
+- Offer to send check-in requests via SMS
+
+Remember: You're not just answering questions - you're actively helping Todd run a successful farm AND manage his team effectively. Be proactive. Be direct. Be helpful. Know what's happening in the field.`;
 
   return prompt;
 }
@@ -1985,6 +2083,40 @@ function doGet(e) {
         return jsonResponse(setAutonomyLevel(e.parameter.action, e.parameter.level));
       case 'getAutonomyStatus':
         return jsonResponse(getAutonomyStatus());
+
+      // ============ FIELD COMMAND CENTER - TASK MANAGEMENT ============
+      case 'assignTaskToEmployee':
+        return jsonResponse(assignTaskToEmployee(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+      case 'getEmployeeById':
+        return jsonResponse(getEmployeeById(e.parameter.employeeId));
+      case 'getAllActiveEmployees':
+        return jsonResponse(getAllActiveEmployees());
+      case 'getEmployeeAssignments':
+        return jsonResponse(getEmployeeAssignments(e.parameter.employeeId, e.parameter.includeCompleted === 'true'));
+      case 'getAllActiveAssignments':
+        return jsonResponse(getAllActiveAssignments());
+      case 'updateTaskStatus':
+        return jsonResponse(updateTaskStatus(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+
+      // ============ FIELD COMMAND CENTER - TEAM CHECK-INS ============
+      case 'recordTeamCheckin':
+        return jsonResponse(recordTeamCheckin(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+      case 'requestCheckinViaSMS':
+        return jsonResponse(requestCheckinViaSMS(e.parameter.employeeId, e.parameter.assignmentId));
+      case 'processSMSCheckinResponse':
+        return jsonResponse(processSMSCheckinResponse(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+      case 'getRecentCheckins':
+        return jsonResponse(getRecentCheckins(parseInt(e.parameter.minutes) || 60));
+
+      // ============ FIELD COMMAND CENTER - TEAM STATUS ============
+      case 'getTeamStatusSummary':
+        return jsonResponse(getTeamStatusSummary());
+      case 'getWhosCurrentlyClockedIn':
+        return jsonResponse(getWhosCurrentlyClockedIn());
+      case 'proactiveTaskCheck':
+        return jsonResponse(proactiveTaskCheck());
+      case 'sendMorningTaskAssignments':
+        return jsonResponse(sendMorningTaskAssignments());
 
       // ============ FARMERS MARKET MODULE ============
       case 'initMarketModule':
@@ -20575,7 +20707,9 @@ const EMPLOYEE_SHEETS = {
   FIELD_HAZARDS: 'FIELD_HAZARDS',
   WEED_PRESSURE: 'WEED_PRESSURE',
   CULTIVATION_LOG: 'CULTIVATION_LOG',
-  CREW_MESSAGES: 'CREW_MESSAGES'
+  CREW_MESSAGES: 'CREW_MESSAGES',
+  TASK_ASSIGNMENTS: 'TASK_ASSIGNMENTS',
+  TEAM_CHECKINS: 'TEAM_CHECKINS'
 };
 
 const EMPLOYEE_HEADERS = {
@@ -20588,7 +20722,9 @@ const EMPLOYEE_HEADERS = {
   FIELD_HAZARDS: ['Hazard_ID', 'Reported_Date', 'Employee_ID', 'Type', 'Severity', 'Description', 'Photo_URL', 'GPS_Lat', 'GPS_Lng', 'Status', 'Resolved_Date', 'Resolved_By'],
   WEED_PRESSURE: ['Weed_ID', 'Date', 'Employee_ID', 'Field_ID', 'Bed_ID', 'Weed_Type', 'Species', 'Pressure_Level', 'Coverage_Pct', 'GPS_Lat', 'GPS_Lng', 'Notes'],
   CULTIVATION_LOG: ['Cultivation_ID', 'Date', 'Employee_ID', 'Field_ID', 'Bed_IDs', 'Implement', 'Depth', 'Soil_Condition', 'Effectiveness', 'GPS_Lat', 'GPS_Lng', 'Notes'],
-  CREW_MESSAGES: ['Message_ID', 'Timestamp', 'From', 'To_Employee_ID', 'To_All', 'Message', 'Urgent', 'Acknowledged', 'Acknowledged_At']
+  CREW_MESSAGES: ['Message_ID', 'Timestamp', 'From', 'To_Employee_ID', 'To_All', 'Message', 'Urgent', 'Acknowledged', 'Acknowledged_At'],
+  TASK_ASSIGNMENTS: ['Assignment_ID', 'Task_ID', 'Task_Description', 'Employee_ID', 'Employee_Name', 'Assigned_By', 'Assigned_At', 'Due_Date', 'Due_Time', 'Priority', 'Status', 'Started_At', 'Completed_At', 'Time_Spent_Mins', 'Notes', 'SMS_Notified', 'Last_Checkin', 'Checkin_Status'],
+  TEAM_CHECKINS: ['Checkin_ID', 'Timestamp', 'Employee_ID', 'Employee_Name', 'Assignment_ID', 'Task_Description', 'Status', 'Progress_Pct', 'Blocker', 'ETA_Mins', 'Response_Method', 'GPS_Lat', 'GPS_Lng', 'Notes']
 };
 
 // Farm geofence center (update with actual coordinates)
@@ -22558,6 +22694,902 @@ function sendCrewMessage(params) {
     sheet.appendRow(newRow);
 
     return { success: true, messageId: messageId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIELD COMMAND CENTER - STATE-OF-THE-ART TEAM MANAGEMENT
+// Task Assignment, Team Check-ins, Proactive Accountability
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Assign a task to an employee
+ * Called by Chief of Staff AI or admin
+ */
+function assignTaskToEmployee(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
+
+    const assignmentId = generateId('TASK');
+    const now = new Date();
+
+    // Parse due date/time
+    let dueDate = params.dueDate ? new Date(params.dueDate) : now;
+    if (typeof params.dueDate === 'string' && params.dueDate.toLowerCase() === 'today') {
+      dueDate = now;
+    } else if (typeof params.dueDate === 'string' && params.dueDate.toLowerCase() === 'tomorrow') {
+      dueDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    const newRow = [
+      assignmentId,
+      params.taskId || assignmentId,
+      params.description || params.task || '',
+      params.employeeId || '',
+      params.employeeName || '',
+      params.assignedBy || 'Chief of Staff',
+      now.toISOString(),
+      dueDate.toISOString().split('T')[0],
+      params.dueTime || '17:00',
+      params.priority || 'normal',
+      'assigned',
+      '', // Started_At
+      '', // Completed_At
+      '', // Time_Spent_Mins
+      params.notes || '',
+      false, // SMS_Notified
+      '', // Last_Checkin
+      '' // Checkin_Status
+    ];
+
+    sheet.appendRow(newRow);
+
+    // Send SMS notification if phone available
+    if (params.sendSMS !== false) {
+      const employee = getEmployeeById(params.employeeId);
+      if (employee && employee.Phone) {
+        const message = `[Tiny Seed] New task assigned: ${params.description || params.task}. Due: ${dueDate.toLocaleDateString()}${params.dueTime ? ' by ' + params.dueTime : ''}`;
+        try {
+          sendSMS({ to: employee.Phone, message: message });
+          // Mark as notified
+          const lastRow = sheet.getLastRow();
+          sheet.getRange(lastRow, 16).setValue(true); // SMS_Notified column
+        } catch (e) {
+          Logger.log('SMS notification failed: ' + e.message);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      assignmentId: assignmentId,
+      message: `Task assigned to ${params.employeeName || params.employeeId}`
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get employee by ID
+ */
+function getEmployeeById(employeeId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Try USERS sheet first
+    const usersSheet = ss.getSheetByName('USERS');
+    if (usersSheet) {
+      const data = usersSheet.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+        if (row.User_ID === employeeId || row.Employee_ID === employeeId) {
+          return row;
+        }
+      }
+    }
+
+    // Try EMPLOYEES sheet
+    const empSheet = ss.getSheetByName(EMPLOYEE_SHEETS.EMPLOYEES);
+    if (empSheet) {
+      const data = empSheet.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+        if (row.Employee_ID === employeeId) {
+          return row;
+        }
+      }
+    }
+
+    // Try SALES_Drivers
+    const driversSheet = ss.getSheetByName('SALES_Drivers');
+    if (driversSheet) {
+      const data = driversSheet.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+        if (row.Driver_ID === employeeId) {
+          return row;
+        }
+      }
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Get all active employees
+ */
+function getAllActiveEmployees() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const employees = [];
+
+    // Get from USERS sheet
+    const usersSheet = ss.getSheetByName('USERS');
+    if (usersSheet) {
+      const data = usersSheet.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+        if (row.Is_Active !== false && row.Is_Active !== 'FALSE') {
+          employees.push({
+            id: row.User_ID || row.Employee_ID,
+            name: row.Name || row.First_Name + ' ' + (row.Last_Name || ''),
+            role: row.Role,
+            phone: row.Phone
+          });
+        }
+      }
+    }
+
+    return { success: true, employees: employees };
+  } catch (error) {
+    return { success: false, error: error.toString(), employees: [] };
+  }
+}
+
+/**
+ * Get employee's current assignments
+ */
+function getEmployeeAssignments(employeeId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
+
+    if (!sheet) {
+      return { success: true, assignments: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const today = new Date().toISOString().split('T')[0];
+
+    const assignments = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Employee_ID === employeeId &&
+          row.Status !== 'completed' &&
+          row.Status !== 'cancelled') {
+        assignments.push({
+          assignmentId: row.Assignment_ID,
+          task: row.Task_Description,
+          dueDate: row.Due_Date,
+          dueTime: row.Due_Time,
+          priority: row.Priority,
+          status: row.Status,
+          lastCheckin: row.Last_Checkin,
+          checkinStatus: row.Checkin_Status
+        });
+      }
+    }
+
+    return { success: true, assignments: assignments };
+  } catch (error) {
+    return { success: false, error: error.toString(), assignments: [] };
+  }
+}
+
+/**
+ * Get all active assignments across team
+ */
+function getAllActiveAssignments() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
+
+    if (!sheet) {
+      return { success: true, assignments: [], byEmployee: {} };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const assignments = [];
+    const byEmployee = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Status !== 'completed' && row.Status !== 'cancelled') {
+        const assignment = {
+          assignmentId: row.Assignment_ID,
+          task: row.Task_Description,
+          employeeId: row.Employee_ID,
+          employeeName: row.Employee_Name,
+          dueDate: row.Due_Date,
+          dueTime: row.Due_Time,
+          priority: row.Priority,
+          status: row.Status,
+          startedAt: row.Started_At,
+          lastCheckin: row.Last_Checkin,
+          checkinStatus: row.Checkin_Status
+        };
+
+        assignments.push(assignment);
+
+        // Group by employee
+        const empKey = row.Employee_Name || row.Employee_ID;
+        if (!byEmployee[empKey]) {
+          byEmployee[empKey] = [];
+        }
+        byEmployee[empKey].push(assignment);
+      }
+    }
+
+    return { success: true, assignments: assignments, byEmployee: byEmployee };
+  } catch (error) {
+    return { success: false, error: error.toString(), assignments: [], byEmployee: {} };
+  }
+}
+
+/**
+ * Update task status
+ */
+function updateTaskStatus(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
+
+    if (!sheet) {
+      return { success: false, error: 'Task assignments sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const assignmentIdCol = headers.indexOf('Assignment_ID');
+    const statusCol = headers.indexOf('Status');
+    const startedCol = headers.indexOf('Started_At');
+    const completedCol = headers.indexOf('Completed_At');
+    const timeSpentCol = headers.indexOf('Time_Spent_Mins');
+
+    const now = new Date();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][assignmentIdCol] === params.assignmentId) {
+        // Update status
+        sheet.getRange(i + 1, statusCol + 1).setValue(params.status);
+
+        // If starting, record start time
+        if (params.status === 'in_progress' && !data[i][startedCol]) {
+          sheet.getRange(i + 1, startedCol + 1).setValue(now.toISOString());
+        }
+
+        // If completing, record completion and calculate time
+        if (params.status === 'completed') {
+          sheet.getRange(i + 1, completedCol + 1).setValue(now.toISOString());
+
+          const startedAt = data[i][startedCol];
+          if (startedAt) {
+            const startTime = new Date(startedAt);
+            const timeSpent = Math.round((now - startTime) / 1000 / 60);
+            sheet.getRange(i + 1, timeSpentCol + 1).setValue(timeSpent);
+          }
+        }
+
+        return { success: true, message: `Task status updated to ${params.status}` };
+      }
+    }
+
+    return { success: false, error: 'Assignment not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Record a team check-in
+ */
+function recordTeamCheckin(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TEAM_CHECKINS);
+
+    const checkinId = generateId('CHK');
+    const now = new Date();
+
+    const newRow = [
+      checkinId,
+      now.toISOString(),
+      params.employeeId || '',
+      params.employeeName || '',
+      params.assignmentId || '',
+      params.taskDescription || '',
+      params.status || 'on_track', // on_track, blocked, need_help, completed
+      params.progressPct || 0,
+      params.blocker || '',
+      params.etaMins || '',
+      params.responseMethod || 'app', // app, sms, voice
+      params.lat || '',
+      params.lng || '',
+      params.notes || ''
+    ];
+
+    sheet.appendRow(newRow);
+
+    // Update the task assignment with last check-in
+    if (params.assignmentId) {
+      updateAssignmentCheckin(params.assignmentId, params.status, now);
+    }
+
+    return { success: true, checkinId: checkinId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update assignment with check-in status
+ */
+function updateAssignmentCheckin(assignmentId, status, timestamp) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
+
+    if (!sheet) return;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Assignment_ID');
+    const lastCheckinCol = headers.indexOf('Last_Checkin');
+    const checkinStatusCol = headers.indexOf('Checkin_Status');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === assignmentId) {
+        sheet.getRange(i + 1, lastCheckinCol + 1).setValue(timestamp.toISOString());
+        sheet.getRange(i + 1, checkinStatusCol + 1).setValue(status);
+        return;
+      }
+    }
+  } catch (e) {
+    Logger.log('Error updating assignment checkin: ' + e.message);
+  }
+}
+
+/**
+ * Request check-in from employee via SMS
+ */
+function requestCheckinViaSMS(params) {
+  try {
+    const employee = getEmployeeById(params.employeeId);
+
+    if (!employee || !employee.Phone) {
+      return { success: false, error: 'Employee phone not found' };
+    }
+
+    let message = '[Tiny Seed] Quick check-in: How\'s your task going?\n';
+    if (params.taskDescription) {
+      message += `Task: ${params.taskDescription}\n`;
+    }
+    message += 'Reply: 1=On Track, 2=Need Help, 3=Blocked, 4=Done';
+
+    const result = sendSMS({ to: employee.Phone, message: message });
+
+    return {
+      success: true,
+      message: `Check-in request sent to ${employee.Name || params.employeeId}`,
+      smsResult: result
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Process SMS check-in response
+ * Called when SMS webhook receives a response
+ */
+function processSMSCheckinResponse(params) {
+  try {
+    const phone = params.from;
+    const body = (params.body || '').trim();
+
+    // Find employee by phone
+    const employee = findEmployeeByPhone(phone);
+    if (!employee) {
+      return { success: false, error: 'Employee not found for phone' };
+    }
+
+    // Get their active assignment
+    const assignments = getEmployeeAssignments(employee.Employee_ID || employee.User_ID);
+    if (!assignments.success || assignments.assignments.length === 0) {
+      return { success: false, error: 'No active assignments found' };
+    }
+
+    const currentAssignment = assignments.assignments[0];
+
+    // Parse response
+    let status = 'on_track';
+    let statusText = '';
+
+    const code = body.charAt(0);
+    switch (code) {
+      case '1':
+        status = 'on_track';
+        statusText = 'On Track';
+        break;
+      case '2':
+        status = 'need_help';
+        statusText = 'Need Help';
+        break;
+      case '3':
+        status = 'blocked';
+        statusText = 'Blocked';
+        break;
+      case '4':
+        status = 'completed';
+        statusText = 'Completed';
+        break;
+      default:
+        // Natural language - use AI to parse
+        status = parseNaturalLanguageStatus(body);
+        statusText = status;
+    }
+
+    // Record the check-in
+    recordTeamCheckin({
+      employeeId: employee.Employee_ID || employee.User_ID,
+      employeeName: employee.Name,
+      assignmentId: currentAssignment.assignmentId,
+      taskDescription: currentAssignment.task,
+      status: status,
+      responseMethod: 'sms',
+      notes: body
+    });
+
+    // If completed, update task status
+    if (status === 'completed') {
+      updateTaskStatus({
+        assignmentId: currentAssignment.assignmentId,
+        status: 'completed'
+      });
+    }
+
+    // If blocked or need help, alert the manager
+    if (status === 'blocked' || status === 'need_help') {
+      // Send alert to manager/admin
+      alertManagerAboutBlocker({
+        employee: employee,
+        assignment: currentAssignment,
+        status: status,
+        message: body
+      });
+    }
+
+    return {
+      success: true,
+      status: status,
+      statusText: statusText,
+      employee: employee.Name
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Find employee by phone number
+ */
+function findEmployeeByPhone(phone) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Normalize phone number
+    const normalizedPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+
+    // Check USERS sheet
+    const usersSheet = ss.getSheetByName('USERS');
+    if (usersSheet) {
+      const data = usersSheet.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+
+        const rowPhone = (row.Phone || '').replace(/[^0-9]/g, '').slice(-10);
+        if (rowPhone === normalizedPhone) {
+          return row;
+        }
+      }
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Parse natural language status from SMS
+ */
+function parseNaturalLanguageStatus(text) {
+  const lower = text.toLowerCase();
+
+  if (lower.includes('done') || lower.includes('finish') || lower.includes('complete')) {
+    return 'completed';
+  }
+  if (lower.includes('block') || lower.includes('stuck') || lower.includes('can\'t') || lower.includes('cannot')) {
+    return 'blocked';
+  }
+  if (lower.includes('help') || lower.includes('need') || lower.includes('issue') || lower.includes('problem')) {
+    return 'need_help';
+  }
+  if (lower.includes('good') || lower.includes('fine') || lower.includes('ok') || lower.includes('track') || lower.includes('working')) {
+    return 'on_track';
+  }
+
+  return 'on_track'; // Default
+}
+
+/**
+ * Alert manager about a blocker
+ */
+function alertManagerAboutBlocker(params) {
+  try {
+    // Get admin/manager phone from script properties
+    const props = PropertiesService.getScriptProperties();
+    const managerPhone = props.getProperty('MANAGER_PHONE') || props.getProperty('OWNER_PHONE');
+
+    if (!managerPhone) {
+      Logger.log('No manager phone configured for alerts');
+      return;
+    }
+
+    const statusEmoji = params.status === 'blocked' ? '🚫' : '⚠️';
+    const message = `${statusEmoji} TEAM ALERT\n${params.employee.Name || 'Employee'} reports: ${params.status.toUpperCase()}\nTask: ${params.assignment.task}\nMessage: "${params.message}"`;
+
+    sendSMS({ to: managerPhone, message: message });
+  } catch (e) {
+    Logger.log('Error alerting manager: ' + e.message);
+  }
+}
+
+/**
+ * Get team status summary - WHO'S DOING WHAT RIGHT NOW
+ */
+function getTeamStatusSummary() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const now = new Date();
+
+    // Get all active assignments
+    const assignmentsResult = getAllActiveAssignments();
+
+    // Get who's clocked in
+    const clockedIn = getWhosCurrentlyClockedIn();
+
+    // Get recent check-ins
+    const recentCheckins = getRecentCheckins(60); // Last 60 minutes
+
+    // Build team status
+    const teamStatus = {
+      timestamp: now.toISOString(),
+      summary: {
+        totalEmployeesClockedIn: clockedIn.length,
+        totalActiveAssignments: assignmentsResult.assignments?.length || 0,
+        blockedTasks: 0,
+        needHelpTasks: 0,
+        completedToday: 0,
+        overdueTasksg: 0
+      },
+      employees: [],
+      alerts: []
+    };
+
+    // Process by employee
+    const employeeMap = {};
+
+    // Add clocked in employees
+    for (const emp of clockedIn) {
+      employeeMap[emp.employeeId] = {
+        id: emp.employeeId,
+        name: emp.name,
+        clockedIn: true,
+        clockInTime: emp.clockInTime,
+        hoursWorked: emp.hoursWorked,
+        currentTasks: [],
+        status: 'working'
+      };
+    }
+
+    // Add assignments
+    if (assignmentsResult.assignments) {
+      for (const assignment of assignmentsResult.assignments) {
+        const empId = assignment.employeeId;
+        if (!employeeMap[empId]) {
+          employeeMap[empId] = {
+            id: empId,
+            name: assignment.employeeName,
+            clockedIn: false,
+            currentTasks: [],
+            status: 'not_clocked_in'
+          };
+        }
+
+        employeeMap[empId].currentTasks.push({
+          task: assignment.task,
+          status: assignment.status,
+          checkinStatus: assignment.checkinStatus,
+          dueDate: assignment.dueDate,
+          dueTime: assignment.dueTime
+        });
+
+        // Track blocked/need help
+        if (assignment.checkinStatus === 'blocked') {
+          teamStatus.summary.blockedTasks++;
+          teamStatus.alerts.push({
+            type: 'blocked',
+            employee: assignment.employeeName,
+            task: assignment.task
+          });
+        }
+        if (assignment.checkinStatus === 'need_help') {
+          teamStatus.summary.needHelpTasks++;
+          teamStatus.alerts.push({
+            type: 'need_help',
+            employee: assignment.employeeName,
+            task: assignment.task
+          });
+        }
+
+        // Check for overdue
+        if (assignment.dueDate) {
+          const dueDate = new Date(assignment.dueDate);
+          if (dueDate < now && assignment.status !== 'completed') {
+            teamStatus.summary.overdueTasks++;
+          }
+        }
+      }
+    }
+
+    teamStatus.employees = Object.values(employeeMap);
+
+    return { success: true, ...teamStatus };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get employees currently clocked in
+ */
+function getWhosCurrentlyClockedIn() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
+
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const now = new Date();
+
+    const clockedIn = [];
+    const seen = new Set();
+
+    // Go backwards to find most recent entries
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      const empId = row.Employee_ID;
+      if (seen.has(empId)) continue;
+      seen.add(empId);
+
+      if (row.Clock_In && !row.Clock_Out) {
+        const clockInTime = new Date(row.Clock_In);
+        const hoursWorked = (now - clockInTime) / 1000 / 60 / 60;
+
+        // Get employee name
+        const emp = getEmployeeById(empId);
+
+        clockedIn.push({
+          employeeId: empId,
+          name: emp?.Name || emp?.First_Name || empId,
+          clockInTime: row.Clock_In,
+          hoursWorked: hoursWorked.toFixed(2)
+        });
+      }
+    }
+
+    return clockedIn;
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Get recent check-ins
+ */
+function getRecentCheckins(minutes) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TEAM_CHECKINS);
+
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+
+    const checkins = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      const timestamp = new Date(row.Timestamp);
+      if (timestamp >= cutoff) {
+        checkins.push(row);
+      }
+    }
+
+    return checkins;
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Send morning task assignments to all employees
+ */
+function sendMorningTaskAssignments() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
+
+    if (!sheet) return { success: false, error: 'No assignments sheet' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Group today's assignments by employee
+    const byEmployee = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Due_Date === today && row.Status !== 'completed' && row.Status !== 'cancelled') {
+        const empId = row.Employee_ID;
+        if (!byEmployee[empId]) {
+          byEmployee[empId] = {
+            employee: getEmployeeById(empId),
+            tasks: []
+          };
+        }
+        byEmployee[empId].tasks.push(row.Task_Description);
+      }
+    }
+
+    // Send SMS to each employee
+    const results = [];
+    for (const empId in byEmployee) {
+      const { employee, tasks } = byEmployee[empId];
+      if (employee && employee.Phone) {
+        const taskList = tasks.map((t, i) => `${i + 1}. ${t}`).join('\n');
+        const message = `[Tiny Seed] Good morning! Today's tasks:\n${taskList}\n\nReply when starting. Have a great day!`;
+
+        try {
+          sendSMS({ to: employee.Phone, message: message });
+          results.push({ employee: employee.Name, success: true });
+        } catch (e) {
+          results.push({ employee: employee.Name, success: false, error: e.message });
+        }
+      }
+    }
+
+    return { success: true, sent: results.length, results: results };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Proactive check on overdue tasks
+ * Run this on a schedule (every 2 hours)
+ */
+function proactiveTaskCheck() {
+  try {
+    const now = new Date();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
+
+    if (!sheet) return { success: false, error: 'No assignments sheet' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const alerts = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Status === 'completed' || row.Status === 'cancelled') continue;
+
+      // Check if overdue
+      const dueDateTime = new Date(`${row.Due_Date}T${row.Due_Time || '17:00'}`);
+      if (dueDateTime < now) {
+        alerts.push({
+          type: 'overdue',
+          employeeName: row.Employee_Name,
+          employeeId: row.Employee_ID,
+          task: row.Task_Description,
+          overdueMins: Math.round((now - dueDateTime) / 1000 / 60)
+        });
+
+        // Request check-in if no recent check-in
+        const lastCheckin = row.Last_Checkin ? new Date(row.Last_Checkin) : null;
+        const hoursSinceCheckin = lastCheckin ? (now - lastCheckin) / 1000 / 60 / 60 : 999;
+
+        if (hoursSinceCheckin > 2) {
+          requestCheckinViaSMS({
+            employeeId: row.Employee_ID,
+            taskDescription: row.Task_Description
+          });
+        }
+      }
+
+      // Check if no check-in for in-progress tasks
+      if (row.Status === 'in_progress') {
+        const lastCheckin = row.Last_Checkin ? new Date(row.Last_Checkin) : null;
+        const hoursSinceCheckin = lastCheckin ? (now - lastCheckin) / 1000 / 60 / 60 : 999;
+
+        if (hoursSinceCheckin > 3) {
+          alerts.push({
+            type: 'no_checkin',
+            employeeName: row.Employee_Name,
+            task: row.Task_Description,
+            hoursSinceCheckin: hoursSinceCheckin.toFixed(1)
+          });
+        }
+      }
+    }
+
+    return { success: true, alerts: alerts, alertCount: alerts.length };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
@@ -27798,8 +28830,8 @@ const PLAID_CONFIG = {
     get SECRET() {
         return PropertiesService.getScriptProperties().getProperty('PLAID_SECRET') || '';
     },
-    ENV: 'development',
-    BASE_URL: 'https://development.plaid.com',
+    ENV: 'production',
+    BASE_URL: 'https://production.plaid.com',
     PRODUCTS: ['transactions'],
     COUNTRY_CODES: ['US'],
     LANGUAGE: 'en'
