@@ -3243,7 +3243,9 @@
             const assetsEl = document.getElementById('total-assets');
             const debtEl = document.getElementById('total-debt');
 
-            if (netWorthEl) netWorthEl.textContent = 'Connect bank accounts';
+            if (netWorthEl) {
+                netWorthEl.innerHTML = '<a href="#" onclick="connectBankWithPlaid(); return false;" style="color: var(--primary-light); text-decoration: underline; cursor: pointer;">Click to connect banks</a>';
+            }
             if (assetsEl) assetsEl.textContent = '--';
             if (debtEl) debtEl.textContent = '--';
         }
