@@ -1012,6 +1012,31 @@
                 </div>
 
                 <div class="nav-section">
+                    <div class="nav-section-title">Social Media</div>
+                    <a class="nav-item" onclick="showSection('socialBrain')">
+                        <i class="fas fa-brain"></i>
+                        <span>Social Brain</span>
+                        <span class="nav-item-badge info" id="socialUrgentBadge" style="display:none;">!</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('socialSettings')">
+                        <i class="fas fa-cog"></i>
+                        <span>Social Config</span>
+                    </a>
+                    <a class="nav-item" href="social-intelligence.html">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Full Dashboard</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Data Tools</div>
+                    <a class="nav-item" onclick="showSection('dataImport')">
+                        <i class="fas fa-camera"></i>
+                        <span>Smart Import</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
                     <div class="nav-section-title">Quick Links</div>
                     <a class="nav-item" href="../index.html">
                         <i class="fas fa-home"></i>
@@ -1722,6 +1747,345 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     SOCIAL BRAIN SECTION
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-socialBrain">
+                    <div class="alert alert-info" style="margin-bottom: 20px;">
+                        <i class="fas fa-robot"></i>
+                        <div class="alert-content">
+                            <div class="alert-title">Autonomous Social Media Brain</div>
+                            <div class="alert-message">AI-powered social media management that tells YOU what to do. View full dashboard for complete features.</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(230, 57, 70, 0.1); color: #e63946;"><i class="fas fa-fire"></i></div>
+                            <div class="stat-value" id="adminUrgentCount">--</div>
+                            <div class="stat-label">Urgent Actions</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i class="fas fa-tasks"></i></div>
+                            <div class="stat-value" id="adminTodayCount">--</div>
+                            <div class="stat-label">Today's Tasks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;"><i class="fas fa-heart"></i></div>
+                            <div class="stat-value" id="adminSentimentStatus">--</div>
+                            <div class="stat-label">Sentiment Status</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;"><i class="fas fa-graduation-cap"></i></div>
+                            <div class="stat-value" id="adminTrainingCount">--</div>
+                            <div class="stat-label">Voice Training Posts</div>
+                        </div>
+                    </div>
+
+                    <!-- Urgent Actions Queue -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-exclamation-circle" style="color: #e63946;"></i>
+                                Urgent Actions Queue
+                            </div>
+                            <button class="btn btn-secondary" onclick="refreshSocialBrain()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="card-body" id="adminUrgentActions">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                                Loading urgent actions...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Training -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-graduation-cap" style="color: #22c55e;"></i>
+                                Quick Voice Training
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Paste a high-performing post to train the AI on your voice.</p>
+                            <div class="form-group">
+                                <textarea class="form-input" id="adminTrainingPost" placeholder="Paste a post here..." rows="4" style="resize: vertical;"></textarea>
+                            </div>
+                            <div class="form-row" style="gap: 12px; align-items: center;">
+                                <select class="form-select" id="adminTrainingCategory" style="width: auto;">
+                                    <option value="harvest">Harvest</option>
+                                    <option value="behind_scenes">Behind Scenes</option>
+                                    <option value="educational">Educational</option>
+                                    <option value="promo">Promotional</option>
+                                </select>
+                                <input type="number" class="form-input" id="adminTrainingEngagement" placeholder="Engagement (likes)" style="width: 150px;">
+                                <button class="btn btn-primary" onclick="adminAddTrainingPost()">
+                                    <i class="fas fa-plus"></i> Add to Training
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-bolt"></i>
+                                Quick Actions
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row" style="gap: 12px; flex-wrap: wrap;">
+                                <button class="btn btn-primary" onclick="window.open('social-intelligence.html', '_blank')">
+                                    <i class="fas fa-external-link-alt"></i> Open Full Dashboard
+                                </button>
+                                <button class="btn btn-secondary" onclick="adminGenerateBriefing()">
+                                    <i class="fas fa-brain"></i> Generate Fresh Briefing
+                                </button>
+                                <button class="btn btn-secondary" onclick="adminGenerateCalendar()">
+                                    <i class="fas fa-calendar-plus"></i> Generate Week Plan
+                                </button>
+                                <button class="btn btn-danger" onclick="adminPauseAllPosts()">
+                                    <i class="fas fa-pause"></i> Pause All Posts
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     SOCIAL SETTINGS SECTION
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-socialSettings">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-bell"></i>
+                                SMS Alert Settings
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Get SMS alerts when urgent social media actions need attention (sales opportunities, complaints, crises).</p>
+                            <div class="form-group">
+                                <label class="form-label">Owner Phone Number</label>
+                                <input type="tel" class="form-input" id="ownerPhoneInput" placeholder="+1 (555) 123-4567">
+                                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                                    Format: +1XXXXXXXXXX or 10-digit number
+                                </small>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveOwnerPhone()">
+                                <i class="fas fa-save"></i> Save Phone
+                            </button>
+                            <button class="btn btn-secondary" onclick="testSocialAlert()" style="margin-left: 8px;">
+                                <i class="fas fa-paper-plane"></i> Send Test Alert
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-clock"></i>
+                                Daily Briefing Automation
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Enable automatic daily briefing generation at 6 AM EST.</p>
+                            <button class="btn btn-primary" onclick="setupBriefingTrigger()">
+                                <i class="fas fa-play"></i> Enable Daily Briefings
+                            </button>
+                            <p id="briefingTriggerStatus" style="margin-top: 12px; color: var(--success); display: none;">
+                                <i class="fas fa-check-circle"></i> Daily briefing trigger is active.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fab fa-instagram"></i>
+                                Instagram API Configuration
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Connect Instagram for direct posting and engagement tracking.</p>
+                            <div class="form-group">
+                                <label class="form-label">Instagram User ID</label>
+                                <input type="text" class="form-input" id="igUserId" placeholder="17841400xxxxxxx">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Facebook Access Token</label>
+                                <input type="password" class="form-input" id="igAccessToken" placeholder="EAAxxxxxx...">
+                                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                                    From Facebook Developer Portal > Instagram Graph API
+                                </small>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveInstagramConfig()">
+                                <i class="fas fa-save"></i> Save Instagram Config
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-key"></i>
+                                AI API Keys
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Claude API Key (Anthropic)</label>
+                                <input type="password" class="form-input" id="anthropicApiKey" placeholder="sk-ant-xxxxx">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">OpenAI API Key (Fallback)</label>
+                                <input type="password" class="form-input" id="openaiApiKey" placeholder="sk-xxxxx">
+                            </div>
+                            <button class="btn btn-primary" onclick="saveAIKeys()">
+                                <i class="fas fa-save"></i> Save API Keys
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     DATA IMPORT SECTION
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-dataImport">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-camera"></i>
+                                Smart Data Import
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                                Take a photo of any farming reference material and let AI extract actionable data.
+                                Works with books, calendars, seed catalogs, pest guides, and more.
+                            </p>
+
+                            <!-- Context Description -->
+                            <div class="form-group">
+                                <label class="form-label">What is this data about?</label>
+                                <textarea class="form-input" id="importContext" rows="3"
+                                    placeholder="Describe what you're uploading. Examples:
+• 'Monthly planting calendar from Johnny's Seeds catalog'
+• 'Pest identification chart for tomato diseases'
+• 'Seed spacing guide from my farming book'
+• 'Recipe for organic fertilizer mix'"></textarea>
+                                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                                    The more context you provide, the better the AI can organize the data.
+                                </small>
+                            </div>
+
+                            <!-- Data Category -->
+                            <div class="form-group">
+                                <label class="form-label">Category</label>
+                                <select class="form-input" id="importCategory">
+                                    <option value="auto">🤖 Auto-detect</option>
+                                    <option value="farming-calendar">📅 Planting Calendar / Schedule</option>
+                                    <option value="crop-guide">🌱 Crop Growing Guide</option>
+                                    <option value="pest-disease">🐛 Pest / Disease Reference</option>
+                                    <option value="seed-info">🌾 Seed Catalog / Variety Info</option>
+                                    <option value="recipe">🧪 Recipe / Fertilizer Mix</option>
+                                    <option value="spacing-chart">📏 Spacing / Planting Chart</option>
+                                    <option value="harvest-guide">🥬 Harvest Timing Guide</option>
+                                    <option value="equipment">🔧 Equipment / Tool Guide</option>
+                                    <option value="business">💼 Business / Pricing Info</option>
+                                    <option value="general">📝 General Notes</option>
+                                </select>
+                            </div>
+
+                            <!-- Photo Upload -->
+                            <div class="form-group">
+                                <label class="form-label">Upload Photo</label>
+                                <div id="importDropZone" style="
+                                    border: 2px dashed var(--border);
+                                    border-radius: 12px;
+                                    padding: 40px;
+                                    text-align: center;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                    background: var(--bg-elevated);
+                                " onclick="document.getElementById('importFileInput').click()">
+                                    <i class="fas fa-camera" style="font-size: 48px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
+                                    <div style="color: var(--text-primary); font-weight: 500; margin-bottom: 8px;">
+                                        Tap to take photo or select image
+                                    </div>
+                                    <div style="color: var(--text-muted); font-size: 14px;">
+                                        Supports JPG, PNG, HEIC
+                                    </div>
+                                </div>
+                                <input type="file" id="importFileInput" accept="image/*" capture="environment" style="display: none;" onchange="handleImportFile(event)">
+                            </div>
+
+                            <!-- Preview Area -->
+                            <div id="importPreview" style="display: none; margin-top: 16px;">
+                                <div style="position: relative; display: inline-block; max-width: 100%;">
+                                    <img id="importPreviewImg" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid var(--border);">
+                                    <button onclick="clearImportPreview()" style="
+                                        position: absolute;
+                                        top: 8px;
+                                        right: 8px;
+                                        background: var(--danger);
+                                        color: white;
+                                        border: none;
+                                        border-radius: 50%;
+                                        width: 32px;
+                                        height: 32px;
+                                        cursor: pointer;
+                                    "><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+
+                            <!-- Process Button -->
+                            <button class="btn btn-primary" onclick="processImport()" style="margin-top: 16px; width: 100%;">
+                                <i class="fas fa-magic"></i> Extract & Organize Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Extracted Data Results -->
+                    <div class="card" style="margin-top: 20px; display: none;" id="importResultsCard">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-list-check"></i>
+                                <span id="importResultsTitle">Extracted Data</span>
+                            </div>
+                            <button class="btn btn-sm btn-success" onclick="importAllExtracted()">
+                                <i class="fas fa-check-double"></i> Import All
+                            </button>
+                        </div>
+                        <div class="card-body" id="importResultsBody">
+                            <!-- Results populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Recent Imports -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-history"></i>
+                                Recent Imports
+                            </div>
+                            <button class="btn btn-sm" onclick="loadRecentImports()">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                        <div class="card-body" id="recentImportsBody">
+                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                                <i class="fas fa-info-circle"></i> No recent imports
+                            </p>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -1894,6 +2258,63 @@
         ];
 
         // ════════════════════════════════════════════════════════════════════════════
+        // SOCIAL MEDIA BRAIN ADMIN FUNCTIONS
+        // ════════════════════════════════════════════════════════════════════════════
+
+        async function loadSocialBrainAdmin() {
+            try {
+                const response = await fetch(`${API_URL}?action=getSocialActionQueue`);
+                const data = await response.json();
+                if (data.success) {
+                    const queue = data.actionQueue || {};
+                    document.getElementById('adminUrgentCount').textContent = (queue.urgent || []).length;
+                    document.getElementById('adminTodayCount').textContent = (queue.today || []).length;
+                    const badge = document.getElementById('socialUrgentBadge');
+                    if ((queue.urgent || []).length > 0) { badge.style.display = 'inline'; badge.textContent = queue.urgent.length; }
+                    else { badge.style.display = 'none'; }
+                    renderAdminUrgentActions(queue.urgent || []);
+                }
+                const trainingRes = await fetch(`${API_URL}?action=getTrainingPosts`);
+                const trainingData = await trainingRes.json();
+                if (trainingData.success) document.getElementById('adminTrainingCount').textContent = trainingData.count || 0;
+                const sentRes = await fetch(`${API_URL}?action=checkSentimentHealth`);
+                const sentData = await sentRes.json();
+                if (sentData.success) {
+                    const map = { healthy: '✓ Healthy', warning: '⚠ Warning', crisis: '🚨 CRISIS' };
+                    document.getElementById('adminSentimentStatus').textContent = map[sentData.status] || '--';
+                }
+            } catch (e) { console.error('Error loading social brain:', e); }
+        }
+
+        function renderAdminUrgentActions(actions) {
+            const c = document.getElementById('adminUrgentActions');
+            if (actions.length === 0) { c.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fas fa-check-circle" style="font-size:48px;color:var(--success);display:block;margin-bottom:16px;"></i><h3>No Urgent Actions!</h3><p>You\'re all caught up.</p></div>'; return; }
+            c.innerHTML = actions.map((a,i) => `<div style="background:var(--bg-elevated);border-radius:8px;padding:16px;margin-bottom:12px;border-left:3px solid var(--danger);"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;"><div style="flex:1;"><span class="badge badge-danger" style="margin-bottom:8px;">${(a.type||'ACTION').replace(/_/g,' ')}</span><p style="font-weight:500;margin-bottom:4px;">${a.action||'Take action'}</p>${a.estimatedImpact?`<p style="font-size:13px;color:var(--text-secondary);"><i class="fas fa-chart-line"></i> ${a.estimatedImpact}</p>`:''}</div><button class="btn btn-success" onclick="markAdminActionDone(${i})"><i class="fas fa-check"></i> Done</button></div></div>`).join('');
+        }
+
+        async function markAdminActionDone(i) { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'markSocialActionComplete', actionType: 'urgent', actionId: 'urgent_'+i }) }); showToast('Done!', 'success'); loadSocialBrainAdmin(); }
+        function refreshSocialBrain() { loadSocialBrainAdmin(); showToast('Refreshing...', 'info'); }
+
+        async function adminAddTrainingPost() {
+            const c = document.getElementById('adminTrainingPost').value.trim();
+            if (!c) { showToast('Enter a post', 'error'); return; }
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addTrainingPost', content: c, category: document.getElementById('adminTrainingCategory').value, engagementScore: parseInt(document.getElementById('adminTrainingEngagement').value)||0, platform: 'instagram' }) });
+            const r = await res.json();
+            if (r.success) { showToast('Added!', 'success'); document.getElementById('adminTrainingPost').value = ''; loadSocialBrainAdmin(); }
+            else showToast('Error: ' + r.error, 'error');
+        }
+
+        async function adminGenerateBriefing() { showToast('Generating...', 'info'); await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'generateDailyBriefing' }) }); showToast('Done!', 'success'); loadSocialBrainAdmin(); }
+        async function adminGenerateCalendar() { showToast('Generating calendar...', 'info'); const r = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'generateContentCalendar' }) })).json(); showToast(r.success ? 'Calendar generated!' : 'Error: ' + r.error, r.success ? 'success' : 'error'); }
+        async function adminPauseAllPosts() { if (!confirm('Pause ALL scheduled posts?')) return; const r = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'pauseAllScheduledPosts', reason: 'Admin pause' }) })).json(); showToast(`Paused ${r.pausedCount || 0} posts`, 'success'); }
+
+        async function saveOwnerPhone() { const p = document.getElementById('ownerPhoneInput').value.trim(); if (!p) { showToast('Enter phone', 'error'); return; } const r = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'configureOwnerPhone', phone: p }) })).json(); showToast(r.success ? 'Saved!' : 'Error: ' + r.error, r.success ? 'success' : 'error'); }
+        async function testSocialAlert() { showToast('Sending test...', 'info'); const r = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'sendSocialBrainAlert', urgentCount: 1, status: 'test', topUrgent: { type: 'TEST', action: 'Test alert from Social Brain' } }) })).json(); showToast(r.success ? 'Sent!' : 'Error: ' + r.error, r.success ? 'success' : 'error'); }
+        async function setupBriefingTrigger() { const r = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'setupDailyBriefingTrigger' }) })).json(); if (r.success) { showToast('Enabled!', 'success'); document.getElementById('briefingTriggerStatus').style.display = 'block'; } else showToast('Error: ' + r.error, 'error'); }
+        async function saveInstagramConfig() { const u = document.getElementById('igUserId').value.trim(), t = document.getElementById('igAccessToken').value.trim(); if (!u || !t) { showToast('Fill both fields', 'error'); return; } const r = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'configureInstagramAccount', name: 'Primary', igUserId: u, accessToken: t }) })).json(); showToast(r.success ? 'Saved!' : 'Error: ' + r.error, r.success ? 'success' : 'error'); }
+        async function saveAIKeys() { const a = document.getElementById('anthropicApiKey').value.trim(), o = document.getElementById('openaiApiKey').value.trim(); if (a) await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'configureClaudeAPI', apiKey: a }) }); if (o) await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'configureOpenAI', apiKey: o }) }); showToast('API keys saved!', 'success'); }
+
+        // ════════════════════════════════════════════════════════════════════════════
         // INITIALIZATION
         // ════════════════════════════════════════════════════════════════════════════
 
@@ -1951,8 +2372,20 @@
                 'status': 'System Status',
                 'audit': 'Audit Log',
                 'settings': 'Settings',
-                'integrations': 'Integrations'
+                'integrations': 'Integrations',
+                'socialBrain': 'Social Media Brain',
+                'socialSettings': 'Social Media Settings',
+                'dataImport': 'Smart Data Import'
             };
+
+            // Load social data when switching to social sections
+            if (sectionId === 'socialBrain') {
+                loadSocialBrainAdmin();
+            }
+            // Load recent imports when switching to data import
+            if (sectionId === 'dataImport') {
+                loadRecentImports();
+            }
             document.getElementById('sectionTitle').textContent = titles[sectionId] || 'Dashboard';
 
             // Load integration status when switching to integrations
@@ -2501,6 +2934,247 @@
             // Note: In production, these would be saved to Script Properties
             // For now, user needs to manually update SHOPIFY_CONFIG in MERGED TOTAL.js
         }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // SMART DATA IMPORT
+        // ════════════════════════════════════════════════════════════════════════════
+
+        let importImageData = null;
+        let extractedItems = [];
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                importImageData = e.target.result;
+                document.getElementById('importPreviewImg').src = importImageData;
+                document.getElementById('importPreview').style.display = 'block';
+                document.getElementById('importDropZone').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImportPreview() {
+            importImageData = null;
+            document.getElementById('importPreview').style.display = 'none';
+            document.getElementById('importDropZone').style.display = 'block';
+            document.getElementById('importFileInput').value = '';
+        }
+
+        async function processImport() {
+            const context = document.getElementById('importContext').value;
+            const category = document.getElementById('importCategory').value;
+
+            if (!importImageData) {
+                showToast('Please take or select a photo first', 'warning');
+                return;
+            }
+
+            if (!context.trim()) {
+                showToast('Please describe what this data is about', 'warning');
+                return;
+            }
+
+            showToast('Processing image with AI...', 'info');
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'extractTasksFromImage',
+                        imageBase64: importImageData.split(',')[1],
+                        context: category === 'auto' ? context : category,
+                        userDescription: context,
+                        sourceName: 'Admin Import'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.tasks && result.tasks.length > 0) {
+                    extractedItems = result.tasks;
+                    displayExtractedResults(result);
+                    showToast(`Found ${result.tasks.length} items to import!`, 'success');
+                } else if (result.success && (!result.tasks || result.tasks.length === 0)) {
+                    showToast('No actionable data found in the image. Try adjusting the context description.', 'warning');
+                } else {
+                    showToast(result.error || 'Failed to process image', 'error');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast('Error processing import: ' + error.message, 'error');
+            }
+        }
+
+        function displayExtractedResults(result) {
+            const card = document.getElementById('importResultsCard');
+            const body = document.getElementById('importResultsBody');
+            const title = document.getElementById('importResultsTitle');
+
+            card.style.display = 'block';
+            title.textContent = `Extracted Data (${result.tasks.length} items)`;
+
+            const categoryIcons = {
+                'farming-calendar': '📅',
+                'crop-guide': '🌱',
+                'pest-disease': '🐛',
+                'seed-info': '🌾',
+                'recipe': '🧪',
+                'spacing-chart': '📏',
+                'harvest-guide': '🥬',
+                'equipment': '🔧',
+                'business': '💼',
+                'general': '📝'
+            };
+
+            body.innerHTML = result.tasks.map((task, index) => `
+                <div class="import-item" style="
+                    background: var(--bg-elevated);
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin-bottom: 12px;
+                    border: 1px solid var(--border);
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 20px;">${categoryIcons[task.category] || '📋'}</span>
+                            <strong style="color: var(--text-primary);">${task.title || task.task}</strong>
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <input type="checkbox" checked data-index="${index}" class="import-checkbox" style="width: 18px; height: 18px;">
+                            <span style="color: var(--text-secondary); font-size: 12px;">Import</span>
+                        </label>
+                    </div>
+                    ${task.description ? `<p style="color: var(--text-secondary); margin: 8px 0; font-size: 14px;">${task.description}</p>` : ''}
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        ${task.timing ? `<span style="background: var(--info-bg); color: var(--info); padding: 4px 8px; border-radius: 4px; font-size: 12px;">⏰ ${task.timing}</span>` : ''}
+                        ${task.crop ? `<span style="background: var(--success-bg); color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 12px;">🌱 ${task.crop}</span>` : ''}
+                        ${task.confidence ? `<span style="background: var(--bg-card); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${Math.round(task.confidence * 100)}% confidence</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function importAllExtracted() {
+            const checkboxes = document.querySelectorAll('.import-checkbox:checked');
+            const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.index));
+
+            if (selectedIndices.length === 0) {
+                showToast('No items selected for import', 'warning');
+                return;
+            }
+
+            const tasksToImport = selectedIndices.map(i => extractedItems[i]);
+
+            showToast(`Importing ${tasksToImport.length} items...`, 'info');
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'importBookTasks',
+                        tasks: tasksToImport
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Successfully imported ${result.imported} items!`, 'success');
+                    document.getElementById('importResultsCard').style.display = 'none';
+                    clearImportPreview();
+                    document.getElementById('importContext').value = '';
+                    loadRecentImports();
+                } else {
+                    showToast(result.error || 'Failed to import items', 'error');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast('Error importing items: ' + error.message, 'error');
+            }
+        }
+
+        async function loadRecentImports() {
+            const body = document.getElementById('recentImportsBody');
+
+            try {
+                const response = await fetch(`${API_BASE}?action=getBookImportedTasks&limit=10`);
+                const result = await response.json();
+
+                if (result.success && result.tasks && result.tasks.length > 0) {
+                    body.innerHTML = result.tasks.map(task => `
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            padding: 12px;
+                            border-bottom: 1px solid var(--border);
+                            align-items: center;
+                        ">
+                            <div>
+                                <div style="color: var(--text-primary); font-weight: 500;">${task.Title || task.Task}</div>
+                                <div style="color: var(--text-muted); font-size: 12px;">
+                                    ${task.Source || 'Unknown source'} • ${task.ImportedAt ? new Date(task.ImportedAt).toLocaleDateString() : 'Unknown date'}
+                                </div>
+                            </div>
+                            <span style="
+                                background: ${task.Status === 'Converted' ? 'var(--success-bg)' : 'var(--warning-bg)'};
+                                color: ${task.Status === 'Converted' ? 'var(--success)' : 'var(--warning)'};
+                                padding: 4px 8px;
+                                border-radius: 4px;
+                                font-size: 12px;
+                            ">${task.Status || 'Pending'}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    body.innerHTML = `
+                        <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                            <i class="fas fa-info-circle"></i> No recent imports
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading recent imports:', error);
+                body.innerHTML = `
+                    <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                        <i class="fas fa-exclamation-circle"></i> Failed to load recent imports
+                    </p>
+                `;
+            }
+        }
+
+        // Setup drag and drop for import
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('importDropZone');
+            if (dropZone) {
+                dropZone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    dropZone.style.borderColor = 'var(--primary)';
+                    dropZone.style.background = 'rgba(45, 90, 39, 0.1)';
+                });
+
+                dropZone.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    dropZone.style.borderColor = 'var(--border)';
+                    dropZone.style.background = 'var(--bg-elevated)';
+                });
+
+                dropZone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    dropZone.style.borderColor = 'var(--border)';
+                    dropZone.style.background = 'var(--bg-elevated)';
+
+                    if (e.dataTransfer.files.length > 0) {
+                        const fileInput = document.getElementById('importFileInput');
+                        fileInput.files = e.dataTransfer.files;
+                        handleImportFile({ target: fileInput });
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "name": "tiny-seed-mcp",
+  "version": "1.0.0",
+  "description": "MCP Server for Tiny Seed Farm - Gives Claude direct access to farm operations",
+  "main": "tiny-seed-mcp.js",
+  "bin": {
+    "tiny-seed-mcp": "./tiny-seed-mcp.js"
+  },
+  "scripts": {
+    "start": "node tiny-seed-mcp.js"
+  },
+  "keywords": ["mcp", "claude", "farm", "tiny-seed"],
+  "author": "Tiny Seed Farm",
+  "license": "MIT"
+}

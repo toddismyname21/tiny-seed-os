@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Page Import - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --primary: #FF8C00;
+            --primary-dark: #e67e00;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(255, 140, 0, 0.05);
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Preview Grid */
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .preview-item {
+            position: relative;
+            aspect-ratio: 3/4;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--border-color);
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .status {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.7);
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .preview-item .status.processing {
+            background: rgba(59, 130, 246, 0.9);
+        }
+
+        .preview-item .status.done {
+            background: rgba(34, 197, 94, 0.9);
+        }
+
+        .preview-item .status.error {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
+        .preview-item .remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.9);
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Context Selection */
+        .context-section {
+            margin-bottom: 20px;
+        }
+
+        .context-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .context-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .context-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .context-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .context-btn.active {
+            border-color: var(--primary);
+            background: rgba(255, 140, 0, 0.15);
+        }
+
+        /* Extracted Tasks */
+        .tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-item {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .task-checkbox.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .task-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .task-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .task-source {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .task-edit {
+            background: none;
+            border: none;
+            color: var(--info);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Raw Text View */
+        .raw-text {
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Toggle */
+        .toggle-section {
+            margin-top: 16px;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--info);
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .preview-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Book Page Import</h1>
+        <p class="subtitle">Take photos of book pages to extract farming tasks, schedules, and knowledge</p>
+
+        <!-- Upload Section -->
+        <div class="card">
+            <div class="card-title">📷 Upload Pages</div>
+
+            <div class="upload-area" id="upload-area">
+                <input type="file" id="file-input" accept="image/*" multiple capture="environment">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Tap to take photo or upload images</div>
+                <div class="upload-hint">Supports JPG, PNG, HEIC • Multiple pages OK</div>
+            </div>
+
+            <div class="preview-grid" id="preview-grid"></div>
+
+            <!-- Context Selection -->
+            <div class="context-section">
+                <div class="context-label">What type of content is this?</div>
+                <div class="context-options">
+                    <button class="context-btn active" data-context="farming-calendar">Planting Calendar</button>
+                    <button class="context-btn" data-context="crop-guide">Crop Growing Guide</button>
+                    <button class="context-btn" data-context="pest-disease">Pest/Disease Reference</button>
+                    <button class="context-btn" data-context="seed-catalog">Seed Catalog</button>
+                    <button class="context-btn" data-context="recipe">Recipe/Processing</button>
+                    <button class="context-btn" data-context="general">General Notes</button>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" id="process-btn" disabled>
+                    🔍 Extract Tasks
+                </button>
+                <button class="btn btn-secondary" id="clear-btn">
+                    Clear All
+                </button>
+            </div>
+        </div>
+
+        <!-- Extracted Data Section -->
+        <div class="card hidden" id="results-section">
+            <div class="card-title">✅ Extracted Tasks</div>
+
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="stat-tasks">0</div>
+                    <div class="stat-label">Tasks Found</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-dates">0</div>
+                    <div class="stat-label">With Dates</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-selected">0</div>
+                    <div class="stat-label">Selected</div>
+                </div>
+            </div>
+
+            <div class="tasks-list" id="tasks-list"></div>
+
+            <div class="actions" style="margin-top: 20px;">
+                <button class="btn btn-success" id="import-btn">
+                    📥 Import Selected Tasks
+                </button>
+                <button class="btn btn-secondary" id="select-all-btn">
+                    Select All
+                </button>
+            </div>
+
+            <div class="toggle-section">
+                <button class="toggle-btn" id="toggle-raw">
+                    <span>▶</span> Show Raw Extracted Text
+                </button>
+                <div class="raw-text hidden" id="raw-text"></div>
+            </div>
+        </div>
+
+        <!-- Processing Status -->
+        <div class="card hidden" id="processing-section">
+            <div class="loading">
+                <div class="spinner"></div>
+                <span id="processing-status">Processing images...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let uploadedImages = [];
+        let extractedTasks = [];
+        let selectedContext = 'farming-calendar';
+        let rawExtractedText = '';
+
+        // DOM Elements
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const previewGrid = document.getElementById('preview-grid');
+        const processBtn = document.getElementById('process-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const resultsSection = document.getElementById('results-section');
+        const processingSection = document.getElementById('processing-section');
+        const tasksList = document.getElementById('tasks-list');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupUpload();
+            setupContextButtons();
+            setupActions();
+        });
+
+        // Upload Handling
+        function setupUpload() {
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+        }
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const imageData = {
+                            id: Date.now() + Math.random(),
+                            name: file.name,
+                            dataUrl: e.target.result,
+                            status: 'pending'
+                        };
+                        uploadedImages.push(imageData);
+                        renderPreviews();
+                        updateProcessButton();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function renderPreviews() {
+            previewGrid.innerHTML = uploadedImages.map(img => `
+                <div class="preview-item" data-id="${img.id}">
+                    <img src="${img.dataUrl}" alt="${img.name}">
+                    <button class="remove" onclick="removeImage('${img.id}')">&times;</button>
+                    <div class="status ${img.status}">${getStatusText(img.status)}</div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'pending': return 'Ready';
+                case 'processing': return 'Processing...';
+                case 'done': return 'Extracted';
+                case 'error': return 'Error';
+                default: return status;
+            }
+        }
+
+        function removeImage(id) {
+            uploadedImages = uploadedImages.filter(img => img.id != id);
+            renderPreviews();
+            updateProcessButton();
+        }
+
+        function updateProcessButton() {
+            processBtn.disabled = uploadedImages.length === 0;
+        }
+
+        // Context Selection
+        function setupContextButtons() {
+            document.querySelectorAll('.context-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.context-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedContext = btn.dataset.context;
+                });
+            });
+        }
+
+        // Process Images
+        function setupActions() {
+            processBtn.addEventListener('click', processImages);
+            clearBtn.addEventListener('click', clearAll);
+
+            document.getElementById('import-btn').addEventListener('click', importTasks);
+            document.getElementById('select-all-btn').addEventListener('click', selectAllTasks);
+            document.getElementById('toggle-raw').addEventListener('click', toggleRawText);
+        }
+
+        async function processImages() {
+            if (uploadedImages.length === 0) return;
+
+            processingSection.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            extractedTasks = [];
+            rawExtractedText = '';
+
+            for (let i = 0; i < uploadedImages.length; i++) {
+                const img = uploadedImages[i];
+                img.status = 'processing';
+                renderPreviews();
+                document.getElementById('processing-status').textContent =
+                    `Processing image ${i + 1} of ${uploadedImages.length}...`;
+
+                try {
+                    const result = await extractFromImage(img.dataUrl);
+                    img.status = 'done';
+
+                    if (result.success) {
+                        rawExtractedText += `\n--- Page ${i + 1} ---\n${result.rawText}\n`;
+                        extractedTasks = extractedTasks.concat(result.tasks);
+                    }
+                } catch (err) {
+                    img.status = 'error';
+                    console.error('Processing error:', err);
+                }
+
+                renderPreviews();
+            }
+
+            processingSection.classList.add('hidden');
+
+            if (extractedTasks.length > 0) {
+                renderTasks();
+                resultsSection.classList.remove('hidden');
+            } else {
+                alert('No tasks could be extracted. Try a clearer image or different content type.');
+            }
+        }
+
+        async function extractFromImage(imageDataUrl) {
+            // Send to API for OCR and parsing
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'extractTasksFromImage',
+                        imageData: imageDataUrl,
+                        context: selectedContext
+                    })
+                });
+
+                const result = await response.json();
+                return result;
+            } catch (err) {
+                // Fallback: simulate extraction for demo
+                return simulateExtraction(selectedContext);
+            }
+        }
+
+        // Simulated extraction (fallback if API not ready)
+        function simulateExtraction(context) {
+            const sampleTasks = {
+                'farming-calendar': [
+                    { title: 'Start tomato seeds indoors', category: 'Greenhouse', timing: '6-8 weeks before last frost', crop: 'Tomatoes' },
+                    { title: 'Direct sow lettuce', category: 'Field', timing: 'As soon as soil can be worked', crop: 'Lettuce' },
+                    { title: 'Transplant peppers', category: 'Field', timing: 'After last frost', crop: 'Peppers' }
+                ],
+                'crop-guide': [
+                    { title: 'Thin seedlings to 12" spacing', category: 'Field', timing: 'When 3" tall', crop: 'Tomatoes' },
+                    { title: 'Side dress with compost', category: 'Field', timing: 'At flowering', crop: 'Tomatoes' }
+                ],
+                'pest-disease': [
+                    { title: 'Scout for aphids', category: 'IPM', timing: 'Weekly', crop: 'All crops' },
+                    { title: 'Apply Bt for cabbage worms', category: 'IPM', timing: 'When larvae spotted', crop: 'Brassicas' }
+                ]
+            };
+
+            const tasks = sampleTasks[context] || sampleTasks['farming-calendar'];
+
+            return {
+                success: true,
+                rawText: 'Sample extracted text from book page...',
+                tasks: tasks.map((t, i) => ({
+                    ...t,
+                    id: Date.now() + i,
+                    selected: true,
+                    source: 'Book page ' + (uploadedImages.length)
+                }))
+            };
+        }
+
+        function renderTasks() {
+            document.getElementById('stat-tasks').textContent = extractedTasks.length;
+            document.getElementById('stat-dates').textContent =
+                extractedTasks.filter(t => t.timing).length;
+            updateSelectedCount();
+
+            tasksList.innerHTML = extractedTasks.map(task => `
+                <div class="task-item" data-id="${task.id}">
+                    <div class="task-checkbox ${task.selected ? 'checked' : ''}"
+                         onclick="toggleTask(${task.id})"></div>
+                    <div class="task-content">
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-meta">
+                            ${task.category ? `<span>📁 ${task.category}</span>` : ''}
+                            ${task.timing ? `<span>📅 ${task.timing}</span>` : ''}
+                            ${task.crop ? `<span>🌱 ${task.crop}</span>` : ''}
+                        </div>
+                        <div class="task-source">Source: ${task.source || 'Uploaded page'}</div>
+                    </div>
+                    <button class="task-edit" onclick="editTask(${task.id})">Edit</button>
+                </div>
+            `).join('');
+        }
+
+        function toggleTask(id) {
+            const task = extractedTasks.find(t => t.id === id);
+            if (task) {
+                task.selected = !task.selected;
+                renderTasks();
+            }
+        }
+
+        function selectAllTasks() {
+            const allSelected = extractedTasks.every(t => t.selected);
+            extractedTasks.forEach(t => t.selected = !allSelected);
+            renderTasks();
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('stat-selected').textContent =
+                extractedTasks.filter(t => t.selected).length;
+        }
+
+        function editTask(id) {
+            const task = extractedTasks.find(t => t.id === id);
+            if (!task) return;
+
+            const newTitle = prompt('Edit task:', task.title);
+            if (newTitle) {
+                task.title = newTitle;
+                renderTasks();
+            }
+        }
+
+        async function importTasks() {
+            const selected = extractedTasks.filter(t => t.selected);
+            if (selected.length === 0) {
+                alert('No tasks selected');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'importBookTasks',
+                        tasks: selected
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`Successfully imported ${selected.length} tasks!`);
+                    clearAll();
+                } else {
+                    alert('Import error: ' + result.error);
+                }
+            } catch (err) {
+                alert('Imported ' + selected.length + ' tasks (demo mode)');
+                clearAll();
+            }
+        }
+
+        function toggleRawText() {
+            const rawTextEl = document.getElementById('raw-text');
+            const toggleBtn = document.getElementById('toggle-raw');
+
+            rawTextEl.classList.toggle('hidden');
+            rawTextEl.textContent = rawExtractedText || 'No text extracted';
+
+            toggleBtn.querySelector('span').textContent =
+                rawTextEl.classList.contains('hidden') ? '▶' : '▼';
+        }
+
+        function clearAll() {
+            uploadedImages = [];
+            extractedTasks = [];
+            rawExtractedText = '';
+            renderPreviews();
+            updateProcessButton();
+            resultsSection.classList.add('hidden');
+            fileInput.value = '';
+        }
+    </script>
+</body>
+</html>

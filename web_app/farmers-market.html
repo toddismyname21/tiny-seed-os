@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed Farm - Farmers Market Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="api-config.js"></script>
+    <style>
+        /* ========================================
+           FARMERS MARKET DASHBOARD - CSS
+           ======================================== */
+
+        :root {
+            /* Brand Colors */
+            --primary: #FF8C00;
+            --primary-dark: #e67e00;
+            --primary-light: #ffaa33;
+
+            /* Status Colors */
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+
+            /* Neutral Colors */
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --bg-input: #1e293b;
+
+            /* Text Colors */
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            /* Borders */
+            --border-color: #334155;
+            --border-light: #475569;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
+
+            /* Spacing */
+            --sidebar-width: 260px;
+            --header-height: 64px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ========================================
+           LAYOUT
+           ======================================== */
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .logo-subtitle {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Navigation */
+        .nav-section {
+            padding: 16px 12px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 8px 12px;
+            margin-top: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(255, 140, 0, 0.15);
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 24px;
+        }
+
+        /* Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .stat-icon.orange { background: rgba(255, 140, 0, 0.15); }
+        .stat-icon.green { background: rgba(34, 197, 94, 0.15); }
+        .stat-icon.blue { background: rgba(59, 130, 246, 0.15); }
+        .stat-icon.purple { background: rgba(168, 85, 247, 0.15); }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-change.positive { color: var(--success); }
+        .stat-change.negative { color: var(--danger); }
+
+        /* Grid Layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        /* Upcoming Markets */
+        .market-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .market-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .market-item:hover {
+            background: var(--border-color);
+        }
+
+        .market-date {
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .market-date .day {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .market-date .month {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .market-info {
+            flex: 1;
+        }
+
+        .market-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .market-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 16px;
+        }
+
+        .market-weather {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .weather-icon {
+            font-size: 24px;
+        }
+
+        .weather-temp {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .weather-impact {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .weather-impact.excellent { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .weather-impact.good { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+        .weather-impact.fair { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .weather-impact.poor { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+        .market-status {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-planning { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+        .status-harvesting { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .status-packed { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+        .status-atmarket { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .status-complete { background: rgba(100, 116, 139, 0.2); color: var(--text-secondary); }
+        .status-not-created { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+        /* Harvest Plan Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: var(--bg-elevated);
+        }
+
+        .priority-high { color: var(--danger); }
+        .priority-medium { color: var(--warning); }
+        .priority-low { color: var(--text-secondary); }
+
+        /* Alerts Section */
+        .alert {
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .alert-urgent {
+            background: rgba(239, 68, 68, 0.15);
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.15);
+            border-left: 4px solid var(--warning);
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.15);
+            border-left: 4px solid var(--info);
+        }
+
+        .alert-icon {
+            font-size: 20px;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .alert-message {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .quick-action {
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .quick-action:hover {
+            border-color: var(--primary);
+            background: rgba(255, 140, 0, 0.1);
+        }
+
+        .quick-action-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .quick-action-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">🌱</div>
+                    <div>
+                        <div class="logo-text">Tiny Seed Farm</div>
+                        <div class="logo-subtitle">Market Hub</div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="nav-section">
+                <div class="nav-label">Dashboard</div>
+                <a href="#" class="nav-item active">
+                    <span class="nav-icon">📊</span>
+                    <span>Overview</span>
+                </a>
+                <a href="#upcoming" class="nav-item">
+                    <span class="nav-icon">📅</span>
+                    <span>Upcoming Markets</span>
+                </a>
+
+                <div class="nav-label">Operations</div>
+                <a href="#harvest" class="nav-item">
+                    <span class="nav-icon">🥬</span>
+                    <span>Harvest Plan</span>
+                </a>
+                <a href="market-sales.html" class="nav-item">
+                    <span class="nav-icon">💰</span>
+                    <span>Quick Sale</span>
+                </a>
+                <a href="#settlement" class="nav-item">
+                    <span class="nav-icon">📋</span>
+                    <span>Settlement</span>
+                </a>
+
+                <div class="nav-label">Analytics</div>
+                <a href="#analytics" class="nav-item">
+                    <span class="nav-icon">📈</span>
+                    <span>Performance</span>
+                </a>
+                <a href="#demand" class="nav-item">
+                    <span class="nav-icon">🔮</span>
+                    <span>Demand Forecast</span>
+                </a>
+
+                <div class="nav-label">Settings</div>
+                <a href="#locations" class="nav-item">
+                    <span class="nav-icon">📍</span>
+                    <span>Market Locations</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Farmers Market Dashboard</h1>
+                    <p style="color: var(--text-secondary); margin-top: 4px;">Smart harvest planning & market management</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshDashboard()">
+                        🔄 Refresh
+                    </button>
+                    <button class="btn btn-primary" onclick="createNewSession()">
+                        ➕ New Session
+                    </button>
+                </div>
+            </div>
+
+            <!-- Morning Brief Alert -->
+            <div id="morning-brief-container"></div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon orange">📅</div>
+                    <div class="stat-value" id="stat-upcoming">-</div>
+                    <div class="stat-label">Upcoming Markets (7 days)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">💰</div>
+                    <div class="stat-value" id="stat-revenue">$-</div>
+                    <div class="stat-label">Recent Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue">📦</div>
+                    <div class="stat-value" id="stat-transactions">-</div>
+                    <div class="stat-label">Recent Transactions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">📊</div>
+                    <div class="stat-value" id="stat-sellthrough">-%</div>
+                    <div class="stat-label">Avg Sell-Through Rate</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Upcoming Markets -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Upcoming Markets</div>
+                            <div class="card-subtitle">Weather-integrated forecasts</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="viewAllMarkets()">View All</button>
+                    </div>
+                    <div class="market-list" id="upcoming-markets">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Loading markets...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions & Alerts -->
+                <div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Quick Actions</div>
+                        </div>
+                        <div class="quick-actions">
+                            <div class="quick-action" onclick="syncShopifySales()">
+                                <div class="quick-action-icon">🛒</div>
+                                <div class="quick-action-label">Sync Shopify</div>
+                            </div>
+                            <div class="quick-action" onclick="generateHarvestPlan()">
+                                <div class="quick-action-icon">🥬</div>
+                                <div class="quick-action-label">Harvest Plan</div>
+                            </div>
+                            <div class="quick-action" onclick="startSettlement()">
+                                <div class="quick-action-icon">📋</div>
+                                <div class="quick-action-label">Settlement</div>
+                            </div>
+                            <div class="quick-action" onclick="viewAnalytics()">
+                                <div class="quick-action-icon">📈</div>
+                                <div class="quick-action-label">Analytics</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Alerts</div>
+                        </div>
+                        <div id="alerts-container">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Loading...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Harvest Plan Section -->
+            <div class="card" id="harvest-plan-section" style="display: none;">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Harvest Plan</div>
+                        <div class="card-subtitle" id="harvest-plan-subtitle">-</div>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" onclick="syncToPickPack()">Sync to Pick/Pack</button>
+                        <button class="btn btn-primary" onclick="printHarvestPlan()">Print</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Priority</th>
+                                <th>Product</th>
+                                <th>Variety</th>
+                                <th>Predicted Demand</th>
+                                <th>Harvest Qty</th>
+                                <th>Field</th>
+                                <th>GDD Status</th>
+                                <th>Notes</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="harvest-plan-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Performance -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Recent Performance</div>
+                        <div class="card-subtitle">Last 5 completed markets</div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Location</th>
+                                <th>Predicted</th>
+                                <th>Actual</th>
+                                <th>Accuracy</th>
+                                <th>Sell-Through</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-performance-body">
+                            <tr>
+                                <td colspan="7" class="loading">
+                                    <div class="spinner"></div>
+                                    Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ========================================
+        // FARMERS MARKET DASHBOARD - JAVASCRIPT
+        // ========================================
+
+        let currentSession = null;
+        let upcomingMarkets = [];
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initDashboard();
+        });
+
+        async function initDashboard() {
+            await Promise.all([
+                loadDashboardData(),
+                loadUpcomingMarkets(),
+                loadMorningBrief()
+            ]);
+        }
+
+        async function refreshDashboard() {
+            await initDashboard();
+        }
+
+        // ========================================
+        // API CALLS
+        // ========================================
+
+        async function apiCall(action, params = {}) {
+            const url = new URL(API_BASE_URL);
+            url.searchParams.append('action', action);
+            Object.entries(params).forEach(([key, value]) => {
+                url.searchParams.append(key, value);
+            });
+
+            try {
+                const response = await fetch(url.toString());
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // ========================================
+        // LOAD DATA
+        // ========================================
+
+        async function loadDashboardData() {
+            const data = await apiCall('getMarketDashboard');
+
+            if (data.success) {
+                // Update stats
+                document.getElementById('stat-upcoming').textContent = data.overview?.upcomingCount || 0;
+                document.getElementById('stat-revenue').textContent = '$' + (data.overview?.recentRevenue || 0).toLocaleString();
+                document.getElementById('stat-transactions').textContent = data.overview?.recentTransactions || 0;
+
+                // Calculate avg sell-through from recent sessions
+                if (data.recent && data.recent.length > 0) {
+                    const avgSellThrough = data.recent.reduce((sum, s) => sum + (s.sellThroughRate || 0), 0) / data.recent.length;
+                    document.getElementById('stat-sellthrough').textContent = Math.round(avgSellThrough) + '%';
+                }
+
+                // Update recent performance table
+                updateRecentPerformance(data.recent || []);
+            }
+        }
+
+        async function loadUpcomingMarkets() {
+            const data = await apiCall('getUpcomingMarkets', { days: 14 });
+
+            if (data.success) {
+                upcomingMarkets = data.markets || [];
+                renderUpcomingMarkets(upcomingMarkets.slice(0, 5));
+                updateAlerts(upcomingMarkets);
+            }
+        }
+
+        async function loadMorningBrief() {
+            const data = await apiCall('getMarketMorningBrief');
+
+            if (data.success && data.nextMarket) {
+                renderMorningBrief(data);
+            }
+        }
+
+        // ========================================
+        // RENDER FUNCTIONS
+        // ========================================
+
+        function renderUpcomingMarkets(markets) {
+            const container = document.getElementById('upcoming-markets');
+
+            if (!markets || markets.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">No upcoming markets</p>';
+                return;
+            }
+
+            container.innerHTML = markets.map(market => {
+                const date = new Date(market.date);
+                const day = date.getDate();
+                const month = date.toLocaleString('default', { month: 'short' });
+
+                const weatherIcon = getWeatherIcon(market.weather);
+                const tempDisplay = market.weather?.available
+                    ? `${market.weather.high}°/${market.weather.low}°`
+                    : '-';
+
+                const statusClass = 'status-' + (market.status || 'not-created').toLowerCase().replace(/\s+/g, '-');
+                const impactClass = (market.weatherImpact || 'unknown').toLowerCase();
+
+                return `
+                    <div class="market-item" onclick="selectMarket('${market.sessionId || ''}', '${market.location?.id}', '${market.date}')">
+                        <div class="market-date">
+                            <div class="day">${day}</div>
+                            <div class="month">${month}</div>
+                        </div>
+                        <div class="market-info">
+                            <div class="market-name">${market.location?.name || 'Unknown'}</div>
+                            <div class="market-meta">
+                                <span>${market.dayOfWeek}</span>
+                                <span>${market.location?.startTime || ''} - ${market.location?.endTime || ''}</span>
+                            </div>
+                        </div>
+                        <div class="market-weather">
+                            <span class="weather-icon">${weatherIcon}</span>
+                            <div>
+                                <div class="weather-temp">${tempDisplay}</div>
+                                <span class="weather-impact ${impactClass}">${market.weatherImpact || 'Unknown'}</span>
+                            </div>
+                        </div>
+                        <span class="market-status ${statusClass}">${market.status || 'Not Created'}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderMorningBrief(data) {
+            const container = document.getElementById('morning-brief-container');
+            const next = data.nextMarket;
+
+            if (!next) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const recommendations = next.recommendation?.join('. ') || '';
+
+            container.innerHTML = `
+                <div class="alert alert-info" style="margin-bottom: 24px;">
+                    <span class="alert-icon">🌅</span>
+                    <div class="alert-content">
+                        <div class="alert-title">Next Market: ${next.location} - ${next.date}</div>
+                        <div class="alert-message">
+                            ${next.daysAway === 0 ? 'Today!' : next.daysAway + ' days away'} |
+                            Weather: ${next.weather?.conditions || 'Unknown'} ${next.weather?.high || '-'}°F |
+                            ${recommendations}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateAlerts(markets) {
+            const container = document.getElementById('alerts-container');
+            const alerts = [];
+
+            markets.forEach(market => {
+                // Check for sessions that need to be created
+                if (market.daysAway <= 3 && market.status === 'Not Created') {
+                    alerts.push({
+                        type: 'urgent',
+                        icon: '⚠️',
+                        title: `Create session for ${market.location?.name}`,
+                        message: `Market on ${market.date} - Harvest plan not generated!`
+                    });
+                }
+
+                // Weather warnings
+                if (market.weather?.available && market.weather.precipProbability > 50) {
+                    alerts.push({
+                        type: 'warning',
+                        icon: '🌧️',
+                        title: `Rain expected for ${market.location?.name}`,
+                        message: `${market.weather.precipProbability}% chance on ${market.date}. Consider reducing quantities.`
+                    });
+                }
+            });
+
+            if (alerts.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 16px;">No alerts</p>';
+                return;
+            }
+
+            container.innerHTML = alerts.map(alert => `
+                <div class="alert alert-${alert.type}">
+                    <span class="alert-icon">${alert.icon}</span>
+                    <div class="alert-content">
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-message">${alert.message}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateRecentPerformance(sessions) {
+            const tbody = document.getElementById('recent-performance-body');
+
+            if (!sessions || sessions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No completed markets yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = sessions.map(session => {
+                const predicted = session.predictedRevenue || 0;
+                const actual = session.actualRevenue || 0;
+                const accuracy = predicted > 0 ? Math.round((actual / predicted) * 100) : 0;
+                const accuracyClass = accuracy >= 90 ? 'positive' : accuracy >= 70 ? '' : 'negative';
+
+                return `
+                    <tr onclick="viewSession('${session.sessionId}')">
+                        <td>${session.date}</td>
+                        <td>${session.location}</td>
+                        <td>$${predicted.toLocaleString()}</td>
+                        <td>$${actual.toLocaleString()}</td>
+                        <td class="stat-change ${accuracyClass}">${accuracy}%</td>
+                        <td>${session.sellThroughRate || 0}%</td>
+                        <td><span class="market-status status-complete">${session.status}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ========================================
+        // ACTIONS
+        // ========================================
+
+        async function selectMarket(sessionId, locationId, date) {
+            if (sessionId) {
+                currentSession = sessionId;
+                await loadHarvestPlan(sessionId);
+            } else {
+                // Create new session
+                if (confirm(`Create session for ${date}?`)) {
+                    const result = await apiCall('createMarketSession', {
+                        locationId: locationId,
+                        marketDate: date
+                    });
+
+                    if (result.success) {
+                        currentSession = result.sessionId;
+                        alert('Session created: ' + result.sessionId);
+                        await refreshDashboard();
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                }
+            }
+        }
+
+        async function createNewSession() {
+            // Show upcoming markets that don't have sessions
+            const noSession = upcomingMarkets.filter(m => !m.sessionExists);
+
+            if (noSession.length === 0) {
+                alert('All upcoming markets already have sessions');
+                return;
+            }
+
+            const options = noSession.map(m => `${m.date} - ${m.location.name}`).join('\n');
+            const choice = prompt('Create session for:\n\n' + options + '\n\nEnter date (YYYY-MM-DD):');
+
+            if (choice) {
+                const market = noSession.find(m => m.date === choice);
+                if (market) {
+                    await selectMarket(null, market.location.id, choice);
+                }
+            }
+        }
+
+        async function loadHarvestPlan(sessionId) {
+            const data = await apiCall('generateMarketHarvestPlan', { sessionId });
+
+            if (data.success) {
+                document.getElementById('harvest-plan-section').style.display = 'block';
+                document.getElementById('harvest-plan-subtitle').textContent =
+                    `${data.location} - ${data.marketDate} | ${data.itemCount} items`;
+
+                const tbody = document.getElementById('harvest-plan-body');
+                tbody.innerHTML = (data.items || []).map(item => {
+                    const priorityClass = item.priorityScore >= 80 ? 'priority-high' :
+                                          item.priorityScore >= 50 ? 'priority-medium' : 'priority-low';
+
+                    return `
+                        <tr>
+                            <td class="${priorityClass}">${item.priorityScore}</td>
+                            <td>${item.productName}</td>
+                            <td>${item.variety || '-'}</td>
+                            <td>${item.predictedDemand}</td>
+                            <td><strong>${item.recommendedHarvest}</strong> ${item.unit}</td>
+                            <td>${item.fieldLocation || '-'}</td>
+                            <td>${item.gddStatus}</td>
+                            <td style="max-width: 200px; font-size: 12px;">${item.notes || '-'}</td>
+                            <td><span class="market-status status-${item.status?.toLowerCase()}">${item.status}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Scroll to harvest plan
+                document.getElementById('harvest-plan-section').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert('Error loading harvest plan: ' + data.error);
+            }
+        }
+
+        async function generateHarvestPlan() {
+            if (!currentSession) {
+                alert('Please select a market first');
+                return;
+            }
+
+            await loadHarvestPlan(currentSession);
+        }
+
+        async function syncToPickPack() {
+            if (!currentSession) {
+                alert('Please select a market first');
+                return;
+            }
+
+            const result = await apiCall('syncMarketToPickPack', { sessionId: currentSession });
+
+            if (result.success) {
+                alert(`Synced ${result.recordCount} items to Pick/Pack system`);
+            } else {
+                alert('Error: ' + result.error);
+            }
+        }
+
+        function printHarvestPlan() {
+            window.print();
+        }
+
+        async function startSettlement() {
+            if (!currentSession) {
+                alert('Please select a market first');
+                return;
+            }
+
+            const result = await apiCall('initiateSettlement', { sessionId: currentSession });
+
+            if (result.success) {
+                const summary = `
+Settlement Summary for ${currentSession}:
+
+Gross Sales: $${result.grossSales}
+Market Fee: $${result.fees.marketFee}
+Card Processing: $${result.fees.cardProcessing}
+Net Revenue: $${result.netRevenue}
+
+Inventory:
+- Brought: ${result.inventory.brought}
+- Sold: ${result.inventory.sold}
+- Returned: ${result.inventory.returned}
+- Sell-Through: ${result.inventory.sellThrough}
+
+Enter starting and ending cash to complete settlement.
+                `;
+
+                alert(summary);
+            } else {
+                alert('Error: ' + result.error);
+            }
+        }
+
+        async function viewSession(sessionId) {
+            currentSession = sessionId;
+            await loadHarvestPlan(sessionId);
+        }
+
+        async function viewAnalytics() {
+            const result = await apiCall('getMarketPerformanceAnalytics', { dateRange: 90 });
+
+            if (result.success) {
+                const summary = `
+Performance Analytics (Last 90 Days):
+
+Sessions: ${result.summary.sessionCount}
+Total Revenue: $${result.summary.totalRevenue}
+Avg Revenue/Market: $${result.summary.avgRevenuePerMarket}
+Avg Sell-Through: ${result.summary.avgSellThroughRate}
+Prediction Accuracy: ${result.summary.predictionAccuracy}
+
+Top Products:
+${result.topProducts.slice(0, 5).map(p => `- ${p.name}: $${p.revenue}`).join('\n')}
+                `;
+
+                alert(summary);
+            }
+        }
+
+        function viewAllMarkets() {
+            window.location.hash = 'upcoming';
+            renderUpcomingMarkets(upcomingMarkets);
+        }
+
+        async function syncShopifySales() {
+            if (!currentSession) {
+                alert('Please select a market first by clicking on it');
+                return;
+            }
+
+            const result = await apiCall('syncShopifyMarketSales', { sessionId: currentSession });
+
+            if (result.success) {
+                alert(`Shopify Sync Complete!
+
+Orders found: ${result.ordersFound}
+Synced: ${result.synced}
+Skipped: ${result.skipped}
+Revenue: $${result.totalRevenue?.toLocaleString() || 0}
+
+Sales are pulled from your Shopify POS for the market time window.`);
+
+                await refreshDashboard();
+            } else {
+                alert('Sync error: ' + result.error);
+            }
+        }
+
+        // ========================================
+        // HELPERS
+        // ========================================
+
+        function getWeatherIcon(weather) {
+            if (!weather || !weather.available) return '❓';
+
+            const code = weather.weatherCode || 0;
+
+            if (code === 0) return '☀️';
+            if (code <= 3) return '⛅';
+            if (code <= 48) return '🌫️';
+            if (code <= 65) return '🌧️';
+            if (code <= 75) return '🌨️';
+            if (code <= 82) return '🌧️';
+            if (code >= 95) return '⛈️';
+
+            return '☁️';
+        }
+    </script>
+</body>
+</html>
