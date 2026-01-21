@@ -340,6 +340,12 @@ function doGet(e) {
       case 'analyzeEquipmentPhoto':
         return jsonResponse(analyzeEquipmentPhoto(data));
 
+      // ============ EQUIPMENT → FOOD SAFETY PIPELINE ============
+      case 'runEquipmentFoodSafetyPipeline':
+        return jsonResponse(runEquipmentFoodSafetyPipeline(e.parameter));
+      case 'getEquipmentFoodSafetyStatus':
+        return jsonResponse(getEquipmentFoodSafetyStatus());
+
       // ============ SALES MODULE - CUSTOMER FACING ============
       case 'authenticateCustomer':
         return jsonResponse(authenticateCustomer(e.parameter));
@@ -13078,31 +13084,38 @@ function parsePickupLocation(stopLocation) {
 function getSeasonDates(shareType, season) {
   const year = parseInt(season) || 2026;
 
-  // Default vegetable season: June - October (20 weeks)
-  let start = new Date(year, 5, 1);  // June 1
-  let end = new Date(year, 9, 31);   // October 31
-  let weeks = 20;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ACTUAL TINY SEED FARM 2026 SEASON DATES
+  // From owner's Season_Settings sheet
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  let start, end, weeks;
 
   if (/Spring/i.test(shareType)) {
-    start = new Date(year, 3, 1);   // April 1
-    end = new Date(year, 5, 30);    // June 30
-    weeks = 12;
-  } else if (/Summer/i.test(shareType)) {
-    start = new Date(year, 5, 1);   // June 1
-    end = new Date(year, 8, 30);    // September 30
-    weeks = 16;
-  } else if (/Fall/i.test(shareType)) {
-    start = new Date(year, 8, 1);   // September 1
-    end = new Date(year, 10, 30);   // November 30
-    weeks = 12;
-  } else if (/Flower/i.test(shareType)) {
-    start = new Date(year, 5, 1);   // June 1
-    end = new Date(year, 9, 15);    // October 15
+    // SPRING Veg: 05/04/2026 - 05/31/2026 (4 weeks)
+    start = new Date(year, 4, 4);    // May 4
+    end = new Date(year, 4, 31);     // May 31
+    weeks = 4;
+  } else if (/Summer|Friends.*Family|Small.*Summer/i.test(shareType)) {
+    // SUMMER Veg: 06/01/2026 - 10/03/2026 (18 weeks)
+    start = new Date(year, 5, 1);    // June 1
+    end = new Date(year, 9, 3);      // October 3
     weeks = 18;
+  } else if (/Flower|Fleur|Bouquet|Bloom/i.test(shareType)) {
+    // BOUQUET Floral: 06/01/2026 - 09/19/2026 (16 weeks)
+    start = new Date(year, 5, 1);    // June 1
+    end = new Date(year, 8, 19);     // September 19
+    weeks = 16;
   } else if (/Flex/i.test(shareType)) {
-    start = new Date(year, 4, 1);   // May 1
-    end = new Date(year, 10, 30);   // November 30
-    weeks = 26;
+    // FLEX: 06/01/2026 - 12/31/2026 (31 weeks)
+    start = new Date(year, 5, 1);    // June 1
+    end = new Date(year, 11, 31);    // December 31
+    weeks = 31;
+  } else {
+    // Default to Summer Veg dates
+    start = new Date(year, 5, 1);    // June 1
+    end = new Date(year, 9, 3);      // October 3
+    weeks = 18;
   }
 
   return {
@@ -42340,4 +42353,515 @@ FARM CONTEXT:
 TYPICAL CROPS:
 Greens, tomatoes, peppers, squash, beans, cucumbers, herbs, root vegetables
 `;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// EQUIPMENT HEALTH → FOOD SAFETY ALERT PIPELINE
+// Uses STATE-OF-THE-ART Intelligence Engine (Weibull, FMEA, Weather-Adjusted) for FSMA compliance
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Food Safety Critical Equipment Categories
+ * Maps equipment types to FSMA requirements and risk levels
+ */
+const FOOD_SAFETY_CRITICAL_EQUIPMENT = {
+  refrigeration: {
+    keywords: ['cooler', 'refrigerat', 'walk-in', 'cold storage', 'freezer', 'chill'],
+    fsmaRiskLevel: 'CRITICAL',
+    failureImpact: 'Temperature abuse leading to pathogen growth',
+    monitoringFrequency: 'Every 4 hours',
+    maxAllowedDowntime: 2, // hours
+    fsmaReference: '21 CFR 112.111 - Temperature control'
+  },
+  washStation: {
+    keywords: ['wash', 'rinse', 'sanitiz', 'chlorin', 'clean'],
+    fsmaRiskLevel: 'CRITICAL',
+    failureImpact: 'Cross-contamination, pathogen spread',
+    monitoringFrequency: 'Before each use',
+    maxAllowedDowntime: 0,
+    fsmaReference: '21 CFR 112.44 - Water quality'
+  },
+  waterSystem: {
+    keywords: ['pump', 'well', 'irrigation', 'water', 'hose', 'drip'],
+    fsmaRiskLevel: 'HIGH',
+    failureImpact: 'Contaminated water contact with produce',
+    monitoringFrequency: 'Daily during use',
+    maxAllowedDowntime: 4,
+    fsmaReference: '21 CFR 112.41-46 - Agricultural water'
+  },
+  harvestEquipment: {
+    keywords: ['harvest', 'knife', 'blade', 'cutter', 'bin', 'tote', 'container'],
+    fsmaRiskLevel: 'MEDIUM',
+    failureImpact: 'Physical contamination, cross-contamination',
+    monitoringFrequency: 'Pre-season and weekly',
+    maxAllowedDowntime: 8,
+    fsmaReference: '21 CFR 112.111 - Equipment sanitation'
+  },
+  packingEquipment: {
+    keywords: ['pack', 'scale', 'label', 'bag', 'box', 'clamshell'],
+    fsmaRiskLevel: 'HIGH',
+    failureImpact: 'Post-harvest contamination',
+    monitoringFrequency: 'Daily',
+    maxAllowedDowntime: 2,
+    fsmaReference: '21 CFR 112.111 - Equipment sanitation'
+  }
+};
+
+/**
+ * Risk thresholds for triggering food safety alerts
+ */
+const FOOD_SAFETY_ALERT_THRESHOLDS = {
+  weibullFailureProbability: 0.15,  // 15% failure probability triggers alert
+  fmeaRPN: 125,                      // RPN > 125 triggers high priority
+  weatherAdjustedHealth: 0.6,        // Health below 60% triggers alert
+  conditionDegradation: 0.3          // 30% degradation from baseline triggers alert
+};
+
+/**
+ * Main Pipeline: Analyze equipment health and generate food safety alerts
+ * Integrates with getEquipmentIntelligence() for state-of-the-art analysis
+ */
+function runEquipmentFoodSafetyPipeline(params) {
+  try {
+    const inventorySheet = getOrCreateSheet('FARM_INVENTORY', FARM_INVENTORY_HEADERS);
+
+    if (!inventorySheet) {
+      return { success: false, error: 'Farm Inventory sheet not found' };
+    }
+
+    const data = inventorySheet.getDataRange().getValues();
+    const headers = data[0];
+    const items = data.slice(1).filter(row => row[0]);
+
+    const alerts = [];
+    const processedItems = [];
+
+    // Process each inventory item
+    items.forEach((row, index) => {
+      const item = {};
+      headers.forEach((h, i) => item[h] = row[i]);
+
+      // Check if item is food-safety critical
+      const criticalCategory = identifyFoodSafetyCriticalCategory(item);
+
+      if (criticalCategory) {
+        // Get state-of-the-art intelligence for this item
+        const intelligence = getEquipmentIntelligence({ itemId: item.Item_ID });
+
+        if (intelligence.success) {
+          const risk = evaluateFoodSafetyRisk(item, criticalCategory, intelligence.data);
+
+          if (risk.alertLevel !== 'OK') {
+            alerts.push({
+              itemId: item.Item_ID,
+              itemName: item.Item_Name,
+              category: criticalCategory.name,
+              fsmaRiskLevel: criticalCategory.fsmaRiskLevel,
+              alertLevel: risk.alertLevel,
+              alertType: risk.alertType,
+              message: risk.message,
+              fsmaReference: criticalCategory.fsmaReference,
+              failureImpact: criticalCategory.failureImpact,
+              requiredAction: risk.requiredAction,
+              maxDowntime: criticalCategory.maxAllowedDowntime,
+              intelligence: {
+                weibullProbability: intelligence.data.weibullFailureProbability,
+                fmeaRPN: intelligence.data.fmeaRPN,
+                healthScore: intelligence.data.weatherAdjustedHealth
+              },
+              timestamp: new Date().toISOString()
+            });
+
+            // Auto-create corrective action for CRITICAL alerts
+            if (risk.alertLevel === 'CRITICAL') {
+              createEquipmentCorrectiveAction(item, risk, criticalCategory);
+            }
+          }
+
+          processedItems.push({
+            itemId: item.Item_ID,
+            itemName: item.Item_Name,
+            criticalCategory: criticalCategory.name,
+            status: risk.alertLevel
+          });
+        }
+      }
+    });
+
+    // Generate summary
+    const summary = {
+      totalItemsScanned: items.length,
+      foodSafetyCriticalItems: processedItems.length,
+      alertsGenerated: alerts.length,
+      criticalAlerts: alerts.filter(a => a.alertLevel === 'CRITICAL').length,
+      highAlerts: alerts.filter(a => a.alertLevel === 'HIGH').length,
+      mediumAlerts: alerts.filter(a => a.alertLevel === 'MEDIUM').length,
+      fsmaComplianceStatus: determineFoodSafetyStatus(alerts),
+      lastRun: new Date().toISOString()
+    };
+
+    return {
+      success: true,
+      data: {
+        alerts: alerts,
+        summary: summary,
+        processedItems: processedItems,
+        recommendations: generateFoodSafetyRecommendations(alerts, summary)
+      }
+    };
+
+  } catch (error) {
+    console.error('Food Safety Pipeline Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Identify if an item belongs to a food-safety critical category
+ */
+function identifyFoodSafetyCriticalCategory(item) {
+  const searchText = `${item.Item_Name} ${item.Category} ${item.Sub_Category} ${item.Notes || ''}`.toLowerCase();
+
+  for (const [catKey, catConfig] of Object.entries(FOOD_SAFETY_CRITICAL_EQUIPMENT)) {
+    for (const keyword of catConfig.keywords) {
+      if (searchText.includes(keyword.toLowerCase())) {
+        return {
+          name: catKey,
+          ...catConfig
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Evaluate food safety risk based on intelligence data
+ */
+function evaluateFoodSafetyRisk(item, criticalCategory, intelligence) {
+  const thresholds = FOOD_SAFETY_ALERT_THRESHOLDS;
+  let alertLevel = 'OK';
+  let alertType = '';
+  let message = '';
+  let requiredAction = '';
+
+  // Check Weibull failure probability
+  if (intelligence.weibullFailureProbability > thresholds.weibullFailureProbability) {
+    if (intelligence.weibullFailureProbability > 0.4) {
+      alertLevel = 'CRITICAL';
+      alertType = 'IMMINENT_FAILURE';
+      message = `${item.Item_Name} has ${(intelligence.weibullFailureProbability * 100).toFixed(0)}% failure probability - imminent risk to food safety`;
+    } else if (intelligence.weibullFailureProbability > 0.25) {
+      alertLevel = 'HIGH';
+      alertType = 'HIGH_FAILURE_RISK';
+      message = `${item.Item_Name} has elevated failure risk (${(intelligence.weibullFailureProbability * 100).toFixed(0)}%)`;
+    } else {
+      alertLevel = 'MEDIUM';
+      alertType = 'ELEVATED_RISK';
+      message = `${item.Item_Name} approaching maintenance threshold`;
+    }
+    requiredAction = determineRequiredAction(alertLevel, criticalCategory.name);
+  }
+
+  // Check FMEA RPN (Risk Priority Number)
+  if (intelligence.fmeaRPN > thresholds.fmeaRPN) {
+    const rpnLevel = intelligence.fmeaRPN > 200 ? 'CRITICAL' : 'HIGH';
+    if (rpnLevel === 'CRITICAL' || alertLevel !== 'CRITICAL') {
+      alertLevel = rpnLevel;
+      alertType = 'HIGH_RPN';
+      message = `${item.Item_Name} FMEA RPN of ${intelligence.fmeaRPN} exceeds threshold - systematic risk identified`;
+      requiredAction = determineRequiredAction(alertLevel, criticalCategory.name);
+    }
+  }
+
+  // Check weather-adjusted health score
+  if (intelligence.weatherAdjustedHealth < thresholds.weatherAdjustedHealth) {
+    const healthLevel = intelligence.weatherAdjustedHealth < 0.4 ? 'CRITICAL' :
+                        intelligence.weatherAdjustedHealth < 0.5 ? 'HIGH' : 'MEDIUM';
+    if (healthLevel === 'CRITICAL' || (healthLevel === 'HIGH' && alertLevel !== 'CRITICAL')) {
+      alertLevel = healthLevel;
+      alertType = 'LOW_HEALTH';
+      message = `${item.Item_Name} health score ${(intelligence.weatherAdjustedHealth * 100).toFixed(0)}% - environmental degradation detected`;
+      requiredAction = determineRequiredAction(alertLevel, criticalCategory.name);
+    }
+  }
+
+  // Condition-based alerts
+  if (item.Condition === 'Poor' || item.Condition === 'Needs Repair') {
+    if (criticalCategory.fsmaRiskLevel === 'CRITICAL') {
+      alertLevel = 'CRITICAL';
+      alertType = 'CONDITION_FAILURE';
+      message = `FSMA CRITICAL: ${item.Item_Name} condition is ${item.Condition} - immediate action required`;
+      requiredAction = 'IMMEDIATE: Remove from service. Repair or replace before next use.';
+    } else if (alertLevel !== 'CRITICAL') {
+      alertLevel = 'HIGH';
+      alertType = 'POOR_CONDITION';
+      message = `${item.Item_Name} condition is ${item.Condition} - schedule maintenance`;
+      requiredAction = determineRequiredAction('HIGH', criticalCategory.name);
+    }
+  }
+
+  return { alertLevel, alertType, message, requiredAction };
+}
+
+/**
+ * Create a corrective action record for critical equipment issues
+ */
+function createEquipmentCorrectiveAction(item, alert, criticalCategory) {
+  try {
+    const correctiveAction = {
+      date: new Date().toISOString().split('T')[0],
+      category: 'Equipment',
+      issue: `${criticalCategory.name.toUpperCase()}: ${alert.message}`,
+      action: alert.requiredAction,
+      responsible: 'Farm Manager',
+      status: 'Open',
+      dueDate: calculateDueDate(criticalCategory.maxAllowedDowntime),
+      fsmaReference: criticalCategory.fsmaReference,
+      source: 'Equipment Health Pipeline',
+      itemId: item.Item_ID
+    };
+
+    // Add to corrective actions using existing food safety system
+    addCorrectiveAction(correctiveAction);
+
+    console.log(`Created corrective action for ${item.Item_Name}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to create corrective action:', error);
+    return false;
+  }
+}
+
+/**
+ * Determine required action based on severity and category
+ */
+function determineRequiredAction(severity, categoryName) {
+  const actions = {
+    CRITICAL: {
+      refrigeration: 'IMMEDIATE: Verify temperature logs. If temp >41°F, assess product. Move product to backup cooling if available.',
+      washStation: 'IMMEDIATE: Stop washing operations. Use backup sanitization method or disposable containers until repaired.',
+      waterSystem: 'IMMEDIATE: Stop irrigation to ready-to-eat crops. Test water quality. Use alternative approved water source.',
+      harvestEquipment: 'IMMEDIATE: Remove from use. Sanitize or replace before next harvest.',
+      packingEquipment: 'IMMEDIATE: Stop packing operations. Inspect for contamination. Clean and sanitize before restart.'
+    },
+    HIGH: {
+      refrigeration: 'URGENT: Schedule repair within 24 hours. Increase temperature monitoring to every 2 hours.',
+      washStation: 'URGENT: Inspect all seals and spray heads. Replace worn components. Verify sanitizer concentration.',
+      waterSystem: 'URGENT: Schedule water test. Inspect for leaks or contamination sources. Have backup plan ready.',
+      harvestEquipment: 'URGENT: Deep clean and sanitize. Inspect for damage. Schedule replacement if worn.',
+      packingEquipment: 'URGENT: Clean and inspect. Check calibration. Schedule maintenance within 48 hours.'
+    },
+    MEDIUM: {
+      refrigeration: 'SCHEDULED: Add to weekly maintenance. Check door seals, compressor, and thermostat.',
+      washStation: 'SCHEDULED: Include in next maintenance cycle. Order replacement parts if needed.',
+      waterSystem: 'SCHEDULED: Include in monthly water system check. Monitor for changes.',
+      harvestEquipment: 'SCHEDULED: Include in pre-season prep or weekly maintenance.',
+      packingEquipment: 'SCHEDULED: Include in weekly maintenance. Monitor for degradation.'
+    }
+  };
+
+  return actions[severity]?.[categoryName] || `${severity}: Schedule maintenance and inspection.`;
+}
+
+/**
+ * Calculate due date based on max allowed downtime
+ */
+function calculateDueDate(maxDowntimeHours) {
+  const dueDate = new Date();
+  if (maxDowntimeHours === 0) {
+    // Immediate - due now
+    return dueDate.toISOString().split('T')[0];
+  } else if (maxDowntimeHours <= 4) {
+    // Same day
+    return dueDate.toISOString().split('T')[0];
+  } else if (maxDowntimeHours <= 24) {
+    // Next day
+    dueDate.setDate(dueDate.getDate() + 1);
+    return dueDate.toISOString().split('T')[0];
+  } else {
+    // Within a week
+    dueDate.setDate(dueDate.getDate() + 7);
+    return dueDate.toISOString().split('T')[0];
+  }
+}
+
+/**
+ * Get FSMA requirement reference
+ */
+function getFSMARequirement(categoryKey) {
+  const requirements = {
+    refrigeration: {
+      regulation: '21 CFR 112.111',
+      requirement: 'Equipment used in covered activities must be maintained to prevent contamination',
+      monitoring: 'Temperature logs every 4 hours, calibration verification monthly'
+    },
+    washStation: {
+      regulation: '21 CFR 112.44',
+      requirement: 'Water must be safe and of adequate sanitary quality',
+      monitoring: 'Sanitizer concentration before each use, water test annually'
+    },
+    waterSystem: {
+      regulation: '21 CFR 112.41-46',
+      requirement: 'Agricultural water must be safe and of adequate sanitary quality for its intended use',
+      monitoring: 'Water testing per rule requirements, visual inspection daily'
+    },
+    harvestEquipment: {
+      regulation: '21 CFR 112.111',
+      requirement: 'Food contact surfaces must be cleaned and maintained to prevent contamination',
+      monitoring: 'Pre-use inspection, cleaning after each use'
+    },
+    packingEquipment: {
+      regulation: '21 CFR 112.111',
+      requirement: 'Equipment must be designed and maintained to protect covered produce from contamination',
+      monitoring: 'Daily cleaning, weekly deep clean, calibration per schedule'
+    }
+  };
+
+  return requirements[categoryKey] || { regulation: 'General FSMA', requirement: 'Maintain sanitary conditions' };
+}
+
+/**
+ * Determine overall food safety status based on alerts
+ */
+function determineFoodSafetyStatus(alerts) {
+  if (alerts.some(a => a.alertLevel === 'CRITICAL')) {
+    return {
+      status: 'AT_RISK',
+      color: 'red',
+      message: 'Critical equipment issues detected - immediate action required',
+      action: 'Review and address all CRITICAL alerts before continuing operations'
+    };
+  } else if (alerts.some(a => a.alertLevel === 'HIGH')) {
+    return {
+      status: 'CAUTION',
+      color: 'orange',
+      message: 'High-priority equipment issues detected',
+      action: 'Schedule repairs within 24-48 hours'
+    };
+  } else if (alerts.some(a => a.alertLevel === 'MEDIUM')) {
+    return {
+      status: 'MONITOR',
+      color: 'yellow',
+      message: 'Equipment maintenance recommended',
+      action: 'Include in regular maintenance schedule'
+    };
+  } else {
+    return {
+      status: 'COMPLIANT',
+      color: 'green',
+      message: 'All food safety critical equipment is within acceptable parameters',
+      action: 'Continue regular monitoring schedule'
+    };
+  }
+}
+
+/**
+ * Calculate FSMA compliance risk score
+ */
+function calculateFSMAComplianceRisk(alerts) {
+  let riskScore = 0;
+
+  alerts.forEach(alert => {
+    switch (alert.alertLevel) {
+      case 'CRITICAL':
+        riskScore += 40;
+        break;
+      case 'HIGH':
+        riskScore += 20;
+        break;
+      case 'MEDIUM':
+        riskScore += 10;
+        break;
+    }
+
+    // Extra weight for CRITICAL FSMA categories
+    if (alert.fsmaRiskLevel === 'CRITICAL') {
+      riskScore += 15;
+    }
+  });
+
+  return Math.min(riskScore, 100);
+}
+
+/**
+ * Generate food safety recommendations based on alerts
+ */
+function generateFoodSafetyRecommendations(alerts, summary) {
+  const recommendations = [];
+
+  if (summary.criticalAlerts > 0) {
+    recommendations.push({
+      priority: 'IMMEDIATE',
+      type: 'STOP_WORK',
+      message: `${summary.criticalAlerts} critical equipment issue(s) require immediate attention before continuing harvest/packing operations`,
+      actions: alerts.filter(a => a.alertLevel === 'CRITICAL').map(a => a.requiredAction)
+    });
+  }
+
+  if (summary.highAlerts > 0) {
+    recommendations.push({
+      priority: 'URGENT',
+      type: 'SCHEDULE_REPAIR',
+      message: `${summary.highAlerts} high-priority equipment issue(s) should be addressed within 24-48 hours`,
+      actions: ['Schedule maintenance appointments', 'Order replacement parts', 'Prepare backup equipment']
+    });
+  }
+
+  // Category-specific recommendations
+  const refAlerts = alerts.filter(a => a.category === 'refrigeration');
+  if (refAlerts.length > 0) {
+    recommendations.push({
+      priority: 'MONITORING',
+      type: 'TEMPERATURE_PROTOCOL',
+      message: 'Increase cold chain monitoring due to refrigeration concerns',
+      actions: ['Log temperatures every 2 hours instead of 4', 'Verify backup cooling is ready', 'Check product temperatures at receiving and shipping']
+    });
+  }
+
+  const waterAlerts = alerts.filter(a => a.category === 'waterSystem');
+  if (waterAlerts.length > 0) {
+    recommendations.push({
+      priority: 'TESTING',
+      type: 'WATER_QUALITY',
+      message: 'Water system issues detected - verify water quality',
+      actions: ['Schedule microbial water test', 'Inspect for contamination sources', 'Review water application timing relative to harvest']
+    });
+  }
+
+  return recommendations;
+}
+
+/**
+ * Lightweight endpoint for dashboard - returns current food safety status
+ */
+function getEquipmentFoodSafetyStatus() {
+  try {
+    const fullPipeline = runEquipmentFoodSafetyPipeline({});
+
+    if (!fullPipeline.success) {
+      return fullPipeline;
+    }
+
+    return {
+      success: true,
+      data: {
+        status: fullPipeline.data.summary.fsmaComplianceStatus,
+        alertCounts: {
+          critical: fullPipeline.data.summary.criticalAlerts,
+          high: fullPipeline.data.summary.highAlerts,
+          medium: fullPipeline.data.summary.mediumAlerts,
+          total: fullPipeline.data.summary.alertsGenerated
+        },
+        criticalEquipmentCount: fullPipeline.data.summary.foodSafetyCriticalItems,
+        topAlerts: fullPipeline.data.alerts.slice(0, 5),
+        recommendations: fullPipeline.data.recommendations.slice(0, 3),
+        lastUpdated: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    console.error('Food Safety Status Error:', error);
+    return { success: false, error: error.message };
+  }
 }
