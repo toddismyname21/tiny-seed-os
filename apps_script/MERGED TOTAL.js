@@ -2084,6 +2084,10 @@ function doGet(e) {
       case 'getAutonomyStatus':
         return jsonResponse(getAutonomyStatus());
 
+      // ============ FIELD COMMAND CENTER - INITIALIZATION ============
+      case 'initializeFieldCommandCenter':
+        return jsonResponse(initializeFieldCommandCenter());
+
       // ============ FIELD COMMAND CENTER - TASK MANAGEMENT ============
       case 'assignTaskToEmployee':
         return jsonResponse(assignTaskToEmployee(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
@@ -22705,6 +22709,35 @@ function sendCrewMessage(params) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
+ * Initialize Field Command Center sheets
+ * Creates TASK_ASSIGNMENTS and TEAM_CHECKINS if they don't exist
+ */
+function initializeFieldCommandCenter() {
+  try {
+    const sheets = [
+      EMPLOYEE_SHEETS.TASK_ASSIGNMENTS,
+      EMPLOYEE_SHEETS.TEAM_CHECKINS
+    ];
+
+    const created = [];
+    for (const sheetName of sheets) {
+      const sheet = getOrCreateEmployeeSheet(sheetName);
+      if (sheet) {
+        created.push(sheetName);
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Field Command Center initialized',
+      sheets: created
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Assign a task to an employee
  * Called by Chief of Staff AI or admin
  */
@@ -23537,7 +23570,8 @@ function proactiveTaskCheck() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
 
-    if (!sheet) return { success: false, error: 'No assignments sheet' };
+    // No sheet means no assignments yet - that's OK
+    if (!sheet) return { success: true, alerts: [], alertCount: 0, message: 'No task assignments yet' };
 
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
