@@ -92,6 +92,527 @@ const CLAUDE_CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CHIEF OF STAFF - INTELLIGENT CONVERSATIONAL AI
+// State-of-the-art proactive assistant with full system context
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Chat with Chief of Staff - THE INTELLIGENT CONVERSATION ENDPOINT
+ * Gathers ALL context and has a real conversation with Claude
+ */
+function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
+  const startTime = new Date();
+
+  // Parse conversation history
+  let conversationHistory = [];
+  try {
+    if (conversationHistoryJson) {
+      conversationHistory = JSON.parse(conversationHistoryJson);
+    }
+  } catch (e) {
+    conversationHistory = [];
+  }
+
+  // Check API key
+  const apiKey = CLAUDE_CONFIG.API_KEY;
+  if (!apiKey) {
+    return {
+      success: false,
+      error: 'ANTHROPIC_API_KEY not configured',
+      message: 'I apologize, but I\'m not fully configured yet. Please ask the admin to set up the Anthropic API key.'
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // GATHER ALL CONTEXT - This is what makes the AI SMART
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const context = gatherChiefOfStaffContext();
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BUILD THE SYSTEM PROMPT - The personality and knowledge of the AI
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const systemPrompt = buildChiefOfStaffSystemPrompt(context);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BUILD MESSAGES ARRAY - Include conversation history
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const messages = [];
+
+  // Add conversation history (last 10 exchanges max to stay within context limits)
+  const recentHistory = conversationHistory.slice(-20);
+  for (const msg of recentHistory) {
+    messages.push({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content
+    });
+  }
+
+  // Add current user message
+  messages.push({
+    role: 'user',
+    content: userMessage
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CALL CLAUDE - The actual AI conversation
+  // ═══════════════════════════════════════════════════════════════════════
+
+  try {
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify({
+        model: CLAUDE_CONFIG.MODEL,
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: messages
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      Logger.log('Claude Error: ' + JSON.stringify(result.error));
+      return {
+        success: false,
+        error: result.error.message || 'AI error',
+        message: 'I encountered an issue processing your request. Please try again.'
+      };
+    }
+
+    // Extract the response text
+    const textBlock = result.content.find(block => block.type === 'text');
+    const aiResponse = textBlock ? textBlock.text : 'I apologize, I could not generate a response.';
+
+    const endTime = new Date();
+    const processingTime = endTime - startTime;
+
+    return {
+      success: true,
+      message: aiResponse,
+      context_used: {
+        weather: !!context.weather,
+        tasks: context.tasks?.length || 0,
+        alerts: context.alerts?.length || 0,
+        calendar: !!context.calendar,
+        customers_at_risk: context.customersAtRisk?.length || 0
+      },
+      processing_time_ms: processingTime,
+      model: CLAUDE_CONFIG.MODEL
+    };
+
+  } catch (e) {
+    Logger.log('Chat Error: ' + e.message);
+    return {
+      success: false,
+      error: e.message,
+      message: 'I encountered a technical issue. Please try again in a moment.'
+    };
+  }
+}
+
+/**
+ * Gather ALL context for Chief of Staff
+ * This pulls from every system to give the AI complete awareness
+ */
+function gatherChiefOfStaffContext() {
+  const context = {
+    timestamp: new Date().toISOString(),
+    dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()],
+    timeOfDay: getTimeOfDay()
+  };
+
+  // 1. WEATHER - Critical for farm operations
+  try {
+    if (typeof getWeatherRecommendations === 'function') {
+      context.weather = getWeatherRecommendations();
+    } else if (typeof getCurrentWeather === 'function') {
+      context.weather = getCurrentWeather();
+    }
+  } catch (e) {
+    context.weather = { error: e.message };
+  }
+
+  // 2. TODAY'S TASKS - What needs to be done
+  try {
+    context.tasks = getTodaysTasks();
+  } catch (e) {
+    context.tasks = [];
+  }
+
+  // 3. OVERDUE TASKS - What's slipping
+  try {
+    context.overdueTasks = getOverdueTasks();
+  } catch (e) {
+    context.overdueTasks = [];
+  }
+
+  // 4. PROACTIVE ALERTS - Critical issues
+  try {
+    if (typeof runProactiveScanning === 'function') {
+      const alerts = runProactiveScanning();
+      context.alerts = alerts.alerts || alerts.critical || [];
+    }
+  } catch (e) {
+    context.alerts = [];
+  }
+
+  // 5. CALENDAR - Today's schedule
+  try {
+    if (typeof optimizeTodaySchedule === 'function') {
+      context.calendar = optimizeTodaySchedule();
+    } else if (typeof getTodaySchedule === 'function') {
+      context.calendar = getTodaySchedule();
+    }
+  } catch (e) {
+    context.calendar = null;
+  }
+
+  // 6. EMAIL STATUS - Inbox health
+  try {
+    if (typeof getDailyBrief === 'function') {
+      context.email = getDailyBrief();
+    }
+  } catch (e) {
+    context.email = null;
+  }
+
+  // 7. CUSTOMERS AT RISK - Churn prevention
+  try {
+    if (typeof predictCustomerChurn === 'function') {
+      const churn = predictCustomerChurn();
+      context.customersAtRisk = (churn.customers || []).slice(0, 5);
+    }
+  } catch (e) {
+    context.customersAtRisk = [];
+  }
+
+  // 8. PENDING APPROVALS - Decisions waiting
+  try {
+    if (typeof getPendingApprovals === 'function') {
+      const approvals = getPendingApprovals();
+      context.pendingApprovals = Array.isArray(approvals?.data) ? approvals.data :
+                                  Array.isArray(approvals) ? approvals : [];
+    }
+  } catch (e) {
+    context.pendingApprovals = [];
+  }
+
+  // 9. HARVEST READY - What's ready to pick
+  try {
+    context.harvestReady = getHarvestReadyCrops();
+  } catch (e) {
+    context.harvestReady = [];
+  }
+
+  // 10. RECENT DECISIONS - Pattern awareness
+  try {
+    if (typeof getRecentDecisions === 'function') {
+      context.recentDecisions = getRecentDecisions(5);
+    }
+  } catch (e) {
+    context.recentDecisions = [];
+  }
+
+  return context;
+}
+
+/**
+ * Get today's tasks from the Tasks sheet
+ */
+function getTodaysTasks() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const year = new Date().getFullYear();
+    const taskSheet = ss.getSheetByName('TASKS_' + year) || ss.getSheetByName('Tasks') || ss.getSheetByName('TASKS');
+    if (!taskSheet) return [];
+
+    const data = taskSheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    const headers = data[0].map(h => String(h).toLowerCase());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('due'));
+    const taskIdx = headers.findIndex(h => h.includes('task') || h.includes('description'));
+    const statusIdx = headers.findIndex(h => h.includes('status'));
+    const assignedIdx = headers.findIndex(h => h.includes('assigned') || h.includes('employee'));
+    const priorityIdx = headers.findIndex(h => h.includes('priority'));
+
+    const tasks = [];
+    for (let i = 1; i < data.length && tasks.length < 15; i++) {
+      const row = data[i];
+      const taskDate = row[dateIdx];
+
+      // Check if task is for today
+      if (taskDate instanceof Date) {
+        const d = new Date(taskDate);
+        d.setHours(0, 0, 0, 0);
+        if (d.getTime() === today.getTime()) {
+          const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+          if (!status.includes('complete') && !status.includes('done')) {
+            tasks.push({
+              task: taskIdx >= 0 ? row[taskIdx] : row[1],
+              status: status || 'pending',
+              assigned: assignedIdx >= 0 ? row[assignedIdx] : 'unassigned',
+              priority: priorityIdx >= 0 ? row[priorityIdx] : 'normal'
+            });
+          }
+        }
+      }
+    }
+    return tasks;
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Get overdue tasks
+ */
+function getOverdueTasks() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const year = new Date().getFullYear();
+    const taskSheet = ss.getSheetByName('TASKS_' + year) || ss.getSheetByName('Tasks') || ss.getSheetByName('TASKS');
+    if (!taskSheet) return [];
+
+    const data = taskSheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    const headers = data[0].map(h => String(h).toLowerCase());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('due'));
+    const taskIdx = headers.findIndex(h => h.includes('task') || h.includes('description'));
+    const statusIdx = headers.findIndex(h => h.includes('status'));
+
+    const overdue = [];
+    for (let i = 1; i < data.length && overdue.length < 10; i++) {
+      const row = data[i];
+      const taskDate = row[dateIdx];
+      const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+
+      if (taskDate instanceof Date && !status.includes('complete') && !status.includes('done')) {
+        const d = new Date(taskDate);
+        d.setHours(0, 0, 0, 0);
+        if (d.getTime() < today.getTime()) {
+          const daysOverdue = Math.floor((today - d) / (1000 * 60 * 60 * 24));
+          overdue.push({
+            task: taskIdx >= 0 ? row[taskIdx] : row[1],
+            dueDate: taskDate,
+            daysOverdue: daysOverdue
+          });
+        }
+      }
+    }
+    return overdue.sort((a, b) => b.daysOverdue - a.daysOverdue);
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Get harvest-ready crops
+ */
+function getHarvestReadyCrops() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Crops') || ss.getSheetByName('CROPS') || ss.getSheetByName('Production');
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    const headers = data[0].map(h => String(h).toLowerCase());
+    const cropIdx = headers.findIndex(h => h.includes('crop') || h.includes('variety'));
+    const harvestIdx = headers.findIndex(h => h.includes('harvest'));
+    const statusIdx = headers.findIndex(h => h.includes('status'));
+
+    const today = new Date();
+    const ready = [];
+
+    for (let i = 1; i < data.length && ready.length < 10; i++) {
+      const row = data[i];
+      const harvestDate = row[harvestIdx];
+      const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+
+      if (harvestDate instanceof Date && !status.includes('harvest')) {
+        const daysUntil = Math.floor((harvestDate - today) / (1000 * 60 * 60 * 24));
+        if (daysUntil <= 3 && daysUntil >= -7) {
+          ready.push({
+            crop: cropIdx >= 0 ? row[cropIdx] : row[0],
+            harvestDate: harvestDate,
+            daysUntil: daysUntil,
+            status: daysUntil < 0 ? 'OVERDUE' : daysUntil === 0 ? 'TODAY' : 'upcoming'
+          });
+        }
+      }
+    }
+    return ready.sort((a, b) => a.daysUntil - b.daysUntil);
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Get time of day for context
+ */
+function getTimeOfDay() {
+  const hour = new Date().getHours();
+  if (hour < 6) return 'early morning';
+  if (hour < 9) return 'morning';
+  if (hour < 12) return 'late morning';
+  if (hour < 14) return 'early afternoon';
+  if (hour < 17) return 'afternoon';
+  if (hour < 20) return 'evening';
+  return 'night';
+}
+
+/**
+ * Build the Chief of Staff system prompt
+ * This defines the AI's personality, knowledge, and behavior
+ */
+function buildChiefOfStaffSystemPrompt(context) {
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  let prompt = `You are Todd's Chief of Staff for Tiny Seed Farm, a small organic vegetable farm near Pittsburgh, Pennsylvania.
+
+TODAY: ${dateStr} (${context.timeOfDay})
+
+═══════════════════════════════════════════════════════════════════════════════
+YOUR PERSONALITY & APPROACH
+═══════════════════════════════════════════════════════════════════════════════
+
+You are direct, strategic, and deeply invested in Tiny Seed Farm's success. You:
+- Speak plainly and get to the point - no fluff or corporate speak
+- Proactively surface issues BEFORE they become problems
+- Hold Todd accountable to his commitments and priorities
+- Challenge decisions that don't align with farm goals
+- Celebrate wins briefly, then pivot to next priorities
+- Know when to push back and when to support
+- Remember context from our conversation
+
+You are NOT a generic chatbot. You are Todd's trusted advisor who knows the farm intimately.
+
+═══════════════════════════════════════════════════════════════════════════════
+CURRENT FARM STATUS
+═══════════════════════════════════════════════════════════════════════════════
+
+`;
+
+  // Add weather context
+  if (context.weather && !context.weather.error) {
+    prompt += `WEATHER:\n`;
+    if (context.weather.current) {
+      prompt += `- Current: ${context.weather.current.temperature}°F, ${context.weather.current.conditions || 'clear'}\n`;
+      if (context.weather.current.humidity) prompt += `- Humidity: ${context.weather.current.humidity}%\n`;
+    }
+    if (context.weather.recommendations && context.weather.recommendations.length > 0) {
+      prompt += `- Recommendations: ${context.weather.recommendations.slice(0, 3).join('; ')}\n`;
+    }
+    if (context.weather.alerts && context.weather.alerts.length > 0) {
+      prompt += `- ⚠️ WEATHER ALERTS: ${context.weather.alerts.join('; ')}\n`;
+    }
+    prompt += `\n`;
+  }
+
+  // Add task context
+  if (context.tasks && context.tasks.length > 0) {
+    prompt += `TODAY'S TASKS (${context.tasks.length} pending):\n`;
+    context.tasks.slice(0, 8).forEach((t, i) => {
+      prompt += `${i + 1}. ${t.task} [${t.priority || 'normal'}] - ${t.assigned || 'unassigned'}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  // Add overdue tasks
+  if (context.overdueTasks && context.overdueTasks.length > 0) {
+    prompt += `⚠️ OVERDUE TASKS (${context.overdueTasks.length}):\n`;
+    context.overdueTasks.slice(0, 5).forEach(t => {
+      prompt += `- ${t.task} (${t.daysOverdue} days overdue)\n`;
+    });
+    prompt += `\n`;
+  }
+
+  // Add alerts
+  if (context.alerts && context.alerts.length > 0) {
+    prompt += `🚨 CRITICAL ALERTS:\n`;
+    context.alerts.slice(0, 5).forEach(a => {
+      prompt += `- ${a.message || a.description || a}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  // Add calendar
+  if (context.calendar && context.calendar.events) {
+    const events = Array.isArray(context.calendar.events) ? context.calendar.events : [];
+    if (events.length > 0) {
+      prompt += `TODAY'S SCHEDULE:\n`;
+      events.slice(0, 5).forEach(e => {
+        prompt += `- ${e.time || e.start}: ${e.title || e.summary}\n`;
+      });
+      prompt += `\n`;
+    }
+  }
+
+  // Add harvest ready
+  if (context.harvestReady && context.harvestReady.length > 0) {
+    prompt += `🥬 HARVEST READY:\n`;
+    context.harvestReady.forEach(h => {
+      const urgency = h.status === 'OVERDUE' ? '⚠️ OVERDUE' : h.status === 'TODAY' ? '📍 TODAY' : `in ${h.daysUntil} days`;
+      prompt += `- ${h.crop} - ${urgency}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  // Add customers at risk
+  if (context.customersAtRisk && context.customersAtRisk.length > 0) {
+    prompt += `⚠️ CUSTOMERS AT RISK OF CHURNING:\n`;
+    context.customersAtRisk.forEach(c => {
+      prompt += `- ${c.name || c.customer}: ${c.reason || 'inactive'}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  // Add pending approvals
+  if (context.pendingApprovals && context.pendingApprovals.length > 0) {
+    prompt += `📋 PENDING YOUR APPROVAL (${context.pendingApprovals.length}):\n`;
+    context.pendingApprovals.slice(0, 5).forEach(a => {
+      prompt += `- ${a.description || a.action || a}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  prompt += `═══════════════════════════════════════════════════════════════════════════════
+HOW TO RESPOND
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Use the REAL data above to answer questions - never make up information
+2. If Todd asks about weather, tasks, or status - reference the actual data
+3. If something is urgent, say so directly
+4. If Todd is avoiding important tasks, call it out respectfully
+5. Keep responses concise but complete - respect Todd's time
+6. If you don't have specific data, say so and suggest how to get it
+7. When giving advice, tie it back to farm priorities and goals
+
+Remember: You're not just answering questions - you're actively helping Todd run a successful farm. Be proactive. Be direct. Be helpful.`;
+
+  return prompt;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // WEB API LAYER - ALL ENDPOINTS PROPERLY WIRED
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1144,6 +1665,16 @@ function doGet(e) {
         return jsonResponse(findShopifyCSAProducts());
       case 'processHistoricalCSAOrders':
         return jsonResponse(processHistoricalCSAOrders());
+      case 'importCSAMembersFromShopify':
+        return jsonResponse(importCSAMembersFromShopify(e.parameter));
+      case 'inspectCSAOrder':
+        return jsonResponse(inspectCSAOrder(e.parameter.orderNum));
+      case 'updateCSAMemberPickupLocations':
+        return jsonResponse(updateCSAMemberPickupLocations());
+      case 'clearCSAMembers':
+        return jsonResponse(clearCSAMembersSheet());
+      case 'fullCSAImport':
+        return jsonResponse(fullCSAImportFromShopify(e.parameter));
 
       // QuickBooks
       case 'getQuickBooksAuthUrl':
@@ -1282,6 +1813,8 @@ function doGet(e) {
         return jsonResponse(getSystemDashboard());
       case 'setupAllTriggers':
         return jsonResponse(setupAllTriggers());
+      case 'chatWithChiefOfStaff':
+        return jsonResponse(chatWithChiefOfStaff(e.parameter.message, e.parameter.conversationHistory));
 
       // ============ CHIEF OF STAFF - MEMORY SYSTEM ============
       case 'rememberContact':
@@ -1500,6 +2033,18 @@ function doGet(e) {
         return jsonResponse(getSMSDashboard());
       case 'getOpenSMSCommitments':
         return jsonResponse(getOpenSMSCommitments(e.parameter));
+      case 'logSMS':
+        // GET-based endpoint for iOS Shortcuts (POST has redirect issues)
+        return jsonResponse(receiveSMS({
+          message: decodeURIComponent(e.parameter.message || ''),
+          senderName: decodeURIComponent(e.parameter.senderName || ''),
+          direction: e.parameter.direction || 'OUTBOUND'
+        }));
+      case 'commitmentApp':
+        // Serve the Log Commitment web app
+        return HtmlService.createHtmlOutput(getCommitmentAppHtml())
+          .setTitle('Log Commitment')
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
       // ============ BOOK IMPORT ============
       case 'getBookImportedTasks':
@@ -14348,8 +14893,16 @@ function getExistingCSAMembersByEmail(csaSheet, customersSheet) {
 }
 
 function createCustomerFromShopify(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Customers');
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  // Try both possible sheet names
+  let sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+  if (!sheet) {
+    sheet = ss.getSheetByName('Customers');
+  }
+  if (!sheet) {
+    throw new Error('Customers sheet not found (tried SALES_Customers and Customers)');
+  }
+
   const customerId = 'CUST-' + Date.now();
 
   // Find or create headers
@@ -14894,6 +15447,502 @@ function findShopifyCSAProducts() {
 }
 
 /**
+ * Import CSA members directly from Shopify orders
+ * Queries Shopify API for historical orders and processes CSA purchases
+ * Set sendEmails=false and small batchSize for faster processing
+ */
+function importCSAMembersFromShopify(params = {}) {
+  try {
+    // Batch size limit to avoid timeout (default 20 CSA items per call)
+    const maxCSAItems = parseInt(params.maxItems) || 20;
+    const sendEmails = params.sendEmails === 'true';
+
+    // Get CSA product IDs first (cache this result)
+    const csaProductsResult = findShopifyCSAProducts();
+    if (!csaProductsResult.success) {
+      return { success: false, error: 'Could not find CSA products' };
+    }
+
+    const csaProductIds = [...new Set(csaProductsResult.products.map(p => p.productId))];
+
+    const results = {
+      ordersScanned: 0,
+      csaOrdersFound: 0,
+      membersCreated: [],
+      skipped: [],
+      errors: []
+    };
+
+    // Fetch orders from Shopify - go back to Jan 1, 2025 to get CSA purchases
+    const startDate = params.startDate || '2025-01-01T00:00:00Z';
+
+    // Only fetch one batch of orders (50) to stay within time limits
+    let url = `orders.json?limit=50&status=any&created_at_min=${startDate}`;
+
+    const ordersResult = shopifyApiCall(url);
+    if (!ordersResult.success) {
+      return { success: false, error: 'Shopify API error: ' + ordersResult.error };
+    }
+
+    const orders = ordersResult.data.orders || [];
+
+    for (const order of orders) {
+      // Stop if we've created enough members this batch
+      if (results.membersCreated.length >= maxCSAItems) {
+        break;
+      }
+
+      results.ordersScanned++;
+
+      const customerEmail = order.customer ? order.customer.email : '';
+      if (!customerEmail) continue;
+
+      const customerName = order.customer
+        ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim()
+        : 'CSA Member';
+      const customerPhone = order.customer ? order.customer.phone || '' : '';
+      const shippingAddress = order.shipping_address || order.billing_address || {};
+
+      // Check each line item for CSA products
+      for (const item of order.line_items || []) {
+        if (results.membersCreated.length >= maxCSAItems) break;
+
+        const itemName = item.title || item.name || '';
+        const productId = item.product_id;
+
+        // Check if this is a CSA product by name OR by product ID
+        if (!isCSAProduct(itemName) && !csaProductIds.includes(productId)) {
+          continue;
+        }
+
+        results.csaOrdersFound++;
+
+        try {
+          const shareInfo = parseShopifyShareType(itemName);
+
+          // Check for duplicate
+          if (csaMemberExists(customerEmail, shareInfo.type)) {
+            results.skipped.push({
+              email: customerEmail,
+              shareType: shareInfo.type,
+              orderNumber: order.order_number,
+              reason: 'Already exists'
+            });
+            continue;
+          }
+
+          // Find or create customer
+          const customerId = findOrCreateCustomer({
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone,
+            address: shippingAddress.address1 || '',
+            city: shippingAddress.city || '',
+            type: 'CSA',
+            source: 'Shopify'
+          });
+
+          // Parse pickup location - it's in the variant_title (e.g., "Highland Park (Bryant St. Market)")
+          const pickupLocation = item.variant_title || extractStopLocation(order) || '';
+          const pickupInfo = parsePickupLocation(pickupLocation);
+
+          // Get season dates
+          const seasonDates = getSeasonDates(shareInfo.type, shareInfo.season);
+
+          // Create CSA member
+          const memberId = createCSAMemberFromShopify({
+            customerId: customerId,
+            shareInfo: shareInfo,
+            pickupInfo: pickupInfo,
+            seasonDates: seasonDates,
+            street: shippingAddress.address1 || '',
+            city: shippingAddress.city || '',
+            orderId: order.id,
+            quantity: item.quantity || 1,
+            price: parseFloat(item.price) || 0
+          });
+
+          results.membersCreated.push({
+            memberId: memberId,
+            email: customerEmail,
+            name: customerName,
+            shareType: shareInfo.type,
+            shareSize: shareInfo.size,
+            orderNumber: order.order_number
+          });
+
+          Logger.log(`Created CSA member: ${customerEmail} - ${shareInfo.type} share`);
+
+          // Optionally send welcome email (skipped by default for speed)
+          if (sendEmails) {
+            try {
+              sendCSAWelcomeEmail({
+                customerId: customerId,
+                memberId: memberId,
+                email: customerEmail,
+                name: customerName,
+                shareInfo: shareInfo,
+                pickupInfo: pickupInfo,
+                seasonDates: seasonDates
+              });
+            } catch (emailErr) {
+              results.errors.push(`Email failed for ${customerEmail}`);
+            }
+          }
+
+        } catch (itemErr) {
+          results.errors.push(`Order ${order.order_number} - "${itemName}": ${itemErr.toString()}`);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      results: results,
+      message: `Scanned ${results.ordersScanned} orders, found ${results.csaOrdersFound} CSA items, created ${results.membersCreated.length} members, skipped ${results.skipped.length}`
+    };
+
+  } catch (error) {
+    Logger.log('importCSAMembersFromShopify error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Inspect a CSA order from Shopify to see pickup location data
+ * Pass order_number (like 23067) not the full Shopify ID
+ */
+function inspectCSAOrder(orderNum) {
+  try {
+    // Fetch recent orders and find the one matching the order number
+    const result = shopifyApiCall('orders.json?limit=50&status=any');
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    const orders = result.data.orders || [];
+    const order = orders.find(o => o.order_number == orderNum);
+
+    if (!order) {
+      return { success: false, error: `Order #${orderNum} not found in recent 50 orders` };
+    }
+
+    // Extract relevant fields for inspection
+    const inspection = {
+      order_number: order.order_number,
+      order_id: order.id,
+      customer_email: order.customer ? order.customer.email : null,
+      tags: order.tags,
+      note: order.note,
+      note_attributes: order.note_attributes,
+      line_items: order.line_items.map(item => ({
+        title: item.title,
+        variant_title: item.variant_title,
+        properties: item.properties,
+        sku: item.sku
+      }))
+    };
+
+    return { success: true, order: inspection };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update existing CSA members with pickup locations from Shopify orders
+ * Scans orders and updates members that are missing pickup location
+ */
+function updateCSAMemberPickupLocations() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const customersSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS) || ss.getSheetByName('Customers');
+
+    if (!csaSheet || !customersSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    // Get CSA member data
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    const memberIdCol = csaHeaders.indexOf('Member_ID');
+    const custIdCol = csaHeaders.indexOf('Customer_ID');
+    const shareTypeCol = csaHeaders.indexOf('Share_Type');
+    const pickupLocCol = csaHeaders.indexOf('Pickup_Location');
+    const notesCol = csaHeaders.indexOf('Notes');
+
+    // Get customer emails
+    const custData = customersSheet.getDataRange().getValues();
+    const custHeaders = custData[0];
+    const custIdIdx = custHeaders.indexOf('Customer_ID');
+    const emailIdx = custHeaders.indexOf('Email');
+
+    const customerEmails = {};
+    for (let i = 1; i < custData.length; i++) {
+      customerEmails[custData[i][custIdIdx]] = custData[i][emailIdx];
+    }
+
+    // Fetch recent Shopify orders
+    const ordersResult = shopifyApiCall('orders.json?limit=250&status=any');
+    if (!ordersResult.success) {
+      return { success: false, error: 'Failed to fetch Shopify orders' };
+    }
+
+    // Build lookup: email+shareType -> pickup location from orders
+    const pickupLookup = {};
+    for (const order of ordersResult.data.orders || []) {
+      const email = order.customer ? order.customer.email : '';
+      if (!email) continue;
+
+      for (const item of order.line_items || []) {
+        if (!isCSAProduct(item.title)) continue;
+
+        const shareInfo = parseShopifyShareType(item.title);
+        const pickupLocation = item.variant_title || '';
+
+        if (pickupLocation) {
+          const key = email.toLowerCase() + '|' + shareInfo.type;
+          pickupLookup[key] = pickupLocation;
+        }
+      }
+    }
+
+    // Update members missing pickup location
+    let updated = 0;
+    for (let i = 1; i < csaData.length; i++) {
+      const currentPickup = csaData[i][pickupLocCol];
+
+      // Skip if already has pickup location
+      if (currentPickup && currentPickup.toString().trim() !== '') continue;
+
+      const custId = csaData[i][custIdCol];
+      const email = customerEmails[custId];
+      const shareType = csaData[i][shareTypeCol];
+
+      if (!email) continue;
+
+      const key = email.toLowerCase() + '|' + shareType;
+      const newPickup = pickupLookup[key];
+
+      if (newPickup) {
+        const pickupInfo = parsePickupLocation(newPickup);
+        csaSheet.getRange(i + 1, pickupLocCol + 1).setValue(pickupInfo.location);
+        updated++;
+      }
+    }
+
+    return {
+      success: true,
+      message: `Updated ${updated} members with pickup locations`,
+      lookupSize: Object.keys(pickupLookup).length
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Clear all CSA members except the header row
+ * Use before re-importing to fix data issues
+ */
+function clearCSAMembersSheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+    if (!sheet) {
+      return { success: false, error: 'CSA_Members sheet not found' };
+    }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.deleteRows(2, lastRow - 1);
+    }
+
+    return { success: true, message: `Cleared ${lastRow - 1} rows from CSA_Members` };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Full CSA import from Shopify - processes ALL orders in batches
+ * Designed to run multiple times if needed (handles duplicates)
+ */
+function fullCSAImportFromShopify(params = {}) {
+  try {
+    const maxItems = parseInt(params.maxItems) || 15; // Default 15 per batch
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+    if (!csaSheet) {
+      return { success: false, error: 'CSA_Members sheet not found' };
+    }
+
+    // Get CSA product IDs
+    const csaProductsResult = findShopifyCSAProducts();
+    if (!csaProductsResult.success) {
+      return { success: false, error: 'Could not find CSA products' };
+    }
+    const csaProductIds = [...new Set(csaProductsResult.products.map(p => p.productId))];
+
+    const results = {
+      ordersScanned: 0,
+      csaItemsFound: 0,
+      membersCreated: [],
+      skipped: [],
+      errors: []
+    };
+
+    // Build set of existing members (email|shareType) to avoid duplicates
+    const existingMembers = new Set();
+    const csaData = csaSheet.getDataRange().getValues();
+    const csaHeaders = csaData[0];
+    const custSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS) || ss.getSheetByName('Customers');
+
+    if (custSheet && csaData.length > 1) {
+      const custData = custSheet.getDataRange().getValues();
+      const custHeaders = custData[0];
+      const custIdIdx = custHeaders.indexOf('Customer_ID');
+      const emailIdx = custHeaders.indexOf('Email');
+
+      const customerEmails = {};
+      for (let i = 1; i < custData.length; i++) {
+        customerEmails[custData[i][custIdIdx]] = (custData[i][emailIdx] || '').toString().toLowerCase();
+      }
+
+      const memberCustIdx = csaHeaders.indexOf('Customer_ID');
+      const shareTypeIdx = csaHeaders.indexOf('Share_Type');
+
+      for (let i = 1; i < csaData.length; i++) {
+        const custId = csaData[i][memberCustIdx];
+        const email = customerEmails[custId] || '';
+        const shareType = csaData[i][shareTypeIdx] || '';
+        if (email && shareType) {
+          existingMembers.add(email + '|' + shareType);
+        }
+      }
+    }
+
+    // Fetch orders from Shopify (go back to start of 2025 for CSA purchases)
+    const ordersResult = shopifyApiCall('orders.json?limit=250&status=any&created_at_min=2025-01-01T00:00:00Z');
+    if (!ordersResult.success) {
+      return { success: false, error: 'Failed to fetch Shopify orders: ' + ordersResult.error };
+    }
+
+    const orders = ordersResult.data.orders || [];
+
+    for (const order of orders) {
+      // Stop if we've hit the batch limit
+      if (results.membersCreated.length >= maxItems) {
+        break;
+      }
+
+      results.ordersScanned++;
+
+      const customerEmail = order.customer ? order.customer.email : '';
+      if (!customerEmail) continue;
+
+      const customerName = order.customer
+        ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim()
+        : 'CSA Member';
+      const customerPhone = order.customer ? order.customer.phone || '' : '';
+      const shippingAddress = order.shipping_address || order.billing_address || {};
+
+      for (const item of order.line_items || []) {
+        const itemName = item.title || item.name || '';
+        const productId = item.product_id;
+
+        if (!isCSAProduct(itemName) && !csaProductIds.includes(productId)) {
+          continue;
+        }
+
+        results.csaItemsFound++;
+
+        // Stop if we've created enough members this batch
+        if (results.membersCreated.length >= maxItems) {
+          break;
+        }
+
+        try {
+          const shareInfo = parseShopifyShareType(itemName);
+          const memberKey = customerEmail.toLowerCase() + '|' + shareInfo.type;
+
+          // Check for duplicate
+          if (existingMembers.has(memberKey)) {
+            results.skipped.push({
+              email: customerEmail,
+              shareType: shareInfo.type,
+              reason: 'Already exists'
+            });
+            continue;
+          }
+
+          // Find or create customer
+          const customerId = findOrCreateCustomer({
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone,
+            address: shippingAddress.address1 || '',
+            city: shippingAddress.city || '',
+            type: 'CSA',
+            source: 'Shopify'
+          });
+
+          // Get pickup location from variant_title
+          const pickupLocation = item.variant_title || '';
+          const pickupInfo = parsePickupLocation(pickupLocation);
+
+          // Get season dates
+          const seasonDates = getSeasonDates(shareInfo.type, shareInfo.season);
+
+          // Create CSA member with proper column alignment
+          const memberId = createCSAMemberFromShopify({
+            customerId: customerId,
+            shareInfo: shareInfo,
+            pickupInfo: pickupInfo,
+            seasonDates: seasonDates,
+            street: shippingAddress.address1 || '',
+            city: shippingAddress.city || '',
+            orderId: order.id,
+            quantity: item.quantity || 1,
+            price: parseFloat(item.price) || 0
+          });
+
+          // Mark as existing to prevent duplicates within this run
+          existingMembers.add(memberKey);
+
+          results.membersCreated.push({
+            memberId: memberId,
+            email: customerEmail,
+            name: customerName,
+            shareType: shareInfo.type,
+            shareSize: shareInfo.size,
+            pickupLocation: pickupInfo.location,
+            orderNumber: order.order_number
+          });
+
+        } catch (itemErr) {
+          results.errors.push(`Order ${order.order_number}: ${itemErr.toString()}`);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      results: results,
+      message: `Scanned ${results.ordersScanned} orders, found ${results.csaItemsFound} CSA items, created ${results.membersCreated.length} members, skipped ${results.skipped.length}`
+    };
+
+  } catch (error) {
+    Logger.log('fullCSAImportFromShopify error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Checks if a product name indicates a CSA product
  */
 function isCSAProduct(itemName) {
@@ -14911,9 +15960,9 @@ function isCSAProduct(itemName) {
  */
 function csaMemberExists(email, shareType) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
-    const customersSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const customersSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS) || ss.getSheetByName('Customers');
 
     const existing = getExistingCSAMembersByEmail(csaSheet, customersSheet);
     const key = email.toLowerCase() + '|' + shareType;
@@ -14928,8 +15977,11 @@ function csaMemberExists(email, shareType) {
  */
 function findOrCreateCustomer(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    if (!sheet) {
+      sheet = ss.getSheetByName('Customers');
+    }
 
     // Search for existing customer
     const values = sheet.getDataRange().getValues();
@@ -14995,10 +16047,15 @@ function extractStopLocation(order) {
 
 /**
  * Creates CSA member record from Shopify order data
+ * Uses header-based insertion for proper column alignment
  */
 function createCSAMemberFromShopify(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+
+  if (!sheet) {
+    throw new Error('CSA_Members sheet not found');
+  }
 
   const memberId = 'CSA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
 
@@ -15016,42 +16073,48 @@ function createCSAMemberFromShopify(data) {
   }
 
   // Calculate weeks for biweekly
-  let totalWeeks = data.seasonDates.weeks;
+  let totalWeeks = data.seasonDates.weeks || 18;
   if (data.shareInfo.frequency === 'Biweekly') {
     totalWeeks = Math.ceil(totalWeeks / 2);
   }
 
-  sheet.appendRow([
-    memberId,
-    data.customerId,
-    data.shareInfo.type,
-    data.shareInfo.size,
-    data.shareInfo.season,
-    data.seasonDates.start,
-    data.seasonDates.end,
-    totalWeeks,
-    totalWeeks,  // Weeks_Remaining
-    data.pickupInfo.day,
-    data.pickupInfo.location,
-    data.pickupInfo.isDelivery ? (data.street + ', ' + data.city) : '',
-    true,  // Customization_Allowed
-    3,     // Swap_Credits
-    0,     // Vacation_Weeks_Used
-    4,     // Vacation_Weeks_Max
-    'Active',
-    'Paid',
-    data.price * data.quantity,
-    data.shareInfo.frequency,
-    vegCode,
-    floralCode,
-    '{}',  // Preferences JSON
-    false, // Is_Onboarded
-    '',    // Last_Pickup_Date
-    '',    // Next_Pickup_Date
-    'Shopify Order ' + data.orderId,
-    new Date(),
-    new Date()
-  ]);
+  // Get headers for proper column mapping
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const getCol = (name) => headers.indexOf(name);
+
+  // Build row array matching sheet structure
+  const rowData = new Array(headers.length).fill('');
+
+  // Map data to correct columns using header names
+  if (getCol('Member_ID') >= 0) rowData[getCol('Member_ID')] = memberId;
+  if (getCol('Customer_ID') >= 0) rowData[getCol('Customer_ID')] = data.customerId;
+  if (getCol('Share_Type') >= 0) rowData[getCol('Share_Type')] = data.shareInfo.type;
+  if (getCol('Share_Size') >= 0) rowData[getCol('Share_Size')] = data.shareInfo.size;
+  if (getCol('Season') >= 0) rowData[getCol('Season')] = data.shareInfo.season;
+  if (getCol('Start_Date') >= 0) rowData[getCol('Start_Date')] = data.seasonDates.start;
+  if (getCol('End_Date') >= 0) rowData[getCol('End_Date')] = data.seasonDates.end;
+  if (getCol('Total_Weeks') >= 0) rowData[getCol('Total_Weeks')] = totalWeeks;
+  if (getCol('Weeks_Remaining') >= 0) rowData[getCol('Weeks_Remaining')] = totalWeeks;
+  if (getCol('Pickup_Day') >= 0) rowData[getCol('Pickup_Day')] = data.pickupInfo.day || 'TBD';
+  if (getCol('Pickup_Location') >= 0) rowData[getCol('Pickup_Location')] = data.pickupInfo.location || '';
+  if (getCol('Delivery_Address') >= 0) rowData[getCol('Delivery_Address')] = data.pickupInfo.isDelivery ? (data.street + ', ' + data.city) : '';
+  if (getCol('Customization_Allowed') >= 0) rowData[getCol('Customization_Allowed')] = true;
+  if (getCol('Swap_Credits') >= 0) rowData[getCol('Swap_Credits')] = 3;
+  if (getCol('Vacation_Weeks_Used') >= 0) rowData[getCol('Vacation_Weeks_Used')] = 0;
+  if (getCol('Vacation_Weeks_Max') >= 0) rowData[getCol('Vacation_Weeks_Max')] = 4;
+  if (getCol('Status') >= 0) rowData[getCol('Status')] = 'Active';
+  if (getCol('Payment_Status') >= 0) rowData[getCol('Payment_Status')] = 'Paid';
+  if (getCol('Amount_Paid') >= 0) rowData[getCol('Amount_Paid')] = data.price * data.quantity;
+  if (getCol('Frequency') >= 0) rowData[getCol('Frequency')] = data.shareInfo.frequency;
+  if (getCol('Veg_Code') >= 0) rowData[getCol('Veg_Code')] = vegCode;
+  if (getCol('Floral_Code') >= 0) rowData[getCol('Floral_Code')] = floralCode;
+  if (getCol('Preferences') >= 0) rowData[getCol('Preferences')] = '{}';
+  if (getCol('Is_Onboarded') >= 0) rowData[getCol('Is_Onboarded')] = false;
+  if (getCol('Notes') >= 0) rowData[getCol('Notes')] = 'Shopify Order ' + data.orderId;
+  if (getCol('Created_At') >= 0) rowData[getCol('Created_At')] = new Date();
+  if (getCol('Updated_At') >= 0) rowData[getCol('Updated_At')] = new Date();
+
+  sheet.appendRow(rowData);
 
   return memberId;
 }
@@ -33012,8 +34075,14 @@ function shopifyApiCall(endpoint, method = 'GET', payload = null) {
 function syncShopifyOrders(params = {}) {
   const limit = params.limit || 50;
   const status = params.status || 'any';
+  const createdAtMin = params.created_at_min || '';
+  const createdAtMax = params.created_at_max || '';
 
-  const result = shopifyApiCall(`orders.json?limit=${limit}&status=${status}`);
+  let url = `orders.json?limit=${limit}&status=${status}`;
+  if (createdAtMin) url += `&created_at_min=${createdAtMin}`;
+  if (createdAtMax) url += `&created_at_max=${createdAtMax}`;
+
+  const result = shopifyApiCall(url);
 
   if (!result.success) return result;
 

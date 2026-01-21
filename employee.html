@@ -20662,6 +20662,18 @@
         }
         .cos-typing span:nth-child(2) { animation-delay: 0.2s; }
         .cos-typing span:nth-child(3) { animation-delay: 0.4s; }
+        .cos-thinking-text {
+            width: auto !important; height: auto !important;
+            background: none !important; animation: none !important;
+            font-size: 12px; color: var(--text-muted);
+            margin-left: 8px;
+        }
+        .cos-error { color: #ff6b6b; font-style: italic; }
+        .cos-message.assistant ul { margin: 8px 0; padding-left: 20px; }
+        .cos-message.assistant li { margin: 4px 0; }
+        .cos-message.assistant h4 { margin: 0 0 8px 0; color: var(--primary); }
+        .cos-message.assistant p { margin: 8px 0; }
+        .cos-message.assistant strong { color: var(--text-primary); }
         @keyframes typingBounce {
             0%, 60%, 100% { transform: translateY(0); }
             30% { transform: translateY(-6px); }
@@ -20739,9 +20751,16 @@
     </div>
 
     <script>
-        // Chief of Staff - Admin Only
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CHIEF OF STAFF - STATE-OF-THE-ART INTELLIGENT AI ASSISTANT
+        // Real Claude AI with full farm context injection
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // State
         let cosFirstOpen = true;
         let cosRecognition = null;
+        let cosConversationHistory = []; // Maintains conversation context
+        let cosIsThinking = false;
 
         // Show COS button only for Admin
         function initCOSForAdmin() {
@@ -20762,130 +20781,142 @@
             const isOpen = win.classList.toggle('open');
             if (isOpen && cosFirstOpen) {
                 cosFirstOpen = false;
-                addCOSMsg('system', `<h4>👋 Hey Todd!</h4><p>I'm your Chief of Staff. Ask me about weather, alerts, ideas, or your daily brief!</p>`);
-                fetchCOSBrief();
+                addCOSMsg('system', `<h4>🤖 Chief of Staff Online</h4>
+                    <p>I'm your intelligent assistant with <strong>full awareness</strong> of:</p>
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                        <li>Weather & field conditions</li>
+                        <li>Today's tasks & overdue items</li>
+                        <li>Calendar & schedule</li>
+                        <li>Customers & alerts</li>
+                        <li>Harvest readiness</li>
+                    </ul>
+                    <p><strong>Ask me anything.</strong> I'll give you real answers, not generic advice.</p>`);
+                // Auto-send a greeting to get the AI warmed up with context
+                setTimeout(() => {
+                    sendCOSMessageInternal("Good morning! Give me a quick status update on what I should focus on today.", true);
+                }, 500);
             }
         }
 
-        async function fetchCOSBrief() {
-            showCOSTyping();
-            try {
-                const r = await fetch(CONFIG.API_URL + '?action=getUltimateMorningBrief');
-                const d = await r.json();
-                hideCOSTyping();
-                if (d.sections?.weather?.success) {
-                    const w = d.sections.weather.current;
-                    addCOSMsg('assistant', `<div class="cos-weather-card"><div class="temp">${Math.round(w.temp)}°F</div><div class="condition">${w.description}</div></div><p>📅 ${d.sections.calendar?.summary?.totalEvents || 0} events today</p>`);
-                }
-            } catch(e) { hideCOSTyping(); }
-        }
-
+        // Quick action buttons still work for specific data fetches
         async function cosQuickAction(action) {
-            const actions = {
-                brief: ['getUltimateMorningBrief', "What's my brief?"],
-                weather: ['getWeatherRecommendations', "What's the weather?"],
-                alerts: ['getActiveAlerts', "Any alerts?"],
-                ideas: ['getProactiveSuggestions', "Give me ideas"]
+            const prompts = {
+                brief: "Give me my morning brief - what's the status of everything and what should I focus on?",
+                weather: "What's the weather looking like? Any concerns for farm operations?",
+                alerts: "Are there any alerts, urgent issues, or things slipping through the cracks I need to know about?",
+                ideas: "Give me 3 actionable ideas I could work on today to grow the business."
             };
-            const [endpoint, msg] = actions[action];
-            addCOSMsg('user', msg);
-            showCOSTyping();
-            try {
-                const r = await fetch(CONFIG.API_URL + '?action=' + endpoint);
-                const d = await r.json();
-                hideCOSTyping();
-                addCOSMsg('assistant', parseCOSResponse(action, d));
-            } catch(e) { hideCOSTyping(); addCOSMsg('assistant', 'Error fetching data.'); }
+            const prompt = prompts[action];
+            if (prompt) {
+                document.getElementById('cosInput').value = prompt;
+                await sendCOSMessage();
+            }
         }
 
-        function parseCOSResponse(type, d) {
-            if (type === 'weather' && d.success) {
-                let h = `<div class="cos-weather-card"><div class="temp">${Math.round(d.current.temp)}°F</div><div class="condition">${d.current.description}</div></div>`;
-                if (d.recommendations?.length) {
-                    h += '<ul>' + d.recommendations.map(r => `<li>${r.message}</li>`).join('') + '</ul>';
-                }
-                return h;
-            }
-            if (type === 'alerts') {
-                if (!d.success || !d.data?.length) return '<h4>✅ All Clear!</h4><p>No alerts.</p>';
-                return '<h4>🔔 Alerts</h4>' + d.data.map(a => `<div class="cos-alert-card ${a.priority==='CRITICAL'?'critical':''}">${a.title || a.message}</div>`).join('');
-            }
-            if (type === 'brief' && d.sections) {
-                let h = '<h4>📋 Today</h4>';
-                if (d.sections.weather?.success) h += `<p>🌡️ ${Math.round(d.sections.weather.current.temp)}°F - ${d.sections.weather.current.description}</p>`;
-                if (d.sections.calendar?.success) h += `<p>📅 ${d.sections.calendar.summary?.totalEvents || 0} events</p>`;
-                return h;
-            }
-            if (type === 'ideas') {
-                return `<h4>💡 Ideas</h4><ul><li>Send a "What's Growing" email</li><li>Post harvest day on social</li><li>Reach out to 2 restaurants</li></ul>`;
-            }
-            return 'Done!';
-        }
-
+        // THE MAIN SEND FUNCTION - Calls real AI
         async function sendCOSMessage() {
             const inp = document.getElementById('cosInput');
             const msg = inp.value.trim();
-            if (!msg) return;
-            addCOSMsg('user', msg);
+            if (!msg || cosIsThinking) return;
             inp.value = '';
-            const lm = msg.toLowerCase();
+            await sendCOSMessageInternal(msg, false);
+        }
 
-            // Weather queries
-            if (lm.includes('weather') || lm.includes('rain') || lm.includes('temperature') || lm.includes('forecast') || lm.includes('cold') || lm.includes('hot') || lm.includes('frost')) {
-                await cosQuickAction('weather'); return;
+        async function sendCOSMessageInternal(msg, isAutoGreeting) {
+            if (cosIsThinking) return;
+            cosIsThinking = true;
+
+            // Show user message (unless it's auto-greeting)
+            if (!isAutoGreeting) {
+                addCOSMsg('user', escapeHtml(msg));
             }
-            // Morning brief / today
-            if (lm.includes('brief') || lm.includes('morning') || lm.includes('today') || lm.includes('summary') || lm.includes('overview') || lm.includes('status')) {
-                await cosQuickAction('brief'); return;
+
+            // Add to conversation history
+            cosConversationHistory.push({ role: 'user', content: msg });
+
+            // Show typing indicator
+            showCOSTyping();
+
+            try {
+                // Call the REAL AI endpoint with conversation history
+                const response = await fetch(CONFIG.API_URL + '?action=chatWithChiefOfStaff&message=' + encodeURIComponent(msg) + '&conversationHistory=' + encodeURIComponent(JSON.stringify(cosConversationHistory)));
+                const data = await response.json();
+
+                hideCOSTyping();
+                cosIsThinking = false;
+
+                if (data.success && data.message) {
+                    // Format the AI response (convert markdown-like syntax to HTML)
+                    const formattedMessage = formatAIResponse(data.message);
+                    addCOSMsg('assistant', formattedMessage);
+
+                    // Add to conversation history
+                    cosConversationHistory.push({ role: 'assistant', content: data.message });
+
+                    // Keep history manageable (last 20 messages)
+                    if (cosConversationHistory.length > 20) {
+                        cosConversationHistory = cosConversationHistory.slice(-20);
+                    }
+                } else {
+                    // Handle error
+                    const errorMsg = data.error || data.message || 'Something went wrong. Please try again.';
+                    addCOSMsg('assistant', `<p class="cos-error">⚠️ ${escapeHtml(errorMsg)}</p>`);
+                }
+            } catch (e) {
+                hideCOSTyping();
+                cosIsThinking = false;
+                console.error('COS Error:', e);
+                addCOSMsg('assistant', `<p class="cos-error">⚠️ Connection error. Please check your internet and try again.</p>`);
             }
-            // Alerts
-            if (lm.includes('alert') || lm.includes('warning') || lm.includes('urgent') || lm.includes('problem') || lm.includes('issue')) {
-                await cosQuickAction('alerts'); return;
-            }
-            // Ideas / suggestions
-            if (lm.includes('idea') || lm.includes('suggest') || lm.includes('recommend') || lm.includes('what should') || lm.includes('help me')) {
-                await cosQuickAction('ideas'); return;
-            }
-            // Tasks
-            if (lm.includes('task') || lm.includes('todo') || lm.includes('to do') || lm.includes('work') || lm.includes('schedule')) {
-                addCOSMsg('assistant', '<h4>📋 Your Tasks</h4><p>Check the <strong>Tasks tab</strong> for today\'s assignments. Need me to pull specific task data?</p>'); return;
-            }
-            // Time / clock
-            if (lm.includes('clock') || lm.includes('time') || lm.includes('hours') || lm.includes('punch')) {
-                addCOSMsg('assistant', '<h4>⏰ Time Tracking</h4><p>Use the <strong>Time Clock tab</strong> to clock in/out. Your hours are tracked automatically.</p>'); return;
-            }
-            // Harvest
-            if (lm.includes('harvest') || lm.includes('pick') || lm.includes('yield')) {
-                addCOSMsg('assistant', '<h4>🥬 Harvest</h4><p>Log harvests in the <strong>Harvest tab</strong>. I can pull harvest reports if you need them!</p>'); return;
-            }
-            // Customers / sales
-            if (lm.includes('customer') || lm.includes('sale') || lm.includes('order') || lm.includes('delivery')) {
-                addCOSMsg('assistant', '<h4>👥 Customers</h4><p>Check the <strong>Admin Panel</strong> for customer orders and delivery schedules.</p>'); return;
-            }
-            // Greetings
-            if (lm.match(/^(hi|hello|hey|good morning|good afternoon|yo|sup)/)) {
-                const greetings = ['Hey Todd! 👋 How can I help?', 'Hello! Ready to assist. What do you need?', 'Hey! What\'s on your mind?'];
-                addCOSMsg('assistant', `<p>${greetings[Math.floor(Math.random()*greetings.length)]}</p>`); return;
-            }
-            // Thanks
-            if (lm.match(/thank|thanks|thx|appreciate/)) {
-                addCOSMsg('assistant', '<p>You\'re welcome! 🌱 Anything else?</p>'); return;
-            }
-            // Help
-            if (lm.includes('help') || lm.includes('what can you')) {
-                addCOSMsg('assistant', `<h4>🤖 I can help with:</h4>
-                    <ul>
-                        <li><strong>Weather</strong> - forecasts & farm recommendations</li>
-                        <li><strong>Brief</strong> - daily summary & priorities</li>
-                        <li><strong>Alerts</strong> - urgent items needing attention</li>
-                        <li><strong>Ideas</strong> - marketing & business suggestions</li>
-                        <li><strong>Tasks, Harvest, Time</strong> - quick navigation help</li>
-                    </ul>`); return;
-            }
-            // Default - more helpful response
-            addCOSMsg('assistant', `<p>I'm not sure about "<em>${msg}</em>". Try asking about:</p>
-                <ul><li>Weather / forecast</li><li>Today's brief</li><li>Alerts</li><li>Ideas</li></ul>
-                <p>Or type <strong>help</strong> to see everything I can do!</p>`);
+        }
+
+        // Format AI response - convert plain text/markdown to nice HTML
+        function formatAIResponse(text) {
+            if (!text) return '';
+
+            // Escape HTML first
+            let html = escapeHtml(text);
+
+            // Convert markdown-style formatting
+            // Headers
+            html = html.replace(/^### (.+)$/gm, '<h4>$1</h4>');
+            html = html.replace(/^## (.+)$/gm, '<h4>$1</h4>');
+            html = html.replace(/^# (.+)$/gm, '<h4>$1</h4>');
+
+            // Bold
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+            // Italic
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+
+            // Bullet points - convert lines starting with - or * or numbered
+            html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+            // Wrap consecutive <li> items in <ul>
+            html = html.replace(/(<li>.*?<\/li>\n?)+/g, '<ul>$&</ul>');
+
+            // Paragraphs - wrap text blocks
+            html = html.split('\n\n').map(para => {
+                if (para.trim() && !para.includes('<h4>') && !para.includes('<ul>') && !para.includes('<li>')) {
+                    return '<p>' + para.replace(/\n/g, '<br>') + '</p>';
+                }
+                return para;
+            }).join('');
+
+            // Clean up extra whitespace
+            html = html.replace(/\n/g, '');
+            html = html.replace(/<\/ul><ul>/g, '');
+
+            return html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function addCOSMsg(type, content) {
@@ -20899,10 +20930,14 @@
 
         function showCOSTyping() {
             const c = document.getElementById('cosChatMessages');
+            // Remove existing typing indicator if any
+            hideCOSTyping();
             const t = document.createElement('div');
-            t.className = 'cos-typing'; t.id = 'cosTyping';
-            t.innerHTML = '<span></span><span></span><span></span>';
-            c.appendChild(t); c.scrollTop = c.scrollHeight;
+            t.className = 'cos-typing';
+            t.id = 'cosTyping';
+            t.innerHTML = '<span></span><span></span><span></span><span class="cos-thinking-text">Thinking...</span>';
+            c.appendChild(t);
+            c.scrollTop = c.scrollHeight;
         }
 
         function hideCOSTyping() {
@@ -20911,15 +20946,38 @@
         }
 
         function toggleCOSVoice() {
-            if (!('webkitSpeechRecognition' in window)) { alert('Voice not supported'); return; }
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Voice input not supported in this browser');
+                return;
+            }
             const btn = document.getElementById('cosVoiceBtn');
-            if (cosRecognition) { cosRecognition.stop(); cosRecognition = null; btn.classList.remove('listening'); return; }
-            cosRecognition = new webkitSpeechRecognition();
+            if (cosRecognition) {
+                cosRecognition.stop();
+                cosRecognition = null;
+                btn.classList.remove('listening');
+                return;
+            }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            cosRecognition = new SpeechRecognition();
             cosRecognition.continuous = false;
+            cosRecognition.interimResults = false;
             cosRecognition.onstart = () => btn.classList.add('listening');
             cosRecognition.onend = () => { btn.classList.remove('listening'); cosRecognition = null; };
-            cosRecognition.onresult = (e) => { document.getElementById('cosInput').value = e.results[0][0].transcript; sendCOSMessage(); };
+            cosRecognition.onerror = (e) => { console.error('Speech error:', e); btn.classList.remove('listening'); cosRecognition = null; };
+            cosRecognition.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                document.getElementById('cosInput').value = transcript;
+                sendCOSMessage();
+            };
             cosRecognition.start();
+        }
+
+        // Clear conversation history (for debugging or reset)
+        function clearCOSHistory() {
+            cosConversationHistory = [];
+            document.getElementById('cosChatMessages').innerHTML = '';
+            cosFirstOpen = true;
+            addCOSMsg('system', '<p>Conversation cleared. How can I help?</p>');
         }
     </script>
 </body>
