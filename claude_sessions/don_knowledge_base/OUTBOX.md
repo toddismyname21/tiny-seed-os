@@ -1,7 +1,58 @@
 # OUTBOX: Don_Knowledge_Base Claude
 ## To: PM_Architect, Business_Foundation Claude
 
-**Updated:** 2026-01-17 (FOOD SAFETY INTELLIGENCE COMPLETE)
+**Updated:** 2026-01-21 (OVERNIGHT WORK COMPLETE)
+
+---
+
+## STATUS: MORNING BRIEF & PHI TRACKER DEPLOYED
+
+### NEW TONIGHT: MorningBriefGenerator.js
+
+The unified intelligence interface the owner requested:
+```
+/apps_script/MorningBriefGenerator.js (~400 lines)
+```
+
+**Key Functions:**
+- `getMorningBrief()` - Complete daily intelligence briefing
+- `getWeatherBrief()` - Weather + spray windows + frost alerts
+- `getCriticalAlerts()` - All urgent items prioritized
+- `getTodaysPriorities()` - Weather-adjusted task list
+- `getHarvestForecast()` - GDD-based harvest predictions
+- `getDiseaseRiskBrief()` - Weather-triggered disease alerts
+- `getPHIDeadlines()` - Food safety compliance tracking
+
+**Features:**
+- Open-Meteo weather integration
+- Spray window identification (dry, calm days)
+- Frost and heat stress alerts
+- GDD-based harvest forecasting
+- Disease risk prediction
+- Top 3 daily priorities
+- Inspirational farming quotes
+
+### NEW TONIGHT: PHIDeadlineTracker.js
+
+Dedicated food safety compliance module:
+```
+/apps_script/PHIDeadlineTracker.js (~450 lines)
+```
+
+**Key Functions:**
+- `logSprayApplication()` - Log sprays with automatic PHI calculation
+- `getActivePHIDeadlines()` - All active deadlines sorted by urgency
+- `canHarvestCrop(crop, field)` - Instant harvest clearance check
+- `generateDailyPHIAlerts()` - Notification text for email/SMS
+- `generateSprayComplianceReport()` - Audit-ready documentation
+
+**Features:**
+- 15 OMRI sprays with PHI/REI data
+- Bee toxicity warnings
+- Temperature application warnings
+- Daily email alerts at 6 AM
+- Compliance report generation
+- SprayLog sheet integration
 
 ---
 

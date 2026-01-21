@@ -70,10 +70,10 @@ function loadIntegrationConfig() {
   INTEGRATION_CONFIG.QUICKBOOKS.clientSecret = props.getProperty('QUICKBOOKS_CLIENT_SECRET');
   INTEGRATION_CONFIG.QUICKBOOKS.realmId = props.getProperty('QUICKBOOKS_REALM_ID');
 
-  // Weather
+  // Weather - Default to Tiny Seed Farm coordinates (Pittsburgh area)
   INTEGRATION_CONFIG.WEATHER.apiKey = props.getProperty('WEATHER_API_KEY');
-  INTEGRATION_CONFIG.WEATHER.latitude = props.getProperty('FARM_LATITUDE') || '42.3601';
-  INTEGRATION_CONFIG.WEATHER.longitude = props.getProperty('FARM_LONGITUDE') || '-71.0589';
+  INTEGRATION_CONFIG.WEATHER.latitude = props.getProperty('FARM_LATITUDE') || '40.7956';
+  INTEGRATION_CONFIG.WEATHER.longitude = props.getProperty('FARM_LONGITUDE') || '-80.1384';
 
   // FedEx
   INTEGRATION_CONFIG.FEDEX.apiKey = props.getProperty('FEDEX_API_KEY');
@@ -537,39 +537,47 @@ function syncQuickBooksInvoices() {
 }
 
 // ==========================================
-// WEATHER INTEGRATION
+// WEATHER INTEGRATION (Using Open-Meteo - FREE, no API key required)
 // ==========================================
 
 /**
- * Get current weather
+ * Get current weather using Open-Meteo (free API)
  */
 function getCurrentWeather() {
   loadIntegrationConfig();
 
   const config = INTEGRATION_CONFIG.WEATHER;
-  if (!config.apiKey) {
-    return { success: false, error: 'Weather API not configured' };
-  }
+  const lat = config.latitude || '40.7956';
+  const lon = config.longitude || '-80.1384';
 
   try {
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${config.latitude}&lon=${config.longitude}&appid=${config.apiKey}&units=imperial`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,cloud_cover&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/New_York`;
 
     const response = UrlFetchApp.fetch(url);
     const data = JSON.parse(response.getContentText());
 
+    const weatherCodes = {
+      0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+      45: 'Fog', 48: 'Depositing rime fog',
+      51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
+      61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+      71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow',
+      80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
+      95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail'
+    };
+
     return {
       success: true,
       current: {
-        temp: data.main.temp,
-        feels_like: data.main.feels_like,
-        humidity: data.main.humidity,
-        description: data.weather[0].description,
-        wind_speed: data.wind.speed,
-        wind_direction: data.wind.deg,
-        clouds: data.clouds.all,
-        visibility: data.visibility
+        temp: data.current.temperature_2m,
+        feels_like: data.current.apparent_temperature,
+        humidity: data.current.relative_humidity_2m,
+        description: weatherCodes[data.current.weather_code] || 'Unknown',
+        wind_speed: data.current.wind_speed_10m,
+        wind_direction: data.current.wind_direction_10m,
+        clouds: data.current.cloud_cover
       },
-      location: data.name
+      location: 'Tiny Seed Farm'
     };
   } catch (error) {
     return { success: false, error: error.message };
@@ -577,57 +585,43 @@ function getCurrentWeather() {
 }
 
 /**
- * Get weather forecast
+ * Get weather forecast using Open-Meteo (free API)
  */
 function getWeatherForecast(days = 5) {
   loadIntegrationConfig();
 
   const config = INTEGRATION_CONFIG.WEATHER;
-  if (!config.apiKey) {
-    return { success: false, error: 'Weather API not configured' };
-  }
+  const lat = config.latitude || '40.7956';
+  const lon = config.longitude || '-80.1384';
 
   try {
-    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${config.latitude}&lon=${config.longitude}&appid=${config.apiKey}&units=imperial`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America/New_York&forecast_days=${Math.min(days, 16)}`;
 
     const response = UrlFetchApp.fetch(url);
     const data = JSON.parse(response.getContentText());
 
-    // Group by day
-    const daily = {};
-    for (const item of data.list) {
-      const date = item.dt_txt.split(' ')[0];
-      if (!daily[date]) {
-        daily[date] = {
-          date: date,
-          temps: [],
-          conditions: [],
-          rain: 0,
-          wind: []
-        };
-      }
-      daily[date].temps.push(item.main.temp);
-      daily[date].conditions.push(item.weather[0].main);
-      daily[date].rain += item.rain?.['3h'] || 0;
-      daily[date].wind.push(item.wind.speed);
-    }
+    const weatherCodes = {
+      0: 'Clear', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+      45: 'Fog', 48: 'Rime fog', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
+      61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
+      80: 'Light showers', 81: 'Showers', 82: 'Heavy showers', 95: 'Thunderstorm'
+    };
 
-    // Calculate daily summary
-    const forecast = Object.values(daily).slice(0, days).map(day => ({
-      date: day.date,
-      high: Math.max(...day.temps),
-      low: Math.min(...day.temps),
-      avg_temp: day.temps.reduce((a, b) => a + b, 0) / day.temps.length,
-      condition: getMostCommon(day.conditions),
-      rain_chance: day.rain > 0 ? Math.min(100, day.rain * 10) : 0,
-      rain_amount: day.rain,
-      avg_wind: day.wind.reduce((a, b) => a + b, 0) / day.wind.length
+    const forecast = data.daily.time.map((date, i) => ({
+      date: date,
+      high: data.daily.temperature_2m_max[i],
+      low: data.daily.temperature_2m_min[i],
+      avg_temp: (data.daily.temperature_2m_max[i] + data.daily.temperature_2m_min[i]) / 2,
+      condition: weatherCodes[data.daily.weather_code[i]] || 'Unknown',
+      rain_chance: data.daily.precipitation_probability_max[i] || 0,
+      rain_amount: data.daily.precipitation_sum[i] || 0,
+      avg_wind: data.daily.wind_speed_10m_max[i]
     }));
 
     return {
       success: true,
       forecast: forecast,
-      location: data.city.name
+      location: 'Tiny Seed Farm'
     };
   } catch (error) {
     return { success: false, error: error.message };

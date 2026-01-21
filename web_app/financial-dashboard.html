@@ -3203,8 +3203,9 @@
 
                 showNotification(`Connected to ${metadata.institution.name}!`, 'success');
 
-                // Refresh the accounts display
+                // Refresh the accounts and transactions display
                 await loadConnectedAccounts();
+                await loadTransactionsAndAnalyze();
 
                 btn.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
                 btn.disabled = false;
@@ -3387,6 +3388,71 @@
             });
         }
 
+        // =============================================
+        // TRANSACTION ANALYSIS - Income & Expenses
+        // =============================================
+        async function loadTransactionsAndAnalyze() {
+            try {
+                const result = await fetchFromSheet('getPlaidTransactions', { days: 30 });
+
+                if (result && result.success && result.data) {
+                    analyzeTransactions(result.data);
+                }
+            } catch (error) {
+                console.error('Failed to load transactions:', error);
+            }
+        }
+
+        function analyzeTransactions(transactions) {
+            if (!transactions || transactions.length === 0) {
+                return;
+            }
+
+            let monthlyIncome = 0;
+            let monthlyExpenses = 0;
+
+            // Plaid convention: positive amount = money out (expense)
+            // negative amount = money in (income)
+            transactions.forEach(txn => {
+                if (txn.pending) return; // Skip pending transactions
+
+                const amount = txn.amount || 0;
+
+                if (amount < 0) {
+                    // Negative = income (deposit, refund, payment received)
+                    monthlyIncome += Math.abs(amount);
+                } else {
+                    // Positive = expense (purchase, payment, withdrawal)
+                    monthlyExpenses += amount;
+                }
+            });
+
+            // Update the UI
+            const incomeEl = document.getElementById('monthly-income');
+            const expensesEl = document.getElementById('monthly-expenses');
+
+            if (incomeEl) {
+                incomeEl.textContent = '$' + monthlyIncome.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+            }
+
+            if (expensesEl) {
+                expensesEl.textContent = '-$' + monthlyExpenses.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+            }
+
+            console.log('Monthly cash flow:', {
+                income: monthlyIncome,
+                expenses: monthlyExpenses,
+                net: monthlyIncome - monthlyExpenses,
+                transactionCount: transactions.length
+            });
+        }
+
         async function refreshPlaidBalances() {
             showNotification('Refreshing balances...', 'info');
 
@@ -3394,6 +3460,7 @@
                 const result = await fetchFromSheet('refreshPlaidBalances');
                 if (result && result.success) {
                     await loadConnectedAccounts();
+                    await loadTransactionsAndAnalyze();
                     showNotification('Balances updated!', 'success');
                 }
             } catch (error) {
@@ -3676,9 +3743,10 @@
                 console.log('Running in demo mode - configure API URL for live data');
             }
 
-            // Load connected Plaid accounts if API is configured
+            // Load connected Plaid accounts and transactions if API is configured
             if (API_CONFIG.apiUrl) {
                 loadConnectedAccounts();
+                loadTransactionsAndAnalyze();
             }
         });
     </script>

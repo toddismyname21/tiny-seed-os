@@ -173,15 +173,7 @@
   </div>
 
   <div class="how-it-works">
-    <h2><i class="fas fa-truck"></i> Home Delivery - A Premium Convenience</h2>
-    <div style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-      <p style="color: #991b1b; font-weight: 600; margin: 0; font-size: 1rem;">
-        <i class="fas fa-gem"></i> Delivery Fee: <strong>$15/week</strong> (flat rate for all addresses)
-      </p>
-      <p style="color: #7f1d1d; margin: 6px 0 0; font-size: 0.85rem;">
-        Home delivery is a luxury option. We encourage joining one of our <strong>FREE community pickup locations</strong> to save money and meet your neighbors!
-      </p>
-    </div>
+    <h2><i class="fas fa-truck"></i> Home Delivery</h2>
     <div class="steps">
       <div class="step">
         <span class="step-num">1</span>
@@ -193,7 +185,7 @@
       </div>
       <div class="step">
         <span class="step-num">3</span>
-        <span>Delivery fee is <strong>$15/week</strong> added to your share cost</span>
+        <span>Delivery fee is <strong>$15/week</strong></span>
       </div>
     </div>
     <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">Deliveries are made on <strong>Wednesdays</strong> throughout the Pittsburgh area.</p>
@@ -235,13 +227,12 @@
           <p id="accepted-message">Your address qualifies for home delivery!</p>
         </div>
 
-        <div id="pickup-suggestion" class="card hidden" style="background: #ecfdf5; border: 2px solid #10b981;">
-          <h3 style="color: #059669; font-size: 1rem; margin-bottom: 8px;">
-            <i class="fas fa-users"></i> Consider a FREE Community Pickup!
+        <div id="pickup-suggestion" class="card hidden" style="background: #f9fafb;">
+          <h3 style="color: #374151; font-size: 0.95rem; margin-bottom: 8px;">
+            <i class="fas fa-store"></i> Nearby Pickup Locations
           </h3>
-          <p style="color: #047857; font-size: 0.9rem; margin-bottom: 12px;">
-            Save <strong>$270/season</strong> by joining one of our community pickup locations.
-            It's a great way to meet fellow CSA members and support your local community!
+          <p style="color: #6b7280; font-size: 0.85rem; margin-bottom: 12px;">
+            We also have free community pickup spots in your area:
           </p>
           <div id="nearby-pickups-for-approved"></div>
         </div>
@@ -479,7 +470,7 @@
         document.getElementById('detail-season-fee').textContent = '$270 (18 weeks)';
         document.getElementById('delivery-code').textContent = 'HOMEDELIVERY';
 
-        // Show nearby FREE community pickups as an alternative
+        // Show nearby pickup locations as an option
         if (data.nearestPickupLocations && data.nearestPickupLocations.length > 0) {
           document.getElementById('pickup-suggestion').classList.remove('hidden');
           const pickupList = document.getElementById('nearby-pickups-for-approved');
@@ -487,10 +478,9 @@
           data.nearestPickupLocations.slice(0, 2).forEach(loc => {
             const item = document.createElement('div');
             item.className = 'alternative-item';
-            item.style.background = '#d1fae5';
-            item.innerHTML = `<div class="alternative-icon" style="background: #059669;"><i class="fas fa-map-marker-alt"></i></div>
+            item.innerHTML = `<div class="alternative-icon"><i class="fas fa-map-marker-alt"></i></div>
               <div><div class="alternative-name">${loc.name}</div>
-              <div class="alternative-distance" style="color: #047857;">${loc.distance} miles away • FREE pickup!</div></div>`;
+              <div class="alternative-distance">${loc.distance} miles away</div></div>`;
             pickupList.appendChild(item);
           });
         } else {

@@ -617,16 +617,20 @@ function generateMorningBrief() {
 
   // Get active alerts
   const alerts = getActiveAlerts();
-  if (alerts.success) {
+  if (alerts.success && Array.isArray(alerts.data)) {
     brief.criticalAlerts = alerts.data.filter(a => a.priority === 'CRITICAL');
-    brief.summary.totalAlerts = alerts.count;
+    brief.summary.totalAlerts = alerts.count || 0;
     brief.summary.criticalCount = brief.criticalAlerts.length;
+  } else {
+    brief.criticalAlerts = [];
+    brief.summary.totalAlerts = 0;
+    brief.summary.criticalCount = 0;
   }
 
   // Get email status
   const emails = getEmailsByStatus({ status: 'NEW,TRIAGED' });
-  if (emails.success) {
-    brief.summary.inboxCount = emails.count;
+  if (emails.success && Array.isArray(emails.data)) {
+    brief.summary.inboxCount = emails.count || 0;
     brief.summary.urgentEmails = emails.data.filter(e => e.priority === 'CRITICAL' || e.priority === 'HIGH').length;
 
     // Top priority emails
@@ -641,12 +645,16 @@ function generateMorningBrief() {
         summary: e.aisummary,
         threadId: e.threadid
       }));
+  } else {
+    brief.summary.inboxCount = 0;
+    brief.summary.urgentEmails = 0;
+    brief.priorityActions = [];
   }
 
   // Get pending approvals
   const approvals = getPendingApprovals();
-  if (approvals.success) {
-    brief.summary.pendingApprovals = approvals.count;
+  if (approvals.success && Array.isArray(approvals.data)) {
+    brief.summary.pendingApprovals = approvals.count || 0;
 
     approvals.data.slice(0, 3).forEach(a => {
       brief.priorityActions.push({
@@ -657,12 +665,14 @@ function generateMorningBrief() {
         expiresIn: a.timeRemaining
       });
     });
+  } else {
+    brief.summary.pendingApprovals = 0;
   }
 
   // Get overdue follow-ups
   const overdue = getOverdueFollowups();
-  if (overdue.success) {
-    brief.summary.overdueCount = overdue.count;
+  if (overdue.success && Array.isArray(overdue.data)) {
+    brief.summary.overdueCount = overdue.count || 0;
 
     overdue.data.slice(0, 3).forEach(f => {
       brief.priorityActions.push({
@@ -672,6 +682,8 @@ function generateMorningBrief() {
         threadId: f.threadid
       });
     });
+  } else {
+    brief.summary.overdueCount = 0;
   }
 
   // Get proactive suggestions

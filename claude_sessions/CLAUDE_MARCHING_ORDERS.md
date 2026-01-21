@@ -3,8 +3,48 @@
 
 **From:** PM_Architect / Food_Safety Claude
 **To:** ALL Claude Sessions
-**Date:** 2026-01-17
+**Date:** 2026-01-21 (Updated)
 **Priority:** CRITICAL
+
+---
+
+## 🚨 NEW: MCP SERVER ACCESS - DIRECT ACTION CAPABILITY
+
+**As of 2026-01-21, all Claude sessions have direct access to farm operations.**
+
+### Owner's New Mandate:
+> "I WANT TO TRUST YOU ALL AND GIVE YOU MORE AND MORE ACCESS AND AUTONOMY"
+
+### What This Means:
+- You can now SEND EMAILS directly
+- You can RUN FUNCTIONS without asking the user
+- You can READ/WRITE farm data
+- You can TAKE ACTION when appropriate
+
+### How to Use:
+**Read the full documentation:** `claude_sessions/MCP_SERVER_ACCESS.md`
+
+**Quick Reference - Available Tools:**
+| Tool | Description |
+|------|-------------|
+| `send_season_announcement` | Send the 2026 Season email |
+| `send_email` | Send custom emails (to, subject, body) |
+| `get_csa_dashboard` | Retention dashboard with health scores |
+| `get_at_risk_members` | Members at risk of churning |
+| `health_check` | Check API status |
+| `get_planning_data` | Crop planning data |
+| `get_greenhouse_tasks` | Current greenhouse tasks |
+
+**If MCP is not available, use HTTP API:**
+```bash
+curl -sL "https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec?action=ACTION_NAME"
+```
+
+### The New Philosophy:
+- **Don't wait for permission** on routine tasks
+- **Take action** when it serves the farm
+- **Use good judgment** - when in doubt, ask
+- **Be proactive** about farm operations
 
 ---
 

@@ -1029,6 +1029,32 @@
                 </div>
 
                 <div class="nav-section">
+                    <div class="nav-section-title">Marketing Automation</div>
+                    <a class="nav-item" onclick="showSection('marketingAutomation')">
+                        <i class="fas fa-rocket"></i>
+                        <span>Command Center</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('emailMarketing')">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email Campaigns</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('csaRenewals')">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>CSA Renewals</span>
+                        <span class="nav-item-badge warning" id="renewalsBadge" style="display:none;">!</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('referralTracking')">
+                        <i class="fas fa-users"></i>
+                        <span>Referral Program</span>
+                    </a>
+                    <a class="nav-item" onclick="showSection('competitorAlerts')">
+                        <i class="fas fa-binoculars"></i>
+                        <span>Competitor Intel</span>
+                        <span class="nav-item-badge info" id="competitorBadge" style="display:none;">!</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
                     <div class="nav-section-title">Data Tools</div>
                     <a class="nav-item" onclick="showSection('dataImport')">
                         <i class="fas fa-camera"></i>
@@ -1955,6 +1981,430 @@
                 </section>
 
                 <!-- ════════════════════════════════════════════════════════════════════════════
+                     MARKETING AUTOMATION - COMMAND CENTER
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-marketingAutomation">
+                    <!-- Info Banner -->
+                    <div class="alert alert-info" style="margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-rocket" style="font-size: 24px;"></i>
+                            <div>
+                                <div class="alert-title">Marketing Automation Command Center</div>
+                                <div class="alert-message">Unified view of all automated marketing systems - Email, CSA Renewals, Referrals, and Competitor Intelligence.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;"><i class="fas fa-envelope"></i></div>
+                            <div class="stat-value" id="maDashEmailQueued">--</div>
+                            <div class="stat-label">Emails Queued</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i class="fas fa-sync-alt"></i></div>
+                            <div class="stat-value" id="maDashRenewalsNeeded">--</div>
+                            <div class="stat-label">Renewals Due</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;"><i class="fas fa-users"></i></div>
+                            <div class="stat-value" id="maDashActiveReferrals">--</div>
+                            <div class="stat-label">Active Referrals</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;"><i class="fas fa-binoculars"></i></div>
+                            <div class="stat-value" id="maDashCompetitorAlerts">--</div>
+                            <div class="stat-label">Competitor Alerts</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Campaigns -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-bullseye"></i> Active Campaigns</div>
+                            <button class="btn btn-sm btn-secondary" onclick="loadMarketingDashboard()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="maDashActiveCampaigns">
+                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-bolt"></i> Quick Actions</div>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                                <button class="btn btn-primary" onclick="showSection('emailMarketing')">
+                                    <i class="fas fa-envelope"></i> Create Email Campaign
+                                </button>
+                                <button class="btn btn-warning" onclick="runCSARenewalScan()">
+                                    <i class="fas fa-search"></i> Scan for Renewals
+                                </button>
+                                <button class="btn btn-success" onclick="showSection('referralTracking')">
+                                    <i class="fas fa-link"></i> Generate Referral Code
+                                </button>
+                                <button class="btn btn-info" onclick="runCompetitorScan()">
+                                    <i class="fas fa-binoculars"></i> Run Competitor Scan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     MARKETING AUTOMATION - EMAIL CAMPAIGNS
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-emailMarketing">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-envelope"></i> Email Campaign Builder</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Campaign Name</label>
+                                <input type="text" class="form-input" id="emailCampaignName" placeholder="e.g., Spring CSA Launch">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Campaign Type</label>
+                                <select class="form-input" id="emailCampaignType">
+                                    <option value="announcement">Announcement</option>
+                                    <option value="promotion">Promotion / Sale</option>
+                                    <option value="newsletter">Newsletter</option>
+                                    <option value="csa_renewal">CSA Renewal</option>
+                                    <option value="welcome">Welcome Series</option>
+                                    <option value="reengagement">Re-engagement</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Target Audience</label>
+                                <select class="form-input" id="emailCampaignAudience">
+                                    <option value="all">All Customers</option>
+                                    <option value="csa">CSA Members Only</option>
+                                    <option value="wholesale">Wholesale Customers</option>
+                                    <option value="at_risk">At-Risk (Churn Score > 70)</option>
+                                    <option value="vip">VIP (CLV > $500)</option>
+                                    <option value="inactive">Inactive (No Order 60+ Days)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Subject Line</label>
+                                <input type="text" class="form-input" id="emailSubject" placeholder="Your attention-grabbing subject">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email Body</label>
+                                <textarea class="form-input" id="emailBody" rows="6" placeholder="Write your email content here..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Send Time</label>
+                                <select class="form-input" id="emailSendTime">
+                                    <option value="optimal">Optimal (AI-Determined)</option>
+                                    <option value="immediate">Send Immediately</option>
+                                    <option value="scheduled">Schedule for Later</option>
+                                </select>
+                            </div>
+                            <div id="emailScheduleContainer" style="display: none;">
+                                <div class="form-group">
+                                    <label class="form-label">Scheduled Date/Time</label>
+                                    <input type="datetime-local" class="form-input" id="emailScheduleDate">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="createEmailCampaignFromUI()">
+                                <i class="fas fa-paper-plane"></i> Create Campaign
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Email Queue -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-list"></i> Email Queue</div>
+                            <button class="btn btn-sm btn-success" onclick="processEmailQueueNow()">
+                                <i class="fas fa-play"></i> Process Queue
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="emailQueueList">
+                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading email queue...</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     MARKETING AUTOMATION - CSA RENEWALS
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-csaRenewals">
+                    <div class="alert alert-warning" style="margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-sync-alt" style="font-size: 24px;"></i>
+                            <div>
+                                <div class="alert-title">CSA Renewal Campaign System</div>
+                                <div class="alert-message">Automatically identifies members nearing renewal and triggers personalized outreach sequences.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Renewal Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="stat-value" id="renewalsExpiring7Days">--</div>
+                            <div class="stat-label">Expiring in 7 Days</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i class="fas fa-clock"></i></div>
+                            <div class="stat-value" id="renewalsExpiring30Days">--</div>
+                            <div class="stat-label">Expiring in 30 Days</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;"><i class="fas fa-check-circle"></i></div>
+                            <div class="stat-value" id="renewalsCompleted">--</div>
+                            <div class="stat-label">Renewed This Month</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;"><i class="fas fa-percentage"></i></div>
+                            <div class="stat-value" id="renewalRate">--%</div>
+                            <div class="stat-label">Renewal Rate</div>
+                        </div>
+                    </div>
+
+                    <!-- Members Needing Renewal -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-users"></i> Members Needing Renewal</div>
+                            <div>
+                                <button class="btn btn-sm btn-secondary" onclick="loadCSARenewals()">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="runCSARenewalCampaignNow()" style="margin-left: 8px;">
+                                    <i class="fas fa-rocket"></i> Run Campaign
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="csaRenewalsList">
+                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading renewals...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reminder Settings -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-cog"></i> Renewal Reminder Settings</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">First Reminder (Days Before Expiry)</label>
+                                <input type="number" class="form-input" id="renewalReminder1" value="30" style="width: 100px;">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Second Reminder (Days Before Expiry)</label>
+                                <input type="number" class="form-input" id="renewalReminder2" value="14" style="width: 100px;">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Final Reminder (Days Before Expiry)</label>
+                                <input type="number" class="form-input" id="renewalReminder3" value="3" style="width: 100px;">
+                            </div>
+                            <button class="btn btn-primary" onclick="saveRenewalSettings()">
+                                <i class="fas fa-save"></i> Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     MARKETING AUTOMATION - REFERRAL TRACKING
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-referralTracking">
+                    <div class="alert alert-success" style="margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-users" style="font-size: 24px;"></i>
+                            <div>
+                                <div class="alert-title">Referral Program Dashboard</div>
+                                <div class="alert-message">Track referrals, generate unique codes, and see your top advocates. Each successful referral builds your community!</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Referral Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;"><i class="fas fa-link"></i></div>
+                            <div class="stat-value" id="referralTotalCodes">--</div>
+                            <div class="stat-label">Active Codes</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i class="fas fa-mouse-pointer"></i></div>
+                            <div class="stat-value" id="referralTotalClicks">--</div>
+                            <div class="stat-label">Total Clicks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;"><i class="fas fa-user-plus"></i></div>
+                            <div class="stat-value" id="referralTotalConverted">--</div>
+                            <div class="stat-label">Converted</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;"><i class="fas fa-dollar-sign"></i></div>
+                            <div class="stat-value" id="referralTotalRevenue">$--</div>
+                            <div class="stat-label">Revenue Generated</div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Referral Code -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-plus-circle"></i> Generate Referral Code</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Referrer Name</label>
+                                <input type="text" class="form-input" id="referrerName" placeholder="e.g., Jane Smith">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Referrer Email</label>
+                                <input type="email" class="form-input" id="referrerEmail" placeholder="jane@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Custom Code (Optional)</label>
+                                <input type="text" class="form-input" id="referralCustomCode" placeholder="JANE2026 (leave blank for auto-generate)">
+                            </div>
+                            <button class="btn btn-primary" onclick="generateReferralCodeFromUI()">
+                                <i class="fas fa-magic"></i> Generate Code
+                            </button>
+                            <div id="generatedCodeDisplay" style="display: none; margin-top: 16px; padding: 16px; background: var(--bg-elevated); border-radius: 8px;">
+                                <p style="color: var(--text-secondary); margin-bottom: 8px;">Generated Referral Code:</p>
+                                <div style="font-size: 24px; font-weight: 700; color: var(--success);" id="generatedCodeValue"></div>
+                                <button class="btn btn-sm btn-secondary" onclick="copyReferralCode()" style="margin-top: 8px;">
+                                    <i class="fas fa-copy"></i> Copy Code
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Referral Leaderboard -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-trophy"></i> Top Referrers</div>
+                            <button class="btn btn-sm btn-secondary" onclick="loadReferralLeaderboard()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="referralLeaderboard">
+                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading leaderboard...</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     MARKETING AUTOMATION - COMPETITOR INTELLIGENCE
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-competitorAlerts">
+                    <div class="alert alert-info" style="margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-binoculars" style="font-size: 24px;"></i>
+                            <div>
+                                <div class="alert-title">Competitor Intelligence System</div>
+                                <div class="alert-message">Monitor competitor activity and get alerts when they launch promotions, change pricing, or post viral content.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alert Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;"><i class="fas fa-bell"></i></div>
+                            <div class="stat-value" id="competitorUnacknowledged">--</div>
+                            <div class="stat-label">Unacknowledged</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;"><i class="fas fa-tag"></i></div>
+                            <div class="stat-value" id="competitorPriceAlerts">--</div>
+                            <div class="stat-label">Price Alerts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;"><i class="fas fa-fire"></i></div>
+                            <div class="stat-value" id="competitorViralAlerts">--</div>
+                            <div class="stat-label">Viral Posts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;"><i class="fas fa-store"></i></div>
+                            <div class="stat-value" id="competitorTracked">--</div>
+                            <div class="stat-label">Competitors Tracked</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Alerts -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-exclamation-circle"></i> Active Alerts</div>
+                            <div>
+                                <button class="btn btn-sm btn-secondary" onclick="loadCompetitorAlerts()">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="runCompetitorScan()" style="margin-left: 8px;">
+                                    <i class="fas fa-search"></i> Run Scan
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="competitorAlertsList">
+                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading alerts...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Competitor -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-plus-circle"></i> Add Competitor to Monitor</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Competitor Name</label>
+                                <input type="text" class="form-input" id="competitorName" placeholder="e.g., Green Valley Farm">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Instagram Handle</label>
+                                <input type="text" class="form-input" id="competitorInstagram" placeholder="@greenvalleyfarm">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Website (Optional)</label>
+                                <input type="url" class="form-input" id="competitorWebsite" placeholder="https://greenvalleyfarm.com">
+                            </div>
+                            <button class="btn btn-primary" onclick="addCompetitorFromUI()">
+                                <i class="fas fa-plus"></i> Add Competitor
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Monitoring Automation -->
+                    <div class="card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-robot"></i> Automation Settings</div>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Enable automatic competitor monitoring to run daily scans.</p>
+                            <button class="btn btn-primary" onclick="setupCompetitorMonitoringTriggerUI()">
+                                <i class="fas fa-play"></i> Enable Daily Monitoring
+                            </button>
+                            <p id="competitorTriggerStatus" style="margin-top: 12px; color: var(--success); display: none;">
+                                <i class="fas fa-check-circle"></i> Daily monitoring is active.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
                      DATA IMPORT SECTION
                      ════════════════════════════════════════════════════════════════════════════ -->
                 <section class="view-section" id="section-dataImport">
@@ -2315,6 +2765,416 @@
         async function saveAIKeys() { const a = document.getElementById('anthropicApiKey').value.trim(), o = document.getElementById('openaiApiKey').value.trim(); if (a) await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'configureClaudeAPI', apiKey: a }) }); if (o) await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'configureOpenAI', apiKey: o }) }); showToast('API keys saved!', 'success'); }
 
         // ════════════════════════════════════════════════════════════════════════════
+        // MARKETING AUTOMATION SYSTEM
+        // ════════════════════════════════════════════════════════════════════════════
+
+        // Marketing Dashboard
+        async function loadMarketingDashboard() {
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingAutomationDashboard`);
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('maDashEmailQueued').textContent = data.emailStats?.queued || 0;
+                    document.getElementById('maDashRenewalsNeeded').textContent = data.renewalStats?.needed || 0;
+                    document.getElementById('maDashActiveReferrals').textContent = data.referralStats?.active || 0;
+                    document.getElementById('maDashCompetitorAlerts').textContent = data.competitorStats?.unacknowledged || 0;
+
+                    // Update badges
+                    const renewalBadge = document.getElementById('renewalsBadge');
+                    if (data.renewalStats?.needed > 0) { renewalBadge.style.display = 'inline'; renewalBadge.textContent = data.renewalStats.needed; }
+                    else renewalBadge.style.display = 'none';
+
+                    const competitorBadge = document.getElementById('competitorBadge');
+                    if (data.competitorStats?.unacknowledged > 0) { competitorBadge.style.display = 'inline'; competitorBadge.textContent = data.competitorStats.unacknowledged; }
+                    else competitorBadge.style.display = 'none';
+
+                    // Render active campaigns
+                    renderActiveCampaigns(data.activeCampaigns || []);
+                }
+            } catch (e) { console.error('Error loading marketing dashboard:', e); }
+        }
+
+        function renderActiveCampaigns(campaigns) {
+            const c = document.getElementById('maDashActiveCampaigns');
+            if (campaigns.length === 0) {
+                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No active campaigns. Create one to get started!</p>';
+                return;
+            }
+            c.innerHTML = campaigns.map(camp => `
+                <div style="background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span class="badge badge-${camp.type === 'email' ? 'info' : camp.type === 'renewal' ? 'warning' : 'success'}" style="margin-bottom: 8px;">${camp.type.toUpperCase()}</span>
+                        <p style="font-weight: 500;">${camp.name}</p>
+                        <p style="font-size: 13px; color: var(--text-secondary);">${camp.sent || 0} sent, ${camp.opened || 0} opened</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="color: var(--success); font-weight: 600;">${((camp.opened / camp.sent) * 100 || 0).toFixed(1)}% open rate</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Email Marketing
+        async function loadEmailQueue() {
+            try {
+                const response = await fetch(`${API_URL}?action=getEmailQueue`);
+                const data = await response.json();
+                if (data.success) {
+                    renderEmailQueue(data.queue || []);
+                }
+            } catch (e) { console.error('Error loading email queue:', e); }
+        }
+
+        function renderEmailQueue(queue) {
+            const c = document.getElementById('emailQueueList');
+            if (queue.length === 0) {
+                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No emails in queue.</p>';
+                return;
+            }
+            c.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Recipient</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Subject</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Status</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Scheduled</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${queue.map(e => `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 12px;">${e.recipientEmail || '--'}</td>
+                                <td style="padding: 12px;">${e.subject || '--'}</td>
+                                <td style="padding: 12px;"><span class="badge badge-${e.status === 'pending' ? 'warning' : 'success'}">${e.status}</span></td>
+                                <td style="padding: 12px;">${e.scheduledTime || 'Immediate'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function createEmailCampaignFromUI() {
+            const name = document.getElementById('emailCampaignName').value.trim();
+            const type = document.getElementById('emailCampaignType').value;
+            const audience = document.getElementById('emailCampaignAudience').value;
+            const subject = document.getElementById('emailSubject').value.trim();
+            const body = document.getElementById('emailBody').value.trim();
+            const sendTime = document.getElementById('emailSendTime').value;
+
+            if (!name || !subject || !body) { showToast('Fill in all required fields', 'error'); return; }
+
+            showToast('Creating campaign...', 'info');
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'createEmailCampaign',
+                    campaignName: name,
+                    campaignType: type,
+                    targetAudience: audience,
+                    subject: subject,
+                    body: body,
+                    sendTime: sendTime,
+                    scheduledTime: sendTime === 'scheduled' ? document.getElementById('emailScheduleDate').value : null
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                showToast('Campaign created!', 'success');
+                document.getElementById('emailCampaignName').value = '';
+                document.getElementById('emailSubject').value = '';
+                document.getElementById('emailBody').value = '';
+                loadEmailQueue();
+            } else {
+                showToast('Error: ' + result.error, 'error');
+            }
+        }
+
+        async function processEmailQueueNow() {
+            showToast('Processing queue...', 'info');
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'processEmailQueue' }) });
+            const result = await response.json();
+            showToast(result.success ? `Processed ${result.processed || 0} emails!` : 'Error: ' + result.error, result.success ? 'success' : 'error');
+            loadEmailQueue();
+        }
+
+        // Show/hide schedule date input
+        document.addEventListener('DOMContentLoaded', function() {
+            const sendTimeSelect = document.getElementById('emailSendTime');
+            if (sendTimeSelect) {
+                sendTimeSelect.addEventListener('change', function() {
+                    document.getElementById('emailScheduleContainer').style.display = this.value === 'scheduled' ? 'block' : 'none';
+                });
+            }
+        });
+
+        // CSA Renewals
+        async function loadCSARenewals() {
+            try {
+                const response = await fetch(`${API_URL}?action=getCSARenewalsNeeded`);
+                const data = await response.json();
+                if (data.success) {
+                    const renewals = data.renewals || [];
+                    const exp7 = renewals.filter(r => r.daysUntilExpiry <= 7).length;
+                    const exp30 = renewals.filter(r => r.daysUntilExpiry <= 30).length;
+
+                    document.getElementById('renewalsExpiring7Days').textContent = exp7;
+                    document.getElementById('renewalsExpiring30Days').textContent = exp30;
+                    document.getElementById('renewalsCompleted').textContent = data.renewedThisMonth || 0;
+                    document.getElementById('renewalRate').textContent = (data.renewalRate || 0) + '%';
+
+                    renderCSARenewalsList(renewals);
+                }
+            } catch (e) { console.error('Error loading CSA renewals:', e); }
+        }
+
+        function renderCSARenewalsList(renewals) {
+            const c = document.getElementById('csaRenewalsList');
+            if (renewals.length === 0) {
+                c.innerHTML = '<p style="color: var(--success); text-align: center; padding: 20px;"><i class="fas fa-check-circle"></i> All members are renewed!</p>';
+                return;
+            }
+            c.innerHTML = renewals.map(r => `
+                <div style="background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 3px solid ${r.daysUntilExpiry <= 7 ? 'var(--danger)' : 'var(--warning)'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <p style="font-weight: 500;">${r.memberName}</p>
+                            <p style="font-size: 13px; color: var(--text-secondary);">${r.memberEmail}</p>
+                            <p style="font-size: 13px; color: ${r.daysUntilExpiry <= 7 ? 'var(--danger)' : 'var(--warning)'};">
+                                <i class="fas fa-clock"></i> Expires in ${r.daysUntilExpiry} days
+                            </p>
+                        </div>
+                        <button class="btn btn-primary" onclick="sendRenewalReminder('${r.memberId}')">
+                            <i class="fas fa-paper-plane"></i> Send Reminder
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function runCSARenewalScan() {
+            showToast('Scanning for renewals...', 'info');
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'scanCSARenewals' }) });
+            const result = await response.json();
+            showToast(result.success ? `Found ${result.renewalsNeeded || 0} members needing renewal` : 'Error: ' + result.error, result.success ? 'success' : 'error');
+            loadCSARenewals();
+        }
+
+        async function sendRenewalReminder(memberId) {
+            showToast('Sending reminder...', 'info');
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'sendCSARenewalReminder', memberId: memberId }) });
+            const result = await response.json();
+            showToast(result.success ? 'Reminder sent!' : 'Error: ' + result.error, result.success ? 'success' : 'error');
+        }
+
+        async function runCSARenewalCampaignNow() {
+            if (!confirm('This will send renewal emails to ALL members needing renewal. Continue?')) return;
+            showToast('Running renewal campaign...', 'info');
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'runCSARenewalCampaign' }) });
+            const result = await response.json();
+            showToast(result.success ? `Campaign sent to ${result.emailsSent || 0} members!` : 'Error: ' + result.error, result.success ? 'success' : 'error');
+        }
+
+        async function saveRenewalSettings() {
+            showToast('Settings saved!', 'success');
+            // Settings are stored locally for now
+        }
+
+        // Referral Tracking
+        async function loadReferralStats() {
+            try {
+                const response = await fetch(`${API_URL}?action=getReferralStats`);
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('referralTotalCodes').textContent = data.totalCodes || 0;
+                    document.getElementById('referralTotalClicks').textContent = data.totalClicks || 0;
+                    document.getElementById('referralTotalConverted').textContent = data.totalConverted || 0;
+                    document.getElementById('referralTotalRevenue').textContent = '$' + (data.totalRevenue || 0).toLocaleString();
+                }
+            } catch (e) { console.error('Error loading referral stats:', e); }
+        }
+
+        async function loadReferralLeaderboard() {
+            try {
+                const response = await fetch(`${API_URL}?action=getReferralLeaderboard`);
+                const data = await response.json();
+                if (data.success) {
+                    renderReferralLeaderboard(data.leaderboard || []);
+                }
+            } catch (e) { console.error('Error loading leaderboard:', e); }
+        }
+
+        function renderReferralLeaderboard(leaderboard) {
+            const c = document.getElementById('referralLeaderboard');
+            if (leaderboard.length === 0) {
+                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No referrals yet. Generate codes to get started!</p>';
+                return;
+            }
+            c.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Rank</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Referrer</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Code</th>
+                            <th style="text-align: center; padding: 12px; color: var(--text-secondary);">Conversions</th>
+                            <th style="text-align: right; padding: 12px; color: var(--text-secondary);">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${leaderboard.map((r, i) => `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 12px;">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
+                                <td style="padding: 12px; font-weight: 500;">${r.referrerName}</td>
+                                <td style="padding: 12px;"><code style="background: var(--bg-elevated); padding: 4px 8px; border-radius: 4px;">${r.code}</code></td>
+                                <td style="padding: 12px; text-align: center;">${r.conversions}</td>
+                                <td style="padding: 12px; text-align: right; color: var(--success); font-weight: 600;">$${(r.revenue || 0).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function generateReferralCodeFromUI() {
+            const name = document.getElementById('referrerName').value.trim();
+            const email = document.getElementById('referrerEmail').value.trim();
+            const customCode = document.getElementById('referralCustomCode').value.trim();
+
+            if (!name || !email) { showToast('Enter name and email', 'error'); return; }
+
+            showToast('Generating code...', 'info');
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'generateReferralCode',
+                    referrerName: name,
+                    referrerEmail: email,
+                    customCode: customCode || null
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                showToast('Code generated!', 'success');
+                document.getElementById('generatedCodeDisplay').style.display = 'block';
+                document.getElementById('generatedCodeValue').textContent = result.code;
+                loadReferralStats();
+                loadReferralLeaderboard();
+            } else {
+                showToast('Error: ' + result.error, 'error');
+            }
+        }
+
+        function copyReferralCode() {
+            const code = document.getElementById('generatedCodeValue').textContent;
+            navigator.clipboard.writeText(code);
+            showToast('Code copied!', 'success');
+        }
+
+        // Competitor Intelligence
+        async function loadCompetitorAlerts() {
+            try {
+                const response = await fetch(`${API_URL}?action=getCompetitorAlerts`);
+                const data = await response.json();
+                if (data.success) {
+                    const alerts = data.alerts || [];
+                    const unack = alerts.filter(a => !a.acknowledged).length;
+                    const priceAlerts = alerts.filter(a => a.type === 'price_change').length;
+                    const viralAlerts = alerts.filter(a => a.type === 'viral_post').length;
+
+                    document.getElementById('competitorUnacknowledged').textContent = unack;
+                    document.getElementById('competitorPriceAlerts').textContent = priceAlerts;
+                    document.getElementById('competitorViralAlerts').textContent = viralAlerts;
+                    document.getElementById('competitorTracked').textContent = data.competitorCount || 0;
+
+                    renderCompetitorAlerts(alerts);
+                }
+            } catch (e) { console.error('Error loading competitor alerts:', e); }
+        }
+
+        function renderCompetitorAlerts(alerts) {
+            const c = document.getElementById('competitorAlertsList');
+            if (alerts.length === 0) {
+                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No competitor alerts. Add competitors to start monitoring.</p>';
+                return;
+            }
+            c.innerHTML = alerts.filter(a => !a.acknowledged).map(a => `
+                <div style="background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 3px solid ${a.type === 'price_change' ? 'var(--warning)' : a.type === 'viral_post' ? 'var(--info)' : 'var(--primary)'};">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <span class="badge badge-${a.type === 'price_change' ? 'warning' : 'info'}" style="margin-bottom: 8px;">${a.type.replace(/_/g, ' ').toUpperCase()}</span>
+                            <p style="font-weight: 500;">${a.competitorName}</p>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${a.description}</p>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">${new Date(a.timestamp).toLocaleString()}</p>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="acknowledgeCompetitorAlertUI('${a.alertId}')">
+                            <i class="fas fa-check"></i> Acknowledge
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function runCompetitorScan() {
+            showToast('Running competitor scan...', 'info');
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'runCompetitorMonitoring' }) });
+            const result = await response.json();
+            showToast(result.success ? `Found ${result.newAlerts || 0} new alerts!` : 'Error: ' + result.error, result.success ? 'success' : 'error');
+            loadCompetitorAlerts();
+        }
+
+        async function acknowledgeCompetitorAlertUI(alertId) {
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'acknowledgeCompetitorAlert', alertId: alertId }) });
+            const result = await response.json();
+            if (result.success) {
+                showToast('Alert acknowledged', 'success');
+                loadCompetitorAlerts();
+            }
+        }
+
+        async function addCompetitorFromUI() {
+            const name = document.getElementById('competitorName').value.trim();
+            const instagram = document.getElementById('competitorInstagram').value.trim();
+            const website = document.getElementById('competitorWebsite').value.trim();
+
+            if (!name) { showToast('Enter competitor name', 'error'); return; }
+
+            showToast('Adding competitor...', 'info');
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'addCompetitor',
+                    name: name,
+                    instagram: instagram,
+                    website: website
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                showToast('Competitor added!', 'success');
+                document.getElementById('competitorName').value = '';
+                document.getElementById('competitorInstagram').value = '';
+                document.getElementById('competitorWebsite').value = '';
+                loadCompetitorAlerts();
+            } else {
+                showToast('Error: ' + result.error, 'error');
+            }
+        }
+
+        async function setupCompetitorMonitoringTriggerUI() {
+            showToast('Setting up monitoring...', 'info');
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'setupCompetitorMonitoringTrigger' }) });
+            const result = await response.json();
+            if (result.success) {
+                showToast('Daily monitoring enabled!', 'success');
+                document.getElementById('competitorTriggerStatus').style.display = 'block';
+            } else {
+                showToast('Error: ' + result.error, 'error');
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
         // INITIALIZATION
         // ════════════════════════════════════════════════════════════════════════════
 
@@ -2375,12 +3235,34 @@
                 'integrations': 'Integrations',
                 'socialBrain': 'Social Media Brain',
                 'socialSettings': 'Social Media Settings',
+                'marketingAutomation': 'Marketing Command Center',
+                'emailMarketing': 'Email Campaigns',
+                'csaRenewals': 'CSA Renewals',
+                'referralTracking': 'Referral Program',
+                'competitorAlerts': 'Competitor Intelligence',
                 'dataImport': 'Smart Data Import'
             };
 
             // Load social data when switching to social sections
             if (sectionId === 'socialBrain') {
                 loadSocialBrainAdmin();
+            }
+            // Load Marketing Automation data when switching to those sections
+            if (sectionId === 'marketingAutomation') {
+                loadMarketingDashboard();
+            }
+            if (sectionId === 'emailMarketing') {
+                loadEmailQueue();
+            }
+            if (sectionId === 'csaRenewals') {
+                loadCSARenewals();
+            }
+            if (sectionId === 'referralTracking') {
+                loadReferralStats();
+                loadReferralLeaderboard();
+            }
+            if (sectionId === 'competitorAlerts') {
+                loadCompetitorAlerts();
             }
             // Load recent imports when switching to data import
             if (sectionId === 'dataImport') {

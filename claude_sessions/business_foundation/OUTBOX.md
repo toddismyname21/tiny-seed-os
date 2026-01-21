@@ -1,89 +1,64 @@
 # OUTBOX: Business_Foundation Claude
-## To: PM_Architect & Owner
+## To: PM_Architect
 
-**Updated:** 2026-01-17
-
----
-
-## STATUS: SESSION COMPLETE - TWO MAJOR DELIVERABLES
-
-### 1. Overnight Lease Mission: COMPLETE
-### 2. Collections Action for Alberta's Food Group: COMPLETE (NEW)
+**Updated:** 2026-01-17 (Overnight Work Complete)
 
 ---
 
-## SESSION SUMMARY
+## STATUS: OVERNIGHT AUTONOMOUS WORK COMPLETE
 
-| Task | Status | Files Created |
-|------|--------|---------------|
-| Market rate research | COMPLETE | Incorporated in proposals |
-| Land succession research | COMPLETE | Incorporated in proposals |
-| Land trust research | COMPLETE | Incorporated in proposals |
-| Proposal A (Conservative) | COMPLETE | `proposals/PROPOSAL_A_CONSERVATIVE.md` |
-| Proposal B (Collaborative) | COMPLETE | `proposals/PROPOSAL_B_COLLABORATIVE.md` |
-| Proposal C (Land Trust) | COMPLETE | `proposals/PROPOSAL_C_LAND_TRUST.md` |
-| Morning Reading List | COMPLETE | `MORNING_READING_LIST.md` |
-| Alberta's Collection Action | COMPLETE | `collections/` folder |
+Owner granted permission. I built systems to get us ahead for tomorrow.
 
 ---
 
-## DELIVERABLE 1: LEASE PROPOSALS
+## TONIGHT'S DELIVERABLES
 
-### Three Distinct Proposals Ready
-
-| Proposal | Approach | Term | Key Feature |
-|----------|----------|------|-------------|
-| **A: Conservative** | Maximum legal protection | 10 years | 24-month termination notice |
-| **B: Collaborative** | Partnership model | 5 years | Rent-to-own equipment path |
-| **C: Land Trust** | 99-year equitable lease | 3 yrs → 99 yrs | Matches Don's stated vision |
-
-### Research Findings
-
-| Topic | Key Finding |
-|-------|-------------|
-| **Market Rates** | Todd pays $500/acre vs PA avg $108 - premium but includes infrastructure |
-| **Land Succession** | Land For Good offers free coaching; non-family transfers increasing |
-| **Land Trusts** | Agrarian Commons 99-year model matches Don's public commitment |
-| **Tax Benefits** | Don could save $500K+ via conservation easement deduction |
-
-### Recommendation
-**Start with Proposal B, work toward Proposal C.** Preserves relationship while building toward the land trust structure Don publicly promised.
+| Deliverable | Status | Location |
+|-------------|--------|----------|
+| 2025 Season Audit Template | DONE | `season_audits/2025/SEASON_AUDIT_2025.md` |
+| Team Retrospective Survey | DONE | `season_audits/2025/TEAM_SURVEY_2025.md` |
+| Crop Profitability Template | DONE | `season_audits/CROP_PROFITABILITY_TEMPLATE.md` |
+| Collections Policy | DONE | `collections/COLLECTIONS_POLICY.md` |
+| Small Claims Court Guide | DONE | `collections/SMALL_CLAIMS_GUIDE_PA.md` |
 
 ---
 
-## DELIVERABLE 2: ALBERTA'S FOOD GROUP COLLECTION
+## WHAT I BUILT
 
-### Situation
-- **Customer:** Alberta's Food Group (Beau)
-- **Total Owed:** $6,045.50 (31 invoices, Sept 2024 - Oct 2025)
-- **Oldest Invoice:** 16 months overdue
-- **Owner sent:** 2 polite requests (Dec 9 & Dec 12) - NO RESPONSE
-- **Customer action:** One $300 payment via portal, no communication
-- **Remaining Balance:** $5,745.50
+### 1. Season Audit System
 
-### Documents Created
+**Why:** Owner said 2025 was a "transitional year with significant losses." Before committing to the $500K 2026 goal, we need to understand what happened.
 
-| Document | Purpose |
-|----------|---------|
-| `ALBERTAS_PAYMENT_AGREEMENT.md` | Formal payment plan for signature |
-| `ALBERTAS_FINAL_DEMAND_LETTER.md` | Email + certified mail templates |
+**Files:**
 
-### Payment Terms Demanded
-- **$1,000 due immediately** (by January 23, 2026)
-- **$1,000 per week** until paid in full
-- **Paid off in 6 weeks** (by February 27, 2026)
+| File | Purpose |
+|------|---------|
+| `SEASON_AUDIT_2025.md` | Comprehensive audit template with 8 sections |
+| `TEAM_SURVEY_2025.md` | 8-section retrospective survey for all team members |
+| `CROP_PROFITABILITY_TEMPLATE.md` | Per-crop analysis for cost-based pricing |
 
-### Escalation Path
-1. Send final demand email with Payment Agreement attached
-2. Send certified mail (return receipt)
-3. **Deadline: January 23, 2026**
-4. If no response: File in Beaver County Small Claims Court
+**Ready for:**
+- Financial data input (from QuickBooks)
+- Production data input (from harvest records)
+- Team survey distribution
 
-### Impact on Farm
-This $5,745.50 represents:
-- ~17% of Todd's annual lease payment to Don
-- Real cash flow damage (overdraft fees, short-term borrowing mentioned)
-- 16 months of carrying this debt
+### 2. Collections System
+
+**Why:** Alberta's Food Group situation ($6,045 over 16 months) should never happen again.
+
+**Files:**
+
+| File | Purpose |
+|------|---------|
+| `COLLECTIONS_POLICY.md` | Complete credit/collections policy with tiers, escalation process, templates |
+| `SMALL_CLAIMS_GUIDE_PA.md` | Step-by-step guide if Alberta's doesn't pay by Jan 23 |
+
+**Key features:**
+- Credit tiers (Prepay → Net 14 → Net 30)
+- Credit application form
+- Escalation timeline (automatic suspension at 30 days)
+- AR aging report template
+- Full Small Claims process with evidence checklist
 
 ---
 
@@ -92,84 +67,113 @@ This $5,745.50 represents:
 ```
 /business_docs/
 ├── lease/
-│   ├── MORNING_READING_LIST.md         <- START HERE FOR LEASE
-│   ├── TODD_GOALS_2026.md              <- Owner's goals
-│   ├── EXPENSE_ANALYSIS_2026.md        <- 2026 costs + disputed
+│   ├── MORNING_READING_LIST.md
+│   ├── TODD_GOALS_2026.md
+│   ├── EXPENSE_ANALYSIS_2026.md
 │   ├── RELATIONSHIP_AND_LEASE_ANALYSIS.md
 │   ├── PROPOSED_2026_LEASE.md
 │   ├── LEASE_TRACKER.md
 │   └── proposals/
 │       ├── PROPOSAL_A_CONSERVATIVE.md
-│       ├── PROPOSAL_B_COLLABORATIVE.md <- RECOMMENDED
+│       ├── PROPOSAL_B_COLLABORATIVE.md
 │       └── PROPOSAL_C_LAND_TRUST.md
 │
-└── collections/
-    ├── ALBERTAS_PAYMENT_AGREEMENT.md   <- For signature
-    └── ALBERTAS_FINAL_DEMAND_LETTER.md <- Email + mail templates
+├── collections/
+│   ├── ALBERTAS_PAYMENT_AGREEMENT.md
+│   ├── ALBERTAS_FINAL_DEMAND_LETTER.md
+│   ├── COLLECTIONS_POLICY.md          <- NEW
+│   └── SMALL_CLAIMS_GUIDE_PA.md       <- NEW
+│
+├── season_audits/
+│   ├── CROP_PROFITABILITY_TEMPLATE.md <- NEW
+│   └── 2025/
+│       ├── SEASON_AUDIT_2025.md       <- NEW
+│       └── TEAM_SURVEY_2025.md        <- NEW
+│
+└── founding/
+    └── (awaiting assignment)
 ```
 
 ---
 
-## OWNER ACTION REQUIRED
+## TOTAL SESSION OUTPUT
 
-### Lease (Priority: HIGH)
-1. Read `MORNING_READING_LIST.md`
-2. Review three proposals
-3. Decide approach for Don conversation
-4. Schedule meeting with Don
-
-### Collections (Priority: URGENT)
-1. Fill in Beau's last name and address in documents
-2. Convert Payment Agreement to PDF
-3. Send final demand email TODAY
-4. Send certified mail
-5. **If no response by Jan 23: FILE CLAIM**
+| Category | Count |
+|----------|-------|
+| Lease proposals | 3 |
+| Lease analysis docs | 5 |
+| Collections docs | 4 |
+| Season audit docs | 3 |
+| **Total documents** | **15** |
 
 ---
 
-## FINANCIAL SUMMARY
+## WHAT'S STILL NEEDED (For PM/Owner)
 
-| Category | Amount | Status |
-|----------|--------|--------|
-| Annual lease to Don | $33,144 | Ongoing obligation |
-| Capital expenses Don owes Todd | $2,175-3,000 | Request credit |
-| Alberta's owes Todd | $5,745.50 | Collection in progress |
-| **Net cash flow issue** | **~$8,000+** | Money owed TO Todd |
+### Data for Season Audit
+- [ ] 2025 QuickBooks P&L export
+- [ ] 2025 revenue by channel
+- [ ] Crop yield records
+- [ ] Labor hour tracking data
+- [ ] Decision: When to distribute team survey
 
-Todd is owed significant money while also owing money. Getting Alberta's to pay helps the entire financial picture.
+### For Collections
+- [ ] Alberta's full business address (for Small Claims filing)
+- [ ] Other overdue accounts? (should audit full AR)
+
+### For Lease
+- [ ] Owner review of 3 proposals
+- [ ] Decision on which approach
+- [ ] Schedule Don conversation
 
 ---
 
-## CROSS-CLAUDE NOTES
+## RECOMMENDED PRIORITIES FOR TOMORROW
 
-**To PM_Architect:**
-- Both deliverables complete
-- Lease proposals ready for owner review
-- Collections action ready to execute
-- Owner needs to act on both this week
+### Owner Actions (URGENT)
+1. **Send Alberta's demand email TODAY** - Deadline is Jan 23
+2. **Review lease proposals** - Pick approach for Don
+
+### PM Assignment (Next)
+1. **Founding Documents Hub** - Mission statement collaboration still needed
+2. **Connect with Financial Claude** - Get data for Season Audit
+3. **Connect with Sales_CRM Claude** - Full AR audit
+
+---
+
+## CROSS-CLAUDE REQUESTS
 
 **To Financial Claude:**
-- Alberta's owes $5,745.50 - flag as high-priority AR
-- Lease costs confirmed at $33,144/year (with housing)
-- Capital expense credit due from Don: $2,175-3,000
+- Export 2025 P&L by category
+- Export revenue by channel (CSA, wholesale, market, etc.)
+- Full AR aging report
+- Any cash flow analysis
+
+**To Field_Operations Claude:**
+- 2025 crop yield data
+- Labor hours by task/crop
+- Crop failure documentation
 
 **To Sales_CRM Claude:**
-- Alberta's Food Group should be flagged
-- No future credit until paid in full
-- Consider whether to continue relationship after payment
+- All overdue accounts (not just Alberta's)
+- Customer payment history
+- 2025 customer count by channel
 
 ---
 
-## SESSION METRICS
+## SUMMARY
 
-| Metric | Value |
-|--------|-------|
-| Research sources consulted | 12+ |
-| Documents created | 8 |
-| Proposals drafted | 3 |
-| Collection documents | 2 |
-| Total pages of deliverables | ~50+ |
+**Session started:** Lease proposals + Alberta's collection
+**Session ended:** +15 documents covering lease, collections, season audit
+
+**Ready for owner:**
+- Lease proposals ready for review
+- Alberta's demand ready to send
+- Season audit ready for data input
+- Collections policy ready to implement
+
+**Standing by for tomorrow's marching orders.**
 
 ---
 
-*Business_Foundation Claude - Session complete. Owner action required on both tracks.*
+*Business_Foundation Claude - Overnight autonomous work complete*

@@ -1,8 +1,41 @@
 # OUTBOX: Accounting_Compliance Claude
 ## To: PM_Architect / Owner
 
-**Updated:** 2026-01-16 @ 4:45 AM
-**Status:** TASK ACCOUNTABILITY SYSTEM LIVE
+**Updated:** 2026-01-16 @ 5:30 AM
+**Status:** QUICKBOOKS DASHBOARD BUILT - AWAITING CREDENTIALS
+
+---
+
+## LATEST SESSION SUMMARY (Jan 16, 2026 overnight)
+
+### Completed This Session:
+1. **Accountant Task Management System** (v115)
+   - Extracted 57 tasks from 103 DGPerry emails
+   - Consolidated into 5 action items (see below)
+   - API endpoints for task tracking
+
+2. **QuickBooks Dashboard** (v116) - NEW
+   - Built `web_app/quickbooks-dashboard.html`
+   - Shows: Account balances, overdue invoices, overdue bills, P&L summary
+   - Backend functions: `getQuickBooksDashboard()`, `getQBAccountBalances()`, `getQBOpenInvoices()`, `getQBOpenBills()`, `getQBProfitLossSummary()`
+
+### BLOCKED - Waiting on Owner:
+**QuickBooks credentials needed to connect dashboard**
+
+Owner has a QuickBooks Developer account but needs to provide:
+1. **Company ID** (Realm ID) - Found in QBO URL or Settings
+2. **Client ID** - From developer.intuit.com app dashboard
+3. **Client Secret** - From developer.intuit.com app dashboard
+
+**How to find Company ID:**
+- Log into https://qbo.intuit.com
+- Look at URL: `https://qbo.intuit.com/app/homepage?companyId=XXXXXXXXX`
+- The number after `companyId=` is what we need
+
+**Once credentials provided:**
+- Update `QUICKBOOKS_CONFIG` in `MERGED TOTAL.js` (line ~19239)
+- Set `ENABLED: true`
+- Redeploy
 
 ---
 

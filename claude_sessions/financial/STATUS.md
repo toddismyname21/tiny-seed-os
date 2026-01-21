@@ -1,126 +1,61 @@
 # STATUS: Financial Claude
 
-**Last Updated:** 2026-01-17 @ 2:30 AM
+**Last Updated:** 2026-01-21 @ Late Night
 
 ---
 
-## CURRENT STATUS: MISSION COMPLETE - AWAITING PLANNING SESSION
+## CURRENT STATUS: READY FOR TOMORROW - Just Need Plaid Dev Secret
 
 ---
 
-## COMPLETED TASKS
+## TONIGHT'S WORK (Getting Ahead)
 
-### 1. Infrastructure Audit
-| System | Status | Finding |
-|--------|--------|---------|
-| Plaid | SANDBOX | Backend working, frontend demo data |
-| Alpaca | NOT IMPLEMENTED | No brokerage integration |
-| QuickBooks | STUB | OAuth2 needed |
-| Shopify | STUB | API connection needed |
-| financial-dashboard.html | DEMO | Not connected to backend |
-| wealth-builder.html | DEMO | No brokerage connection |
+### Added Transaction Analysis
+- `loadTransactionsAndAnalyze()` - Fetches 30 days of transactions
+- `analyzeTransactions()` - Calculates income vs expenses
+- Auto-loads on page init, after connection, after refresh
 
-### 2. Investment Research (50+ sources)
-- Quantitative strategies (momentum, value, factor-based)
-- Robo-advisors (Wealthfront, Betterment, M1, Acorns)
-- Congressional trading (Quiver Quantitative - 35% CAGR)
-- Tax optimization (TLH, direct indexing)
-- Cash management (I-Bonds, CD ladders, bond ladders)
-- Farm-specific (USDA loans, Farm Credit, Schedule J)
+### All 7 Main Metrics Now Dynamic
 
-### 3. Production-Ready Stack Identified
-| Layer | Tool | Cost |
-|-------|------|------|
-| Trading | Alpaca | Free |
-| Strategy | Composer | $0-30/mo |
-| Tax | Wealthfront | 0.25% |
-| Cash | Meow/Mercury | Free |
-| Signals | Quiver | Free |
-| Backtesting | QuantConnect | Free |
-
-**Total: ~$500/year for institutional-grade intelligence**
-
-### 4. Smart Money Brain Architecture
-- Decision engine designed
-- Cash tiering system (4 tiers)
-- Rebalancing rules (5% threshold)
-- Strategy modules (GEM, Congressional Alpha, Factor Combo)
+| Metric | Source | Code |
+|--------|--------|------|
+| Net Worth | Plaid accounts | `updateFinancialTotals()` |
+| Total Assets | Plaid accounts | `updateFinancialTotals()` |
+| Total Debt | Plaid accounts | `updateFinancialTotals()` |
+| Emergency Fund | Savings accounts | `updateFinancialTotals()` |
+| Investment Total | Investment accounts | `updateFinancialTotals()` |
+| Monthly Income | Plaid transactions | `analyzeTransactions()` |
+| Monthly Expenses | Plaid transactions | `analyzeTransactions()` |
 
 ---
 
-## DELIVERABLES CREATED
+## TOMORROW MORNING
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `INVESTMENT_RESEARCH.md` | 600+ | Comprehensive strategy research |
-| `SMART_MONEY_BRAIN.md` | 500+ | Production-ready system architecture |
-| `OUTBOX.md` | 450+ | Full PM report |
-
----
-
-## REPORT SENT TO PM
-
-Full report delivered to `/claude_sessions/pm_architect/INBOX.md`
-
-**Questions awaiting owner answers:**
-1. Brokerage: Alpaca vs Composer vs manual?
-2. Cash platform: Meow vs Mercury vs Wealthfront?
-3. QuickBooks/Shopify still priority?
-4. Plaid: Ready for production?
-5. Initial capital allocation?
-6. Monthly contribution amount?
-7. Risk tolerance?
+Owner action (5 minutes):
+1. Get Development secret from Plaid Dashboard
+2. Update `PLAID_SECRET` in Apps Script Properties
+3. Redeploy Apps Script
+4. Connect bank → ALL metrics go live
 
 ---
 
-## NEXT STEPS (Pending Approval)
+## FILES MODIFIED
 
-| Phase | Timeline | Action |
-|-------|----------|--------|
-| 1 | Week 1 | Open Wealthfront, TreasuryDirect, buy I-Bonds |
-| 2 | Week 2 | Bond ladder, cash sweep, tiered system |
-| 3 | Week 3 | Deploy GEM on Composer, Quiver alerts |
-| 4 | Month 2+ | Custom QuantConnect strategies |
+| File | Changes |
+|------|---------|
+| `web_app/financial-dashboard.html` | Dynamic totals + transaction analysis |
+| `apps_script/MERGED TOTAL.js` | Plaid ENV: development |
 
 ---
 
-## BLOCKING ISSUES
+## PREVIOUS DELIVERABLES
 
-None - awaiting owner decisions
-
----
-
-## COORDINATION
-
-- PM_Architect has full report
-- Ready for planning session
+| File | Purpose |
+|------|---------|
+| `INVESTMENT_RESEARCH.md` | 600+ line strategy research |
+| `SMART_MONEY_BRAIN.md` | Production-ready system architecture |
+| `COMPLIANCE_COST_ROI.md` | Compliance cost tracking & ROI |
 
 ---
 
----
-
-## NEW MISSION: Compliance Cost Tracking & ROI Analysis
-
-**Status:** COMPLETE
-
-**Deliverable:** `COMPLIANCE_COST_ROI.md`
-
-### Key Findings:
-
-| Certification | Annual Cost | ROI |
-|---------------|-------------|-----|
-| Organic | $1,400 | 500-1500% |
-| GAP | $2,000 | 300-900% |
-| FSMA | $0 (if exempt) | Regulatory |
-
-### Compliance Labor Estimate: ~267 hrs/year (~$4,000)
-
-### Recommendations:
-1. Create COMPLIANCE_COSTS tracking sheet
-2. Apply for organic cost share rebate ($500)
-3. Verify FSMA exemption status
-4. Track compliance labor in TIMELOG
-
----
-
-*Financial Claude - Standing by for instructions*
+*Financial Claude - Ready for tomorrow*

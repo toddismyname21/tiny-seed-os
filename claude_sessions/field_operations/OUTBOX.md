@@ -1,13 +1,85 @@
 # OUTBOX: Field Operations Claude
 ## To: PM_Architect, Owner
 
-**Updated:** 2026-01-17 (MAJOR UPDATE #3 - Auto Pre-Harvest Inspections)
+**Updated:** 2026-01-21 (OVERNIGHT BUILD - Mobile Pre-Harvest + Safety Systems)
 
 ---
 
-## STATUS: PREDICTIVE INTELLIGENCE + AUTO INSPECTIONS DEPLOYED
+## STATUS: FULL MOBILE COMPLIANCE + SAFETY SYSTEMS DEPLOYED
 
-**STATE OF THE ART** predictive intelligence system with auto pre-harvest inspections - built and operational.
+All overnight tasks from CLAUDE_MARCHING_ORDERS completed.
+
+---
+
+## OVERNIGHT BUILD (Jan 21, 2026)
+
+### 1. Pre-Harvest Inspection Mobile Interface
+**Added to employee.html (Compliance tab)**
+
+- New "Pre-Harvest" button with GAP badge
+- Full modal form with:
+  - Field/Block selector
+  - Crop selector (auto-shows high-risk checklist)
+  - 6-item base safety checklist
+  - 4-item additional checklist for high-risk crops
+  - PASS/FAIL assessment with reason tracking
+  - Photo capture (placeholder)
+  - GPS auto-tagging
+  - Offline mode support with sync queue
+
+**Checklist Items (Mobile):**
+- No signs of animal intrusion
+- No flooding or standing water
+- Adjacent land activities assessed
+- All workers healthy
+- Equipment clean and sanitized
+- PHI verified for sprays
+
+**High-Risk Additional (for lettuce, spinach, etc.):**
+- Irrigation water source verified safe
+- No soil splash on edible portions
+- No wildlife feces in harvest zone
+- Handwashing station stocked
+
+### 2. FIELD_SAFETY_LOG System (Backend)
+**New APIs in MERGED TOTAL.js:**
+```
+initFieldSafetyLog()              - Creates sheet if missing
+logFieldSafetyObservation(data)   - Logs safety issues
+getFieldSafetyObservations(params) - Retrieves observations
+resolveFieldSafetyObservation()   - Marks issue resolved
+getFieldSafetyRisk(fieldBlock)    - Calculates field risk score
+```
+
+**Observation Types:**
+- animal_intrusion, flooding, contamination, adjacent_activity
+- wildlife_feces, equipment_issue, other
+
+### 3. Frost Alert System (Backend)
+**New APIs:**
+```
+checkFrostRisk(params)              - Weather API integration
+generateFrostProtectionTasks(params) - Auto-generates protection tasks
+```
+
+**FROST_SENSITIVE_CROPS Database:**
+| Crop | Kill Temp | Damage Temp |
+|------|-----------|-------------|
+| Tomato | 32°F | 40°F |
+| Pepper | 32°F | 40°F |
+| Cucumber | 32°F | 38°F |
+| Basil | 32°F | 40°F |
+| Zucchini | 32°F | 38°F |
+| ... | ... | ... |
+
+### 4. GitHub Push
+All changes committed and pushed:
+- Commit: `2111f05`
+- Files: employee.html, apps_script/MERGED TOTAL.js
+
+---
+
+## PREVIOUS: AUTO PRE-HARVEST INSPECTION SYSTEM
 
 ---
 

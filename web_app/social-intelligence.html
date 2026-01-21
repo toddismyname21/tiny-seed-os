@@ -697,7 +697,11 @@
 
     <!-- Navigation Tabs -->
     <nav class="nav-tabs">
-        <button class="nav-tab active" onclick="switchTab('dashboard')">
+        <button class="nav-tab active" onclick="switchTab('brain')">
+            <i class="fas fa-brain"></i> Brain
+            <span class="badge" id="brainBadge" style="display:none;">!</span>
+        </button>
+        <button class="nav-tab" onclick="switchTab('dashboard')">
             <i class="fas fa-tachometer-alt"></i> Dashboard
         </button>
         <button class="nav-tab" onclick="switchTab('brandvoice')">
@@ -742,8 +746,236 @@
             </div>
         </div>
 
+        <!-- BRAIN TAB - THE AUTONOMOUS COMMAND CENTER -->
+        <div id="brainTab" class="tab-content active">
+            <!-- Morning Briefing Header -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(67, 97, 238, 0.2)); border: 1px solid rgba(155, 89, 182, 0.4);">
+                <div class="card-content">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">
+                                <i class="fas fa-robot" style="color: var(--purple);"></i> Good Morning, Boss!
+                            </h2>
+                            <p id="briefingSummary" style="color: var(--text-secondary); max-width: 600px;">
+                                Loading your daily briefing...
+                            </p>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
+                                <i class="fas fa-clock"></i> Generated: <span id="briefingTime">--</span>
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="refreshBriefing()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button class="btn btn-secondary" onclick="generateContentCalendarUI()">
+                                <i class="fas fa-calendar-plus"></i> Plan Week
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="stats-grid" style="margin-top: 1.5rem;">
+                <div class="stat-card" style="border-left: 3px solid var(--danger);">
+                    <div class="stat-label">Urgent Actions</div>
+                    <div class="stat-value" id="urgentCount" style="color: var(--danger);">--</div>
+                    <div class="stat-change negative">
+                        <i class="fas fa-exclamation-circle"></i> Respond now
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--warning);">
+                    <div class="stat-label">Today's Tasks</div>
+                    <div class="stat-value" id="todayCount" style="color: var(--warning);">--</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-tasks"></i> Complete today
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--success);">
+                    <div class="stat-label">Sentiment Health</div>
+                    <div class="stat-value" id="brainSentimentStatus">--</div>
+                    <div class="stat-change positive" id="brainSentimentLabel">
+                        <i class="fas fa-heart"></i> All clear
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--info);">
+                    <div class="stat-label">Revenue (7 days)</div>
+                    <div class="stat-value" id="brainRevenue">$--</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-chart-line"></i> From social
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Queue -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+                <!-- Urgent Actions -->
+                <div class="card">
+                    <div class="card-header" style="background: rgba(230, 57, 70, 0.1); border-bottom-color: var(--danger);">
+                        <h3 style="color: var(--danger);">
+                            <i class="fas fa-fire"></i> URGENT - Do Now
+                        </h3>
+                        <span class="badge" style="background: var(--danger);" id="urgentBadge">0</span>
+                    </div>
+                    <div class="card-content" id="urgentActions" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
+                            <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); display: block; margin-bottom: 1rem;"></i>
+                            No urgent actions!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Today's Actions -->
+                <div class="card">
+                    <div class="card-header" style="background: rgba(233, 196, 106, 0.1); border-bottom-color: var(--warning);">
+                        <h3 style="color: var(--warning);">
+                            <i class="fas fa-sun"></i> Today's To-Do
+                        </h3>
+                        <span class="badge" style="background: var(--warning);" id="todayBadge">0</span>
+                    </div>
+                    <div class="card-content" id="todayActions" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
+                            Loading recommendations...
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Post Recommendation -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="background: linear-gradient(135deg, rgba(225, 48, 108, 0.1), rgba(155, 89, 182, 0.1));">
+                    <h3>
+                        <i class="fas fa-lightbulb" style="color: var(--instagram);"></i> AI Recommends You Post This
+                    </h3>
+                    <div>
+                        <button class="btn btn-sm btn-secondary" onclick="getNewRecommendation()">
+                            <i class="fas fa-dice"></i> Different Idea
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content" id="postRecommendation">
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+                        <div>
+                            <div style="background: var(--bg-light); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">BEST TIME</p>
+                                <p style="font-size: 1.5rem; font-weight: 700;" id="recommendedTime">9:00 AM</p>
+                                <p style="font-size: 0.8rem; color: var(--success);" id="recommendedPlatform">
+                                    <i class="fab fa-instagram"></i> Instagram
+                                </p>
+                            </div>
+                            <div style="background: var(--bg-light); border-radius: 8px; padding: 1rem;">
+                                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">EXPECTED ENGAGEMENT</p>
+                                <p style="font-size: 1.2rem; font-weight: 600;" id="expectedEngagement">High</p>
+                                <p style="font-size: 0.8rem; color: var(--text-secondary);" id="whyThisWorks">Golden Hour window</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">AI-GENERATED CAPTION</p>
+                            <div style="background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; min-height: 150px;" id="suggestedCaption">
+                                <p style="color: var(--text-secondary);">Loading recommendation...</p>
+                            </div>
+                            <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn btn-primary" onclick="approveAndSchedule()">
+                                    <i class="fas fa-check"></i> Approve & Schedule
+                                </button>
+                                <button class="btn btn-secondary" onclick="editCaption()">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-secondary" onclick="regenerateCaption()">
+                                    <i class="fas fa-redo"></i> Regenerate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Training Quick Add -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-graduation-cap" style="color: var(--success);"></i> Train My Voice (Quick Add)
+                    </h3>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                        <span id="trainingCount">0</span> posts trained
+                    </span>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Paste your best-performing Instagram post to teach the AI your voice.
+                    </p>
+                    <div class="form-group">
+                        <textarea class="form-textarea" id="trainingPostInput" placeholder="Paste a high-performing post here...
+
+Example:
+Good morning, neighbors! ☀️ Just pulled these gorgeous carrots - still cool from the morning dew. Who's adding these to their Sunday roast? 🥕
+
+#TinySeedFarm #LocallyGrown #FarmFresh #Pittsburgh" rows="5"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <select class="form-select" id="trainingCategory" style="width: auto;">
+                            <option value="harvest">Harvest</option>
+                            <option value="behind_scenes">Behind Scenes</option>
+                            <option value="educational">Educational</option>
+                            <option value="promo">Promotional</option>
+                            <option value="engagement">Engagement</option>
+                        </select>
+                        <input type="number" class="form-input" id="trainingEngagement" placeholder="Likes (optional)" style="width: 150px;">
+                        <button class="btn btn-success" onclick="addTrainingPostUI()">
+                            <i class="fas fa-plus"></i> Add to Training
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Calendar Preview -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-calendar-week" style="color: var(--info);"></i> This Week's Content Calendar
+                    </h3>
+                    <button class="btn btn-sm btn-secondary" onclick="viewFullCalendar()">
+                        <i class="fas fa-expand"></i> Full View
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div id="calendarPreview" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem;">
+                        <!-- Calendar will be populated by JS -->
+                        <div style="text-align: center; padding: 0.5rem;">
+                            <p style="font-size: 0.7rem; color: var(--text-secondary);">MON</p>
+                            <p style="font-weight: 600;">--</p>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem;">
+                            <p style="font-size: 0.7rem; color: var(--text-secondary);">TUE</p>
+                            <p style="font-weight: 600;">--</p>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem;">
+                            <p style="font-size: 0.7rem; color: var(--text-secondary);">WED</p>
+                            <p style="font-weight: 600;">--</p>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem;">
+                            <p style="font-size: 0.7rem; color: var(--text-secondary);">THU</p>
+                            <p style="font-weight: 600;">--</p>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem;">
+                            <p style="font-size: 0.7rem; color: var(--text-secondary);">FRI</p>
+                            <p style="font-weight: 600;">--</p>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem;">
+                            <p style="font-size: 0.7rem; color: var(--text-secondary);">SAT</p>
+                            <p style="font-weight: 600;">--</p>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem;">
+                            <p style="font-size: 0.7rem; color: var(--text-secondary);">SUN</p>
+                            <p style="font-weight: 600;">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- DASHBOARD TAB -->
-        <div id="dashboardTab" class="tab-content active">
+        <div id="dashboardTab" class="tab-content">
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-label">Scheduled Posts</div>
@@ -1481,6 +1713,7 @@
 
             // Load tab-specific data
             switch(tabId) {
+                case 'brain': loadBrainTab(); break;
                 case 'dashboard': loadDashboard(); break;
                 case 'brandvoice': loadTrainingCount(); break;
                 case 'scheduler': loadScheduledPosts(); break;
@@ -1519,6 +1752,344 @@
             });
             return await response.json();
         }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // BRAIN TAB - AUTONOMOUS COMMAND CENTER
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let brainData = null;
+        let currentRecommendation = null;
+
+        async function loadBrainTab() {
+            try {
+                // Load action queue
+                const queueData = await apiGet('getSocialActionQueue');
+                if (queueData.success) {
+                    brainData = queueData;
+                    updateBrainDisplay(queueData);
+                }
+
+                // Load post recommendation
+                await loadPostRecommendation();
+
+                // Load training count
+                const trainingData = await apiGet('getTrainingPosts');
+                if (trainingData.success) {
+                    document.getElementById('trainingCount').textContent = trainingData.count || 0;
+                }
+
+            } catch (error) {
+                console.error('Error loading brain tab:', error);
+                showToast('Error loading briefing', 'error');
+            }
+        }
+
+        function updateBrainDisplay(data) {
+            // Update summary
+            document.getElementById('briefingSummary').textContent = data.summary || 'Your autonomous social media brain is ready.';
+            document.getElementById('briefingTime').textContent = data.generatedAt ?
+                new Date(data.generatedAt).toLocaleString() : 'Just now';
+
+            const queue = data.actionQueue || {};
+
+            // Update counts
+            const urgentCount = (queue.urgent || []).length;
+            const todayCount = (queue.today || []).length;
+
+            document.getElementById('urgentCount').textContent = urgentCount;
+            document.getElementById('todayCount').textContent = todayCount;
+            document.getElementById('urgentBadge').textContent = urgentCount;
+            document.getElementById('todayBadge').textContent = todayCount;
+
+            // Show badge on Brain tab if urgent actions
+            const brainBadge = document.getElementById('brainBadge');
+            if (urgentCount > 0) {
+                brainBadge.style.display = 'inline';
+                brainBadge.textContent = urgentCount;
+            } else {
+                brainBadge.style.display = 'none';
+            }
+
+            // Render urgent actions
+            renderActionList('urgentActions', queue.urgent || [], 'urgent');
+
+            // Render today actions
+            renderActionList('todayActions', queue.today || [], 'today');
+        }
+
+        function renderActionList(containerId, actions, type) {
+            const container = document.getElementById(containerId);
+
+            if (actions.length === 0) {
+                container.innerHTML = `
+                    <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
+                        <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); display: block; margin-bottom: 1rem;"></i>
+                        ${type === 'urgent' ? 'No urgent actions!' : 'No tasks for today!'}
+                    </p>
+                `;
+                return;
+            }
+
+            container.innerHTML = actions.map((action, index) => `
+                <div class="action-item" style="background: var(--bg-light); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; border-left: 3px solid ${type === 'urgent' ? 'var(--danger)' : 'var(--warning)'};">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                        <div style="flex: 1;">
+                            <span style="font-size: 0.7rem; background: ${getTypeBadgeColor(action.type)}; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
+                                ${action.type?.replace(/_/g, ' ') || 'Action'}
+                            </span>
+                            <p style="margin-top: 0.5rem; font-weight: 500;">${action.action || 'Take action'}</p>
+                            ${action.estimatedImpact ? `<p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;"><i class="fas fa-chart-line"></i> ${action.estimatedImpact}</p>` : ''}
+                            ${action.draftReply ? `
+                                <div style="background: var(--bg-dark); border-radius: 4px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; border: 1px solid var(--border);">
+                                    <p style="color: var(--text-secondary); font-size: 0.7rem; margin-bottom: 0.25rem;">SUGGESTED REPLY:</p>
+                                    <p>"${action.draftReply}"</p>
+                                </div>
+                            ` : ''}
+                            ${action.aiGeneratedCaption ? `
+                                <div style="background: var(--bg-dark); border-radius: 4px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; border: 1px solid var(--border);">
+                                    <p style="color: var(--text-secondary); font-size: 0.7rem; margin-bottom: 0.25rem;">AI CAPTION:</p>
+                                    <p style="white-space: pre-wrap;">${action.aiGeneratedCaption}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <button class="btn btn-sm btn-success" onclick="markActionDone('${type}', ${index})">
+                                <i class="fas fa-check"></i> Done
+                            </button>
+                            ${action.commentId ? `<button class="btn btn-sm btn-secondary" onclick="viewComment('${action.commentId}')"><i class="fas fa-eye"></i></button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getTypeBadgeColor(type) {
+            const colors = {
+                'SALES_OPPORTUNITY': 'var(--success)',
+                'COMPLAINT_RESPONSE': 'var(--danger)',
+                'CREATE_POST': 'var(--instagram)',
+                'COMMENT_RESPONSE': 'var(--info)',
+                'CRISIS_RESPONSE': 'var(--danger)',
+                'RECYCLE_CONTENT': 'var(--purple)'
+            };
+            return colors[type] || 'var(--text-secondary)';
+        }
+
+        async function markActionDone(type, index) {
+            try {
+                const action = brainData.actionQueue[type][index];
+                await apiPost('markSocialActionComplete', {
+                    actionType: action.type,
+                    actionId: action.commentId || action.evergreenId || `${type}_${index}`,
+                    details: action.action
+                });
+                showToast('Action marked complete!', 'success');
+                loadBrainTab(); // Refresh
+            } catch (error) {
+                showToast('Error marking action complete', 'error');
+            }
+        }
+
+        async function loadPostRecommendation() {
+            try {
+                const data = await apiGet('getNextBestPost');
+                if (data.success && data.recommendation) {
+                    currentRecommendation = data.recommendation;
+                    displayRecommendation(data.recommendation);
+                }
+            } catch (error) {
+                console.error('Error loading recommendation:', error);
+            }
+        }
+
+        function displayRecommendation(rec) {
+            document.getElementById('recommendedTime').textContent = rec.bestTime || '9:00 AM';
+            document.getElementById('recommendedPlatform').innerHTML = `
+                <i class="fab fa-${rec.platform === 'facebook' ? 'facebook' : 'instagram'}"></i>
+                ${rec.platform?.charAt(0).toUpperCase() + rec.platform?.slice(1) || 'Instagram'}
+            `;
+            document.getElementById('expectedEngagement').textContent = rec.expectedEngagement || 'High';
+            document.getElementById('whyThisWorks').textContent = rec.whyThisWorks || 'Optimal timing';
+
+            const caption = rec.suggestedCaption || rec.contentIdea || 'Generate a caption with the button above.';
+            document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${caption}</p>`;
+        }
+
+        async function getNewRecommendation() {
+            document.getElementById('suggestedCaption').innerHTML = '<p style="color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Generating new idea...</p>';
+            await loadPostRecommendation();
+            showToast('New recommendation loaded!', 'success');
+        }
+
+        async function regenerateCaption() {
+            try {
+                document.getElementById('suggestedCaption').innerHTML = '<p style="color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Regenerating caption...</p>';
+                const data = await apiPost('generateContent', {
+                    prompt: currentRecommendation?.contentIdea || 'Write a post about what we harvested today',
+                    platform: currentRecommendation?.platform || 'instagram'
+                });
+                if (data.success) {
+                    document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${data.content}</p>`;
+                    currentRecommendation.suggestedCaption = data.content;
+                }
+            } catch (error) {
+                showToast('Error regenerating caption', 'error');
+            }
+        }
+
+        async function approveAndSchedule() {
+            const caption = currentRecommendation?.suggestedCaption || document.getElementById('suggestedCaption').textContent;
+            if (!caption || caption.includes('Loading') || caption.includes('Generate')) {
+                showToast('No caption to schedule', 'error');
+                return;
+            }
+
+            try {
+                const result = await apiPost('schedulePost', {
+                    content: caption,
+                    platform: currentRecommendation?.platform || 'instagram',
+                    scheduledTime: getNextScheduleTime(currentRecommendation?.bestTime || '09:00'),
+                    category: 'ai_recommended',
+                    createdBy: 'brain'
+                });
+
+                if (result.success) {
+                    showToast('Post scheduled!', 'success');
+                    await getNewRecommendation();
+                } else {
+                    showToast('Error scheduling: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error scheduling post', 'error');
+            }
+        }
+
+        function getNextScheduleTime(timeStr) {
+            const today = new Date();
+            const [hours, minutes] = (timeStr || '09:00').split(':').map(Number);
+            today.setHours(hours || 9, minutes || 0, 0, 0);
+            if (today < new Date()) {
+                today.setDate(today.getDate() + 1);
+            }
+            return today.toISOString();
+        }
+
+        function editCaption() {
+            const container = document.getElementById('suggestedCaption');
+            const currentText = currentRecommendation?.suggestedCaption || container.textContent;
+            container.innerHTML = `
+                <textarea style="width: 100%; min-height: 150px; background: var(--bg-dark); border: 1px solid var(--instagram); border-radius: 4px; padding: 0.75rem; color: var(--text-primary); font-family: inherit; resize: vertical;" id="editCaptionArea">${currentText}</textarea>
+                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                    <button class="btn btn-sm btn-success" onclick="saveEditedCaption()"><i class="fas fa-check"></i> Save</button>
+                    <button class="btn btn-sm btn-secondary" onclick="cancelEditCaption()"><i class="fas fa-times"></i> Cancel</button>
+                </div>
+            `;
+        }
+
+        function saveEditedCaption() {
+            const newCaption = document.getElementById('editCaptionArea').value;
+            currentRecommendation.suggestedCaption = newCaption;
+            document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${newCaption}</p>`;
+            showToast('Caption updated', 'success');
+        }
+
+        function cancelEditCaption() {
+            displayRecommendation(currentRecommendation);
+        }
+
+        async function refreshBriefing() {
+            showToast('Refreshing briefing...', 'info');
+            try {
+                await apiPost('generateDailyBriefing', {});
+                await loadBrainTab();
+                showToast('Briefing refreshed!', 'success');
+            } catch (error) {
+                showToast('Error refreshing briefing', 'error');
+            }
+        }
+
+        async function addTrainingPostUI() {
+            const content = document.getElementById('trainingPostInput').value.trim();
+            if (!content) {
+                showToast('Please enter a post to train on', 'error');
+                return;
+            }
+
+            const category = document.getElementById('trainingCategory').value;
+            const engagement = document.getElementById('trainingEngagement').value;
+
+            try {
+                const result = await apiPost('addTrainingPost', {
+                    content: content,
+                    category: category,
+                    engagementScore: engagement ? parseInt(engagement) : 0,
+                    platform: 'instagram'
+                });
+
+                if (result.success) {
+                    showToast('Post added to training data!', 'success');
+                    document.getElementById('trainingPostInput').value = '';
+                    document.getElementById('trainingEngagement').value = '';
+                    // Update count
+                    const current = parseInt(document.getElementById('trainingCount').textContent) || 0;
+                    document.getElementById('trainingCount').textContent = current + 1;
+                } else {
+                    showToast('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error adding training post', 'error');
+            }
+        }
+
+        async function generateContentCalendarUI() {
+            showToast('Generating 7-day content calendar...', 'info');
+            try {
+                const result = await apiPost('generateContentCalendar', {});
+                if (result.success) {
+                    showToast('Content calendar generated!', 'success');
+                    displayCalendarPreview(result.calendar);
+                } else {
+                    showToast('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error generating calendar', 'error');
+            }
+        }
+
+        function displayCalendarPreview(calendar) {
+            if (!calendar || !Array.isArray(calendar)) return;
+
+            const container = document.getElementById('calendarPreview');
+            const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+
+            container.innerHTML = calendar.slice(0, 7).map((day, i) => `
+                <div style="text-align: center; padding: 0.5rem; background: var(--bg-light); border-radius: 8px; cursor: pointer;" onclick="showDayDetail(${i})" title="${day.idea || ''}">
+                    <p style="font-size: 0.7rem; color: var(--text-secondary);">${days[i] || day.day?.substring(0,3).toUpperCase()}</p>
+                    <p style="font-weight: 600; font-size: 0.8rem;">${getContentTypeIcon(day.contentType)}</p>
+                    <p style="font-size: 0.65rem; color: var(--text-secondary);">${day.bestTime || ''}</p>
+                </div>
+            `).join('');
+        }
+
+        function getContentTypeIcon(type) {
+            const icons = {
+                'harvest_photo': '🥕',
+                'behind_scenes': '🎬',
+                'educational': '📚',
+                'engagement': '💬',
+                'recipe': '🍳',
+                'promo': '🏷️'
+            };
+            return icons[type] || '📱';
+        }
+
+        function viewFullCalendar() {
+            switchTab('scheduler');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // END BRAIN TAB FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
 
         // Dashboard
         async function loadDashboard() {
@@ -2227,10 +2798,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Set default date to today
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('scheduleDate').value = today;
+            const scheduleDateEl = document.getElementById('scheduleDate');
+            if (scheduleDateEl) scheduleDateEl.value = today;
 
-            // Load dashboard
-            loadDashboard();
+            // Load Brain tab first (it's the command center)
+            loadBrainTab();
         });
     </script>
 </body>

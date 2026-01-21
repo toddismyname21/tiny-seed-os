@@ -150,8 +150,38 @@ https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqEN
 
 ---
 
+## 🚨 MCP SERVER ACCESS (NEW 2026-01-21)
+
+**Owner Directive:** "I WANT TO TRUST YOU ALL AND GIVE YOU MORE AND MORE ACCESS AND AUTONOMY"
+
+All Claude sessions now have direct access to:
+- Send emails
+- Run Apps Script functions
+- Read/write farm data
+- Take action without waiting for permission
+
+**Read full documentation:** `claude_sessions/MCP_SERVER_ACCESS.md`
+
+**Quick HTTP API examples:**
+```bash
+# Check system status
+curl -sL "API_URL?action=healthCheck"
+
+# Get CSA dashboard
+curl -sL "API_URL?action=getCSARetentionDashboard"
+
+# Send season announcement
+curl -sL "API_URL?action=sendSeasonAnnouncement"
+```
+
+**Philosophy:** Don't wait. Take action. Use good judgment.
+
+---
+
 ## KEY RESOURCES
 - `/MASTER_ARCHITECTURE.md` - Full system docs
 - `/web_app/auth-guard.js` - Permission system
 - `/docs/STYLE_GUIDE.md` - UI standards
 - `/USER_MANUAL.md` - End user documentation
+- **`/claude_sessions/MCP_SERVER_ACCESS.md`** - Direct API access for Claudes
+- **`/claude_sessions/CLAUDE_MARCHING_ORDERS.md`** - Cross-system directives
