@@ -664,6 +664,10 @@ function doGet(e) {
         return jsonResponse(sendDeliveryComplete(e.parameter));
       case 'sendCSAWeeklyReminder':
         return jsonResponse(sendCSAWeeklyReminder(e.parameter));
+      case 'sendTaskReminder':
+        return jsonResponse(sendShopifyTagsReminderEmail());
+      case 'scheduleTaskReminder':
+        return jsonResponse(scheduleShopifyTagsReminder());
 
       // ============ SMS NOTIFICATIONS (TWILIO) ============
       case 'sendSMS':
@@ -24872,8 +24876,8 @@ const PLAID_CONFIG = {
     get SECRET() {
         return PropertiesService.getScriptProperties().getProperty('PLAID_SECRET') || '';
     },
-    ENV: 'production',
-    BASE_URL: 'https://production.plaid.com',
+    ENV: 'development',
+    BASE_URL: 'https://development.plaid.com',
     PRODUCTS: ['transactions'],
     COUNTRY_CODES: ['US'],
     LANGUAGE: 'en'
