@@ -3166,6 +3166,10 @@
                     },
                     onEvent: (eventName, metadata) => {
                         console.log('Plaid Event:', eventName, metadata);
+                        if (eventName === 'ERROR') {
+                            console.error('PLAID ERROR DETAILS:', JSON.stringify(metadata, null, 2));
+                            showNotification('Plaid Error: ' + (metadata.error_message || metadata.error_code || 'Unknown error'), 'error');
+                        }
                     }
                 });
 
