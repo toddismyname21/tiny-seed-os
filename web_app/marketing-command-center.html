@@ -1261,6 +1261,208 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        /* ============================================= */
+        /* SOCIAL GROWTH TAB STYLES */
+        /* ============================================= */
+        .progress-bar {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .posting-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .timeline-slot {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .timeline-slot.optimal {
+            border-color: var(--gold);
+            background: rgba(255,215,0,0.05);
+        }
+
+        .time-badge {
+            background: var(--bg-light);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .slot-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .optimal-badge {
+            font-size: 0.7rem;
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .slot-platforms {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .slot-status.empty {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .content-checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .checklist-item:hover {
+            background: rgba(255,255,255,0.06);
+        }
+
+        .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--success);
+        }
+
+        .checklist-item label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .checklist-item label span {
+            font-weight: 500;
+        }
+
+        .checklist-item label small {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .tip-card {
+            padding: 1rem;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .tip-card.instagram {
+            border-left: 3px solid var(--instagram);
+        }
+
+        .tip-card.tiktok {
+            border-left: 3px solid #FE2C55;
+        }
+
+        .tip-card.pinterest {
+            border-left: 3px solid var(--pinterest);
+        }
+
+        .tip-header {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tip-list {
+            list-style: none;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .tip-list li {
+            padding: 0.25rem 0;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .tip-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--text-secondary);
+        }
+
+        .connection-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .connection-status i {
+            font-size: 1.5rem;
+        }
+
+        .connection-status .status {
+            margin-left: auto;
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .connection-status .status.connected {
+            background: rgba(42,157,143,0.2);
+            color: var(--success);
+        }
+
+        .connection-status .status.pending {
+            background: rgba(233,196,106,0.2);
+            color: var(--warning);
+        }
+
+        @media (max-width: 768px) {
+            .connection-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1327,6 +1529,10 @@
         <button class="tab-btn" onclick="switchTab('intelligence')">
             <i class="fas fa-brain"></i> Intelligence
             <span class="badge new">AI</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('socialgrowth')">
+            <i class="fas fa-rocket"></i> Social Growth
+            <span class="badge" style="background: linear-gradient(135deg, var(--instagram), var(--facebook));">NEW</span>
         </button>
     </div>
 
@@ -2401,6 +2607,346 @@
                     <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                         <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
                         <p style="margin-top: 1rem;">Loading signups...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SOCIAL GROWTH TAB - Multi-Platform Growth Engine -->
+        <div id="socialgrowthTab" class="tab-content">
+            <!-- Growth Goals Dashboard -->
+            <div class="stats-grid">
+                <div class="stat-card" style="border-left: 4px solid var(--instagram);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, var(--instagram), #833AB4);">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                        <span class="badge" style="background: var(--instagram);">@tinyseedfarm</span>
+                    </div>
+                    <div class="stat-value" id="igFarmFollowers">--</div>
+                    <div class="stat-label">of 10,000 goal</div>
+                    <div class="progress-bar" style="margin-top: 0.5rem;">
+                        <div class="progress-fill" id="igFarmProgress" style="width: 0%; background: var(--instagram);"></div>
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #E1306C;">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #E1306C, #F77737);">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                        <span class="badge" style="background: #E1306C;">@tinyseedfleurs</span>
+                    </div>
+                    <div class="stat-value" id="igFleursFollowers">--</div>
+                    <div class="stat-label">of 10,000 goal</div>
+                    <div class="progress-bar" style="margin-top: 0.5rem;">
+                        <div class="progress-fill" id="igFleursProgress" style="width: 0%; background: #E1306C;"></div>
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #833AB4;">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #833AB4, #405DE6);">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                        <span class="badge" style="background: #833AB4;">@tinyseedfungi</span>
+                    </div>
+                    <div class="stat-value" id="igFungiFollowers">--</div>
+                    <div class="stat-label">of 5,000 goal</div>
+                    <div class="progress-bar" style="margin-top: 0.5rem;">
+                        <div class="progress-fill" id="igFungiProgress" style="width: 0%; background: #833AB4;"></div>
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--facebook);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: var(--facebook);">
+                            <i class="fab fa-facebook"></i>
+                        </div>
+                        <span class="badge" style="background: var(--facebook);">Facebook</span>
+                    </div>
+                    <div class="stat-value" id="fbFollowers">--</div>
+                    <div class="stat-label">Page Followers</div>
+                    <div class="stat-change neutral" id="fbGrowth">
+                        <i class="fas fa-sync"></i> Connect to track
+                    </div>
+                </div>
+            </div>
+
+            <!-- Platform Cards Row 2 -->
+            <div class="stats-grid" style="margin-top: 1rem;">
+                <div class="stat-card" style="border-left: 4px solid #000;">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #25F4EE, #FE2C55);">
+                            <i class="fab fa-tiktok"></i>
+                        </div>
+                        <span class="badge" style="background: linear-gradient(135deg, #25F4EE, #FE2C55);">TikTok</span>
+                    </div>
+                    <div class="stat-value" id="tiktokFollowers">--</div>
+                    <div class="stat-label">#FarmTok potential</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-fire"></i> 5B+ views on #FarmTok
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--pinterest);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: var(--pinterest);">
+                            <i class="fab fa-pinterest"></i>
+                        </div>
+                        <span class="badge" style="background: var(--pinterest);">Pinterest</span>
+                    </div>
+                    <div class="stat-value" id="pinterestFollowers">--</div>
+                    <div class="stat-label">Monthly Views</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-search"></i> SEO Traffic Engine
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--youtube);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: var(--youtube);">
+                            <i class="fab fa-youtube"></i>
+                        </div>
+                        <span class="badge" style="background: var(--youtube);">YouTube</span>
+                    </div>
+                    <div class="stat-value" id="youtubeSubscribers">--</div>
+                    <div class="stat-label">Subscribers</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-video"></i> Shorts + Long-form
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #000;">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #000, #333);">
+                            <i class="fas fa-at"></i>
+                        </div>
+                        <span class="badge" style="background: #333;">Threads</span>
+                    </div>
+                    <div class="stat-value" id="threadsFollowers">--</div>
+                    <div class="stat-label">Followers</div>
+                    <div class="stat-change positive">
+                        <i class="fab fa-instagram"></i> Auto-synced from IG
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Posting Schedule -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-calendar-day"></i> Today's Posting Schedule</h3>
+                    <button class="btn btn-primary btn-sm" onclick="openPostComposer()">
+                        <i class="fas fa-plus"></i> Create Post
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div class="posting-timeline" id="todaySchedule">
+                        <div class="timeline-slot optimal">
+                            <div class="time-badge">4:00 PM</div>
+                            <div class="slot-content">
+                                <span class="optimal-badge"><i class="fas fa-star"></i> OPTIMAL TIME</span>
+                                <div class="slot-platforms">
+                                    <i class="fab fa-instagram" style="color: var(--instagram);"></i>
+                                    <i class="fab fa-facebook" style="color: var(--facebook);"></i>
+                                </div>
+                                <span class="slot-status empty">No post scheduled</span>
+                            </div>
+                            <button class="btn btn-sm" onclick="schedulePost('16:00')">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="timeline-slot optimal">
+                            <div class="time-badge">9:00 PM</div>
+                            <div class="slot-content">
+                                <span class="optimal-badge"><i class="fas fa-star"></i> OPTIMAL TIME</span>
+                                <div class="slot-platforms">
+                                    <i class="fab fa-instagram" style="color: var(--instagram);"></i>
+                                    <i class="fab fa-tiktok"></i>
+                                </div>
+                                <span class="slot-status empty">No post scheduled</span>
+                            </div>
+                            <button class="btn btn-sm" onclick="schedulePost('21:00')">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Strategy & Coaching -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                <!-- Weekly Content Plan -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tasks"></i> Weekly Content Checklist</h3>
+                        <span class="badge" id="weeklyProgress">0/7</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="content-checklist" id="weeklyChecklist">
+                            <div class="checklist-item" data-type="reel">
+                                <input type="checkbox" id="reel1" onchange="updateWeeklyProgress()">
+                                <label for="reel1">
+                                    <i class="fas fa-video" style="color: var(--instagram);"></i>
+                                    <span>Reel #1</span>
+                                    <small>Behind-the-scenes or harvest</small>
+                                </label>
+                            </div>
+                            <div class="checklist-item" data-type="reel">
+                                <input type="checkbox" id="reel2" onchange="updateWeeklyProgress()">
+                                <label for="reel2">
+                                    <i class="fas fa-video" style="color: var(--instagram);"></i>
+                                    <span>Reel #2</span>
+                                    <small>Educational or tutorial</small>
+                                </label>
+                            </div>
+                            <div class="checklist-item" data-type="carousel">
+                                <input type="checkbox" id="carousel1" onchange="updateWeeklyProgress()">
+                                <label for="carousel1">
+                                    <i class="fas fa-images" style="color: var(--purple);"></i>
+                                    <span>Carousel #1</span>
+                                    <small>Product showcase or tips</small>
+                                </label>
+                            </div>
+                            <div class="checklist-item" data-type="carousel">
+                                <input type="checkbox" id="carousel2" onchange="updateWeeklyProgress()">
+                                <label for="carousel2">
+                                    <i class="fas fa-images" style="color: var(--purple);"></i>
+                                    <span>Carousel #2</span>
+                                    <small>Before/after or process</small>
+                                </label>
+                            </div>
+                            <div class="checklist-item" data-type="story">
+                                <input type="checkbox" id="stories" onchange="updateWeeklyProgress()">
+                                <label for="stories">
+                                    <i class="fas fa-circle-notch" style="color: var(--secondary);"></i>
+                                    <span>Daily Stories</span>
+                                    <small>Post stories every day</small>
+                                </label>
+                            </div>
+                            <div class="checklist-item" data-type="tiktok">
+                                <input type="checkbox" id="tiktok1" onchange="updateWeeklyProgress()">
+                                <label for="tiktok1">
+                                    <i class="fab fa-tiktok" style="color: #FE2C55;"></i>
+                                    <span>TikTok Post</span>
+                                    <small>#FarmTok content</small>
+                                </label>
+                            </div>
+                            <div class="checklist-item" data-type="pinterest">
+                                <input type="checkbox" id="pinterest1" onchange="updateWeeklyProgress()">
+                                <label for="pinterest1">
+                                    <i class="fab fa-pinterest" style="color: var(--pinterest);"></i>
+                                    <span>5+ Pins</span>
+                                    <small>Flower arrangements, farm scenes</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Algorithm Coach -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-lightbulb"></i> Algorithm Coach</h3>
+                        <span class="badge" style="background: var(--gold); color: #000;">TIPS</span>
+                    </div>
+                    <div class="card-content" id="algorithmTips">
+                        <div class="tip-card instagram">
+                            <div class="tip-header">
+                                <i class="fab fa-instagram"></i> Instagram 2025-2026
+                            </div>
+                            <ul class="tip-list">
+                                <li><strong>Watch Time</strong> is #1 ranking factor</li>
+                                <li><strong>Shares & DMs</strong> matter more than likes</li>
+                                <li><strong>5 hashtags max</strong> (algorithm change!)</li>
+                                <li>Post at <strong>4-5 PM</strong> or <strong>9 PM</strong></li>
+                                <li>Best days: <strong>Wednesday & Thursday</strong></li>
+                            </ul>
+                        </div>
+                        <div class="tip-card tiktok" style="margin-top: 1rem;">
+                            <div class="tip-header">
+                                <i class="fab fa-tiktok"></i> TikTok #FarmTok
+                            </div>
+                            <ul class="tip-list">
+                                <li>New accounts CAN go viral immediately</li>
+                                <li>Post <strong>1-4x daily</strong> for growth</li>
+                                <li>Best: <strong>Saturday 9 AM</strong></li>
+                                <li>5-7 sec for tips, 27-35 for tutorials</li>
+                                <li>Use #FarmTok #Agriculture #FarmLife</li>
+                            </ul>
+                        </div>
+                        <div class="tip-card pinterest" style="margin-top: 1rem;">
+                            <div class="tip-header">
+                                <i class="fab fa-pinterest"></i> Pinterest SEO
+                            </div>
+                            <ul class="tip-list">
+                                <li>Pins drive traffic for <strong>YEARS</strong></li>
+                                <li>Perfect for @tinyseedfleurs flowers</li>
+                                <li>Create 5-10 themed boards</li>
+                                <li>Links ARE encouraged (unlike FB)</li>
+                                <li>83% of users make purchases!</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Growth Projection -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-line"></i> Growth Projection to Goals</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm" onclick="refreshGrowthData()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <canvas id="growthProjectionChart" height="250"></canvas>
+                </div>
+            </div>
+
+            <!-- Platform Connection Status -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-plug"></i> Platform Connections</h3>
+                    <a href="#" onclick="switchTab('connections'); return false;" class="btn btn-sm">
+                        <i class="fas fa-cog"></i> Manage
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="connection-grid">
+                        <div class="connection-status" id="igFarmConnection">
+                            <i class="fab fa-instagram" style="color: var(--instagram);"></i>
+                            <span>@tinyseedfarm</span>
+                            <span class="status pending"><i class="fas fa-clock"></i> Connect</span>
+                        </div>
+                        <div class="connection-status" id="igFleursConnection">
+                            <i class="fab fa-instagram" style="color: var(--instagram);"></i>
+                            <span>@tinyseedfleurs</span>
+                            <span class="status pending"><i class="fas fa-clock"></i> Connect</span>
+                        </div>
+                        <div class="connection-status" id="igFungiConnection">
+                            <i class="fab fa-instagram" style="color: var(--instagram);"></i>
+                            <span>@tinyseedfungi</span>
+                            <span class="status pending"><i class="fas fa-clock"></i> Connect</span>
+                        </div>
+                        <div class="connection-status" id="fbConnection">
+                            <i class="fab fa-facebook" style="color: var(--facebook);"></i>
+                            <span>Facebook Page</span>
+                            <span class="status pending"><i class="fas fa-clock"></i> Connect</span>
+                        </div>
+                        <div class="connection-status" id="tiktokConnection">
+                            <i class="fab fa-tiktok"></i>
+                            <span>TikTok</span>
+                            <span class="status pending"><i class="fas fa-clock"></i> Connect</span>
+                        </div>
+                        <div class="connection-status" id="pinterestConnection">
+                            <i class="fab fa-pinterest" style="color: var(--pinterest);"></i>
+                            <span>Pinterest</span>
+                            <span class="status pending"><i class="fas fa-clock"></i> Connect</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,215,0,0.1); border-radius: 8px; border-left: 4px solid var(--gold);">
+                        <strong><i class="fas fa-lightbulb" style="color: var(--gold);"></i> Recommended Tool:</strong>
+                        <p style="margin-top: 0.5rem; color: var(--text-secondary);">
+                            <strong>Buffer</strong> ($6/mo per channel) - Best for managing all platforms in one dashboard.
+                            <br><span style="font-size: 0.85rem;">Or use <strong>Publer FREE</strong> for 3 Instagram accounts only.</span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -3948,6 +4494,263 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // SOCIAL GROWTH ENGINE
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Follower goals
+        const FOLLOWER_GOALS = {
+            igFarm: { current: 0, goal: 10000, handle: '@tinyseedfarm' },
+            igFleurs: { current: 0, goal: 10000, handle: '@tinyseedfleurs' },
+            igFungi: { current: 0, goal: 5000, handle: '@tinyseedfungi' },
+            facebook: { current: 0, goal: 5000, handle: 'Tiny Seed Farm' },
+            tiktok: { current: 0, goal: 10000, handle: '@tinyseedfarm' },
+            pinterest: { current: 0, goal: 1000, handle: 'Tiny Seed' },
+            youtube: { current: 0, goal: 1000, handle: 'Tiny Seed Farm' },
+            threads: { current: 0, goal: 5000, handle: '@tinyseedfarm' }
+        };
+
+        // Weekly checklist progress stored in localStorage
+        function updateWeeklyProgress() {
+            const checkboxes = document.querySelectorAll('.content-checklist input[type="checkbox"]');
+            const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const total = checkboxes.length;
+            document.getElementById('weeklyProgress').textContent = `${checked}/${total}`;
+
+            // Save to localStorage
+            const state = {};
+            checkboxes.forEach(cb => {
+                state[cb.id] = cb.checked;
+            });
+            localStorage.setItem('weeklyChecklist', JSON.stringify(state));
+            localStorage.setItem('weeklyChecklistDate', new Date().toISOString().split('T')[0]);
+        }
+
+        function loadWeeklyChecklist() {
+            const savedDate = localStorage.getItem('weeklyChecklistDate');
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+
+            // Reset on Sunday (start of new week)
+            if (dayOfWeek === 0 && savedDate !== today.toISOString().split('T')[0]) {
+                localStorage.removeItem('weeklyChecklist');
+                localStorage.setItem('weeklyChecklistDate', today.toISOString().split('T')[0]);
+            }
+
+            const saved = localStorage.getItem('weeklyChecklist');
+            if (saved) {
+                const state = JSON.parse(saved);
+                Object.keys(state).forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) checkbox.checked = state[id];
+                });
+            }
+            updateWeeklyProgress();
+        }
+
+        async function loadSocialGrowthData() {
+            // Try to load from API if connected
+            try {
+                const response = await fetch(`${API_URL}?action=getSocialStats`);
+                const data = await response.json();
+
+                if (data.success && data.stats) {
+                    // Update Instagram accounts
+                    if (data.stats.instagram) {
+                        Object.keys(data.stats.instagram).forEach(handle => {
+                            const followers = data.stats.instagram[handle].followers || 0;
+                            if (handle.includes('farm')) {
+                                FOLLOWER_GOALS.igFarm.current = followers;
+                            } else if (handle.includes('fleur')) {
+                                FOLLOWER_GOALS.igFleurs.current = followers;
+                            } else if (handle.includes('fungi')) {
+                                FOLLOWER_GOALS.igFungi.current = followers;
+                            }
+                        });
+                    }
+                    updateGrowthDisplays();
+                }
+            } catch (error) {
+                console.log('Social stats not yet connected:', error.message);
+                // Show manual entry UI
+                showManualEntryPrompt();
+            }
+        }
+
+        function showManualEntryPrompt() {
+            // Load from localStorage if available
+            const saved = localStorage.getItem('socialGrowthData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                Object.keys(data).forEach(key => {
+                    if (FOLLOWER_GOALS[key]) {
+                        FOLLOWER_GOALS[key].current = data[key];
+                    }
+                });
+                updateGrowthDisplays();
+            }
+        }
+
+        function updateGrowthDisplays() {
+            // Update Instagram @tinyseedfarm
+            const igFarm = FOLLOWER_GOALS.igFarm;
+            document.getElementById('igFarmFollowers').textContent = igFarm.current.toLocaleString();
+            document.getElementById('igFarmProgress').style.width = `${(igFarm.current / igFarm.goal) * 100}%`;
+
+            // Update Instagram @tinyseedfleurs
+            const igFleurs = FOLLOWER_GOALS.igFleurs;
+            document.getElementById('igFleursFollowers').textContent = igFleurs.current.toLocaleString();
+            document.getElementById('igFleursProgress').style.width = `${(igFleurs.current / igFleurs.goal) * 100}%`;
+
+            // Update Instagram @tinyseedfungi
+            const igFungi = FOLLOWER_GOALS.igFungi;
+            document.getElementById('igFungiFollowers').textContent = igFungi.current.toLocaleString();
+            document.getElementById('igFungiProgress').style.width = `${(igFungi.current / igFungi.goal) * 100}%`;
+
+            // Update other platforms
+            document.getElementById('fbFollowers').textContent = FOLLOWER_GOALS.facebook.current.toLocaleString() || '--';
+            document.getElementById('tiktokFollowers').textContent = FOLLOWER_GOALS.tiktok.current.toLocaleString() || '--';
+            document.getElementById('pinterestFollowers').textContent = FOLLOWER_GOALS.pinterest.current.toLocaleString() || '--';
+            document.getElementById('youtubeSubscribers').textContent = FOLLOWER_GOALS.youtube.current.toLocaleString() || '--';
+            document.getElementById('threadsFollowers').textContent = FOLLOWER_GOALS.threads.current.toLocaleString() || '--';
+        }
+
+        function openPostComposer() {
+            showToast('Post composer coming soon! Use Buffer or Publer for now.', 'info');
+            // Future: Open a modal to compose cross-platform posts
+        }
+
+        function schedulePost(time) {
+            showToast(`Scheduling post for ${time}. Use Buffer or Publer for now.`, 'info');
+        }
+
+        function refreshGrowthData() {
+            showToast('Refreshing growth data...', 'info');
+            loadSocialGrowthData();
+            initGrowthChart();
+        }
+
+        let growthChart = null;
+
+        function initGrowthChart() {
+            const ctx = document.getElementById('growthProjectionChart');
+            if (!ctx) return;
+
+            if (growthChart) {
+                growthChart.destroy();
+            }
+
+            // Calculate projection data
+            const months = ['Now', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            // Assuming 5% monthly growth (good benchmark)
+            const growthRate = 0.05;
+
+            const igFarmData = [FOLLOWER_GOALS.igFarm.current || 500];
+            const igFleursData = [FOLLOWER_GOALS.igFleurs.current || 300];
+            const igFungiData = [FOLLOWER_GOALS.igFungi.current || 100];
+
+            for (let i = 1; i < 12; i++) {
+                igFarmData.push(Math.round(igFarmData[i-1] * (1 + growthRate)));
+                igFleursData.push(Math.round(igFleursData[i-1] * (1 + growthRate)));
+                igFungiData.push(Math.round(igFungiData[i-1] * (1 + growthRate)));
+            }
+
+            growthChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: '@tinyseedfarm (Goal: 10K)',
+                            data: igFarmData,
+                            borderColor: '#E1306C',
+                            backgroundColor: 'rgba(225, 48, 108, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: '@tinyseedfleurs (Goal: 10K)',
+                            data: igFleursData,
+                            borderColor: '#F77737',
+                            backgroundColor: 'rgba(247, 119, 55, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: '@tinyseedfungi (Goal: 5K)',
+                            data: igFungiData,
+                            borderColor: '#833AB4',
+                            backgroundColor: 'rgba(131, 58, 180, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: '10K Goal Line',
+                            data: Array(12).fill(10000),
+                            borderColor: 'rgba(255, 215, 0, 0.5)',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: '5K Goal Line',
+                            data: Array(12).fill(5000),
+                            borderColor: 'rgba(255, 215, 0, 0.3)',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#8d99ae' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 12000,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#8d99ae' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#8d99ae' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateFollowerCount(platform, count) {
+            if (FOLLOWER_GOALS[platform]) {
+                FOLLOWER_GOALS[platform].current = parseInt(count) || 0;
+
+                // Save to localStorage
+                const data = {};
+                Object.keys(FOLLOWER_GOALS).forEach(key => {
+                    data[key] = FOLLOWER_GOALS[key].current;
+                });
+                localStorage.setItem('socialGrowthData', JSON.stringify(data));
+
+                updateGrowthDisplays();
+                initGrowthChart();
+                showToast('Follower count updated!', 'success');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // INITIALIZATION
         // ═══════════════════════════════════════════════════════════════════════════
 
@@ -3971,7 +4774,12 @@
             initCharts();
             checkForDraft();
 
-            console.log('Marketing Command Center loaded with Intelligence!');
+            // Initialize Social Growth Engine
+            loadWeeklyChecklist();
+            loadSocialGrowthData();
+            initGrowthChart();
+
+            console.log('Marketing Command Center loaded with Intelligence & Social Growth!');
         });
     </script>
 </body>

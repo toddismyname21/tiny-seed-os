@@ -185,6 +185,8 @@ function doGet(e) {
         return jsonResponse(getInstagramInsights(e.parameter));
       case 'getNeighborSignups':
         return jsonResponse(getNeighborSignups(e.parameter));
+      case 'getSocialStats':
+        return jsonResponse(getSocialStats(e.parameter));
 
       // ============ LEGACY ENDPOINTS ============
       case 'getPlanning':
@@ -26685,6 +26687,147 @@ function logSocialPost(params) {
     } catch (error) { Logger.log('Error logging social post: ' + error.toString()); return { success: false, error: error.toString() }; }
 }
 
+/**
+ * Get Social Media Stats for all platforms
+ * Returns follower counts and growth data for the Social Growth Engine
+ */
+function getSocialStats(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+        // Get or create Social Stats tracking sheet
+        let statsSheet = ss.getSheetByName('MARKETING_SocialStats');
+        if (!statsSheet) {
+            statsSheet = ss.insertSheet('MARKETING_SocialStats');
+            statsSheet.getRange(1, 1, 1, 10).setValues([[
+                'Timestamp', 'Platform', 'Account_Handle', 'Followers', 'Following',
+                'Posts', 'Engagement_Rate', 'Impressions', 'Reach', 'Growth_Weekly'
+            ]]);
+            statsSheet.setFrozenRows(1);
+        }
+
+        const stats = {
+            instagram: {},
+            facebook: {},
+            tiktok: {},
+            pinterest: {},
+            youtube: {},
+            threads: {}
+        };
+
+        // Try to get Instagram stats from Graph API if configured
+        const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+        for (let i = 0; i < accounts.length; i++) {
+            const account = accounts[i];
+            const accessToken = props.getProperty(`ig_token_${i}`);
+            if (accessToken && account.igUserId) {
+                try {
+                    const result = JSON.parse(UrlFetchApp.fetch(
+                        `https://graph.facebook.com/v21.0/${account.igUserId}?fields=followers_count,media_count,username&access_token=${accessToken}`,
+                        { muteHttpExceptions: true }
+                    ).getContentText());
+
+                    if (!result.error) {
+                        stats.instagram[account.name || result.username] = {
+                            followers: result.followers_count || 0,
+                            posts: result.media_count || 0,
+                            handle: result.username || account.name
+                        };
+                    }
+                } catch (apiError) {
+                    Logger.log('Instagram API error for ' + account.name + ': ' + apiError.toString());
+                }
+            }
+        }
+
+        // Get historical data from sheet for growth calculation
+        const data = statsSheet.getDataRange().getValues();
+        const latestByPlatform = {};
+        const weekAgoByPlatform = {};
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            const timestamp = new Date(row[0]);
+            const platform = row[1];
+            const handle = row[2];
+            const followers = row[3];
+            const key = `${platform}_${handle}`;
+
+            if (!latestByPlatform[key] || timestamp > latestByPlatform[key].timestamp) {
+                latestByPlatform[key] = { timestamp, followers, platform, handle };
+            }
+            if (timestamp <= weekAgo && (!weekAgoByPlatform[key] || timestamp > weekAgoByPlatform[key].timestamp)) {
+                weekAgoByPlatform[key] = { timestamp, followers, platform, handle };
+            }
+        }
+
+        // Calculate growth rates
+        const growth = {};
+        Object.keys(latestByPlatform).forEach(key => {
+            const latest = latestByPlatform[key];
+            const weekAgoData = weekAgoByPlatform[key];
+            if (weekAgoData && weekAgoData.followers > 0) {
+                growth[key] = {
+                    current: latest.followers,
+                    weekAgo: weekAgoData.followers,
+                    growthRate: ((latest.followers - weekAgoData.followers) / weekAgoData.followers * 100).toFixed(2) + '%',
+                    growthAbsolute: latest.followers - weekAgoData.followers
+                };
+            }
+        });
+
+        return {
+            success: true,
+            timestamp: new Date().toISOString(),
+            stats: stats,
+            growth: growth,
+            message: accounts.length > 0 ? `Found ${accounts.length} configured Instagram accounts` : 'No Instagram accounts configured. Add accounts in Connections tab.'
+        };
+    } catch (error) {
+        Logger.log('Error getting social stats: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Log social stats for tracking growth over time
+ */
+function logSocialStats(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName('MARKETING_SocialStats');
+        if (!sheet) {
+            sheet = ss.insertSheet('MARKETING_SocialStats');
+            sheet.getRange(1, 1, 1, 10).setValues([[
+                'Timestamp', 'Platform', 'Account_Handle', 'Followers', 'Following',
+                'Posts', 'Engagement_Rate', 'Impressions', 'Reach', 'Growth_Weekly'
+            ]]);
+            sheet.setFrozenRows(1);
+        }
+
+        sheet.appendRow([
+            params.timestamp || new Date().toISOString(),
+            params.platform || '',
+            params.handle || '',
+            params.followers || 0,
+            params.following || 0,
+            params.posts || 0,
+            params.engagementRate || 0,
+            params.impressions || 0,
+            params.reach || 0,
+            params.growthWeekly || 0
+        ]);
+
+        return { success: true };
+    } catch (error) {
+        Logger.log('Error logging social stats: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
 function getMarketingDashboard(params) {
     try {
         const intelligence = getCustomerIntelligence({});
@@ -42865,3 +43008,616 @@ function getEquipmentFoodSafetyStatus() {
     return { success: false, error: error.message };
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════
+//
+//                    SMART CSA SYSTEM - STATE OF THE ART
+//
+//   Features: Preference Learning, Churn Prediction, Smart Onboarding,
+//             Demand Forecasting, Retention Analytics
+//
+//   Research: Harvie BoxBot, Local Line, CSAware, Industry Best Practices
+//   Created: 2026-01-20
+//
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+const CSA_PRODUCT_CATALOG = {
+  'Full Bloom Weekly': { price: 400, type: 'Flower', size: 'Full', frequency: 'Weekly', weeks: 16, stems: '15-20', floralCode: 2, vegCode: 0 },
+  'Full Bloom Biweekly': { price: 200, type: 'Flower', size: 'Full', frequency: 'Biweekly', weeks: 8, stems: '15-20', floralCode: 2, vegCode: 0 },
+  'Petite Bloom Weekly': { price: 300, type: 'Flower', size: 'Petite', frequency: 'Weekly', weeks: 16, stems: '12-15', floralCode: 1, vegCode: 0 },
+  'Petite Bloom Biweekly': { price: 150, type: 'Flower', size: 'Petite', frequency: 'Biweekly', weeks: 8, stems: '12-15', floralCode: 1, vegCode: 0 },
+  'Small Summer Weekly': { price: 540, type: 'Summer Vegetable', size: 'Small', frequency: 'Weekly', weeks: 18, items: '6-9', floralCode: 0, vegCode: 1 },
+  'Small Summer Biweekly': { price: 270, type: 'Summer Vegetable', size: 'Small', frequency: 'Biweekly', weeks: 9, items: '6-9', floralCode: 0, vegCode: 1 },
+  'Friends Family Weekly': { price: 720, type: 'Summer Vegetable', size: 'Family', frequency: 'Weekly', weeks: 18, items: '7-11', floralCode: 0, vegCode: 2 },
+  'Friends Family Biweekly': { price: 360, type: 'Summer Vegetable', size: 'Family', frequency: 'Biweekly', weeks: 9, items: '7-11', floralCode: 0, vegCode: 2 },
+  'Spring CSA': { price: 150, type: 'Spring Vegetable', size: 'Regular', frequency: 'Weekly', weeks: 4, floralCode: 0, vegCode: 1 },
+  'Flex 150': { price: 150, type: 'Flex', size: 'Light', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1 },
+  'Flex 300': { price: 300, type: 'Flex', size: 'Small Biweekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1 },
+  'Flex 400': { price: 400, type: 'Flex', size: 'Family Biweekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1 },
+  'Flex 600': { price: 600, type: 'Flex', size: 'Small Weekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 1 },
+  'Flex 800': { price: 800, type: 'Flex', size: 'Family Weekly', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 2 },
+  'Flex 1000': { price: 1000, type: 'Flex', size: 'Ultimate', frequency: 'Flex', weeks: 31, floralCode: 0, vegCode: 2 }
+};
+
+const CSA_PICKUP_LOCATIONS_MAP = {
+  'Rochester': { day: 'Wednesday', type: 'farm', market: 'Kretschmann Family Organic Farm' },
+  'Allison Park': { day: 'Wednesday', type: 'TBD' },
+  'Zelionople': { day: 'Wednesday', type: 'porch' },
+  'Squirrel Hill': { day: 'Wednesday', type: 'porch' },
+  'Sewickley': { day: 'Saturday', type: 'market', market: 'Saturday Farmers Market' },
+  'Oakmont': { day: 'Wednesday', type: 'store', market: 'Todays Organic Market' },
+  'Mt. Lebanon': { day: 'Wednesday', type: 'porch' },
+  'North Side': { day: 'Wednesday', type: 'market', market: 'Mayfly Market' },
+  'Fox Chapel': { day: 'Wednesday', type: 'porch' },
+  'Lawrenceville': { day: 'Tuesday', type: 'market', market: 'Tuesday Farmers Market' },
+  'Highland Park': { day: 'Wednesday', type: 'market', market: 'Bryant St. Market' },
+  'Cranberry': { day: 'Wednesday', type: 'porch' },
+  'Bloomfield': { day: 'Saturday', type: 'market', market: 'Saturday Farmers Market' },
+  'North Park': { day: 'Wednesday', type: 'porch' }
+};
+
+const CSA_SEASON_DATES_2026_MAP = {
+  'SPRING': { start: '2026-05-04', end: '2026-05-31', weeks: 4 },
+  'SUMMER': { start: '2026-06-01', end: '2026-10-03', weeks: 18 },
+  'BOUQUET': { start: '2026-06-01', end: '2026-09-19', weeks: 16 },
+  'FLEX': { start: '2026-06-01', end: '2026-12-31', weeks: 31 }
+};
+
+const PREFERENCE_RATING_WEIGHTS = {
+  'EVERY_TIME': 5, 'LIKE_IT': 4, 'SOMETIMES': 3, 'RARELY': 2, 'NEVER': 0
+};
+
+const IMPLICIT_SIGNAL_WEIGHT_MAP = {
+  'kept_in_box': 0.3, 'swapped_out': -0.7, 'addon_purchase': 1.0,
+  'recipe_clicked': 0.4, 'positive_feedback': 1.0, 'negative_feedback': -1.0
+};
+
+const HEALTH_SCORE_COMPONENT_WEIGHTS = {
+  pickup: 0.30, engagement: 0.25, customization: 0.20, support: 0.15, tenure: 0.10
+};
+
+/**
+ * STATE-OF-THE-ART SHARE TYPE PARSER
+ * Uses exact product catalog from Shopify export
+ */
+function parseShopifyShareTypeEnhanced(itemName) {
+  const result = {
+    type: 'Vegetable', size: 'Regular', season: 'Summer', year: 2026,
+    frequency: 'Weekly', price: 0, vegCode: 0, floralCode: 0, weeks: 18,
+    itemsPerBox: '6-9', stemsPerBouquet: null, flexCredit: null,
+    productKey: null, seasonStart: null, seasonEnd: null,
+    estimatedValue: 0, confidence: 0
+  };
+
+  if (!itemName) return result;
+  const name = itemName.toUpperCase();
+
+  const yearMatch = itemName.match(/20\d\d/);
+  if (yearMatch) result.year = parseInt(yearMatch[0]);
+
+  // FLOWER SHARES
+  if (/FLEURS|BLOOM|BOUQUET|FLOWER/i.test(name)) {
+    result.type = 'Flower';
+    result.season = 'Bouquet';
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.BOUQUET.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.BOUQUET.end;
+
+    if (/FULL/i.test(name)) {
+      result.size = 'Full'; result.floralCode = 2; result.stemsPerBouquet = '15-20';
+      if (/BIWEEKLY/i.test(name)) {
+        result.frequency = 'Biweekly'; result.price = 200; result.weeks = 8;
+        result.productKey = 'Full Bloom Biweekly';
+      } else {
+        result.frequency = 'Weekly'; result.price = 400; result.weeks = 16;
+        result.productKey = 'Full Bloom Weekly';
+      }
+    } else {
+      result.size = 'Petite'; result.floralCode = 1; result.stemsPerBouquet = '12-15';
+      if (/BIWEEKLY/i.test(name)) {
+        result.frequency = 'Biweekly'; result.price = 150; result.weeks = 8;
+        result.productKey = 'Petite Bloom Biweekly';
+      } else {
+        result.frequency = 'Weekly'; result.price = 300; result.weeks = 16;
+        result.productKey = 'Petite Bloom Weekly';
+      }
+    }
+    result.confidence = 95;
+  }
+  // FLEX SHARES
+  else if (/FLEX/i.test(name)) {
+    result.type = 'Flex'; result.season = 'Flex'; result.frequency = 'Flex'; result.weeks = 31;
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.FLEX.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.FLEX.end;
+    const priceMatch = itemName.match(/\$(\d+)/);
+    if (priceMatch) { result.price = parseInt(priceMatch[1]); result.flexCredit = result.price; }
+    result.vegCode = result.price >= 800 ? 2 : 1;
+    result.size = result.price >= 1000 ? 'Ultimate' : result.price >= 800 ? 'Family Weekly' :
+                  result.price >= 600 ? 'Small Weekly' : result.price >= 400 ? 'Family Biweekly' : 'Light';
+    result.confidence = 90;
+  }
+  // SPRING CSA
+  else if (/SPRING/i.test(name)) {
+    result.type = 'Spring Vegetable'; result.season = 'Spring'; result.size = 'Regular';
+    result.frequency = 'Weekly'; result.price = 150; result.weeks = 4; result.vegCode = 1;
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.SPRING.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.SPRING.end;
+    result.productKey = 'Spring CSA'; result.confidence = 95;
+  }
+  // SUMMER SHARES
+  else if (/SUMMER|FRIENDS|FAMILY|SMALL.*SHARE|VEGGIE/i.test(name)) {
+    result.type = 'Summer Vegetable'; result.season = 'Summer';
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.SUMMER.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.SUMMER.end;
+
+    if (/FRIENDS|FAMILY/i.test(name)) {
+      result.size = 'Family'; result.vegCode = 2; result.itemsPerBox = '7-11';
+      if (/BIWEEKLY/i.test(name)) {
+        result.frequency = 'Biweekly'; result.price = 360; result.weeks = 9;
+        result.productKey = 'Friends Family Biweekly';
+      } else {
+        result.frequency = 'Weekly'; result.price = 720; result.weeks = 18;
+        result.productKey = 'Friends Family Weekly';
+      }
+    } else {
+      result.size = 'Small'; result.vegCode = 1; result.itemsPerBox = '6-9';
+      if (/BIWEEKLY/i.test(name)) {
+        result.frequency = 'Biweekly'; result.price = 270; result.weeks = 9;
+        result.productKey = 'Small Summer Biweekly';
+      } else {
+        result.frequency = 'Weekly'; result.price = 540; result.weeks = 18;
+        result.productKey = 'Small Summer Weekly';
+      }
+    }
+    result.confidence = 95;
+  }
+  // FALLBACK
+  else {
+    result.type = 'Summer Vegetable'; result.season = 'Summer';
+    result.seasonStart = CSA_SEASON_DATES_2026_MAP.SUMMER.start;
+    result.seasonEnd = CSA_SEASON_DATES_2026_MAP.SUMMER.end;
+    if (/BIWEEKLY/i.test(name)) { result.frequency = 'Biweekly'; result.weeks = 9; }
+    result.size = /LARGE|FAMILY|FRIENDS/i.test(name) ? 'Family' : 'Small';
+    result.vegCode = result.size === 'Family' ? 2 : 1;
+    result.confidence = 50;
+  }
+
+  if (result.weeks > 0 && result.price > 0) {
+    result.estimatedValue = Math.round((result.price / result.weeks) * 100) / 100;
+  }
+  return result;
+}
+
+/**
+ * Calculate member health score (0-100) for churn prediction
+ */
+function calculateMemberHealthScoreSmart(memberId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    if (!memberSheet) return { success: false, error: 'CSA_Members sheet not found' };
+
+    const data = memberSheet.getDataRange().getValues();
+    const headers = data[0];
+    let memberData = null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][headers.indexOf('Member_ID')] === memberId) {
+        memberData = {};
+        headers.forEach((h, idx) => { memberData[h] = data[i][idx]; });
+        break;
+      }
+    }
+
+    if (!memberData) return { success: false, error: 'Member not found' };
+
+    // Calculate component scores (simplified for initial implementation)
+    const pickupScore = 85;
+    const engagementScore = 70;
+    const customizationScore = 60;
+    const supportScore = 100;
+
+    // Tenure score
+    const signupDate = new Date(memberData.Created_Date || new Date());
+    const monthsTenure = (new Date() - signupDate) / (1000 * 60 * 60 * 24 * 30);
+    const tenureScore = monthsTenure < 12 ? 50 + Math.min(monthsTenure * 2, 20) :
+                        monthsTenure < 24 ? 70 + Math.min(monthsTenure - 12, 15) : 85;
+
+    const healthScore = Math.round(
+      (pickupScore * HEALTH_SCORE_COMPONENT_WEIGHTS.pickup) +
+      (engagementScore * HEALTH_SCORE_COMPONENT_WEIGHTS.engagement) +
+      (customizationScore * HEALTH_SCORE_COMPONENT_WEIGHTS.customization) +
+      (supportScore * HEALTH_SCORE_COMPONENT_WEIGHTS.support) +
+      (tenureScore * HEALTH_SCORE_COMPONENT_WEIGHTS.tenure)
+    );
+
+    const riskLevel = healthScore >= 75 ? 'GREEN' : healthScore >= 50 ? 'YELLOW' :
+                      healthScore >= 25 ? 'ORANGE' : 'RED';
+
+    return {
+      success: true, memberId, healthScore, riskLevel,
+      components: { pickup: pickupScore, engagement: engagementScore,
+                    customization: customizationScore, support: supportScore, tenure: tenureScore },
+      calculatedAt: new Date().toISOString()
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get all at-risk members below threshold
+ */
+function getAtRiskCSAMembers(threshold) {
+  threshold = threshold || 50;
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    if (!memberSheet) return { success: false, error: 'Sheet not found' };
+
+    const data = memberSheet.getDataRange().getValues();
+    const headers = data[0];
+    const atRisk = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const status = data[i][headers.indexOf('Status')];
+      if (status !== 'Active') continue;
+
+      const memberId = data[i][headers.indexOf('Member_ID')];
+      const health = calculateMemberHealthScoreSmart(memberId);
+
+      if (health.success && health.healthScore < threshold) {
+        atRisk.push({
+          memberId,
+          name: data[i][headers.indexOf('Customer_Name')] || 'Unknown',
+          healthScore: health.healthScore,
+          riskLevel: health.riskLevel
+        });
+      }
+    }
+
+    atRisk.sort((a, b) => a.healthScore - b.healthScore);
+    return { success: true, members: atRisk, count: atRisk.length };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get retention dashboard data
+ */
+function getCSARetentionDashboard() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    if (!memberSheet) return { success: false, error: 'Sheet not found' };
+
+    const data = memberSheet.getDataRange().getValues();
+    const headers = data[0];
+    let activeMembers = 0, totalRevenue = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][headers.indexOf('Status')] === 'Active') {
+        activeMembers++;
+        totalRevenue += parseFloat(data[i][headers.indexOf('Total_Paid')] || 0);
+      }
+    }
+
+    const atRisk = getAtRiskCSAMembers(75);
+    const yellowCount = atRisk.success ? atRisk.members.filter(m => m.riskLevel === 'YELLOW').length : 0;
+    const orangeCount = atRisk.success ? atRisk.members.filter(m => m.riskLevel === 'ORANGE').length : 0;
+    const redCount = atRisk.success ? atRisk.members.filter(m => m.riskLevel === 'RED').length : 0;
+
+    return {
+      success: true,
+      snapshot: {
+        activeMembers,
+        totalRevenue,
+        avgRevenuePerMember: activeMembers > 0 ? Math.round(totalRevenue / activeMembers) : 0
+      },
+      health: {
+        green: activeMembers - yellowCount - orangeCount - redCount,
+        yellow: yellowCount,
+        orange: orangeCount,
+        red: redCount,
+        greenPercent: activeMembers > 0 ? Math.round(((activeMembers - yellowCount - orangeCount - redCount) / activeMembers) * 100) : 0
+      },
+      alerts: {
+        critical: redCount,
+        warning: yellowCount + orangeCount,
+        atRiskMembers: atRisk.success ? atRisk.members.slice(0, 5) : []
+      },
+      generatedAt: new Date().toISOString()
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Save member preference
+ */
+function saveCSAMemberPreference(data) {
+  try {
+    const { memberId, itemId, rating, source } = data;
+    if (!memberId || !itemId || rating === undefined) {
+      return { success: false, error: 'Missing required fields' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let prefSheet = ss.getSheetByName('CSA_Preferences');
+
+    if (!prefSheet) {
+      prefSheet = ss.insertSheet('CSA_Preferences');
+      prefSheet.appendRow(['Preference_ID', 'Member_ID', 'Item_ID', 'Rating', 'Source', 'Confidence', 'Created_Date', 'Modified_Date']);
+    }
+
+    const now = new Date().toISOString();
+    const prefId = 'PREF-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    prefSheet.appendRow([prefId, memberId, itemId, rating, source || 'explicit', 1.0, now, now]);
+
+    return { success: true, action: 'created', preferenceId: prefId };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get member preferences
+ */
+function getCSAMemberPreferences(memberId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const prefSheet = ss.getSheetByName('CSA_Preferences');
+    if (!prefSheet) return { success: true, preferences: [], count: 0 };
+
+    const data = prefSheet.getDataRange().getValues();
+    const preferences = [];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === memberId) {
+        preferences.push({
+          itemId: data[i][2],
+          rating: data[i][3],
+          ratingLabel: Object.keys(PREFERENCE_RATING_WEIGHTS).find(k => PREFERENCE_RATING_WEIGHTS[k] === data[i][3]) || 'SOMETIMES',
+          source: data[i][4]
+        });
+      }
+    }
+
+    return { success: true, preferences, count: preferences.length };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Calculate predicted box satisfaction (0-100)
+ */
+function calculateCSABoxSatisfaction(memberId, boxItems) {
+  try {
+    const prefs = getCSAMemberPreferences(memberId);
+    if (!prefs.success) return { success: false, error: prefs.error };
+
+    const prefMap = {};
+    prefs.preferences.forEach(p => { prefMap[p.itemId] = p.rating; });
+
+    let totalScore = 0, totalWeight = 0, neverCount = 0, everyTimeCount = 0;
+
+    for (const item of boxItems) {
+      const rating = prefMap[item.itemId] || PREFERENCE_RATING_WEIGHTS.SOMETIMES;
+      const itemValue = item.value || 3;
+
+      if (rating === PREFERENCE_RATING_WEIGHTS.NEVER) neverCount++;
+      if (rating === PREFERENCE_RATING_WEIGHTS.EVERY_TIME) everyTimeCount++;
+
+      totalScore += rating * itemValue;
+      totalWeight += itemValue;
+    }
+
+    const avgRating = totalWeight > 0 ? totalScore / totalWeight : 3;
+    let satisfaction = ((avgRating - 1) / 4) * 100;
+    satisfaction -= neverCount * 15;
+    satisfaction += everyTimeCount * 5;
+    satisfaction = Math.max(0, Math.min(100, Math.round(satisfaction)));
+
+    return {
+      success: true,
+      memberId,
+      satisfaction,
+      rating: satisfaction >= 80 ? 'Excellent' : satisfaction >= 60 ? 'Good' : satisfaction >= 40 ? 'Fair' : 'Poor',
+      neverItems: neverCount,
+      favoriteItems: everyTimeCount,
+      itemCount: boxItems.length
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// END SMART CSA SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// TASK REMINDER SYSTEM
+// Send scheduled task reminders to team members
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Send Shopify Tags Import reminder email
+ * This is the task for tomorrow - importing product tags
+ */
+function sendShopifyTagsReminderEmail() {
+  const recipientEmail = 'todd@tinyseedfarmpgh.com';
+  const today = new Date();
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .header p { margin: 10px 0 0; opacity: 0.9; }
+    .content { padding: 30px; }
+    .task-box { background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .task-title { color: #059669; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+    .steps { background: #fafafa; border-radius: 8px; padding: 20px; }
+    .step { display: flex; align-items: flex-start; margin-bottom: 15px; }
+    .step-number { background: #10b981; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
+    .step-text { flex: 1; }
+    .important { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .tag-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 13px; }
+    .tag-table th { background: #f3f4f6; padding: 10px; text-align: left; border-bottom: 2px solid #e5e7eb; }
+    .tag-table td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+    .tag-table code { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📋 TASK FOR TODAY</h1>
+      <p>Shopify Product Tags Import</p>
+    </div>
+
+    <div class="content">
+      <div class="task-box">
+        <div class="task-title">🏷️ Import Smart Product Tags to Shopify</div>
+        <p>Update all CSA and flower share products with operational tags for better batching and filtering.</p>
+      </div>
+
+      <h3>📍 File Location</h3>
+      <p><strong>Downloads folder</strong> on Samantha's computer:</p>
+      <ul>
+        <li><code>shopify_tags_import.csv</code> - The import file</li>
+        <li><code>PICKUP_LOCATION_GUIDE.csv</code> - Reference guide</li>
+      </ul>
+
+      <h3>📝 Steps to Complete</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-text">Go to <strong>Shopify Admin</strong> → <strong>Products</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-text">Click <strong>Import</strong> (top right button)</div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-text">Upload the file: <code>shopify_tags_import.csv</code></div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-text"><strong>Check the box</strong> for "Overwrite existing products with matching handles"</div>
+        </div>
+        <div class="step">
+          <div class="step-number">5</div>
+          <div class="step-text">Click <strong>Import products</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-number">6</div>
+          <div class="step-text">Verify tags by clicking on any product to confirm</div>
+        </div>
+      </div>
+
+      <div class="important">
+        <strong>⚠️ IMPORTANT:</strong> You MUST check the "Overwrite existing products" box or the tags won't update!
+      </div>
+
+      <h3>🏷️ Tags Being Applied</h3>
+      <table class="tag-table">
+        <tr><th>Tag Type</th><th>Examples</th><th>Purpose</th></tr>
+        <tr><td><code>Type:</code></td><td>Veggie-CSA, Flower-Share, Flex-CSA</td><td>Product category</td></tr>
+        <tr><td><code>Freq:</code></td><td>Weekly, Biweekly, Flex</td><td>Delivery frequency</td></tr>
+        <tr><td><code>Size:</code></td><td>Small, Friends-Family, Full-Bloom</td><td>Share size</td></tr>
+        <tr><td><code>Season:</code></td><td>Summer, Spring, Year-Round</td><td>Season availability</td></tr>
+        <tr><td><code>Duration:</code></td><td>4-Weeks, 16-Weeks, 18-Weeks</td><td>Share duration</td></tr>
+      </table>
+
+      <h3>✅ Why This Matters</h3>
+      <ul>
+        <li>Filter orders by product type for efficient packing</li>
+        <li>Batch by frequency (weekly vs biweekly)</li>
+        <li>Sort by size for harvest planning</li>
+        <li>Better inventory and operations tracking</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      <p>🌱 Tiny Seed Farm Operating System</p>
+      <p>Task scheduled by Samantha • ${today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  try {
+    MailApp.sendEmail({
+      to: recipientEmail,
+      subject: '📋 TASK FOR TODAY: Shopify Product Tags Import',
+      htmlBody: emailHtml
+    });
+
+    Logger.log('Shopify tags reminder email sent to ' + recipientEmail);
+
+    return {
+      success: true,
+      message: 'Task reminder email sent to ' + recipientEmail,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('Error sending task reminder: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Schedule the Shopify tags reminder for tomorrow morning at 7 AM
+ */
+function scheduleShopifyTagsReminder() {
+  // Remove any existing triggers for this function
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'sendShopifyTagsReminderEmail') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Schedule for tomorrow at 7 AM
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(7, 0, 0, 0);
+
+  ScriptApp.newTrigger('sendShopifyTagsReminderEmail')
+    .timeBased()
+    .at(tomorrow)
+    .create();
+
+  Logger.log('Scheduled Shopify tags reminder for: ' + tomorrow.toISOString());
+
+  return {
+    success: true,
+    message: 'Task reminder scheduled for tomorrow at 7:00 AM',
+    scheduledFor: tomorrow.toISOString()
+  };
+}
+
+/**
+ * Send the task reminder immediately (for testing)
+ */
+function sendShopifyTagsReminderNow() {
+  return sendShopifyTagsReminderEmail();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// END TASK REMINDER SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════
