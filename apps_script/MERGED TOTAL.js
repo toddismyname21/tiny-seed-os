@@ -27326,6 +27326,815 @@ function testSEOModule() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SEO INTELLIGENCE LAYER (PROACTIVE FEATURES)
+// Alerts, AI Visibility, GeoGrid, Today's Actions
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize SEO Intelligence sheets (extends base SEO module)
+ */
+function initializeSEOIntelligence() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // AI/LLM Visibility Tracker
+    createSheetIfNotExists(ss, 'SEO_AI_Visibility', [
+      'Date', 'Platform', 'Query', 'Appeared', 'Position', 'Sentiment',
+      'Competitors_Seen', 'Citation_URL', 'Notes'
+    ], '#8b5cf6');
+
+    // GeoGrid Rankings (hyperlocal tracking)
+    createSheetIfNotExists(ss, 'SEO_GeoGrid', [
+      'Date', 'Keyword', 'Grid_Size', 'Center_Lat', 'Center_Lng',
+      'Green_Count', 'Yellow_Count', 'Red_Count', 'Avg_Rank',
+      'Weakest_Area', 'Strongest_Area', 'Grid_Data_JSON'
+    ], '#8b5cf6');
+
+    // Alert Log
+    createSheetIfNotExists(ss, 'SEO_Alerts', [
+      'Alert_ID', 'Timestamp', 'Type', 'Severity', 'Message',
+      'Data_JSON', 'Acknowledged', 'Acknowledged_By', 'Acknowledged_At'
+    ], '#ef4444');
+
+    // Voice Platform Status
+    createSheetIfNotExists(ss, 'SEO_VoicePlatforms', [
+      'Platform', 'Data_Source', 'Listing_Claimed', 'Last_Verified',
+      'NAP_Accurate', 'Listing_URL', 'Notes'
+    ], '#8b5cf6');
+
+    return { success: true, message: 'SEO Intelligence layer initialized' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log AI/LLM visibility check
+ */
+function logAIVisibility(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_AI_Visibility');
+    if (!sheet) { initializeSEOIntelligence(); sheet = ss.getSheetByName('SEO_AI_Visibility'); }
+
+    sheet.appendRow([
+      new Date(),
+      params.platform || 'chatgpt', // chatgpt, perplexity, gemini, ai_overview
+      params.query || '',
+      params.appeared === true,
+      params.position || '', // featured, mentioned, not_found
+      params.sentiment || 'neutral',
+      params.competitorsSeen || '',
+      params.citationUrl || '',
+      params.notes || ''
+    ]);
+
+    return { success: true, message: 'AI visibility logged' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get AI visibility metrics
+ */
+function getAIVisibilityMetrics(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_AI_Visibility');
+
+    const metrics = {
+      totalChecks: 0,
+      appearances: 0,
+      appearanceRate: 0,
+      byPlatform: {},
+      recentChecks: []
+    };
+
+    if (!sheet) return { success: true, metrics: metrics };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      metrics.totalChecks++;
+      if (row.Appeared === true || row.Appeared === 'TRUE') metrics.appearances++;
+
+      const platform = row.Platform || 'unknown';
+      if (!metrics.byPlatform[platform]) {
+        metrics.byPlatform[platform] = { checks: 0, appearances: 0 };
+      }
+      metrics.byPlatform[platform].checks++;
+      if (row.Appeared === true || row.Appeared === 'TRUE') {
+        metrics.byPlatform[platform].appearances++;
+      }
+    }
+
+    metrics.appearanceRate = metrics.totalChecks > 0
+      ? Math.round((metrics.appearances / metrics.totalChecks) * 100)
+      : 0;
+
+    // Get recent checks
+    const recentData = data.slice(-6).reverse();
+    recentData.forEach((row, i) => {
+      if (i === 0) return; // Skip header if present
+      metrics.recentChecks.push({
+        date: row[0],
+        platform: row[1],
+        query: row[2],
+        appeared: row[3]
+      });
+    });
+
+    return { success: true, metrics: metrics };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log GeoGrid snapshot
+ */
+function logGeoGridSnapshot(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_GeoGrid');
+    if (!sheet) { initializeSEOIntelligence(); sheet = ss.getSheetByName('SEO_GeoGrid'); }
+
+    // Calculate stats from grid data
+    const gridData = params.gridPoints || [];
+    let greenCount = 0, yellowCount = 0, redCount = 0, totalRank = 0;
+    let weakest = null, strongest = null;
+
+    gridData.forEach(point => {
+      if (point.rank <= 3) greenCount++;
+      else if (point.rank <= 10) yellowCount++;
+      else redCount++;
+      totalRank += point.rank || 20;
+
+      if (!weakest || point.rank > weakest.rank) weakest = point;
+      if (!strongest || point.rank < strongest.rank) strongest = point;
+    });
+
+    const avgRank = gridData.length > 0 ? (totalRank / gridData.length).toFixed(1) : 0;
+
+    sheet.appendRow([
+      new Date(),
+      params.keyword || '',
+      params.gridSize || '5x5',
+      params.centerLat || '',
+      params.centerLng || '',
+      greenCount,
+      yellowCount,
+      redCount,
+      avgRank,
+      weakest ? `${weakest.area || weakest.lat + ',' + weakest.lng} (#${weakest.rank})` : '',
+      strongest ? `${strongest.area || strongest.lat + ',' + strongest.lng} (#${strongest.rank})` : '',
+      JSON.stringify(gridData)
+    ]);
+
+    return {
+      success: true,
+      summary: {
+        greenCount, yellowCount, redCount, avgRank,
+        weakestArea: weakest?.area,
+        strongestArea: strongest?.area
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get GeoGrid analysis with recommendations
+ */
+function getGeoGridAnalysis(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_GeoGrid');
+
+    if (!sheet) return { success: true, analysis: null, recommendations: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, analysis: null, recommendations: [] };
+
+    // Get most recent snapshot
+    const headers = data[0];
+    const latestRow = data[data.length - 1];
+    const latest = {};
+    headers.forEach((h, j) => latest[h] = latestRow[j]);
+
+    // Generate recommendations based on weak areas
+    const recommendations = [];
+
+    if (latest.Red_Count > latest.Green_Count) {
+      recommendations.push({
+        priority: 'high',
+        action: 'Increase GBP posting targeting weak neighborhoods',
+        detail: `${latest.Red_Count} areas show poor visibility (rank 11+)`
+      });
+    }
+
+    if (latest.Weakest_Area) {
+      recommendations.push({
+        priority: 'medium',
+        action: `Create content mentioning ${latest.Weakest_Area.split(' ')[0]}`,
+        detail: 'Hyperlocal content can improve neighborhood rankings'
+      });
+    }
+
+    if (parseFloat(latest.Avg_Rank) > 5) {
+      recommendations.push({
+        priority: 'medium',
+        action: 'Accelerate review collection',
+        detail: `Average rank ${latest.Avg_Rank} needs improvement`
+      });
+    }
+
+    return {
+      success: true,
+      analysis: {
+        date: latest.Date,
+        keyword: latest.Keyword,
+        gridSize: latest.Grid_Size,
+        greenCount: latest.Green_Count,
+        yellowCount: latest.Yellow_Count,
+        redCount: latest.Red_Count,
+        avgRank: latest.Avg_Rank,
+        weakestArea: latest.Weakest_Area,
+        strongestArea: latest.Strongest_Area
+      },
+      recommendations: recommendations
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create an alert
+ */
+function createSEOAlert(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_Alerts');
+    if (!sheet) { initializeSEOIntelligence(); sheet = ss.getSheetByName('SEO_Alerts'); }
+
+    const alertId = 'ALERT-' + Date.now();
+
+    sheet.appendRow([
+      alertId,
+      new Date(),
+      params.type || 'general', // ranking_drop, new_review, negative_review, competitor_move, citation_issue
+      params.severity || 'medium', // low, medium, high, urgent
+      params.message || '',
+      JSON.stringify(params.data || {}),
+      false,
+      '',
+      ''
+    ]);
+
+    return { success: true, alertId: alertId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get unacknowledged alerts
+ */
+function getActiveAlerts(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_Alerts');
+
+    const alerts = [];
+    if (!sheet) return { success: true, alerts: alerts };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      if (row.Acknowledged === true || row.Acknowledged === 'TRUE') continue;
+
+      alerts.push({
+        alertId: row.Alert_ID,
+        timestamp: row.Timestamp,
+        type: row.Type,
+        severity: row.Severity,
+        message: row.Message,
+        data: row.Data_JSON ? JSON.parse(row.Data_JSON) : {}
+      });
+    }
+
+    // Sort by severity (urgent first) then by date
+    const severityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+    alerts.sort((a, b) => {
+      const sevDiff = (severityOrder[a.severity] || 3) - (severityOrder[b.severity] || 3);
+      if (sevDiff !== 0) return sevDiff;
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+
+    return { success: true, alerts: alerts };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Acknowledge an alert
+ */
+function acknowledgeAlert(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_Alerts');
+    if (!sheet) return { success: false, error: 'Alerts sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const alertIdCol = headers.indexOf('Alert_ID');
+    const ackCol = headers.indexOf('Acknowledged');
+    const ackByCol = headers.indexOf('Acknowledged_By');
+    const ackAtCol = headers.indexOf('Acknowledged_At');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][alertIdCol] === params.alertId) {
+        sheet.getRange(i + 1, ackCol + 1).setValue(true);
+        sheet.getRange(i + 1, ackByCol + 1).setValue(params.acknowledgedBy || 'System');
+        sheet.getRange(i + 1, ackAtCol + 1).setValue(new Date());
+        return { success: true, message: 'Alert acknowledged' };
+      }
+    }
+
+    return { success: false, error: 'Alert not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get "Today's Actions" - prescriptive SEO tasks based on current data
+ */
+function getTodaysActions(params) {
+  try {
+    const actions = [];
+
+    // Check reviews needing response
+    const reviews = getReviewMetrics({});
+    if (reviews.success && reviews.metrics.needsResponse > 0) {
+      actions.push({
+        priority: reviews.metrics.needsResponse >= 3 ? 'urgent' : 'high',
+        category: 'reviews',
+        action: `Respond to ${reviews.metrics.needsResponse} review${reviews.metrics.needsResponse > 1 ? 's' : ''}`,
+        reason: 'Quick response improves ranking and customer trust',
+        link: 'seo_dashboard.html#reviews'
+      });
+    }
+
+    // Check for review request candidates
+    const candidates = getReviewRequestCandidates({ limit: 20 });
+    if (candidates.success && candidates.totalCandidates >= 5) {
+      actions.push({
+        priority: 'medium',
+        category: 'reviews',
+        action: `Send review requests to ${Math.min(5, candidates.totalCandidates)} happy customers`,
+        reason: `${candidates.totalCandidates} customers eligible for review request`,
+        link: 'seo_dashboard.html#review-requests'
+      });
+    }
+
+    // Check citation progress
+    const citations = getCitationStatus({});
+    if (citations.success) {
+      const verified = citations.summary.verified || 0;
+      if (verified < 10) {
+        actions.push({
+          priority: 'high',
+          category: 'citations',
+          action: 'Submit to Tier 1 citation directories',
+          reason: `Only ${verified}/37 citations verified - need foundation`,
+          link: 'CITATION_MASTER_LIST.md'
+        });
+      } else if (verified < 20) {
+        actions.push({
+          priority: 'medium',
+          category: 'citations',
+          action: 'Continue citation building - Tier 2/3 directories',
+          reason: `${verified}/37 citations - keep momentum`,
+          link: 'CITATION_MASTER_LIST.md'
+        });
+      }
+    }
+
+    // Check ranking tracking
+    const rankings = getSEORankings({});
+    if (!rankings.success || !rankings.latest || rankings.latest.length === 0) {
+      actions.push({
+        priority: 'high',
+        category: 'rankings',
+        action: 'Log keyword rankings in SEO Dashboard',
+        reason: 'No rankings tracked yet - need baseline data',
+        link: 'seo_dashboard.html#rankings'
+      });
+    } else {
+      // Check if rankings are stale (more than 7 days old)
+      const latestDate = rankings.latest.reduce((max, r) => {
+        const d = new Date(r.Date);
+        return d > max ? d : max;
+      }, new Date(0));
+      const daysSinceRanking = Math.floor((new Date() - latestDate) / (1000 * 60 * 60 * 24));
+
+      if (daysSinceRanking >= 7) {
+        actions.push({
+          priority: 'medium',
+          category: 'rankings',
+          action: 'Log weekly keyword rankings',
+          reason: `Last ranking check was ${daysSinceRanking} days ago`,
+          link: 'seo_dashboard.html#rankings'
+        });
+      }
+    }
+
+    // Check AI visibility tracking
+    const aiMetrics = getAIVisibilityMetrics({});
+    if (!aiMetrics.success || aiMetrics.metrics.totalChecks === 0) {
+      actions.push({
+        priority: 'medium',
+        category: 'ai_visibility',
+        action: 'Check AI visibility (ChatGPT, Perplexity)',
+        reason: 'Not tracking AI search presence - 527% traffic growth in AI',
+        link: 'seo_dashboard.html#ai-visibility'
+      });
+    }
+
+    // Check GeoGrid
+    const geoGrid = getGeoGridAnalysis({});
+    if (!geoGrid.success || !geoGrid.analysis) {
+      actions.push({
+        priority: 'low',
+        category: 'geogrid',
+        action: 'Run GeoGrid check for hyperlocal rankings',
+        reason: 'Rankings vary by location - need neighborhood visibility',
+        link: 'https://localdominator.co'
+      });
+    } else if (geoGrid.recommendations.length > 0) {
+      // Add first recommendation
+      const rec = geoGrid.recommendations[0];
+      actions.push({
+        priority: rec.priority,
+        category: 'geogrid',
+        action: rec.action,
+        reason: rec.detail,
+        link: 'seo_dashboard.html#geogrid'
+      });
+    }
+
+    // Sort by priority
+    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+    actions.sort((a, b) => (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3));
+
+    return {
+      success: true,
+      date: new Date().toISOString(),
+      totalActions: actions.length,
+      urgentCount: actions.filter(a => a.priority === 'urgent').length,
+      highCount: actions.filter(a => a.priority === 'high').length,
+      actions: actions
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Daily SEO check - run via time trigger to create alerts
+ */
+function runDailySEOCheck() {
+  try {
+    const alerts = [];
+
+    // Check for ranking drops (compare to 7 days ago)
+    const rankings = getSEORankings({});
+    if (rankings.success && rankings.rankings.length > 1) {
+      const keywords = ['farm pittsburgh', 'CSA pittsburgh', 'organic farm pittsburgh'];
+
+      keywords.forEach(kw => {
+        const keywordRankings = rankings.rankings
+          .filter(r => r.Keyword === kw)
+          .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+        if (keywordRankings.length >= 2) {
+          const current = keywordRankings[0].Rank_Google;
+          const previous = keywordRankings[1].Rank_Google;
+
+          if (current && previous && current > previous + 3) {
+            createSEOAlert({
+              type: 'ranking_drop',
+              severity: current > previous + 5 ? 'high' : 'medium',
+              message: `"${kw}" dropped from #${previous} to #${current}`,
+              data: { keyword: kw, previousRank: previous, currentRank: current }
+            });
+            alerts.push({ type: 'ranking_drop', keyword: kw });
+          }
+        }
+      });
+    }
+
+    // Check for unresponded reviews (older than 24 hours)
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const reviewSheet = ss.getSheetByName('SEO_Reviews');
+    if (reviewSheet) {
+      const reviewData = reviewSheet.getDataRange().getValues();
+      const headers = reviewData[0];
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+      let urgentReviews = 0;
+      for (let i = 1; i < reviewData.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = reviewData[i][j]);
+
+        if (!row.Response_Date && new Date(row.Review_Date) < oneDayAgo) {
+          if (row.Rating <= 3) {
+            urgentReviews++;
+          }
+        }
+      }
+
+      if (urgentReviews > 0) {
+        createSEOAlert({
+          type: 'negative_review',
+          severity: 'urgent',
+          message: `${urgentReviews} negative review${urgentReviews > 1 ? 's' : ''} need response (24+ hours old)`,
+          data: { count: urgentReviews }
+        });
+        alerts.push({ type: 'negative_review', count: urgentReviews });
+      }
+    }
+
+    Logger.log('Daily SEO Check Complete. Alerts created: ' + alerts.length);
+    return { success: true, alertsCreated: alerts };
+  } catch (error) {
+    Logger.log('Daily SEO Check Error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Set up daily SEO check trigger
+ */
+function setupDailySEOTrigger() {
+  // Remove existing triggers for this function
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'runDailySEOCheck') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Create new daily trigger at 7 AM
+  ScriptApp.newTrigger('runDailySEOCheck')
+    .timeBased()
+    .everyDays(1)
+    .atHour(7)
+    .create();
+
+  return { success: true, message: 'Daily SEO check scheduled for 7 AM' };
+}
+
+/**
+ * Log voice platform status
+ */
+function logVoicePlatformStatus(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_VoicePlatforms');
+    if (!sheet) { initializeSEOIntelligence(); sheet = ss.getSheetByName('SEO_VoicePlatforms'); }
+
+    // Check if platform already exists and update, or add new
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let found = false;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === params.platform) {
+        // Update existing row
+        sheet.getRange(i + 1, 3).setValue(params.claimed || false);
+        sheet.getRange(i + 1, 4).setValue(new Date());
+        sheet.getRange(i + 1, 5).setValue(params.napAccurate || false);
+        sheet.getRange(i + 1, 6).setValue(params.listingUrl || '');
+        sheet.getRange(i + 1, 7).setValue(params.notes || '');
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      sheet.appendRow([
+        params.platform || '',
+        params.dataSource || '',
+        params.claimed || false,
+        new Date(),
+        params.napAccurate || false,
+        params.listingUrl || '',
+        params.notes || ''
+      ]);
+    }
+
+    return { success: true, message: 'Voice platform status updated' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get voice platform checklist
+ */
+function getVoicePlatformChecklist(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_VoicePlatforms');
+
+    // Default platforms
+    const defaultPlatforms = [
+      { platform: 'Google Assistant', dataSource: 'Google Business Profile', users: '92M' },
+      { platform: 'Apple Siri', dataSource: 'Apple Maps + Yelp', users: '87M' },
+      { platform: 'Amazon Alexa', dataSource: 'Bing Places + Amazon', users: '78M' },
+      { platform: 'Microsoft Cortana', dataSource: 'Bing Places', users: '15M' }
+    ];
+
+    const checklist = defaultPlatforms.map(p => ({
+      ...p,
+      claimed: false,
+      napAccurate: false,
+      lastVerified: null,
+      listingUrl: ''
+    }));
+
+    if (sheet) {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = {};
+        headers.forEach((h, j) => row[h] = data[i][j]);
+
+        // Find and update matching platform
+        const idx = checklist.findIndex(c => c.platform === row.Platform);
+        if (idx >= 0) {
+          checklist[idx].claimed = row.Listing_Claimed === true || row.Listing_Claimed === 'TRUE';
+          checklist[idx].napAccurate = row.NAP_Accurate === true || row.NAP_Accurate === 'TRUE';
+          checklist[idx].lastVerified = row.Last_Verified;
+          checklist[idx].listingUrl = row.Listing_URL;
+        }
+      }
+    }
+
+    const claimedCount = checklist.filter(c => c.claimed).length;
+    const napAccurateCount = checklist.filter(c => c.napAccurate).length;
+
+    return {
+      success: true,
+      summary: {
+        totalPlatforms: checklist.length,
+        claimed: claimedCount,
+        napAccurate: napAccurateCount,
+        completionPct: Math.round((claimedCount / checklist.length) * 100)
+      },
+      platforms: checklist
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate AI review response draft
+ */
+function generateReviewResponseDraft(params) {
+  try {
+    const rating = parseInt(params.rating) || 5;
+    const reviewerName = params.reviewerName || 'Valued Customer';
+    const reviewText = (params.reviewText || '').toLowerCase();
+
+    // Extract mentioned topics
+    const topics = [];
+    if (reviewText.includes('fresh')) topics.push('freshness');
+    if (reviewText.includes('organic')) topics.push('organic quality');
+    if (reviewText.includes('delivery') || reviewText.includes('pickup')) topics.push('pickup convenience');
+    if (reviewText.includes('csa') || reviewText.includes('share')) topics.push('CSA share');
+    if (reviewText.includes('vegetable') || reviewText.includes('produce')) topics.push('produce quality');
+    if (reviewText.includes('friendly') || reviewText.includes('nice') || reviewText.includes('helpful')) topics.push('customer service');
+
+    let draft = '';
+
+    if (rating >= 4) {
+      // Positive response templates
+      const openers = [
+        `Thank you so much, ${reviewerName}!`,
+        `${reviewerName}, we're thrilled to hear this!`,
+        `What wonderful feedback, ${reviewerName}!`
+      ];
+
+      const middles = topics.length > 0
+        ? `We're so glad you appreciate our ${topics[0]}. `
+        : `We're so glad you're enjoying your CSA experience. `;
+
+      const closers = [
+        `Comments like yours make those early farm mornings worth it. See you at pickup!`,
+        `We can't wait to keep growing for you. Thanks for being part of the Tiny Seed family!`,
+        `Your support means the world to our small farm. See you soon!`
+      ];
+
+      draft = openers[Math.floor(Math.random() * openers.length)] + ' ' +
+              middles +
+              closers[Math.floor(Math.random() * closers.length)];
+
+    } else if (rating === 3) {
+      // Neutral response
+      draft = `Thank you for sharing your feedback, ${reviewerName}. We're always looking to improve and would love to hear more about how we can make your experience better. Please reach out to us at hello@tinyseedfarm.com - we'd love to chat!`;
+
+    } else {
+      // Negative response
+      draft = `${reviewerName}, we're truly sorry to hear about your experience. This isn't the standard we hold ourselves to, and we want to make it right. Please email us at hello@tinyseedfarm.com so we can discuss this directly. Your satisfaction matters deeply to us.`;
+    }
+
+    return {
+      success: true,
+      draft: draft,
+      rating: rating,
+      detectedTopics: topics,
+      note: 'This is an AI-generated draft. Please personalize before posting.'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get enhanced SEO dashboard with intelligence layer
+ */
+function getSEODashboardEnhanced(params) {
+  try {
+    // Get base dashboard data
+    const baseDashboard = getSEODashboard({});
+
+    // Add intelligence layer data
+    const todaysActions = getTodaysActions({});
+    const activeAlerts = getActiveAlerts({});
+    const aiVisibility = getAIVisibilityMetrics({});
+    const geoGridAnalysis = getGeoGridAnalysis({});
+    const voicePlatforms = getVoicePlatformChecklist({});
+
+    return {
+      success: true,
+      dashboard: baseDashboard.success ? baseDashboard.dashboard : {},
+      intelligence: {
+        todaysActions: todaysActions.success ? todaysActions : null,
+        activeAlerts: activeAlerts.success ? activeAlerts.alerts : [],
+        aiVisibility: aiVisibility.success ? aiVisibility.metrics : null,
+        geoGrid: geoGridAnalysis.success ? geoGridAnalysis : null,
+        voicePlatforms: voicePlatforms.success ? voicePlatforms : null
+      },
+      lastUpdated: new Date().toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Test SEO Intelligence layer
+ */
+function testSEOIntelligence() {
+  Logger.log('=== Testing SEO Intelligence Layer ===');
+
+  const initResult = initializeSEOIntelligence();
+  Logger.log('Initialize: ' + JSON.stringify(initResult));
+
+  const aiResult = logAIVisibility({ platform: 'chatgpt', query: 'farm pittsburgh', appeared: true, position: 'mentioned' });
+  Logger.log('Log AI Visibility: ' + JSON.stringify(aiResult));
+
+  const actionsResult = getTodaysActions({});
+  Logger.log('Today\'s Actions: ' + JSON.stringify(actionsResult));
+
+  const responseResult = generateReviewResponseDraft({ rating: 5, reviewerName: 'John', reviewText: 'Best fresh organic vegetables!' });
+  Logger.log('Response Draft: ' + JSON.stringify(responseResult));
+
+  const enhancedResult = getSEODashboardEnhanced({});
+  Logger.log('Enhanced Dashboard: ' + JSON.stringify(enhancedResult));
+
+  Logger.log('=== SEO Intelligence Tests Complete ===');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SHOPIFY & QUICKBOOKS INTEGRATION MODULE
 // ═══════════════════════════════════════════════════════════════════════════
 //
