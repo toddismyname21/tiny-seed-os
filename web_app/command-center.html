@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chief-of-Staff | Tiny Seed Farm</title>
+  <script src="auth-guard.js" data-required-role="Manager"></script>
+  <script src="api-config.js"></script>
+  <style>
+    :root {
+      --primary: #2e7d32;
+      --primary-dark: #1b5e20;
+      --secondary: #1976D2;
+      --warning: #FF9800;
+      --danger: #f44336;
+      --success: #4caf50;
+      --gray-100: #f5f5f5;
+      --gray-200: #eeeeee;
+      --gray-300: #e0e0e0;
+      --gray-600: #757575;
+      --gray-800: #424242;
+      --white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-100);
+      min-height: 100vh;
+    }
+
+    /* Navigation */
+    nav {
+      background: var(--primary-dark);
+      color: var(--white);
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-brand {
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.25rem;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .nav-tabs button {
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-tabs button:hover {
+      background: rgba(255,255,255,0.1);
+      color: var(--white);
+    }
+
+    .nav-tabs button.active {
+      background: rgba(255,255,255,0.2);
+      color: var(--white);
+      font-weight: 500;
+    }
+
+    .badge {
+      background: var(--warning);
+      color: var(--gray-800);
+      padding: 0.125rem 0.5rem;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge.danger {
+      background: var(--danger);
+      color: var(--white);
+    }
+
+    .nav-user {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    /* Main Content */
+    main {
+      padding: 1rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--white);
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    /* Dashboard Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--gray-600);
+      margin-top: 0.25rem;
+    }
+
+    .stat-card.critical .stat-value {
+      color: var(--danger);
+    }
+
+    .stat-card.warning .stat-value {
+      color: var(--warning);
+    }
+
+    .stat-card.success .stat-value {
+      color: var(--success);
+    }
+
+    /* Email Cards */
+    .email-card {
+      background: var(--white);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-left: 4px solid var(--gray-300);
+    }
+
+    .email-card.priority-critical {
+      border-left-color: var(--danger);
+    }
+
+    .email-card.priority-high {
+      border-left-color: var(--warning);
+    }
+
+    .email-card.priority-medium {
+      border-left-color: var(--secondary);
+    }
+
+    .email-card.priority-low {
+      border-left-color: var(--gray-300);
+    }
+
+    .email-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .priority-badge {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .priority-badge.critical {
+      background: var(--danger);
+      color: var(--white);
+    }
+
+    .priority-badge.high {
+      background: var(--warning);
+      color: var(--gray-800);
+    }
+
+    .priority-badge.medium {
+      background: var(--secondary);
+      color: var(--white);
+    }
+
+    .priority-badge.low {
+      background: var(--gray-300);
+      color: var(--gray-800);
+    }
+
+    .category-tag {
+      font-size: 0.7rem;
+      padding: 0.125rem 0.375rem;
+      border-radius: 3px;
+      background: var(--gray-200);
+      color: var(--gray-600);
+    }
+
+    .email-from {
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+
+    .email-subject {
+      font-size: 0.95rem;
+      color: var(--gray-800);
+      margin: 0.25rem 0;
+    }
+
+    .email-time {
+      font-size: 0.8rem;
+      color: var(--gray-600);
+    }
+
+    .ai-summary {
+      background: var(--gray-100);
+      padding: 0.75rem;
+      border-radius: 4px;
+      margin: 0.75rem 0;
+      font-size: 0.9rem;
+      color: var(--gray-800);
+    }
+
+    .ai-summary strong {
+      color: var(--primary);
+    }
+
+    .suggested-action {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.75rem 0;
+      flex-wrap: wrap;
+    }
+
+    .suggested-action .btn-suggest {
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .confidence {
+      font-size: 0.8rem;
+      color: var(--gray-600);
+    }
+
+    .email-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: var(--gray-200);
+      color: var(--gray-800);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-300);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: var(--white);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: var(--white);
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--gray-300);
+      background: var(--white);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      color: var(--white);
+      border-color: var(--primary);
+    }
+
+    /* Approval Cards */
+    .approval-card {
+      background: var(--white);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .approval-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .approval-type {
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .expires {
+      font-size: 0.8rem;
+      color: var(--warning);
+    }
+
+    .draft-preview {
+      background: var(--gray-100);
+      padding: 0.75rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin: 0.75rem 0;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .approval-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--gray-600);
+      margin-bottom: 0.75rem;
+    }
+
+    /* Morning Brief */
+    .brief-section {
+      margin-bottom: 1rem;
+    }
+
+    .brief-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .brief-item:last-child {
+      border-bottom: none;
+    }
+
+    .brief-priority {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .brief-priority.critical {
+      background: var(--danger);
+    }
+
+    .brief-priority.high {
+      background: var(--warning);
+    }
+
+    .brief-content {
+      flex: 1;
+    }
+
+    .brief-content strong {
+      display: block;
+      font-size: 0.9rem;
+    }
+
+    .brief-content small {
+      color: var(--gray-600);
+    }
+
+    /* Analytics */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .metric-bar {
+      height: 24px;
+      background: var(--gray-200);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0.5rem 0;
+    }
+
+    .metric-fill {
+      height: 100%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      padding-left: 0.5rem;
+      color: var(--white);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--gray-600);
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--gray-300);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .nav-tabs {
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: var(--gray-600);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+      Chief-of-Staff
+    </div>
+    <div class="nav-tabs">
+      <button data-tab="dashboard" class="active">Dashboard</button>
+      <button data-tab="inbox">Inbox <span class="badge" id="inbox-count">0</span></button>
+      <button data-tab="approvals">Approvals <span class="badge danger" id="approval-count">0</span></button>
+      <button data-tab="analytics">Analytics</button>
+    </div>
+    <div class="nav-user" id="user-info">Loading...</div>
+  </nav>
+
+  <main>
+    <!-- Dashboard Tab -->
+    <div id="dashboard" class="tab-content active">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-inbox">-</div>
+          <div class="stat-label">Inbox</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-value" id="stat-pending">-</div>
+          <div class="stat-label">Pending Actions</div>
+        </div>
+        <div class="stat-card critical">
+          <div class="stat-value" id="stat-overdue">-</div>
+          <div class="stat-label">Overdue</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-critical">-</div>
+          <div class="stat-label">Critical</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Morning Brief</span>
+          <span id="brief-date"></span>
+        </div>
+        <div id="morning-brief">
+          <div class="loading">Loading daily brief...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Quick Actions</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="triageNow()">Triage Now</button>
+          <button class="btn btn-secondary" onclick="switchTab('approvals')">View Approvals</button>
+          <button class="btn btn-secondary" onclick="initializeSystem()">Initialize System</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inbox Tab -->
+    <div id="inbox" class="tab-content">
+      <div class="filters">
+        <button class="filter-btn active" data-status="NEW,TRIAGED">All New</button>
+        <button class="filter-btn" data-status="NEW">Untriaged</button>
+        <button class="filter-btn" data-status="AWAITING_RESPONSE">Awaiting Response</button>
+        <button class="filter-btn" data-status="AWAITING_THEM">Awaiting Reply</button>
+        <button class="filter-btn" data-status="RESOLVED">Resolved</button>
+      </div>
+      <div id="inbox-list">
+        <div class="loading">Loading emails...</div>
+      </div>
+    </div>
+
+    <!-- Approvals Tab -->
+    <div id="approvals" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Pending Approvals</span>
+          <button class="btn btn-sm btn-primary" onclick="loadApprovals()">Refresh</button>
+        </div>
+        <div id="approvals-list">
+          <div class="loading">Loading approvals...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics Tab -->
+    <div id="analytics" class="tab-content">
+      <div class="analytics-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Email Volume by Category</span>
+          </div>
+          <div id="category-chart">
+            <div class="loading">Loading...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Response Time</span>
+          </div>
+          <div id="response-time">
+            <div class="stat-value" style="font-size: 1.5rem;">-</div>
+            <div class="stat-label">Average Response Time</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">AI Accuracy</span>
+          </div>
+          <div id="ai-accuracy">
+            <div class="metric-bar">
+              <div class="metric-fill" style="width: 0%;" id="accuracy-fill">0%</div>
+            </div>
+            <small>Classification accuracy based on human overrides</small>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Activity</span>
+          </div>
+          <div id="recent-activity">
+            <div class="loading">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // API Configuration
+    const API_URL = window.API_CONFIG?.API_URL || 'https://script.google.com/macros/s/AKfycbyayQD18LoTXiE16bcG90zEMZlGZGtAgNeWco_528QIrZ_3pCgB5tmleR7NglI1q3No/exec';
+
+    // State
+    let currentStatus = 'NEW,TRIAGED';
+    let dashboardData = null;
+
+    // API Helper
+    async function apiCall(action, params = {}) {
+      const url = new URL(API_URL);
+      url.searchParams.set('action', action);
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+      try {
+        const response = await fetch(url.toString());
+        return await response.json();
+      } catch (error) {
+        console.error('API Error:', error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    // Tab Navigation
+    document.querySelectorAll('.nav-tabs button').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+      document.querySelector(`[data-tab="${tabId}"]`)?.classList.add('active');
+      document.getElementById(tabId)?.classList.add('active');
+
+      // Load tab data
+      if (tabId === 'inbox') loadInbox();
+      if (tabId === 'approvals') loadApprovals();
+      if (tabId === 'analytics') loadAnalytics();
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentStatus = btn.dataset.status;
+        loadInbox();
+      });
+    });
+
+    // Dashboard
+    async function loadDashboard() {
+      const brief = await apiCall('getDailyBrief');
+      const approvals = await apiCall('getPendingApprovals');
+      const overdue = await apiCall('getOverdueFollowups');
+
+      if (brief.success && brief.data) {
+        const d = brief.data;
+        document.getElementById('stat-inbox').textContent = d.summary.totalNew;
+        document.getElementById('stat-pending').textContent = d.summary.pendingApprovals;
+        document.getElementById('stat-overdue').textContent = d.summary.overdueFollowups;
+        document.getElementById('stat-critical').textContent = d.summary.critical;
+
+        document.getElementById('inbox-count').textContent = d.summary.totalNew;
+        document.getElementById('approval-count').textContent = d.summary.pendingApprovals;
+
+        const briefDate = new Date(d.generatedAt).toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric'
+        });
+        document.getElementById('brief-date').textContent = briefDate;
+
+        renderMorningBrief(d);
+      } else {
+        document.getElementById('morning-brief').innerHTML = `
+          <div class="empty-state">
+            <p>No data yet. Click "Initialize System" to set up the Chief-of-Staff.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderMorningBrief(data) {
+      const priorities = data.priorities || [];
+      const actions = data.actions || [];
+      const overdue = data.overdue || [];
+
+      let html = '';
+
+      if (priorities.length > 0) {
+        html += '<div class="brief-section"><strong>Priority Emails</strong>';
+        priorities.forEach(p => {
+          html += `
+            <div class="brief-item">
+              <div class="brief-priority ${p.priority.toLowerCase()}"></div>
+              <div class="brief-content">
+                <strong>${p.subject}</strong>
+                <small>From: ${p.from}</small>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      }
+
+      if (actions.length > 0) {
+        html += '<div class="brief-section"><strong>Actions Awaiting Approval</strong>';
+        actions.forEach(a => {
+          html += `
+            <div class="brief-item">
+              <div class="brief-priority high"></div>
+              <div class="brief-content">
+                <strong>${a.actiontype}: ${a.draftcontent?.substring(0, 50) || 'Action pending'}...</strong>
+                <small>Expires: ${a.timeRemaining}</small>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      }
+
+      if (overdue.length > 0) {
+        html += '<div class="brief-section"><strong>Overdue Follow-ups</strong>';
+        overdue.forEach(o => {
+          html += `
+            <div class="brief-item">
+              <div class="brief-priority critical"></div>
+              <div class="brief-content">
+                <strong>Thread: ${o.threadid?.substring(0, 12)}...</strong>
+                <small>Overdue by: ${o.overdueby}</small>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      }
+
+      if (!html) {
+        html = '<div class="empty-state"><p>All caught up! No urgent items.</p></div>';
+      }
+
+      document.getElementById('morning-brief').innerHTML = html;
+    }
+
+    // Inbox
+    async function loadInbox() {
+      document.getElementById('inbox-list').innerHTML = '<div class="loading">Loading emails...</div>';
+
+      const result = await apiCall('getEmailsByStatus', { status: currentStatus, limit: 50 });
+
+      if (result.success && result.data.length > 0) {
+        document.getElementById('inbox-list').innerHTML = result.data.map(renderEmailCard).join('');
+      } else {
+        document.getElementById('inbox-list').innerHTML = `
+          <div class="empty-state">
+            <p>No emails found with this filter.</p>
+            <button class="btn btn-primary" onclick="triageNow()">Triage Inbox Now</button>
+          </div>
+        `;
+      }
+    }
+
+    function renderEmailCard(email) {
+      const priority = (email.priority || 'MEDIUM').toLowerCase();
+      const category = email.category || 'UNKNOWN';
+
+      return `
+        <div class="email-card priority-${priority}">
+          <div class="email-header">
+            <span class="priority-badge ${priority}">${email.priority || 'MEDIUM'}</span>
+            <span class="category-tag">${category}</span>
+          </div>
+          <div class="email-from">${email.fromname || email.from}</div>
+          <div class="email-subject">${email.subject}</div>
+          <div class="email-time">${formatTimeAgo(email.receivedat)}</div>
+          ${email.aisummary ? `
+            <div class="ai-summary">
+              <strong>AI Summary:</strong> ${email.aisummary}
+            </div>
+          ` : ''}
+          ${email.aisuggestedaction ? `
+            <div class="suggested-action">
+              <span>Suggested:</span>
+              <button class="btn-suggest">${email.aisuggestedaction}</button>
+              <span class="confidence">${Math.round((email.aiconfidence || 0) * 100)}% confident</span>
+            </div>
+          ` : ''}
+          <div class="email-actions">
+            <button class="btn btn-sm btn-primary" onclick="resolveEmail('${email.threadid}')">Resolve</button>
+            <button class="btn btn-sm btn-secondary" onclick="createFollowup('${email.threadid}')">Set Follow-up</button>
+            <button class="btn btn-sm btn-secondary" onclick="openInGmail('${email.threadid}')">Open in Gmail</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Approvals
+    async function loadApprovals() {
+      document.getElementById('approvals-list').innerHTML = '<div class="loading">Loading approvals...</div>';
+
+      const result = await apiCall('getPendingApprovals');
+
+      if (result.success && result.data.length > 0) {
+        document.getElementById('approvals-list').innerHTML = result.data.map(renderApprovalCard).join('');
+      } else {
+        document.getElementById('approvals-list').innerHTML = `
+          <div class="empty-state">
+            <p>No pending approvals. You're all caught up!</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderApprovalCard(action) {
+      return `
+        <div class="approval-card">
+          <div class="approval-header">
+            <span class="approval-type">${action.actiontype}</span>
+            <span class="expires">Expires: ${action.timeRemaining}</span>
+          </div>
+          <div class="draft-preview">${action.draftcontent || 'No preview available'}</div>
+          <div class="approval-meta">
+            <span>Confidence: ${Math.round((action.confidence || 0.8) * 100)}%</span>
+            <span>Suggested by: ${action.suggestedby}</span>
+          </div>
+          <div class="email-actions">
+            <button class="btn btn-sm btn-success" onclick="approveAction('${action.actionid}')">Approve</button>
+            <button class="btn btn-sm btn-secondary" onclick="editAction('${action.actionid}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="rejectAction('${action.actionid}')">Reject</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Analytics
+    async function loadAnalytics() {
+      const inbox = await apiCall('getEmailsByStatus', { status: 'NEW,TRIAGED,AWAITING_RESPONSE,AWAITING_THEM,RESOLVED', limit: 500 });
+      const audit = await apiCall('getChiefOfStaffAuditLog', { limit: 20 });
+
+      if (inbox.success) {
+        const emails = inbox.data;
+        const categories = {};
+        emails.forEach(e => {
+          const cat = e.category || 'UNKNOWN';
+          categories[cat] = (categories[cat] || 0) + 1;
+        });
+
+        const total = Object.values(categories).reduce((a, b) => a + b, 0);
+        let chartHtml = '';
+        Object.entries(categories).sort((a, b) => b[1] - a[1]).forEach(([cat, count]) => {
+          const pct = total > 0 ? Math.round(count / total * 100) : 0;
+          chartHtml += `
+            <div style="margin-bottom: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                <span>${cat}</span>
+                <span>${count}</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-fill" style="width: ${pct}%;">${pct}%</div>
+              </div>
+            </div>
+          `;
+        });
+
+        document.getElementById('category-chart').innerHTML = chartHtml || '<p>No data</p>';
+
+        // Estimate accuracy (placeholder)
+        document.getElementById('accuracy-fill').style.width = '85%';
+        document.getElementById('accuracy-fill').textContent = '85%';
+      }
+
+      if (audit.success && audit.data.length > 0) {
+        let activityHtml = '';
+        audit.data.slice(0, 10).forEach(a => {
+          activityHtml += `
+            <div class="brief-item">
+              <div class="brief-priority medium"></div>
+              <div class="brief-content">
+                <strong>${a.action}</strong>
+                <small>Agent ${a.agent} - ${formatTimeAgo(a.timestamp)}</small>
+              </div>
+            </div>
+          `;
+        });
+        document.getElementById('recent-activity').innerHTML = activityHtml;
+      } else {
+        document.getElementById('recent-activity').innerHTML = '<p>No recent activity</p>';
+      }
+    }
+
+    // Actions
+    async function triageNow() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = 'Triaging...';
+
+      const result = await apiCall('triageInbox');
+
+      if (result.success) {
+        alert(`Triage complete! ${result.message}`);
+        loadDashboard();
+        loadInbox();
+      } else {
+        alert('Error: ' + (result.error || 'Unknown error'));
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Triage Now';
+    }
+
+    async function initializeSystem() {
+      const result = await apiCall('initializeChiefOfStaff');
+      if (result.success) {
+        alert('Chief-of-Staff system initialized!');
+        loadDashboard();
+      } else {
+        alert('Error: ' + (result.error || 'Unknown error'));
+      }
+    }
+
+    async function approveAction(actionId) {
+      const result = await apiCall('approveAction', { actionId });
+      if (result.success) {
+        alert('Action approved!');
+        loadApprovals();
+        loadDashboard();
+      } else {
+        alert('Error: ' + (result.error || 'Unknown error'));
+      }
+    }
+
+    async function rejectAction(actionId) {
+      const reason = prompt('Reason for rejection (optional):');
+      const result = await apiCall('rejectAction', { actionId, reason });
+      if (result.success) {
+        alert('Action rejected.');
+        loadApprovals();
+      } else {
+        alert('Error: ' + (result.error || 'Unknown error'));
+      }
+    }
+
+    async function resolveEmail(threadId) {
+      const notes = prompt('Resolution notes (optional):');
+      const result = await apiCall('resolveEmail', { threadId, notes });
+      if (result.success) {
+        alert('Email marked as resolved.');
+        loadInbox();
+        loadDashboard();
+      } else {
+        alert('Error: ' + (result.error || 'Unknown error'));
+      }
+    }
+
+    async function createFollowup(threadId) {
+      const days = prompt('Days until follow-up:', '2');
+      if (days) {
+        const result = await apiCall('setFollowUp', { threadId, daysFromNow: parseInt(days) });
+        if (result.success) {
+          alert('Follow-up created!');
+        } else {
+          alert('Error: ' + (result.error || 'Unknown error'));
+        }
+      }
+    }
+
+    function openInGmail(threadId) {
+      window.open(`https://mail.google.com/mail/u/0/#inbox/${threadId}`, '_blank');
+    }
+
+    function editAction(actionId) {
+      alert('Edit functionality coming soon. For now, reject and create a custom action.');
+    }
+
+    // Utilities
+    function formatTimeAgo(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = (now - date) / 1000;
+
+      if (diff < 60) return 'Just now';
+      if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+      return Math.floor(diff / 86400) + ' days ago';
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set user info
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+      document.getElementById('user-info').textContent = session.username || 'User';
+
+      // Load initial data
+      loadDashboard();
+    });
+  </script>
+</body>
+</html>

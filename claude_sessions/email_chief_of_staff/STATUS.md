@@ -26,6 +26,8 @@ Transform email AI assistant into full Chief-of-Staff system:
 | Agent C Brief | ✅ COMPLETE | `AGENT_C_SECURITY.md` |
 | Agent D Brief | ✅ COMPLETE | `AGENT_D_COMMAND_CENTER.md` |
 | Agent E Brief | ✅ COMPLETE | `AGENT_E_LEARNING.md` |
+| **EmailWorkflowEngine.js** | ✅ DEPLOYED | `apps_script/EmailWorkflowEngine.js` |
+| **17 New API Endpoints** | ✅ DEPLOYED | Added to MERGED TOTAL.js |
 
 ---
 

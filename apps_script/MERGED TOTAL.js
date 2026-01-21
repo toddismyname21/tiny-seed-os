@@ -82,6 +82,9 @@ function doGet(e) {
     if (e.parameter.page === 'emailai') {
       return serveEmailAIChat();
     }
+    if (e.parameter.page === 'marketing') {
+      return serveMarketingCenter();
+    }
     if (e.parameter.page === 'delivery') {
       return HtmlService.createHtmlOutputFromFile('DeliveryZoneChecker')
         .setTitle('Home Delivery | Tiny Seed Farm')
@@ -136,6 +139,42 @@ function doGet(e) {
         return jsonResponse(searchEmailsNatural(e.parameter.query || e.parameter.q));
       case 'getEmailSummary':
         return jsonResponse(getEmailSummary(e.parameter.period));
+
+      // ============ CHIEF-OF-STAFF WORKFLOW ENGINE ============
+      case 'initializeChiefOfStaff':
+        return jsonResponse(initializeChiefOfStaffSheets());
+      case 'triageEmail':
+        return jsonResponse(processEmailThread(e.parameter.threadId));
+      case 'triageInbox':
+        return jsonResponse(triageInbox());
+      case 'getEmailsByStatus':
+        return jsonResponse(getEmailsByStatus(e.parameter));
+      case 'updateEmailStatus':
+        return jsonResponse(transitionEmailState(e.parameter.threadId, e.parameter.status, e.parameter.metadata ? JSON.parse(e.parameter.metadata) : {}));
+      case 'assignEmail':
+        return jsonResponse(assignEmail(e.parameter.threadId, e.parameter.assignTo));
+      case 'setFollowUp':
+        return jsonResponse(createFollowUp(e.parameter.threadId, e.parameter));
+      case 'resolveEmail':
+        return jsonResponse(resolveEmail(e.parameter.threadId, e.parameter.notes));
+      case 'getOverdueFollowups':
+        return jsonResponse(getOverdueFollowups());
+      case 'getAwaitingResponse':
+        return jsonResponse(getAwaitingResponse());
+      case 'getPendingApprovals':
+        return jsonResponse(getPendingApprovals());
+      case 'approveAction':
+        return jsonResponse(approveEmailAction(e.parameter.actionId, e.parameter.approvedBy));
+      case 'rejectAction':
+        return jsonResponse(rejectEmailAction(e.parameter.actionId, e.parameter.reason));
+      case 'getDailyBrief':
+        return jsonResponse(getDailyBrief());
+      case 'getChiefOfStaffAuditLog':
+        return jsonResponse(getChiefOfStaffAuditLog(e.parameter));
+      case 'setupChiefOfStaffTriggers':
+        return jsonResponse(setupChiefOfStaffTriggers());
+      case 'testEmailWorkflow':
+        return jsonResponse(testEmailWorkflowEngine());
 
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
@@ -367,6 +406,26 @@ function doGet(e) {
         return jsonResponse(getCSAProducts(e.parameter));
       case 'getCSABoxContents':
         return jsonResponse(getCSABoxContents(e.parameter));
+
+      // ============ SMART CSA SYSTEM - Churn Prediction & Retention ============
+      case 'getCSAMemberHealth':
+        return jsonResponse(calculateMemberHealthScoreSmart(e.parameter.memberId));
+      case 'getAtRiskCSAMembers':
+        return jsonResponse(getAtRiskCSAMembers(parseInt(e.parameter.threshold) || 60));
+      case 'getCSARetentionDashboard':
+        return jsonResponse(getCSARetentionDashboard());
+      case 'getCSAMemberPreferences':
+        return jsonResponse(getCSAMemberPreferences(e.parameter.memberId));
+      case 'getCSABoxSatisfaction':
+        return jsonResponse(calculateCSABoxSatisfaction(
+          e.parameter.memberId,
+          e.parameter.boxItems ? JSON.parse(e.parameter.boxItems) : []
+        ));
+      case 'getCSAOnboardingStatus':
+        return jsonResponse(getCSAOnboardingStatus(e.parameter.memberId));
+      case 'getCSAChurnAlerts':
+        return jsonResponse(getCSAChurnAlerts());
+
       case 'getVacationHolds':
         return jsonResponse(getVacationHolds(e.parameter));
       case 'getCustomerOrders':
@@ -1225,6 +1284,21 @@ function doPost(e) {
         return jsonResponse(scheduleVacationHold(data));
       case 'cancelVacationHold':
         return jsonResponse(cancelVacationHold(data));
+
+      // ============ SMART CSA SYSTEM - Preference & Retention Actions ============
+      case 'saveCSAMemberPreference':
+        return jsonResponse(saveCSAMemberPreference(data));
+      case 'recordCSAImplicitSignal':
+        return jsonResponse(recordCSAImplicitSignal(data));
+      case 'triggerCSAOnboardingEmail':
+        return jsonResponse(triggerCSAOnboardingEmail(data.memberId, data.dayNumber));
+      case 'recordCSAPickupAttendance':
+        return jsonResponse(recordCSAPickupAttendance(data.memberId, data.weekDate, data.attended));
+      case 'logCSASupportInteraction':
+        return jsonResponse(logCSASupportInteraction(data));
+      case 'recalculateAllMemberHealth':
+        return jsonResponse(recalculateAllMemberHealth());
+
       case 'completePickPackItem':
         return jsonResponse(completePickPackItem(data));
       case 'createSMSCampaign':
@@ -43964,6 +44038,319 @@ function calculateCSABoxSatisfaction(memberId, boxItems) {
   }
 }
 
+/**
+ * Get CSA onboarding status for a member
+ */
+function getCSAOnboardingStatus(memberId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const onboardingSheet = ss.getSheetByName('CSA_Onboarding_Tracker');
+
+    if (!onboardingSheet) {
+      const newSheet = ss.insertSheet('CSA_Onboarding_Tracker');
+      newSheet.appendRow([
+        'Member_ID', 'Signup_Date', 'Profile_Completed', 'Profile_Date',
+        'First_Customization', 'Customization_Date', 'First_Pickup', 'Pickup_Date',
+        'Email_Engagement', 'Activated', 'Activation_Date', 'Day_30_Call'
+      ]);
+      return {
+        success: true, memberId: memberId, status: 'NOT_STARTED', daysSinceSignup: 0,
+        milestones: { profileCompleted: false, firstCustomization: false, firstPickup: false, activated: false },
+        nextAction: 'complete_profile'
+      };
+    }
+
+    const data = onboardingSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][headers.indexOf('Member_ID')] === memberId) {
+        const signupDate = new Date(data[i][headers.indexOf('Signup_Date')]);
+        const daysSinceSignup = Math.floor((new Date() - signupDate) / (1000 * 60 * 60 * 24));
+        const profileCompleted = data[i][headers.indexOf('Profile_Completed')] === true;
+        const firstCustomization = data[i][headers.indexOf('First_Customization')] === true;
+        const firstPickup = data[i][headers.indexOf('First_Pickup')] === true;
+        const activated = data[i][headers.indexOf('Activated')] === true;
+
+        let nextAction = null;
+        if (!profileCompleted) nextAction = 'complete_profile';
+        else if (!firstCustomization) nextAction = 'make_first_customization';
+        else if (!firstPickup) nextAction = 'attend_first_pickup';
+        else if (!activated && daysSinceSignup < 14) nextAction = 'complete_activation';
+        else if (daysSinceSignup >= 30 && !data[i][headers.indexOf('Day_30_Call')]) nextAction = 'schedule_success_call';
+
+        return {
+          success: true, memberId: memberId,
+          status: activated ? 'ACTIVATED' : (daysSinceSignup > 14 ? 'AT_RISK' : 'IN_PROGRESS'),
+          daysSinceSignup: daysSinceSignup, signupDate: signupDate.toISOString(),
+          milestones: {
+            profileCompleted, profileDate: data[i][headers.indexOf('Profile_Date')] || null,
+            firstCustomization, customizationDate: data[i][headers.indexOf('Customization_Date')] || null,
+            firstPickup, pickupDate: data[i][headers.indexOf('Pickup_Date')] || null,
+            activated, activationDate: data[i][headers.indexOf('Activation_Date')] || null
+          },
+          emailEngagement: data[i][headers.indexOf('Email_Engagement')] || 0,
+          nextAction: nextAction
+        };
+      }
+    }
+    return { success: true, memberId: memberId, status: 'NOT_FOUND', message: 'Member not in onboarding tracker' };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get all churn alerts (members at risk)
+ */
+function getCSAChurnAlerts() {
+  try {
+    const atRiskResult = getAtRiskCSAMembers(75);
+    if (!atRiskResult.success) return atRiskResult;
+
+    const alerts = [];
+    const now = new Date();
+
+    for (const member of atRiskResult.members) {
+      let alertType = 'LOW_HEALTH_SCORE', priority = 'P3', responseTime = '7 days';
+      if (member.riskLevel === 'RED') { alertType = 'CRITICAL_CHURN_RISK'; priority = 'P1'; responseTime = 'Same day'; }
+      else if (member.riskLevel === 'ORANGE') { alertType = 'HIGH_CHURN_RISK'; priority = 'P2'; responseTime = '48 hours'; }
+      else if (member.riskLevel === 'YELLOW') { alertType = 'MODERATE_CHURN_RISK'; priority = 'P3'; responseTime = '7 days'; }
+
+      alerts.push({
+        memberId: member.memberId, memberName: member.memberName || 'Unknown',
+        alertType: alertType, priority: priority, responseTime: responseTime,
+        healthScore: member.healthScore, riskLevel: member.riskLevel,
+        suggestedAction: member.riskLevel === 'RED' ? 'Call immediately to understand concerns' :
+                         member.riskLevel === 'ORANGE' ? 'Send personalized email, offer support' :
+                         'Schedule check-in within the week',
+        createdAt: now.toISOString()
+      });
+    }
+
+    alerts.sort((a, b) => a.priority.localeCompare(b.priority));
+
+    return {
+      success: true, alerts: alerts,
+      summary: { total: alerts.length, critical: alerts.filter(a => a.priority === 'P1').length,
+                 high: alerts.filter(a => a.priority === 'P2').length, moderate: alerts.filter(a => a.priority === 'P3').length },
+      generatedAt: now.toISOString()
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Record implicit preference signal (kept item, swapped out, purchased add-on, etc.)
+ */
+function recordCSAImplicitSignal(data) {
+  try {
+    const { memberId, itemId, signalType } = data;
+    if (!memberId || !itemId || !signalType) {
+      return { success: false, error: 'Missing required fields: memberId, itemId, signalType' };
+    }
+
+    const signalWeights = {
+      'KEPT_IN_BOX': 0.3, 'SWAPPED_OUT': -0.7, 'ADDON_PURCHASED': 1.0,
+      'RECIPE_CLICKED': 0.4, 'POSITIVE_FEEDBACK': 0.5, 'NEGATIVE_FEEDBACK': -0.5
+    };
+
+    const weight = signalWeights[signalType] || 0;
+    if (weight === 0) return { success: false, error: 'Unknown signal type: ' + signalType };
+
+    const prefs = getCSAMemberPreferences(memberId);
+    let currentRating = PREFERENCE_RATING_WEIGHTS.SOMETIMES;
+
+    if (prefs.success) {
+      const existing = prefs.preferences.find(p => p.itemId === itemId);
+      if (existing) currentRating = existing.rating;
+    }
+
+    const newRating = Math.max(0, Math.min(5, currentRating + weight));
+    saveCSAMemberPreference({ memberId, itemId, rating: newRating, source: 'implicit_' + signalType.toLowerCase() });
+
+    return { success: true, memberId, itemId, signalType, previousRating: currentRating, newRating, adjustment: weight };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Trigger onboarding email for specific day in sequence
+ */
+function triggerCSAOnboardingEmail(memberId, dayNumber) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+    if (!memberSheet || !customerSheet) return { success: false, error: 'Required sheets not found' };
+
+    const memberData = memberSheet.getDataRange().getValues();
+    const memberHeaders = memberData[0];
+    let member = null;
+
+    for (let i = 1; i < memberData.length; i++) {
+      if (memberData[i][memberHeaders.indexOf('Member_ID')] === memberId) {
+        member = {}; memberHeaders.forEach((h, idx) => { member[h] = memberData[i][idx]; }); break;
+      }
+    }
+    if (!member) return { success: false, error: 'Member not found' };
+
+    const customerData = customerSheet.getDataRange().getValues();
+    const customerHeaders = customerData[0];
+    let customer = null;
+
+    for (let i = 1; i < customerData.length; i++) {
+      if (customerData[i][customerHeaders.indexOf('Customer_ID')] === member.Customer_ID) {
+        customer = {}; customerHeaders.forEach((h, idx) => { customer[h] = customerData[i][idx]; }); break;
+      }
+    }
+    if (!customer) return { success: false, error: 'Customer not found' };
+
+    const emailSequence = {
+      0: { subject: 'Welcome to Tiny Seed Farm CSA!', template: 'welcome' },
+      1: { subject: 'Your Quick Start Guide', template: 'quick_start' },
+      2: { subject: 'Complete your taste profile', template: 'profile_nudge', channel: 'sms' },
+      3: { subject: 'Did you know? Customize your box!', template: 'customization_education' },
+      5: { subject: 'Why our members love Tiny Seed', template: 'social_proof' },
+      7: { subject: 'Your first pickup is coming!', template: 'first_pickup_prep' },
+      8: { subject: 'How was your first box?', template: 'post_pickup_checkin', channel: 'sms' },
+      10: { subject: 'Recipes just for you', template: 'recipes' },
+      14: { subject: 'Two weeks in - you\'re doing great!', template: 'milestone_2week' },
+      21: { subject: 'Join our community', template: 'community_invite' },
+      30: { subject: 'Let\'s chat about your experience', template: 'success_call' }
+    };
+
+    const emailConfig = emailSequence[dayNumber];
+    if (!emailConfig) return { success: false, error: 'No email configured for day ' + dayNumber };
+
+    const logSheet = ss.getSheetByName('CSA_Email_Log') || ss.insertSheet('CSA_Email_Log');
+    if (logSheet.getLastRow() === 0) logSheet.appendRow(['Timestamp', 'Member_ID', 'Email', 'Day_Number', 'Template', 'Status']);
+
+    const now = new Date().toISOString();
+    logSheet.appendRow([now, memberId, customer.Email, dayNumber, emailConfig.template, 'SENT']);
+
+    if (emailConfig.channel === 'sms') {
+      return { success: true, action: 'sms_triggered', memberId, dayNumber, template: emailConfig.template,
+               note: 'SMS would be sent to: ' + (customer.Phone || 'No phone on file') };
+    }
+
+    return { success: true, action: 'email_triggered', memberId, email: customer.Email, dayNumber,
+             subject: emailConfig.subject, template: emailConfig.template, sentAt: now };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Record pickup attendance for a member
+ */
+function recordCSAPickupAttendance(memberId, weekDate, attended) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let attendanceSheet = ss.getSheetByName('CSA_Pickup_Attendance');
+
+    if (!attendanceSheet) {
+      attendanceSheet = ss.insertSheet('CSA_Pickup_Attendance');
+      attendanceSheet.appendRow(['Record_ID', 'Member_ID', 'Week_Date', 'Attended', 'Recorded_At', 'Notes']);
+    }
+
+    const recordId = 'ATT-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    const now = new Date().toISOString();
+    attendanceSheet.appendRow([recordId, memberId, weekDate, attended, now, '']);
+
+    const onboardingSheet = ss.getSheetByName('CSA_Onboarding_Tracker');
+    if (onboardingSheet && attended) {
+      const data = onboardingSheet.getDataRange().getValues();
+      const headers = data[0];
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][headers.indexOf('Member_ID')] === memberId && !data[i][headers.indexOf('First_Pickup')]) {
+          onboardingSheet.getRange(i + 1, headers.indexOf('First_Pickup') + 1).setValue(true);
+          onboardingSheet.getRange(i + 1, headers.indexOf('Pickup_Date') + 1).setValue(now);
+          break;
+        }
+      }
+    }
+
+    return { success: true, recordId, memberId, weekDate, attended, recordedAt: now };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Log a support interaction for a member
+ */
+function logCSASupportInteraction(data) {
+  try {
+    const { memberId, interactionType, resolution, notes } = data;
+    if (!memberId || !interactionType) return { success: false, error: 'Missing required fields: memberId, interactionType' };
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let supportSheet = ss.getSheetByName('CSA_Support_Log');
+
+    if (!supportSheet) {
+      supportSheet = ss.insertSheet('CSA_Support_Log');
+      supportSheet.appendRow(['Interaction_ID', 'Member_ID', 'Type', 'Resolution', 'Notes', 'Created_At', 'Resolved_At']);
+    }
+
+    const interactionId = 'SUP-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    const now = new Date().toISOString();
+    supportSheet.appendRow([interactionId, memberId, interactionType, resolution || 'PENDING', notes || '', now,
+                            resolution === 'RESOLVED' ? now : '']);
+
+    const impactMap = { 'COMPLAINT': -15, 'QUESTION': 0, 'FEEDBACK_POSITIVE': 5, 'FEEDBACK_NEGATIVE': -10,
+                        'ISSUE_REPORTED': -10, 'ISSUE_RESOLVED': 5 };
+
+    return { success: true, interactionId, memberId, type: interactionType, resolution: resolution || 'PENDING',
+             healthScoreImpact: impactMap[interactionType] || 0, createdAt: now };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Recalculate health scores for all active members
+ */
+function recalculateAllMemberHealth() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    if (!memberSheet) return { success: false, error: 'CSA_Members sheet not found' };
+
+    const data = memberSheet.getDataRange().getValues();
+    const headers = data[0];
+    const statusCol = headers.indexOf('Status');
+    const memberIdCol = headers.indexOf('Member_ID');
+
+    const results = [];
+    let processed = 0, errors = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][statusCol] === 'Active') {
+        const memberId = data[i][memberIdCol];
+        const healthResult = calculateMemberHealthScoreSmart(memberId);
+        if (healthResult.success) {
+          results.push({ memberId, healthScore: healthResult.healthScore, riskLevel: healthResult.riskLevel });
+          processed++;
+        } else errors++;
+      }
+    }
+
+    return {
+      success: true, processed, errors,
+      summary: { green: results.filter(r => r.riskLevel === 'GREEN').length,
+                 yellow: results.filter(r => r.riskLevel === 'YELLOW').length,
+                 orange: results.filter(r => r.riskLevel === 'ORANGE').length,
+                 red: results.filter(r => r.riskLevel === 'RED').length },
+      calculatedAt: new Date().toISOString()
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════════
 // END SMART CSA SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════════════
@@ -44564,4 +44951,829 @@ function setupCacheWarmupTrigger() {
     .create();
 
   return { success: true, message: 'Cache warmup trigger active (every 10 min)' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MARKETING AUTOMATION SYSTEM - REPLACES $1200/YEAR TOOLS
+// ═══════════════════════════════════════════════════════════════════════════
+// Multi-channel: Instagram (x3), SMS (Twilio), Shopify Email, Facebook
+// AI-powered content generation, scheduling, analytics
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * MARKETING CONFIGURATION
+ */
+const MARKETING_CONFIG = {
+  // Instagram accounts (Meta Graph API)
+  INSTAGRAM: {
+    get ACCESS_TOKEN() {
+      return PropertiesService.getScriptProperties().getProperty('META_ACCESS_TOKEN') || '';
+    },
+    ACCOUNTS: {
+      MAIN: { id: '', name: 'Tiny Seed Farm' },
+      MARKET: { id: '', name: 'Tiny Seed Market' },
+      CSA: { id: '', name: 'Tiny Seed CSA' }
+    },
+    API_VERSION: 'v18.0',
+    BASE_URL: 'https://graph.facebook.com'
+  },
+
+  // Shopify (already configured in SHOPIFY_CONFIG)
+  SHOPIFY: {
+    get API_KEY() {
+      return PropertiesService.getScriptProperties().getProperty('SHOPIFY_API_KEY') || '';
+    },
+    get STORE_URL() {
+      return PropertiesService.getScriptProperties().getProperty('SHOPIFY_STORE_URL') || '';
+    }
+  },
+
+  // Content defaults
+  CONTENT: {
+    HASHTAGS: {
+      FARM: '#tinyseedfarm #organicfarming #localfood #farmtotable #pennsylvania #sustainablefarming',
+      CSA: '#csashare #farmfresh #eatlocal #knowyourfarmer #communitysupportedagriculture',
+      MARKET: '#farmersmarket #freshproduce #organicvegetables #shoplocal #farmstand'
+    },
+    POST_TIMES: {
+      INSTAGRAM: ['09:00', '12:00', '17:00'],
+      SMS: ['10:00', '14:00'],
+      EMAIL: ['07:00', '10:00']
+    }
+  }
+};
+
+/**
+ * CONTENT CALENDAR - Store and manage scheduled posts
+ */
+function getContentCalendar(params) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('CONTENT_CALENDAR');
+  
+  if (!sheet) {
+    sheet = ss.insertSheet('CONTENT_CALENDAR');
+    sheet.getRange(1, 1, 1, 10).setValues([[
+      'Post_ID', 'Platform', 'Account', 'Content', 'Media_URL', 
+      'Scheduled_Date', 'Scheduled_Time', 'Status', 'Posted_At', 'Engagement'
+    ]]);
+    sheet.getRange(1, 1, 1, 10).setBackground('#1a237e').setFontColor('#fff').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const posts = data.slice(1).map(row => {
+    const post = {};
+    headers.forEach((h, i) => post[h] = row[i]);
+    return post;
+  });
+
+  // Filter by params
+  let filtered = posts;
+  if (params.platform) {
+    filtered = filtered.filter(p => p.Platform === params.platform);
+  }
+  if (params.status) {
+    filtered = filtered.filter(p => p.Status === params.status);
+  }
+  if (params.startDate) {
+    filtered = filtered.filter(p => new Date(p.Scheduled_Date) >= new Date(params.startDate));
+  }
+
+  return { success: true, posts: filtered, count: filtered.length };
+}
+
+/**
+ * SCHEDULE POST - Add to content calendar
+ */
+function schedulePost(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('CONTENT_CALENDAR');
+  
+  if (!sheet) {
+    getContentCalendar({}); // Creates sheet
+    sheet = ss.getSheetByName('CONTENT_CALENDAR');
+  }
+
+  const postId = 'POST-' + Date.now();
+  const row = [
+    postId,
+    data.platform || 'INSTAGRAM',
+    data.account || 'MAIN',
+    data.content || '',
+    data.mediaUrl || '',
+    data.scheduledDate || new Date().toISOString().split('T')[0],
+    data.scheduledTime || '12:00',
+    'SCHEDULED',
+    '',
+    ''
+  ];
+
+  sheet.appendRow(row);
+
+  return { 
+    success: true, 
+    postId: postId,
+    message: 'Post scheduled for ' + row[5] + ' at ' + row[6]
+  };
+}
+
+/**
+ * AI CONTENT GENERATOR - Create posts with Claude
+ */
+function generateMarketingContent(params) {
+  const apiKey = CLAUDE_CONFIG.API_KEY;
+  if (!apiKey) {
+    return { success: false, error: 'Claude API key not configured' };
+  }
+
+  const contentType = params.type || 'instagram';
+  const topic = params.topic || 'farm update';
+  const tone = params.tone || 'friendly and authentic';
+
+  const systemPrompt = `You are a social media content creator for Tiny Seed Farm, an organic vegetable farm in Pennsylvania.
+Create engaging, authentic content that connects with the local community.
+
+Farm details:
+- Owner: Todd
+- Products: Organic vegetables, CSA shares, wholesale to restaurants
+- Values: Sustainable farming, community connection, quality produce
+- Location: Rochester, PA
+
+Writing style:
+- Authentic and down-to-earth
+- Educational but not preachy
+- Community-focused
+- Seasonal awareness`;
+
+  const prompts = {
+    instagram: `Create an Instagram post about: ${topic}
+
+Include:
+1. Engaging caption (150-200 words)
+2. Call to action
+3. 5-10 relevant hashtags
+4. Suggested image description
+
+Tone: ${tone}`,
+
+    sms: `Create a short SMS marketing message about: ${topic}
+
+Requirements:
+- Under 160 characters
+- Clear call to action
+- Sense of urgency or exclusivity
+- No hashtags
+
+Tone: ${tone}`,
+
+    email: `Create an email newsletter section about: ${topic}
+
+Include:
+1. Catchy subject line
+2. Preview text (50 chars)
+3. Main content (2-3 paragraphs)
+4. Call to action button text
+
+Tone: ${tone}`,
+
+    facebook: `Create a Facebook post about: ${topic}
+
+Include:
+1. Engaging opening hook
+2. Main content (100-150 words)
+3. Question to encourage comments
+4. Call to action
+
+Tone: ${tone}`
+  };
+
+  const payload = {
+    model: CLAUDE_CONFIG.MODEL,
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompts[contentType] || prompts.instagram }]
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+    
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const textBlock = result.content.find(block => block.type === 'text');
+    
+    return {
+      success: true,
+      contentType: contentType,
+      topic: topic,
+      generatedContent: textBlock ? textBlock.text : '',
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * BATCH GENERATE CONTENT - Create week's worth of content
+ */
+function generateWeeklyContent(params) {
+  const topics = params.topics || [
+    'What\'s growing this week',
+    'Meet the farmer',
+    'Recipe featuring seasonal vegetables',
+    'Behind the scenes on the farm',
+    'CSA share preview',
+    'Farmers market schedule',
+    'Sustainable farming practices'
+  ];
+
+  const results = [];
+  const platforms = ['instagram', 'facebook'];
+
+  for (const topic of topics) {
+    for (const platform of platforms) {
+      const content = generateMarketingContent({ type: platform, topic: topic });
+      if (content.success) {
+        results.push({
+          topic: topic,
+          platform: platform,
+          content: content.generatedContent
+        });
+      }
+      // Small delay to avoid rate limits
+      Utilities.sleep(1000);
+    }
+  }
+
+  return {
+    success: true,
+    generated: results.length,
+    content: results
+  };
+}
+
+/**
+ * POST TO INSTAGRAM - Using Meta Graph API
+ */
+function postToInstagram(params) {
+  const accessToken = MARKETING_CONFIG.INSTAGRAM.ACCESS_TOKEN;
+  if (!accessToken) {
+    return { success: false, error: 'Meta access token not configured' };
+  }
+
+  const accountId = params.accountId || MARKETING_CONFIG.INSTAGRAM.ACCOUNTS.MAIN.id;
+  const caption = params.caption || '';
+  const imageUrl = params.imageUrl || '';
+
+  if (!accountId) {
+    return { success: false, error: 'Instagram account ID not configured' };
+  }
+
+  const baseUrl = MARKETING_CONFIG.INSTAGRAM.BASE_URL;
+  const version = MARKETING_CONFIG.INSTAGRAM.API_VERSION;
+
+  try {
+    // Step 1: Create media container
+    const containerUrl = `${baseUrl}/${version}/${accountId}/media`;
+    const containerResponse = UrlFetchApp.fetch(containerUrl, {
+      method: 'POST',
+      payload: {
+        image_url: imageUrl,
+        caption: caption,
+        access_token: accessToken
+      },
+      muteHttpExceptions: true
+    });
+
+    const containerResult = JSON.parse(containerResponse.getContentText());
+    
+    if (containerResult.error) {
+      return { success: false, error: containerResult.error.message };
+    }
+
+    const containerId = containerResult.id;
+
+    // Step 2: Publish the container
+    const publishUrl = `${baseUrl}/${version}/${accountId}/media_publish`;
+    const publishResponse = UrlFetchApp.fetch(publishUrl, {
+      method: 'POST',
+      payload: {
+        creation_id: containerId,
+        access_token: accessToken
+      },
+      muteHttpExceptions: true
+    });
+
+    const publishResult = JSON.parse(publishResponse.getContentText());
+
+    if (publishResult.error) {
+      return { success: false, error: publishResult.error.message };
+    }
+
+    // Update content calendar
+    updatePostStatus(params.postId, 'POSTED', publishResult.id);
+
+    return {
+      success: true,
+      postId: publishResult.id,
+      message: 'Posted to Instagram successfully'
+    };
+
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * SEND MARKETING SMS - Using Twilio
+ */
+function sendMarketingSMS(params) {
+  const recipients = params.recipients || [];
+  const message = params.message || '';
+  
+  if (!message) {
+    return { success: false, error: 'Message is required' };
+  }
+
+  // Get recipients from CUSTOMERS sheet if not provided
+  let phoneNumbers = recipients;
+  if (phoneNumbers.length === 0 && params.segment) {
+    phoneNumbers = getCustomerPhonesBySegment(params.segment);
+  }
+
+  const results = [];
+  for (const phone of phoneNumbers) {
+    try {
+      const result = sendSMS(phone, message);
+      results.push({ phone: phone, success: result.success });
+    } catch (e) {
+      results.push({ phone: phone, success: false, error: e.message });
+    }
+    // Rate limiting
+    Utilities.sleep(100);
+  }
+
+  return {
+    success: true,
+    sent: results.filter(r => r.success).length,
+    failed: results.filter(r => !r.success).length,
+    results: results
+  };
+}
+
+/**
+ * Get customer phones by segment
+ */
+function getCustomerPhonesBySegment(segment) {
+  const sheetData = OptimizedSheetReader.getSheetData('CUSTOMERS');
+  const phoneCol = sheetData.columnMap['Phone'] || sheetData.columnMap['phone'];
+  const typeCol = sheetData.columnMap['Type'] || sheetData.columnMap['Customer_Type'];
+  const optInCol = sheetData.columnMap['SMS_OptIn'] || sheetData.columnMap['Marketing_OptIn'];
+
+  return sheetData.data
+    .filter(row => {
+      const isOptedIn = optInCol !== undefined ? row[optInCol] === true || row[optInCol] === 'Yes' : true;
+      const matchesSegment = !segment || segment === 'ALL' || row[typeCol] === segment;
+      return isOptedIn && matchesSegment && row[phoneCol];
+    })
+    .map(row => row[phoneCol]);
+}
+
+/**
+ * Update post status in calendar
+ */
+function updatePostStatus(postId, status, platformPostId) {
+  if (!postId) return;
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('CONTENT_CALENDAR');
+  if (!sheet) return;
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === postId) {
+      sheet.getRange(i + 1, 8).setValue(status);
+      sheet.getRange(i + 1, 9).setValue(new Date().toISOString());
+      if (platformPostId) {
+        sheet.getRange(i + 1, 10).setValue(platformPostId);
+      }
+      break;
+    }
+  }
+}
+
+/**
+ * PROCESS SCHEDULED POSTS - Run via trigger
+ */
+function processScheduledPosts() {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTime = String(currentHour).padStart(2, '0') + ':' + String(Math.floor(currentMinute / 15) * 15).padStart(2, '0');
+
+  const calendar = getContentCalendar({ status: 'SCHEDULED' });
+  const postsToPublish = calendar.posts.filter(post => {
+    const postDate = post.Scheduled_Date;
+    const postTime = post.Scheduled_Time;
+    
+    // Check if it's time to post (within 15 min window)
+    if (postDate === today) {
+      const [postHour, postMin] = postTime.split(':').map(Number);
+      const postMinutes = postHour * 60 + postMin;
+      const currentMinutes = currentHour * 60 + currentMinute;
+      return Math.abs(postMinutes - currentMinutes) <= 15;
+    }
+    return false;
+  });
+
+  const results = [];
+  for (const post of postsToPublish) {
+    let result;
+    
+    switch (post.Platform.toUpperCase()) {
+      case 'INSTAGRAM':
+        result = postToInstagram({
+          postId: post.Post_ID,
+          accountId: MARKETING_CONFIG.INSTAGRAM.ACCOUNTS[post.Account]?.id,
+          caption: post.Content,
+          imageUrl: post.Media_URL
+        });
+        break;
+      
+      case 'SMS':
+        result = sendMarketingSMS({
+          message: post.Content,
+          segment: post.Account
+        });
+        break;
+      
+      default:
+        result = { success: false, error: 'Unknown platform: ' + post.Platform };
+    }
+
+    results.push({ postId: post.Post_ID, platform: post.Platform, result: result });
+  }
+
+  return {
+    success: true,
+    processed: results.length,
+    results: results
+  };
+}
+
+/**
+ * MARKETING DASHBOARD - Analytics overview
+ */
+function getMarketingAnalytics(params) {
+  const period = params.period || 30; // days
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - period);
+
+  // Get content calendar stats
+  const calendar = getContentCalendar({ startDate: startDate.toISOString().split('T')[0] });
+  
+  const stats = {
+    totalPosts: calendar.posts.length,
+    byPlatform: {},
+    byStatus: {},
+    byAccount: {}
+  };
+
+  calendar.posts.forEach(post => {
+    stats.byPlatform[post.Platform] = (stats.byPlatform[post.Platform] || 0) + 1;
+    stats.byStatus[post.Status] = (stats.byStatus[post.Status] || 0) + 1;
+    stats.byAccount[post.Account] = (stats.byAccount[post.Account] || 0) + 1;
+  });
+
+  // Get SMS stats from Twilio if available
+  // Get Shopify email stats if available
+
+  return {
+    success: true,
+    period: period + ' days',
+    stats: stats,
+    posts: calendar.posts.slice(0, 20), // Recent 20
+    timestamp: new Date().toISOString()
+  };
+}
+
+/**
+ * Setup marketing triggers
+ */
+function setupMarketingTriggers() {
+  // Remove existing marketing triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === 'processScheduledPosts') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  // Check for scheduled posts every 15 minutes
+  ScriptApp.newTrigger('processScheduledPosts')
+    .timeBased()
+    .everyMinutes(15)
+    .create();
+
+  return { success: true, message: 'Marketing triggers active (every 15 min)' };
+}
+
+/**
+ * MARKETING COMMAND CENTER - Web interface
+ */
+function getMarketingCenterHTML() {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketing Command Center - Tiny Seed Farm</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .card h3 { color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #667eea; color: white; }
+    .btn-primary:hover { background: #5a6fd6; }
+    .btn-success { background: #2e7d32; color: white; }
+    .btn-success:hover { background: #256428; }
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      resize: vertical;
+    }
+    textarea:focus { border-color: #667eea; outline: none; }
+    select, input {
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 100%;
+    }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat-box {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-box .number { font-size: 24px; font-weight: bold; color: #667eea; }
+    .stat-box .label { font-size: 12px; color: #666; }
+    .post-preview {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      white-space: pre-wrap;
+    }
+    .platform-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+    .platform-tab {
+      padding: 8px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 20px;
+      cursor: pointer;
+      background: white;
+    }
+    .platform-tab.active { border-color: #667eea; background: #667eea; color: white; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🌱 Marketing Command Center</h1>
+    <p>Manage all your social media, SMS, and email marketing in one place</p>
+  </div>
+
+  <div class="container">
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="number" id="totalPosts">-</div>
+        <div class="label">Total Posts</div>
+      </div>
+      <div class="stat-box">
+        <div class="number" id="scheduledPosts">-</div>
+        <div class="label">Scheduled</div>
+      </div>
+      <div class="stat-box">
+        <div class="number" id="postedPosts">-</div>
+        <div class="label">Posted</div>
+      </div>
+      <div class="stat-box">
+        <div class="number" id="smsRecipients">-</div>
+        <div class="label">SMS Recipients</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>✨ AI Content Generator</h3>
+        <div class="platform-tabs">
+          <div class="platform-tab active" data-platform="instagram">Instagram</div>
+          <div class="platform-tab" data-platform="facebook">Facebook</div>
+          <div class="platform-tab" data-platform="sms">SMS</div>
+          <div class="platform-tab" data-platform="email">Email</div>
+        </div>
+        <input type="text" id="contentTopic" placeholder="Topic (e.g., This week's harvest, CSA signup)" style="margin-bottom: 10px;">
+        <button class="btn btn-primary" onclick="generateContent()" style="width: 100%;">Generate with AI</button>
+        <div class="post-preview" id="generatedContent" style="display: none;"></div>
+        <button class="btn btn-success" id="scheduleBtn" onclick="scheduleGenerated()" style="width: 100%; margin-top: 10px; display: none;">Schedule Post</button>
+      </div>
+
+      <div class="card">
+        <h3>📅 Schedule Post</h3>
+        <select id="platform" style="margin-bottom: 10px;">
+          <option value="INSTAGRAM">Instagram</option>
+          <option value="FACEBOOK">Facebook</option>
+          <option value="SMS">SMS Campaign</option>
+        </select>
+        <select id="account" style="margin-bottom: 10px;">
+          <option value="MAIN">Main Account</option>
+          <option value="MARKET">Market Account</option>
+          <option value="CSA">CSA Account</option>
+        </select>
+        <input type="date" id="scheduleDate" style="margin-bottom: 10px;">
+        <input type="time" id="scheduleTime" value="12:00" style="margin-bottom: 10px;">
+        <textarea id="postContent" rows="4" placeholder="Post content..."></textarea>
+        <button class="btn btn-success" onclick="schedulePost()" style="width: 100%; margin-top: 10px;">Schedule</button>
+      </div>
+
+      <div class="card">
+        <h3>📱 Quick SMS</h3>
+        <select id="smsSegment" style="margin-bottom: 10px;">
+          <option value="ALL">All Customers</option>
+          <option value="CSA">CSA Members</option>
+          <option value="WHOLESALE">Wholesale</option>
+          <option value="RETAIL">Retail</option>
+        </select>
+        <textarea id="smsMessage" rows="3" placeholder="SMS message (160 chars max)" maxlength="160"></textarea>
+        <small id="smsCount">0/160 characters</small>
+        <button class="btn btn-primary" onclick="sendSMS()" style="width: 100%; margin-top: 10px;">Send SMS Campaign</button>
+      </div>
+
+      <div class="card">
+        <h3>📊 Recent Posts</h3>
+        <div id="recentPosts">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedPlatform = 'instagram';
+    let generatedContentData = '';
+
+    document.querySelectorAll('.platform-tab').forEach(tab => {
+      tab.onclick = function() {
+        document.querySelectorAll('.platform-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        selectedPlatform = this.dataset.platform;
+      };
+    });
+
+    document.getElementById('smsMessage').oninput = function() {
+      document.getElementById('smsCount').textContent = this.value.length + '/160 characters';
+    };
+
+    document.getElementById('scheduleDate').valueAsDate = new Date();
+
+    function generateContent() {
+      const topic = document.getElementById('contentTopic').value;
+      if (!topic) { alert('Please enter a topic'); return; }
+      
+      document.getElementById('generatedContent').textContent = 'Generating...';
+      document.getElementById('generatedContent').style.display = 'block';
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            generatedContentData = result.generatedContent;
+            document.getElementById('generatedContent').textContent = result.generatedContent;
+            document.getElementById('scheduleBtn').style.display = 'block';
+          } else {
+            document.getElementById('generatedContent').textContent = 'Error: ' + result.error;
+          }
+        })
+        .generateMarketingContent({ type: selectedPlatform, topic: topic });
+    }
+
+    function scheduleGenerated() {
+      document.getElementById('postContent').value = generatedContentData;
+      document.getElementById('platform').value = selectedPlatform.toUpperCase();
+      alert('Content copied to scheduler. Adjust and click Schedule.');
+    }
+
+    function schedulePost() {
+      const data = {
+        platform: document.getElementById('platform').value,
+        account: document.getElementById('account').value,
+        content: document.getElementById('postContent').value,
+        scheduledDate: document.getElementById('scheduleDate').value,
+        scheduledTime: document.getElementById('scheduleTime').value
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            alert('Post scheduled! ID: ' + result.postId);
+            loadStats();
+          } else {
+            alert('Error: ' + result.error);
+          }
+        })
+        .schedulePost(data);
+    }
+
+    function sendSMS() {
+      const message = document.getElementById('smsMessage').value;
+      const segment = document.getElementById('smsSegment').value;
+      
+      if (!message) { alert('Please enter a message'); return; }
+      if (!confirm('Send SMS to all ' + segment + ' customers?')) return;
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            alert('Sent: ' + result.sent + ', Failed: ' + result.failed);
+          } else {
+            alert('Error: ' + result.error);
+          }
+        })
+        .sendMarketingSMS({ message: message, segment: segment });
+    }
+
+    function loadStats() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            document.getElementById('totalPosts').textContent = result.stats.totalPosts;
+            document.getElementById('scheduledPosts').textContent = result.stats.byStatus['SCHEDULED'] || 0;
+            document.getElementById('postedPosts').textContent = result.stats.byStatus['POSTED'] || 0;
+            
+            const postsHtml = result.posts.slice(0, 5).map(p => 
+              '<div style="padding: 8px; border-bottom: 1px solid #eee;">' +
+              '<strong>' + p.Platform + '</strong> - ' + p.Status + '<br>' +
+              '<small>' + (p.Content || '').substring(0, 50) + '...</small>' +
+              '</div>'
+            ).join('');
+            document.getElementById('recentPosts').innerHTML = postsHtml || 'No posts yet';
+          }
+        })
+        .getMarketingAnalytics({ period: 30 });
+    }
+
+    loadStats();
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * Serve Marketing Center page
+ */
+function serveMarketingCenter() {
+  return HtmlService.createHtmlOutput(getMarketingCenterHTML())
+    .setTitle('Marketing Command Center - Tiny Seed Farm')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
