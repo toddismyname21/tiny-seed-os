@@ -628,6 +628,158 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
+           FLEX FUNDS BALANCE
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .flex-funds-card {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .flex-balance-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .flex-balance-amount {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .flex-balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .flex-funds-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .flex-add-btn {
+            background: white;
+            color: var(--primary-dark);
+            border: none;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .flex-add-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .flex-add-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .flex-funds-info {
+            text-align: center;
+            opacity: 0.85;
+        }
+
+        .flex-funds-info small {
+            font-size: 12px;
+        }
+
+        .flex-history-section {
+            margin-top: 20px;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+        }
+
+        .flex-history-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 12px;
+            color: var(--text-primary);
+        }
+
+        .flex-transactions-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .flex-transaction {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .flex-transaction:last-child {
+            border-bottom: none;
+        }
+
+        .flex-tx-info {
+            flex: 1;
+        }
+
+        .flex-tx-type {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .flex-tx-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .flex-tx-reason {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-style: italic;
+        }
+
+        .flex-tx-amount {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .flex-tx-amount.credit {
+            color: #22c55e;
+        }
+
+        .flex-tx-amount.debit {
+            color: #ef4444;
+        }
+
+        .flex-loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+        }
+
+        .flex-empty {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
            THIS WEEK'S BOX (ENHANCED)
            ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1701,6 +1853,37 @@
                 </button>
             </div>
 
+            <!-- Flex Funds Balance (for ALL CSA members) -->
+            <div class="section flex-funds-section" id="flexFundsSection" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">💳 Flex Funds</h2>
+                    <button class="section-action" onclick="toggleFlexHistory()">History</button>
+                </div>
+                <div class="flex-funds-card">
+                    <div class="flex-balance-display">
+                        <div class="flex-balance-amount">$<span id="flexBalance">0.00</span></div>
+                        <div class="flex-balance-label">Available to spend</div>
+                    </div>
+                    <div class="flex-funds-actions">
+                        <button class="flex-add-btn" onclick="purchaseFlexFunds()">
+                            <i class="fas fa-plus-circle"></i>
+                            Add $50
+                        </button>
+                    </div>
+                    <div class="flex-funds-info">
+                        <small>Use at farmers markets or online. Expires Jan 1, 2027.</small>
+                    </div>
+                </div>
+
+                <!-- Transaction History -->
+                <div class="flex-history-section" id="flexHistorySection" style="display: none;">
+                    <h3 class="flex-history-title">Transaction History</h3>
+                    <div id="flexTransactionsList" class="flex-transactions-list">
+                        <div class="flex-loading">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- This Week's Box -->
             <div class="section">
                 <div class="section-header">
@@ -2541,6 +2724,7 @@
             loadOrders();
             loadVacationHolds();
             checkAlerts();
+            loadFlexBalance();
         }
 
         function switchTab(tabId) {
@@ -2604,6 +2788,135 @@
 
         function dismissAlert() {
             document.getElementById('alertBanner').style.display = 'none';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FLEX FUNDS BALANCE - Available to ALL CSA Members
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadFlexBalance() {
+            const flexSection = document.getElementById('flexFundsSection');
+
+            // Show Flex Funds section for ALL logged-in CSA members
+            if (!AppState.membership) {
+                flexSection.style.display = 'none';
+                return;
+            }
+
+            flexSection.style.display = 'block';
+
+            try {
+                const email = AppState.membership?.Email;
+                if (!email) return;
+
+                const response = await fetch(`${API_URL}?action=getFlexBalance&email=${encodeURIComponent(email)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const balance = parseFloat(result.balance || 0);
+                    document.getElementById('flexBalance').textContent = balance.toFixed(2);
+                    AppState.flexBalance = balance;
+                    AppState.flexGiftCards = result.giftCards || [];
+                } else {
+                    document.getElementById('flexBalance').textContent = '0.00';
+                    AppState.flexBalance = 0;
+                }
+            } catch (error) {
+                console.log('Error loading flex balance:', error);
+                document.getElementById('flexBalance').textContent = '0.00';
+            }
+        }
+
+        async function purchaseFlexFunds() {
+            const email = AppState.membership?.Email;
+            if (!email) {
+                showToast('Please log in to add funds', 'error');
+                return;
+            }
+
+            const btn = document.querySelector('.flex-add-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            btn.disabled = true;
+
+            try {
+                // Get checkout URL from backend
+                const response = await fetch(`${API_URL}?action=getFlexCheckoutUrl&email=${encodeURIComponent(email)}&amount=50`);
+                const result = await response.json();
+
+                if (result.success && result.checkoutUrl) {
+                    showToast('Redirecting to checkout...', 'info');
+                    // Redirect to Shopify checkout
+                    window.location.href = result.checkoutUrl;
+                } else {
+                    showToast(result.error || 'Failed to start checkout', 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.log('Error starting checkout:', error);
+                showToast('Failed to start checkout. Please try again.', 'error');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function toggleFlexHistory() {
+            const historySection = document.getElementById('flexHistorySection');
+            const isVisible = historySection.style.display !== 'none';
+
+            if (isVisible) {
+                historySection.style.display = 'none';
+            } else {
+                historySection.style.display = 'block';
+                loadFlexTransactions();
+            }
+        }
+
+        async function loadFlexTransactions() {
+            const listEl = document.getElementById('flexTransactionsList');
+            const email = AppState.membership?.Email;
+
+            if (!email) {
+                listEl.innerHTML = '<div class="flex-empty">Please log in to view history</div>';
+                return;
+            }
+
+            listEl.innerHTML = '<div class="flex-loading">Loading transactions...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getFlexTransactions&email=${encodeURIComponent(email)}`);
+                const result = await response.json();
+
+                if (result.success && result.transactions?.length > 0) {
+                    listEl.innerHTML = result.transactions.map(tx => {
+                        const date = new Date(tx.timestamp);
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const typeLabel = tx.type === 'ADMIN_CREDIT' ? 'Credit Added' :
+                                          tx.type === 'PURCHASE' ? 'Funds Added' :
+                                          tx.type === 'SPENT' ? 'Spent' : tx.type;
+                        const isCredit = tx.type !== 'SPENT';
+
+                        return `
+                            <div class="flex-transaction">
+                                <div class="flex-tx-info">
+                                    <div class="flex-tx-type">${typeLabel}</div>
+                                    <div class="flex-tx-date">${dateStr}</div>
+                                    ${tx.reason ? `<div class="flex-tx-reason">${tx.reason}</div>` : ''}
+                                </div>
+                                <div class="flex-tx-amount ${isCredit ? 'credit' : 'debit'}">
+                                    ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    listEl.innerHTML = '<div class="flex-empty">No transactions yet</div>';
+                }
+            } catch (error) {
+                console.log('Error loading transactions:', error);
+                listEl.innerHTML = '<div class="flex-empty">Failed to load history</div>';
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════

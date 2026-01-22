@@ -822,6 +822,8 @@ function doGet(e) {
         return testConnection();
       case 'healthCheck':
         return jsonResponse(healthCheck());
+      case 'clearCaches':
+        return jsonResponse(clearAllCaches());
       case 'insertSampleCustomers':
         return jsonResponse(insertSampleCustomers());
       case 'insertSampleDeliveries':
@@ -1068,8 +1070,7 @@ function doGet(e) {
         return jsonResponse(getMaintenanceSchedule(e.parameter));
       case 'getReplacementForecast':
         return jsonResponse(getReplacementForecast());
-      case 'getSmartDashboard':
-        return jsonResponse(getSmartDashboard());
+      // NOTE: getSmartDashboard handled above (line ~1001)
 
       // ============ PHASE 2: SEASONAL INTEGRATION ============
       case 'calculateSupplyNeeds':
@@ -1136,6 +1137,18 @@ function doGet(e) {
         return jsonResponse(fixBoxContentsData(e.parameter));
       case 'addTestCSAMember':
         return jsonResponse(addTestCSAMember(e.parameter));
+
+      // ============ FLEX CSA GIFT CARD ENDPOINTS ============
+      case 'getFlexBalance':
+        return jsonResponse(getCustomerFlexBalance(e.parameter.email));
+      case 'addFlexFunds':
+        return jsonResponse(addFlexFunds(e.parameter));
+      case 'getFlexCheckoutUrl':
+        return jsonResponse(getFlexFundsCheckoutUrl(e.parameter.email, e.parameter.amount));
+      case 'adminAddFlexCredits':
+        return jsonResponse(adminAddFlexCredits(e.parameter));
+      case 'getFlexTransactions':
+        return jsonResponse(getFlexTransactions(e.parameter.email));
 
       // ============ CLAUDE AUTOMATION ENDPOINTS ============
       case 'sendSeasonAnnouncement':
@@ -1751,6 +1764,28 @@ function doGet(e) {
         return jsonResponse(syncShopifyCustomers(e.parameter));
       case 'getShopifyEmailSubscribers':
         return jsonResponse(getShopifyEmailSubscribers());
+      case 'getShopifyPaymentsBalance':
+        return jsonResponse(getShopifyPaymentsBalance());
+      case 'getShopifyPayouts':
+        return jsonResponse(getShopifyPayouts(e.parameter));
+      case 'getShopifyCapital':
+        return jsonResponse(getShopifyCapital());
+      case 'getShopifyFinancialSummary':
+        return jsonResponse(getShopifyFinancialSummary());
+      case 'getShopifyCapitalLoan':
+        return jsonResponse(getShopifyCapitalLoan());
+      case 'updateShopifyCapitalLoan':
+        return jsonResponse(updateShopifyCapitalLoan(e.parameter));
+      case 'calculateDailyCapitalPayment':
+        return jsonResponse(calculateDailyCapitalPayment());
+      case 'addMonthlyCapitalInterest':
+        return jsonResponse(addMonthlyCapitalInterest());
+      case 'setupCapitalTrackingTriggers':
+        return jsonResponse(setupCapitalTrackingTriggers());
+      case 'reconcileCapitalBalance':
+        return jsonResponse(reconcileCapitalBalance(e.parameter));
+      case 'getCapitalTrackingStatus':
+        return jsonResponse(getCapitalTrackingStatus());
       case 'getShopifyOrder':
         return jsonResponse(getShopifyOrder(e.parameter.orderId));
       case 'registerCSAOrderWebhook':
@@ -1771,6 +1806,17 @@ function doGet(e) {
         return jsonResponse(updateCSAMemberPickupLocations());
       case 'clearCSAMembers':
         return jsonResponse(clearCSAMembersSheet());
+      case 'dedupeCSAMembers':
+        return jsonResponse(dedupeCSAMembers());
+      case 'dedupeCustomers':
+        return jsonResponse(dedupeCustomers());
+      case 'clearShopifyCustomers':
+        return jsonResponse(clearShopifyCustomers());
+      case 'autoCleanupCustomers':
+        return jsonResponse(autoCleanupCustomers());
+      case 'addCSAMemberDirect':
+        // MCP direct import endpoint - creates customer and CSA member in one call
+        return jsonResponse(addCSAMemberDirect(e.parameter));
       case 'fullCSAImport':
         return jsonResponse(fullCSAImportFromShopify(e.parameter));
 
@@ -1872,9 +1918,7 @@ function doGet(e) {
       case 'getLaborByCrop':
         return getLaborByCrop();
 
-      // ============ MORNING BRIEF - PRESCRIPTIVE DAILY INTELLIGENCE ============
-      case 'getMorningBrief':
-        return jsonResponse(getMorningBrief(e.parameter));
+      // NOTE: getMorningBrief handled above (line ~989) and in MorningBriefGenerator.js
 
       // ============ AUTO TASK GENERATION ENGINE ============
       case 'generatePlantingTasks':
@@ -3074,6 +3118,28 @@ function getUsersSecured(params) {
 
   logAuditEvent(auth.user.userId, auth.user.username, 'GET_USERS', 'USERS', null, params.ip, 'SUCCESS');
   return getUsers(params);
+}
+
+/**
+ * Get active sessions - ADMIN ONLY
+ */
+function getActiveSessionsSecured(params) {
+  const auth = requireAdmin(params);
+  if (!auth.authenticated) return auth.error;
+
+  logAuditEvent(auth.user.userId, auth.user.username, 'GET_ACTIVE_SESSIONS', 'SESSIONS', null, params.ip, 'SUCCESS');
+  return getActiveSessions(params);
+}
+
+/**
+ * Get audit log - ADMIN ONLY
+ */
+function getAuditLogSecured(params) {
+  const auth = requireAdmin(params);
+  if (!auth.authenticated) return auth.error;
+
+  logAuditEvent(auth.user.userId, auth.user.username, 'GET_AUDIT_LOG', 'AUDIT', null, params.ip, 'SUCCESS');
+  return getAuditLog(params);
 }
 
 /**
@@ -6158,11 +6224,14 @@ function getPlanning() {
   return jsonResponse({success: true, count: plantings.length, plantings: plantings});
 }
 
-function getCrops() {
+/**
+ * Get crops data (plain object for caching)
+ */
+function getCropsData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('REF_CropProfiles');
-  if (!sheet) return jsonResponse({error: 'REF_CropProfiles not found'}, 404);
-  
+  if (!sheet) return {success: false, error: 'REF_CropProfiles not found'};
+
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const crops = data.slice(1).map(row => {
@@ -6170,15 +6239,22 @@ function getCrops() {
     headers.forEach((header, index) => { obj[header] = row[index]; });
     return obj;
   }).filter(row => row.Crop_Name);
-  
-  return jsonResponse({success: true, count: crops.length, crops: crops});
+
+  return {success: true, count: crops.length, crops: crops};
 }
 
-function getBeds() {
+function getCrops() {
+  return jsonResponse(getCropsData());
+}
+
+/**
+ * Get beds data (plain object for caching)
+ */
+function getBedsData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('REF_Beds');
-  if (!sheet) return jsonResponse({error: 'REF_Beds not found'}, 404);
-  
+  if (!sheet) return {success: false, error: 'REF_Beds not found'};
+
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const beds = data.slice(1).map(row => {
@@ -6186,8 +6262,12 @@ function getBeds() {
     headers.forEach((header, index) => { obj[header] = row[index]; });
     return obj;
   }).filter(row => row['Bed ID']);
-  
-  return jsonResponse({success: true, count: beds.length, beds: beds});
+
+  return {success: true, count: beds.length, beds: beds};
+}
+
+function getBeds() {
+  return jsonResponse(getBedsData());
 }
 
 function addPlanting(planting) {
@@ -6280,6 +6360,95 @@ function getHarvestsByDateRange(start, end) {
   }
 }
 function getWeatherData() { return jsonResponse({success: false, message: 'Not implemented'}); }
+
+/**
+ * Get current weather data from Open-Meteo API
+ * This is the function called by getWeatherFast for caching
+ */
+function getWeather(params) {
+  try {
+    // Farm coordinates (hardcoded for Tiny Seed Farm)
+    const lat = 40.7020;
+    const lon = -80.2887;
+
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/New_York&forecast_days=7`;
+
+    const response = UrlFetchApp.fetch(weatherUrl, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+
+    if (!data.current || !data.daily) {
+      return { success: false, error: 'Invalid weather data received' };
+    }
+
+    return {
+      success: true,
+      current: {
+        temperature: Math.round(data.current.temperature_2m),
+        humidity: data.current.relative_humidity_2m,
+        windSpeed: Math.round(data.current.wind_speed_10m),
+        condition: getWeatherCondition(data.current.weather_code)
+      },
+      today: {
+        high: Math.round(data.daily.temperature_2m_max[0]),
+        low: Math.round(data.daily.temperature_2m_min[0]),
+        precipitation: data.daily.precipitation_sum[0],
+        precipProbability: data.daily.precipitation_probability_max[0],
+        windMax: Math.round(data.daily.wind_speed_10m_max[0])
+      },
+      forecast: data.daily.time.map((date, i) => ({
+        date: date,
+        high: Math.round(data.daily.temperature_2m_max[i]),
+        low: Math.round(data.daily.temperature_2m_min[i]),
+        precipitation: data.daily.precipitation_sum[i],
+        precipProbability: data.daily.precipitation_probability_max[i]
+      })),
+      alerts: generateWeatherAlerts(data),
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('getWeather error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate weather-based alerts for farming
+ */
+function generateWeatherAlerts(data) {
+  const alerts = [];
+
+  // Check for frost
+  if (data.daily.temperature_2m_min[0] <= 36) {
+    alerts.push({
+      type: 'FROST',
+      severity: 'HIGH',
+      message: `Frost warning: Low of ${Math.round(data.daily.temperature_2m_min[0])}°F tonight`,
+      action: 'Cover tender crops before dark'
+    });
+  }
+
+  // Check for rain
+  if (data.daily.precipitation_probability_max[0] > 70) {
+    alerts.push({
+      type: 'RAIN',
+      severity: 'MEDIUM',
+      message: `Rain likely: ${data.daily.precipitation_probability_max[0]}% chance today`,
+      action: 'Complete field work this morning'
+    });
+  }
+
+  // Check for high wind
+  if (data.daily.wind_speed_10m_max[0] > 20) {
+    alerts.push({
+      type: 'WIND',
+      severity: 'MEDIUM',
+      message: `High winds: Gusts up to ${Math.round(data.daily.wind_speed_10m_max[0])} mph`,
+      action: 'No spraying today - drift risk'
+    });
+  }
+
+  return alerts;
+}
 function getFinancials() { return jsonResponse({success: false, message: 'Not implemented'}); }
   function updatePlanting(params) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -15030,36 +15199,130 @@ function getExistingCSAMembersByEmail(csaSheet, customersSheet) {
 
 function createCustomerFromShopify(data) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  // Try both possible sheet names
   let sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
-  if (!sheet) {
-    sheet = ss.getSheetByName('Customers');
-  }
-  if (!sheet) {
-    throw new Error('Customers sheet not found (tried SALES_Customers and Customers)');
-  }
+  if (!sheet) sheet = ss.getSheetByName('Customers');
+  if (!sheet) throw new Error('Customers sheet not found');
 
   const customerId = 'CUST-' + Date.now();
 
-  // Find or create headers
+  // HEADER-BASED INSERTION - maps data to correct columns
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const getCol = (name) => headers.indexOf(name);
+  const rowData = new Array(headers.length).fill('');
 
-  sheet.appendRow([
-    customerId,
-    data.name,
-    data.email,
-    data.phone,
-    data.address,
-    data.city,
-    'PA',
-    '',  // ZIP
-    'CSA',  // Customer type
-    new Date(),  // Created date
-    'Active',
-    'Shopify Import'
-  ]);
+  if (getCol('Customer_ID') >= 0) rowData[getCol('Customer_ID')] = customerId;
+  if (getCol('Customer_Type') >= 0) rowData[getCol('Customer_Type')] = data.type || 'CSA';
+  if (getCol('Contact_Name') >= 0) rowData[getCol('Contact_Name')] = data.name || '';
+  if (getCol('Email') >= 0) rowData[getCol('Email')] = data.email || '';
+  if (getCol('Phone') >= 0) rowData[getCol('Phone')] = data.phone || '';
+  if (getCol('Address') >= 0) rowData[getCol('Address')] = data.address || '';
+  if (getCol('City') >= 0) rowData[getCol('City')] = data.city || '';
+  if (getCol('State') >= 0) rowData[getCol('State')] = 'PA';
+  if (getCol('Zip') >= 0) rowData[getCol('Zip')] = data.zip || '';
+  if (getCol('Payment_Terms') >= 0) rowData[getCol('Payment_Terms')] = 'Prepaid';
+  if (getCol('Price_Tier') >= 0) rowData[getCol('Price_Tier')] = 'CSA';
+  if (getCol('Is_Active') >= 0) rowData[getCol('Is_Active')] = true;
+  if (getCol('Created_At') >= 0) rowData[getCol('Created_At')] = new Date();
+  if (getCol('Notes') >= 0) rowData[getCol('Notes')] = 'Shopify Import';
 
+  sheet.appendRow(rowData);
   return customerId;
+}
+
+/**
+ * Dedupe Customers by email - removes duplicates keeping first occurrence
+ */
+function dedupeCustomers() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return { success: false, error: 'Locked' };
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS) || ss.getSheetByName('Customers');
+    if (!sheet) return { success: false, error: 'Sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    const emailIdx = data[0].indexOf('Email');
+    if (emailIdx === -1) return { success: false, error: 'Email column not found' };
+
+    const seen = new Set();
+    const rowsToDelete = [];
+    for (let i = 1; i < data.length; i++) {
+      const email = (data[i][emailIdx] || '').toString().toLowerCase().trim();
+      if (!email) continue;
+      if (seen.has(email)) rowsToDelete.push(i + 1);
+      else seen.add(email);
+    }
+
+    rowsToDelete.reverse();
+    for (const row of rowsToDelete) sheet.deleteRow(row);
+
+    return { success: true, removed: rowsToDelete.length };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Clear Shopify customers in batches - run multiple times if needed
+ */
+function clearShopifyCustomers() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return { success: false, error: 'Locked' };
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS) || ss.getSheetByName('Customers');
+    if (!sheet) return { success: false, error: 'Sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    const idIdx = data[0].indexOf('Customer_ID');
+    const notesIdx = data[0].indexOf('Notes');
+
+    const rowsToDelete = [];
+    for (let i = 1; i < data.length; i++) {
+      const custId = (data[i][idIdx] || '').toString();
+      const notes = (data[i][notesIdx] || '').toString();
+      if (notes.includes('Shopify') || /^CUST-176\d{10}/.test(custId)) {
+        rowsToDelete.push(i + 1);
+      }
+    }
+
+    if (rowsToDelete.length === 0) return { success: true, removed: 0, remaining: 0 };
+
+    // Batch delete - max 50 per run to avoid timeout
+    rowsToDelete.reverse();
+    let deleted = 0;
+    const maxPerRun = 50;
+    const startTime = Date.now();
+
+    for (const row of rowsToDelete) {
+      if (Date.now() - startTime > 25000 || deleted >= maxPerRun) {
+        return { success: true, removed: deleted, remaining: rowsToDelete.length - deleted, partial: true };
+      }
+      sheet.deleteRow(row);
+      deleted++;
+    }
+
+    return { success: true, removed: deleted, remaining: 0 };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Auto-cleanup - runs clearShopifyCustomers until complete
+ */
+function autoCleanupCustomers() {
+  let total = 0;
+  for (let i = 0; i < 20; i++) {
+    const result = clearShopifyCustomers();
+    if (!result.success) return { success: false, error: result.error, total };
+    total += result.removed || 0;
+    if (!result.partial) return { success: true, total, message: 'Cleanup complete' };
+    Utilities.sleep(500);
+  }
+  return { success: true, total, partial: true };
 }
 
 function parseShopifyShareType(itemName) {
@@ -15904,10 +16167,52 @@ function clearCSAMembersSheet() {
 }
 
 /**
+ * Dedupe CSA Members by Notes (Shopify Order) + Share_Type
+ */
+function dedupeCSAMembers() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return { success: false, error: 'Locked' };
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    if (!sheet) return { success: false, error: 'Sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, removed: 0 };
+
+    const notesIdx = data[0].indexOf('Notes');
+    const typeIdx = data[0].indexOf('Share_Type');
+    if (notesIdx === -1 || typeIdx === -1) return { success: false, error: 'Columns not found' };
+
+    const seen = new Set();
+    const rowsToDelete = [];
+    for (let i = 1; i < data.length; i++) {
+      const key = (data[i][notesIdx] || '') + '|' + (data[i][typeIdx] || '');
+      if (seen.has(key)) rowsToDelete.push(i + 1);
+      else seen.add(key);
+    }
+
+    rowsToDelete.reverse();
+    for (const row of rowsToDelete) sheet.deleteRow(row);
+
+    return { success: true, removed: rowsToDelete.length, remaining: data.length - 1 - rowsToDelete.length };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
  * Full CSA import from Shopify - processes ALL orders in batches
  * Designed to run multiple times if needed (handles duplicates)
  */
 function fullCSAImportFromShopify(params = {}) {
+  // LOCK - Prevent concurrent imports that cause duplicates
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) {
+    return { success: false, error: 'Another import is running. Please wait.', locked: true };
+  }
+
   try {
     const maxItems = parseInt(params.maxItems) || 15; // Default 15 per batch
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -15932,33 +16237,21 @@ function fullCSAImportFromShopify(params = {}) {
       errors: []
     };
 
-    // Build set of existing members (email|shareType) to avoid duplicates
+    // IDEMPOTENT: Build set using Shopify Order ID + Share Type (stable unique key)
+    // This is stored in Notes field as "Shopify Order {id}"
     const existingMembers = new Set();
     const csaData = csaSheet.getDataRange().getValues();
     const csaHeaders = csaData[0];
-    const custSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS) || ss.getSheetByName('Customers');
+    const notesIdx = csaHeaders.indexOf('Notes');
+    const shareTypeIdx = csaHeaders.indexOf('Share_Type');
 
-    if (custSheet && csaData.length > 1) {
-      const custData = custSheet.getDataRange().getValues();
-      const custHeaders = custData[0];
-      const custIdIdx = custHeaders.indexOf('Customer_ID');
-      const emailIdx = custHeaders.indexOf('Email');
-
-      const customerEmails = {};
-      for (let i = 1; i < custData.length; i++) {
-        customerEmails[custData[i][custIdIdx]] = (custData[i][emailIdx] || '').toString().toLowerCase();
-      }
-
-      const memberCustIdx = csaHeaders.indexOf('Customer_ID');
-      const shareTypeIdx = csaHeaders.indexOf('Share_Type');
-
-      for (let i = 1; i < csaData.length; i++) {
-        const custId = csaData[i][memberCustIdx];
-        const email = customerEmails[custId] || '';
-        const shareType = csaData[i][shareTypeIdx] || '';
-        if (email && shareType) {
-          existingMembers.add(email + '|' + shareType);
-        }
+    for (let i = 1; i < csaData.length; i++) {
+      const notes = (csaData[i][notesIdx] || '').toString();
+      const shareType = (csaData[i][shareTypeIdx] || '').toString();
+      // Extract order ID from notes like "Shopify Order 6296380407961"
+      const orderMatch = notes.match(/Shopify Order (\d+)/);
+      if (orderMatch && shareType) {
+        existingMembers.add(orderMatch[1] + '|' + shareType);
       }
     }
 
@@ -16004,17 +16297,22 @@ function fullCSAImportFromShopify(params = {}) {
 
         try {
           const shareInfo = parseShopifyShareType(itemName);
-          const memberKey = customerEmail.toLowerCase() + '|' + shareInfo.type;
+          // IDEMPOTENT KEY: Shopify Order ID + Share Type (matches what we store in Notes)
+          const memberKey = order.id.toString() + '|' + shareInfo.type;
 
-          // Check for duplicate
+          // Check for duplicate using order ID (not email)
           if (existingMembers.has(memberKey)) {
             results.skipped.push({
               email: customerEmail,
               shareType: shareInfo.type,
+              orderNumber: order.order_number,
               reason: 'Already exists'
             });
             continue;
           }
+
+          // Mark as existing BEFORE insert to prevent duplicates within this run
+          existingMembers.add(memberKey);
 
           // Find or create customer
           const customerId = findOrCreateCustomer({
@@ -16047,9 +16345,6 @@ function fullCSAImportFromShopify(params = {}) {
             price: parseFloat(item.price) || 0
           });
 
-          // Mark as existing to prevent duplicates within this run
-          existingMembers.add(memberKey);
-
           results.membersCreated.push({
             memberId: memberId,
             email: customerEmail,
@@ -16075,6 +16370,8 @@ function fullCSAImportFromShopify(params = {}) {
   } catch (error) {
     Logger.log('fullCSAImportFromShopify error: ' + error.toString());
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -16253,6 +16550,109 @@ function createCSAMemberFromShopify(data) {
   sheet.appendRow(rowData);
 
   return memberId;
+}
+
+/**
+ * MCP Direct Import Endpoint
+ * Creates customer and CSA member in one call - used by MCP to bypass timeout
+ * Expects query params: name, email, phone, shareType, season, status, notes, address, city, state, zip
+ */
+function addCSAMemberDirect(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // First, check if this order was already imported (idempotent)
+    const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    const notes = params.notes || '';
+    const orderMatch = notes.match(/Shopify Order (\d+)/);
+
+    if (orderMatch && csaSheet) {
+      const data = csaSheet.getDataRange().getValues();
+      const headers = data[0];
+      const notesIdx = headers.indexOf('Notes');
+
+      for (let i = 1; i < data.length; i++) {
+        if ((data[i][notesIdx] || '').toString().includes('Shopify Order ' + orderMatch[1])) {
+          return { success: true, skipped: true, reason: 'Already imported', orderId: orderMatch[1] };
+        }
+      }
+    }
+
+    // Create or find customer
+    let customerId;
+    const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS) || ss.getSheetByName('Customers');
+
+    if (customerSheet && params.email) {
+      const customerData = customerSheet.getDataRange().getValues();
+      const customerHeaders = customerData[0];
+      const emailIdx = customerHeaders.indexOf('Email');
+      const custIdIdx = customerHeaders.indexOf('Customer_ID');
+
+      for (let i = 1; i < customerData.length; i++) {
+        if (customerData[i][emailIdx] === params.email) {
+          customerId = customerData[i][custIdIdx];
+          break;
+        }
+      }
+    }
+
+    // Create new customer if not found
+    if (!customerId) {
+      customerId = 'CUST-' + Date.now();
+      const custHeaders = customerSheet.getRange(1, 1, 1, customerSheet.getLastColumn()).getValues()[0];
+      const custRow = new Array(custHeaders.length).fill('');
+      const getCustCol = (name) => custHeaders.indexOf(name);
+
+      if (getCustCol('Customer_ID') >= 0) custRow[getCustCol('Customer_ID')] = customerId;
+      if (getCustCol('Customer_Type') >= 0) custRow[getCustCol('Customer_Type')] = 'CSA';
+      if (getCustCol('Contact_Name') >= 0) custRow[getCustCol('Contact_Name')] = params.name || '';
+      if (getCustCol('Email') >= 0) custRow[getCustCol('Email')] = params.email || '';
+      if (getCustCol('Phone') >= 0) custRow[getCustCol('Phone')] = params.phone || '';
+      if (getCustCol('Address') >= 0) custRow[getCustCol('Address')] = params.address || '';
+      if (getCustCol('City') >= 0) custRow[getCustCol('City')] = params.city || '';
+      if (getCustCol('State') >= 0) custRow[getCustCol('State')] = params.state || 'PA';
+      if (getCustCol('Zip') >= 0) custRow[getCustCol('Zip')] = params.zip || '';
+      if (getCustCol('Source') >= 0) custRow[getCustCol('Source')] = 'Shopify MCP Import';
+      if (getCustCol('Created_At') >= 0) custRow[getCustCol('Created_At')] = new Date();
+
+      customerSheet.appendRow(custRow);
+    }
+
+    // Create CSA member
+    const memberId = 'CSA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    const csaHeaders = csaSheet.getRange(1, 1, 1, csaSheet.getLastColumn()).getValues()[0];
+    const csaRow = new Array(csaHeaders.length).fill('');
+    const getCol = (name) => csaHeaders.indexOf(name);
+
+    if (getCol('Member_ID') >= 0) csaRow[getCol('Member_ID')] = memberId;
+    if (getCol('Customer_ID') >= 0) csaRow[getCol('Customer_ID')] = customerId;
+    if (getCol('Share_Type') >= 0) csaRow[getCol('Share_Type')] = params.shareType || 'CSA Share';
+    if (getCol('Share_Size') >= 0) csaRow[getCol('Share_Size')] = params.shareSize || 'Regular';
+    if (getCol('Season') >= 0) csaRow[getCol('Season')] = params.season || '2026';
+    if (getCol('Status') >= 0) csaRow[getCol('Status')] = params.status || 'Active';
+    if (getCol('Payment_Status') >= 0) csaRow[getCol('Payment_Status')] = 'Paid';
+    if (getCol('Pickup_Location') >= 0) csaRow[getCol('Pickup_Location')] = params.pickupLocation || '';
+    if (getCol('Delivery_Address') >= 0) csaRow[getCol('Delivery_Address')] = params.deliveryAddress || '';
+    if (getCol('Total_Weeks') >= 0) csaRow[getCol('Total_Weeks')] = 18;
+    if (getCol('Weeks_Remaining') >= 0) csaRow[getCol('Weeks_Remaining')] = 18;
+    if (getCol('Notes') >= 0) csaRow[getCol('Notes')] = params.notes || '';
+    if (getCol('Created_At') >= 0 || getCol('Created_Date') >= 0) {
+      const col = getCol('Created_At') >= 0 ? getCol('Created_At') : getCol('Created_Date');
+      csaRow[col] = new Date();
+    }
+
+    csaSheet.appendRow(csaRow);
+
+    return {
+      success: true,
+      memberId: memberId,
+      customerId: customerId,
+      added: true
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 /**
@@ -35476,6 +35876,680 @@ function syncFarmInventoryToShopify() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY PAYMENTS & FINANCIAL DATA
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get Shopify Payments balance (pending payouts)
+ * This shows money that Shopify has collected but hasn't paid out yet
+ */
+function getShopifyPaymentsBalance() {
+  const result = shopifyApiCall('shopify_payments/balance.json');
+
+  if (!result.success) return result;
+
+  const balanceData = result.data.balance || [];
+
+  // Format the balance data for easier consumption
+  const balances = balanceData.map(b => ({
+    currency: b.currency,
+    amount: parseFloat(b.amount || 0),
+    pending: true,
+    source: 'Shopify Payments'
+  }));
+
+  const totalPending = balances.reduce((sum, b) => sum + b.amount, 0);
+
+  return {
+    success: true,
+    balances: balances,
+    totalPending: totalPending,
+    message: `Shopify Payments pending balance: $${totalPending.toFixed(2)}`
+  };
+}
+
+/**
+ * Get Shopify Payouts history
+ * Shows completed payouts from Shopify to your bank account
+ */
+function getShopifyPayouts(params = {}) {
+  const limit = params.limit || 20;
+  const status = params.status || ''; // paid, pending, in_transit, scheduled, canceled
+
+  let url = `shopify_payments/payouts.json?limit=${limit}`;
+  if (status) url += `&status=${status}`;
+
+  const result = shopifyApiCall(url);
+
+  if (!result.success) return result;
+
+  const payouts = result.data.payouts || [];
+
+  // Format payouts for dashboard consumption
+  const formattedPayouts = payouts.map(p => ({
+    id: p.id,
+    date: p.date,
+    amount: parseFloat(p.amount || 0),
+    currency: p.currency,
+    status: p.status,
+    summary: p.summary // Contains gross, charges, refunds, adjustments, etc.
+  }));
+
+  // Calculate totals
+  const totalPaid = formattedPayouts
+    .filter(p => p.status === 'paid')
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  return {
+    success: true,
+    payouts: formattedPayouts,
+    totalPaid: totalPaid,
+    count: payouts.length,
+    message: `Found ${payouts.length} payouts, total paid: $${totalPaid.toFixed(2)}`
+  };
+}
+
+/**
+ * Get Shopify Capital information (loans/advances)
+ * Note: This requires specific Shopify Capital API access
+ */
+function getShopifyCapital() {
+  // Shopify Capital uses a different API endpoint
+  // First try to get any capital offers
+  const offersResult = shopifyApiCall('capital/financing_offers.json');
+
+  // Then get active financings (loans)
+  const financingsResult = shopifyApiCall('capital/financings.json');
+
+  let offers = [];
+  let financings = [];
+  let totalOwed = 0;
+
+  if (offersResult.success && offersResult.data.financing_offers) {
+    offers = offersResult.data.financing_offers.map(o => ({
+      id: o.id,
+      amount: parseFloat(o.amount || 0),
+      currency: o.currency,
+      status: o.status,
+      expiresAt: o.expires_at
+    }));
+  }
+
+  if (financingsResult.success && financingsResult.data.financings) {
+    financings = financingsResult.data.financings.map(f => ({
+      id: f.id,
+      originalAmount: parseFloat(f.amount || 0),
+      remainingBalance: parseFloat(f.remaining_balance || 0),
+      currency: f.currency,
+      status: f.status,
+      dailyWithholdingRate: f.daily_withholding_rate,
+      startDate: f.start_date,
+      type: 'Shopify Capital'
+    }));
+
+    // Calculate total owed
+    totalOwed = financings.reduce((sum, f) => sum + f.remainingBalance, 0);
+  }
+
+  return {
+    success: true,
+    hasCapital: financings.length > 0,
+    offers: offers,
+    activeLoans: financings,
+    totalOwed: totalOwed,
+    message: financings.length > 0
+      ? `Shopify Capital: $${totalOwed.toFixed(2)} remaining balance`
+      : 'No active Shopify Capital loans'
+  };
+}
+
+/**
+ * Get all Shopify financial data in one call
+ * Combines balance, payouts, and capital for the dashboard
+ */
+function getShopifyFinancialSummary() {
+  const balance = getShopifyPaymentsBalance();
+  const payouts = getShopifyPayouts({ limit: 10 });
+  const capital = getShopifyCapital();
+
+  return {
+    success: true,
+    pending: {
+      amount: balance.success ? balance.totalPending : 0,
+      balances: balance.success ? balance.balances : []
+    },
+    recentPayouts: {
+      count: payouts.success ? payouts.count : 0,
+      totalPaid: payouts.success ? payouts.totalPaid : 0,
+      payouts: payouts.success ? payouts.payouts.slice(0, 5) : []
+    },
+    capital: {
+      hasLoans: capital.success ? capital.hasCapital : false,
+      totalOwed: capital.success ? capital.totalOwed : 0,
+      loans: capital.success ? capital.activeLoans : []
+    },
+    timestamp: new Date().toISOString()
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY CAPITAL LOAN TRACKING
+// Since Shopify doesn't expose Capital via API, we store data from CSV imports
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get Shopify Capital loan status
+ * Reads from stored data (imported from Shopify Capital CSV export)
+ */
+function getShopifyCapitalLoan() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('SHOPIFY_Capital');
+
+  // If sheet doesn't exist, create it with default structure
+  if (!sheet) {
+    sheet = ss.insertSheet('SHOPIFY_Capital');
+    sheet.appendRow([
+      'original_amount', 'total_payment_amount', 'repayment_rate', 'monthly_fee',
+      'start_date', 'current_balance', 'total_paid', 'interest_accrued',
+      'last_updated', 'notes'
+    ]);
+    // Add default loan data from contract
+    sheet.appendRow([
+      22000.00, 24787.40, 0.17, 317.00,
+      '2025-04-21', 11397.41, 14614.86, 3170.00,
+      '2026-01-21', 'Imported from Capital CSV'
+    ]);
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    return {
+      success: false,
+      error: 'No Capital loan data found. Import CSV data first.'
+    };
+  }
+
+  const headers = data[0];
+  const values = data[data.length - 1]; // Get most recent row
+  const loan = {};
+  headers.forEach((h, i) => loan[h] = values[i]);
+
+  // Calculate progress
+  const principalPaid = loan.original_amount - loan.current_balance;
+  const progressPercent = ((principalPaid / loan.original_amount) * 100).toFixed(1);
+
+  return {
+    success: true,
+    loan: {
+      originalAmount: loan.original_amount,
+      totalPaymentAmount: loan.total_payment_amount,
+      repaymentRate: loan.repayment_rate,
+      monthlyFee: loan.monthly_fee,
+      startDate: loan.start_date
+    },
+    currentBalance: loan.current_balance,
+    totalPaid: loan.total_paid,
+    interestAccrued: loan.interest_accrued,
+    lastUpdated: loan.last_updated,
+    progress: {
+      principalPaid: principalPaid,
+      percentComplete: parseFloat(progressPercent),
+      remaining: loan.current_balance
+    },
+    message: `Capital loan: $${loan.current_balance.toLocaleString()} remaining (${progressPercent}% paid)`
+  };
+}
+
+/**
+ * Update Shopify Capital loan balance
+ * Call this when importing new CSV data
+ */
+function updateShopifyCapitalLoan(params) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('SHOPIFY_Capital');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('SHOPIFY_Capital');
+    sheet.appendRow([
+      'original_amount', 'total_payment_amount', 'repayment_rate', 'monthly_fee',
+      'start_date', 'current_balance', 'total_paid', 'interest_accrued',
+      'last_updated', 'notes'
+    ]);
+  }
+
+  // Add new row with updated data
+  sheet.appendRow([
+    params.originalAmount || 22000.00,
+    params.totalPaymentAmount || 24787.40,
+    params.repaymentRate || 0.17,
+    params.monthlyFee || 317.00,
+    params.startDate || '2025-04-21',
+    params.currentBalance,
+    params.totalPaid || 0,
+    params.interestAccrued || 0,
+    new Date().toISOString(),
+    params.notes || 'Updated via API'
+  ]);
+
+  logIntegration('Shopify', 'Capital', 'SUCCESS', `Balance updated to $${params.currentBalance}`);
+
+  return {
+    success: true,
+    message: `Capital loan balance updated to $${params.currentBalance}`
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY CAPITAL - AUTOMATED DAILY TRACKING
+// Calculates payments from Shopify sales since API doesn't expose Capital data
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CAPITAL_CONFIG = {
+  REPAYMENT_RATE: 0.17,        // 17% of daily sales
+  MONTHLY_FEE: 317.00,         // Charged on 21st of each month
+  ORIGINAL_AMOUNT: 22000.00,
+  START_DATE: '2025-04-21'
+};
+
+/**
+ * Get yesterday's total Shopify sales
+ * Used to calculate Capital payment
+ */
+function getYesterdayShopifySales() {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const startOfDay = new Date(yesterday.setHours(0, 0, 0, 0)).toISOString();
+  const endOfDay = new Date(yesterday.setHours(23, 59, 59, 999)).toISOString();
+
+  const url = `orders.json?status=any&created_at_min=${startOfDay}&created_at_max=${endOfDay}&financial_status=paid`;
+  const result = shopifyApiCall(url);
+
+  if (!result.success) {
+    return { success: false, error: result.error, totalSales: 0 };
+  }
+
+  const orders = result.data.orders || [];
+  let totalSales = 0;
+
+  orders.forEach(order => {
+    // Only count paid orders, exclude refunds
+    if (order.financial_status === 'paid' || order.financial_status === 'partially_paid') {
+      totalSales += parseFloat(order.total_price) || 0;
+    }
+  });
+
+  return {
+    success: true,
+    date: yesterday.toISOString().split('T')[0],
+    orderCount: orders.length,
+    totalSales: totalSales
+  };
+}
+
+/**
+ * Calculate and record daily Capital payment
+ * Runs automatically via trigger at 6am daily
+ */
+function calculateDailyCapitalPayment() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Get yesterday's sales
+  const salesData = getYesterdayShopifySales();
+
+  if (!salesData.success) {
+    logIntegration('Shopify', 'Capital Daily', 'ERROR', `Failed to get sales: ${salesData.error}`);
+    return { success: false, error: salesData.error };
+  }
+
+  // Calculate 17% payment
+  const capitalPayment = salesData.totalSales * CAPITAL_CONFIG.REPAYMENT_RATE;
+
+  // Get current balance
+  const currentLoan = getShopifyCapitalLoan();
+  if (!currentLoan.success) {
+    logIntegration('Shopify', 'Capital Daily', 'ERROR', 'Failed to get current loan data');
+    return { success: false, error: 'Failed to get current loan data' };
+  }
+
+  const previousBalance = currentLoan.currentBalance;
+  const newBalance = Math.max(0, previousBalance - capitalPayment);
+
+  // Log to Capital Transactions sheet
+  let txnSheet = ss.getSheetByName('SHOPIFY_Capital_Transactions');
+  if (!txnSheet) {
+    txnSheet = ss.insertSheet('SHOPIFY_Capital_Transactions');
+    txnSheet.appendRow([
+      'Date', 'Type', 'Total Sales', 'Payment Amount', 'Previous Balance',
+      'New Balance', 'Source', 'Notes'
+    ]);
+    // Format header
+    txnSheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+  }
+
+  txnSheet.appendRow([
+    salesData.date,
+    'payment',
+    salesData.totalSales,
+    -capitalPayment,
+    previousBalance,
+    newBalance,
+    'calculated',
+    `${salesData.orderCount} orders @ 17%`
+  ]);
+
+  // Update the main Capital sheet with new balance
+  let mainSheet = ss.getSheetByName('SHOPIFY_Capital');
+  if (mainSheet) {
+    const lastRow = mainSheet.getLastRow();
+    if (lastRow > 1) {
+      // Update current_balance (column 6) and last_updated (column 9)
+      mainSheet.getRange(lastRow, 6).setValue(newBalance);
+      mainSheet.getRange(lastRow, 9).setValue(new Date().toISOString());
+
+      // Update total_paid (column 7)
+      const currentTotalPaid = mainSheet.getRange(lastRow, 7).getValue() || 0;
+      mainSheet.getRange(lastRow, 7).setValue(currentTotalPaid + capitalPayment);
+    }
+  }
+
+  logIntegration('Shopify', 'Capital Daily', 'SUCCESS',
+    `Sales: $${salesData.totalSales.toFixed(2)}, Payment: $${capitalPayment.toFixed(2)}, Balance: $${newBalance.toFixed(2)}`);
+
+  return {
+    success: true,
+    date: salesData.date,
+    totalSales: salesData.totalSales,
+    capitalPayment: capitalPayment,
+    previousBalance: previousBalance,
+    newBalance: newBalance
+  };
+}
+
+/**
+ * Add monthly interest charge ($317)
+ * Runs on 21st of each month via trigger
+ */
+function addMonthlyCapitalInterest() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const today = new Date();
+
+  // Get current balance
+  const currentLoan = getShopifyCapitalLoan();
+  if (!currentLoan.success) {
+    return { success: false, error: 'Failed to get current loan data' };
+  }
+
+  // If loan is paid off, skip
+  if (currentLoan.currentBalance <= 0) {
+    logIntegration('Shopify', 'Capital Interest', 'SKIPPED', 'Loan is paid off');
+    return { success: true, message: 'Loan is paid off, no interest charged' };
+  }
+
+  const previousBalance = currentLoan.currentBalance;
+  const newBalance = previousBalance + CAPITAL_CONFIG.MONTHLY_FEE;
+
+  // Log to transactions
+  let txnSheet = ss.getSheetByName('SHOPIFY_Capital_Transactions');
+  if (!txnSheet) {
+    txnSheet = ss.insertSheet('SHOPIFY_Capital_Transactions');
+    txnSheet.appendRow([
+      'Date', 'Type', 'Total Sales', 'Payment Amount', 'Previous Balance',
+      'New Balance', 'Source', 'Notes'
+    ]);
+  }
+
+  txnSheet.appendRow([
+    today.toISOString().split('T')[0],
+    'interest',
+    '',
+    CAPITAL_CONFIG.MONTHLY_FEE,
+    previousBalance,
+    newBalance,
+    'calculated',
+    'Monthly fee charged on 21st'
+  ]);
+
+  // Update main sheet
+  let mainSheet = ss.getSheetByName('SHOPIFY_Capital');
+  if (mainSheet) {
+    const lastRow = mainSheet.getLastRow();
+    if (lastRow > 1) {
+      mainSheet.getRange(lastRow, 6).setValue(newBalance);
+      mainSheet.getRange(lastRow, 9).setValue(new Date().toISOString());
+
+      // Update interest_accrued (column 8)
+      const currentInterest = mainSheet.getRange(lastRow, 8).getValue() || 0;
+      mainSheet.getRange(lastRow, 8).setValue(currentInterest + CAPITAL_CONFIG.MONTHLY_FEE);
+    }
+  }
+
+  logIntegration('Shopify', 'Capital Interest', 'SUCCESS',
+    `Monthly fee $${CAPITAL_CONFIG.MONTHLY_FEE} added. Balance: $${newBalance.toFixed(2)}`);
+
+  return {
+    success: true,
+    interestCharged: CAPITAL_CONFIG.MONTHLY_FEE,
+    previousBalance: previousBalance,
+    newBalance: newBalance
+  };
+}
+
+/**
+ * Create reconciliation reminder task
+ * Adds a task to the owner's todo list to export real CSV
+ */
+function createCapitalReconciliationReminder() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Get or create Tasks sheet
+  let taskSheet = ss.getSheetByName('TASKS');
+  if (!taskSheet) {
+    taskSheet = ss.insertSheet('TASKS');
+    taskSheet.appendRow(['ID', 'Title', 'Description', 'Due Date', 'Priority', 'Status', 'Assigned To', 'Created']);
+  }
+
+  const taskId = 'CAPITAL-RECONCILE-' + new Date().toISOString().split('T')[0];
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 7); // Due in 1 week
+
+  taskSheet.appendRow([
+    taskId,
+    'Reconcile Shopify Capital Balance',
+    'Export CSV from Shopify Capital dashboard and verify calculated balance matches actual. ' +
+    'Go to: Shopify Admin > Finances > Capital > Download transactions CSV',
+    dueDate.toISOString().split('T')[0],
+    'MEDIUM',
+    'PENDING',
+    'Owner',
+    new Date().toISOString()
+  ]);
+
+  // Also send email reminder
+  try {
+    const ownerEmail = 'todd@tinyseedfarm.com'; // Update with actual email
+    MailApp.sendEmail({
+      to: ownerEmail,
+      subject: '📊 Shopify Capital Reconciliation Reminder',
+      htmlBody: `
+        <h2>Time to Reconcile Shopify Capital</h2>
+        <p>It's been a week since the last reconciliation. Please export your Capital transactions CSV and upload it to verify the calculated balance.</p>
+
+        <h3>Current Calculated Balance</h3>
+        <p>Check the Financial Dashboard for the current calculated balance.</p>
+
+        <h3>Steps:</h3>
+        <ol>
+          <li>Go to <a href="https://tiny-seed-farmers-market.myshopify.com/admin/finances/capital">Shopify Capital Dashboard</a></li>
+          <li>Click "Download transactions"</li>
+          <li>Share the CSV with Claude to update the system</li>
+        </ol>
+
+        <p>This ensures your Financial Dashboard stays accurate!</p>
+
+        <p style="color: #666; font-size: 12px;">Automated reminder from Tiny Seed OS</p>
+      `
+    });
+  } catch (e) {
+    // Email might fail if not configured
+    console.log('Email reminder failed:', e);
+  }
+
+  logIntegration('Shopify', 'Capital Reconcile', 'REMINDER', 'Created reconciliation task');
+
+  return {
+    success: true,
+    taskId: taskId,
+    dueDate: dueDate.toISOString().split('T')[0],
+    message: 'Reconciliation reminder created'
+  };
+}
+
+/**
+ * Set up all Capital tracking triggers
+ * Run this once to configure automated tracking
+ */
+function setupCapitalTrackingTriggers() {
+  // Remove any existing Capital triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    const funcName = trigger.getHandlerFunction();
+    if (funcName.includes('Capital') || funcName.includes('capital')) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Daily payment calculation at 6am
+  ScriptApp.newTrigger('calculateDailyCapitalPayment')
+    .timeBased()
+    .everyDays(1)
+    .atHour(6)
+    .create();
+
+  // Monthly interest charge on 21st at 7am
+  ScriptApp.newTrigger('addMonthlyCapitalInterest')
+    .timeBased()
+    .onMonthDay(21)
+    .atHour(7)
+    .create();
+
+  // Weekly reconciliation reminder on Sundays at 9am
+  ScriptApp.newTrigger('createCapitalReconciliationReminder')
+    .timeBased()
+    .onWeekDay(ScriptApp.WeekDay.SUNDAY)
+    .atHour(9)
+    .create();
+
+  logIntegration('Shopify', 'Capital Triggers', 'SUCCESS', 'All triggers configured');
+
+  return {
+    success: true,
+    triggers: [
+      { name: 'calculateDailyCapitalPayment', schedule: 'Daily at 6am' },
+      { name: 'addMonthlyCapitalInterest', schedule: 'Monthly on 21st at 7am' },
+      { name: 'createCapitalReconciliationReminder', schedule: 'Weekly on Sunday at 9am' }
+    ],
+    message: 'Capital tracking triggers configured successfully'
+  };
+}
+
+/**
+ * Reconcile calculated balance with actual CSV data
+ * Call this after uploading a new CSV export
+ */
+function reconcileCapitalBalance(params) {
+  const actualBalance = parseFloat(params.actualBalance);
+
+  if (isNaN(actualBalance)) {
+    return { success: false, error: 'Invalid actual balance provided' };
+  }
+
+  const currentLoan = getShopifyCapitalLoan();
+  if (!currentLoan.success) {
+    return { success: false, error: 'Failed to get current loan data' };
+  }
+
+  const calculatedBalance = currentLoan.currentBalance;
+  const difference = calculatedBalance - actualBalance;
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Log reconciliation
+  let txnSheet = ss.getSheetByName('SHOPIFY_Capital_Transactions');
+  if (txnSheet) {
+    txnSheet.appendRow([
+      new Date().toISOString().split('T')[0],
+      'reconciliation',
+      '',
+      -difference,
+      calculatedBalance,
+      actualBalance,
+      'csv_import',
+      `Adjusted by $${difference.toFixed(2)} to match actual`
+    ]);
+  }
+
+  // Update main balance
+  let mainSheet = ss.getSheetByName('SHOPIFY_Capital');
+  if (mainSheet) {
+    const lastRow = mainSheet.getLastRow();
+    if (lastRow > 1) {
+      mainSheet.getRange(lastRow, 6).setValue(actualBalance);
+      mainSheet.getRange(lastRow, 9).setValue(new Date().toISOString());
+      mainSheet.getRange(lastRow, 10).setValue(`Reconciled from CSV. Difference: $${difference.toFixed(2)}`);
+    }
+  }
+
+  logIntegration('Shopify', 'Capital Reconcile', 'SUCCESS',
+    `Calculated: $${calculatedBalance.toFixed(2)}, Actual: $${actualBalance.toFixed(2)}, Diff: $${difference.toFixed(2)}`);
+
+  return {
+    success: true,
+    calculatedBalance: calculatedBalance,
+    actualBalance: actualBalance,
+    difference: difference,
+    message: difference === 0
+      ? 'Balances match perfectly!'
+      : `Adjusted by $${Math.abs(difference).toFixed(2)} to match actual CSV balance`
+  };
+}
+
+/**
+ * Get Capital tracking status and recent transactions
+ */
+function getCapitalTrackingStatus() {
+  const loan = getShopifyCapitalLoan();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  let recentTransactions = [];
+  const txnSheet = ss.getSheetByName('SHOPIFY_Capital_Transactions');
+  if (txnSheet) {
+    const data = txnSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      const headers = data[0];
+      // Get last 10 transactions
+      const rows = data.slice(-10).reverse();
+      recentTransactions = rows.map(row => {
+        const txn = {};
+        headers.forEach((h, i) => txn[h] = row[i]);
+        return txn;
+      });
+    }
+  }
+
+  // Check trigger status
+  const triggers = ScriptApp.getProjectTriggers();
+  const capitalTriggers = triggers.filter(t => t.getHandlerFunction().includes('Capital'));
+
+  return {
+    success: true,
+    loan: loan.success ? loan : null,
+    recentTransactions: recentTransactions,
+    triggersActive: capitalTriggers.length,
+    automationStatus: capitalTriggers.length >= 3 ? 'ACTIVE' : 'NEEDS_SETUP'
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // QUICKBOOKS INTEGRATION - OAuth2 Service
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -36120,7 +37194,800 @@ function handleShopifyOrderWebhook(order) {
 
   logIntegration('Shopify', 'OrderWebhook', 'SUCCESS', `Processed order ${order.order_number}`);
 
-  return { success: true, message: `Order ${order.order_number} processed` };
+  // Process FLEX FUNDS TOP-UP purchases
+  const flexFundsResults = { processed: [] };
+  for (const item of (order.line_items || [])) {
+    const title = (item.title || '').toLowerCase();
+    const tags = (item.properties?.find(p => p.name === '_tags')?.value || '').toLowerCase();
+
+    // Detect Flex Funds product by title or tag
+    if (title.includes('flex funds') || title.includes('flex-funds') ||
+        tags.includes('flex-funds-topup') || tags.includes(FLEX_FUNDS_PRODUCT_TAG)) {
+
+      if (order.financial_status === 'paid') {
+        const result = processFlexFundsTopUp(order, item);
+        flexFundsResults.processed.push(result);
+      }
+    }
+  }
+
+  // AUTO-CREATE CSA MEMBERS for CSA product orders
+  const csaResults = autoCreateCSAMembersFromOrder(order);
+
+  return {
+    success: true,
+    message: `Order ${order.order_number} processed`,
+    csaMembers: csaResults,
+    flexFunds: flexFundsResults
+  };
+}
+
+/**
+ * Auto-create CSA members from a Shopify order webhook
+ * Called automatically when order contains CSA products
+ * For Flex CSA: Also creates a gift card for the purchase amount
+ */
+function autoCreateCSAMembersFromOrder(order) {
+  const CSA_KEYWORDS = ['csa', 'farm share', 'veggie share', 'vegetable share', 'produce share',
+    'full share', 'half share', 'single share', 'couple share', 'family share',
+    'flower share', 'bouquet share', 'fleurs', 'flex'];
+
+  const results = { created: [], skipped: [], errors: [], giftCards: [] };
+
+  // Check each line item for CSA products
+  for (const item of (order.line_items || [])) {
+    const title = (item.title || '').toLowerCase();
+    const isCSA = CSA_KEYWORDS.some(kw => title.includes(kw));
+
+    if (!isCSA) continue;
+
+    // Extract share type from title
+    let shareType = 'CSA Share';
+    let isFlexCSA = false;
+    if (title.includes('full') || title.includes('family')) shareType = 'Full Share';
+    else if (title.includes('half') || title.includes('couple')) shareType = 'Half Share';
+    else if (title.includes('single')) shareType = 'Single Share';
+    else if (title.includes('flower') || title.includes('fleurs') || title.includes('bouquet')) shareType = 'Flower Share';
+    else if (title.includes('flex')) {
+      shareType = 'Flex Share';
+      isFlexCSA = true;
+    }
+
+    const customerName = order.customer
+      ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim()
+      : '';
+    const customerEmail = order.customer?.email || order.email || '';
+    const customerPhone = order.customer?.phone || '';
+    const address = order.shipping_address || order.billing_address || {};
+
+    try {
+      const result = addCSAMemberDirect({
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
+        shareType: shareType,
+        season: '2026',
+        status: order.financial_status === 'paid' ? 'Active' : 'Pending',
+        notes: `Shopify Order ${order.id} - ${item.title}`,
+        address: address.address1 || '',
+        city: address.city || '',
+        state: address.province || 'PA',
+        zip: address.zip || '',
+        pickupLocation: item.variant_title || ''
+      });
+
+      if (result.skipped) {
+        results.skipped.push({ orderId: order.id, item: item.title, reason: 'Already imported' });
+      } else if (result.success) {
+        results.created.push({ orderId: order.id, item: item.title, memberId: result.memberId });
+
+        // FLEX CSA: Create gift card for the purchase amount
+        if (isFlexCSA && order.financial_status === 'paid') {
+          const giftCardResult = createFlexCSAGiftCard({
+            customerId: order.customer?.id,
+            customerEmail: customerEmail,
+            customerName: customerName,
+            amount: parseFloat(item.price) || 0,
+            orderId: order.id,
+            orderNumber: order.order_number
+          });
+          if (giftCardResult.success) {
+            results.giftCards.push(giftCardResult);
+          } else {
+            results.errors.push({ orderId: order.id, item: item.title, error: 'Gift card: ' + giftCardResult.error });
+          }
+        }
+      } else {
+        results.errors.push({ orderId: order.id, item: item.title, error: result.error });
+      }
+    } catch (e) {
+      results.errors.push({ orderId: order.id, item: item.title, error: e.toString() });
+    }
+  }
+
+  if (results.created.length > 0) {
+    logIntegration('Shopify', 'CSA Auto-Import', 'SUCCESS',
+      `Created ${results.created.length} CSA members from order ${order.order_number}`);
+  }
+
+  if (results.giftCards.length > 0) {
+    logIntegration('Shopify', 'Flex CSA Gift Card', 'SUCCESS',
+      `Created ${results.giftCards.length} gift cards from order ${order.order_number}`);
+  }
+
+  return results;
+}
+
+/**
+ * Create a Shopify gift card for Flex CSA purchases
+ * Gift card expires January 1st, 2027
+ */
+function createFlexCSAGiftCard(params) {
+  const { customerId, customerEmail, customerName, amount, orderId, orderNumber } = params;
+
+  if (!amount || amount <= 0) {
+    return { success: false, error: 'Invalid amount' };
+  }
+
+  try {
+    const giftCardPayload = {
+      gift_card: {
+        initial_value: amount.toFixed(2),
+        customer_id: customerId || null,
+        expires_on: '2027-01-01',
+        note: `Flex CSA - Order #${orderNumber} (${orderId}) - ${customerName}`
+      }
+    };
+
+    const result = shopifyApiCall('gift_cards.json', 'POST', giftCardPayload);
+
+    if (result.success && result.data && result.data.gift_card) {
+      const giftCard = result.data.gift_card;
+
+      logIntegration('Shopify', 'Gift Card Created', 'SUCCESS',
+        `$${amount} gift card for ${customerEmail} - Code: ${giftCard.last_characters}`);
+
+      // Send email notification to customer with gift card code
+      if (customerEmail) {
+        try {
+          sendFlexCSAGiftCardEmail({
+            email: customerEmail,
+            name: customerName,
+            amount: amount,
+            code: giftCard.code,
+            lastChars: giftCard.last_characters,
+            expiresOn: '2027-01-01'
+          });
+        } catch (emailErr) {
+          // Log but don't fail - gift card was created
+          logIntegration('Shopify', 'Gift Card Email', 'WARNING', emailErr.toString());
+        }
+      }
+
+      return {
+        success: true,
+        giftCardId: giftCard.id,
+        code: giftCard.code,
+        lastChars: giftCard.last_characters,
+        amount: amount,
+        expiresOn: '2027-01-01'
+      };
+    }
+
+    return { success: false, error: result.error || 'Failed to create gift card' };
+
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Send email to customer with their Flex CSA gift card code
+ */
+function sendFlexCSAGiftCardEmail(params) {
+  const { email, name, amount, code, expiresOn } = params;
+
+  const subject = `Your Tiny Seed Farm Flex CSA Gift Card - $${amount.toFixed(2)}`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="font-family: Georgia, serif; background: #f9f7f4; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden;">
+    <div style="background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%); padding: 30px; text-align: center;">
+      <h1 style="color: white; margin: 0; font-size: 24px;">🌱 Your Flex CSA Gift Card</h1>
+    </div>
+    <div style="padding: 30px;">
+      <p style="font-size: 17px; color: #333;">Hi ${name || 'there'},</p>
+      <p style="font-size: 17px; color: #333; line-height: 1.6;">Thank you for signing up for our Flex CSA! Your gift card is ready to use at Tiny Seed Farm.</p>
+
+      <div style="background: #f0f7ee; border: 2px dashed #2d5a27; border-radius: 12px; padding: 25px; margin: 25px 0; text-align: center;">
+        <p style="margin: 0 0 10px; color: #666; font-size: 14px;">Your Gift Card Code:</p>
+        <p style="font-size: 28px; font-weight: bold; color: #2d5a27; margin: 0; letter-spacing: 2px;">${code}</p>
+        <p style="margin: 15px 0 0; font-size: 24px; color: #333;">$${amount.toFixed(2)}</p>
+      </div>
+
+      <p style="font-size: 15px; color: #666; line-height: 1.6;">
+        <strong>How to use:</strong> Use this code at checkout on our online store or mention it at farmers markets.
+      </p>
+      <p style="font-size: 15px; color: #666; line-height: 1.6;">
+        <strong>Expires:</strong> January 1, 2027
+      </p>
+
+      <p style="font-size: 17px; color: #333; margin-top: 25px;">We can't wait to see you at the farm!</p>
+      <p style="font-size: 17px; color: #333;">— Todd & the Tiny Seed Team</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  MailApp.sendEmail({
+    to: email,
+    subject: subject,
+    htmlBody: htmlBody
+  });
+
+  return { success: true, sent: true };
+}
+
+/**
+ * Get customer's Flex CSA gift card balance from Shopify
+ * Searches for gift cards associated with customer email
+ */
+function getCustomerFlexBalance(email) {
+  if (!email) {
+    return { success: false, error: 'Email required' };
+  }
+
+  try {
+    // First, find customer ID by email
+    const customerResult = shopifyApiCall(`customers/search.json?query=email:${encodeURIComponent(email)}`);
+
+    if (!customerResult.success || !customerResult.data?.customers?.length) {
+      return { success: true, balance: 0, giftCards: [], message: 'No Shopify customer found' };
+    }
+
+    const customerId = customerResult.data.customers[0].id;
+
+    // Get gift cards for this customer
+    const giftCardsResult = shopifyApiCall(`gift_cards.json?status=enabled`);
+
+    if (!giftCardsResult.success) {
+      return { success: false, error: 'Failed to fetch gift cards' };
+    }
+
+    // Filter gift cards for this customer
+    const customerGiftCards = (giftCardsResult.data?.gift_cards || []).filter(gc => {
+      return gc.customer_id === customerId ||
+             (gc.note && gc.note.toLowerCase().includes(email.toLowerCase()));
+    });
+
+    // Calculate total balance
+    let totalBalance = 0;
+    const giftCards = customerGiftCards.map(gc => {
+      const balance = parseFloat(gc.balance) || 0;
+      totalBalance += balance;
+      return {
+        id: gc.id,
+        balance: balance,
+        initialValue: parseFloat(gc.initial_value) || 0,
+        lastChars: gc.last_characters,
+        expiresOn: gc.expires_on,
+        createdAt: gc.created_at
+      };
+    });
+
+    return {
+      success: true,
+      balance: totalBalance,
+      giftCards: giftCards,
+      count: giftCards.length
+    };
+
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Add $50 to customer's Flex CSA funds
+ * Creates a new gift card or adds to existing
+ */
+function addFlexFunds(params) {
+  const { email, amount = 50 } = params;
+
+  if (!email) {
+    return { success: false, error: 'Email required' };
+  }
+
+  // Validate amount is in $50 increments
+  const addAmount = parseInt(amount) || 50;
+  if (addAmount < 50 || addAmount % 50 !== 0) {
+    return { success: false, error: 'Amount must be in $50 increments' };
+  }
+
+  try {
+    // Find customer ID
+    const customerResult = shopifyApiCall(`customers/search.json?query=email:${encodeURIComponent(email)}`);
+    const customerId = customerResult.data?.customers?.[0]?.id || null;
+    const customerName = customerResult.data?.customers?.[0] ?
+      `${customerResult.data.customers[0].first_name || ''} ${customerResult.data.customers[0].last_name || ''}`.trim() :
+      '';
+
+    // Create new gift card
+    const giftCardPayload = {
+      gift_card: {
+        initial_value: addAmount.toFixed(2),
+        customer_id: customerId,
+        expires_on: '2027-01-01',
+        note: `Flex CSA Top-Up - ${customerName || email} - Added via Portal`
+      }
+    };
+
+    const result = shopifyApiCall('gift_cards.json', 'POST', giftCardPayload);
+
+    if (result.success && result.data?.gift_card) {
+      const gc = result.data.gift_card;
+
+      // Send confirmation email
+      try {
+        sendFlexFundsAddedEmail({
+          email: email,
+          name: customerName,
+          amount: addAmount,
+          code: gc.code,
+          newBalance: parseFloat(gc.balance)
+        });
+      } catch (emailErr) {
+        // Don't fail if email fails
+      }
+
+      // Get updated total balance
+      const balanceResult = getCustomerFlexBalance(email);
+
+      return {
+        success: true,
+        added: addAmount,
+        giftCardId: gc.id,
+        code: gc.code,
+        lastChars: gc.last_characters,
+        newTotalBalance: balanceResult.balance || addAmount,
+        message: `$${addAmount} added to your Flex Funds!`
+      };
+    }
+
+    return { success: false, error: result.error || 'Failed to add funds' };
+
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Send confirmation email when Flex funds are added
+ */
+function sendFlexFundsAddedEmail(params) {
+  const { email, name, amount, code, newBalance } = params;
+
+  const subject = `$${amount} Added to Your Tiny Seed Flex Funds`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Georgia, serif; background: #f9f7f4; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden;">
+    <div style="background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%); padding: 30px; text-align: center;">
+      <h1 style="color: white; margin: 0; font-size: 24px;">🌱 Flex Funds Added!</h1>
+    </div>
+    <div style="padding: 30px;">
+      <p style="font-size: 17px; color: #333;">Hi ${name || 'there'},</p>
+      <p style="font-size: 17px; color: #333; line-height: 1.6;">We've added <strong>$${amount}</strong> to your Flex CSA funds.</p>
+
+      <div style="background: #f0f7ee; border-radius: 12px; padding: 25px; margin: 25px 0; text-align: center;">
+        <p style="margin: 0 0 5px; color: #666; font-size: 14px;">Gift Card Code:</p>
+        <p style="font-size: 24px; font-weight: bold; color: #2d5a27; margin: 0; letter-spacing: 2px;">${code}</p>
+      </div>
+
+      <p style="font-size: 15px; color: #666;">Use this at checkout or at farmers markets. Expires January 1, 2027.</p>
+      <p style="font-size: 17px; color: #333; margin-top: 25px;">— Todd & the Tiny Seed Team</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  MailApp.sendEmail({ to: email, subject: subject, htmlBody: htmlBody });
+  return { success: true };
+}
+
+// ============================================================================
+// FLEX FUNDS COMPLETE SYSTEM - Customer Purchases + Admin Credits
+// ============================================================================
+
+const FLEX_FUNDS_PRODUCT_TITLE = 'Flex Funds Top-Up - $50';
+const FLEX_FUNDS_PRODUCT_TAG = 'flex-funds-topup';
+
+/**
+ * Get or create the Flex Funds product in Shopify
+ * Returns product info including checkout URL
+ */
+function ensureFlexFundsProduct() {
+  try {
+    // Search for existing product
+    const searchResult = shopifyApiCall(`products.json?title=${encodeURIComponent(FLEX_FUNDS_PRODUCT_TITLE)}`);
+
+    if (searchResult.success && searchResult.data?.products?.length > 0) {
+      const product = searchResult.data.products[0];
+      return {
+        success: true,
+        exists: true,
+        productId: product.id,
+        variantId: product.variants[0].id,
+        handle: product.handle,
+        checkoutUrl: `https://tiny-seed-farmers-market.myshopify.com/cart/${product.variants[0].id}:1`
+      };
+    }
+
+    // Create the product
+    const productPayload = {
+      product: {
+        title: FLEX_FUNDS_PRODUCT_TITLE,
+        body_html: '<p>Add $50 to your Flex Funds balance. Use at farmers markets, online, or for your CSA share customizations. Funds expire January 1, 2027.</p>',
+        vendor: 'Tiny Seed Farm',
+        product_type: 'Gift Card Top-Up',
+        tags: FLEX_FUNDS_PRODUCT_TAG + ', flex-funds, gift-card, csa',
+        status: 'active',
+        variants: [{
+          price: '50.00',
+          sku: 'FLEX-FUNDS-50',
+          inventory_policy: 'continue',
+          requires_shipping: false,
+          taxable: false
+        }]
+      }
+    };
+
+    const createResult = shopifyApiCall('products.json', 'POST', productPayload);
+
+    if (createResult.success && createResult.data?.product) {
+      const product = createResult.data.product;
+      logIntegration('Shopify', 'Flex Funds Product', 'SUCCESS', `Created product ID ${product.id}`);
+
+      return {
+        success: true,
+        exists: false,
+        created: true,
+        productId: product.id,
+        variantId: product.variants[0].id,
+        handle: product.handle,
+        checkoutUrl: `https://tiny-seed-farmers-market.myshopify.com/cart/${product.variants[0].id}:1`
+      };
+    }
+
+    return { success: false, error: createResult.error || 'Failed to create product' };
+
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Get checkout URL for customer to purchase Flex Funds
+ * Includes their email for order association
+ */
+function getFlexFundsCheckoutUrl(email, amount = 50) {
+  const productResult = ensureFlexFundsProduct();
+
+  if (!productResult.success) {
+    return { success: false, error: productResult.error };
+  }
+
+  // Calculate quantity for different amounts
+  const quantity = Math.ceil(parseFloat(amount) / 50) || 1;
+
+  // Build checkout URL with customer email pre-filled
+  const baseUrl = `https://tiny-seed-farmers-market.myshopify.com/cart/${productResult.variantId}:${quantity}`;
+  const checkoutUrl = email
+    ? `${baseUrl}?checkout[email]=${encodeURIComponent(email)}`
+    : baseUrl;
+
+  return {
+    success: true,
+    checkoutUrl: checkoutUrl,
+    productUrl: `https://tiny-seed-farmers-market.myshopify.com/products/${productResult.handle}`,
+    amount: quantity * 50,
+    quantity: quantity
+  };
+}
+
+/**
+ * Admin endpoint to add Flex Credits without payment
+ * Used for: missed items, compensation, goodwill, promotions
+ */
+function adminAddFlexCredits(params) {
+  const { email, amount, reason, adminEmail } = params;
+
+  if (!email) {
+    return { success: false, error: 'Customer email required' };
+  }
+
+  if (!amount || parseFloat(amount) <= 0) {
+    return { success: false, error: 'Valid amount required' };
+  }
+
+  if (!reason) {
+    return { success: false, error: 'Reason required for admin credits' };
+  }
+
+  const creditAmount = parseFloat(amount);
+
+  try {
+    // Find customer
+    const customerResult = shopifyApiCall(`customers/search.json?query=email:${encodeURIComponent(email)}`);
+    const customerId = customerResult.data?.customers?.[0]?.id || null;
+    const customerName = customerResult.data?.customers?.[0]
+      ? `${customerResult.data.customers[0].first_name || ''} ${customerResult.data.customers[0].last_name || ''}`.trim()
+      : '';
+
+    // Create gift card for the credit amount
+    const giftCardPayload = {
+      gift_card: {
+        initial_value: creditAmount.toFixed(2),
+        customer_id: customerId,
+        expires_on: '2027-01-01',
+        note: `ADMIN CREDIT: ${reason} - Added by ${adminEmail || 'Admin'} - ${customerName || email}`
+      }
+    };
+
+    const result = shopifyApiCall('gift_cards.json', 'POST', giftCardPayload);
+
+    if (result.success && result.data?.gift_card) {
+      const gc = result.data.gift_card;
+
+      // Log the transaction
+      logFlexTransaction({
+        email: email,
+        type: 'ADMIN_CREDIT',
+        amount: creditAmount,
+        reason: reason,
+        adminEmail: adminEmail || 'System',
+        giftCardId: gc.id,
+        giftCardCode: gc.last_characters
+      });
+
+      // Send notification email
+      sendAdminCreditEmail({
+        email: email,
+        name: customerName,
+        amount: creditAmount,
+        reason: reason,
+        code: gc.code
+      });
+
+      // Get updated balance
+      const balanceResult = getCustomerFlexBalance(email);
+
+      return {
+        success: true,
+        credited: creditAmount,
+        giftCardId: gc.id,
+        lastChars: gc.last_characters,
+        newBalance: balanceResult.balance || creditAmount,
+        reason: reason,
+        message: `$${creditAmount} credited to ${email} for: ${reason}`
+      };
+    }
+
+    return { success: false, error: result.error || 'Failed to create credit' };
+
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Log Flex Funds transactions to FlexFunds_Log sheet
+ */
+function logFlexTransaction(params) {
+  const { email, type, amount, reason, adminEmail, giftCardId, giftCardCode, orderId, orderNumber } = params;
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('FlexFunds_Log');
+
+    // Create sheet if doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('FlexFunds_Log');
+      sheet.appendRow([
+        'Timestamp', 'Email', 'Type', 'Amount', 'Reason', 'Admin_Email',
+        'Gift_Card_ID', 'Gift_Card_Last4', 'Order_ID', 'Order_Number'
+      ]);
+      sheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#22c55e').setFontColor('white');
+      sheet.setFrozenRows(1);
+    }
+
+    sheet.appendRow([
+      new Date().toISOString(),
+      email,
+      type,
+      amount,
+      reason || '',
+      adminEmail || '',
+      giftCardId || '',
+      giftCardCode || '',
+      orderId || '',
+      orderNumber || ''
+    ]);
+
+    return { success: true };
+
+  } catch (e) {
+    console.log('Failed to log flex transaction:', e);
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Get transaction history for a customer
+ */
+function getFlexTransactions(email) {
+  if (!email) {
+    return { success: false, error: 'Email required' };
+  }
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('FlexFunds_Log');
+
+    if (!sheet) {
+      return { success: true, transactions: [], message: 'No transaction history' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const transactions = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[1] && row[1].toString().toLowerCase() === email.toLowerCase()) {
+        transactions.push({
+          timestamp: row[0],
+          type: row[2],
+          amount: parseFloat(row[3]) || 0,
+          reason: row[4],
+          giftCardLast4: row[7]
+        });
+      }
+    }
+
+    // Sort by timestamp descending
+    transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Get current balance
+    const balanceResult = getCustomerFlexBalance(email);
+
+    return {
+      success: true,
+      transactions: transactions,
+      currentBalance: balanceResult.balance || 0,
+      count: transactions.length
+    };
+
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Send email when admin credits are added
+ */
+function sendAdminCreditEmail(params) {
+  const { email, name, amount, reason, code } = params;
+
+  const subject = `$${amount} Credit Added to Your Tiny Seed Account`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Georgia, serif; background: #f9f7f4; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden;">
+    <div style="background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%); padding: 30px; text-align: center;">
+      <h1 style="color: white; margin: 0; font-size: 24px;">🎁 Credit Added!</h1>
+    </div>
+    <div style="padding: 30px;">
+      <p style="font-size: 17px; color: #333;">Hi ${name || 'there'},</p>
+      <p style="font-size: 17px; color: #333; line-height: 1.6;">We've added <strong>$${amount}</strong> to your Flex Funds account.</p>
+
+      <div style="background: #f0f7ee; border-radius: 12px; padding: 20px; margin: 25px 0;">
+        <p style="margin: 0 0 10px; color: #666; font-size: 14px;"><strong>Reason:</strong></p>
+        <p style="font-size: 16px; color: #333; margin: 0;">${reason}</p>
+      </div>
+
+      <div style="background: #fff3e0; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
+        <p style="margin: 0 0 5px; color: #666; font-size: 14px;">Your Gift Card Code:</p>
+        <p style="font-size: 24px; font-weight: bold; color: #2d5a27; margin: 0; letter-spacing: 2px;">${code}</p>
+      </div>
+
+      <p style="font-size: 15px; color: #666;">Use this at checkout or at farmers markets. Expires January 1, 2027.</p>
+      <p style="font-size: 17px; color: #333; margin-top: 25px;">— Todd & the Tiny Seed Team</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  MailApp.sendEmail({ to: email, subject: subject, htmlBody: htmlBody });
+  return { success: true };
+}
+
+/**
+ * Process Flex Funds top-up purchase from webhook
+ * Called when a Flex Funds product is purchased
+ */
+function processFlexFundsTopUp(order, lineItem) {
+  const customerEmail = order.customer?.email || order.email || '';
+  const customerName = order.customer
+    ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim()
+    : '';
+  const customerId = order.customer?.id;
+  const amount = parseFloat(lineItem.price) * (lineItem.quantity || 1);
+
+  try {
+    // Create gift card for the purchase
+    const giftCardPayload = {
+      gift_card: {
+        initial_value: amount.toFixed(2),
+        customer_id: customerId || null,
+        expires_on: '2027-01-01',
+        note: `Flex Funds Top-Up - Order #${order.order_number} - ${customerName || customerEmail}`
+      }
+    };
+
+    const result = shopifyApiCall('gift_cards.json', 'POST', giftCardPayload);
+
+    if (result.success && result.data?.gift_card) {
+      const gc = result.data.gift_card;
+
+      // Log transaction
+      logFlexTransaction({
+        email: customerEmail,
+        type: 'PURCHASE',
+        amount: amount,
+        reason: `Flex Funds Top-Up - Order #${order.order_number}`,
+        giftCardId: gc.id,
+        giftCardCode: gc.last_characters,
+        orderId: order.id,
+        orderNumber: order.order_number
+      });
+
+      // Send confirmation with the code
+      sendFlexFundsAddedEmail({
+        email: customerEmail,
+        name: customerName,
+        amount: amount,
+        code: gc.code,
+        newBalance: amount
+      });
+
+      logIntegration('Shopify', 'Flex Funds Top-Up', 'SUCCESS',
+        `$${amount} for ${customerEmail} - Order #${order.order_number}`);
+
+      return {
+        success: true,
+        amount: amount,
+        giftCardId: gc.id,
+        email: customerEmail
+      };
+    }
+
+    return { success: false, error: result.error || 'Failed to process top-up' };
+
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
 }
 
 function handleShopifyProductWebhook(product) {
@@ -45571,183 +47438,9 @@ function getTaskTemplates(params) {
   };
 }
 
-// ============ MORNING BRIEF - PRESCRIPTIVE DAILY INTELLIGENCE ============
-
-function getMorningBrief(params) {
-  const employeeId = params.employeeId || '';
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const brief = {
-    date: todayStr,
-    dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today.getDay()],
-    greeting: getTimeBasedGreeting(),
-    weather: {},
-    criticalAlerts: [],
-    todaysTasks: [],
-    harvestReady: [],
-    recommendations: [],
-    stats: {}
-  };
-
-  // 1. GET WEATHER
-  try {
-    const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=40.7020&longitude=-80.2887&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/New_York&forecast_days=3';
-    const response = UrlFetchApp.fetch(weatherUrl);
-    const weather = JSON.parse(response.getContentText());
-
-    brief.weather = {
-      current: Math.round(weather.current.temperature_2m),
-      high: Math.round(weather.daily.temperature_2m_max[0]),
-      low: Math.round(weather.daily.temperature_2m_min[0]),
-      rainChance: weather.daily.precipitation_probability_max[0],
-      windMax: Math.round(weather.daily.wind_speed_10m_max[0]),
-      condition: getWeatherCondition(weather.current.weather_code)
-    };
-
-    // Weather-based alerts
-    if (weather.daily.temperature_2m_min[0] <= 36) {
-      brief.criticalAlerts.push({
-        type: 'FROST',
-        priority: 1,
-        icon: '❄️',
-        title: 'FROST WARNING',
-        message: `Low of ${Math.round(weather.daily.temperature_2m_min[0])}°F tonight`,
-        action: 'Cover tender transplants before dark',
-        reasoning: 'Frost damages warm-season crops like tomatoes, peppers, squash'
-      });
-    }
-
-    if (weather.daily.precipitation_probability_max[0] > 70) {
-      brief.criticalAlerts.push({
-        type: 'RAIN',
-        priority: 2,
-        icon: '🌧️',
-        title: 'Rain Expected',
-        message: `${weather.daily.precipitation_probability_max[0]}% chance today`,
-        action: 'Complete field work this morning',
-        reasoning: 'Wet soil compacts under traffic, postpone cultivation'
-      });
-    }
-
-    if (weather.daily.wind_speed_10m_max[0] > 20) {
-      brief.criticalAlerts.push({
-        type: 'WIND',
-        priority: 3,
-        icon: '💨',
-        title: 'High Winds',
-        message: `Gusts up to ${Math.round(weather.daily.wind_speed_10m_max[0])} mph`,
-        action: 'No spraying today - drift risk',
-        reasoning: 'Wind causes spray drift and damages row covers'
-      });
-    }
-  } catch (e) {
-    brief.weather = { error: 'Could not fetch weather' };
-  }
-
-  // 2. GET TODAY'S TASKS (from TASKS_2026 and EMPLOYEE_TASKS)
-  const taskSheet = ss.getSheetByName('TASKS_2026') || ss.getSheetByName('EMPLOYEE_TASKS');
-  if (taskSheet) {
-    const taskData = taskSheet.getDataRange().getValues();
-    const headers = taskData[0];
-
-    for (let i = 1; i < taskData.length; i++) {
-      const row = taskData[i];
-      const taskObj = {};
-      headers.forEach((h, idx) => taskObj[h] = row[idx]);
-
-      const dueDate = taskObj['Due_Date'] || taskObj['due_date'];
-      const status = taskObj['Status'] || taskObj['status'];
-
-      if (dueDate && status !== 'Complete' && status !== 'Completed') {
-        const dueDateStr = new Date(dueDate).toISOString().split('T')[0];
-        if (dueDateStr === todayStr || dueDateStr < todayStr) {
-          brief.todaysTasks.push({
-            id: taskObj['Task_ID'] || taskObj['id'] || i,
-            task: taskObj['Task_Name'] || taskObj['task'] || taskObj['description'],
-            crop: taskObj['Crop'] || taskObj['crop'] || '',
-            category: taskObj['Category'] || taskObj['category'] || 'General',
-            duration: taskObj['Duration_Min'] || taskObj['duration'] || 30,
-            priority: dueDateStr < todayStr ? 'OVERDUE' : 'TODAY',
-            bed: taskObj['Bed_ID'] || taskObj['bed'] || ''
-          });
-        }
-      }
-    }
-  }
-
-  // 3. GET HARVEST PREDICTIONS (if function exists)
-  try {
-    if (typeof getHarvestPredictions === 'function') {
-      const predictions = getHarvestPredictions({});
-      if (predictions.success) {
-        brief.harvestReady = predictions.predictions
-          .filter(p => p.status === 'HARVEST_SOON' || p.daysToHarvest <= 3)
-          .map(p => ({
-            crop: p.crop,
-            variety: p.variety,
-            batchId: p.batchId,
-            daysToHarvest: p.daysToHarvest,
-            confidence: p.confidence
-          }));
-      }
-    }
-  } catch (e) {
-    // Skip if harvest predictions fail
-  }
-
-  // 4. GENERATE SMART RECOMMENDATIONS
-
-  // Sort tasks by priority and category
-  const overdueTasks = brief.todaysTasks.filter(t => t.priority === 'OVERDUE');
-  const harvestTasks = brief.todaysTasks.filter(t => t.category === 'Harvest');
-  const cultivationTasks = brief.todaysTasks.filter(t => t.category === 'Cultivation');
-
-  if (overdueTasks.length > 0) {
-    brief.recommendations.push({
-      icon: '⚠️',
-      priority: 1,
-      title: `Clear ${overdueTasks.length} overdue task${overdueTasks.length > 1 ? 's' : ''}`,
-      reasoning: 'Overdue tasks compound - each day delayed increases crop stress'
-    });
-  }
-
-  if (brief.harvestReady.length > 0) {
-    brief.recommendations.push({
-      icon: '🥬',
-      priority: 2,
-      title: `Harvest ${brief.harvestReady.length} crop${brief.harvestReady.length > 1 ? 's' : ''} at peak`,
-      reasoning: 'Crops at peak quality degrade quickly - harvest window is 2-3 days'
-    });
-  }
-
-  if (brief.weather.rainChance < 30 && cultivationTasks.length > 0) {
-    brief.recommendations.push({
-      icon: '🚜',
-      priority: 3,
-      title: 'Good day for cultivation',
-      reasoning: 'Dry soil conditions, low rain chance - ideal for tractor work'
-    });
-  }
-
-  // 5. CALCULATE STATS
-  brief.stats = {
-    totalTasks: brief.todaysTasks.length,
-    overdueTasks: overdueTasks.length,
-    harvestReady: brief.harvestReady.length,
-    estimatedHours: Math.round(brief.todaysTasks.reduce((sum, t) => sum + (t.duration || 30), 0) / 60 * 10) / 10,
-    criticalAlerts: brief.criticalAlerts.length
-  };
-
-  return {
-    success: true,
-    brief: brief,
-    generatedAt: new Date().toISOString()
-  };
-}
-
-// getTimeBasedGreeting() already defined above - removed duplicate
+// ============ MORNING BRIEF - See MorningBriefGenerator.js ============
+// NOTE: getMorningBrief() is defined in MorningBriefGenerator.js
+// Duplicates removed 2026-01-22 to prevent conflicts
 
 function getWeatherCondition(code) {
   const conditions = {
@@ -48561,84 +50254,21 @@ function getPredictiveTasks(params) {
   }
 }
 
-/**
- * Generate comprehensive morning brief
- */
-function getMorningBrief(params) {
-  try {
-    const today = new Date();
-    const weather = getWeatherForecastData({});
-    const tasks = getPredictiveTasks({});
-    const diseaseRisk = getDiseaseRisk({});
-    const predictions = getHarvestPredictions({});
-
-    const alerts = [];
-
-    // Weather alerts
-    if (weather.success && weather.data[0]) {
-      const todayWeather = weather.data[0];
-      if (todayWeather.temp_high_f >= 90) {
-        alerts.push({ type: 'HEAT', message: `High of ${todayWeather.temp_high_f}°F - Plan irrigation, protect workers`, severity: 'warning' });
-      }
-      if (todayWeather.temp_low_f <= 40) {
-        alerts.push({ type: 'COLD', message: `Low of ${todayWeather.temp_low_f}°F - Check tender crops`, severity: 'warning' });
-      }
-      if (todayWeather.precip_chance >= 70) {
-        alerts.push({ type: 'RAIN', message: `${todayWeather.precip_chance}% chance of rain - Reschedule spray tasks`, severity: 'info' });
-      }
-    }
-
-    // Disease alerts
-    if (diseaseRisk.success && diseaseRisk.data.late_blight.risk_level === 'HIGH') {
-      alerts.push({ type: 'DISEASE', message: diseaseRisk.data.late_blight.action, severity: 'critical' });
-    }
-
-    // Harvest alerts
-    if (predictions.success && predictions.ready_this_week > 0) {
-      alerts.push({ type: 'HARVEST', message: `${predictions.ready_this_week} plantings ready for harvest this week`, severity: 'info' });
-    }
-
-    // Calculate total labor hours
-    let totalMinutes = 0;
-    if (tasks.success) {
-      totalMinutes = tasks.data.reduce((sum, t) => sum + (t.est_time_min || 30), 0);
-    }
-
-    return {
-      success: true,
-      data: {
-        date: Utilities.formatDate(today, 'America/New_York', 'EEEE, MMMM d, yyyy'),
-        weather_summary: weather.success ? {
-          high: weather.data[0].temp_high_f,
-          low: weather.data[0].temp_low_f,
-          precip_chance: weather.data[0].precip_chance,
-          humidity: weather.data[0].humidity
-        } : null,
-        alerts: alerts,
-        must_do_today: tasks.success ? tasks.data.filter(t => t.priority >= 80) : [],
-        should_do_today: tasks.success ? tasks.data.filter(t => t.priority >= 50 && t.priority < 80) : [],
-        can_wait: tasks.success ? tasks.data.filter(t => t.priority < 50) : [],
-        harvest_ready: predictions.success ? predictions.ready_this_week : 0,
-        disease_risk: diseaseRisk.success ? diseaseRisk.data.late_blight.risk_level : 'UNKNOWN',
-        estimated_labor_hours: Math.round(totalMinutes / 60 * 10) / 10
-      },
-      timestamp: new Date().toISOString()
-    };
-  } catch (error) {
-    Logger.log('getMorningBrief error: ' + error.toString());
-    return { success: false, error: error.toString() };
-  }
-}
+// NOTE: getMorningBrief() is now defined in MorningBriefGenerator.js
+// Duplicate removed 2026-01-22 to prevent conflicts
 
 /**
  * Get complete smart dashboard data
+ * Updated to use MorningBriefGenerator.js version of getMorningBrief
  */
 function getSmartDashboard(params) {
   try {
+    // getMorningBrief() from MorningBriefGenerator.js returns brief directly (no .data wrapper)
+    const morningBrief = getMorningBrief();
     return {
       success: true,
       data: {
-        morning_brief: getMorningBrief({}).data,
+        morning_brief: morningBrief,
         weather_forecast: getWeatherForecastData({}).data,
         harvest_predictions: getHarvestPredictions({}).data,
         disease_risk: getDiseaseRisk({}).data,
@@ -52952,31 +54582,167 @@ const BatchOperations = {
  */
 
 // Fast dashboard stats with caching
+// Note: getDashboardStats returns jsonResponse, so we need to call it without caching
+// or create a data-only version. For now, call directly without cache.
 function getDashboardStatsFast(params) {
-  return SmartCache.get('dashboard_stats', () => {
-    return getDashboardStats(params);
-  }, SmartCache.DURATIONS.SHORT);
+  // Bypass cache for now - getDashboardStats returns ContentService object
+  return getDashboardStatsData();
 }
 
 // Fast planning data with caching
 function getPlanningDataFast(params) {
-  const cacheKey = 'planning_' + (params.year || new Date().getFullYear());
+  const year = (params && params.year) || new Date().getFullYear();
+  const cacheKey = 'planning_' + year;
   return SmartCache.get(cacheKey, () => {
-    return getPlanningData(params);
-  }, SmartCache.DURATIONS.MEDIUM);
+    return getPlanningDataInternal(params);
+  }, SmartCache.DURATIONS.SHORT); // Short cache (1 min) since planning changes often
 }
 
-// Fast crops list (rarely changes)
+// Fast getPlanning endpoint - returns same format as legacy getPlanning()
+function getPlanningFast(params) {
+  const data = getPlanningDataFast(params);
+  // Transform to legacy format: {success, count, plantings}
+  return {
+    success: data.success,
+    count: data.count || 0,
+    plantings: data.data || []
+  };
+}
+
+/**
+ * Internal planning data (plain object for API response)
+ */
+function getPlanningDataInternal(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!sheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return { success: true, data: [], message: 'No planning data found' };
+    }
+
+    const headers = data[0];
+    const rows = data.slice(1);
+
+    const plantings = rows.map(row => {
+      const obj = {};
+      headers.forEach((header, index) => {
+        let value = row[index];
+        if (value instanceof Date) {
+          value = value.toISOString().split('T')[0];
+        }
+        obj[header] = value;
+      });
+      return obj;
+    }).filter(p => p.Crop);
+
+    return {
+      success: true,
+      data: plantings,
+      count: plantings.length,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Internal dashboard stats (plain object for API response)
+ */
+function getDashboardStatsData() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!planSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const data = planSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find revenue column by header name (more reliable than index)
+    const revenueColIndex = headers.findIndex(h =>
+      String(h).toLowerCase().includes('revenue') ||
+      String(h).toLowerCase().includes('est_revenue') ||
+      String(h).toLowerCase() === 'projected_revenue'
+    );
+
+    let activePlantings = 0;
+    let fieldsUsed = new Set();
+    let totalRevenue = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = row[0];
+      const bedId = row[5];
+
+      // Only add revenue if we found the column and value is a reasonable number
+      if (revenueColIndex >= 0) {
+        const revenueValue = row[revenueColIndex];
+        // Skip dates (which become huge numbers) and non-numeric values
+        if (typeof revenueValue === 'number' && !(revenueValue instanceof Date) && revenueValue < 1000000) {
+          totalRevenue += revenueValue;
+        }
+      }
+
+      if (status === 'PLANTED' || status === 'HARVESTING') {
+        activePlantings++;
+      }
+
+      if (bedId) {
+        const field = String(bedId).split('-')[0];
+        if (field) fieldsUsed.add(field);
+      }
+    }
+
+    let tasksDue = 0;
+    const taskSheet = ss.getSheetByName('DAILY_TASKS_GENERATED');
+    if (taskSheet) {
+      const taskData = taskSheet.getDataRange().getValues();
+      const today = new Date();
+
+      for (let i = 1; i < taskData.length; i++) {
+        const dueDate = taskData[i][0];
+        if (dueDate instanceof Date && dueDate <= today) {
+          tasksDue++;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      stats: {
+        activePlantings: activePlantings,
+        fieldsInUse: fieldsUsed.size,
+        tasksDue: tasksDue,
+        projectedRevenue: totalRevenue
+      },
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// Fast crops list (rarely changes) - uses data-only function for proper caching
 function getCropsFast(params) {
   return SmartCache.get('crops_list', () => {
-    return getCrops(params);
+    return getCropsData();
   }, SmartCache.DURATIONS.LONG);
 }
 
-// Fast beds list (rarely changes)
+// Fast beds list (rarely changes) - uses data-only function for proper caching
 function getBedsFast(params) {
   return SmartCache.get('beds_list', () => {
-    return getBeds(params);
+    return getBedsData();
   }, SmartCache.DURATIONS.LONG);
 }
 
@@ -53049,6 +54815,7 @@ function routeToOptimizedEndpoint(action, params) {
   const fastEndpoints = {
     'getDashboardStats': getDashboardStatsFast,
     'getPlanningData': getPlanningDataFast,
+    'getPlanning': getPlanningFast,
     'getCrops': getCropsFast,
     'getBeds': getBedsFast,
     'getWeather': getWeatherFast,
