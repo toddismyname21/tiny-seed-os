@@ -1063,6 +1063,15 @@
                 </div>
 
                 <div class="nav-section">
+                    <div class="nav-section-title">Wholesale</div>
+                    <a class="nav-item" onclick="showSection('standingOrders')">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Standing Orders</span>
+                        <span class="nav-item-badge warning" id="standingOrdersBadge" style="display:none;">0</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
                     <div class="nav-section-title">Quick Links</div>
                     <a class="nav-item" href="../index.html">
                         <i class="fas fa-home"></i>
@@ -2536,6 +2545,97 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- ════════════════════════════════════════════════════════════════════════════
+                     WHOLESALE STANDING ORDERS FULFILLMENT
+                     ════════════════════════════════════════════════════════════════════════════ -->
+                <section class="view-section" id="section-standingOrders">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                            <div class="stat-value" id="soStatDueThisWeek">--</div>
+                            <div class="stat-label">Due This Week</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-value" id="soStatFulfilled">--</div>
+                            <div class="stat-label">Fulfilled</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-value" id="soStatAtRisk">--</div>
+                            <div class="stat-label">At Risk / Low Stock</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-value" id="soStatTotalCustomers">--</div>
+                            <div class="stat-label">Active Customers</div>
+                        </div>
+                    </div>
+
+                    <!-- Due This Week -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-calendar-week" style="color: #2563eb;"></i>
+                                Standing Orders Due This Week
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-success" onclick="bulkFulfillAllOrders()">
+                                    <i class="fas fa-check-double"></i> Fulfill All
+                                </button>
+                                <button class="btn btn-secondary" onclick="loadStandingOrdersDashboard()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body" id="standingOrdersDueList" style="max-height: 500px; overflow-y: auto;">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                                Loading standing orders...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Summary -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-boxes" style="color: #22c55e;"></i>
+                                Weekly Product Totals
+                            </div>
+                        </div>
+                        <div class="card-body" id="standingOrdersProductSummary">
+                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                                Loading product summary...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Shortages -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-history" style="color: #ef4444;"></i>
+                                Recent Shortages
+                            </div>
+                        </div>
+                        <div class="card-body" id="recentShortagesList">
+                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                                No recent shortages
+                            </p>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -3240,7 +3340,8 @@
                 'csaRenewals': 'CSA Renewals',
                 'referralTracking': 'Referral Program',
                 'competitorAlerts': 'Competitor Intelligence',
-                'dataImport': 'Smart Data Import'
+                'dataImport': 'Smart Data Import',
+                'standingOrders': 'Wholesale Standing Orders'
             };
 
             // Load social data when switching to social sections
@@ -3267,6 +3368,10 @@
             // Load recent imports when switching to data import
             if (sectionId === 'dataImport') {
                 loadRecentImports();
+            }
+            // Load standing orders dashboard when switching to that section
+            if (sectionId === 'standingOrders') {
+                loadStandingOrdersDashboard();
             }
             document.getElementById('sectionTitle').textContent = titles[sectionId] || 'Dashboard';
 
@@ -4888,6 +4993,267 @@
                 // Silent fail for background check
             }
         }, 5 * 60 * 1000); // Check every 5 minutes
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // WHOLESALE STANDING ORDERS FULFILLMENT
+        // ════════════════════════════════════════════════════════════════════════════
+
+        let standingOrdersDashboardData = null;
+
+        async function loadStandingOrdersDashboard() {
+            try {
+                const response = await fetch(`${API_URL}?action=getStandingOrdersDashboard`);
+                const data = await response.json();
+
+                if (data.success) {
+                    standingOrdersDashboardData = data;
+                    renderStandingOrdersDashboard(data);
+                } else {
+                    showToast('Failed to load standing orders: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading standing orders dashboard:', error);
+                // Show demo data
+                renderStandingOrdersDashboard({
+                    dueThisWeek: [],
+                    productTotals: [],
+                    stats: { dueCount: 0, fulfilledCount: 0, atRiskCount: 0, activeCustomers: 0 }
+                });
+            }
+        }
+
+        function renderStandingOrdersDashboard(data) {
+            // Update stats
+            document.getElementById('soStatDueThisWeek').textContent = data.stats?.dueCount || data.dueThisWeek?.length || 0;
+            document.getElementById('soStatFulfilled').textContent = data.stats?.fulfilledCount || 0;
+            document.getElementById('soStatAtRisk').textContent = data.stats?.atRiskCount || 0;
+            document.getElementById('soStatTotalCustomers').textContent = data.stats?.activeCustomers || 0;
+
+            // Update badge in sidebar
+            const badge = document.getElementById('standingOrdersBadge');
+            const dueCount = data.stats?.dueCount || data.dueThisWeek?.length || 0;
+            if (dueCount > 0) {
+                badge.textContent = dueCount;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            // Render due orders
+            renderDueOrders(data.dueThisWeek || []);
+
+            // Render product summary
+            renderProductSummary(data.productTotals || []);
+
+            // Render recent shortages
+            renderRecentShortages(data.recentShortages || []);
+        }
+
+        function renderDueOrders(orders) {
+            const container = document.getElementById('standingOrdersDueList');
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-check-circle" style="font-size: 48px; color: var(--success); display: block; margin-bottom: 16px;"></i>
+                        <h3>No Orders Due</h3>
+                        <p>All standing orders for this week have been fulfilled!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Customer</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Product</th>
+                            <th style="text-align: center; padding: 12px; color: var(--text-secondary);">Qty</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Day</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Status</th>
+                            <th style="text-align: right; padding: 12px; color: var(--text-secondary);">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orders.map(order => `
+                            <tr style="border-bottom: 1px solid var(--border);" data-order-id="${order.Standing_Order_ID || order.standingOrderId}">
+                                <td style="padding: 12px;">
+                                    <div style="font-weight: 500;">${order.Customer_Name || order.customerName || 'Unknown'}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">${order.Customer_ID || order.customerId || ''}</div>
+                                </td>
+                                <td style="padding: 12px;">${order.Product_Name || order.productName || 'Unknown'}</td>
+                                <td style="padding: 12px; text-align: center; font-weight: 600;">${order.Quantity || order.quantity} ${order.Unit || order.unit}</td>
+                                <td style="padding: 12px;">${order.Day_Of_Week || order.dayOfWeek}</td>
+                                <td style="padding: 12px;">
+                                    ${order.atRisk
+                                        ? '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> At Risk</span>'
+                                        : '<span class="badge badge-info"><i class="fas fa-clock"></i> Pending</span>'
+                                    }
+                                </td>
+                                <td style="padding: 12px; text-align: right;">
+                                    <button class="btn btn-success btn-sm" onclick="fulfillStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')" style="margin-right: 8px;">
+                                        <i class="fas fa-check"></i> Fulfill
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="openShortageModal('${order.Standing_Order_ID || order.standingOrderId}', '${order.Product_Name || order.productName}', '${order.Customer_Name || order.customerName}')">
+                                        <i class="fas fa-times"></i> Short
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderProductSummary(products) {
+            const container = document.getElementById('standingOrdersProductSummary');
+
+            if (products.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No products due this week</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Product</th>
+                            <th style="text-align: center; padding: 12px; color: var(--text-secondary);">Total Qty</th>
+                            <th style="text-align: center; padding: 12px; color: var(--text-secondary);">Orders</th>
+                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${products.map(p => `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 12px; font-weight: 500;">${p.productName}</td>
+                                <td style="padding: 12px; text-align: center; font-weight: 600;">${p.totalQuantity} ${p.unit}</td>
+                                <td style="padding: 12px; text-align: center;">${p.orderCount}</td>
+                                <td style="padding: 12px;">
+                                    ${p.atRisk
+                                        ? '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Low Stock</span>'
+                                        : '<span class="badge badge-success"><i class="fas fa-check"></i> OK</span>'
+                                    }
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderRecentShortages(shortages) {
+            const container = document.getElementById('recentShortagesList');
+
+            if (shortages.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;"><i class="fas fa-check-circle" style="color: var(--success);"></i> No recent shortages</p>';
+                return;
+            }
+
+            container.innerHTML = shortages.map(s => `
+                <div style="background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 3px solid var(--danger);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <span class="badge badge-danger" style="margin-bottom: 8px;">${s.Reason || s.reason || 'SHORTED'}</span>
+                            <p style="font-weight: 500;">${s.Product_Name || s.productName} for ${s.Customer_Name || s.customerName}</p>
+                            <p style="font-size: 13px; color: var(--text-secondary);">${s.Quantity || s.quantity} ${s.Unit || s.unit}</p>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${formatDate(s.Shorted_Date || s.shortedDate)}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function fulfillStandingOrder(orderId) {
+            if (!confirm('Mark this order as fulfilled?')) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'markStandingOrderFulfilled',
+                        standingOrderId: orderId
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Order marked as fulfilled!', 'success');
+                    loadStandingOrdersDashboard();
+                } else {
+                    showToast('Failed to fulfill: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error fulfilling order', 'error');
+            }
+        }
+
+        function openShortageModal(orderId, productName, customerName) {
+            const reason = prompt(
+                `Reason for shortage on ${productName} for ${customerName}?
+
+Choose one:
+1. Weather damage
+2. Crop failure
+3. Sold out
+4. Season ended
+5. Other`,
+                'Sold out'
+            );
+
+            if (!reason) return;
+            markOrderShorted(orderId, reason);
+        }
+
+        async function markOrderShorted(orderId, reason) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'markStandingOrderShorted',
+                        standingOrderId: orderId,
+                        reason: reason
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Customer notified via SMS and email', 'success');
+                    loadStandingOrdersDashboard();
+                } else {
+                    showToast('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error marking order as shorted', 'error');
+            }
+        }
+
+        async function bulkFulfillAllOrders() {
+            if (!confirm('Mark ALL due orders as fulfilled?')) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'bulkFulfillStandingOrders'
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast(`${result.fulfilledCount || 0} orders fulfilled!`, 'success');
+                    loadStandingOrdersDashboard();
+                } else {
+                    showToast('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error fulfilling orders', 'error');
+            }
+        }
     </script>
 </body>
 </html>
