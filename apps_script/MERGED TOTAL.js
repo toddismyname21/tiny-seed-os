@@ -1017,6 +1017,49 @@ function doGet(e) {
       case 'getSmartDashboard':
         return jsonResponse(getSmartDashboard(e.parameter));
 
+      // ============ SMART AVAILABILITY ENGINE ============
+      case 'getRealtimeAvailability':
+        return jsonResponse(getRealtimeAvailability());
+      case 'getProductForecast':
+        return jsonResponse(getProductForecast(e.parameter.product || e.parameter.productId, parseInt(e.parameter.weeks) || 8));
+      case 'getWeeklyAvailability':
+        return jsonResponse(getWeeklyAvailability());
+      case 'canFulfillOrder':
+        // Parse items from query string or expect JSON array
+        let orderItems = [];
+        try {
+          if (e.parameter.items) {
+            orderItems = JSON.parse(e.parameter.items);
+          } else if (e.parameter.product && e.parameter.quantity) {
+            orderItems = [{ product: e.parameter.product, quantity: e.parameter.quantity }];
+          }
+        } catch (err) { orderItems = []; }
+        return jsonResponse(canFulfillOrder(orderItems));
+      case 'getSmartRecommendations':
+        return jsonResponse(getSmartRecommendations());
+      case 'getFreshHarvests':
+        return jsonResponse(getFreshHarvests());
+      case 'initializeAvailability':
+        return jsonResponse(initializeAvailabilityModule());
+
+      // ============ CHEF MANAGEMENT ============
+      case 'getChefProfile':
+        return jsonResponse(getChefProfile(e.parameter.customerId));
+      case 'getChefOrderHistory':
+        return jsonResponse(getChefOrderHistory(e.parameter.customerId));
+      case 'getChefRecommendations':
+        return jsonResponse(generateChefRecommendations(e.parameter.customerId));
+      case 'getOptedInChefs':
+        return jsonResponse({ success: true, chefs: getOptedInChefs(e.parameter.type || 'weekly_availability') });
+      case 'getAllChefs':
+        return jsonResponse(getAllChefs());
+
+      // ============ CHEF INVITATION SYSTEM ============
+      case 'verifyChefToken':
+        return jsonResponse(verifyChefToken(e.parameter.token));
+      case 'sendChefMagicLink':
+        return jsonResponse(sendChefMagicLink(e.parameter.customerId));
+
       // ============ AUTO PRE-HARVEST INSPECTION SYSTEM ============
       case 'getRequiredInspections':
         return jsonResponse(getRequiredPreHarvestInspections(e.parameter));
@@ -2476,6 +2519,12 @@ function doPost(e) {
       case 'deductInventoryOnApplication':
         return jsonResponse(deductInventoryOnApplication(data));
 
+      // ============ CHEF INVITATION SYSTEM ============
+      case 'inviteChef':
+        return jsonResponse(inviteChef(data));
+      case 'bulkInviteChefs':
+        return jsonResponse(bulkInviteChefs(data.chefs || data));
+
       // ============ SALES MODULE - CUSTOMER ACTIONS ============
       case 'sendCustomerMagicLink':
         return jsonResponse(sendCustomerMagicLink(data));
@@ -2557,6 +2606,28 @@ function doPost(e) {
         return jsonResponse(createSMSCampaign(data));
       case 'sendSMSCampaign':
         return jsonResponse(sendSMSCampaign(data));
+
+      // ============ CHEF COMMUNICATIONS (POST) ============
+      case 'sendWeeklyAvailabilityBlast':
+        return jsonResponse(sendWeeklyAvailabilityBlast());
+      case 'notifyStandingOrderShortage':
+        return jsonResponse(notifyStandingOrderShortage(
+          data.customerId, data.product, data.reason, data.alternatives || []
+        ));
+      case 'sendFreshHarvestAlert':
+        return jsonResponse(sendFreshHarvestAlert(data.product, data.quantity));
+      case 'sendPersonalizedRecommendations':
+        return jsonResponse(sendPersonalizedRecommendations(data.customerId));
+      case 'updateChefPreferences':
+        return jsonResponse(updateChefPreferences(data.customerId, data.preferences || data));
+      case 'allocateAvailability':
+        return jsonResponse(allocateAvailability(data.product, data.totalAvailable, data.orders || []));
+      case 'initializeChefCommunications':
+        return jsonResponse(initializeChefCommunications());
+      case 'setupAvailabilityTriggers':
+        return jsonResponse(setupAvailabilityTriggers());
+      case 'setupChefCommunicationTriggers':
+        return jsonResponse(setupChefCommunicationTriggers());
 
       // ============ DELIVERY & DRIVER ACTIONS ============
       case 'createDeliveryRoute':
