@@ -1381,6 +1381,12 @@ function doGet(e) {
         return jsonResponse(completeTaskWithGPS(e.parameter));
       case 'logHarvestWithDetails':
         return jsonResponse(logHarvestWithDetails(e.parameter));
+      case 'logHarvestWithValidation':
+        return jsonResponse(logHarvestWithValidation(e.parameter));
+      case 'checkHarvestWeatherRisk':
+        return jsonResponse(checkHarvestWeatherRisk());
+      case 'getWeatherAwareHarvestTasks':
+        return jsonResponse(getWeatherAwareHarvestTasks());
       case 'saveScoutingReport':
         return jsonResponse(saveScoutingReport(e.parameter));
       case 'logTreatment':
@@ -1676,8 +1682,7 @@ function doGet(e) {
         return jsonResponse(removeWishlistItem(e.parameter.id));
 
       // ============ SMART FINANCIAL SYSTEM - BILLS & RECEIPTS ============
-      case 'getBills':
-        return jsonResponse(getBillItems());
+      // case 'getBills' - handled above in FINANCIAL/ACCOUNTING section (this one called non-existent getBillItems)
       case 'saveBills':
         return jsonResponse(saveBillItems(e.parameter));
       case 'addBill':
@@ -1694,8 +1699,7 @@ function doGet(e) {
         return jsonResponse(addAssetItem(e.parameter));
       case 'generateAssetSchedule':
         return jsonResponse(generateAssetSchedule());
-      case 'generateBalanceSheet':
-        return jsonResponse(generateBalanceSheet());
+      // case 'generateBalanceSheet' - handled below with params support
 
       // ============ SMART FINANCIAL SYSTEM - INVESTMENTS ============
       case 'getAlpacaConfig':
@@ -1728,8 +1732,7 @@ function doGet(e) {
         return jsonResponse(calculateNetWorth());
 
       // ============ SMART FINANCIAL SYSTEM - LOAN PACKAGE EXPORT ============
-      case 'generateLoanPackage':
-        return jsonResponse(generateLoanPackage());
+      // case 'generateLoanPackage' - handled below with params support
       case 'saveLoanPackageToHTML':
         return jsonResponse(saveLoanPackageToHTML());
       case 'generateDebtSchedule':
@@ -52834,6 +52837,238 @@ function handlePreHarvestInspectionAPI(action, params, postData) {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // FIELD SAFETY LOG SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// HARVEST COMPLETION TRIGGER SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// FSMA 204 compliant harvest logging with pre-harvest inspection validation
+// Per CLAUDE_MARCHING_ORDERS.md - Field_Operations directive
+// Research: FDA FSMA 204 Traceability Rule, Cornell GAP, NY Agriculture guidance
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * FSMA-compliant lot code generation
+ * Format: TSF-JJJYY-CCC-SSS (Farm-JulianDateYear-CropCode-Sequence)
+ * Julian date format per FDA and PTI best practices
+ */
+function generateFSMALotCode(crop, fieldBlock) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const startOfYear = new Date(year, 0, 0);
+  const diff = now - startOfYear;
+  const oneDay = 1000 * 60 * 60 * 24;
+  const julianDay = Math.floor(diff / oneDay).toString().padStart(3, '0');
+  const yearCode = year.toString().slice(-2);
+  const cropCode = (crop || 'UNK').substring(0, 3).toUpperCase();
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('HARVEST_LOG') || ss.getSheetByName('EMPLOYEE_HARVEST_LOG');
+
+  let sequence = 1;
+  if (sheet && sheet.getLastRow() > 1) {
+    const data = sheet.getDataRange().getValues();
+    const lotCol = data[0].indexOf('Lot_Number');
+    if (lotCol >= 0) {
+      const todayPrefix = `TSF-${julianDay}${yearCode}-${cropCode}`;
+      for (let i = data.length - 1; i >= 1; i--) {
+        const lot = data[i][lotCol] || '';
+        if (lot.startsWith(todayPrefix)) {
+          const seqNum = parseInt(lot.split('-').pop(), 10);
+          if (!isNaN(seqNum) && seqNum >= sequence) sequence = seqNum + 1;
+        }
+      }
+    }
+  }
+  return `TSF-${julianDay}${yearCode}-${cropCode}-${sequence.toString().padStart(3, '0')}`;
+}
+
+/**
+ * Check for rain in forecast that would delay harvest
+ * Uses Open-Meteo free weather API
+ */
+function checkHarvestWeatherRisk() {
+  try {
+    const lat = 40.0, lon = -75.5;  // PA farm location
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=precipitation_probability,precipitation&forecast_days=3&timezone=America/New_York`;
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+
+    if (!data.hourly) return { success: true, warning: false, message: 'Weather unavailable' };
+
+    const now = new Date();
+    let heavyRainIn24h = false, heavyRainIn48h = false, rainDetails = [];
+
+    for (let i = 0; i < Math.min(48, data.hourly.time.length); i++) {
+      const forecastTime = new Date(data.hourly.time[i]);
+      const hoursAhead = (forecastTime - now) / 3600000;
+      const prob = data.hourly.precipitation_probability[i] || 0;
+      const amount = data.hourly.precipitation[i] || 0;
+
+      if (hoursAhead > 0 && hoursAhead <= 48 && prob > 70 && amount > 2) {
+        if (hoursAhead <= 24) heavyRainIn24h = true;
+        heavyRainIn48h = true;
+        rainDetails.push({ hours_ahead: Math.round(hoursAhead), probability: prob, amount_mm: amount });
+      }
+    }
+
+    if (heavyRainIn24h) {
+      return { success: true, warning: true, severity: 'HIGH',
+               message: 'Heavy rain within 24h - delay harvest or prioritize sensitive crops',
+               recommendation: 'DELAY_HARVEST', rain_events: rainDetails };
+    } else if (heavyRainIn48h) {
+      return { success: true, warning: true, severity: 'MODERATE',
+               message: 'Rain expected within 48h - plan harvest timing',
+               recommendation: 'EXPEDITE_HARVEST', rain_events: rainDetails };
+    }
+    return { success: true, warning: false, message: 'Good harvest window', recommendation: 'PROCEED' };
+  } catch (error) {
+    return { success: false, error: error.toString(), warning: false };
+  }
+}
+
+/**
+ * Create harvest compliance alert for missing inspections
+ */
+function createHarvestComplianceAlert(alertType, details) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('COMPLIANCE_ALERTS');
+    if (!sheet) {
+      sheet = ss.insertSheet('COMPLIANCE_ALERTS');
+      sheet.appendRow(['Alert_ID', 'Created_Date', 'Alert_Type', 'Severity', 'Crop', 'Field_Block',
+                       'Batch_ID', 'Message', 'Action_Required', 'Resolved', 'Resolved_Date', 'Resolved_By', 'Notes']);
+      sheet.getRange(1, 1, 1, 13).setFontWeight('bold');
+    }
+    const alertId = 'ALERT-' + Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd-HHmmss');
+    sheet.appendRow([alertId, new Date(), alertType, details.severity || 'WARNING', details.crop || '',
+                     details.fieldBlock || '', details.batchId || '', details.message || '',
+                     details.actionRequired || '', false, '', '', details.notes || '']);
+    return { success: true, alertId: alertId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Enhanced harvest logging with pre-harvest inspection validation
+ * FSMA 204 compliant with lot code generation and full traceability
+ */
+function logHarvestWithValidation(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.HARVEST_LOG);
+    const harvestId = generateId('HRV');
+    const now = new Date();
+
+    // Step 1: Validate pre-harvest inspection
+    const validation = validatePreHarvestInspection(params.batchId, params.fieldBlock || params.bedId, params.crop);
+    let inspectionStatus = 'NOT_CHECKED', inspectionWarning = null;
+
+    if (validation.success) {
+      if (validation.valid) {
+        inspectionStatus = 'VALID';
+      } else {
+        inspectionStatus = 'MISSING_OR_EXPIRED';
+        inspectionWarning = validation.message;
+        createHarvestComplianceAlert('MISSING_PREHARVEST_INSPECTION', {
+          severity: validation.is_high_risk ? 'CRITICAL' : 'WARNING',
+          crop: params.crop, fieldBlock: params.fieldBlock || params.bedId, batchId: params.batchId,
+          message: `Harvest without valid inspection: ${validation.message}`,
+          actionRequired: 'Complete inspection or document exception',
+          notes: `By ${params.employeeId || 'Unknown'}`
+        });
+      }
+    }
+
+    // Step 2: Generate FSMA lot code
+    const lotNumber = generateFSMALotCode(params.crop, params.fieldBlock || params.bedId);
+
+    // Step 3: Check weather
+    const weather = checkHarvestWeatherRisk();
+
+    // Step 4: Record harvest
+    const newRow = [harvestId, now.toISOString(), params.batchId || '', params.crop || '', params.variety || '',
+                    params.fieldBlock || params.bedId || '', params.quantity || 0, params.unit || 'lbs',
+                    params.quality || 'A', lotNumber, params.lat || '', params.lng || '', params.photo || '',
+                    params.employeeId || '', params.notes || '', inspectionStatus,
+                    validation.inspection ? validation.inspection.inspection_id : ''];
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (headers.indexOf('Inspection_Status') < 0) {
+      sheet.getRange(1, headers.length + 1).setValue('Inspection_Status');
+      sheet.getRange(1, headers.length + 2).setValue('Linked_Inspection_ID');
+    }
+    sheet.appendRow(newRow);
+
+    // Step 5: Link to inspection
+    if (validation.inspection) {
+      linkHarvestToInspection(harvestId, params.batchId, params.fieldBlock || params.bedId, params.crop);
+    }
+
+    // Step 6: Create traceability CTE
+    try {
+      createTraceabilityCTE({ eventType: 'HARVEST', batchId: params.batchId, lotCode: lotNumber,
+                              location: params.fieldBlock || params.bedId, crop: params.crop,
+                              quantity: params.quantity, unit: params.unit,
+                              details: `Quality: ${params.quality}, Inspection: ${inspectionStatus}`,
+                              performedBy: params.employeeId, gpsLat: params.lat, gpsLng: params.lng });
+    } catch (e) { console.log('CTE failed: ' + e); }
+
+    const response = { success: true, harvestId: harvestId, lotNumber: lotNumber, timestamp: now.toISOString(),
+                       inspection: { status: inspectionStatus, valid: inspectionStatus === 'VALID', warning: inspectionWarning }};
+    if (weather.warning) response.weather = { warning: true, message: weather.message, recommendation: weather.recommendation };
+    return response;
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get harvest tasks with weather-adjusted priorities and rain delay warnings
+ */
+function getWeatherAwareHarvestTasks() {
+  try {
+    const predictions = getGDDPredictedHarvests();
+    if (!predictions.success) return predictions;
+
+    const weather = checkHarvestWeatherRisk();
+    const tasks = [], fieldRisks = {};
+
+    predictions.predictions.forEach(pred => {
+      if (pred.days_to_harvest <= 7) {
+        let fieldRisk = fieldRisks[pred.location];
+        if (!fieldRisk) { try { fieldRisk = getFieldSafetyRisk(pred.location); fieldRisks[pred.location] = fieldRisk; } catch(e) { fieldRisk = { success: false }; }}
+
+        let priority = 50;
+        if (pred.days_to_harvest <= 0) priority += 40;
+        else if (pred.days_to_harvest <= 1) priority += 30;
+        else if (pred.days_to_harvest <= 3) priority += 20;
+        if (weather.warning && weather.severity === 'HIGH' && pred.days_to_harvest <= 1) priority += 20;
+        if (fieldRisk.success && fieldRisk.risk_score > 50) priority -= 10;
+
+        const task = { type: 'HARVEST', crop: pred.crop, variety: pred.variety, location: pred.location,
+                       batch_id: pred.batch_id, days_to_harvest: pred.days_to_harvest,
+                       priority: Math.min(100, Math.max(0, priority)), needs_inspection: true,
+                       weather_warning: weather.warning ? weather.message : null,
+                       field_safety: fieldRisk.success ? fieldRisk.risk_level : 'unknown' };
+
+        if (weather.recommendation === 'DELAY_HARVEST') {
+          task.rain_delay_warning = true;
+          task.delay_message = 'Heavy rain within 24h - consider delay';
+        } else if (weather.recommendation === 'EXPEDITE_HARVEST') {
+          task.expedite_warning = true;
+          task.expedite_message = 'Rain within 48h - prioritize harvest';
+        }
+        tasks.push(task);
+      }
+    });
+
+    tasks.sort((a, b) => b.priority - a.priority);
+    return { success: true, tasks: tasks, weather_status: weather, generated_at: new Date().toISOString() };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
 // Tracks animal intrusion, flooding, adjacent land activity for pre-harvest risk assessment
 // Per CLAUDE_MARCHING_ORDERS.md - Field_Operations directive
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
