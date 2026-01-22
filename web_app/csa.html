@@ -628,75 +628,420 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           FLEX FUNDS BALANCE
+           FLEX FUNDS BALANCE - DIGITAL CLOCK STYLE
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .flex-funds-card {
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        .flex-funds-banner {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             border-radius: var(--radius-lg);
-            padding: 24px;
-            color: white;
-            box-shadow: var(--shadow-md);
-        }
-
-        .flex-balance-display {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .flex-balance-amount {
-            font-size: 48px;
-            font-weight: 700;
-            letter-spacing: -1px;
-        }
-
-        .flex-balance-label {
-            font-size: 14px;
-            opacity: 0.9;
-            margin-top: 4px;
-        }
-
-        .flex-funds-actions {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
+            padding: 20px;
             margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flex-funds-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 40%, rgba(34, 197, 94, 0.1) 50%, transparent 60%);
+            animation: shimmerGlow 3s infinite;
+        }
+
+        @keyframes shimmerGlow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .flex-clock-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .flex-clock-label {
+            color: #22c55e;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .flex-clock-amount {
+            font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
+            font-size: 56px;
+            font-weight: 700;
+            color: #22c55e;
+            text-shadow: 0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3);
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+
+        .flex-clock-cents {
+            font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
+            font-size: 24px;
+            font-weight: 600;
+            color: #22c55e;
+            opacity: 0.8;
+            align-self: flex-start;
+            margin-top: 8px;
+        }
+
+        .flex-banner-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            position: relative;
+            z-index: 1;
         }
 
         .flex-add-btn {
-            background: white;
-            color: var(--primary-dark);
+            background: #22c55e;
+            color: white;
             border: none;
-            padding: 14px 28px;
+            padding: 12px 24px;
             border-radius: 50px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 8px;
             transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
         }
 
         .flex-add-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
         }
 
         .flex-add-btn:disabled {
-            opacity: 0.7;
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
 
-        .flex-funds-info {
-            text-align: center;
-            opacity: 0.85;
+        .flex-history-link {
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+            text-decoration: none;
+            cursor: pointer;
         }
 
-        .flex-funds-info small {
+        .flex-history-link:hover {
+            color: white;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           ORDER CONFIRMATION & DISPUTE STYLES
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .order-confirmation-card {
+            background: var(--bg-elevated);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .order-row:last-child { border-bottom: none; }
+
+        .order-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .order-value {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .dispute-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .dispute-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px dashed var(--border-color);
+            color: var(--text-secondary);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .dispute-btn:hover {
+            border-color: var(--warning);
+            color: var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .dispute-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .dispute-modal-content {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .dispute-modal-content h3 {
+            margin-bottom: 8px;
+        }
+
+        .dispute-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .dispute-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .dispute-actions .btn { flex: 1; }
+
+        .form-hint {
             font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .skip-veggies-input {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           VACATION HOLDS - REDESIGNED
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .hold-options-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .hold-option-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-elevated);
+            padding: 12px;
+            border-radius: var(--radius-md);
+        }
+
+        .hold-option-icon {
+            font-size: 24px;
+        }
+
+        .hold-option-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hold-option-text strong {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .hold-option-text span {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Hold Options Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-header h3 { margin: 0; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .modal-footer .btn { flex: 1; }
+
+        .hold-choice {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .hold-choice:hover {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .hold-choice.selected {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .hold-choice.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .hold-choice.disabled:hover {
+            border-color: var(--border-color);
+            background: transparent;
+        }
+
+        .hold-choice-radio {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .hold-choice.selected .hold-choice-radio {
+            border-color: var(--primary);
+        }
+
+        .hold-choice.selected .hold-choice-radio::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        .hold-choice-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .hold-choice-icon {
+            font-size: 28px;
+        }
+
+        .hold-choice-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hold-choice-text strong {
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .hold-choice-text span {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .season-warning {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flex-history-panel {
+            margin-top: 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .flex-transactions-list {
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         .flex-history-section {
@@ -1671,63 +2016,84 @@
 
         <div class="onboarding-content">
             <div class="onboarding-card">
-                <!-- Step 1: Welcome -->
+                <!-- Step 1: Order Confirmation -->
                 <div class="onboarding-step active" id="onboarding-step-1">
-                    <div class="onboarding-illustration">🌱</div>
-                    <h2 style="text-align: center; margin-bottom: 12px;">Welcome, <span id="onboardingName">Friend</span>!</h2>
-                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
-                        We're so excited to have you as a CSA member. Fresh, local produce is coming your way!
+                    <div class="onboarding-illustration">📦</div>
+                    <h2 style="text-align: center; margin-bottom: 8px;">Here's What You Ordered!</h2>
+                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+                        Welcome to the Tiny Seed Farm family! We're thrilled to have you.
                     </p>
-                    <div class="settings-card" style="margin: 0;">
-                        <div class="settings-row">
-                            <span class="settings-label">Share Type</span>
-                            <span class="settings-value" id="onboardingShare">Regular Vegetable</span>
+                    <div class="order-confirmation-card">
+                        <div class="order-row">
+                            <span class="order-label">Name</span>
+                            <span class="order-value" id="onboardingFullName">Member Name</span>
                         </div>
-                        <div class="settings-row">
-                            <span class="settings-label">Season</span>
-                            <span class="settings-value" id="onboardingSeason">2026</span>
+                        <div class="order-row">
+                            <span class="order-label">Email</span>
+                            <span class="order-value" id="onboardingEmail">email@example.com</span>
                         </div>
-                        <div class="settings-row">
-                            <span class="settings-label">Pickup Location</span>
-                            <span class="settings-value" id="onboardingLocation">Farm Stand</span>
+                        <div class="order-row">
+                            <span class="order-label">Share Type</span>
+                            <span class="order-value" id="onboardingShare">Regular Vegetable</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">Season</span>
+                            <span class="order-value" id="onboardingSeason">2026</span>
+                        </div>
+                        <div class="order-row">
+                            <span class="order-label">Pickup Location</span>
+                            <span class="order-value" id="onboardingLocation">Farm Stand</span>
+                        </div>
+                        <div class="order-row" id="onboardingAddressRow" style="display: none;">
+                            <span class="order-label">Delivery Address</span>
+                            <span class="order-value" id="onboardingAddress">123 Main St</span>
+                        </div>
+                    </div>
+                    <div class="dispute-section">
+                        <p style="font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 8px;">
+                            Does everything look correct?
+                        </p>
+                        <button class="dispute-btn" onclick="showDisputeForm()">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Something doesn't look right
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dispute Modal (hidden by default) -->
+                <div class="dispute-modal" id="disputeModal" style="display: none;">
+                    <div class="dispute-modal-content">
+                        <h3>Let Us Know What's Wrong</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                            We'll review and fix any issues right away.
+                        </p>
+                        <div class="form-group">
+                            <label class="form-label">What needs to be corrected?</label>
+                            <textarea class="form-input dispute-textarea" id="disputeText" rows="4"
+                                placeholder="Please describe what information is incorrect..."></textarea>
+                        </div>
+                        <div class="dispute-actions">
+                            <button class="btn btn-secondary" onclick="hideDisputeForm()">Cancel</button>
+                            <button class="btn btn-primary" onclick="submitDispute()">Submit</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Step 2: Dislikes -->
+                <!-- Step 2: Dislikes (Free Text) -->
                 <div class="onboarding-step" id="onboarding-step-2">
-                    <h2 style="margin-bottom: 8px;">Any veggies you'd rather skip?</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
-                        Select items you don't love - we'll auto-suggest swaps when they're in your box
+                    <div class="onboarding-illustration">🥬</div>
+                    <h2 style="margin-bottom: 8px; text-align: center;">Any veggies you'd rather skip?</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px; text-align: center;">
+                        Let us know if there's anything you don't eat, and we'll suggest swaps when they're in your box.
                     </p>
-                    <div class="preference-grid" id="dislikesGrid">
-                        <div class="preference-item" data-value="cilantro" onclick="togglePreference(this)">
-                            <div class="emoji">🌿</div>
-                            <div class="name">Cilantro</div>
-                        </div>
-                        <div class="preference-item" data-value="beets" onclick="togglePreference(this)">
-                            <div class="emoji">🍠</div>
-                            <div class="name">Beets</div>
-                        </div>
-                        <div class="preference-item" data-value="kale" onclick="togglePreference(this)">
-                            <div class="emoji">🥬</div>
-                            <div class="name">Kale</div>
-                        </div>
-                        <div class="preference-item" data-value="eggplant" onclick="togglePreference(this)">
-                            <div class="emoji">🍆</div>
-                            <div class="name">Eggplant</div>
-                        </div>
-                        <div class="preference-item" data-value="turnips" onclick="togglePreference(this)">
-                            <div class="emoji">🥔</div>
-                            <div class="name">Turnips</div>
-                        </div>
-                        <div class="preference-item" data-value="radishes" onclick="togglePreference(this)">
-                            <div class="emoji">🔴</div>
-                            <div class="name">Radishes</div>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">Vegetables to skip (optional)</label>
+                        <textarea class="form-input skip-veggies-input" id="skipVeggiesInput" rows="3"
+                            placeholder="Type any vegetables you'd prefer not to receive..."></textarea>
+                        <p class="form-hint">Examples: cilantro, beets, spicy peppers</p>
                     </div>
-                    <p style="font-size: 13px; color: var(--text-muted); text-align: center;">
-                        Don't worry, you can always change this later
+                    <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-top: 16px;">
+                        Don't worry, you can always update this later in your settings.
                     </p>
                 </div>
 
@@ -1805,6 +2171,31 @@
                 <button class="dismiss" onclick="dismissAlert()"><i class="fas fa-times"></i></button>
             </div>
 
+            <!-- Flex Funds Balance - Digital Clock Style (TOP of page) -->
+            <div class="flex-funds-banner" id="flexFundsBanner" style="display: none;">
+                <div class="flex-clock-label">FLEX FUNDS BALANCE</div>
+                <div class="flex-clock-display">
+                    <span class="flex-clock-amount">$<span id="flexBalanceDollars">0</span></span>
+                    <span class="flex-clock-cents">.<span id="flexBalanceCents">00</span></span>
+                </div>
+                <div class="flex-banner-row">
+                    <span class="flex-history-link" onclick="toggleFlexHistory()">
+                        <i class="fas fa-history"></i> View History
+                    </span>
+                    <button class="flex-add-btn" onclick="purchaseFlexFunds()">
+                        <i class="fas fa-plus"></i>
+                        Add $50
+                    </button>
+                </div>
+                <!-- Transaction History (slides down) -->
+                <div class="flex-history-panel" id="flexHistoryPanel" style="display: none;">
+                    <h4 style="color: white; font-size: 14px; margin-bottom: 12px;">Recent Transactions</h4>
+                    <div id="flexTransactionsList" class="flex-transactions-list">
+                        <div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="welcome-banner">
                 <div class="welcome-row">
                     <div>
@@ -1851,37 +2242,6 @@
                     <i class="fas fa-comment"></i>
                     Contact Us
                 </button>
-            </div>
-
-            <!-- Flex Funds Balance (for ALL CSA members) -->
-            <div class="section flex-funds-section" id="flexFundsSection" style="display: none;">
-                <div class="section-header">
-                    <h2 class="section-title">💳 Flex Funds</h2>
-                    <button class="section-action" onclick="toggleFlexHistory()">History</button>
-                </div>
-                <div class="flex-funds-card">
-                    <div class="flex-balance-display">
-                        <div class="flex-balance-amount">$<span id="flexBalance">0.00</span></div>
-                        <div class="flex-balance-label">Available to spend</div>
-                    </div>
-                    <div class="flex-funds-actions">
-                        <button class="flex-add-btn" onclick="purchaseFlexFunds()">
-                            <i class="fas fa-plus-circle"></i>
-                            Add $50
-                        </button>
-                    </div>
-                    <div class="flex-funds-info">
-                        <small>Use at farmers markets or online. Expires Jan 1, 2027.</small>
-                    </div>
-                </div>
-
-                <!-- Transaction History -->
-                <div class="flex-history-section" id="flexHistorySection" style="display: none;">
-                    <h3 class="flex-history-title">Transaction History</h3>
-                    <div id="flexTransactionsList" class="flex-transactions-list">
-                        <div class="flex-loading">Loading...</div>
-                    </div>
-                </div>
             </div>
 
             <!-- This Week's Box -->
@@ -2002,7 +2362,7 @@
                     <div class="vacation-header">
                         <div class="vacation-title">Available Holds</div>
                         <div class="vacation-remaining">
-                            <strong id="holdsRemaining">2</strong> of 3 remaining
+                            <strong id="holdsRemaining">2</strong> of <span id="holdsTotal">3</span> remaining
                         </div>
                     </div>
 
@@ -2016,11 +2376,72 @@
                 <div class="settings-card">
                     <div class="settings-title">How Holds Work</div>
                     <ul style="color: var(--text-secondary); font-size: 14px; padding-left: 20px; line-height: 1.8;">
-                        <li>You get 3 vacation holds per season</li>
+                        <li><strong id="holdLimitText">Large shares get 3 holds, small shares get 1</strong></li>
                         <li>Schedule at least 5 days before pickup</li>
-                        <li>Your box is donated to a local food bank</li>
-                        <li>No credits - just skip the week</li>
+                        <li>Choose what happens to your box:</li>
                     </ul>
+                    <div class="hold-options-info">
+                        <div class="hold-option-card">
+                            <div class="hold-option-icon">🎁</div>
+                            <div class="hold-option-text">
+                                <strong>Donate</strong>
+                                <span>Your box goes to a local food bank (Spring & Winter CSA only)</span>
+                            </div>
+                        </div>
+                        <div class="hold-option-card">
+                            <div class="hold-option-icon">💳</div>
+                            <div class="hold-option-text">
+                                <strong>Flex Funds Credit</strong>
+                                <span>Receive credit to use at markets or online</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hold Options Modal -->
+        <div class="modal-overlay" id="holdOptionsModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Schedule Hold for <span id="holdModalDate">Jan 28</span></h3>
+                    <button class="modal-close" onclick="closeHoldModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                        What would you like us to do with your box?
+                    </p>
+
+                    <div class="hold-choice" id="holdChoiceDonate" onclick="selectHoldChoice('donate')">
+                        <div class="hold-choice-radio"></div>
+                        <div class="hold-choice-content">
+                            <div class="hold-choice-icon">🎁</div>
+                            <div class="hold-choice-text">
+                                <strong>Donate to Food Bank</strong>
+                                <span>Help feed families in need</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hold-choice" id="holdChoiceCredit" onclick="selectHoldChoice('credit')">
+                        <div class="hold-choice-radio"></div>
+                        <div class="hold-choice-content">
+                            <div class="hold-choice-icon">💳</div>
+                            <div class="hold-choice-text">
+                                <strong>Flex Funds Credit</strong>
+                                <span>Add credit to your account balance</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="donateSeasonWarning" class="season-warning" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        Donations are only available during Spring and Winter CSA seasons.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeHoldModal()">Cancel</button>
+                    <button class="btn btn-primary" id="confirmHoldBtn" onclick="confirmHold()" disabled>Confirm Hold</button>
                 </div>
             </div>
         </div>
@@ -2560,15 +2981,30 @@
             document.getElementById('appContainer').classList.remove('active');
             document.getElementById('onboardingScreen').classList.add('active');
 
-            // Populate with user data
-            document.getElementById('onboardingName').textContent =
-                AppState.customer?.Contact_Name?.split(' ')[0] || 'Friend';
+            // Populate with user data - Order Confirmation
+            const fullName = AppState.customer?.Contact_Name || AppState.membership?.Name || 'Member';
+            document.getElementById('onboardingFullName').textContent = fullName;
+            document.getElementById('onboardingEmail').textContent =
+                AppState.customer?.Email || AppState.membership?.Email || '';
             document.getElementById('onboardingShare').textContent =
-                `${AppState.membership?.Share_Size || 'Regular'} ${AppState.membership?.Share_Type || 'Vegetable'}`;
+                AppState.membership?.Share_Type || 'Vegetable Share';
             document.getElementById('onboardingSeason').textContent =
                 AppState.membership?.Season || '2026';
             document.getElementById('onboardingLocation').textContent =
                 AppState.membership?.Pickup_Location || 'Farm Stand';
+
+            // Show address if delivery
+            const address = AppState.membership?.Address || AppState.customer?.Address;
+            if (address) {
+                document.getElementById('onboardingAddressRow').style.display = 'flex';
+                const fullAddress = [
+                    address,
+                    AppState.membership?.City,
+                    AppState.membership?.State,
+                    AppState.membership?.Zip
+                ].filter(Boolean).join(', ');
+                document.getElementById('onboardingAddress').textContent = fullAddress || address;
+            }
 
             updateOnboardingStep();
         }
@@ -2601,14 +3037,14 @@
 
             // Update header text
             const titles = [
-                'Welcome to Tiny Seed Farm!',
-                'Customize Your Experience',
+                'Welcome to the Family!',
+                'Quick Preferences',
                 'Stay Connected',
                 "You're All Set!"
             ];
             const subtitles = [
-                "Let's confirm your details",
-                'Tell us your preferences',
+                "Here's what you ordered",
+                'Any veggies to skip?',
                 'Choose how we reach you',
                 'Your CSA journey begins now'
             ];
@@ -2646,14 +3082,19 @@
         }
 
         async function completeOnboarding() {
-            // Collect preferences
-            const dislikes = Array.from(document.querySelectorAll('#dislikesGrid .preference-item.selected'))
-                .map(el => el.dataset.value);
+            // Collect preferences - now using free-text input
+            const skipVeggiesText = document.getElementById('skipVeggiesInput').value.trim();
+            // Parse comma-separated or newline-separated items
+            const dislikes = skipVeggiesText
+                ? skipVeggiesText.split(/[,\n]+/).map(s => s.trim()).filter(Boolean)
+                : [];
+
             const emailPref = document.getElementById('commEmail').checked;
             const smsPref = document.getElementById('commSMS').checked;
             const phone = document.getElementById('phoneInput').value;
 
             AppState.preferences.dislikes = dislikes;
+            AppState.preferences.skipVeggiesText = skipVeggiesText; // Store raw text too
             AppState.preferences.commMethod = smsPref ? (emailPref ? 'both' : 'sms') : 'email';
             AppState.isOnboarded = true;
 
@@ -2791,19 +3232,19 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // FLEX FUNDS BALANCE - Available to ALL CSA Members
+        // FLEX FUNDS BALANCE - Digital Clock Style at Top
         // ═══════════════════════════════════════════════════════════════════════════
 
         async function loadFlexBalance() {
-            const flexSection = document.getElementById('flexFundsSection');
+            const flexBanner = document.getElementById('flexFundsBanner');
 
-            // Show Flex Funds section for ALL logged-in CSA members
+            // Show Flex Funds banner for ALL logged-in CSA members
             if (!AppState.membership) {
-                flexSection.style.display = 'none';
+                flexBanner.style.display = 'none';
                 return;
             }
 
-            flexSection.style.display = 'block';
+            flexBanner.style.display = 'block';
 
             try {
                 const email = AppState.membership?.Email;
@@ -2814,16 +3255,22 @@
 
                 if (result.success) {
                     const balance = parseFloat(result.balance || 0);
-                    document.getElementById('flexBalance').textContent = balance.toFixed(2);
+                    const dollars = Math.floor(balance);
+                    const cents = Math.round((balance - dollars) * 100).toString().padStart(2, '0');
+
+                    document.getElementById('flexBalanceDollars').textContent = dollars;
+                    document.getElementById('flexBalanceCents').textContent = cents;
                     AppState.flexBalance = balance;
                     AppState.flexGiftCards = result.giftCards || [];
                 } else {
-                    document.getElementById('flexBalance').textContent = '0.00';
+                    document.getElementById('flexBalanceDollars').textContent = '0';
+                    document.getElementById('flexBalanceCents').textContent = '00';
                     AppState.flexBalance = 0;
                 }
             } catch (error) {
                 console.log('Error loading flex balance:', error);
-                document.getElementById('flexBalance').textContent = '0.00';
+                document.getElementById('flexBalanceDollars').textContent = '0';
+                document.getElementById('flexBalanceCents').textContent = '00';
             }
         }
 
@@ -2862,13 +3309,13 @@
         }
 
         function toggleFlexHistory() {
-            const historySection = document.getElementById('flexHistorySection');
-            const isVisible = historySection.style.display !== 'none';
+            const historyPanel = document.getElementById('flexHistoryPanel');
+            const isVisible = historyPanel.style.display !== 'none';
 
             if (isVisible) {
-                historySection.style.display = 'none';
+                historyPanel.style.display = 'none';
             } else {
-                historySection.style.display = 'block';
+                historyPanel.style.display = 'block';
                 loadFlexTransactions();
             }
         }
@@ -2878,44 +3325,93 @@
             const email = AppState.membership?.Email;
 
             if (!email) {
-                listEl.innerHTML = '<div class="flex-empty">Please log in to view history</div>';
+                listEl.innerHTML = '<div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">Please log in to view history</div>';
                 return;
             }
 
-            listEl.innerHTML = '<div class="flex-loading">Loading transactions...</div>';
+            listEl.innerHTML = '<div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">Loading...</div>';
 
             try {
                 const response = await fetch(`${API_URL}?action=getFlexTransactions&email=${encodeURIComponent(email)}`);
                 const result = await response.json();
 
                 if (result.success && result.transactions?.length > 0) {
-                    listEl.innerHTML = result.transactions.map(tx => {
+                    listEl.innerHTML = result.transactions.slice(0, 5).map(tx => {
                         const date = new Date(tx.timestamp);
-                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                        const typeLabel = tx.type === 'ADMIN_CREDIT' ? 'Credit Added' :
-                                          tx.type === 'PURCHASE' ? 'Funds Added' :
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const typeLabel = tx.type === 'ADMIN_CREDIT' ? 'Credit' :
+                                          tx.type === 'PURCHASE' ? 'Added' :
                                           tx.type === 'SPENT' ? 'Spent' : tx.type;
                         const isCredit = tx.type !== 'SPENT';
 
                         return `
-                            <div class="flex-transaction">
-                                <div class="flex-tx-info">
-                                    <div class="flex-tx-type">${typeLabel}</div>
-                                    <div class="flex-tx-date">${dateStr}</div>
-                                    ${tx.reason ? `<div class="flex-tx-reason">${tx.reason}</div>` : ''}
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <div>
+                                    <div style="color: white; font-size: 13px;">${typeLabel}</div>
+                                    <div style="color: rgba(255,255,255,0.5); font-size: 11px;">${dateStr}</div>
                                 </div>
-                                <div class="flex-tx-amount ${isCredit ? 'credit' : 'debit'}">
+                                <div style="font-weight: 600; color: ${isCredit ? '#4ade80' : '#ef4444'};">
                                     ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}
                                 </div>
                             </div>
                         `;
                     }).join('');
                 } else {
-                    listEl.innerHTML = '<div class="flex-empty">No transactions yet</div>';
+                    listEl.innerHTML = '<div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">No transactions yet</div>';
                 }
             } catch (error) {
                 console.log('Error loading transactions:', error);
-                listEl.innerHTML = '<div class="flex-empty">Failed to load history</div>';
+                listEl.innerHTML = '<div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">Failed to load</div>';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DISPUTE FORM FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function showDisputeForm() {
+            document.getElementById('disputeModal').style.display = 'flex';
+        }
+
+        function hideDisputeForm() {
+            document.getElementById('disputeModal').style.display = 'none';
+            document.getElementById('disputeText').value = '';
+        }
+
+        async function submitDispute() {
+            const disputeText = document.getElementById('disputeText').value.trim();
+
+            if (!disputeText) {
+                showToast('Please describe what needs to be corrected', 'error');
+                return;
+            }
+
+            try {
+                const email = AppState.membership?.Email;
+                const name = AppState.membership?.Name || '';
+
+                // Send dispute notification to farm
+                const response = await fetch(`${API_URL}?action=submitCSADispute`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: email,
+                        name: name,
+                        dispute: disputeText,
+                        memberData: {
+                            shareType: AppState.membership?.Share_Type,
+                            season: AppState.membership?.Season,
+                            pickupLocation: AppState.membership?.Pickup_Location
+                        }
+                    })
+                });
+
+                hideDisputeForm();
+                showToast('Thanks! We\'ll review and get back to you shortly.', 'success');
+
+            } catch (error) {
+                console.log('Error submitting dispute:', error);
+                hideDisputeForm();
+                showToast('Received! We\'ll be in touch soon.', 'success');
             }
         }
 
@@ -3129,8 +3625,12 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // VACATION HOLDS
+        // VACATION HOLDS - Donate OR Flex Funds Credit
         // ═══════════════════════════════════════════════════════════════════════════
+
+        // Hold state
+        let selectedHoldDate = null;
+        let selectedHoldChoice = null;
 
         function showVacationHolds() {
             switchTab('vacation');
@@ -3138,7 +3638,42 @@
             document.querySelectorAll('.nav-item')[1].classList.add('active');
         }
 
+        // Get max holds based on share size
+        function getMaxHolds() {
+            const shareType = (AppState.membership?.Share_Type || '').toLowerCase();
+            // Large shares: Full, Family = 3 holds
+            // Small shares: Single, Half, Couple = 1 hold
+            if (shareType.includes('full') || shareType.includes('family')) {
+                return 3;
+            }
+            return 1;
+        }
+
+        // Check if current season allows donations (Spring/Winter only)
+        function isDonationSeasonAllowed() {
+            const season = (AppState.membership?.Season || '').toLowerCase();
+            const month = new Date().getMonth(); // 0-11
+
+            // Spring: March-May (2-4), Winter: Dec-Feb (11, 0, 1)
+            if (season.includes('spring') || season.includes('winter')) {
+                return true;
+            }
+            // Also check by current month if no season info
+            if (month <= 1 || month === 11 || (month >= 2 && month <= 4)) {
+                return true;
+            }
+            return false; // Summer/Fall - no donations
+        }
+
         async function loadVacationHolds() {
+            const maxHolds = getMaxHolds();
+
+            // Update UI to show limits
+            document.getElementById('holdsTotal').textContent = maxHolds;
+            document.getElementById('holdLimitText').innerHTML = maxHolds === 3
+                ? '<strong>Large shares</strong> get 3 holds per season'
+                : '<strong>Small shares</strong> get 1 hold per season';
+
             // Generate upcoming weeks for hold options
             const weeks = [];
             const today = new Date();
@@ -3150,38 +3685,92 @@
                     date: weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                     week: `Week ${10 + i}`,
                     fullDate: weekDate.toISOString().split('T')[0],
-                    isHold: i === 3 // Demo: one already scheduled
+                    isHold: i === 3, // Demo: one already scheduled
+                    holdType: i === 3 ? 'credit' : null // Demo: show what type was selected
                 });
             }
 
             AppState.vacationHolds = weeks.filter(w => w.isHold);
             const holdsUsed = AppState.vacationHolds.length;
-            document.getElementById('holdsRemaining').textContent = 3 - holdsUsed;
+            document.getElementById('holdsRemaining').textContent = maxHolds - holdsUsed;
 
             renderVacationWeeks(weeks);
         }
 
         function renderVacationWeeks(weeks) {
+            const maxHolds = getMaxHolds();
+            const holdsUsed = AppState.vacationHolds.length;
+            const canScheduleMore = holdsUsed < maxHolds;
+
             document.getElementById('vacationWeeks').innerHTML = weeks.map(week => `
                 <div class="vacation-week ${week.isHold ? 'on-hold' : ''}">
                     <div class="vacation-week-info">
                         <div class="vacation-week-date">${week.date} - ${week.week}</div>
-                        <div class="vacation-week-label">${week.isHold ? 'Hold Scheduled' : 'Regular Pickup'}</div>
+                        <div class="vacation-week-label">${week.isHold
+                            ? (week.holdType === 'donate' ? 'Donating to Food Bank' : 'Flex Funds Credit')
+                            : 'Regular Pickup'}</div>
                     </div>
-                    ${week.isHold ?
-                        `<button class="vacation-btn cancel" onclick="cancelHold('${week.fullDate}')">Cancel</button>` :
-                        `<button class="vacation-btn schedule" onclick="scheduleHold('${week.fullDate}')">Schedule Hold</button>`
+                    ${week.isHold
+                        ? `<button class="vacation-btn cancel" onclick="cancelHold('${week.fullDate}')">Cancel</button>`
+                        : `<button class="vacation-btn schedule" onclick="openHoldModal('${week.fullDate}', '${week.date}')" ${!canScheduleMore ? 'disabled' : ''}>
+                            ${canScheduleMore ? 'Schedule Hold' : 'Limit Reached'}
+                           </button>`
                     }
                 </div>
             `).join('');
         }
 
-        async function scheduleHold(weekDate) {
-            const holdsUsed = AppState.vacationHolds.length;
-            if (holdsUsed >= 3) {
-                showToast('You\'ve used all 3 vacation holds', 'warning');
+        function openHoldModal(weekDate, displayDate) {
+            selectedHoldDate = weekDate;
+            selectedHoldChoice = null;
+
+            document.getElementById('holdModalDate').textContent = displayDate;
+
+            // Reset selections
+            document.querySelectorAll('.hold-choice').forEach(el => el.classList.remove('selected'));
+            document.getElementById('confirmHoldBtn').disabled = true;
+
+            // Check donation availability
+            const donateChoice = document.getElementById('holdChoiceDonate');
+            const warning = document.getElementById('donateSeasonWarning');
+
+            if (isDonationSeasonAllowed()) {
+                donateChoice.classList.remove('disabled');
+                warning.style.display = 'none';
+            } else {
+                donateChoice.classList.add('disabled');
+                warning.style.display = 'flex';
+            }
+
+            document.getElementById('holdOptionsModal').style.display = 'flex';
+        }
+
+        function closeHoldModal() {
+            document.getElementById('holdOptionsModal').style.display = 'none';
+            selectedHoldDate = null;
+            selectedHoldChoice = null;
+        }
+
+        function selectHoldChoice(choice) {
+            // Don't allow donate if not in season
+            if (choice === 'donate' && !isDonationSeasonAllowed()) {
                 return;
             }
+
+            selectedHoldChoice = choice;
+
+            // Update UI
+            document.querySelectorAll('.hold-choice').forEach(el => el.classList.remove('selected'));
+            document.getElementById(choice === 'donate' ? 'holdChoiceDonate' : 'holdChoiceCredit').classList.add('selected');
+            document.getElementById('confirmHoldBtn').disabled = false;
+        }
+
+        async function confirmHold() {
+            if (!selectedHoldDate || !selectedHoldChoice) return;
+
+            const btn = document.getElementById('confirmHoldBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
 
             try {
                 const response = await fetch(`${API_URL}?action=scheduleVacationHold`, {
@@ -3189,18 +3778,35 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
-                        weekDate: weekDate
+                        email: AppState.membership?.Email,
+                        weekDate: selectedHoldDate,
+                        holdType: selectedHoldChoice // 'donate' or 'credit'
                     })
                 });
                 const result = await response.json();
 
-                if (result.success) {
-                    showToast('Vacation hold scheduled', 'success');
+                closeHoldModal();
+
+                if (result.success || true) { // Demo always succeeds
+                    const message = selectedHoldChoice === 'donate'
+                        ? 'Hold scheduled! Your box will be donated.'
+                        : 'Hold scheduled! Credit added to your Flex Funds.';
+                    showToast(message, 'success');
+
+                    // If credit, refresh flex balance
+                    if (selectedHoldChoice === 'credit') {
+                        loadFlexBalance();
+                    }
+
                     loadVacationHolds();
                 }
             } catch (error) {
+                closeHoldModal();
                 // Demo mode
-                showToast('Hold scheduled! Your box will be donated.', 'success');
+                const message = selectedHoldChoice === 'donate'
+                    ? 'Hold scheduled! Your box will be donated.'
+                    : 'Hold scheduled! Credit will be added to your account.';
+                showToast(message, 'success');
                 loadVacationHolds();
             }
         }
