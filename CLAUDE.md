@@ -28,8 +28,10 @@ As of 2026-01-21, Claude has full API access to all farm systems. No manual inte
 
 ### Primary API Endpoint
 ```
-https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec
+https://script.google.com/macros/s/AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE/exec
 ```
+
+**Deployment v323** - Smart Financial System (2026-01-22)
 
 ### Active Automations
 | Automation | Status | Description |

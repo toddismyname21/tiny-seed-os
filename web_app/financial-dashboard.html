@@ -1800,6 +1800,51 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Loan Application Package -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-file-contract" style="color: var(--teal);"></i> Loan Application Package</h3>
+                    <button class="btn btn-success btn-sm" onclick="generateAndDownloadLoanPackage()">
+                        <i class="fas fa-download"></i> Generate Package
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" style="margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>One-Click Loan Documents:</strong> Generate professional Balance Sheet, Asset Schedule, and Depreciation Reports for bank loan applications.
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 12px; text-align: center;">
+                            <i class="fas fa-balance-scale" style="font-size: 2rem; color: var(--success); margin-bottom: 0.75rem;"></i>
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Balance Sheet</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Assets, Liabilities, Equity</div>
+                        </div>
+                        <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 12px; text-align: center;">
+                            <i class="fas fa-tractor" style="font-size: 2rem; color: var(--teal); margin-bottom: 0.75rem;"></i>
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Asset Schedule</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Equipment, Vehicles, Inventory</div>
+                        </div>
+                        <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 12px; text-align: center;">
+                            <i class="fas fa-calculator" style="font-size: 2rem; color: var(--gold); margin-bottom: 0.75rem;"></i>
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Depreciation</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">MACRS 5/7-Year Schedules</div>
+                        </div>
+                        <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 12px; text-align: center;">
+                            <i class="fas fa-credit-card" style="font-size: 2rem; color: var(--danger); margin-bottom: 0.75rem;"></i>
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Debt Schedule</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Outstanding Obligations</div>
+                        </div>
+                    </div>
+
+                    <div id="loan-package-status" style="margin-top: 1rem; display: none;">
+                        <!-- Status will appear here after generation -->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ============================================= -->
@@ -3475,7 +3520,48 @@
         }
 
         function saveBill() {
-            console.log('Saving bill...');
+            // Get form values from the Add Bill modal
+            const modal = document.getElementById('addBillModal');
+            const nameInput = modal.querySelector('input[placeholder*="Electric"]');
+            const categorySelect = modal.querySelector('select');
+            const amountInput = modal.querySelector('input[placeholder="0.00"]');
+            const dueDayInput = modal.querySelector('input[placeholder="1-31"]');
+            const autoPayCheckbox = document.getElementById('autoPay');
+
+            const vendor = nameInput ? nameInput.value.trim() : '';
+            const category = categorySelect ? categorySelect.value.toLowerCase() : 'other';
+            const amount = amountInput ? parseFloat(amountInput.value) : 0;
+            const dueDay = dueDayInput ? parseInt(dueDayInput.value) : 1;
+            const isRecurring = autoPayCheckbox ? autoPayCheckbox.checked : false;
+
+            if (!vendor || !amount) {
+                showNotification('Please enter bill name and amount', 'error');
+                return;
+            }
+
+            // Calculate next due date based on due day
+            const today = new Date();
+            let dueDate = new Date(today.getFullYear(), today.getMonth(), dueDay);
+            if (dueDate < today) {
+                dueDate.setMonth(dueDate.getMonth() + 1);
+            }
+
+            // Add via BillOCR manager
+            BillOCR.add({
+                vendor,
+                amount,
+                dueDate: dueDate.toISOString().split('T')[0],
+                category,
+                isRecurring,
+                paid: false
+            });
+
+            // Clear form and close
+            if (nameInput) nameInput.value = '';
+            if (amountInput) amountInput.value = '';
+            if (dueDayInput) dueDayInput.value = '';
+            if (autoPayCheckbox) autoPayCheckbox.checked = false;
+
             closeModal('addBillModal');
         }
 
@@ -3594,7 +3680,7 @@
         // =============================================
         const API_CONFIG = {
             sheetId: '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc',
-            apiUrl: 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec'
+            apiUrl: 'https://script.google.com/macros/s/AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE/exec'
         };
 
         // =============================================
@@ -5985,7 +6071,7 @@
         // =============================================
         // MARKETING FUNCTIONS
         // =============================================
-        const MARKETING_API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+        const MARKETING_API_URL = 'https://script.google.com/macros/s/AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE/exec';
 
         async function loadMarketingData() {
             try {
@@ -6448,6 +6534,116 @@
 
             // If there's significant activity, add it to the cash flow or transaction history
             // For now just log - the transactions will show in bank accounts via Plaid
+        }
+
+        // =============================================
+        // LOAN PACKAGE GENERATION
+        // Generate professional loan application documents
+        // =============================================
+        async function generateAndDownloadLoanPackage() {
+            const statusDiv = document.getElementById('loan-package-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = `
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--info); margin-bottom: 0.5rem;"></i>
+                        <p style="margin: 0;">Generating loan package...</p>
+                    </div>
+                `;
+            }
+
+            try {
+                // Call the backend to generate the loan package
+                const result = await fetchFromSheet('generateLoanPackage');
+
+                if (result && result.success && result.html) {
+                    // Create a downloadable HTML file
+                    const blob = new Blob([result.html], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+
+                    // Create download link
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'Tiny_Seed_Farm_Loan_Package_' + new Date().toISOString().split('T')[0] + '.html';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    // Show success and summary
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `
+                            <div style="background: rgba(42, 157, 143, 0.1); padding: 1rem; border-radius: 8px;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                                    <strong>Loan Package Generated!</strong>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem;">
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);">
+                                            $${(result.summary?.totalAssets || 0).toLocaleString()}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Total Assets</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--danger);">
+                                            $${(result.summary?.totalLiabilities || 0).toLocaleString()}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Total Liabilities</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 1.25rem; font-weight: 700; color: ${(result.summary?.netWorth || 0) >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                                            $${(result.summary?.netWorth || 0).toLocaleString()}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Net Worth</div>
+                                    </div>
+                                </div>
+                                <p style="margin: 1rem 0 0; font-size: 0.9rem; color: var(--text-secondary);">
+                                    <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                                    Open the downloaded file in your browser, then print to PDF for bank submission.
+                                </p>
+                            </div>
+                        `;
+                    }
+
+                    showNotification('Loan package downloaded! Open in browser and print to PDF.', 'success');
+                } else {
+                    throw new Error(result?.error || 'Failed to generate loan package');
+                }
+            } catch (error) {
+                console.error('Loan package error:', error);
+                if (statusDiv) {
+                    statusDiv.innerHTML = `
+                        <div style="background: rgba(230, 57, 70, 0.1); padding: 1rem; border-radius: 8px;">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--danger); margin-right: 0.5rem;"></i>
+                            <strong>Error:</strong> ${error.message}
+                            <p style="margin: 0.5rem 0 0; font-size: 0.9rem;">
+                                Make sure you have added assets to track. <a href="#" onclick="openModal('addAssetModal'); return false;" style="color: var(--primary-light);">Add an asset now</a>
+                            </p>
+                        </div>
+                    `;
+                }
+                showNotification('Failed to generate loan package: ' + error.message, 'error');
+            }
+        }
+
+        // Also support saving to Google Drive (calls backend)
+        async function saveLoanPackageToDrive() {
+            try {
+                const result = await fetchFromSheet('saveLoanPackageToHTML');
+                if (result && result.success) {
+                    showNotification('Loan package saved to Google Drive!', 'success');
+                    // Open the file URL in a new tab
+                    if (result.url) {
+                        window.open(result.url, '_blank');
+                    }
+                } else {
+                    throw new Error(result?.error || 'Failed to save to Drive');
+                }
+            } catch (error) {
+                console.error('Drive save error:', error);
+                showNotification('Failed to save to Drive: ' + error.message, 'error');
+            }
         }
 
         // =============================================
