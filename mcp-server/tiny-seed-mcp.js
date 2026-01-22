@@ -8,15 +8,60 @@
  * - Google Sheets data
  * - Email sending
  * - Farm operations
+ * - DIRECT Shopify import (bypasses Apps Script timeout)
  *
  * Setup: npm install && node tiny-seed-mcp.js
  */
 
+// Load environment variables from .env file
+const path = require('path');
+const fs = require('fs');
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  });
+}
+
 const https = require('https');
 const readline = require('readline');
 
-// API Configuration - Updated to latest deployment (v240+)
-const API_BASE = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+// Direct import module (bypasses Apps Script timeout)
+const { importCSAFromShopify } = require('./shopify-direct-import');
+
+// Shopify financial data module (direct API access)
+const {
+  getShopifyPaymentsBalance,
+  getShopifyPayouts,
+  getShopifyCapital,
+  getShopifyFinancialSummary
+} = require('./shopify-financial');
+
+// Shopify Capital loan tracker (from CSV data)
+const {
+  getCapitalLoanSummary,
+  parseCapitalCSV,
+  CAPITAL_LOAN
+} = require('./shopify-capital-tracker');
+
+// PayPal & Venmo integration
+const {
+  testPayPalConnection,
+  getPayPalBalance,
+  getPayPalTransactions,
+  getPayPalFinancialSummary
+} = require('./paypal-integration');
+
+// API Configuration - Updated to v293 with MCP Direct Import endpoint
+const API_BASE = 'https://script.google.com/macros/s/AKfycbzQGqay-b2A97ThL33YSnLa4MBdu_48ReQMXV_ndtvfSzoYVhURlZy5cWbXQ2hDPx2d/exec';
 
 // Available tools for Claude
 const TOOLS = {
@@ -161,6 +206,98 @@ const TOOLS = {
       webhookId: "The webhook ID to delete"
     },
     action: "deleteShopifyWebhook"
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SHOPIFY FINANCIAL TOOLS (Direct API - for Financial Dashboard)
+  // ═══════════════════════════════════════════════════════════════════════════
+  shopify_get_payments_balance: {
+    description: "Get Shopify Payments pending balance (money collected but not yet deposited to bank)",
+    parameters: {},
+    action: "SHOPIFY_PAYMENTS_BALANCE"
+  },
+  shopify_get_payouts: {
+    description: "Get Shopify payout history (deposits to bank account)",
+    parameters: {
+      limit: "Number of payouts to retrieve (default 20)",
+      status: "Filter by status: paid, pending, in_transit, scheduled, canceled"
+    },
+    action: "SHOPIFY_PAYOUTS"
+  },
+  shopify_get_capital: {
+    description: "Get Shopify Capital loan/advance information",
+    parameters: {},
+    action: "SHOPIFY_CAPITAL"
+  },
+  shopify_get_financial_summary: {
+    description: "Get complete Shopify financial summary (balance, payouts, capital) for Financial Dashboard",
+    parameters: {},
+    action: "SHOPIFY_FINANCIAL_SUMMARY"
+  },
+  shopify_get_capital_loan: {
+    description: "Get Shopify Capital loan status (balance, payments, progress) from imported CSV data",
+    parameters: {},
+    action: "SHOPIFY_CAPITAL_LOAN"
+  },
+  shopify_setup_capital_tracking: {
+    description: "Set up automated Capital loan tracking triggers (daily payment calc, monthly interest, weekly reconciliation reminder)",
+    parameters: {},
+    action: "setupCapitalTrackingTriggers"
+  },
+  shopify_calculate_daily_capital: {
+    description: "Manually trigger daily Capital payment calculation from yesterday's Shopify sales",
+    parameters: {},
+    action: "calculateDailyCapitalPayment"
+  },
+  shopify_reconcile_capital: {
+    description: "Reconcile calculated Capital balance with actual CSV balance",
+    parameters: {
+      actualBalance: "The actual balance from Shopify Capital CSV export"
+    },
+    action: "reconcileCapitalBalance"
+  },
+  shopify_capital_status: {
+    description: "Get Capital tracking status including recent transactions and trigger status",
+    parameters: {},
+    action: "getCapitalTrackingStatus"
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PAYPAL & VENMO TOOLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  paypal_test_connection: {
+    description: "Test PayPal API connection",
+    parameters: {},
+    action: "PAYPAL_TEST"
+  },
+  paypal_get_balance: {
+    description: "Get PayPal account balance (available and pending)",
+    parameters: {},
+    action: "PAYPAL_BALANCE"
+  },
+  paypal_get_transactions: {
+    description: "Get PayPal transaction history",
+    parameters: {
+      days: "Number of days to look back (default 30)"
+    },
+    action: "PAYPAL_TRANSACTIONS"
+  },
+  paypal_get_summary: {
+    description: "Get complete PayPal financial summary for dashboard",
+    parameters: {},
+    action: "PAYPAL_SUMMARY"
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DIRECT IMPORT TOOLS (Bypass Apps Script 30-second timeout)
+  // ═══════════════════════════════════════════════════════════════════════════
+  import_csa_from_shopify: {
+    description: "DIRECT import of CSA members from Shopify orders (bypasses Apps Script timeout). Uses Shopify Order ID for idempotent imports - safe to run multiple times.",
+    parameters: {
+      maxItems: "Max number of orders to process (optional, default: all)",
+      dryRun: "Set to 'true' to preview without writing (optional)"
+    },
+    action: "DIRECT_IMPORT" // Special marker for direct handling
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -585,7 +722,64 @@ class TinySeedMCPServer {
         }
 
         try {
-          const result = await callAPI(toolConfig.action, params.arguments || {});
+          let result;
+          const args = params.arguments || {};
+
+          // Handle direct tools (bypass Apps Script)
+          switch (toolConfig.action) {
+            case 'DIRECT_IMPORT':
+              result = await importCSAFromShopify({
+                maxItems: args.maxItems ? parseInt(args.maxItems) : null,
+                dryRun: args.dryRun === 'true' || args.dryRun === true
+              });
+              break;
+
+            case 'SHOPIFY_PAYMENTS_BALANCE':
+              result = await getShopifyPaymentsBalance();
+              break;
+
+            case 'SHOPIFY_PAYOUTS':
+              result = await getShopifyPayouts({
+                limit: args.limit ? parseInt(args.limit) : 20,
+                status: args.status || ''
+              });
+              break;
+
+            case 'SHOPIFY_CAPITAL':
+              result = await getShopifyCapital();
+              break;
+
+            case 'SHOPIFY_FINANCIAL_SUMMARY':
+              result = await getShopifyFinancialSummary();
+              break;
+
+            case 'SHOPIFY_CAPITAL_LOAN':
+              result = await getCapitalLoanSummary();
+              break;
+
+            case 'PAYPAL_TEST':
+              result = await testPayPalConnection();
+              break;
+
+            case 'PAYPAL_BALANCE':
+              result = await getPayPalBalance();
+              break;
+
+            case 'PAYPAL_TRANSACTIONS':
+              result = await getPayPalTransactions({
+                days: args.days ? parseInt(args.days) : 30
+              });
+              break;
+
+            case 'PAYPAL_SUMMARY':
+              result = await getPayPalFinancialSummary();
+              break;
+
+            default:
+              // Standard Apps Script API call
+              result = await callAPI(toolConfig.action, args);
+          }
+
           return {
             jsonrpc: '2.0',
             id,

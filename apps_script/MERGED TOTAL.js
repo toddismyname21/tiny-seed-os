@@ -778,6 +778,8 @@ function doGet(e) {
         return jsonResponse(askClaudeEmail(e.parameter.query || e.parameter.q));
       case 'searchEmailsNatural':
         return jsonResponse(searchEmailsNatural(e.parameter.query || e.parameter.q));
+      case 'deepSearchEmails':
+        return jsonResponse(deepSearchEmails(e.parameter.query || e.parameter.q));
       case 'getEmailSummary':
         return jsonResponse(getEmailSummary(e.parameter.period));
 
@@ -1634,6 +1636,18 @@ function doGet(e) {
           accounts: JSON.parse(e.parameter.accounts || '[]')
         };
         return jsonResponse(exchangePlaidPublicToken(exchangeData));
+
+      // ============ PAYPAL - BUSINESS ACCOUNT ============
+      case 'initPayPal':
+        return jsonResponse(initializePayPalCredentials());
+      case 'testPayPalConnection':
+        return jsonResponse(testPayPalConnection());
+      case 'getPayPalBalance':
+        return jsonResponse(getPayPalBalance());
+      case 'getPayPalTransactions':
+        return jsonResponse(getPayPalTransactions(e.parameter));
+      case 'getPayPalFinancialSummary':
+        return jsonResponse(getPayPalFinancialSummary());
 
       // ============ CROP ROTATION & FIELD TIME ============
       case 'getFieldTimeGroups':
@@ -9650,6 +9664,11 @@ function storeAllCredentials() {
   props.setProperty('PLAID_CLIENT_ID', '69690f5d01c8e8001d439007');
   props.setProperty('PLAID_SECRET', '27349ff4c0011329e95a3d6a4ddafc');
 
+  // PayPal Business (PRODUCTION)
+  props.setProperty('PAYPAL_CLIENT_ID', 'AXL9rxJ-CTIRZbMd-Nv-WSkJaSqtr8RUj5_DzGLPk6sFCVPLdMspk0Q23kU2i8rIKxs9kbwUG3W8o7WA');
+  props.setProperty('PAYPAL_CLIENT_SECRET', 'EKPQstQrx_PucvCuSAGZER4bsCPi1BuimXThvT3AbO-OHnb7uSzcR-6ZMNm_ihwYLCDwM8kg2ut8BC6c');
+  props.setProperty('PAYPAL_MODE', 'live');
+
   // Ayrshare Social Media
   props.setProperty('AYRSHARE_API_KEY', '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F');
 
@@ -9668,6 +9687,8 @@ function verifyCredentials() {
     GOOGLE_MAPS_API_KEY: !!props.getProperty('GOOGLE_MAPS_API_KEY'),
     PLAID_CLIENT_ID: !!props.getProperty('PLAID_CLIENT_ID'),
     PLAID_SECRET: !!props.getProperty('PLAID_SECRET'),
+    PAYPAL_CLIENT_ID: !!props.getProperty('PAYPAL_CLIENT_ID'),
+    PAYPAL_CLIENT_SECRET: !!props.getProperty('PAYPAL_CLIENT_SECRET'),
     AYRSHARE_API_KEY: !!props.getProperty('AYRSHARE_API_KEY')
   };
 
@@ -29856,6 +29877,305 @@ function testPlaidConnection() {
     }
 
     return linkResult;
+}
+
+// =============================================================================
+// PAYPAL INTEGRATION - Business Account Connection
+// =============================================================================
+// Connect PayPal Business for balance and transaction data
+// Also supports Venmo Business (uses same PayPal API)
+
+const PAYPAL_CONFIG = {
+    get CLIENT_ID() {
+        return PropertiesService.getScriptProperties().getProperty('PAYPAL_CLIENT_ID') || '';
+    },
+    get CLIENT_SECRET() {
+        return PropertiesService.getScriptProperties().getProperty('PAYPAL_CLIENT_SECRET') || '';
+    },
+    get MODE() {
+        return PropertiesService.getScriptProperties().getProperty('PAYPAL_MODE') || 'live';
+    },
+    get BASE_URL() {
+        return this.MODE === 'sandbox'
+            ? 'https://api-m.sandbox.paypal.com'
+            : 'https://api-m.paypal.com';
+    },
+    get ENABLED() {
+        return !!this.CLIENT_ID && !!this.CLIENT_SECRET;
+    }
+};
+
+// Cache for PayPal access token
+let paypalCachedToken = null;
+let paypalTokenExpiry = null;
+
+/**
+ * Get PayPal OAuth2 access token
+ */
+function getPayPalAccessToken() {
+    // Return cached token if still valid
+    if (paypalCachedToken && paypalTokenExpiry && new Date() < paypalTokenExpiry) {
+        return paypalCachedToken;
+    }
+
+    if (!PAYPAL_CONFIG.ENABLED) {
+        throw new Error('PayPal not configured. Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET.');
+    }
+
+    const auth = Utilities.base64Encode(PAYPAL_CONFIG.CLIENT_ID + ':' + PAYPAL_CONFIG.CLIENT_SECRET);
+
+    const options = {
+        method: 'post',
+        contentType: 'application/x-www-form-urlencoded',
+        headers: {
+            'Authorization': 'Basic ' + auth
+        },
+        payload: 'grant_type=client_credentials',
+        muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(PAYPAL_CONFIG.BASE_URL + '/v1/oauth2/token', options);
+    const result = JSON.parse(response.getContentText());
+
+    if (result.access_token) {
+        paypalCachedToken = result.access_token;
+        // Token expires in expires_in seconds, cache for slightly less
+        paypalTokenExpiry = new Date(new Date().getTime() + ((result.expires_in - 60) * 1000));
+        return result.access_token;
+    } else {
+        throw new Error('PayPal auth failed: ' + JSON.stringify(result));
+    }
+}
+
+/**
+ * Make authenticated PayPal API request
+ */
+function paypalApiRequest(endpoint, method, body) {
+    method = method || 'GET';
+    const token = getPayPalAccessToken();
+
+    const options = {
+        method: method.toLowerCase(),
+        contentType: 'application/json',
+        headers: {
+            'Authorization': 'Bearer ' + token
+        },
+        muteHttpExceptions: true
+    };
+
+    if (body) {
+        options.payload = JSON.stringify(body);
+    }
+
+    const response = UrlFetchApp.fetch(PAYPAL_CONFIG.BASE_URL + endpoint, options);
+    const statusCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (statusCode >= 400) {
+        throw new Error('PayPal API error ' + statusCode + ': ' + responseText.substring(0, 500));
+    }
+
+    return responseText ? JSON.parse(responseText) : {};
+}
+
+/**
+ * Initialize PayPal credentials in Script Properties
+ * Called once to store credentials
+ */
+function initializePayPalCredentials() {
+    const props = PropertiesService.getScriptProperties();
+
+    // Check if already configured
+    if (props.getProperty('PAYPAL_CLIENT_ID')) {
+        return { success: true, message: 'PayPal already configured' };
+    }
+
+    // Store PayPal credentials
+    props.setProperty('PAYPAL_CLIENT_ID', 'AXL9rxJ-CTIRZbMd-Nv-WSkJaSqtr8RUj5_DzGLPk6sFCVPLdMspk0Q23kU2i8rIKxs9kbwUG3W8o7WA');
+    props.setProperty('PAYPAL_CLIENT_SECRET', 'EKPQstQrx_PucvCuSAGZER4bsCPi1BuimXThvT3AbO-OHnb7uSzcR-6ZMNm_ihwYLCDwM8kg2ut8BC6c');
+    props.setProperty('PAYPAL_MODE', 'live');
+
+    // Test connection
+    try {
+        getPayPalAccessToken();
+        return {
+            success: true,
+            message: 'PayPal credentials stored and connection verified',
+            mode: 'live'
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: 'Credentials stored but connection failed',
+            error: error.toString()
+        };
+    }
+}
+
+/**
+ * Test PayPal connection
+ */
+function testPayPalConnection() {
+    if (!PAYPAL_CONFIG.ENABLED) {
+        return {
+            success: false,
+            error: 'PayPal not configured',
+            instructions: 'Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET in Script Properties'
+        };
+    }
+
+    try {
+        getPayPalAccessToken();
+        return {
+            success: true,
+            mode: PAYPAL_CONFIG.MODE,
+            message: 'Connected to PayPal (' + PAYPAL_CONFIG.MODE + ' mode)'
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.toString()
+        };
+    }
+}
+
+/**
+ * Get PayPal account balance
+ */
+function getPayPalBalance() {
+    try {
+        if (!PAYPAL_CONFIG.ENABLED) {
+            return { success: false, error: 'PayPal not configured' };
+        }
+
+        const now = new Date().toISOString();
+        const response = paypalApiRequest('/v1/reporting/balances?as_of_time=' + encodeURIComponent(now) + '&currency_code=USD');
+
+        const balances = response.balances || [];
+        let totalAvailable = 0;
+        let totalPending = 0;
+
+        balances.forEach(function(b) {
+            if (b.available_balance) {
+                totalAvailable += parseFloat(b.available_balance.value) || 0;
+            }
+            if (b.pending_balance) {
+                totalPending += parseFloat(b.pending_balance.value) || 0;
+            }
+        });
+
+        return {
+            success: true,
+            available: totalAvailable,
+            pending: totalPending,
+            total: totalAvailable + totalPending,
+            currency: 'USD',
+            balances: balances,
+            message: 'PayPal Balance: $' + totalAvailable.toFixed(2) + ' available, $' + totalPending.toFixed(2) + ' pending'
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.toString()
+        };
+    }
+}
+
+/**
+ * Get PayPal transactions
+ */
+function getPayPalTransactions(params) {
+    params = params || {};
+    const days = params.days || 30;
+
+    try {
+        if (!PAYPAL_CONFIG.ENABLED) {
+            return { success: false, error: 'PayPal not configured' };
+        }
+
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        const endpoint = '/v1/reporting/transactions?start_date=' + startDate.toISOString() +
+                        '&end_date=' + endDate.toISOString() +
+                        '&fields=all&page_size=100';
+        const response = paypalApiRequest(endpoint);
+
+        const transactions = response.transaction_details || [];
+
+        // Summarize transactions
+        let totalIncome = 0;
+        let totalExpenses = 0;
+        let totalFees = 0;
+
+        const formattedTxns = transactions.map(function(txn) {
+            const info = txn.transaction_info || {};
+            const amount = parseFloat(info.transaction_amount && info.transaction_amount.value) || 0;
+            const fee = parseFloat(info.fee_amount && info.fee_amount.value) || 0;
+
+            if (amount > 0) totalIncome += amount;
+            if (amount < 0) totalExpenses += Math.abs(amount);
+            totalFees += Math.abs(fee);
+
+            return {
+                id: info.transaction_id,
+                date: info.transaction_initiation_date,
+                type: info.transaction_event_code,
+                status: info.transaction_status,
+                amount: amount,
+                fee: fee,
+                currency: (info.transaction_amount && info.transaction_amount.currency_code) || 'USD',
+                payerName: (txn.payer_info && txn.payer_info.payer_name && txn.payer_info.payer_name.alternate_full_name) || '',
+                payerEmail: (txn.payer_info && txn.payer_info.email_address) || ''
+            };
+        });
+
+        return {
+            success: true,
+            count: transactions.length,
+            period: 'Last ' + days + ' days',
+            summary: {
+                totalIncome: totalIncome,
+                totalExpenses: totalExpenses,
+                totalFees: totalFees,
+                netIncome: totalIncome - totalExpenses - totalFees
+            },
+            transactions: formattedTxns.slice(0, 20),
+            message: 'Found ' + transactions.length + ' transactions. Income: $' + totalIncome.toFixed(2) + ', Fees: $' + totalFees.toFixed(2)
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.toString()
+        };
+    }
+}
+
+/**
+ * Get PayPal financial summary for dashboard
+ */
+function getPayPalFinancialSummary() {
+    const balanceResult = getPayPalBalance();
+    const transactionsResult = getPayPalTransactions({ days: 30 });
+
+    return {
+        success: true,
+        configured: PAYPAL_CONFIG.ENABLED,
+        mode: PAYPAL_CONFIG.MODE,
+        balance: {
+            available: balanceResult.success ? balanceResult.available : 0,
+            pending: balanceResult.success ? balanceResult.pending : 0,
+            error: balanceResult.success ? null : balanceResult.error
+        },
+        transactions: {
+            count: transactionsResult.success ? transactionsResult.count : 0,
+            summary: transactionsResult.success ? transactionsResult.summary : null,
+            recent: transactionsResult.success ? transactionsResult.transactions.slice(0, 5) : [],
+            error: transactionsResult.success ? null : transactionsResult.error
+        },
+        timestamp: new Date().toISOString()
+    };
 }
 
 // =============================================================================
@@ -50969,6 +51289,53 @@ function processAITasks() {
  */
 function searchEmailsNatural(query) {
   return askClaudeEmail(`Search my emails and find: ${query}. List what you find with sender, date, and key details.`);
+}
+
+/**
+ * Deep search emails - searches ALL emails (not just inbox), up to 500 threads
+ * @param {string} query - Gmail search query (e.g., "from:citiparks" or "subject:vendor application")
+ * @returns {Object} Search results with full email details
+ */
+function deepSearchEmails(query) {
+  try {
+    if (!query) {
+      return { success: false, error: 'No search query provided' };
+    }
+
+    // Search up to 500 threads across ALL folders (inbox, sent, archived, etc.)
+    const threads = GmailApp.search(query, 0, 500);
+
+    const results = [];
+    for (const thread of threads) {
+      const messages = thread.getMessages();
+
+      for (const message of messages) {
+        results.push({
+          threadId: thread.getId(),
+          messageId: message.getId(),
+          from: message.getFrom(),
+          to: message.getTo(),
+          cc: message.getCc(),
+          subject: message.getSubject(),
+          date: message.getDate().toISOString(),
+          snippet: message.getPlainBody().substring(0, 500),
+          hasAttachments: message.getAttachments().length > 0,
+          attachmentNames: message.getAttachments().map(a => a.getName()),
+          labels: thread.getLabels().map(l => l.getName())
+        });
+      }
+    }
+
+    return {
+      success: true,
+      query: query,
+      totalThreads: threads.length,
+      totalMessages: results.length,
+      results: results
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
 
 /**

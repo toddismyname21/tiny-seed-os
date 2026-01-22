@@ -945,7 +945,7 @@
         </button>
         <button class="tab-btn" onclick="showTab('debt')">
             <i class="fas fa-fire"></i> Debt Destroyer
-            <span class="badge danger" id="debt-count">5</span>
+            <span class="badge danger" id="debt-count">0</span>
         </button>
         <button class="tab-btn" onclick="showTab('banking')">
             <i class="fas fa-university"></i> Banking & Bills
@@ -955,7 +955,6 @@
         </button>
         <button class="tab-btn" onclick="showTab('roundups')">
             <i class="fas fa-coins"></i> Change Investing
-            <span class="badge success">+$47</span>
         </button>
         <button class="tab-btn" onclick="showTab('employees')">
             <i class="fas fa-users"></i> Team & Retirement
@@ -996,6 +995,11 @@
                         <div class="value negative" id="monthly-expenses">--</div>
                     </div>
                 </div>
+                <div style="margin-top: 1.5rem;">
+                    <button class="btn btn-success" onclick="connectBankWithPlaid()" id="overviewPlaidBtn">
+                        <i class="fas fa-link"></i> Connect Bank Account
+                    </button>
+                </div>
             </div>
 
             <!-- Quick Stats -->
@@ -1012,11 +1016,11 @@
                     </div>
                     <div class="progress-container">
                         <div class="progress-header">
-                            <span>3.0 months covered</span>
+                            <span id="emergency-months">-- months covered</span>
                             <span>Goal: 6 months</span>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill warning" style="width: 50%"></div>
+                            <div class="progress-fill" id="emergency-progress" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
@@ -1031,9 +1035,8 @@
                             <i class="fas fa-chart-line"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+5.2% this year</span>
+                    <div class="stat-change neutral" id="investment-change">
+                        <span>Connect investment accounts</span>
                     </div>
                 </div>
 
@@ -1047,9 +1050,8 @@
                             <i class="fas fa-fire"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-down"></i>
-                        <span>-$2,340 this month</span>
+                    <div class="stat-change neutral" id="debt-change">
+                        <span>Connect accounts to track</span>
                     </div>
                 </div>
 
@@ -1057,15 +1059,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Round-Up Savings</div>
-                            <div class="stat-value" id="roundup-total">$1,247</div>
+                            <div class="stat-value" id="roundup-total">--</div>
                         </div>
                         <div class="stat-icon teal">
                             <i class="fas fa-coins"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-plus"></i>
-                        <span>+$47 this week</span>
+                    <div class="stat-change neutral">
+                        <span>Feature coming soon</span>
                     </div>
                 </div>
             </div>
@@ -1077,29 +1078,23 @@
                         <h3><i class="fas fa-tasks"></i> Priority Actions</h3>
                         <span style="color: var(--text-secondary); font-size: 0.85rem;">This Month</span>
                     </div>
-                    <div class="card-body">
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i>
-                            <div>
-                                <strong>High Priority:</strong> Pay Chase Visa minimum ($245) by Jan 20
-                            </div>
-                        </div>
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
-                            <div>
-                                <strong>Due Soon:</strong> Capital One extra payment ($500) scheduled for Jan 22
-                            </div>
-                        </div>
+                    <div class="card-body" id="priority-actions">
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle" style="color: var(--info);"></i>
                             <div>
-                                <strong>Investment:</strong> Monthly contribution of $1,500 ready to allocate
+                                <strong>Getting Started:</strong> Connect your bank accounts to see priority actions
                             </div>
                         </div>
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                        <div class="alert alert-info">
+                            <i class="fas fa-link" style="color: var(--info);"></i>
                             <div>
-                                <strong>Milestone:</strong> You'll pay off Discover card in 2 months!
+                                <strong>Tip:</strong> Go to Banking & Bills to connect via Plaid
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-chart-line" style="color: var(--info);"></i>
+                            <div>
+                                <strong>Track Progress:</strong> Your actions will appear here based on real data
                             </div>
                         </div>
                     </div>
@@ -1110,8 +1105,8 @@
                         <h3><i class="fas fa-chart-area"></i> Financial Health Score</h3>
                     </div>
                     <div class="card-body" style="text-align: center;">
-                        <div style="font-size: 4rem; font-weight: 800; color: var(--success);">72</div>
-                        <div style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Good - Room to Grow</div>
+                        <div style="font-size: 4rem; font-weight: 800; color: var(--text-secondary);" id="health-score">--</div>
+                        <div style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 1.5rem;" id="health-status">Connect accounts to calculate</div>
                         <canvas id="healthChart" height="150"></canvas>
                     </div>
                 </div>
@@ -1127,61 +1122,59 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Total Debt</div>
-                            <div class="stat-value" style="color: var(--danger);">$61,750</div>
+                            <div class="stat-value" id="debt-total-display" style="color: var(--danger);">Loading...</div>
                         </div>
                         <div class="stat-icon red">
                             <i class="fas fa-fire"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-down"></i>
-                        <span>Down $12,430 from start</span>
+                    <div class="stat-change neutral" id="debt-change-display">
+                        <span>Connect accounts to track</span>
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div>
-                            <div class="stat-label">Monthly Debt Payment</div>
-                            <div class="stat-value">$2,340</div>
+                            <div class="stat-label">Monthly Minimum</div>
+                            <div class="stat-value" id="debt-monthly-min">--</div>
                         </div>
                         <div class="stat-icon orange">
                             <i class="fas fa-calendar-check"></i>
                         </div>
                     </div>
                     <div class="stat-change neutral">
-                        <span>Extra $500 available</span>
+                        <span>Based on connected accounts</span>
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div>
-                            <div class="stat-label">Interest This Month</div>
-                            <div class="stat-value" style="color: var(--warning);">$892</div>
+                            <div class="stat-label">Credit Utilization</div>
+                            <div class="stat-value" id="credit-utilization" style="color: var(--warning);">--</div>
                         </div>
                         <div class="stat-icon gold">
                             <i class="fas fa-percentage"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-down"></i>
-                        <span>Down $34 from last month</span>
+                    <div class="stat-change neutral" id="utilization-status">
+                        <span>Connect credit cards</span>
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div>
-                            <div class="stat-label">Debt-Free Date</div>
-                            <div class="stat-value" style="color: var(--success);">Mar 2028</div>
+                            <div class="stat-label">Accounts Tracked</div>
+                            <div class="stat-value" id="debt-accounts-count" style="color: var(--success);">0</div>
                         </div>
                         <div class="stat-icon green">
-                            <i class="fas fa-flag-checkered"></i>
+                            <i class="fas fa-credit-card"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <span>26 months to go!</span>
+                    <div class="stat-change neutral" id="debt-accounts-status">
+                        <span>Add debts to track</span>
                     </div>
                 </div>
             </div>
@@ -1200,13 +1193,13 @@
                             <i class="fas fa-mountain" style="font-size: 2rem; color: var(--info); margin-bottom: 0.5rem;"></i>
                             <h4>Avalanche Method</h4>
                             <p>Pay highest interest first. Saves the most money.</p>
-                            <div style="margin-top: 0.5rem; font-weight: 600; color: var(--success);">Saves $3,240 in interest</div>
+                            <div style="margin-top: 0.5rem; font-weight: 600; color: var(--success);" id="avalanche-savings">Saves the most interest</div>
                         </div>
                         <div class="strategy-option" onclick="selectStrategy('snowball')">
                             <i class="fas fa-snowflake" style="font-size: 2rem; color: var(--teal); margin-bottom: 0.5rem;"></i>
                             <h4>Snowball Method</h4>
                             <p>Pay smallest balance first. Quick wins for motivation.</p>
-                            <div style="margin-top: 0.5rem; font-weight: 600; color: var(--success);">First win in 2 months</div>
+                            <div style="margin-top: 0.5rem; font-weight: 600; color: var(--success);" id="snowball-estimate">Quick psychological wins</div>
                         </div>
                     </div>
                 </div>
@@ -1234,79 +1227,10 @@
                                 </tr>
                             </thead>
                             <tbody id="debt-table-body">
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Chase Visa</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Credit Card</div>
-                                    </td>
-                                    <td style="color: var(--danger); font-weight: 600;">$8,450</td>
-                                    <td style="color: var(--warning);">24.99%</td>
-                                    <td>$245</td>
-                                    <td>Nov 2027</td>
-                                    <td>
-                                        <button class="btn btn-secondary btn-sm" onclick="editDebt(1)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Capital One</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Credit Card</div>
-                                    </td>
-                                    <td style="color: var(--danger); font-weight: 600;">$12,300</td>
-                                    <td style="color: var(--warning);">22.49%</td>
-                                    <td>$310</td>
-                                    <td>Jan 2028</td>
-                                    <td>
-                                        <button class="btn btn-secondary btn-sm" onclick="editDebt(2)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Discover</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Credit Card</div>
-                                    </td>
-                                    <td style="color: var(--danger); font-weight: 600;">$2,400</td>
-                                    <td style="color: var(--secondary);">18.99%</td>
-                                    <td>$85</td>
-                                    <td>Mar 2026</td>
-                                    <td>
-                                        <button class="btn btn-secondary btn-sm" onclick="editDebt(3)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Farm Equipment Loan</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Installment Loan</div>
-                                    </td>
-                                    <td style="color: var(--danger); font-weight: 600;">$18,600</td>
-                                    <td style="color: var(--success);">6.9%</td>
-                                    <td>$450</td>
-                                    <td>Aug 2028</td>
-                                    <td>
-                                        <button class="btn btn-secondary btn-sm" onclick="editDebt(4)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Truck Loan</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Auto Loan</div>
-                                    </td>
-                                    <td style="color: var(--danger); font-weight: 600;">$20,000</td>
-                                    <td style="color: var(--success);">5.9%</td>
-                                    <td>$425</td>
-                                    <td>Mar 2028</td>
-                                    <td>
-                                        <button class="btn btn-secondary btn-sm" onclick="editDebt(5)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
+                                <tr id="debt-loading-row">
+                                    <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <i class="fas fa-spinner fa-spin" style="margin-right: 0.5rem;"></i>
+                                        Loading connected accounts...
                                     </td>
                                 </tr>
                             </tbody>
@@ -1320,54 +1244,19 @@
                         <h3><i class="fas fa-flag-checkered"></i> Payoff Timeline</h3>
                     </div>
                     <div class="card-body">
-                        <div class="payoff-timeline">
-                            <div class="timeline-item">
-                                <div class="timeline-number" style="background: var(--success);">1</div>
-                                <div class="timeline-content">
-                                    <div style="font-weight: 600;">Discover Card</div>
-                                    <div class="timeline-date">Paid off: March 2026</div>
-                                </div>
-                                <div style="font-weight: 600; color: var(--success);">$2,400</div>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-number">2</div>
-                                <div class="timeline-content">
-                                    <div style="font-weight: 600;">Chase Visa</div>
-                                    <div class="timeline-date">Paid off: November 2027</div>
-                                </div>
-                                <div style="font-weight: 600; color: var(--secondary);">$8,450</div>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-number">3</div>
-                                <div class="timeline-content">
-                                    <div style="font-weight: 600;">Capital One</div>
-                                    <div class="timeline-date">Paid off: January 2028</div>
-                                </div>
-                                <div style="font-weight: 600; color: var(--secondary);">$12,300</div>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-number">4</div>
-                                <div class="timeline-content">
-                                    <div style="font-weight: 600;">Truck Loan</div>
-                                    <div class="timeline-date">Paid off: March 2028</div>
-                                </div>
-                                <div style="font-weight: 600; color: var(--secondary);">$20,000</div>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-number" style="background: var(--gold);">5</div>
-                                <div class="timeline-content">
-                                    <div style="font-weight: 600;">Farm Equipment</div>
-                                    <div class="timeline-date">Paid off: August 2028</div>
-                                </div>
-                                <div style="font-weight: 600; color: var(--gold);">$18,600</div>
+                        <div class="payoff-timeline" id="payoff-timeline">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                                <p>Add debts to see your payoff timeline</p>
+                                <p style="font-size: 0.85rem;">Connect accounts or add debts manually above</p>
                             </div>
                         </div>
 
-                        <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px; text-align: center;">
+                        <div id="debt-free-summary" style="display: none; margin-top: 2rem; padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px; text-align: center;">
                             <i class="fas fa-trophy" style="font-size: 2rem; color: var(--gold); margin-bottom: 0.5rem;"></i>
                             <div style="font-weight: 700; font-size: 1.25rem;">DEBT FREE!</div>
-                            <div style="color: var(--text-secondary);">Target Date: August 2028</div>
-                            <div style="margin-top: 0.5rem; color: var(--success); font-weight: 600;">Total Interest Saved: $3,240</div>
+                            <div id="debt-free-date" style="color: var(--text-secondary);">Target Date: --</div>
+                            <div id="interest-saved" style="margin-top: 0.5rem; color: var(--success); font-weight: 600;">Total Interest Saved: --</div>
                         </div>
                     </div>
                 </div>
@@ -1383,29 +1272,29 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Total Cash</div>
-                            <div class="stat-value" style="color: var(--success);">$42,850</div>
+                            <div class="stat-value" id="total-cash-display" style="color: var(--success);">Loading...</div>
                         </div>
                         <div class="stat-icon green">
                             <i class="fas fa-wallet"></i>
                         </div>
                     </div>
-                    <div class="stat-change neutral">
-                        <span>Across 3 accounts</span>
+                    <div class="stat-change neutral" id="cash-accounts-count">
+                        <span>Connect accounts to view</span>
                     </div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div>
-                            <div class="stat-label">Bills Due This Month</div>
-                            <div class="stat-value">$4,280</div>
+                            <div class="stat-label">Monthly Expenses</div>
+                            <div class="stat-value" id="monthly-expenses">--</div>
                         </div>
                         <div class="stat-icon orange">
                             <i class="fas fa-file-invoice-dollar"></i>
                         </div>
                     </div>
-                    <div class="stat-change negative">
-                        <span>8 bills remaining</span>
+                    <div class="stat-change neutral">
+                        <span>From transactions</span>
                     </div>
                 </div>
 
@@ -1413,15 +1302,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Income This Month</div>
-                            <div class="stat-value" style="color: var(--success);">$12,400</div>
+                            <div class="stat-value" id="monthly-income" style="color: var(--success);">--</div>
                         </div>
                         <div class="stat-icon teal">
                             <i class="fas fa-arrow-down"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+18% vs last month</span>
+                    <div class="stat-change neutral">
+                        <span>From transactions</span>
                     </div>
                 </div>
 
@@ -1429,14 +1317,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Cash Flow</div>
-                            <div class="stat-value" style="color: var(--success);">+$4,200</div>
+                            <div class="stat-value" id="cash-flow-display" style="color: var(--success);">--</div>
                         </div>
                         <div class="stat-icon green">
                             <i class="fas fa-exchange-alt"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <span>Surplus this month</span>
+                    <div class="stat-change neutral" id="cash-flow-status">
+                        <span>Income - Expenses</span>
                     </div>
                 </div>
             </div>
@@ -1455,47 +1343,11 @@
                             </button>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="account-card checking">
-                            <div class="account-icon" style="color: var(--info);">
-                                <i class="fas fa-money-check-alt"></i>
-                            </div>
-                            <div class="account-info">
-                                <div class="account-name">Farm Operations Checking</div>
-                                <div class="account-type">First National Bank - ****4521</div>
-                            </div>
-                            <div class="account-balance">
-                                <div class="amount" style="color: var(--success);">$18,250</div>
-                                <div class="label">Available</div>
-                            </div>
-                        </div>
-
-                        <div class="account-card savings">
-                            <div class="account-icon" style="color: var(--success);">
-                                <i class="fas fa-piggy-bank"></i>
-                            </div>
-                            <div class="account-info">
-                                <div class="account-name">Emergency Fund</div>
-                                <div class="account-type">First National Bank - ****4522</div>
-                            </div>
-                            <div class="account-balance">
-                                <div class="amount" style="color: var(--success);">$24,600</div>
-                                <div class="label">Savings</div>
-                            </div>
-                        </div>
-
-                        <div class="account-card investment">
-                            <div class="account-icon" style="color: var(--gold);">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="account-info">
-                                <div class="account-name">Investment Account</div>
-                                <div class="account-type">Fidelity - ****7890</div>
-                            </div>
-                            <div class="account-balance">
-                                <div class="amount" style="color: var(--gold);">$47,250</div>
-                                <div class="label">Portfolio Value</div>
-                            </div>
+                    <div class="card-body" id="bank-accounts-container">
+                        <div id="no-accounts-message" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-university" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                            <p>No accounts connected yet</p>
+                            <p style="font-size: 0.85rem;">Click "Connect Bank" to link your accounts via Plaid</p>
                         </div>
 
                         <div class="upload-area" onclick="document.getElementById('bankStatementUpload').click()">
@@ -1525,51 +1377,12 @@
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="bills-table-body">
                                 <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Electric - PG&E</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Utility</div>
+                                    <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <i class="fas fa-file-invoice" style="margin-right: 0.5rem;"></i>
+                                        No bills added yet. Click "Add Bill" to track recurring expenses.
                                     </td>
-                                    <td>Jan 18</td>
-                                    <td>$342</td>
-                                    <td><span class="badge danger">Due Soon</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Water District</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Utility</div>
-                                    </td>
-                                    <td>Jan 20</td>
-                                    <td>$185</td>
-                                    <td><span class="badge warning">Upcoming</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Farm Insurance</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Insurance</div>
-                                    </td>
-                                    <td>Jan 25</td>
-                                    <td>$890</td>
-                                    <td><span class="badge warning">Upcoming</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Internet - Comcast</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Service</div>
-                                    </td>
-                                    <td>Jan 28</td>
-                                    <td>$89</td>
-                                    <td><span class="badge success">Auto-Pay</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Truck Insurance</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Insurance</div>
-                                    </td>
-                                    <td>Feb 1</td>
-                                    <td>$215</td>
-                                    <td><span class="badge success">Auto-Pay</span></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1582,13 +1395,11 @@
                 <div class="card-header">
                     <h3><i class="fas fa-history"></i> Recent Transactions</h3>
                     <div style="display: flex; gap: 0.5rem;">
-                        <select class="form-input" style="width: auto; padding: 0.5rem 1rem;">
-                            <option>All Accounts</option>
-                            <option>Operations Checking</option>
-                            <option>Emergency Fund</option>
+                        <select class="form-input" id="transaction-account-filter" style="width: auto; padding: 0.5rem 1rem;">
+                            <option value="all">All Accounts</option>
                         </select>
-                        <button class="btn btn-secondary btn-sm">
-                            <i class="fas fa-filter"></i> Filter
+                        <button class="btn btn-secondary btn-sm" onclick="refreshTransactions()">
+                            <i class="fas fa-sync-alt"></i> Refresh
                         </button>
                     </div>
                 </div>
@@ -1603,41 +1414,12 @@
                                 <th>Amount</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="transactions-table-body">
                             <tr>
-                                <td>Jan 15</td>
-                                <td>Farmers Market Sales Deposit</td>
-                                <td><span style="padding: 0.25rem 0.5rem; background: rgba(42, 157, 143, 0.2); border-radius: 4px; font-size: 0.8rem;">Income</span></td>
-                                <td>Operations Checking</td>
-                                <td style="color: var(--success); font-weight: 600;">+$2,450</td>
-                            </tr>
-                            <tr>
-                                <td>Jan 14</td>
-                                <td>Seed Supply Co</td>
-                                <td><span style="padding: 0.25rem 0.5rem; background: rgba(244, 162, 97, 0.2); border-radius: 4px; font-size: 0.8rem;">Farm Supplies</span></td>
-                                <td>Operations Checking</td>
-                                <td style="color: var(--danger); font-weight: 600;">-$342</td>
-                            </tr>
-                            <tr>
-                                <td>Jan 13</td>
-                                <td>Restaurant Depot - CSA Orders</td>
-                                <td><span style="padding: 0.25rem 0.5rem; background: rgba(42, 157, 143, 0.2); border-radius: 4px; font-size: 0.8rem;">Income</span></td>
-                                <td>Operations Checking</td>
-                                <td style="color: var(--success); font-weight: 600;">+$1,850</td>
-                            </tr>
-                            <tr>
-                                <td>Jan 12</td>
-                                <td>Diesel Fuel - Shell</td>
-                                <td><span style="padding: 0.25rem 0.5rem; background: rgba(230, 57, 70, 0.2); border-radius: 4px; font-size: 0.8rem;">Vehicle</span></td>
-                                <td>Operations Checking</td>
-                                <td style="color: var(--danger); font-weight: 600;">-$187</td>
-                            </tr>
-                            <tr>
-                                <td>Jan 11</td>
-                                <td>Transfer to Emergency Fund</td>
-                                <td><span style="padding: 0.25rem 0.5rem; background: rgba(67, 97, 238, 0.2); border-radius: 4px; font-size: 0.8rem;">Transfer</span></td>
-                                <td>Operations Checking</td>
-                                <td style="color: var(--info); font-weight: 600;">-$500</td>
+                                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                    <i class="fas fa-spinner fa-spin" style="margin-right: 0.5rem;"></i>
+                                    Loading transactions...
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -1662,15 +1444,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Portfolio Value</div>
-                            <div class="stat-value" style="color: var(--success);">$47,250</div>
+                            <div class="stat-value" id="investment-total" style="color: var(--success);">--</div>
                         </div>
                         <div class="stat-icon gold">
                             <i class="fas fa-chart-line"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+$2,340 (+5.2%) YTD</span>
+                    <div class="stat-change neutral" id="investment-change">
+                        <span>Connect investment accounts</span>
                     </div>
                 </div>
 
@@ -1678,14 +1459,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">This Month's Contribution</div>
-                            <div class="stat-value">$250</div>
+                            <div class="stat-value" id="monthly-contribution">--</div>
                         </div>
                         <div class="stat-icon blue">
                             <i class="fas fa-plus-circle"></i>
                         </div>
                     </div>
                     <div class="stat-change neutral">
-                        <span>Winter Season (0.25x)</span>
+                        <span>Set up auto-invest</span>
                     </div>
                 </div>
 
@@ -1693,14 +1474,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Growth Mode</div>
-                            <div class="stat-value" style="color: var(--success);">OFFENSIVE</div>
+                            <div class="stat-value" id="growth-mode" style="color: var(--text-secondary);">--</div>
                         </div>
                         <div class="stat-icon green">
                             <i class="fas fa-rocket"></i>
                         </div>
                     </div>
                     <div class="stat-change neutral">
-                        <span>QQQ + MTUM leading</span>
+                        <span>Configure strategy</span>
                     </div>
                 </div>
 
@@ -1708,14 +1489,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Current Drawdown</div>
-                            <div class="stat-value" style="color: var(--success);">3.2%</div>
+                            <div class="stat-value" id="current-drawdown" style="color: var(--text-secondary);">--</div>
                         </div>
                         <div class="stat-icon green">
                             <i class="fas fa-shield-alt"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <span>Within safe limits</span>
+                    <div class="stat-change neutral">
+                        <span>Market data unavailable</span>
                     </div>
                 </div>
             </div>
@@ -1764,9 +1545,9 @@
                         </div>
                         <div style="padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
                             <div style="font-size: 0.75rem; color: var(--text-secondary);">Current Season</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);">WINTER (0.25x)</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-secondary);" id="current-season">--</div>
                             <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                                Base $1,000/mo = $250 contribution
+                                Configure seasonal contributions
                             </div>
                         </div>
                     </div>
@@ -1790,8 +1571,8 @@
                 </div>
                 <div>
                     <div style="font-size: 0.9rem; color: var(--text-secondary);">Total Round-Up Savings</div>
-                    <div class="roundup-total">$1,247.83</div>
-                    <div style="font-size: 0.85rem; color: var(--success);">+$47.32 this week</div>
+                    <div class="roundup-total" id="roundup-total-display">--</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Feature coming soon</div>
                 </div>
             </div>
 
@@ -1800,14 +1581,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">This Month's Round-Ups</div>
-                            <div class="stat-value" style="color: var(--success);">$187</div>
+                            <div class="stat-value" id="monthly-roundups" style="color: var(--text-secondary);">--</div>
                         </div>
                         <div class="stat-icon teal">
                             <i class="fas fa-coins"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <span>From 142 orders</span>
+                    <div class="stat-change neutral">
+                        <span>Enable round-ups to start</span>
                     </div>
                 </div>
 
@@ -1815,7 +1596,7 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Average Per Order</div>
-                            <div class="stat-value">$0.47</div>
+                            <div class="stat-value" id="avg-roundup">--</div>
                         </div>
                         <div class="stat-icon gold">
                             <i class="fas fa-receipt"></i>
@@ -1830,14 +1611,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Invested So Far</div>
-                            <div class="stat-value" style="color: var(--success);">$1,100</div>
+                            <div class="stat-value" id="roundup-invested" style="color: var(--text-secondary);">--</div>
                         </div>
                         <div class="stat-icon green">
                             <i class="fas fa-chart-line"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <span>Into investment portfolio</span>
+                    <div class="stat-change neutral">
+                        <span>Connect investment account</span>
                     </div>
                 </div>
 
@@ -1845,7 +1626,7 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Pending Transfer</div>
-                            <div class="stat-value">$147.83</div>
+                            <div class="stat-value" id="pending-transfer">--</div>
                         </div>
                         <div class="stat-icon blue">
                             <i class="fas fa-hourglass-half"></i>
@@ -1872,42 +1653,12 @@
                                     <th>Round-Up</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="roundups-table-body">
                                 <tr>
-                                    <td>Jan 15</td>
-                                    <td>CSA Box - Smith Family</td>
-                                    <td>$42.50</td>
-                                    <td style="color: var(--success); font-weight: 600;">+$0.50</td>
-                                </tr>
-                                <tr>
-                                    <td>Jan 15</td>
-                                    <td>Farmers Market - Veggies</td>
-                                    <td>$23.75</td>
-                                    <td style="color: var(--success); font-weight: 600;">+$0.25</td>
-                                </tr>
-                                <tr>
-                                    <td>Jan 14</td>
-                                    <td>Restaurant - Green Leaf</td>
-                                    <td>$156.80</td>
-                                    <td style="color: var(--success); font-weight: 600;">+$0.20</td>
-                                </tr>
-                                <tr>
-                                    <td>Jan 14</td>
-                                    <td>CSA Box - Johnson</td>
-                                    <td>$35.00</td>
-                                    <td style="color: var(--text-secondary); font-weight: 600;">$0.00</td>
-                                </tr>
-                                <tr>
-                                    <td>Jan 13</td>
-                                    <td>Farmers Market - Eggs</td>
-                                    <td>$8.50</td>
-                                    <td style="color: var(--success); font-weight: 600;">+$0.50</td>
-                                </tr>
-                                <tr>
-                                    <td>Jan 13</td>
-                                    <td>Online Store Order</td>
-                                    <td>$67.23</td>
-                                    <td style="color: var(--success); font-weight: 600;">+$0.77</td>
+                                    <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <i class="fas fa-coins" style="margin-right: 0.5rem;"></i>
+                                        No round-ups yet. Enable the feature to start saving automatically.
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1969,14 +1720,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">SEP-IRA Contributions (YTD)</div>
-                            <div class="stat-value" style="color: var(--success);">$8,450</div>
+                            <div class="stat-value" id="sep-ira-ytd" style="color: var(--text-secondary);">--</div>
                         </div>
                         <div class="stat-icon green">
                             <i class="fas fa-piggy-bank"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <span>Farm contribution to employee retirement</span>
+                    <div class="stat-change neutral">
+                        <span>Set up SEP-IRA to track</span>
                     </div>
                 </div>
 
@@ -1984,14 +1735,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Team Members</div>
-                            <div class="stat-value">6</div>
+                            <div class="stat-value" id="team-count">--</div>
                         </div>
                         <div class="stat-icon purple">
                             <i class="fas fa-users"></i>
                         </div>
                     </div>
                     <div class="stat-change neutral">
-                        <span>Active employees</span>
+                        <span>Add employees to track</span>
                     </div>
                 </div>
 
@@ -1999,14 +1750,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Incentive Pool</div>
-                            <div class="stat-value" style="color: var(--gold);">$3,200</div>
+                            <div class="stat-value" id="incentive-pool" style="color: var(--text-secondary);">--</div>
                         </div>
                         <div class="stat-icon gold">
                             <i class="fas fa-gift"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <span>Available this quarter</span>
+                    <div class="stat-change neutral">
+                        <span>Configure incentive program</span>
                     </div>
                 </div>
 
@@ -2014,14 +1765,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Milestones Reached</div>
-                            <div class="stat-value" style="color: var(--secondary);">24</div>
+                            <div class="stat-value" id="milestones-count" style="color: var(--text-secondary);">--</div>
                         </div>
                         <div class="stat-icon orange">
                             <i class="fas fa-flag-checkered"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <span>Team total this year</span>
+                    <div class="stat-change neutral">
+                        <span>No data yet</span>
                     </div>
                 </div>
             </div>
@@ -2057,65 +1808,17 @@
                             </thead>
                             <tbody id="iraContributionsTable">
                                 <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Maria Garcia</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Field Manager</div>
+                                    <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <i class="fas fa-piggy-bank" style="margin-right: 0.5rem;"></i>
+                                        No SEP-IRA contributions recorded. Click "Add Contribution" to get started.
                                     </td>
-                                    <td>$42,500</td>
-                                    <td style="color: var(--success); font-weight: 600;">$1,275</td>
-                                    <td><span class="status-badge active">Current</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">James Wilson</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Harvest Lead</div>
-                                    </td>
-                                    <td>$38,200</td>
-                                    <td style="color: var(--success); font-weight: 600;">$1,146</td>
-                                    <td><span class="status-badge active">Current</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Sarah Chen</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Greenhouse Tech</div>
-                                    </td>
-                                    <td>$35,800</td>
-                                    <td style="color: var(--success); font-weight: 600;">$1,074</td>
-                                    <td><span class="status-badge active">Current</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Mike Johnson</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Driver</div>
-                                    </td>
-                                    <td>$28,600</td>
-                                    <td style="color: var(--success); font-weight: 600;">$858</td>
-                                    <td><span class="status-badge active">Current</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Emily Davis</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Sales</div>
-                                    </td>
-                                    <td>$32,400</td>
-                                    <td style="color: var(--success); font-weight: 600;">$972</td>
-                                    <td><span class="status-badge active">Current</span></td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600;">Tom Martinez</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Farm Hand</div>
-                                    </td>
-                                    <td>$24,800</td>
-                                    <td style="color: var(--success); font-weight: 600;">$744</td>
-                                    <td><span class="status-badge pending">Seasonal</span></td>
                                 </tr>
                             </tbody>
                             <tfoot style="background: rgba(255,255,255,0.03);">
                                 <tr>
                                     <td style="font-weight: 700;">Total</td>
-                                    <td style="font-weight: 700;">$202,300</td>
-                                    <td style="font-weight: 700; color: var(--success);">$6,069</td>
+                                    <td style="font-weight: 700;" id="ira-total-wages">--</td>
+                                    <td style="font-weight: 700; color: var(--success);" id="ira-total-contributions">--</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -2330,14 +2033,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Marketing Budget</div>
-                            <div class="stat-value" id="marketing-budget">$500</div>
+                            <div class="stat-value" id="marketing-budget">--</div>
                         </div>
                         <div class="stat-icon" style="background: linear-gradient(135deg, #E1306C, #9b59b6);">
                             <i class="fas fa-bullhorn"></i>
                         </div>
                     </div>
-                    <div class="stat-change">
-                        <span>Monthly allocation</span>
+                    <div class="stat-change neutral">
+                        <span>Set budget to track</span>
                     </div>
                 </div>
 
@@ -2345,7 +2048,7 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Spent This Month</div>
-                            <div class="stat-value" id="marketing-spent">$127</div>
+                            <div class="stat-value" id="marketing-spent">--</div>
                         </div>
                         <div class="stat-icon red">
                             <i class="fas fa-receipt"></i>
@@ -2353,11 +2056,11 @@
                     </div>
                     <div class="progress-container">
                         <div class="progress-header">
-                            <span id="marketing-spent-percent">25% used</span>
-                            <span id="marketing-remaining">$373 remaining</span>
+                            <span id="marketing-spent-percent">--</span>
+                            <span id="marketing-remaining">Log expenses to track</span>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill success" id="marketing-progress" style="width: 25%"></div>
+                            <div class="progress-fill success" id="marketing-progress" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
@@ -2366,15 +2069,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">ROI This Month</div>
-                            <div class="stat-value positive" id="marketing-roi">+312%</div>
+                            <div class="stat-value" id="marketing-roi">--</div>
                         </div>
                         <div class="stat-icon green">
                             <i class="fas fa-chart-line"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>$396 revenue from marketing</span>
+                    <div class="stat-change neutral">
+                        <span>Track spend to calculate ROI</span>
                     </div>
                 </div>
 
@@ -2382,15 +2084,14 @@
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Posts This Month</div>
-                            <div class="stat-value" id="marketing-posts">23</div>
+                            <div class="stat-value" id="marketing-posts">--</div>
                         </div>
                         <div class="stat-icon teal">
                             <i class="fas fa-share-alt"></i>
                         </div>
                     </div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+8 from last month</span>
+                    <div class="stat-change neutral">
+                        <span>Connect social accounts</span>
                     </div>
                 </div>
             </div>
@@ -2406,33 +2107,10 @@
                     </div>
                     <div class="card-body">
                         <div id="marketing-spend-categories">
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div style="width: 12px; height: 12px; background: #E1306C; border-radius: 50%;"></div>
-                                    <span>Social Media Ads</span>
-                                </div>
-                                <span style="font-weight: 600;">$65</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div style="width: 12px; height: 12px; background: #3b5998; border-radius: 50%;"></div>
-                                    <span>Ayrshare Subscription</span>
-                                </div>
-                                <span style="font-weight: 600;">$29</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div style="width: 12px; height: 12px; background: #2ecc71; border-radius: 50%;"></div>
-                                    <span>Print Materials</span>
-                                </div>
-                                <span style="font-weight: 600;">$33</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div style="width: 12px; height: 12px; background: #9b59b6; border-radius: 50%;"></div>
-                                    <span>Photography/Content</span>
-                                </div>
-                                <span style="font-weight: 600;">$0</span>
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fas fa-chart-pie" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                                <p>No marketing spend logged yet</p>
+                                <p style="font-size: 0.85rem;">Click "Log Expense" to start tracking</p>
                             </div>
                         </div>
                     </div>
@@ -2447,37 +2125,10 @@
                     </div>
                     <div class="card-body">
                         <div id="marketing-spend-history" style="max-height: 300px; overflow-y: auto;">
-                            <div class="alert" style="margin-bottom: 0.5rem;">
-                                <i class="fas fa-ad" style="color: #E1306C;"></i>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 500;">Instagram Boost - CSA Promo</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Jan 12, 2026</div>
-                                </div>
-                                <span style="font-weight: 600; color: var(--danger);">-$25</span>
-                            </div>
-                            <div class="alert" style="margin-bottom: 0.5rem;">
-                                <i class="fas fa-sync-alt" style="color: #3b5998;"></i>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 500;">Ayrshare Monthly</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Jan 1, 2026</div>
-                                </div>
-                                <span style="font-weight: 600; color: var(--danger);">-$29</span>
-                            </div>
-                            <div class="alert" style="margin-bottom: 0.5rem;">
-                                <i class="fas fa-ad" style="color: #E1306C;"></i>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 500;">Facebook Ad - Market Day</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Jan 8, 2026</div>
-                                </div>
-                                <span style="font-weight: 600; color: var(--danger);">-$40</span>
-                            </div>
-                            <div class="alert" style="margin-bottom: 0.5rem;">
-                                <i class="fas fa-print" style="color: #2ecc71;"></i>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 500;">Farmer's Market Flyers</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Jan 5, 2026</div>
-                                </div>
-                                <span style="font-weight: 600; color: var(--danger);">-$33</span>
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fas fa-receipt" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                                <p>No expenses logged yet</p>
+                                <p style="font-size: 0.85rem;">Marketing expenses will appear here</p>
                             </div>
                         </div>
                     </div>
@@ -2493,33 +2144,33 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-success" style="margin-bottom: 1rem;">
+                    <div class="alert alert-info" style="margin-bottom: 1rem;">
                         <i class="fas fa-info-circle"></i>
                         <div>
-                            <strong>Marketing Fund Balance:</strong> $1,247.00
-                            <br><small>Separate account for marketing spend - auto-funded from sales revenue</small>
+                            <strong>Marketing Fund Balance:</strong> <span id="marketing-balance">--</span>
+                            <br><small>Configure marketing fund to track spend vs budget</small>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div style="padding: 1rem; background: var(--surface-secondary); border-radius: 8px; text-align: center;">
                             <div style="font-size: 0.85rem; color: var(--text-secondary);">Monthly Auto-Allocation</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">2%</div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">of gross sales</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-secondary);" id="marketing-auto-percent">--</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Configure in settings</div>
                         </div>
                         <div style="padding: 1rem; background: var(--surface-secondary); border-radius: 8px; text-align: center;">
                             <div style="font-size: 0.85rem; color: var(--text-secondary);">Last Deposit</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">+$248</div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Jan 1, 2026</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-secondary);" id="marketing-last-deposit">--</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">No deposits yet</div>
                         </div>
                         <div style="padding: 1rem; background: var(--surface-secondary); border-radius: 8px; text-align: center;">
                             <div style="font-size: 0.85rem; color: var(--text-secondary);">YTD Spend</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);">$127</div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">15 transactions</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-secondary);" id="marketing-ytd-spend">--</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Log expenses to track</div>
                         </div>
                         <div style="padding: 1rem; background: var(--surface-secondary); border-radius: 8px; text-align: center;">
                             <div style="font-size: 0.85rem; color: var(--text-secondary);">Avg. Cost Per Post</div>
-                            <div style="font-size: 1.5rem; font-weight: 700;">$5.52</div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">23 posts this month</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-secondary);" id="marketing-cost-per-post">--</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Connect social accounts</div>
                         </div>
                     </div>
                 </div>
@@ -2558,10 +2209,24 @@
     <div class="modal-overlay" id="addDebtModal">
         <div class="modal">
             <div class="modal-header">
-                <h2><i class="fas fa-plus-circle"></i> Add New Debt</h2>
+                <h2><i class="fas fa-plus-circle"></i> Add Debt Account</h2>
                 <button class="modal-close" onclick="closeModal('addDebtModal')">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- Connect via Plaid - Primary Option -->
+                <div style="background: linear-gradient(135deg, rgba(42, 157, 143, 0.1), rgba(38, 70, 83, 0.1)); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; text-align: center;">
+                    <i class="fas fa-link" style="font-size: 2rem; color: var(--success); margin-bottom: 0.75rem;"></i>
+                    <h3 style="margin: 0 0 0.5rem; color: var(--text-primary);">Connect Credit Card via Plaid</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Auto-sync balances, payments, and transactions</p>
+                    <button class="btn btn-success" onclick="closeModal('addDebtModal'); connectBankWithPlaid();">
+                        <i class="fas fa-credit-card"></i> Connect Credit Card
+                    </button>
+                </div>
+
+                <div style="text-align: center; color: var(--text-secondary); margin: 1rem 0; font-size: 0.85rem;">
+                    — or add manually (not recommended) —
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Account Name</label>
                     <input type="text" class="form-input" placeholder="e.g., Chase Visa">
@@ -2575,6 +2240,7 @@
                         <option>Mortgage</option>
                         <option>Student Loan</option>
                         <option>Medical Debt</option>
+                        <option>PayPal Credit (Synchrony)</option>
                         <option>Other</option>
                     </select>
                 </div>
@@ -2772,7 +2438,7 @@
                 <div class="alert alert-info" style="margin-bottom: 1rem;">
                     <i class="fas fa-info-circle"></i>
                     <div>
-                        <strong>Current Balance:</strong> $1,247.00
+                        <strong>Current Balance:</strong> <span id="modal-marketing-balance">--</span>
                         <br><small>Add funds manually or adjust auto-allocation settings</small>
                     </div>
                 </div>
@@ -3019,6 +2685,280 @@
             apiUrl: 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec'
         };
 
+        // =============================================
+        // UNIFIED FINANCIAL STATE MANAGER
+        // =============================================
+        // Central state that all tabs read from and write to
+        const FinancialState = {
+            // Raw data from sources
+            plaidAccounts: [],
+            plaidTransactions: [],
+            shopifyPayments: { pending: 0 },
+            shopifyCapital: { balance: 0, originalAmount: 0, repaymentRate: 0 },
+            paypalBalance: { available: 0, pending: 0 },
+            paypalTransactions: [],
+
+            // Calculated totals
+            totals: {
+                assets: 0,
+                debt: 0,
+                netWorth: 0,
+                cash: 0,
+                investments: 0,
+                emergencyFund: 0,
+                creditLimit: 0,
+                creditUsed: 0,
+                monthlyIncome: 0,
+                monthlyExpenses: 0
+            },
+
+            // Update state and trigger UI refresh
+            update(source, data) {
+                console.log(`[FinancialState] Updating ${source}:`, data);
+
+                switch(source) {
+                    case 'plaidAccounts':
+                        this.plaidAccounts = data || [];
+                        break;
+                    case 'plaidTransactions':
+                        this.plaidTransactions = data || [];
+                        break;
+                    case 'shopifyPayments':
+                        this.shopifyPayments = data || { pending: 0 };
+                        break;
+                    case 'shopifyCapital':
+                        this.shopifyCapital = data || { balance: 0 };
+                        break;
+                    case 'paypalBalance':
+                        this.paypalBalance = data || { available: 0, pending: 0 };
+                        break;
+                    case 'paypalTransactions':
+                        this.paypalTransactions = data || [];
+                        break;
+                }
+
+                this.recalculateTotals();
+                this.refreshAllUI();
+            },
+
+            recalculateTotals() {
+                let assets = 0, debt = 0, cash = 0, investments = 0, emergencyFund = 0;
+                let creditLimit = 0, creditUsed = 0;
+
+                // Process Plaid accounts
+                this.plaidAccounts.forEach(account => {
+                    const balance = account.balance_current || 0;
+                    const limit = account.balance_limit || 0;
+                    const subtype = (account.subtype || '').toLowerCase();
+                    const type = (account.type || '').toLowerCase();
+
+                    // Assets
+                    if (subtype === 'checking' || subtype === 'savings' ||
+                        subtype === 'money market' || subtype === 'cd' || type === 'depository') {
+                        assets += balance;
+                        cash += balance;
+                        if (subtype === 'savings' || subtype === 'money market') {
+                            emergencyFund += balance;
+                        }
+                    }
+
+                    // Investments
+                    if (type === 'investment' || subtype === 'brokerage' ||
+                        subtype === '401k' || subtype === 'ira') {
+                        assets += balance;
+                        investments += balance;
+                    }
+
+                    // Debt (credit cards, loans)
+                    if (subtype === 'credit card' || type === 'credit') {
+                        debt += Math.abs(balance);
+                        creditUsed += Math.abs(balance);
+                        creditLimit += limit;
+                    } else if (type === 'loan' || subtype === 'loan' ||
+                               subtype === 'mortgage' || subtype === 'student') {
+                        debt += Math.abs(balance);
+                    }
+                });
+
+                // Add Shopify Capital to debt
+                if (this.shopifyCapital.balance > 0) {
+                    debt += this.shopifyCapital.balance;
+                }
+
+                // Add PayPal balance to cash
+                if (this.paypalBalance.available > 0) {
+                    cash += this.paypalBalance.available;
+                    assets += this.paypalBalance.available;
+                }
+
+                // Add Shopify pending to assets (it's money owed to you)
+                if (this.shopifyPayments.pending > 0) {
+                    // Don't add to assets - it's pending, not available
+                }
+
+                // Calculate monthly income/expenses from transactions
+                let monthlyIncome = 0, monthlyExpenses = 0;
+                this.plaidTransactions.forEach(txn => {
+                    if (txn.pending) return;
+                    const amount = txn.amount || 0;
+                    if (amount < 0) {
+                        monthlyIncome += Math.abs(amount);
+                    } else {
+                        monthlyExpenses += amount;
+                    }
+                });
+
+                // Store calculated totals
+                this.totals = {
+                    assets,
+                    debt,
+                    netWorth: assets - debt,
+                    cash,
+                    investments,
+                    emergencyFund,
+                    creditLimit,
+                    creditUsed,
+                    creditUtilization: creditLimit > 0 ? Math.round((creditUsed / creditLimit) * 100) : 0,
+                    monthlyIncome,
+                    monthlyExpenses
+                };
+
+                console.log('[FinancialState] Totals recalculated:', this.totals);
+            },
+
+            refreshAllUI() {
+                // Overview tab
+                this.updateElement('total-net-worth', this.formatCurrency(this.totals.netWorth),
+                    this.totals.netWorth >= 0 ? 'positive' : 'negative');
+                this.updateElement('total-assets', this.formatCurrency(this.totals.assets));
+                this.updateElement('total-debt', this.totals.debt > 0 ? '-' + this.formatCurrency(this.totals.debt) : '$0');
+                this.updateElement('monthly-income', this.formatCurrency(this.totals.monthlyIncome));
+                this.updateElement('monthly-expenses', this.formatCurrency(this.totals.monthlyExpenses));
+                this.updateElement('emergency-fund', this.formatCurrency(this.totals.emergencyFund));
+                this.updateElement('investment-total', this.formatCurrency(this.totals.investments));
+                this.updateElement('debt-remaining', this.formatCurrency(this.totals.debt));
+
+                // Emergency fund coverage (assuming $3000/month expenses)
+                const monthlyExpenseEstimate = this.totals.monthlyExpenses || 3000;
+                const monthsCovered = monthlyExpenseEstimate > 0 ?
+                    (this.totals.emergencyFund / monthlyExpenseEstimate).toFixed(1) : 0;
+                this.updateElement('emergency-months', monthsCovered + ' months covered');
+                const emergencyProgress = document.getElementById('emergency-progress');
+                if (emergencyProgress) {
+                    const percent = Math.min((monthsCovered / 6) * 100, 100);
+                    emergencyProgress.style.width = percent + '%';
+                    emergencyProgress.className = 'progress-fill ' +
+                        (percent >= 100 ? 'success' : percent >= 50 ? 'warning' : 'danger');
+                }
+
+                // Banking tab
+                this.updateElement('total-cash-display', this.formatCurrency(this.totals.cash));
+                const cashCount = this.plaidAccounts.filter(a =>
+                    ['checking', 'savings', 'money market'].includes((a.subtype || '').toLowerCase())
+                ).length;
+                this.updateElement('cash-accounts-count', cashCount + ' account' + (cashCount !== 1 ? 's' : '') + ' connected', null, true);
+
+                // Debt destroyer tab
+                const debtAccounts = this.plaidAccounts.filter(a => {
+                    const subtype = (a.subtype || '').toLowerCase();
+                    const type = (a.type || '').toLowerCase();
+                    return subtype === 'credit card' || type === 'credit' || type === 'loan';
+                });
+                let debtCount = debtAccounts.length;
+                if (this.shopifyCapital.balance > 0) debtCount++;
+
+                this.updateElement('debt-total-display', this.formatCurrency(this.totals.debt));
+                this.updateElement('debt-accounts-count', debtCount.toString());
+                this.updateElement('debt-count', debtCount.toString()); // Tab badge
+
+                // Credit utilization
+                if (this.totals.creditLimit > 0) {
+                    this.updateElement('credit-utilization', this.totals.creditUtilization + '%');
+                    const utilizationStatus = document.getElementById('utilization-status');
+                    if (utilizationStatus) {
+                        const util = this.totals.creditUtilization;
+                        utilizationStatus.innerHTML = '<span>' +
+                            (util < 30 ? 'Excellent' : util < 50 ? 'Good' : util < 75 ? 'Fair' : 'High') +
+                            '</span>';
+                    }
+                }
+
+                // Financial Health Score
+                this.calculateHealthScore();
+            },
+
+            calculateHealthScore() {
+                // Weighted scoring algorithm
+                let score = 50; // Base score
+
+                // Emergency fund (+/- 15 points)
+                const monthsExpenses = this.totals.monthlyExpenses || 3000;
+                const monthsCovered = this.totals.emergencyFund / monthsExpenses;
+                if (monthsCovered >= 6) score += 15;
+                else if (monthsCovered >= 3) score += 10;
+                else if (monthsCovered >= 1) score += 5;
+                else score -= 10;
+
+                // Credit utilization (+/- 15 points)
+                const util = this.totals.creditUtilization;
+                if (util === 0) score += 10;
+                else if (util < 10) score += 15;
+                else if (util < 30) score += 10;
+                else if (util < 50) score += 0;
+                else if (util < 75) score -= 10;
+                else score -= 15;
+
+                // Net worth (+/- 10 points)
+                if (this.totals.netWorth > 50000) score += 10;
+                else if (this.totals.netWorth > 10000) score += 5;
+                else if (this.totals.netWorth > 0) score += 0;
+                else score -= 10;
+
+                // Cash flow (+/- 10 points)
+                const cashFlow = this.totals.monthlyIncome - this.totals.monthlyExpenses;
+                if (cashFlow > 1000) score += 10;
+                else if (cashFlow > 0) score += 5;
+                else score -= 10;
+
+                score = Math.max(0, Math.min(100, score));
+
+                const healthEl = document.getElementById('health-score');
+                const statusEl = document.getElementById('health-status');
+                if (healthEl) {
+                    healthEl.textContent = score;
+                    healthEl.style.color = score >= 70 ? 'var(--success)' :
+                                          score >= 50 ? 'var(--warning)' : 'var(--danger)';
+                }
+                if (statusEl) {
+                    statusEl.textContent = score >= 80 ? 'Excellent' :
+                                          score >= 70 ? 'Good' :
+                                          score >= 50 ? 'Fair' : 'Needs Work';
+                }
+            },
+
+            formatCurrency(amount) {
+                return '$' + Math.abs(amount || 0).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+            },
+
+            updateElement(id, value, className, isHtml) {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (isHtml) {
+                        el.innerHTML = '<span>' + value + '</span>';
+                    } else {
+                        el.textContent = value;
+                    }
+                    if (className) {
+                        el.classList.remove('positive', 'negative');
+                        el.classList.add(className);
+                    }
+                }
+            }
+        };
+
         async function fetchFromSheet(endpoint, params = {}) {
             if (!API_CONFIG.apiUrl) {
                 console.warn('API URL not configured - using demo data');
@@ -3227,9 +3167,11 @@
                 const accounts = await fetchFromSheet('getPlaidAccounts');
 
                 if (accounts && accounts.success && accounts.accounts && accounts.accounts.length > 0) {
+                    // Feed data to unified state manager
+                    FinancialState.update('plaidAccounts', accounts.accounts);
                     displayPlaidAccounts(accounts.accounts);
                 } else {
-                    // No accounts connected - show placeholder message
+                    FinancialState.update('plaidAccounts', []);
                     showNoAccountsMessage();
                 }
             } catch (error) {
@@ -3244,7 +3186,7 @@
             const debtEl = document.getElementById('total-debt');
 
             if (netWorthEl) {
-                netWorthEl.innerHTML = '<a href="#" onclick="connectBankWithPlaid(); return false;" style="color: var(--primary-light); text-decoration: underline; cursor: pointer;">Click to connect banks</a>';
+                netWorthEl.innerHTML = '<a href="#" onclick="showTab(\'banking\'); return false;" style="color: var(--primary); text-decoration: underline; cursor: pointer;">Connect bank accounts</a>';
             }
             if (assetsEl) assetsEl.textContent = '--';
             if (debtEl) debtEl.textContent = '--';
@@ -3304,6 +3246,9 @@
 
             // Calculate and update financial totals
             updateFinancialTotals(accounts);
+
+            // Populate debt destroyer with credit card data
+            updateDebtDestroyer(accounts);
         }
 
         function updateFinancialTotals(accounts) {
@@ -3392,6 +3337,110 @@
                 emergencyFund,
                 investmentTotal
             });
+
+            // Also update cash display in Banking tab
+            const totalCashEl = document.getElementById('total-cash-display');
+            if (totalCashEl) {
+                totalCashEl.textContent = '$' + totalAssets.toLocaleString();
+            }
+        }
+
+        // =============================================
+        // DEBT DESTROYER - Real Credit Card Data
+        // =============================================
+        function updateDebtDestroyer(accounts) {
+            if (!accounts || accounts.length === 0) {
+                showNoDebtMessage();
+                return;
+            }
+
+            // Filter for credit/debt accounts
+            const debtAccounts = accounts.filter(account => {
+                const subtype = (account.subtype || '').toLowerCase();
+                const type = (account.type || '').toLowerCase();
+                return subtype === 'credit card' || type === 'credit' ||
+                       type === 'loan' || subtype === 'loan' ||
+                       subtype === 'mortgage' || subtype === 'student';
+            });
+
+            if (debtAccounts.length === 0) {
+                showNoDebtMessage();
+                return;
+            }
+
+            // Calculate totals
+            const totalDebt = debtAccounts.reduce((sum, acc) => sum + Math.abs(acc.balance_current || 0), 0);
+
+            // Update stats
+            const debtTotalEl = document.getElementById('debt-total-display');
+            const debtCountEl = document.getElementById('debt-accounts-count');
+            const debtStatusEl = document.getElementById('debt-accounts-status');
+
+            if (debtTotalEl) {
+                debtTotalEl.textContent = '$' + totalDebt.toLocaleString();
+            }
+
+            if (debtCountEl) {
+                debtCountEl.textContent = debtAccounts.length;
+            }
+
+            if (debtStatusEl) {
+                debtStatusEl.innerHTML = '<span>' + debtAccounts.length + ' account' + (debtAccounts.length > 1 ? 's' : '') + ' tracked</span>';
+            }
+
+            // Populate debt table
+            const debtTableBody = document.getElementById('debt-table-body');
+            if (debtTableBody) {
+                debtTableBody.innerHTML = debtAccounts.map(account => {
+                    const balance = Math.abs(account.balance_current || 0);
+                    const subtype = account.subtype || 'Credit';
+                    const name = account.name || 'Unknown Account';
+                    const institution = account.institution || '';
+                    const mask = account.mask ? '****' + account.mask : '';
+
+                    return `
+                        <tr>
+                            <td>
+                                <div style="font-weight: 600;">${name}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">${institution} ${mask}</div>
+                            </td>
+                            <td style="color: var(--danger); font-weight: 600;">$${balance.toLocaleString()}</td>
+                            <td style="color: var(--text-secondary);">--</td>
+                            <td>--</td>
+                            <td>--</td>
+                            <td>
+                                <button class="btn btn-secondary btn-sm" onclick="editDebt('${account.account_id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            console.log('Debt Destroyer updated with', debtAccounts.length, 'accounts, total:', totalDebt);
+        }
+
+        function showNoDebtMessage() {
+            const debtTotalEl = document.getElementById('debt-total-display');
+            const debtCountEl = document.getElementById('debt-accounts-count');
+            const debtStatusEl = document.getElementById('debt-accounts-status');
+            const debtTableBody = document.getElementById('debt-table-body');
+
+            if (debtTotalEl) debtTotalEl.textContent = '$0';
+            if (debtCountEl) debtCountEl.textContent = '0';
+            if (debtStatusEl) debtStatusEl.innerHTML = '<span>No debt accounts connected</span>';
+
+            if (debtTableBody) {
+                debtTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-check-circle" style="color: var(--success); margin-right: 0.5rem;"></i>
+                            No debt accounts found. Add debts manually or connect credit cards via Plaid.
+                        </td>
+                    </tr>
+                `;
+            }
         }
 
         // =============================================
@@ -3402,6 +3451,8 @@
                 const result = await fetchFromSheet('getPlaidTransactions', { days: 30 });
 
                 if (result && result.success && result.data) {
+                    // Feed data to unified state manager
+                    FinancialState.update('plaidTransactions', result.data);
                     analyzeTransactions(result.data);
                 }
             } catch (error) {
@@ -3451,12 +3502,77 @@
                 });
             }
 
+            // Update cash flow
+            const cashFlowEl = document.getElementById('cash-flow-display');
+            const cashFlowStatusEl = document.getElementById('cash-flow-status');
+            const netCashFlow = monthlyIncome - monthlyExpenses;
+
+            if (cashFlowEl) {
+                cashFlowEl.textContent = (netCashFlow >= 0 ? '+$' : '-$') + Math.abs(netCashFlow).toLocaleString();
+                cashFlowEl.style.color = netCashFlow >= 0 ? 'var(--success)' : 'var(--danger)';
+            }
+
+            if (cashFlowStatusEl) {
+                cashFlowStatusEl.innerHTML = '<span>' + (netCashFlow >= 0 ? 'Surplus' : 'Deficit') + ' this month</span>';
+            }
+
+            // Populate transactions table
+            displayTransactionsTable(transactions);
+
             console.log('Monthly cash flow:', {
                 income: monthlyIncome,
                 expenses: monthlyExpenses,
-                net: monthlyIncome - monthlyExpenses,
+                net: netCashFlow,
                 transactionCount: transactions.length
             });
+        }
+
+        function displayTransactionsTable(transactions) {
+            const tableBody = document.getElementById('transactions-table-body');
+            if (!tableBody) return;
+
+            if (!transactions || transactions.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>
+                            No transactions found. Connect accounts to view recent activity.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Show most recent 10 transactions
+            const recentTxns = transactions.slice(0, 10);
+
+            tableBody.innerHTML = recentTxns.map(txn => {
+                const amount = txn.amount || 0;
+                const isIncome = amount < 0;
+                const displayAmount = Math.abs(amount);
+                const date = new Date(txn.date);
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                const categoryColors = {
+                    'Food and Drink': 'rgba(244, 162, 97, 0.2)',
+                    'Shops': 'rgba(67, 97, 238, 0.2)',
+                    'Travel': 'rgba(155, 89, 182, 0.2)',
+                    'Transfer': 'rgba(67, 97, 238, 0.2)',
+                    'Payment': 'rgba(42, 157, 143, 0.2)'
+                };
+                const category = txn.category ? txn.category[0] : 'Other';
+                const catColor = categoryColors[category] || 'rgba(100, 116, 139, 0.2)';
+
+                return `
+                    <tr>
+                        <td>${formattedDate}</td>
+                        <td>${txn.name || txn.merchant_name || 'Transaction'}</td>
+                        <td><span style="padding: 0.25rem 0.5rem; background: ${catColor}; border-radius: 4px; font-size: 0.8rem;">${category}</span></td>
+                        <td style="font-size: 0.85rem; color: var(--text-secondary);">${txn.account_name || '--'}</td>
+                        <td style="color: ${isIncome ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">${isIncome ? '+' : '-'}$${displayAmount.toLocaleString()}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         async function refreshPlaidBalances() {
@@ -3546,7 +3662,7 @@
                 showNotification('Marketing data refreshed', 'success');
             } catch (error) {
                 console.error('Error loading marketing data:', error);
-                showNotification('Error loading marketing data - using demo values', 'warning');
+                showNotification('Error loading marketing data', 'error');
             }
         }
 
@@ -3739,21 +3855,258 @@
         }
 
         // =============================================
+        // SHOPIFY FINANCIAL DATA
+        // =============================================
+        async function loadShopifyFinancialData() {
+            try {
+                // Load Shopify Payments balance
+                const balanceResult = await fetchFromSheet('getShopifyPaymentsBalance');
+                if (balanceResult && balanceResult.success) {
+                    console.log('Shopify Payments Balance:', balanceResult);
+                    // Feed to state manager
+                    FinancialState.update('shopifyPayments', { pending: balanceResult.totalPending || 0 });
+                    updateShopifyPendingBalance({ amount: balanceResult.totalPending });
+                }
+
+                // Load Shopify Capital loan data from stored CSV data
+                const capitalResult = await fetchFromSheet('getShopifyCapitalLoan');
+                if (capitalResult && capitalResult.success) {
+                    console.log('Shopify Capital Loan:', capitalResult);
+                    // Feed to state manager
+                    FinancialState.update('shopifyCapital', {
+                        balance: capitalResult.currentBalance || 0,
+                        originalAmount: capitalResult.loan?.originalAmount || 0,
+                        repaymentRate: capitalResult.loan?.repaymentRate || 0
+                    });
+                    addShopifyCapitalLoan({
+                        currentBalance: capitalResult.currentBalance,
+                        originalAmount: capitalResult.loan.originalAmount,
+                        totalPaymentAmount: capitalResult.loan.totalPaymentAmount,
+                        repaymentRate: capitalResult.loan.repaymentRate,
+                        monthlyFee: capitalResult.loan.monthlyFee,
+                        lastUpdated: capitalResult.lastUpdated,
+                        percentagePaid: capitalResult.progress.percentComplete
+                    });
+                }
+
+            } catch (error) {
+                console.error('Failed to load Shopify financial data:', error);
+            }
+        }
+
+        function updateShopifyPendingBalance(pending) {
+            if (!pending || pending.amount === 0) return;
+
+            // Find or create Shopify section in the Banking card
+            const bankingCard = document.querySelector('.card:has(.fa-university) .card-body');
+            if (!bankingCard) return;
+
+            let shopifySection = document.getElementById('shopifyBalanceSection');
+            if (!shopifySection) {
+                shopifySection = document.createElement('div');
+                shopifySection.id = 'shopifyBalanceSection';
+                shopifySection.style.cssText = 'margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);';
+                bankingCard.appendChild(shopifySection);
+            }
+
+            shopifySection.innerHTML = `
+                <h4 style="margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                    <i class="fab fa-shopify" style="color: #96bf48;"></i> Shopify Payments
+                </h4>
+                <div class="account-card shopify-pending">
+                    <div class="account-icon" style="color: #96bf48;">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="account-info">
+                        <div class="account-name">Pending Payout</div>
+                        <div class="account-type">Will deposit to PNC when processed</div>
+                    </div>
+                    <div class="account-balance">
+                        <div class="amount" style="color: var(--warning);">
+                            $${pending.amount.toLocaleString()}
+                        </div>
+                        <div class="label">Pending</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addShopifyCapitalLoan(loan) {
+            if (!loan || loan.currentBalance === 0) return;
+
+            const debtTableBody = document.getElementById('debt-table-body');
+            if (!debtTableBody) return;
+
+            // Check if Capital row already exists
+            const existingRow = document.querySelector('.shopify-capital-row');
+            if (existingRow) existingRow.remove();
+
+            // Calculate progress
+            const progress = ((loan.originalAmount - loan.currentBalance) / loan.originalAmount * 100).toFixed(1);
+
+            const row = document.createElement('tr');
+            row.className = 'shopify-capital-row';
+            row.innerHTML = `
+                <td>
+                    <div style="font-weight: 600;"><i class="fab fa-shopify" style="color: #96bf48; margin-right: 0.5rem;"></i>Shopify Capital Loan</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                        Original: $${loan.originalAmount.toLocaleString()} | 17% of daily sales
+                    </div>
+                </td>
+                <td style="color: var(--danger); font-weight: 600;">$${loan.currentBalance.toLocaleString()}</td>
+                <td style="color: var(--text-secondary);">17%</td>
+                <td>
+                    <div style="font-size: 0.85rem;">${progress}% paid</div>
+                    <div style="width: 60px; height: 4px; background: var(--border-color); border-radius: 2px; margin-top: 4px;">
+                        <div style="width: ${progress}%; height: 100%; background: var(--success); border-radius: 2px;"></div>
+                    </div>
+                </td>
+                <td>Auto-deducted from sales</td>
+                <td>
+                    <span class="badge badge-warning">Active</span>
+                </td>
+            `;
+
+            // Insert at the beginning of the table
+            if (debtTableBody.firstChild) {
+                debtTableBody.insertBefore(row, debtTableBody.firstChild);
+            } else {
+                debtTableBody.appendChild(row);
+            }
+
+            // Update debt totals to include Shopify Capital
+            const debtTotalEl = document.getElementById('debt-total-display');
+            if (debtTotalEl) {
+                const currentTotal = parseFloat(debtTotalEl.textContent.replace(/[$,]/g, '')) || 0;
+                const newTotal = currentTotal + loan.currentBalance;
+                debtTotalEl.textContent = '$' + newTotal.toLocaleString();
+            }
+
+            // Update account count
+            const debtCountEl = document.getElementById('debt-accounts-count');
+            if (debtCountEl) {
+                const currentCount = parseInt(debtCountEl.textContent) || 0;
+                debtCountEl.textContent = currentCount + 1;
+            }
+
+            console.log('Shopify Capital loan added to Debt Destroyer:', loan.currentBalance);
+        }
+
+        // Keep old function for backwards compatibility
+        function addShopifyCapitalToDebt(capital) {
+            if (!capital.loans || capital.loans.length === 0) return;
+            capital.loans.forEach(loan => {
+                addShopifyCapitalLoan({
+                    currentBalance: loan.remainingBalance,
+                    originalAmount: loan.originalAmount,
+                    repaymentRate: loan.dailyWithholdingRate
+                });
+            });
+        }
+
+        function displayShopifyPayouts(payouts) {
+            // Create a reference section for recent Shopify payouts
+            // Note: These will also appear in PNC transactions
+            console.log('Recent Shopify payouts (will appear in bank as deposits):', payouts);
+
+            // Could add a small info tooltip showing recent payouts if desired
+        }
+
+        // =============================================
+        // PAYPAL FINANCIAL DATA
+        // =============================================
+        async function loadPayPalData() {
+            try {
+                const summary = await fetchFromSheet('getPayPalFinancialSummary');
+                if (summary && summary.success) {
+                    console.log('PayPal Financial Summary:', summary);
+                    // Feed to state manager
+                    FinancialState.update('paypalBalance', {
+                        available: summary.balance?.available || 0,
+                        pending: summary.balance?.pending || 0
+                    });
+                    if (summary.transactions?.recent) {
+                        FinancialState.update('paypalTransactions', summary.transactions.recent);
+                    }
+                    displayPayPalBalance(summary.balance);
+                    displayPayPalTransactions(summary.transactions);
+                }
+            } catch (error) {
+                console.error('Failed to load PayPal data:', error);
+            }
+        }
+
+        function displayPayPalBalance(balance) {
+            if (!balance) return;
+
+            // Find or create PayPal section in the Banking card
+            const bankingCard = document.querySelector('.card:has(.fa-university) .card-body');
+            if (!bankingCard) return;
+
+            let paypalSection = document.getElementById('paypalBalanceSection');
+            if (!paypalSection) {
+                paypalSection = document.createElement('div');
+                paypalSection.id = 'paypalBalanceSection';
+                paypalSection.style.cssText = 'margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);';
+                bankingCard.appendChild(paypalSection);
+            }
+
+            const hasBalance = balance.available > 0 || balance.pending > 0;
+
+            paypalSection.innerHTML = `
+                <h4 style="margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                    <i class="fab fa-paypal" style="color: #003087;"></i> PayPal Business
+                </h4>
+                ${hasBalance ? `
+                <div class="account-card paypal-balance">
+                    <div class="account-icon" style="color: #003087;">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="account-info">
+                        <div class="account-name">PayPal Balance</div>
+                        <div class="account-type">Business Account</div>
+                    </div>
+                    <div class="account-balance">
+                        <div class="amount" style="color: var(--success);">
+                            $${balance.available.toLocaleString()}
+                        </div>
+                        <div class="label">Available</div>
+                    </div>
+                </div>
+                ` : `
+                <div class="account-card paypal-balance" style="opacity: 0.7;">
+                    <div class="account-icon" style="color: #003087;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="account-info">
+                        <div class="account-name">PayPal Connected</div>
+                        <div class="account-type">$0 balance (payments go directly to linked bank)</div>
+                    </div>
+                </div>
+                `}
+            `;
+        }
+
+        function displayPayPalTransactions(transactions) {
+            if (!transactions || !transactions.summary) return;
+
+            console.log('PayPal 30-day summary:', transactions.summary);
+
+            // If there's significant activity, add it to the cash flow or transaction history
+            // For now just log - the transactions will show in bank accounts via Plaid
+        }
+
+        // =============================================
         // INITIALIZE
         // =============================================
         document.addEventListener('DOMContentLoaded', () => {
             console.log('Tiny Seed Financial Dashboard initialized');
 
-            // Check for API connection
-            if (!API_CONFIG.apiUrl) {
-                console.log('Running in demo mode - configure API URL for live data');
-            }
-
-            // Load connected Plaid accounts and transactions if API is configured
-            if (API_CONFIG.apiUrl) {
-                loadConnectedAccounts();
-                loadTransactionsAndAnalyze();
-            }
+            // Load all connected account data
+            loadConnectedAccounts();
+            loadTransactionsAndAnalyze();
+            loadShopifyFinancialData();
+            loadPayPalData();
         });
     </script>
 </body>
