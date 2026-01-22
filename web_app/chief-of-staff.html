@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chief of Staff | Tiny Seed Farm</title>
+    <script src="api-config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --critical: #dc2626;
+            --high: #ea580c;
+            --medium: #ca8a04;
+            --low: #16a34a;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-input: #0f3460;
+            --text-primary: #e8e8e8;
+            --text-secondary: #a0a0a0;
+            --accent: #4f46e5;
+            --accent-hover: #6366f1;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1 span {
+            font-size: 1.8rem;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+        }
+
+        .stat-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-badge.critical { background: var(--critical); }
+        .stat-badge.high { background: var(--high); }
+        .stat-badge.medium { background: var(--medium); color: #000; }
+        .stat-badge.overdue { background: #7c3aed; }
+
+        /* Main Layout */
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-panel {
+            width: 380px;
+            background: var(--bg-card);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--bg-card);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .tab {
+            padding: 14px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .tab:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .tab.active {
+            border-bottom-color: var(--accent);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        /* Content Area */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Priority Groups */
+        .priority-group {
+            margin-bottom: 24px;
+        }
+
+        .priority-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid;
+        }
+
+        .priority-header.critical { border-color: var(--critical); }
+        .priority-header.high { border-color: var(--high); }
+        .priority-header.medium { border-color: var(--medium); }
+        .priority-header.low { border-color: var(--low); }
+
+        .priority-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .priority-dot.critical { background: var(--critical); }
+        .priority-dot.high { background: var(--high); }
+        .priority-dot.medium { background: var(--medium); }
+        .priority-dot.low { background: var(--low); }
+
+        .priority-count {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Message Cards */
+        .message-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+
+        .message-card:hover {
+            transform: translateX(4px);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .message-card.critical { border-left-color: var(--critical); }
+        .message-card.high { border-left-color: var(--high); }
+        .message-card.medium { border-left-color: var(--medium); }
+        .message-card.low { border-left-color: var(--low); }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .message-from {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-type {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .message-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .message-subject {
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .message-preview {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .message-action {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        /* Chat Panel */
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .chat-message {
+            margin-bottom: 16px;
+            max-width: 90%;
+        }
+
+        .chat-message.user {
+            margin-left: auto;
+        }
+
+        .chat-message.assistant {
+            margin-right: auto;
+        }
+
+        .chat-bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .chat-message.user .chat-bubble {
+            background: var(--accent);
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.assistant .chat-bubble {
+            background: var(--bg-input);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-container {
+            padding: 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .quick-action {
+            padding: 6px 12px;
+            border-radius: 16px;
+            background: var(--bg-input);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .chat-send {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .chat-send:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 200px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .context-menu.show {
+            display: block;
+        }
+
+        .context-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+        }
+
+        .context-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .context-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 8px 0;
+        }
+
+        .context-submenu {
+            position: relative;
+        }
+
+        .context-submenu-items {
+            position: absolute;
+            left: 100%;
+            top: 0;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 150px;
+            display: none;
+        }
+
+        .context-submenu:hover .context-submenu-items {
+            display: block;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 900px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .chat-panel {
+                width: 100%;
+                height: 50vh;
+                border-left: none;
+                border-top: 1px solid rgba(255,255,255,0.1);
+            }
+
+            .stats-bar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Panel -->
+        <div class="main-panel">
+            <div class="header">
+                <h1><span>🎖️</span> Chief of Staff</h1>
+                <div class="stats-bar">
+                    <div class="stat-badge critical" id="criticalCount">0 Critical</div>
+                    <div class="stat-badge high" id="highCount">0 High</div>
+                    <div class="stat-badge overdue" id="overdueCount">0 Overdue</div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" data-tab="communications">Communications</div>
+                <div class="tab" data-tab="actions">Action Queue</div>
+                <div class="tab" data-tab="commitments">Commitments</div>
+            </div>
+
+            <div class="tab-content">
+                <!-- Communications Tab -->
+                <div class="tab-pane active" id="communications-tab">
+                    <div class="filter-bar">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="email">Email</button>
+                        <button class="filter-btn" data-filter="sms">SMS</button>
+                        <input type="text" class="search-box" placeholder="Search communications..." id="searchBox">
+                    </div>
+
+                    <div id="messagesList">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Tab -->
+                <div class="tab-pane" id="actions-tab">
+                    <div id="actionsList">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commitments Tab -->
+                <div class="tab-pane" id="commitments-tab">
+                    <div id="commitmentsList">
+                        <div class="empty-state">
+                            <h3>Commitments</h3>
+                            <p>Track promises made to customers and vendors</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Panel -->
+        <div class="chat-panel">
+            <div class="chat-header">
+                <span>💬</span> Chat with Chief of Staff
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message assistant">
+                    <div class="chat-bubble">
+                        Good morning! I'm your Chief of Staff AI. I've been monitoring your communications and have some updates ready. What would you like to know?
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="quick-actions">
+                    <button class="quick-action" data-action="urgent">What's urgent?</button>
+                    <button class="quick-action" data-action="brief">Morning Brief</button>
+                    <button class="quick-action" data-action="followups">Follow-ups Due</button>
+                    <button class="quick-action" data-action="compose">Compose Email</button>
+                </div>
+                <div class="chat-input-wrapper">
+                    <input type="text" class="chat-input" placeholder="Ask me anything..." id="chatInput">
+                    <button class="chat-send" id="chatSend">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-submenu">
+            <div class="context-item">
+                <span>🏷️</span> Change Priority
+                <span style="margin-left: auto;">▸</span>
+            </div>
+            <div class="context-submenu-items">
+                <div class="context-item" data-priority="CRITICAL">🔴 Critical</div>
+                <div class="context-item" data-priority="HIGH">🟠 High</div>
+                <div class="context-item" data-priority="MEDIUM">🟡 Medium</div>
+                <div class="context-item" data-priority="LOW">🟢 Low</div>
+            </div>
+        </div>
+        <div class="context-submenu">
+            <div class="context-item">
+                <span>📁</span> Change Category
+                <span style="margin-left: auto;">▸</span>
+            </div>
+            <div class="context-submenu-items">
+                <div class="context-item" data-category="CUSTOMER">Customer</div>
+                <div class="context-item" data-category="VENDOR">Vendor</div>
+                <div class="context-item" data-category="INTERNAL">Internal</div>
+                <div class="context-item" data-category="MARKETING">Marketing</div>
+                <div class="context-item" data-category="PERSONAL">Personal</div>
+            </div>
+        </div>
+        <div class="context-divider"></div>
+        <div class="context-item" data-action="reply">
+            <span>↩️</span> Draft Reply
+        </div>
+        <div class="context-item" data-action="followup">
+            <span>⏰</span> Set Follow-up
+        </div>
+        <div class="context-item" data-action="archive">
+            <span>📦</span> Archive
+        </div>
+    </div>
+
+    <script>
+        // Initialize API
+        const api = new TinySeedAPI();
+
+        // State
+        let communications = [];
+        let actions = [];
+        let selectedMessage = null;
+        let currentFilter = 'all';
+
+        // DOM Elements
+        const messagesList = document.getElementById('messagesList');
+        const actionsList = document.getElementById('actionsList');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const contextMenu = document.getElementById('contextMenu');
+        const searchBox = document.getElementById('searchBox');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCommunications();
+            loadActions();
+            setupEventListeners();
+        });
+
+        // Load Communications
+        async function loadCommunications() {
+            try {
+                const response = await api.get('getCombinedCommunications', { limit: 100 });
+
+                if (response.success) {
+                    communications = response.data || [];
+                    updateCounts(response.counts);
+                    renderCommunications();
+                } else {
+                    showError('Failed to load communications');
+                }
+            } catch (error) {
+                console.error('Error loading communications:', error);
+                showError('Error connecting to server');
+            }
+        }
+
+        // Load Actions
+        async function loadActions() {
+            try {
+                const response = await api.get('getPendingApprovals');
+
+                if (response.success) {
+                    actions = response.data || [];
+                    renderActions();
+                }
+            } catch (error) {
+                console.error('Error loading actions:', error);
+            }
+        }
+
+        // Update Counts
+        function updateCounts(counts) {
+            if (!counts) return;
+            document.getElementById('criticalCount').textContent = `${counts.critical || 0} Critical`;
+            document.getElementById('highCount').textContent = `${counts.high || 0} High`;
+        }
+
+        // Render Communications
+        function renderCommunications() {
+            const searchTerm = searchBox.value.toLowerCase();
+
+            let filtered = communications.filter(msg => {
+                if (currentFilter !== 'all' && msg.type !== currentFilter) return false;
+                if (searchTerm) {
+                    const searchable = `${msg.from} ${msg.subject} ${msg.preview}`.toLowerCase();
+                    if (!searchable.includes(searchTerm)) return false;
+                }
+                return true;
+            });
+
+            // Group by priority
+            const groups = {
+                CRITICAL: filtered.filter(m => m.priority === 'CRITICAL'),
+                HIGH: filtered.filter(m => m.priority === 'HIGH'),
+                MEDIUM: filtered.filter(m => m.priority === 'MEDIUM'),
+                LOW: filtered.filter(m => m.priority === 'LOW')
+            };
+
+            let html = '';
+
+            for (const [priority, messages] of Object.entries(groups)) {
+                if (messages.length === 0) continue;
+
+                html += `
+                    <div class="priority-group">
+                        <div class="priority-header ${priority.toLowerCase()}">
+                            <div class="priority-dot ${priority.toLowerCase()}"></div>
+                            <span>${priority}</span>
+                            <span class="priority-count">${messages.length}</span>
+                        </div>
+                        ${messages.map(msg => renderMessageCard(msg)).join('')}
+                    </div>
+                `;
+            }
+
+            if (html === '') {
+                html = `
+                    <div class="empty-state">
+                        <h3>No Communications</h3>
+                        <p>Your inbox is clear!</p>
+                    </div>
+                `;
+            }
+
+            messagesList.innerHTML = html;
+        }
+
+        // Render Message Card
+        function renderMessageCard(msg) {
+            const time = msg.timestamp ? formatTime(msg.timestamp) : '';
+            const typeIcon = msg.type === 'email' ? '📧' : '💬';
+
+            return `
+                <div class="message-card ${msg.priority?.toLowerCase() || 'medium'}"
+                     data-id="${msg.id}"
+                     data-type="${msg.type}"
+                     oncontextmenu="showContextMenu(event, '${msg.id}', '${msg.type}')">
+                    <div class="message-header">
+                        <div class="message-from">
+                            <span class="message-type">${typeIcon} ${msg.type}</span>
+                            ${msg.from || 'Unknown'}
+                        </div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                    <div class="message-subject">${msg.subject || '(No Subject)'}</div>
+                    <div class="message-preview">${msg.preview || ''}</div>
+                    ${msg.suggestedAction ? `<div class="message-action">💡 ${msg.suggestedAction}</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Render Actions
+        function renderActions() {
+            if (actions.length === 0) {
+                actionsList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Pending Actions</h3>
+                        <p>All caught up!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            actionsList.innerHTML = actions.map(action => `
+                <div class="message-card medium">
+                    <div class="message-header">
+                        <div class="message-from">${action.actiontype || 'Action'}</div>
+                        <div class="message-time">${formatTime(action.suggestedat)}</div>
+                    </div>
+                    <div class="message-subject">${action.draftcontent || 'Pending action'}</div>
+                    <div style="margin-top: 12px; display: flex; gap: 8px;">
+                        <button onclick="completeAction('${action.actionid}')"
+                                style="padding: 8px 16px; background: var(--low); border: none; border-radius: 6px; color: white; cursor: pointer;">
+                            ✓ Complete
+                        </button>
+                        <button onclick="dismissAction('${action.actionid}')"
+                                style="padding: 8px 16px; background: var(--critical); border: none; border-radius: 6px; color: white; cursor: pointer;">
+                            ✗ Dismiss
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Context Menu
+        function showContextMenu(event, id, type) {
+            event.preventDefault();
+            selectedMessage = { id, type };
+
+            contextMenu.style.left = `${event.clientX}px`;
+            contextMenu.style.top = `${event.clientY}px`;
+            contextMenu.classList.add('show');
+        }
+
+        document.addEventListener('click', () => {
+            contextMenu.classList.remove('show');
+        });
+
+        // Reclassify
+        async function reclassify(newPriority, newCategory) {
+            if (!selectedMessage) return;
+
+            try {
+                const params = {
+                    threadId: selectedMessage.id
+                };
+                if (newPriority) params.newPriority = newPriority;
+                if (newCategory) params.newCategory = newCategory;
+
+                const response = await api.get('reclassifyEmail', params);
+
+                if (response.success) {
+                    TinySeedUtils.showToast('Classification updated - AI is learning!', 'success');
+                    loadCommunications();
+                } else {
+                    TinySeedUtils.showToast('Failed to update', 'error');
+                }
+            } catch (error) {
+                console.error('Error reclassifying:', error);
+                TinySeedUtils.showToast('Error updating classification', 'error');
+            }
+        }
+
+        // Complete Action
+        async function completeAction(actionId) {
+            try {
+                const response = await api.get('completeAction', { actionId });
+                if (response.success) {
+                    TinySeedUtils.showToast('Action completed', 'success');
+                    loadActions();
+                }
+            } catch (error) {
+                TinySeedUtils.showToast('Error completing action', 'error');
+            }
+        }
+
+        // Dismiss Action
+        async function dismissAction(actionId) {
+            try {
+                const response = await api.get('dismissAction', { actionId });
+                if (response.success) {
+                    TinySeedUtils.showToast('Action dismissed', 'success');
+                    loadActions();
+                }
+            } catch (error) {
+                TinySeedUtils.showToast('Error dismissing action', 'error');
+            }
+        }
+
+        // Chat Functions
+        function addChatMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isUser ? 'user' : 'assistant'}`;
+            messageDiv.innerHTML = `<div class="chat-bubble">${content}</div>`;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendChat() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            addChatMessage(message, true);
+            chatInput.value = '';
+
+            // Handle quick actions or send to AI
+            if (message.toLowerCase().includes('urgent') || message.toLowerCase().includes("what's urgent")) {
+                const critical = communications.filter(m => m.priority === 'CRITICAL');
+                if (critical.length > 0) {
+                    addChatMessage(`You have ${critical.length} critical items:\n\n${critical.map(m => `• ${m.from}: ${m.subject}`).join('\n')}`);
+                } else {
+                    addChatMessage('No critical items right now. Your highest priority items are in the High category.');
+                }
+            } else if (message.toLowerCase().includes('brief') || message.toLowerCase().includes('summary')) {
+                addChatMessage(`📋 Morning Brief:\n\n• ${communications.filter(m => m.priority === 'CRITICAL').length} Critical items\n• ${communications.filter(m => m.priority === 'HIGH').length} High priority items\n• ${actions.length} pending actions\n\nWould you like me to go through the critical items?`);
+            } else {
+                addChatMessage("I'm processing your request. For now, I can help with quick summaries - try asking 'What's urgent?' or 'Morning brief'.");
+            }
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            // Tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                });
+            });
+
+            // Filters
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    renderCommunications();
+                });
+            });
+
+            // Search
+            searchBox.addEventListener('input', TinySeedUtils.debounce(() => {
+                renderCommunications();
+            }, 300));
+
+            // Chat
+            chatInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') sendChat();
+            });
+            document.getElementById('chatSend').addEventListener('click', sendChat);
+
+            // Quick Actions
+            document.querySelectorAll('.quick-action').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    chatInput.value = btn.textContent;
+                    sendChat();
+                });
+            });
+
+            // Context Menu Actions
+            document.querySelectorAll('[data-priority]').forEach(item => {
+                item.addEventListener('click', () => reclassify(item.dataset.priority, null));
+            });
+
+            document.querySelectorAll('[data-category]').forEach(item => {
+                item.addEventListener('click', () => reclassify(null, item.dataset.category));
+            });
+        }
+
+        // Utilities
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        function showError(message) {
+            messagesList.innerHTML = `
+                <div class="empty-state">
+                    <h3>Error</h3>
+                    <p>${message}</p>
+                    <button onclick="loadCommunications()"
+                            style="margin-top: 16px; padding: 10px 20px; background: var(--accent); border: none; border-radius: 8px; color: white; cursor: pointer;">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
