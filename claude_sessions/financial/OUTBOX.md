@@ -733,3 +733,185 @@ To deploy:
 ---
 
 *Financial Claude - MEGA BUILD Complete. System is PRESCRIPTIVE.*
+
+---
+
+## FINANCIAL DASHBOARD v2.0: COMPLETE UI OVERHAUL
+**Date:** 2026-01-22
+**To:** PM_Architect, Owner
+**Priority:** BUILD COMPLETE
+
+---
+
+### SESSION SUMMARY
+
+Continued the Financial Dashboard build with a complete UI overhaul adding all missing tabs and functionality.
+
+---
+
+### NEW FEATURES ADDED
+
+#### 1. WISHLIST TAB (Complete)
+- Equipment purchase tracking with priority levels
+- Smart Purchase Advisor showing when purchases are safe
+- Stats: Item count, total value, safe-to-buy count, cash available
+- Add/remove wishlist items
+- Connected to `getWishlist`, `addWishlistItem`, `removeWishlistItem` endpoints
+
+#### 2. ASSETS & INVENTORY TAB (Complete)
+- Full asset tracking for farm equipment and vehicles
+- MACRS depreciation support (5-year, 7-year, straight-line)
+- **LOAN APPLICATION PACKAGE:**
+  - One-click Balance Sheet export
+  - One-click Asset Schedule export
+  - Professional HTML format for PDF printing
+- Balance Sheet Summary with:
+  - Total Assets breakdown (Cash, Investments, Equipment, Vehicles, Inventory)
+  - Total Liabilities
+  - Owner's Equity (Net Worth)
+
+#### 3. CUSTOMER PAYMENT PLANS TAB (Complete)
+- Create installment plans for CSA shares or large orders
+- Configurable: Down payment %, installments, interest rate
+- **Live Payment Preview Calculator** - Shows customer total
+- Track payments with status (active/completed/overdue)
+- Record individual payments
+- Overdue payments alert section
+- Settings for default down payment, interest, installments
+
+#### 4. TAB NAVIGATION UPDATED
+New tabs added to navigation:
+- Wishlist
+- Assets & Inventory
+- Payment Plans
+
+#### 5. FAKE DATA REMOVED
+- Overview stats now show loading states ("--") until real data loads
+- Financial Health Score dynamic with ID `health-score` and `health-label`
+- Priority Actions container now populated dynamically from recommendations engine
+- All hardcoded values replaced with real data connections
+
+---
+
+### MODALS ADDED
+
+| Modal | Purpose |
+|-------|---------|
+| `addWishlistModal` | Add equipment to wishlist |
+| `addAssetModal` | Add farm assets with depreciation |
+| `addPaymentPlanModal` | Create customer payment plans |
+| `loanPackageModal` | Preview and export loan documents |
+
+---
+
+### JAVASCRIPT FUNCTIONS ADDED
+
+```javascript
+// Wishlist
+loadWishlist(), renderWishlistTable(), updateWishlistStats()
+saveWishlistItem(), removeWishlistItem()
+
+// Assets & Inventory
+loadAssets(), renderAssetsTable(), loadBalanceSheet()
+saveAsset(), removeAsset()
+generateLoanPackage(), generateAssetReport()
+downloadLoanPackage(), printLoanPackage()
+
+// Payment Plans
+loadPaymentPlans(), renderPaymentPlansTable(), updatePaymentPlanStats()
+loadOverduePayments(), savePaymentPlan(), recordPayment()
+updatePaymentPreview() // Live calculator
+
+// Financial Health
+loadFinancialHealthScore(), loadFinancialRecommendations()
+
+// Round-Ups
+loadRoundUps()
+```
+
+---
+
+### API ENDPOINT MAPPING FIXED
+
+Fixed endpoint name mismatches between frontend and backend:
+
+| Frontend Call | Backend Endpoint |
+|---------------|------------------|
+| `getWishlistItems` | `getWishlist` |
+| `getAssetItems` | `getAssets` |
+| `getOverduePaymentPlans` | `getOverduePayments` |
+| `recordPaymentPlanPayment` | `recordPayment` |
+| `addAssetItem` | `addAsset` |
+| `saveAssetItems` | `saveAssets` |
+| `saveWishlistItems` | `saveWishlist` |
+
+---
+
+### INITIALIZATION UPDATED
+
+Dashboard now loads on startup:
+- `loadConnectedAccounts()`
+- `loadDebts()`
+- `loadFinancialSummary()`
+- `loadWishlist()` **NEW**
+- `loadAssets()` **NEW**
+- `loadPaymentPlans()` **NEW**
+- `loadRoundUps()` **NEW**
+- `loadFinancialHealthScore()` **NEW**
+- `loadFinancialRecommendations()` **NEW**
+
+Sync function also updated to refresh all new data sources.
+
+---
+
+### FILE MODIFIED
+
+| File | Changes |
+|------|---------|
+| `apps_script/FinancialDashboard.html` | +500 lines (tabs, modals, JS) |
+
+---
+
+### PRODUCTION STATUS
+
+| Component | Status |
+|-----------|--------|
+| Wishlist Tab | COMPLETE |
+| Assets Tab | COMPLETE |
+| Payment Plans Tab | COMPLETE |
+| Loan Package Export | COMPLETE |
+| Health Score Dynamic | COMPLETE |
+| Recommendations Engine | COMPLETE |
+| Fake Data Removed | COMPLETE |
+| API Mappings Fixed | COMPLETE |
+
+---
+
+### WHAT THE OWNER SEES NOW
+
+**Dashboard Tabs:**
+1. **Overview** - Net worth, health score, priority actions
+2. **Debt Destroyer** - Payoff strategies, debt tracking
+3. **Banking & Bills** - Connected accounts, bill tracking
+4. **Investments** - Portfolio allocation, Alpaca ready
+5. **Change Investing** - Round-up savings from Shopify
+6. **Wishlist** **NEW** - Equipment purchase tracker
+7. **Assets & Inventory** **NEW** - Loan-ready asset tracking
+8. **Payment Plans** **NEW** - Customer installment plans
+9. **Team Bonuses** - Employee gamification
+10. **Settings** - Connections and preferences
+
+**Loan Application Ready:**
+- One-click Balance Sheet
+- One-click Asset Schedule
+- Print/PDF export
+
+---
+
+### DEPLOYMENT READY
+
+The `FinancialDashboard.html` is now complete with all requested features. Ready for Apps Script deployment.
+
+---
+
+*Financial Claude v2.0 - UI Overhaul Complete. All tabs functional.*

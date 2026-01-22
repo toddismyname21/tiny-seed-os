@@ -908,6 +908,166 @@
 
         .breakdown-item .value.positive { color: var(--success); }
         .breakdown-item .value.negative { color: var(--danger); }
+
+        /* ============================================= */
+        /* LOADING STATES */
+        /* ============================================= */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 26, 46, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            border-radius: inherit;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-light) 25%, var(--bg-card) 50%, var(--bg-light) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-text {
+            height: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .skeleton-value {
+            height: 2rem;
+            width: 60%;
+        }
+
+        /* ============================================= */
+        /* KEYBOARD SHORTCUTS HELP */
+        /* ============================================= */
+        .keyboard-help {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            z-index: 50;
+            display: none;
+        }
+
+        .keyboard-help.visible {
+            display: block;
+        }
+
+        .keyboard-help kbd {
+            background: var(--bg-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-right: 0.5rem;
+        }
+
+        .keyboard-help div {
+            margin-bottom: 0.25rem;
+        }
+
+        /* ============================================= */
+        /* PRINT STYLES */
+        /* ============================================= */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .top-nav,
+            .tab-nav,
+            .btn,
+            .modal-overlay,
+            .keyboard-help,
+            #notification {
+                display: none !important;
+            }
+
+            .tab-content {
+                display: block !important;
+                page-break-after: always;
+            }
+
+            .main-content {
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .card {
+                background: white !important;
+                border: 1px solid #ddd !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+
+            .stat-card {
+                background: #f9f9f9 !important;
+                border: 1px solid #ddd !important;
+            }
+
+            .stat-value,
+            .net-worth-amount {
+                color: black !important;
+            }
+
+            .stat-value.positive,
+            .stat-change.positive,
+            .net-worth-amount.positive {
+                color: #2a9d8f !important;
+            }
+
+            .stat-value.negative,
+            .stat-change.negative,
+            .net-worth-amount.negative {
+                color: #e63946 !important;
+            }
+
+            .data-table th {
+                background: #f0f0f0 !important;
+            }
+
+            .data-table td,
+            .data-table th {
+                border: 1px solid #ddd !important;
+            }
+
+            @page {
+                margin: 0.5in;
+            }
+
+            .stats-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .two-col,
+            .three-col {
+                display: block !important;
+            }
+
+            .two-col > *,
+            .three-col > * {
+                margin-bottom: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2466,26 +2626,94 @@
     <!-- ============================================= -->
     <!-- JAVASCRIPT -->
     <!-- ============================================= -->
+    <!-- Keyboard Help Panel -->
+    <div class="keyboard-help" id="keyboardHelp">
+        <div><kbd>1-7</kbd> Switch tabs</div>
+        <div><kbd>R</kbd> Refresh data</div>
+        <div><kbd>N</kbd> New debt</div>
+        <div><kbd>P</kbd> Print report</div>
+        <div><kbd>?</kbd> Toggle help</div>
+        <div><kbd>Esc</kbd> Close modal</div>
+    </div>
+
     <script>
+        // =============================================
+        // GLOBAL STATE
+        // =============================================
+        let currentStrategy = 'avalanche';
+        let debtsData = [];
+        let accountsData = [];
+        let billsData = [];
+        let isLoading = false;
+        let editingDebtId = null;
+
         // =============================================
         // TAB NAVIGATION
         // =============================================
+        const tabOrder = ['overview', 'debt', 'banking', 'investments', 'roundups', 'employees', 'settings'];
+
         function showTab(tabId) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
 
-            // Remove active from all buttons
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
 
-            // Show selected tab
             document.getElementById('tab-' + tabId).classList.add('active');
 
-            // Activate button
-            event.target.closest('.tab-btn').classList.add('active');
+            if (event && event.target) {
+                event.target.closest('.tab-btn').classList.add('active');
+            } else {
+                // Find and activate the correct button
+                const idx = tabOrder.indexOf(tabId);
+                if (idx >= 0) {
+                    document.querySelectorAll('.tab-btn')[idx]?.classList.add('active');
+                }
+            }
+        }
+
+        // =============================================
+        // KEYBOARD SHORTCUTS
+        // =============================================
+        document.addEventListener('keydown', (e) => {
+            // Don't trigger when typing in inputs
+            if (e.target.matches('input, textarea, select')) return;
+
+            const key = e.key.toLowerCase();
+
+            // Number keys 1-7 for tabs
+            if (key >= '1' && key <= '7') {
+                const idx = parseInt(key) - 1;
+                if (tabOrder[idx]) {
+                    showTab(tabOrder[idx]);
+                }
+                return;
+            }
+
+            switch (key) {
+                case 'r':
+                    syncData();
+                    break;
+                case 'n':
+                    openModal('addDebtModal');
+                    break;
+                case 'p':
+                    window.print();
+                    break;
+                case '?':
+                    toggleKeyboardHelp();
+                    break;
+                case 'escape':
+                    document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+                    document.getElementById('keyboardHelp')?.classList.remove('visible');
+                    break;
+            }
+        });
+
+        function toggleKeyboardHelp() {
+            document.getElementById('keyboardHelp')?.classList.toggle('visible');
         }
 
         // =============================================
@@ -2493,10 +2721,19 @@
         // =============================================
         function openModal(modalId) {
             document.getElementById(modalId).classList.add('active');
+            // Focus first input
+            setTimeout(() => {
+                document.querySelector(`#${modalId} input`)?.focus();
+            }, 100);
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
+            editingDebtId = null;
+            // Reset form
+            document.querySelectorAll(`#${modalId} input`).forEach(inp => {
+                if (inp.type !== 'checkbox') inp.value = '';
+            });
         }
 
         // Close modal on overlay click
@@ -2504,6 +2741,7 @@
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
                     overlay.classList.remove('active');
+                    editingDebtId = null;
                 }
             });
         });
@@ -2511,8 +2749,6 @@
         // =============================================
         // DEBT DESTROYER FUNCTIONS
         // =============================================
-        let currentStrategy = 'avalanche';
-
         function selectStrategy(strategy) {
             currentStrategy = strategy;
             document.querySelectorAll('.strategy-option').forEach(opt => {
@@ -2522,51 +2758,368 @@
             recalculatePayoff();
         }
 
-        function recalculatePayoff() {
-            // This would recalculate the payoff timeline based on strategy
-            console.log('Recalculating payoff with strategy:', currentStrategy);
-            // In production, this would call the Google Sheets API
+        async function recalculatePayoff() {
+            showNotification('Recalculating payoff timeline...', 'info');
+
+            try {
+                const result = await fetchFromSheet('calculateDebtPayoff', {
+                    strategy: currentStrategy,
+                    extraPayment: 500 // TODO: Make configurable
+                });
+
+                if (result && result.success) {
+                    updatePayoffTimeline(result.timeline);
+                    updateDebtStats(result.stats);
+                    showNotification('Payoff timeline updated!', 'success');
+                }
+            } catch (error) {
+                console.error('Recalculate error:', error);
+                // Use local calculator as fallback
+                const calculator = new DebtPayoffCalculator(debtsData, 500);
+                const result = calculator.calculatePayoff(currentStrategy);
+                updatePayoffTimeline(result.timeline);
+            }
         }
 
-        function saveDebt() {
-            // Save debt to Google Sheets
-            console.log('Saving debt...');
-            closeModal('addDebtModal');
-            // In production: call Apps Script API
+        async function saveDebt() {
+            const modal = document.getElementById('addDebtModal');
+            const inputs = modal.querySelectorAll('input, select');
+
+            const debtData = {
+                id: editingDebtId || Date.now(),
+                name: inputs[0].value,
+                type: inputs[1].value,
+                balance: parseFloat(inputs[2].value) || 0,
+                apr: parseFloat(inputs[3].value) || 0,
+                minPayment: parseFloat(inputs[4].value) || 0,
+                dueDay: parseInt(inputs[5].value) || 1
+            };
+
+            if (!debtData.name || !debtData.balance) {
+                showNotification('Please fill in account name and balance', 'warning');
+                return;
+            }
+
+            const btn = modal.querySelector('.btn-primary');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const result = await saveToSheet('saveDebt', debtData);
+
+                if (result && result.success) {
+                    showNotification('Debt saved successfully!', 'success');
+                    closeModal('addDebtModal');
+                    await loadDebts();
+                    recalculatePayoff();
+                } else {
+                    throw new Error(result?.error || 'Failed to save');
+                }
+            } catch (error) {
+                console.error('Save debt error:', error);
+                showNotification('Failed to save: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Debt';
+                btn.disabled = false;
+            }
         }
 
-        function editDebt(debtId) {
-            console.log('Editing debt:', debtId);
-            // Open modal with debt data
+        async function editDebt(debtId) {
+            editingDebtId = debtId;
+            const debt = debtsData.find(d => d.id === debtId);
+
+            if (debt) {
+                const modal = document.getElementById('addDebtModal');
+                const inputs = modal.querySelectorAll('input, select');
+
+                inputs[0].value = debt.name || '';
+                inputs[1].value = debt.type || 'Credit Card';
+                inputs[2].value = debt.balance || '';
+                inputs[3].value = debt.apr || '';
+                inputs[4].value = debt.minPayment || '';
+                inputs[5].value = debt.dueDay || '';
+
+                openModal('addDebtModal');
+            }
+        }
+
+        async function loadDebts() {
+            try {
+                const result = await fetchFromSheet('getDebts');
+                if (result && result.success && result.debts) {
+                    debtsData = result.debts;
+                    renderDebtsTable(debtsData);
+                    updateDebtCount(debtsData.length);
+                }
+            } catch (error) {
+                console.error('Load debts error:', error);
+            }
+        }
+
+        function renderDebtsTable(debts) {
+            const tbody = document.getElementById('debt-table-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = debts.map(debt => `
+                <tr>
+                    <td>
+                        <div style="font-weight: 600;">${debt.name}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">${debt.type}</div>
+                    </td>
+                    <td style="color: var(--danger); font-weight: 600;">$${debt.balance.toLocaleString()}</td>
+                    <td style="color: ${debt.apr > 15 ? 'var(--warning)' : 'var(--success)'};">${debt.apr}%</td>
+                    <td>$${debt.minPayment}</td>
+                    <td>${debt.payoffDate || '-'}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="editDebt(${debt.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateDebtCount(count) {
+            const badge = document.getElementById('debt-count');
+            if (badge) badge.textContent = count;
+        }
+
+        function updatePayoffTimeline(timeline) {
+            const container = document.querySelector('.payoff-timeline');
+            if (!container || !timeline) return;
+
+            container.innerHTML = timeline.map((item, idx) => `
+                <div class="timeline-item">
+                    <div class="timeline-number" style="background: ${idx === timeline.length - 1 ? 'var(--gold)' : 'var(--primary)'};">${idx + 1}</div>
+                    <div class="timeline-content">
+                        <div style="font-weight: 600;">${item.name}</div>
+                        <div class="timeline-date">Paid off: ${item.paidOffDate}</div>
+                    </div>
+                    <div style="font-weight: 600; color: var(--success);">$${item.originalBalance?.toLocaleString() || '-'}</div>
+                </div>
+            `).join('');
         }
 
         // =============================================
         // BANKING FUNCTIONS
         // =============================================
-        function saveAccount() {
-            console.log('Saving account...');
-            closeModal('addAccountModal');
+        async function saveAccount() {
+            const modal = document.getElementById('addAccountModal');
+            const inputs = modal.querySelectorAll('input, select');
+
+            const accountData = {
+                name: inputs[0].value,
+                type: inputs[1].value,
+                institution: inputs[2].value,
+                balance: parseFloat(inputs[3].value) || 0,
+                mask: inputs[4].value
+            };
+
+            if (!accountData.name || !accountData.institution) {
+                showNotification('Please fill in account name and institution', 'warning');
+                return;
+            }
+
+            const btn = modal.querySelector('.btn-primary');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const result = await saveToSheet('saveAccount', accountData);
+
+                if (result && result.success) {
+                    showNotification('Account saved!', 'success');
+                    closeModal('addAccountModal');
+                    await loadAccounts();
+                } else {
+                    throw new Error(result?.error || 'Failed to save');
+                }
+            } catch (error) {
+                showNotification('Failed to save account', 'error');
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Account';
+                btn.disabled = false;
+            }
         }
 
-        function saveBill() {
-            console.log('Saving bill...');
-            closeModal('addBillModal');
+        async function saveBill() {
+            const modal = document.getElementById('addBillModal');
+            const inputs = modal.querySelectorAll('input, select');
+
+            const billData = {
+                name: inputs[0].value,
+                category: inputs[1].value,
+                amount: parseFloat(inputs[2].value) || 0,
+                dueDay: parseInt(inputs[3].value) || 1,
+                autoPay: inputs[4]?.checked || false
+            };
+
+            if (!billData.name || !billData.amount) {
+                showNotification('Please fill in bill name and amount', 'warning');
+                return;
+            }
+
+            const btn = modal.querySelector('.btn-primary');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const result = await saveToSheet('saveBill', billData);
+
+                if (result && result.success) {
+                    showNotification('Bill saved!', 'success');
+                    closeModal('addBillModal');
+                    await loadBills();
+                } else {
+                    throw new Error(result?.error || 'Failed to save');
+                }
+            } catch (error) {
+                showNotification('Failed to save bill', 'error');
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Bill';
+                btn.disabled = false;
+            }
         }
 
-        function handleBankUpload(input) {
+        async function handleBankUpload(input) {
             const file = input.files[0];
-            if (file) {
-                console.log('Uploading bank statement:', file.name);
-                // Parse and import transactions
+            if (!file) return;
+
+            showNotification(`Processing ${file.name}...`, 'info');
+
+            try {
+                // Read file as base64
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const content = e.target.result.split(',')[1]; // Remove data URL prefix
+
+                    const result = await saveToSheet('importBankStatement', {
+                        filename: file.name,
+                        content: content,
+                        type: file.type
+                    });
+
+                    if (result && result.success) {
+                        showNotification(`Imported ${result.transactionCount || 0} transactions!`, 'success');
+                        await loadAccounts();
+                    } else {
+                        throw new Error(result?.error || 'Import failed');
+                    }
+                };
+                reader.readAsDataURL(file);
+            } catch (error) {
+                showNotification('Failed to import: ' + error.message, 'error');
+            }
+
+            input.value = ''; // Reset input
+        }
+
+        async function loadAccounts() {
+            try {
+                const result = await fetchFromSheet('getAccounts');
+                if (result && result.success && result.accounts) {
+                    accountsData = result.accounts;
+                    // Update UI with accounts data
+                }
+            } catch (error) {
+                console.error('Load accounts error:', error);
+            }
+        }
+
+        async function loadBills() {
+            try {
+                const result = await fetchFromSheet('getBills');
+                if (result && result.success && result.bills) {
+                    billsData = result.bills;
+                    // Update UI with bills data
+                }
+            } catch (error) {
+                console.error('Load bills error:', error);
             }
         }
 
         // =============================================
         // SYNC FUNCTION
         // =============================================
-        function syncData() {
-            console.log('Syncing with Google Sheets...');
-            // In production: call Apps Script API to refresh all data
+        async function syncData() {
+            if (isLoading) return;
+            isLoading = true;
+
+            const syncBtn = document.querySelector('.nav-status .btn-secondary');
+            const syncIndicator = document.querySelector('.status-item:last-of-type span');
+
+            if (syncBtn) {
+                syncBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Syncing...';
+                syncBtn.disabled = true;
+            }
+            if (syncIndicator) {
+                syncIndicator.textContent = 'Syncing...';
+            }
+
+            try {
+                // Load all data in parallel
+                await Promise.all([
+                    loadDebts(),
+                    loadAccounts(),
+                    loadBills(),
+                    loadConnectedAccounts(),
+                    loadFinancialSummary()
+                ]);
+
+                showNotification('All data synced!', 'success');
+
+                if (syncIndicator) {
+                    syncIndicator.textContent = 'Last Sync: Just now';
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                showNotification('Sync failed: ' + error.message, 'error');
+
+                if (syncIndicator) {
+                    syncIndicator.textContent = 'Sync failed';
+                }
+            } finally {
+                isLoading = false;
+                if (syncBtn) {
+                    syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync';
+                    syncBtn.disabled = false;
+                }
+            }
+        }
+
+        async function loadFinancialSummary() {
+            try {
+                const result = await fetchFromSheet('getFinancialSummary');
+
+                if (result && result.success) {
+                    // Update overview stats
+                    updateElement('total-net-worth', formatCurrency(result.netWorth));
+                    updateElement('total-assets', formatCurrency(result.totalAssets));
+                    updateElement('total-debt', formatCurrency(-result.totalDebt));
+                    updateElement('monthly-income', formatCurrency(result.monthlyIncome));
+                    updateElement('monthly-expenses', formatCurrency(-result.monthlyExpenses));
+                    updateElement('emergency-fund', formatCurrency(result.emergencyFund));
+                    updateElement('investment-total', formatCurrency(result.investmentTotal));
+                    updateElement('debt-remaining', formatCurrency(result.totalDebt));
+                    updateElement('roundup-total', formatCurrency(result.roundUpTotal));
+                }
+            } catch (error) {
+                console.error('Load financial summary error:', error);
+            }
+        }
+
+        function updateElement(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        function formatCurrency(amount) {
+            if (amount === undefined || amount === null) return '$0';
+            const formatted = Math.abs(amount).toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            return amount < 0 ? `-$${formatted}` : `$${formatted}`;
         }
 
         // =============================================
@@ -2988,14 +3541,70 @@
         }
 
         // =============================================
+        // UPDATE STATS HELPER
+        // =============================================
+        function updateDebtStats(stats) {
+            if (!stats) return;
+
+            updateElement('debt-remaining', formatCurrency(stats.totalDebt));
+
+            const debtFreeEl = document.querySelector('.stat-card:has(.fa-flag-checkered) .stat-value');
+            if (debtFreeEl && stats.debtFreeDate) {
+                debtFreeEl.textContent = new Date(stats.debtFreeDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    year: 'numeric'
+                });
+            }
+        }
+
+        // =============================================
         // INITIALIZE
         // =============================================
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             console.log('Tiny Seed Financial Dashboard initialized (Apps Script hosted - no CORS!)');
 
-            // Load connected Plaid accounts
-            loadConnectedAccounts();
+            // Show loading state
+            showNotification('Loading financial data...', 'info');
+
+            try {
+                // Load all data on startup
+                await Promise.all([
+                    loadConnectedAccounts(),
+                    loadDebts(),
+                    loadFinancialSummary()
+                ]);
+
+                showNotification('Dashboard ready!', 'success');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showNotification('Some data failed to load. Using demo data.', 'warning');
+            }
+
+            // Set up auto-refresh every 5 minutes
+            setInterval(() => {
+                syncData();
+            }, 5 * 60 * 1000);
         });
+
+        // =============================================
+        // EXPORT FOR PRINT
+        // =============================================
+        window.printFinancialReport = function() {
+            // Show all tabs for printing
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'block';
+            });
+
+            window.print();
+
+            // Restore tabs after print
+            setTimeout(() => {
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.style.display = '';
+                });
+            }, 1000);
+        };
     </script>
 </body>
 </html>
+// Financial Dashboard v2.0 - Thu Jan 22 12:59:34 EST 2026
