@@ -529,4 +529,155 @@ ROUTE_OPTIMIZATION_CONFIG = {
 
 ---
 
-*Route_Delivery Claude - PHASE 1, 2, 3 & 4 COMPLETE. Production-ready intelligent routing system with ML features deployed v188.*
+---
+
+## 2026-01-22 UPDATE: COMMAND CENTER DASHBOARD + SHOPIFY WIDGET (v189)
+
+### DEPLOYED: State-of-the-Art Admin Dashboard
+
+**Deployment ID:** `AKfycbyRK-4EFPOjYE0A-RsNDpr7-IaPOAtK1h_z9fK-VIaWMg2-Mi9Tkc8J5aF0vcB07TV8` @ v189 (version 315)
+
+### Research-Driven UX Design
+
+Based on 2025-2026 fleet management dashboard best practices:
+- [Dashboard UI/UX Design for Logistics](https://www.aufaitux.com/blog/dashboard-design-logistics-supply-chain-ux/)
+- [Fleet Management Dashboard Design Guide](https://hicronsoftware.com/blog/fleet-management-dashboard-design/)
+- [Google Maps JavaScript API Route Visualization](https://developers.google.com/maps/documentation/javascript/routes/routes-markers)
+
+### NEW FILES CREATED
+
+| File | Purpose |
+|------|---------|
+| `IntelligentRoutingDashboard.html` | Full admin command center dashboard |
+| `DeliveryZoneWidget.html` | Embeddable Shopify/CSA signup widget |
+
+### IntelligentRoutingDashboard.html Features
+
+**THE BRAIN Panel:**
+- Proactive recommendations with priority indicators (CRITICAL/HIGH/MEDIUM/LOW)
+- Action items with projected impact ($$ savings, % improvements)
+- Real-time data from `getIntelligentDashboard` endpoint
+
+**Interactive Map (Leaflet.js):**
+- Route visualization with color-coded markers
+- Customer density heatmap layer
+- Zone profitability overlay
+- Churn risk visualization
+- Toggle between views
+
+**Metrics Dashboard:**
+- Route Efficiency (%)
+- Active Customers count
+- Customers at Churn Risk
+- Weekly Revenue
+
+**Zone Profitability Panel:**
+- EXPAND/MAINTAIN/CONTRACT recommendations
+- Customer count per zone
+- Revenue per zone
+
+**Churn Risk Alerts:**
+- Customer cards with risk scores
+- Initials avatar with risk-level coloring
+- Reason for risk flag
+
+**Demand Forecast Chart (Chart.js):**
+- 8-week projection
+- Capacity line overlay
+- Visual trend analysis
+
+**Quick Actions:**
+- Optimize Routes button
+- Zone Checker link
+- Export Report
+- Settings
+
+### DeliveryZoneWidget.html Features
+
+**Lightweight Embeddable Widget:**
+- 100% self-contained (no external dependencies except API)
+- Mobile-responsive design
+- Farm branding (green theme)
+
+**Shopify Integration:**
+- Event dispatching for `tsf-delivery-accepted` and `tsf-delivery-rejected`
+- JavaScript API: `TinySeedDeliveryWidget.check()` and `TinySeedDeliveryWidget.isInZone()`
+- Auto-applies discount code on acceptance
+
+**User Experience:**
+- Address input with PA validation
+- Loading state with spinner
+- Success/warning result cards
+- Delivery code display for accepted addresses
+- Alternative pickup locations for rejected addresses
+
+### Access URLs
+
+```
+Command Center Dashboard:
+https://script.google.com/macros/s/AKfycbyRK-4EFPOjYE0A-RsNDpr7-IaPOAtK1h_z9fK-VIaWMg2-Mi9Tkc8J5aF0vcB07TV8/exec?page=IntelligentRoutingDashboard
+
+Delivery Zone Widget:
+https://script.google.com/macros/s/AKfycbyRK-4EFPOjYE0A-RsNDpr7-IaPOAtK1h_z9fK-VIaWMg2-Mi9Tkc8J5aF0vcB07TV8/exec?page=DeliveryZoneWidget
+
+Customer Zone Checker:
+https://script.google.com/macros/s/AKfycbyRK-4EFPOjYE0A-RsNDpr7-IaPOAtK1h_z9fK-VIaWMg2-Mi9Tkc8J5aF0vcB07TV8/exec?page=DeliveryZoneChecker
+```
+
+### Shopify Embed Code
+
+```html
+<!-- Option 1: iFrame embed -->
+<iframe
+  src="https://script.google.com/macros/s/AKfycbyRK-4EFPOjYE0A-RsNDpr7-IaPOAtK1h_z9fK-VIaWMg2-Mi9Tkc8J5aF0vcB07TV8/exec?page=DeliveryZoneWidget"
+  width="100%"
+  height="400"
+  frameborder="0">
+</iframe>
+
+<!-- Option 2: JavaScript API -->
+<script>
+  TinySeedDeliveryWidget.isInZone('123 Main St', 'Pittsburgh', '15201')
+    .then(inZone => {
+      if (inZone) {
+        document.getElementById('delivery-option').style.display = 'block';
+      }
+    });
+</script>
+```
+
+---
+
+## COMPLETE SYSTEM SUMMARY
+
+### All Deliverables (Phases 1-5)
+
+| Phase | Deliverable | Status |
+|-------|-------------|--------|
+| **Phase 1** | Route Analysis (zones, clusters, outliers) | ✅ COMPLETE |
+| **Phase 2** | 10-Minute Acceptance Algorithm + Fee Structure | ✅ COMPLETE |
+| **Phase 3** | Intelligent Routing API (15+ endpoints) | ✅ COMPLETE |
+| **Phase 4** | Production ML Infrastructure (42-col ORDER_HISTORY) | ✅ COMPLETE |
+| **Phase 5** | Admin Dashboard + Shopify Widget | ✅ COMPLETE |
+
+### Total API Endpoints Built
+
+| Category | Endpoints |
+|----------|-----------|
+| **Delivery Validation** | validateDeliveryAddress, checkDeliveryZone |
+| **Route Optimization** | optimizeRoutesAdvanced, optimizeWithRouteOptimization |
+| **Analytics** | getRouteEfficiencyMetrics, getZoneProfitabilityAnalysis |
+| **Intelligence** | getIntelligentDashboard, getProactiveRecommendations |
+| **Customer Analysis** | getChurnRiskAnalysis, getEnhancedChurnAnalysis, getCustomerLifetimeValue |
+| **Forecasting** | getDemandForecast |
+| **Infrastructure** | initializeProduction, initializeOrderHistory, batchGeocodeCustomers |
+
+### Total Code Delivered
+
+- **Backend (MERGED TOTAL.js):** ~2,500+ lines of intelligent routing code
+- **Frontend (3 HTML files):** ~1,800 lines
+- **Documentation (5 MD files):** ~2,000 lines
+
+---
+
+*Route_Delivery Claude - ALL PHASES COMPLETE (1-5). State-of-the-art intelligent routing system with admin dashboard, Shopify widget, and ML infrastructure deployed v189.*

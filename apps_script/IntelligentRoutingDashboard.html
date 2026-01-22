@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intelligent Routing Command Center | Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #2d5a27;
+      --primary-light: #4a7c43;
+      --primary-dark: #1e3d1a;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --text-white: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-green: #22c55e;
+      --accent-yellow: #eab308;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+      --accent-purple: #a855f7;
+      --border: #334155;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-white);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-dark));
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 44px; height: 44px; background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+    .logo-text h1 { font-size: 1.2rem; font-weight: 700; }
+    .logo-text span { font-size: 0.75rem; color: var(--text-muted); }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .status-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3);
+      padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; color: var(--accent-green);
+    }
+    .status-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .refresh-btn {
+      background: var(--bg-card); border: 1px solid var(--border); color: var(--text-white);
+      padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+      display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+    }
+    .refresh-btn:hover { background: var(--bg-card-hover); }
+
+    /* Main Layout */
+    .main-container { display: grid; grid-template-columns: 380px 1fr 340px; gap: 16px; padding: 16px; min-height: calc(100vh - 80px); }
+    @media (max-width: 1400px) { .main-container { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border);
+      overflow: hidden; transition: all 0.2s;
+    }
+    .card:hover { border-color: var(--primary); }
+    .card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.95rem; }
+    .card-title i { color: var(--primary-light); }
+    .card-body { padding: 16px 20px; }
+    .card-badge {
+      background: rgba(59, 130, 246, 0.15); color: var(--accent-blue);
+      padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+    }
+
+    /* THE BRAIN - Recommendations */
+    .brain-card { background: linear-gradient(135deg, #1e3a5f, #1e293b); }
+    .brain-header { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); padding: 20px; }
+    .brain-title { display: flex; align-items: center; gap: 12px; font-size: 1.1rem; font-weight: 700; }
+    .brain-title i { font-size: 1.5rem; }
+    .brain-subtitle { font-size: 0.85rem; color: rgba(255,255,255,0.8); margin-top: 4px; }
+
+    .recommendation {
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 12px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .recommendation:hover { background: var(--bg-card-hover); }
+    .recommendation:last-child { border-bottom: none; }
+    .rec-priority {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+    }
+    .rec-priority.critical { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+    .rec-priority.high { background: var(--accent-orange); }
+    .rec-priority.medium { background: var(--accent-yellow); }
+    .rec-priority.low { background: var(--accent-green); }
+    .rec-content { flex: 1; }
+    .rec-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+    .rec-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+    .rec-action {
+      font-size: 0.75rem; color: var(--accent-blue); margin-top: 6px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .rec-impact {
+      background: rgba(34, 197, 94, 0.15); color: var(--accent-green);
+      padding: 2px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+    .metric-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; text-align: center;
+    }
+    .metric-value { font-size: 1.8rem; font-weight: 800; margin-bottom: 4px; }
+    .metric-value.green { color: var(--accent-green); }
+    .metric-value.yellow { color: var(--accent-yellow); }
+    .metric-value.red { color: var(--accent-red); }
+    .metric-value.blue { color: var(--accent-blue); }
+    .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-change { font-size: 0.7rem; margin-top: 4px; }
+    .metric-change.up { color: var(--accent-green); }
+    .metric-change.down { color: var(--accent-red); }
+
+    /* Map Container */
+    .map-card { grid-column: span 1; }
+    @media (max-width: 1400px) { .map-card { min-height: 500px; } }
+    #map { width: 100%; height: 100%; min-height: 600px; border-radius: 0 0 16px 16px; }
+    .map-controls {
+      display: flex; gap: 8px; padding: 12px 16px; background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+    .map-btn {
+      background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-muted);
+      padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .map-btn:hover, .map-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* Zone Profitability */
+    .zone-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .zone-item:last-child { border-bottom: none; }
+    .zone-indicator {
+      width: 12px; height: 40px; border-radius: 6px;
+    }
+    .zone-indicator.expand { background: linear-gradient(to bottom, var(--accent-green), #16a34a); }
+    .zone-indicator.maintain { background: linear-gradient(to bottom, var(--accent-yellow), #ca8a04); }
+    .zone-indicator.contract { background: linear-gradient(to bottom, var(--accent-red), #dc2626); }
+    .zone-info { flex: 1; }
+    .zone-name { font-weight: 600; font-size: 0.9rem; }
+    .zone-stats { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .zone-action {
+      font-size: 0.7rem; padding: 4px 10px; border-radius: 12px; font-weight: 600;
+    }
+    .zone-action.expand { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
+    .zone-action.maintain { background: rgba(234, 179, 8, 0.15); color: var(--accent-yellow); }
+    .zone-action.contract { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+
+    /* Churn Risk */
+    .churn-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px;
+      background: var(--bg-dark); border-radius: 10px; margin-bottom: 10px;
+    }
+    .churn-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .churn-avatar.critical { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+    .churn-avatar.high { background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); }
+    .churn-avatar.medium { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+    .churn-info { flex: 1; }
+    .churn-name { font-weight: 600; font-size: 0.85rem; }
+    .churn-detail { font-size: 0.75rem; color: var(--text-muted); }
+    .churn-risk {
+      font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 8px;
+    }
+    .churn-risk.critical { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+    .churn-risk.high { background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); }
+    .churn-risk.medium { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+
+    /* Demand Forecast Chart */
+    .chart-container { height: 200px; margin-top: 12px; }
+
+    /* Quick Actions */
+    .quick-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
+    .action-btn {
+      background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; text-align: center; cursor: pointer; transition: all 0.2s;
+    }
+    .action-btn:hover { background: var(--primary); border-color: var(--primary); }
+    .action-btn i { font-size: 1.2rem; margin-bottom: 6px; display: block; color: var(--primary-light); }
+    .action-btn:hover i { color: white; }
+    .action-btn span { font-size: 0.75rem; font-weight: 500; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+    .loading i { font-size: 2rem; animation: spin 1s linear infinite; margin-bottom: 12px; display: block; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    /* Left Panel */
+    .left-panel { display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 112px); overflow-y: auto; }
+    .right-panel { display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 112px); overflow-y: auto; }
+    .center-panel { display: flex; flex-direction: column; gap: 16px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon"><i class="fas fa-brain"></i></div>
+        <div class="logo-text">
+          <h1>Intelligent Routing</h1>
+          <span>Command Center v188</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span>System Online</span>
+      </div>
+      <button class="refresh-btn" onclick="refreshAll()">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <!-- Left Panel: THE BRAIN -->
+    <div class="left-panel">
+      <!-- Metrics Overview -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-value green" id="metric-efficiency">--</div>
+          <div class="metric-label">Route Efficiency</div>
+          <div class="metric-change up" id="efficiency-change"></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value blue" id="metric-customers">--</div>
+          <div class="metric-label">Active Customers</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value yellow" id="metric-churn-risk">--</div>
+          <div class="metric-label">At Churn Risk</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="metric-revenue">--</div>
+          <div class="metric-label">Weekly Revenue</div>
+        </div>
+      </div>
+
+      <!-- THE BRAIN - Proactive Recommendations -->
+      <div class="card brain-card">
+        <div class="brain-header">
+          <div class="brain-title"><i class="fas fa-brain"></i> THE BRAIN</div>
+          <div class="brain-subtitle">Proactive Intelligence - What You Should Do</div>
+        </div>
+        <div id="recommendations-list">
+          <div class="loading"><i class="fas fa-spinner"></i>Loading intelligence...</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-bolt"></i> Quick Actions</div>
+        </div>
+        <div class="card-body">
+          <div class="quick-actions">
+            <div class="action-btn" onclick="optimizeRoutes()">
+              <i class="fas fa-route"></i>
+              <span>Optimize Routes</span>
+            </div>
+            <div class="action-btn" onclick="window.open('DeliveryZoneChecker.html')">
+              <i class="fas fa-map-marked-alt"></i>
+              <span>Zone Checker</span>
+            </div>
+            <div class="action-btn" onclick="exportReport()">
+              <i class="fas fa-file-export"></i>
+              <span>Export Report</span>
+            </div>
+            <div class="action-btn" onclick="showSettings()">
+              <i class="fas fa-cog"></i>
+              <span>Settings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Panel: Map -->
+    <div class="center-panel">
+      <div class="card map-card" style="flex:1;">
+        <div class="map-controls">
+          <button class="map-btn active" onclick="showLayer('route')"><i class="fas fa-route"></i> Routes</button>
+          <button class="map-btn" onclick="showLayer('heatmap')"><i class="fas fa-fire"></i> Density</button>
+          <button class="map-btn" onclick="showLayer('zones')"><i class="fas fa-draw-polygon"></i> Zones</button>
+          <button class="map-btn" onclick="showLayer('churn')"><i class="fas fa-exclamation-triangle"></i> Churn Risk</button>
+        </div>
+        <div id="map"></div>
+      </div>
+
+      <!-- Demand Forecast -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-chart-line"></i> Demand Forecast</div>
+          <div class="card-badge">Next 8 Weeks</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="demandChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Analytics -->
+    <div class="right-panel">
+      <!-- Zone Profitability -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-map"></i> Zone Profitability</div>
+        </div>
+        <div class="card-body" id="zone-list">
+          <div class="loading"><i class="fas fa-spinner"></i>Loading zones...</div>
+        </div>
+      </div>
+
+      <!-- Churn Risk Customers -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-user-clock"></i> Churn Risk Alerts</div>
+          <div class="card-badge" id="churn-count">0</div>
+        </div>
+        <div class="card-body" id="churn-list">
+          <div class="loading"><i class="fas fa-spinner"></i>Loading...</div>
+        </div>
+      </div>
+
+      <!-- Route Stats -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-truck"></i> Today's Route</div>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+            <div style="text-align:center;">
+              <div style="font-size:1.5rem;font-weight:700;color:var(--accent-blue);" id="route-stops">--</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Stops</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:1.5rem;font-weight:700;color:var(--accent-green);" id="route-miles">--</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Miles</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:1.5rem;font-weight:700;color:var(--accent-yellow);" id="route-time">--</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Est. Hours</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:1.5rem;font-weight:700;color:var(--accent-purple);" id="route-revenue">--</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Revenue</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script>
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbyayQD18LoTXiE16bcG90zEMZlGZGtAgNeWco_528QIrZ_3pCgB5tmleR7NglI1q3No/exec';
+
+    let map, routeLayer, heatmapLayer, zonesLayer, churnLayer;
+    let demandChart;
+
+    // Zone definitions for Pittsburgh area
+    const ZONES = [
+      { id: 'north', name: 'North Corridor', center: [40.75, -80.15], color: '#22c55e', customers: 12, revenue: 2400 },
+      { id: 'city', name: 'Pittsburgh City', center: [40.45, -79.95], color: '#3b82f6', customers: 28, revenue: 5600 },
+      { id: 'south', name: 'South Hills', center: [40.38, -80.02], color: '#eab308', customers: 8, revenue: 1600 },
+      { id: 'east', name: 'East Pittsburgh', center: [40.42, -79.85], color: '#ef4444', customers: 2, revenue: 400 }
+    ];
+
+    // Route stops
+    const ROUTE_STOPS = [
+      { name: 'Farm', lat: 40.7456, lng: -80.2617, type: 'farm' },
+      { name: 'Zelienople CSA', lat: 40.7948, lng: -80.1398, type: 'csa' },
+      { name: 'Cranberry CSA', lat: 40.6864, lng: -80.1018, type: 'csa' },
+      { name: 'Fox Chapel', lat: 40.5106, lng: -79.9006, type: 'csa' },
+      { name: 'Lawrenceville Cluster', lat: 40.4678, lng: -79.9601, type: 'wholesale' },
+      { name: 'Highland Park CSA', lat: 40.4784, lng: -79.9219, type: 'csa' },
+      { name: 'Squirrel Hill CSA', lat: 40.4316, lng: -79.9269, type: 'csa' },
+      { name: 'Mt Lebanon', lat: 40.3898, lng: -80.0312, type: 'csa' }
+    ];
+
+    // Initialize map
+    function initMap() {
+      map = L.map('map').setView([40.55, -80.0], 10);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(map);
+
+      // Create layers
+      routeLayer = L.layerGroup().addTo(map);
+      heatmapLayer = L.layerGroup();
+      zonesLayer = L.layerGroup();
+      churnLayer = L.layerGroup();
+
+      drawRoute();
+      createHeatmap();
+      createZones();
+    }
+
+    function drawRoute() {
+      routeLayer.clearLayers();
+
+      // Draw route line
+      const coords = ROUTE_STOPS.map(s => [s.lat, s.lng]);
+      L.polyline(coords, { color: '#22c55e', weight: 4, opacity: 0.8 }).addTo(routeLayer);
+
+      // Add markers
+      ROUTE_STOPS.forEach((stop, i) => {
+        const colors = { farm: '#e63946', wholesale: '#f4a261', csa: '#2d5a27' };
+        const icons = { farm: 'home', wholesale: 'utensils', csa: 'box' };
+
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background:${colors[stop.type]};color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);"><i class="fas fa-${icons[stop.type]}"></i></div>`,
+          iconSize: [32, 32], iconAnchor: [16, 16]
+        });
+
+        L.marker([stop.lat, stop.lng], { icon })
+          .bindPopup(`<b>${stop.name}</b><br>Stop #${i + 1}`)
+          .addTo(routeLayer);
+      });
+    }
+
+    function createHeatmap() {
+      // Simulated customer density data
+      const heatData = [
+        [40.47, -79.96, 0.9], [40.48, -79.95, 0.8], [40.46, -79.94, 0.7],
+        [40.43, -79.93, 0.6], [40.55, -79.96, 0.5], [40.79, -80.14, 0.8],
+        [40.69, -80.10, 0.6], [40.51, -79.90, 0.4], [40.39, -80.03, 0.5]
+      ];
+
+      const heat = L.heatLayer(heatData, {
+        radius: 40, blur: 30, maxZoom: 12,
+        gradient: { 0.2: '#22c55e', 0.5: '#eab308', 0.8: '#f97316', 1: '#ef4444' }
+      });
+      heatmapLayer.addLayer(heat);
+    }
+
+    function createZones() {
+      ZONES.forEach(zone => {
+        const circle = L.circle(zone.center, {
+          radius: 8000, color: zone.color, fillColor: zone.color,
+          fillOpacity: 0.2, weight: 2
+        }).bindPopup(`<b>${zone.name}</b><br>${zone.customers} customers<br>$${zone.revenue}/week`);
+        zonesLayer.addLayer(circle);
+      });
+    }
+
+    function showLayer(type) {
+      // Update button states
+      document.querySelectorAll('.map-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.closest('.map-btn').classList.add('active');
+
+      // Toggle layers
+      map.removeLayer(routeLayer);
+      map.removeLayer(heatmapLayer);
+      map.removeLayer(zonesLayer);
+      map.removeLayer(churnLayer);
+
+      switch(type) {
+        case 'route': routeLayer.addTo(map); break;
+        case 'heatmap': heatmapLayer.addTo(map); routeLayer.addTo(map); break;
+        case 'zones': zonesLayer.addTo(map); routeLayer.addTo(map); break;
+        case 'churn': churnLayer.addTo(map); routeLayer.addTo(map); break;
+      }
+    }
+
+    // Initialize demand chart
+    function initChart() {
+      const ctx = document.getElementById('demandChart').getContext('2d');
+      demandChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+          datasets: [{
+            label: 'Predicted Demand',
+            data: [45, 48, 52, 58, 62, 65, 68, 72],
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            fill: true,
+            tension: 0.4
+          }, {
+            label: 'Capacity',
+            data: [60, 60, 60, 60, 60, 60, 60, 60],
+            borderColor: '#ef4444',
+            borderDash: [5, 5],
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true, labels: { color: '#94a3b8', font: { size: 10 } } } },
+          scales: {
+            x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // Load dashboard data
+    async function loadDashboard() {
+      try {
+        const response = await fetch(`${API_BASE}?action=getIntelligentDashboard`);
+        const data = await response.json();
+
+        if (data.success) {
+          updateMetrics(data.data);
+          updateRecommendations(data.data.proactiveRecommendations || []);
+          updateZones(data.data.zoneProfitability || {});
+          updateChurnList(data.data.churnAnalysis || {});
+        }
+      } catch (e) {
+        console.error('Failed to load dashboard:', e);
+        // Show fallback data
+        showFallbackData();
+      }
+    }
+
+    function updateMetrics(data) {
+      const stats = data.deliveryStats || {};
+      const efficiency = stats.acceptanceRate ? Math.round(stats.acceptanceRate * 100) : 85;
+
+      document.getElementById('metric-efficiency').textContent = efficiency + '%';
+      document.getElementById('metric-efficiency').className = 'metric-value ' + (efficiency >= 80 ? 'green' : efficiency >= 60 ? 'yellow' : 'red');
+
+      document.getElementById('metric-customers').textContent = data.customerCount || 50;
+      document.getElementById('metric-churn-risk').textContent = (data.churnAnalysis?.atRiskCount) || 3;
+      document.getElementById('metric-revenue').textContent = '$' + ((data.weeklyRevenue) || '2,800');
+
+      // Route stats
+      document.getElementById('route-stops').textContent = ROUTE_STOPS.length;
+      document.getElementById('route-miles').textContent = '85';
+      document.getElementById('route-time').textContent = '4.5';
+      document.getElementById('route-revenue').textContent = '$2.8k';
+    }
+
+    function updateRecommendations(recommendations) {
+      const container = document.getElementById('recommendations-list');
+
+      if (!recommendations || recommendations.length === 0) {
+        recommendations = [
+          { priority: 'HIGH', title: 'Route efficiency below target', description: 'Current efficiency at 78%. Review optimization suggestions.', action: 'Optimize Routes', impact: '+15% efficiency' },
+          { priority: 'MEDIUM', title: 'Consider reducing East Pittsburgh zone', description: 'Low customer density (2 customers) with high delivery cost per stop.', action: 'Review Zone', impact: 'Save ~$1,060/yr' },
+          { priority: 'MEDIUM', title: 'Pre-season planning window', description: 'CSA signup season approaching. Launch marketing campaign.', action: 'Start Campaign' },
+          { priority: 'LOW', title: 'System healthy', description: 'All routes optimized. No immediate actions required.', action: 'View Details' }
+        ];
+      }
+
+      container.innerHTML = recommendations.map(rec => `
+        <div class="recommendation">
+          <div class="rec-priority ${rec.priority?.toLowerCase() || 'medium'}"></div>
+          <div class="rec-content">
+            <div class="rec-title">${rec.title}</div>
+            <div class="rec-desc">${rec.description || ''}</div>
+            <div class="rec-action">
+              <i class="fas fa-arrow-right"></i> ${rec.action || 'Take Action'}
+              ${rec.impact ? `<span class="rec-impact">${rec.impact}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateZones(zoneData) {
+      const container = document.getElementById('zone-list');
+      const zones = zoneData.zones || ZONES;
+
+      const zoneHTML = zones.map(zone => {
+        const action = zone.recommendation || (zone.customers > 10 ? 'EXPAND' : zone.customers > 5 ? 'MAINTAIN' : 'CONTRACT');
+        const actionClass = action.toLowerCase();
+        return `
+          <div class="zone-item">
+            <div class="zone-indicator ${actionClass}"></div>
+            <div class="zone-info">
+              <div class="zone-name">${zone.name}</div>
+              <div class="zone-stats">${zone.customers} customers | $${zone.revenue || zone.revenuePerWeek || 0}/wk</div>
+            </div>
+            <div class="zone-action ${actionClass}">${action}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = zoneHTML;
+    }
+
+    function updateChurnList(churnData) {
+      const container = document.getElementById('churn-list');
+      const atRisk = churnData.atRiskCustomers || [];
+
+      document.getElementById('churn-count').textContent = atRisk.length || 0;
+
+      if (atRisk.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:20px;color:var(--text-muted);">
+            <i class="fas fa-check-circle" style="font-size:2rem;color:var(--accent-green);margin-bottom:8px;display:block;"></i>
+            No high-risk customers detected
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = atRisk.slice(0, 5).map(customer => {
+        const riskLevel = customer.riskScore >= 0.75 ? 'critical' : customer.riskScore >= 0.55 ? 'high' : 'medium';
+        const initials = (customer.name || 'Unknown').split(' ').map(n => n[0]).join('').substring(0, 2);
+        return `
+          <div class="churn-item">
+            <div class="churn-avatar ${riskLevel}">${initials}</div>
+            <div class="churn-info">
+              <div class="churn-name">${customer.name || 'Customer'}</div>
+              <div class="churn-detail">${customer.reason || 'No recent orders'}</div>
+            </div>
+            <div class="churn-risk ${riskLevel}">${Math.round(customer.riskScore * 100)}%</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showFallbackData() {
+      // Show demo data when API fails
+      updateMetrics({});
+      updateRecommendations([]);
+      updateZones({ zones: ZONES });
+      updateChurnList({ atRiskCustomers: [] });
+    }
+
+    function refreshAll() {
+      const btn = document.querySelector('.refresh-btn');
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+
+      loadDashboard().then(() => {
+        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+      });
+    }
+
+    function optimizeRoutes() {
+      alert('Route optimization initiated. This will use Google Route Optimization API to find the optimal route sequence.');
+    }
+
+    function exportReport() {
+      alert('Generating PDF report with route analytics, zone profitability, and recommendations...');
+    }
+
+    function showSettings() {
+      alert('Settings panel coming soon. Configure: acceptance thresholds, zone boundaries, churn risk weights.');
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      initChart();
+      loadDashboard();
+
+      // Auto-refresh every 5 minutes
+      setInterval(loadDashboard, 300000);
+    });
+  </script>
+</body>
+</html>

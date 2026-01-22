@@ -1,6 +1,40 @@
 # STATUS: Security Claude
 
-**Last Updated:** 2026-01-17 (PRODUCTION SECURITY DEPLOYED)
+**Last Updated:** 2026-01-21 (API BUG FIX)
+
+---
+
+## BUG FIX: Missing Secured Functions
+
+**Issue:** Session froze with API error
+**Root Cause:** Two secured wrapper functions were missing from `apps_script/MERGED TOTAL.js`
+
+### Error Messages
+```
+ReferenceError: getActiveSessionsSecured is not defined (line 770)
+ReferenceError: getAuditLogSecured is not defined (line 772)
+```
+
+### Fix Applied (Local)
+Added missing functions at line ~3087:
+- `getActiveSessionsSecured(params)` - wraps `getActiveSessions` with admin auth
+- `getAuditLogSecured(params)` - wraps `getAuditLog` with admin auth
+
+### Deployment Complete
+- Pushed via `clasp push`
+- Updated primary deployment to **@285**
+- Deployment ID: `AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc`
+
+### Endpoint Status - VERIFIED WORKING
+| Endpoint | Status | Response |
+|----------|--------|----------|
+| `healthCheck` | Working | `{"success":true,"status":"healthy"}` |
+| `getActiveSessions` | **FIXED** | `{"success":false,"error":"No token provided"}` (correct - requires auth) |
+| `getAuditLog` | **FIXED** | `{"success":false,"error":"No token provided"}` (correct - requires auth) |
+
+---
+
+## PREVIOUS: 2026-01-17 (PRODUCTION SECURITY DEPLOYED)
 
 ---
 

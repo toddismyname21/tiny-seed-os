@@ -3,17 +3,32 @@
  * Enables offline functionality for the Field App
  */
 
-const CACHE_NAME = 'tiny-seed-field-app-v1';
+const CACHE_NAME = 'tiny-seed-mobile-v2';
 const OFFLINE_URL = '/employee.html';
 
 // Files to cache immediately on install
 const PRECACHE_ASSETS = [
+  // Root-level mobile apps
   '/',
   '/employee.html',
+  '/login.html',
+  '/inventory_capture.html',
   '/manifest.json',
+  '/manifest-employee.json',
+  // Web app mobile files
+  '/web_app/driver.html',
+  '/web_app/csa.html',
+  '/web_app/customer.html',
+  '/web_app/neighbor.html',
+  '/web_app/market-sales.html',
+  '/web_app/farmers-market.html',
+  '/web_app/delivery-zone-checker.html',
+  '/web_app/manifest-driver.json',
   // Icons
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/icon-72.png',
+  '/icons/icon-144.png',
   // External resources (fonts, icons)
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'

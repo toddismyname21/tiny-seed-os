@@ -1,13 +1,71 @@
 # OUTBOX: Field Operations Claude
 ## To: PM_Architect, Owner
 
-**Updated:** 2026-01-21 (OVERNIGHT BUILD - Mobile Pre-Harvest + Safety Systems)
+**Updated:** 2026-01-22 (HARVEST COMPLETION TRIGGER - FSMA 204 COMPLIANT)
 
 ---
 
-## STATUS: FULL MOBILE COMPLIANCE + SAFETY SYSTEMS DEPLOYED
+## STATUS: ALL MARCHING ORDERS COMPLETE
 
-All overnight tasks from CLAUDE_MARCHING_ORDERS completed.
+Full FSMA 204 compliant harvest system with pre-harvest validation and weather integration.
+
+---
+
+## LATEST BUILD (Jan 22, 2026) - HARVEST COMPLETION TRIGGER
+
+### FSMA 204 Compliant Lot Code Generation
+**Format:** `TSF-JJJYY-CCC-SSS` (Farm-JulianDateYear-CropCode-Sequence)
+
+Based on research from:
+- [FDA FSMA 204 Traceability Rule](https://www.fda.gov/food/food-safety-modernization-act-fsma/fsma-final-rule-requirements-additional-traceability-records-certain-foods)
+- [Cornell GAP Traceability](https://cals.cornell.edu/national-good-agricultural-practices-program/resources/educational-materials/decision-trees/traceability)
+- [NY Agriculture Produce Traceability Guidance](https://agriculture.ny.gov/system/files/documents/2022/04/guidanceforproducetraceability-blueribbon.pdf)
+
+**Example:** `TSF-02226-LET-001` = Tiny Seed Farm, Day 22 of 2026, Lettuce, First harvest
+
+### Harvest Completion Trigger System
+When harvest is logged via `logHarvestWithValidation`:
+1. **Validates pre-harvest inspection** - Checks COMPLIANCE_PREHARVEST sheet
+2. **Creates compliance alert** if inspection missing/expired (CRITICAL for high-risk crops)
+3. **Generates FSMA lot code** - Julian date format
+4. **Links harvest to inspection** - Full traceability chain
+5. **Creates traceability CTE** - FSMA 204 Critical Tracking Event
+
+### Rain Delay Warning System
+**API:** `checkHarvestWeatherRisk()` using Open-Meteo
+
+| Condition | Recommendation | Action |
+|-----------|----------------|--------|
+| Heavy rain <24h | DELAY_HARVEST | Postpone or prioritize sensitive crops |
+| Rain <48h | EXPEDITE_HARVEST | Accelerate harvest schedule |
+| Clear | PROCEED | Normal operations |
+
+### Weather-Aware Harvest Tasks
+**API:** `getWeatherAwareHarvestTasks()`
+
+Priority calculation includes:
+- Days to harvest (urgency)
+- Weather forecast (expedite if rain coming)
+- Field safety risk (lower if field has issues)
+- Crop perishability
+
+### New API Endpoints
+```
+logHarvestWithValidation    - FSMA harvest with validation
+checkHarvestWeatherRisk     - Weather forecast for harvest
+getWeatherAwareHarvestTasks - Priority-adjusted harvest task list
+```
+
+### Compliance Alerts Sheet
+Auto-created: `COMPLIANCE_ALERTS`
+- Tracks missing pre-harvest inspections
+- Severity: CRITICAL (high-risk crops) or WARNING
+- Action required logging
+- Resolution tracking
+
+---
+
+## PREVIOUS: OVERNIGHT BUILD (Jan 21, 2026)
 
 ---
 

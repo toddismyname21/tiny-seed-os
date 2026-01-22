@@ -1,10 +1,102 @@
 # STATUS: Social Media Claude
 
-**Last Updated:** 2026-01-21 @ Extended Night Session (ALL TASKS COMPLETE + MARKETING AUTOMATION)
+**Last Updated:** 2026-01-22 @ Session 2 (PROMO STRUCTURE UPDATED + CAMPAIGN READY)
 
 ---
 
-## CURRENT STATUS: MASSIVE EXPANSION COMPLETE
+## CURRENT STATUS: CAMPAIGN READY TO LAUNCH
+
+---
+
+## SESSION 2026-01-22 (Session 2): Promo Structure Update + Launch Prep
+
+### OWNER DIRECTIVE:
+Changed promo from 25% off to tiered "FREE WEEK" structure:
+
+| Product | Minimum | Discount |
+|---------|---------|----------|
+| Veggie CSA (Full Share) | $600+ | **$30 off** |
+| Veggie CSA (Half Share) | $300+ | **$15 off** |
+| Floral CSA | Any | **$20 off** |
+| Add-ons | - | No discount |
+
+**Code:** `NEIGHBOR` (single code, tiered application)
+
+### Files Updated This Session:
+
+1. **`web_app/neighbor.html`**
+   - Updated offer cards: $30 off Veggie ($600+), $15 off Veggie ($300+), $20 off Floral
+   - Changed promo code display from `NEIGHBOR25` to `NEIGHBOR`
+   - Added tiered discount explanation in success state
+
+2. **`DIRECT_MAIL_CAMPAIGN_PLAN.md`**
+   - Complete rewrite of "The Offer" section
+   - New tiered discount table
+
+3. **`POSTCARD_DESIGN.md`**
+   - Updated offer boxes wireframe with new amounts
+   - Changed code from NEIGHBOR25 to NEIGHBOR
+
+4. **NEW: `CAMPAIGN_LAUNCH_GUIDE.md`**
+   - Complete Shopify discount code setup instructions
+   - Social media dashboard setup guide
+   - Step-by-step campaign launch checklist
+   - Budget summary and ROI projections
+
+### Social Media Dashboard:
+- **Location:** `web_app/social-intelligence.html`
+- **Status:** BUILT & INTEGRATED
+- **Features:** AI Brain, Action Queue, Content Calendar, Voice Training, SMS Alerts
+- **Access:** Admin Panel → Social Media → Full Dashboard
+
+### AYRSHARE: SCRAPPED
+Owner confirmed Ayrshare is abandoned. In-house Social Intelligence Engine is the platform.
+
+---
+
+## COMPLETE DELIVERABLE LIST
+
+| Deliverable | File | Status |
+|-------------|------|--------|
+| USPS Research | `DIRECT_MAIL_RESEARCH.md` | COMPLETE |
+| Targeting Algorithm | `ADDRESS_TARGETING_ALGORITHM.md` | COMPLETE |
+| Landing Page Spec | `NEIGHBOR_LANDING_PAGE_SPEC.md` | COMPLETE |
+| Campaign Plan | `DIRECT_MAIL_CAMPAIGN_PLAN.md` | UPDATED |
+| Postcard Design | `POSTCARD_DESIGN.md` | UPDATED |
+| Landing Page HTML | `web_app/neighbor.html` | UPDATED |
+| **Campaign Launch Guide** | `CAMPAIGN_LAUNCH_GUIDE.md` | **NEW** |
+| Social Dashboard | `web_app/social-intelligence.html` | COMPLETE |
+| Backend API | `addNeighborSignup` | VERIFIED |
+
+---
+
+## READY FOR LAUNCH - OWNER ACTION ITEMS
+
+### In Shopify (Do This First):
+1. Go to Discounts → Create discount
+2. Create `NEIGHBOR` code with tiered rules:
+   - $30 off Veggie CSA $600+
+   - $15 off Veggie CSA $300+
+   - $20 off Floral CSA
+3. Exclude add-on products
+4. Set expiry: March 31, 2026
+
+### Campaign Execution:
+1. Design postcard in Canva (see `POSTCARD_DESIGN.md`)
+2. Order 1,000 postcards from VistaPrint (~$180)
+3. Use EDDM tool to select Squirrel Hill routes
+4. Drop at post office (~$247)
+5. Monitor `MARKETING_NeighborSignups` sheet
+
+### Expected Results:
+- **Cost:** ~$427
+- **Target:** 20 new CSA members
+- **Revenue:** $10,000+
+- **ROI:** 23x
+
+---
+
+## PREVIOUS: MASSIVE EXPANSION COMPLETE
 
 Built a **state-of-the-art Autonomous Social Media System** PLUS a complete **Marketing Automation Suite** with 4 integrated systems:
 1. Email Marketing Automation

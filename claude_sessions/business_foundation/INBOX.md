@@ -283,3 +283,9 @@ Owner needs to review your deliverables:
 ---
 
 *Business_Foundation Claude - These are foundational. Quality over speed.*
+
+---
+
+## IMPORTANT: READ UNIVERSAL_ACCESS.md
+You have full MCP server access and can deploy code via `clasp push`.
+See: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/UNIVERSAL_ACCESS.md`

@@ -414,6 +414,172 @@
       min-width: 150px;
     }
 
+    /* Tab Badge */
+    .tab-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: var(--danger);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    /* Priority Cards */
+    .priority-card {
+      background: var(--bg-hover);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid var(--border);
+    }
+
+    .priority-card.critical {
+      border-left-color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .priority-card.high {
+      border-left-color: var(--warning);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .priority-card.medium {
+      border-left-color: var(--secondary);
+    }
+
+    .priority-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .priority-card-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .priority-card-meta {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .priority-card-action {
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .priority-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .priority-label.critical {
+      background: var(--danger);
+      color: white;
+    }
+
+    .priority-label.high {
+      background: var(--warning);
+      color: black;
+    }
+
+    .priority-label.medium {
+      background: var(--secondary);
+      color: white;
+    }
+
+    /* Task Status */
+    .task-checkbox {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      margin-right: 0.75rem;
+    }
+
+    .task-complete {
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+
+    /* Loan Cards */
+    .loan-type-card {
+      background: var(--bg-hover);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .loan-type-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .loan-type-card.selected {
+      border-color: var(--primary);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .loan-type-card h3 {
+      margin-bottom: 0.5rem;
+    }
+
+    .loan-type-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .checklist li:last-child {
+      border-bottom: none;
+    }
+
+    .checklist-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    .checklist-icon.complete {
+      background: var(--primary);
+      color: white;
+    }
+
+    .checklist-icon.pending {
+      background: var(--border);
+      color: var(--text-muted);
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .header {
@@ -453,10 +619,15 @@
 
   <nav class="tabs">
     <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="tasks" style="position: relative;">
+      Action Items
+      <span id="tasksBadge" class="tab-badge" style="display: none;">0</span>
+    </div>
     <div class="tab" data-tab="banking">Banking</div>
     <div class="tab" data-tab="receipts">Receipts</div>
     <div class="tab" data-tab="accountant">Accountant Docs</div>
     <div class="tab" data-tab="reports">Reports</div>
+    <div class="tab" data-tab="loans">Loan Readiness</div>
     <div class="tab" data-tab="labor">Labor Costs</div>
     <div class="tab" data-tab="grants">Grants</div>
     <div class="tab" data-tab="categories">Categories</div>
@@ -515,6 +686,284 @@
         <div id="emailAnalysis">
           <p style="color: var(--text-muted);">Click "Import Emails" to fetch accountant correspondence, then analyze patterns.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- Action Items Tab -->
+    <div id="tasks" class="tab-content">
+      <div class="card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.1)); border: 1px solid var(--danger);">
+        <h2 class="card-title" style="color: var(--danger); margin-bottom: 0.5rem;">
+          ⚠️ URGENT: Accountant Action Items Required
+        </h2>
+        <p style="color: var(--text-muted);">
+          These items were extracted from DGPerry correspondence and require your immediate attention.
+          Failure to complete may delay tax preparation.
+        </p>
+      </div>
+
+      <!-- Critical Tasks Summary -->
+      <div class="grid" style="margin-bottom: 1.5rem;">
+        <div class="stat-card" style="background: rgba(239, 68, 68, 0.2);">
+          <div class="stat-value" style="color: var(--danger);" id="criticalTasks">0</div>
+          <div class="stat-label">Critical</div>
+        </div>
+        <div class="stat-card" style="background: rgba(245, 158, 11, 0.2);">
+          <div class="stat-value" style="color: var(--warning);" id="highTasks">0</div>
+          <div class="stat-label">High Priority</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="completedTasks">0</div>
+          <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="totalTasks">0</div>
+          <div class="stat-label">Total Tasks</div>
+        </div>
+      </div>
+
+      <!-- The 5 Consolidated Action Items -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">5 Consolidated Action Items from DGPerry</h2>
+          <button class="btn btn-secondary" onclick="loadAccountantTasks()">Refresh</button>
+        </div>
+
+        <div id="consolidatedTasksList">
+          <!-- Task 1: QuickBooks Bank Feed -->
+          <div class="priority-card high" id="task-qb-bankfeed">
+            <div class="priority-card-header">
+              <div>
+                <input type="checkbox" class="task-checkbox" onchange="toggleTask('qb-bankfeed', this.checked)">
+                <span class="priority-card-title">1. Reconnect QuickBooks Bank Feed</span>
+              </div>
+              <span class="priority-label high">HIGH</span>
+            </div>
+            <div class="priority-card-meta">From: Michelle Bockart (Dec 23, 2025)</div>
+            <div class="priority-card-action">
+              <strong>Action Required:</strong> Log into QuickBooks and reconnect PNC accounts to the bank feed.
+              <br><br>
+              <a href="https://qbo.intuit.com" target="_blank" class="btn btn-primary" style="margin-top: 0.5rem;">
+                Open QuickBooks Online →
+              </a>
+            </div>
+          </div>
+
+          <!-- Task 2: Tax Organizer -->
+          <div class="priority-card critical" id="task-tax-organizer">
+            <div class="priority-card-header">
+              <div>
+                <input type="checkbox" class="task-checkbox" onchange="toggleTask('tax-organizer', this.checked)">
+                <span class="priority-card-title">2. Complete 2024 Tax Organizer</span>
+              </div>
+              <span class="priority-label critical">CRITICAL</span>
+            </div>
+            <div class="priority-card-meta">28 reminder emails sent (Oct-Dec 2025) - EXTREMELY URGENT</div>
+            <div class="priority-card-action">
+              <strong>Action Required:</strong> Go to SafeSend portal and complete the tax organizer for 2024 returns.
+              <br><br>
+              <a href="https://www.safesendreturns.com" target="_blank" class="btn btn-primary" style="margin-top: 0.5rem;">
+                Open SafeSend Portal →
+              </a>
+            </div>
+          </div>
+
+          <!-- Task 3: Sign Documents -->
+          <div class="priority-card high" id="task-sign-docs">
+            <div class="priority-card-header">
+              <div>
+                <input type="checkbox" class="task-checkbox" onchange="toggleTask('sign-docs', this.checked)">
+                <span class="priority-card-title">3. Sign Tax Documents</span>
+              </div>
+              <span class="priority-label high">HIGH</span>
+            </div>
+            <div class="priority-card-meta">Multiple SafeSend reminders</div>
+            <div class="priority-card-action">
+              <strong>Action Required:</strong> Review and sign documents at SafeSend portal.
+              <br><br>
+              <a href="https://www.safesendreturns.com" target="_blank" class="btn btn-primary" style="margin-top: 0.5rem;">
+                Open SafeSend Portal →
+              </a>
+            </div>
+          </div>
+
+          <!-- Task 4: Year-End Items -->
+          <div class="priority-card critical" id="task-yearend">
+            <div class="priority-card-header">
+              <div>
+                <input type="checkbox" class="task-checkbox" onchange="toggleTask('yearend', this.checked)">
+                <span class="priority-card-title">4. Provide Year-End Items</span>
+              </div>
+              <span class="priority-label critical">CRITICAL</span>
+            </div>
+            <div class="priority-card-meta">From: Mary Reiland (Oct 30, 2025)</div>
+            <div class="priority-card-action">
+              <strong>Action Required:</strong> Review September 2025 uncategorized items PDF and respond.
+              <br><br>
+              <span style="color: var(--danger); font-weight: 600;">
+                ⚠️ Warning from accountant: "Any open items we carry into the new year will delay the preparation of your personal tax return"
+              </span>
+              <br><br>
+              <strong>Attachments saved to Drive:</strong>
+              <ul style="margin: 0.5rem 0 0 1.5rem; color: var(--text-muted);">
+                <li>UNCATEGORIZED ITEMS.pdf</li>
+                <li>P&L YTD</li>
+                <li>P&L Month</li>
+                <li>Balance Sheet</li>
+                <li>General Ledger</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Task 5: Pay Invoices -->
+          <div class="priority-card medium" id="task-invoices">
+            <div class="priority-card-header">
+              <div>
+                <input type="checkbox" class="task-checkbox" onchange="toggleTask('invoices', this.checked)">
+                <span class="priority-card-title">5. Pay DGPerry Invoices</span>
+              </div>
+              <span class="priority-label medium">MEDIUM</span>
+            </div>
+            <div class="priority-card-meta">Current Balance: $1,395.00 (2 invoices)</div>
+            <div class="priority-card-action">
+              <strong>Action Required:</strong> Review and pay invoices through Aiwyn portal.
+              <br><br>
+              <strong>Invoice #169111:</strong> From Nov 13, 2025
+              <br><br>
+              <a href="https://app.aiwyn.com" target="_blank" class="btn btn-secondary" style="margin-top: 0.5rem;">
+                Open Aiwyn Portal →
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Extracted Tasks (from email parsing) -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">All Extracted Tasks (57 total)</h2>
+          <div class="filters" style="margin: 0;">
+            <select class="form-select" id="taskFilterPriority" onchange="filterTasks()" style="width: auto;">
+              <option value="">All Priorities</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+            </select>
+            <select class="form-select" id="taskFilterStatus" onchange="filterTasks()" style="width: auto;">
+              <option value="">All Status</option>
+              <option value="PENDING">Pending</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Task</th>
+                <th>Category</th>
+                <th>Source</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="allTasksTable">
+              <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loan Readiness Tab -->
+    <div id="loans" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Loan Readiness Center</h2>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+          Generate complete loan application packages for Farm Credit, FSA, or USDA programs.
+          Includes Balance Sheet, P&L, Cash Flow, and all required documentation.
+        </p>
+
+        <!-- Loan Type Selection -->
+        <h3 style="margin-bottom: 1rem;">1. Select Loan Type</h3>
+        <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 2rem;">
+          <div class="loan-type-card" onclick="selectLoanType('FSA')" id="loan-FSA">
+            <h3>FSA Loans</h3>
+            <p>Farm Service Agency</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Operating: up to $400K<br>Ownership: up to $600K<br>Microloan: up to $50K</p>
+          </div>
+          <div class="loan-type-card" onclick="selectLoanType('FarmCredit')" id="loan-FarmCredit">
+            <h3>Farm Credit</h3>
+            <p>Horizon Farm Credit</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Operating Lines<br>Real Estate Loans<br>Equipment Financing</p>
+          </div>
+          <div class="loan-type-card" onclick="selectLoanType('USDA')" id="loan-USDA">
+            <h3>USDA Programs</h3>
+            <p>USDA Farm Programs</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">EQIP, CSP<br>Conservation Loans<br>Value-Added Grants</p>
+          </div>
+        </div>
+
+        <!-- Farm Info Summary -->
+        <div class="card" style="background: var(--bg-hover);">
+          <h3 style="margin-bottom: 1rem;">Farm Information (Pre-filled)</h3>
+          <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div>
+              <p><strong>Legal Name:</strong> Tiny Seed Farm LLC</p>
+              <p><strong>EIN:</strong> 81-5299411</p>
+              <p><strong>Entity Number:</strong> 6509546 (PA)</p>
+              <p><strong>Formation Date:</strong> February 7, 2017</p>
+            </div>
+            <div>
+              <p><strong>Address:</strong> 257 Zeigler Road, Rochester, PA 15074</p>
+              <p><strong>County:</strong> Beaver County, Pennsylvania</p>
+              <p><strong>Organic:</strong> OEFFA #3839 (~5.6 acres)</p>
+              <p><strong>Owner:</strong> Todd R Wilson (100%)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Document Checklist -->
+        <div id="loanDocChecklist" style="display: none; margin-top: 1.5rem;">
+          <h3 style="margin-bottom: 1rem;">2. Document Checklist for <span id="selectedLoanType">-</span></h3>
+          <div class="card">
+            <ul class="checklist" id="loanChecklist">
+              <!-- Populated by JavaScript -->
+            </ul>
+          </div>
+
+          <h3 style="margin: 1.5rem 0 1rem;">3. Generate Loan Package</h3>
+          <div class="card">
+            <p style="margin-bottom: 1rem;">
+              This will generate a complete package including:
+            </p>
+            <ul style="margin-left: 1.5rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+              <li>Balance Sheet with current ratio, debt-to-asset ratio, working capital</li>
+              <li>Profit & Loss Statement</li>
+              <li>Cash Flow Statement with 12-month seasonal projections</li>
+              <li>Schedule F Report</li>
+              <li>Farm Info Summary</li>
+              <li>Document checklist by loan type</li>
+              <li>Next steps for application</li>
+            </ul>
+            <button class="btn btn-primary" onclick="generateLoanPackage()" id="generateLoanBtn" disabled>
+              Generate Loan Package
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generated Package Output -->
+      <div class="card" id="loanPackageOutput" style="display: none;">
+        <div class="card-header">
+          <h2 class="card-title">Generated Loan Package</h2>
+          <button class="btn btn-primary" onclick="printLoanPackage()">Print / Export PDF</button>
+        </div>
+        <div id="loanPackageContent"></div>
       </div>
     </div>
 
@@ -1016,6 +1465,8 @@
       loadAccountantDocs();
       loadGrants();
       loadBankAccounts();
+      loadAccountantTasks();
+      loadTaskBadge();
 
       // Setup tabs
       document.querySelectorAll('.tab').forEach(tab => {
@@ -1833,6 +2284,384 @@
       container.appendChild(alert);
 
       setTimeout(() => alert.remove(), 5000);
+    }
+
+    // ============ ACCOUNTANT TASKS FUNCTIONS ============
+
+    let allTasks = [];
+    let taskCompletionStatus = JSON.parse(localStorage.getItem('taskCompletionStatus') || '{}');
+
+    async function loadAccountantTasks() {
+      const tbody = document.getElementById('allTasksTable');
+      tbody.innerHTML = '<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
+
+      try {
+        const result = await apiCall('getAccountantTasks');
+        if (result.success && result.data && result.data.length > 0) {
+          allTasks = result.data;
+          renderAllTasksTable(allTasks);
+          updateTaskStats(allTasks);
+        } else {
+          // If no tasks from API, show the 5 consolidated tasks only
+          tbody.innerHTML = '<tr><td colspan="7">No extracted tasks yet. Click "Import Emails" on Accountant Docs tab to parse DGPerry emails.</td></tr>';
+          updateTaskStats([]);
+        }
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+        tbody.innerHTML = '<tr><td colspan="7">Error loading tasks. Check if accounting module is initialized.</td></tr>';
+      }
+
+      // Restore checkbox states
+      restoreCheckboxStates();
+    }
+
+    function loadTaskBadge() {
+      // Count incomplete critical/high tasks for badge
+      const incompleteTasks = ['tax-organizer', 'yearend', 'qb-bankfeed', 'sign-docs', 'invoices']
+        .filter(id => !taskCompletionStatus[id]);
+      const badge = document.getElementById('tasksBadge');
+      if (incompleteTasks.length > 0) {
+        badge.textContent = incompleteTasks.length;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function updateTaskStats(tasks) {
+      const critical = tasks.filter(t => t.Priority === 'CRITICAL' && t.Status !== 'COMPLETED').length;
+      const high = tasks.filter(t => t.Priority === 'HIGH' && t.Status !== 'COMPLETED').length;
+      const completed = tasks.filter(t => t.Status === 'COMPLETED').length;
+
+      document.getElementById('criticalTasks').textContent = critical || 2; // 2 consolidated critical
+      document.getElementById('highTasks').textContent = high || 2; // 2 consolidated high
+      document.getElementById('completedTasks').textContent = completed;
+      document.getElementById('totalTasks').textContent = tasks.length || 5;
+    }
+
+    function renderAllTasksTable(tasks) {
+      const tbody = document.getElementById('allTasksTable');
+
+      if (!tasks || tasks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No tasks found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = tasks.slice(0, 50).map(t => `
+        <tr>
+          <td>
+            <span class="priority-label ${(t.Priority || 'MEDIUM').toLowerCase()}">${t.Priority || 'MEDIUM'}</span>
+          </td>
+          <td style="max-width: 250px;">${t.Task_Title || t.Description || '-'}</td>
+          <td>${t.Category || '-'}</td>
+          <td style="font-size: 0.8rem; color: var(--text-muted);">${t.Source_Email || t.From || '-'}</td>
+          <td>${t.Due_Date ? formatDate(t.Due_Date) : '-'}</td>
+          <td>
+            <span class="badge ${t.Status === 'COMPLETED' ? 'badge-success' : t.Status === 'IN_PROGRESS' ? 'badge-warning' : 'badge-info'}">
+              ${t.Status || 'PENDING'}
+            </span>
+          </td>
+          <td>
+            ${t.Status !== 'COMPLETED' ? `
+              <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;" onclick="updateTaskStatus('${t.Task_ID}', 'COMPLETED')">
+                Complete
+              </button>
+            ` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterTasks() {
+      const priority = document.getElementById('taskFilterPriority').value;
+      const status = document.getElementById('taskFilterStatus').value;
+
+      let filtered = allTasks;
+
+      if (priority) {
+        filtered = filtered.filter(t => t.Priority === priority);
+      }
+
+      if (status) {
+        filtered = filtered.filter(t => t.Status === status);
+      }
+
+      renderAllTasksTable(filtered);
+    }
+
+    async function updateTaskStatus(taskId, newStatus) {
+      const result = await apiCall('updateAccountantTask', { taskId, status: newStatus }, 'POST');
+      if (result.success) {
+        showAlert('Task updated!', 'success');
+        loadAccountantTasks();
+      } else {
+        showAlert('Error updating task: ' + result.error, 'error');
+      }
+    }
+
+    function toggleTask(taskId, completed) {
+      taskCompletionStatus[taskId] = completed;
+      localStorage.setItem('taskCompletionStatus', JSON.stringify(taskCompletionStatus));
+
+      const card = document.getElementById(`task-${taskId}`);
+      if (completed) {
+        card.style.opacity = '0.5';
+        card.querySelector('.priority-card-title').style.textDecoration = 'line-through';
+      } else {
+        card.style.opacity = '1';
+        card.querySelector('.priority-card-title').style.textDecoration = 'none';
+      }
+
+      loadTaskBadge();
+    }
+
+    function restoreCheckboxStates() {
+      Object.entries(taskCompletionStatus).forEach(([taskId, completed]) => {
+        const card = document.getElementById(`task-${taskId}`);
+        if (card) {
+          const checkbox = card.querySelector('.task-checkbox');
+          if (checkbox) {
+            checkbox.checked = completed;
+            if (completed) {
+              card.style.opacity = '0.5';
+              card.querySelector('.priority-card-title').style.textDecoration = 'line-through';
+            }
+          }
+        }
+      });
+    }
+
+    // ============ LOAN READINESS FUNCTIONS ============
+
+    let selectedLoanType = null;
+
+    const LOAN_REQUIREMENTS = {
+      FSA: {
+        name: 'Farm Service Agency',
+        documents: [
+          { id: 'tax-returns', name: '3 Years Tax Returns (Schedule F)', status: 'owner' },
+          { id: 'balance-sheet', name: 'Balance Sheet (FSA Form 410-1)', status: 'system' },
+          { id: 'pl-statement', name: 'Profit & Loss Statement', status: 'system' },
+          { id: 'cash-flow', name: 'Cash Flow Statement', status: 'system' },
+          { id: 'cash-projection', name: 'Cash Flow Projection (12-month)', status: 'system' },
+          { id: 'farm-plan', name: 'Farm Operating Plan (FSA Form 431-2)', status: 'owner' },
+          { id: 'id-proof', name: 'Government ID (Driver\'s License)', status: 'owner' },
+          { id: 'entity-docs', name: 'LLC Operating Agreement', status: 'owner' }
+        ]
+      },
+      FarmCredit: {
+        name: 'Farm Credit',
+        documents: [
+          { id: 'tax-returns', name: '3 Years Tax Returns (Schedule F)', status: 'owner' },
+          { id: 'balance-sheet', name: 'Balance Sheet', status: 'system' },
+          { id: 'pl-statement', name: 'Profit & Loss Statement', status: 'system' },
+          { id: 'cash-flow', name: 'Cash Flow Statement', status: 'system' },
+          { id: 'enterprise-analysis', name: 'Enterprise Analysis by Crop', status: 'system' },
+          { id: 'bank-statements', name: 'Bank Statements (6 months)', status: 'owner' },
+          { id: 'debt-schedule', name: 'Current Debt Schedule', status: 'system' }
+        ]
+      },
+      USDA: {
+        name: 'USDA Programs',
+        documents: [
+          { id: 'tax-returns', name: 'Tax Returns (1-3 Years)', status: 'owner' },
+          { id: 'balance-sheet', name: 'Balance Sheet', status: 'system' },
+          { id: 'conservation-plan', name: 'Conservation Plan', status: 'owner' },
+          { id: 'organic-cert', name: 'Organic Certification (OEFFA)', status: 'complete' },
+          { id: 'farm-records', name: 'Production Records', status: 'system' },
+          { id: 'business-plan', name: 'Business Plan', status: 'owner' }
+        ]
+      }
+    };
+
+    function selectLoanType(type) {
+      // Update selection UI
+      document.querySelectorAll('.loan-type-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      document.getElementById(`loan-${type}`).classList.add('selected');
+
+      selectedLoanType = type;
+      document.getElementById('selectedLoanType').textContent = LOAN_REQUIREMENTS[type].name;
+      document.getElementById('generateLoanBtn').disabled = false;
+
+      // Show checklist
+      document.getElementById('loanDocChecklist').style.display = 'block';
+      renderLoanChecklist(type);
+    }
+
+    function renderLoanChecklist(type) {
+      const checklist = document.getElementById('loanChecklist');
+      const requirements = LOAN_REQUIREMENTS[type];
+
+      checklist.innerHTML = requirements.documents.map(doc => `
+        <li>
+          <span class="checklist-icon ${doc.status === 'complete' || doc.status === 'system' ? 'complete' : 'pending'}">
+            ${doc.status === 'complete' || doc.status === 'system' ? '✓' : '○'}
+          </span>
+          <div style="flex: 1;">
+            <span>${doc.name}</span>
+            ${doc.status === 'system' ? '<span class="badge badge-success" style="margin-left: 0.5rem;">Auto-Generated</span>' : ''}
+            ${doc.status === 'owner' ? '<span class="badge badge-warning" style="margin-left: 0.5rem;">Owner Provides</span>' : ''}
+            ${doc.status === 'complete' ? '<span class="badge badge-info" style="margin-left: 0.5rem;">On File</span>' : ''}
+          </div>
+        </li>
+      `).join('');
+    }
+
+    async function generateLoanPackage() {
+      if (!selectedLoanType) {
+        showAlert('Please select a loan type first', 'error');
+        return;
+      }
+
+      showAlert('Generating loan package...', 'info');
+
+      const result = await apiCall('generateLoanPackage', { loanType: selectedLoanType });
+
+      if (result.success && result.package) {
+        renderLoanPackage(result.package);
+        document.getElementById('loanPackageOutput').style.display = 'block';
+        document.getElementById('loanPackageOutput').scrollIntoView({ behavior: 'smooth' });
+        showAlert('Loan package generated successfully!', 'success');
+      } else {
+        showAlert('Error generating package: ' + (result.error || 'Unknown error'), 'error');
+      }
+    }
+
+    function renderLoanPackage(pkg) {
+      const content = document.getElementById('loanPackageContent');
+
+      let html = `
+        <div style="text-align: center; margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-hover); border-radius: 12px;">
+          <h2 style="margin-bottom: 0.5rem;">${pkg.farmInfo?.legalName || 'Tiny Seed Farm LLC'}</h2>
+          <p style="color: var(--text-muted);">${pkg.loanType} Loan Application Package</p>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Generated: ${new Date(pkg.generatedAt).toLocaleDateString()}</p>
+        </div>
+
+        <h3 style="margin-bottom: 1rem;">Farm Information</h3>
+        <div class="card" style="background: var(--bg-hover);">
+          <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div>
+              <p><strong>EIN:</strong> ${pkg.farmInfo?.ein || '81-5299411'}</p>
+              <p><strong>Entity Type:</strong> ${pkg.farmInfo?.entityType || 'LLC'}</p>
+              <p><strong>Formation:</strong> ${pkg.farmInfo?.formationDate || 'Feb 7, 2017'}</p>
+            </div>
+            <div>
+              <p><strong>Address:</strong> ${pkg.farmInfo?.address || '257 Zeigler Road, Rochester, PA 15074'}</p>
+              <p><strong>Organic:</strong> ${pkg.farmInfo?.organicCertifier || 'OEFFA'} #${pkg.farmInfo?.organicNumber || '3839'}</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Balance Sheet
+      if (pkg.balanceSheet) {
+        const bs = pkg.balanceSheet;
+        html += `
+          <h3 style="margin: 2rem 0 1rem;">Balance Sheet</h3>
+          <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1rem;">
+            <div class="stat-card">
+              <div class="stat-value" style="color: var(--primary);">$${(bs.totalAssets || 0).toLocaleString()}</div>
+              <div class="stat-label">Total Assets</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" style="color: var(--danger);">$${(bs.totalLiabilities || 0).toLocaleString()}</div>
+              <div class="stat-label">Total Liabilities</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">$${(bs.equity || 0).toLocaleString()}</div>
+              <div class="stat-label">Owner's Equity</div>
+            </div>
+          </div>
+          ${bs.ratios ? `
+            <div class="card" style="background: var(--bg-hover);">
+              <h4 style="margin-bottom: 0.75rem;">Key Ratios for Lenders</h4>
+              <p><strong>Current Ratio:</strong> ${(bs.ratios.currentRatio || 0).toFixed(2)} ${bs.ratios.currentRatio >= 1.5 ? '✓ Good' : '⚠️ Below 1.5'}</p>
+              <p><strong>Debt-to-Asset:</strong> ${((bs.ratios.debtToAsset || 0) * 100).toFixed(1)}% ${bs.ratios.debtToAsset <= 0.5 ? '✓ Good' : '⚠️ Above 50%'}</p>
+              <p><strong>Working Capital:</strong> $${(bs.ratios.workingCapital || 0).toLocaleString()}</p>
+            </div>
+          ` : ''}
+        `;
+      }
+
+      // P&L Summary
+      if (pkg.profitLoss) {
+        const pl = pkg.profitLoss;
+        html += `
+          <h3 style="margin: 2rem 0 1rem;">Profit & Loss Summary</h3>
+          <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="stat-card">
+              <div class="stat-value" style="color: var(--primary);">$${(pl.totalIncome || 0).toLocaleString()}</div>
+              <div class="stat-label">Total Income</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" style="color: var(--warning);">$${(pl.totalExpenses || 0).toLocaleString()}</div>
+              <div class="stat-label">Total Expenses</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" style="color: ${(pl.netIncome || 0) >= 0 ? 'var(--primary)' : 'var(--danger)'};">
+                $${(pl.netIncome || 0).toLocaleString()}
+              </div>
+              <div class="stat-label">Net Income</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Cash Flow
+      if (pkg.cashFlow) {
+        const cf = pkg.cashFlow;
+        html += `
+          <h3 style="margin: 2rem 0 1rem;">Cash Flow Statement</h3>
+          <div class="card" style="background: var(--bg-hover);">
+            <p><strong>Operating Activities:</strong> $${(cf.operating || 0).toLocaleString()}</p>
+            <p><strong>Investing Activities:</strong> $${(cf.investing || 0).toLocaleString()}</p>
+            <p><strong>Financing Activities:</strong> $${(cf.financing || 0).toLocaleString()}</p>
+            <p style="margin-top: 1rem; font-weight: 600;"><strong>Net Cash Flow:</strong> $${(cf.netCashFlow || 0).toLocaleString()}</p>
+          </div>
+        `;
+      }
+
+      // Document Checklist
+      if (pkg.documentChecklist) {
+        html += `
+          <h3 style="margin: 2rem 0 1rem;">Document Checklist</h3>
+          <div class="card">
+            <ul class="checklist">
+              ${pkg.documentChecklist.map(doc => `
+                <li>
+                  <span class="checklist-icon ${doc.status === 'ready' ? 'complete' : 'pending'}">
+                    ${doc.status === 'ready' ? '✓' : '○'}
+                  </span>
+                  <span>${doc.name}</span>
+                  <span class="badge ${doc.status === 'ready' ? 'badge-success' : 'badge-warning'}" style="margin-left: auto;">
+                    ${doc.status === 'ready' ? 'Ready' : 'Needed'}
+                  </span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      // Next Steps
+      if (pkg.nextSteps) {
+        html += `
+          <h3 style="margin: 2rem 0 1rem;">Next Steps</h3>
+          <div class="card">
+            <ol style="margin-left: 1.25rem; line-height: 1.8;">
+              ${pkg.nextSteps.map(step => `<li>${step}</li>`).join('')}
+            </ol>
+          </div>
+        `;
+      }
+
+      content.innerHTML = html;
+    }
+
+    function printLoanPackage() {
+      window.print();
     }
   </script>
 </body>

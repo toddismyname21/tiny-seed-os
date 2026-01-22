@@ -509,6 +509,18 @@
             margin-bottom: 0.75rem;
             color: #1e293b;
         }
+
+        /* ============================================= */
+        /* KEYBOARD SHORTCUTS HELP */
+        /* ============================================= */
+        .keyboard-help {
+            position: fixed; bottom: 20px; right: 20px; background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1rem; font-size: 0.75rem; color: var(--text-muted); z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .keyboard-help.visible { display: block; }
+        .keyboard-help h4 { color: var(--text); margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .keyboard-help kbd { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; border: 1px solid #e2e8f0; }
+        .keyboard-help div { margin-bottom: 0.25rem; }
     </style>
 </head>
 <body>
@@ -13565,6 +13577,45 @@
             }));
         }
 
+        // ========================================
+        // KEYBOARD SHORTCUTS
+        // ========================================
+        document.addEventListener('keydown', function(e) {
+            if (e.target.matches('input, textarea, select')) return;
+            const key = e.key.toLowerCase();
+            switch (key) {
+                case '1': switchTab('tests'); break;
+                case '2': switchTab('fields'); break;
+                case '3': switchTab('inventory'); break;
+                case '4': switchTab('fertigation'); break;
+                case '5': switchTab('compliance'); break;
+                case 'n': if (typeof openAddModal === 'function') openAddModal(); break;
+                case 'r': if (typeof loadData === 'function') loadData(); break;
+                case 'p': window.print(); break;
+                case 'h': window.location.href = 'index.html'; break;
+                case '?': toggleKeyboardHelp(); break;
+                case 'escape':
+                    document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+                    document.getElementById('keyboardHelp')?.classList.remove('visible');
+                    break;
+            }
+        });
+
+        function toggleKeyboardHelp() {
+            document.getElementById('keyboardHelp')?.classList.toggle('visible');
+        }
+
     </script>
+
+    <div class="keyboard-help" id="keyboardHelp">
+        <h4>Keyboard Shortcuts</h4>
+        <div><kbd>1-5</kbd> Switch tabs</div>
+        <div><kbd>N</kbd> New item</div>
+        <div><kbd>R</kbd> Refresh data</div>
+        <div><kbd>P</kbd> Print</div>
+        <div><kbd>H</kbd> Home</div>
+        <div><kbd>?</kbd> Toggle help</div>
+        <div><kbd>Esc</kbd> Close modals</div>
+    </div>
 </body>
 </html>

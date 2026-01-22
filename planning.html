@@ -947,6 +947,33 @@
             margin-left: 8px;
             opacity: 0.7;
         }
+
+        /* ============================================= */
+        /* KEYBOARD SHORTCUTS HELP */
+        /* ============================================= */
+        .keyboard-help {
+            position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1rem; font-size: 0.75rem; color: var(--text-secondary); z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .keyboard-help.visible { display: block; }
+        .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help div { margin-bottom: 0.25rem; }
+
+        /* ============================================= */
+        /* PRINT STYLES */
+        /* ============================================= */
+        @media print {
+            body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .header, .keyboard-help, .btn, .action-bar, .sidebar { display: none !important; }
+            .main-content, .main-container { max-width: 100%; padding: 0; margin: 0; }
+            .card, .stat-card, .planning-item { background: white !important; border: 1px solid #ddd !important; box-shadow: none !important; page-break-inside: avoid; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd !important; padding: 8px !important; }
+            th { background: #f5f5f5 !important; }
+            .status-badge { color: black !important; border: 1px solid #999 !important; }
+            @page { margin: 0.5in; size: landscape; }
+        }
     </style>
 </head>
 <body>
@@ -2292,12 +2319,40 @@
         // Click outside editable cell to cancel
         document.addEventListener('click', (e) => {
             if (editingCell && !e.target.closest('.editable-cell')) {
-                // Small delay to allow onchange to fire
                 setTimeout(() => {
                     if (editingCell) cancelInlineEdit();
                 }, 100);
             }
         });
+
+        // ========================================
+        // KEYBOARD SHORTCUTS (ENHANCED)
+        // ========================================
+        document.addEventListener('keydown', function(e) {
+            if (e.target.matches('input, textarea, select')) return;
+            const key = e.key.toLowerCase();
+            switch (key) {
+                case 'n': if (typeof openAddModal === 'function') openAddModal(); break;
+                case 'r': if (typeof loadData === 'function') loadData(); break;
+                case 'p': window.print(); break;
+                case 'h': window.location.href = 'index.html'; break;
+                case '?': toggleKeyboardHelp(); break;
+            }
+        });
+
+        function toggleKeyboardHelp() {
+            document.getElementById('keyboardHelp')?.classList.toggle('visible');
+        }
     </script>
+
+    <div class="keyboard-help" id="keyboardHelp">
+        <h4>Keyboard Shortcuts</h4>
+        <div><kbd>N</kbd> New item</div>
+        <div><kbd>R</kbd> Refresh data</div>
+        <div><kbd>P</kbd> Print</div>
+        <div><kbd>H</kbd> Home</div>
+        <div><kbd>?</kbd> Toggle help</div>
+        <div><kbd>Esc</kbd> Close panels</div>
+    </div>
 </body>
 </html>

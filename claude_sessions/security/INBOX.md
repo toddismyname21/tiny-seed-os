@@ -1,124 +1,75 @@
-# INBOX: Security Claude
-## From: PM_Architect
+# RESTART DIRECTIVE: Security Claude
 
-**Updated:** 2026-01-15
-**URGENT UPDATE:** 2026-01-16 - OVERNIGHT DIRECTIVE
+**Date:** 2026-01-21
+**From:** Project Manager Claude
+**Priority:** URGENT - SESSION RESTART
 
 ---
 
-## OVERNIGHT MISSION (Owner is sleeping - WORK AUTONOMOUSLY)
+## ISSUE
+You were **frozen with an API error**. Session restart required.
 
-### PRIMARY ASSIGNMENT: SECURITY HARDENING & PERMISSIONS AUDIT
+---
 
-Your previous work secured 25 pages. Now we need to ensure everything is locked down properly and plan for safe automation.
+## YOUR ROLE
+You are the Security Claude responsible for:
+- Securing all web pages with auth-guard.js
+- Backend API authentication
+- Audit logging
+- Session management
+- Permission enforcement
 
-#### Task 1: Permission Model Audit
+---
 
-Create `/claude_sessions/security/PERMISSION_AUDIT.md`:
+## CURRENT STATE (From your last STATUS)
+- 25/25 pages secured with auth-guard.js ✅
+- 15 critical endpoints authenticated ✅
+- Audit logging deployed ✅
+- Session management deployed ✅
+- Security Score: 85/100
 
-**Document current security model:**
-- What roles exist?
-- What can each role access?
-- Where are permissions checked?
-- Any gaps or inconsistencies?
+---
 
-**Permission matrix:**
+## IMMEDIATE TASKS
+
+### 1. Diagnose the API Error
+- What endpoint caused the freeze?
+- Test: `?action=healthCheck`
+- Test: `?action=getActiveSessions`
+- Test: `?action=getAuditLog`
+
+### 2. Report Status
+- Update your `OUTBOX.md` with current status
+- List any errors encountered
+- Confirm all security systems operational
+
+### 3. Verify Systems
+- Confirm auth-guard.js is protecting all pages
+- Confirm backend endpoints are responding
+- Check for any new security vulnerabilities
+
+---
+
+## API ENDPOINT
 ```
-| Page/Feature | Admin | Manager | Employee | Public |
-|--------------|-------|---------|----------|--------|
-| Dashboard | ✓ | ✓ | - | - |
-| Planning | ✓ | ✓ | - | - |
-| Employee Tasks | ✓ | ✓ | ✓ | - |
-| ...
+https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec
 ```
 
-#### Task 2: API Security Review
+---
 
-Create `/claude_sessions/security/API_SECURITY_REVIEW.md`:
-
-**Analyze all API endpoints for:**
-- Authentication required?
-- Authorization checked?
-- Input validation?
-- Rate limiting?
-- Error message security (no info leakage)
-
-**Identify:**
-- Endpoints that should be public
-- Endpoints that need auth
-- Any endpoints missing auth checks
-
-#### Task 3: Safe Automation Recommendations
-
-Owner wants to "minimize restrictions so we can throw the safe stuff on autopilot."
-
-Create `/claude_sessions/security/SAFE_AUTOMATION_GUIDE.md`:
-
-**Define what's safe to automate:**
-- Read-only operations
-- Internal data processing
-- Report generation
-- Notifications
-
-**Define what requires human approval:**
-- Financial transactions
-- Data deletion
-- External API calls
-- User management
-
-**Recommendations for:**
-- How to safely give Claudes more autonomy
-- What guardrails to keep
-- Logging and audit trail requirements
-
-#### Task 4: Session Security
-
-Create `/claude_sessions/security/SESSION_SECURITY.md`:
-
-**Review session management:**
-- Session timeout settings
-- Token rotation
-- Concurrent session handling
-- Logout behavior
-
-**Recommendations:**
-- Optimal timeout duration
-- Session invalidation on password change
-- Multi-device session management
-
-#### Deliverable: MORNING SECURITY BRIEF
-
-Create `/claude_sessions/security/MORNING_SECURITY_BRIEF.md`:
-- Current security posture summary
-- Critical issues found (if any)
-- Quick fixes available
-- Roadmap for improvements
-- Safe automation recommendations
+## KEY FILES
+- `/web_app/auth-guard.js` - Frontend auth module
+- `/apps_script/MERGED TOTAL.js` - Backend with security endpoints
 
 ---
 
-### SECONDARY ASSIGNMENT (If blocked on primary)
+## OWNER DIRECTIVE
+> "NO SHORTCUTS. STATE OF THE ART ONLY."
 
-If you can't access the codebase or hit permissions:
-
-**Security Best Practices Guide**
-- Document security best practices for Apps Script
-- Google Workspace security features to leverage
-- Two-factor authentication recommendations
-- Backup and recovery procedures
+**Report status to OUTBOX.md immediately after restart.**
 
 ---
 
-### CHECK-IN PROTOCOL
-
-Write to your OUTBOX when:
-1. Permission audit complete
-2. API security review done
-3. Safe automation guide drafted
-4. Morning brief ready
-
-**PM_Architect will check your OUTBOX.**
-
----
-
-*Security Claude - Keep us secure while enabling automation*
+## IMPORTANT: READ UNIVERSAL_ACCESS.md
+You have full MCP server access and can deploy code via `clasp push`.
+See: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/UNIVERSAL_ACCESS.md`

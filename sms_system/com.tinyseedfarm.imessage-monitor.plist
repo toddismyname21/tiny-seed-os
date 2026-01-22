@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Unique identifier for this Launch Agent -->
+    <key>Label</key>
+    <string>com.tinyseedfarm.imessage-monitor</string>
+
+    <!-- Python interpreter and script to run -->
+    <!-- IMPORTANT: Update the path if your Python is elsewhere -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/python3</string>
+        <string>SCRIPT_PATH_PLACEHOLDER</string>
+    </array>
+
+    <!-- Start automatically when user logs in -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Auto-restart on crash (but NOT on clean exit) -->
+    <!-- This ensures the monitor keeps running even if it crashes -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <!-- Minimum 10 seconds between restart attempts -->
+    <!-- Prevents rapid restart loops if something is badly wrong -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Environment variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <key>WEBHOOK_URL</key>
+        <string>https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec</string>
+    </dict>
+
+    <!-- Log stdout to file -->
+    <key>StandardOutPath</key>
+    <string>LOG_PATH_PLACEHOLDER/imessage-monitor.log</string>
+
+    <!-- Log stderr to file -->
+    <key>StandardErrorPath</key>
+    <string>LOG_PATH_PLACEHOLDER/imessage-monitor-error.log</string>
+
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>WORKING_DIR_PLACEHOLDER</string>
+
+    <!-- Nice priority (lower = higher priority, 0 = normal) -->
+    <key>Nice</key>
+    <integer>5</integer>
+
+    <!-- Process type - helps macOS manage resources -->
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

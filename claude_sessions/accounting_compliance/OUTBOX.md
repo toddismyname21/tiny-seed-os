@@ -1,41 +1,76 @@
 # OUTBOX: Accounting_Compliance Claude
 ## To: PM_Architect / Owner
 
-**Updated:** 2026-01-16 @ 5:30 AM
-**Status:** QUICKBOOKS DASHBOARD BUILT - AWAITING CREDENTIALS
+**Updated:** 2026-01-22
+**Status:** MAJOR ENHANCEMENTS DEPLOYED - ACCOUNTING HUB UPGRADED
 
 ---
 
-## LATEST SESSION SUMMARY (Jan 16, 2026 overnight)
+## LATEST SESSION SUMMARY (Jan 22, 2026)
 
 ### Completed This Session:
-1. **Accountant Task Management System** (v115)
-   - Extracted 57 tasks from 103 DGPerry emails
-   - Consolidated into 5 action items (see below)
-   - API endpoints for task tracking
 
-2. **QuickBooks Dashboard** (v116) - NEW
-   - Built `web_app/quickbooks-dashboard.html`
-   - Shows: Account balances, overdue invoices, overdue bills, P&L summary
-   - Backend functions: `getQuickBooksDashboard()`, `getQBAccountBalances()`, `getQBOpenInvoices()`, `getQBOpenBills()`, `getQBProfitLossSummary()`
+#### 1. **Accountant Task Dashboard** - NEW!
+Added prominent "Action Items" tab to `accounting.html` with:
+- **5 Consolidated DGPerry Action Items** (with urgency indicators)
+- Priority badge showing incomplete tasks count
+- Direct links to SafeSend, QuickBooks, Aiwyn portals
+- Checkbox tracking with localStorage persistence
+- Filterable task list from 57 extracted email tasks
 
-### BLOCKED - Waiting on Owner:
-**QuickBooks credentials needed to connect dashboard**
+**THE 5 CRITICAL ACTION ITEMS:**
+1. ⚠️ Reconnect QuickBooks Bank Feed (HIGH)
+2. 🚨 Complete 2024 Tax Organizer - 28 REMINDERS SENT! (CRITICAL)
+3. ⚠️ Sign Tax Documents at SafeSend (HIGH)
+4. 🚨 Provide Year-End Items (CRITICAL) - Will delay tax return!
+5. 💵 Pay DGPerry Invoices - $1,395.00 (MEDIUM)
 
-Owner has a QuickBooks Developer account but needs to provide:
-1. **Company ID** (Realm ID) - Found in QBO URL or Settings
-2. **Client ID** - From developer.intuit.com app dashboard
-3. **Client Secret** - From developer.intuit.com app dashboard
+#### 2. **Loan Readiness Center** - NEW!
+Added new "Loan Readiness" tab to `accounting.html` with:
+- Loan type selection: FSA, Farm Credit, USDA
+- Pre-filled farm info (EIN, LLC, organic cert)
+- Document checklist with auto-generated vs owner-provided indicators
+- One-click loan package generation
+- Balance Sheet with key ratios for lenders
+- Cash Flow projections
+- Print/Export PDF functionality
+
+#### 3. **QuickBooks Credential Setup Wizard** - NEW!
+Added setup wizard modal to `quickbooks-dashboard.html`:
+- Step-by-step instructions for finding credentials
+- Company ID (Realm ID) extraction guide
+- Client ID/Secret from Intuit Developer portal
+- Redirect URI instructions
+- Form to save credentials directly to backend
+- No manual code editing required!
+
+#### 4. **Backend Functions Added**
+New functions in `MERGED TOTAL.js`:
+- `saveQuickBooksCredentials()` - Save QB credentials via API
+- `getQuickBooksConnectionStatus()` - Dashboard connection check
+- `getQuickBooksAuthUrl()` - Get OAuth URL for frontend
+- `getQuickBooksDashboard()` - Full dashboard data aggregator
+
+---
+
+## QUICKBOOKS SETUP (NOW EASIER!)
+
+### Option A: Use the Setup Wizard (Recommended)
+1. Open `web_app/quickbooks-dashboard.html`
+2. Click "Setup Credentials" button
+3. Follow the 4-step wizard
+4. Credentials are saved automatically
+
+### Option B: Manual (if wizard fails)
+Owner needs to provide:
+1. **Company ID** (Realm ID) - Found in QBO URL
+2. **Client ID** - From developer.intuit.com
+3. **Client Secret** - From developer.intuit.com
 
 **How to find Company ID:**
 - Log into https://qbo.intuit.com
 - Look at URL: `https://qbo.intuit.com/app/homepage?companyId=XXXXXXXXX`
 - The number after `companyId=` is what we need
-
-**Once credentials provided:**
-- Update `QUICKBOOKS_CONFIG` in `MERGED TOTAL.js` (line ~19239)
-- Set `ENABLED: true`
-- Redeploy
 
 ---
 

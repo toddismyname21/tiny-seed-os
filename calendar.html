@@ -1411,6 +1411,137 @@
                 gap: 1.5rem;
             }
         }
+
+        /* ============================================= */
+        /* KEYBOARD SHORTCUTS HELP */
+        /* ============================================= */
+        .keyboard-help {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .keyboard-help.visible {
+            display: block;
+        }
+
+        .keyboard-help h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .keyboard-help kbd {
+            background: var(--bg-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-right: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .keyboard-help div {
+            margin-bottom: 0.25rem;
+        }
+
+        /* ============================================= */
+        /* PRINT STYLES */
+        /* ============================================= */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .header,
+            .sidebar,
+            .zoom-controls,
+            .tooltip,
+            .toast,
+            .drag-tooltip,
+            .keyboard-help,
+            .modal-overlay,
+            .legend-section button,
+            #addPlantingModal,
+            #editModal {
+                display: none !important;
+            }
+
+            .gantt-container {
+                margin-left: 0 !important;
+                margin-top: 0 !important;
+                padding: 0 !important;
+            }
+
+            .gantt-header {
+                position: relative !important;
+                background: #f0f0f0 !important;
+            }
+
+            .field-row {
+                background: white !important;
+                border: 1px solid #ddd !important;
+            }
+
+            .field-label {
+                background: #f5f5f5 !important;
+                color: black !important;
+                border-right: 1px solid #ddd !important;
+            }
+
+            .crop-bar {
+                border: 1px solid #333 !important;
+                box-shadow: none !important;
+            }
+
+            .crop-bar .bar-text {
+                color: white !important;
+                text-shadow: none !important;
+            }
+
+            .month-label,
+            .day-label {
+                color: black !important;
+            }
+
+            .today-line {
+                background: red !important;
+            }
+
+            .grid-line {
+                background: #eee !important;
+            }
+
+            .grid-line.month-start {
+                background: #ccc !important;
+            }
+
+            @page {
+                margin: 0.25in;
+                size: landscape;
+            }
+
+            /* Show date range for context */
+            .gantt-header::before {
+                content: 'Tiny Seed Farm - Visual Calendar';
+                display: block;
+                text-align: center;
+                padding: 10px;
+                font-weight: bold;
+                font-size: 14pt;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1954,9 +2085,85 @@
         </div>
     </div>
 
+    <!-- Keyboard Shortcuts Help Panel -->
+    <div class="keyboard-help" id="keyboardHelp">
+        <h4><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h4>
+        <div><kbd>N</kbd> New planting</div>
+        <div><kbd>T</kbd> Go to today</div>
+        <div><kbd>R</kbd> Refresh data</div>
+        <div><kbd>P</kbd> Print calendar</div>
+        <div><kbd>F</kbd> Toggle fullscreen</div>
+        <div><kbd>1-4</kbd> Zoom levels</div>
+        <div><kbd>?</kbd> Toggle this help</div>
+        <div><kbd>Esc</kbd> Close modals</div>
+        <div><kbd>←→</kbd> Navigate timeline</div>
+    </div>
+
     <script>
         // API Configuration
         const API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+
+        // =============================================
+        // KEYBOARD SHORTCUTS
+        // =============================================
+        document.addEventListener('keydown', function(e) {
+            // Don't trigger when typing in inputs
+            if (e.target.matches('input, textarea, select')) return;
+
+            const key = e.key.toLowerCase();
+
+            switch (key) {
+                case 'n':
+                    openAddPlantingModal();
+                    break;
+                case 't':
+                    goToToday();
+                    break;
+                case 'r':
+                    loadPlantings();
+                    showToast('Refreshing calendar data...', 'info');
+                    break;
+                case 'p':
+                    window.print();
+                    break;
+                case 'f':
+                    toggleFullscreen();
+                    break;
+                case '1':
+                    setZoom(50);
+                    break;
+                case '2':
+                    setZoom(80);
+                    break;
+                case '3':
+                    setZoom(100);
+                    break;
+                case '4':
+                    setZoom(120);
+                    break;
+                case '?':
+                    toggleKeyboardHelp();
+                    break;
+                case 'arrowleft':
+                    navigateTimeline(-7);
+                    break;
+                case 'arrowright':
+                    navigateTimeline(7);
+                    break;
+            }
+        });
+
+        function toggleKeyboardHelp() {
+            document.getElementById('keyboardHelp')?.classList.toggle('visible');
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
 
         // State
         let plantings = [];

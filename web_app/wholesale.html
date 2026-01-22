@@ -756,6 +756,161 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
+           STANDING ORDERS
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .standing-order-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .standing-order-form .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .standing-orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .standing-order-card {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .standing-order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .standing-order-product {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .standing-order-details {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .standing-order-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .standing-order-status.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .standing-order-status.paused {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .standing-order-status.cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .standing-order-schedule {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .standing-order-schedule span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .standing-order-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .so-action-btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .so-action-btn:hover {
+            background: var(--bg-elevated);
+        }
+
+        .so-action-btn.pause {
+            color: var(--warning);
+            border-color: var(--warning);
+        }
+
+        .so-action-btn.pause:hover {
+            background: var(--warning);
+            color: white;
+        }
+
+        .so-action-btn.resume {
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .so-action-btn.resume:hover {
+            background: var(--success);
+            color: white;
+        }
+
+        .so-action-btn.cancel {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .so-action-btn.cancel:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .so-action-btn.edit {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .so-action-btn.edit:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .standing-order-next {
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
            TOAST NOTIFICATIONS
            ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -890,6 +1045,7 @@
         <nav class="nav-tabs">
             <button class="nav-tab active" onclick="switchTab('catalog')">Product Catalog</button>
             <button class="nav-tab" onclick="switchTab('orders')">Order History</button>
+            <button class="nav-tab" onclick="switchTab('standing')">Standing Orders</button>
             <button class="nav-tab" onclick="switchTab('account')">Account</button>
         </nav>
 
@@ -919,6 +1075,82 @@
                 <h1 class="page-title">Order History</h1>
                 <div class="orders-list" id="ordersList">
                     <!-- Orders loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Standing Orders Tab -->
+            <div class="tab-content" id="tab-standing">
+                <h1 class="page-title">Standing Orders</h1>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                    Set up recurring orders for your regular needs. We'll automatically prepare your order each week.
+                </p>
+
+                <!-- Create Standing Order Card -->
+                <div class="account-card" id="createStandingOrderCard">
+                    <div class="account-section-title">Create New Standing Order</div>
+                    <div class="standing-order-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Product</label>
+                                <select class="form-input" id="soProductSelect">
+                                    <option value="">Select a product...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" class="form-input" id="soQuantity" min="1" value="1" placeholder="Qty">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Frequency</label>
+                                <select class="form-input" id="soFrequency">
+                                    <option value="WEEKLY">Weekly</option>
+                                    <option value="BIWEEKLY">Every 2 Weeks</option>
+                                    <option value="MONTHLY">Monthly</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Delivery Day</label>
+                                <select class="form-input" id="soDayOfWeek">
+                                    <option value="Monday">Monday</option>
+                                    <option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday" selected>Wednesday</option>
+                                    <option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option>
+                                    <option value="Saturday">Saturday</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" class="form-input" id="soStartDate">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">End Date (optional)</label>
+                                <input type="date" class="form-input" id="soEndDate" placeholder="Leave blank for ongoing">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notes (optional)</label>
+                            <input type="text" class="form-input" id="soNotes" placeholder="Any special instructions...">
+                        </div>
+                        <button class="btn btn-primary" onclick="createStandingOrder()" style="margin-top: 16px;">
+                            Create Standing Order
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Standing Orders -->
+                <div class="account-card" style="margin-top: 24px;">
+                    <div class="account-section-title">Your Standing Orders</div>
+                    <div id="standingOrdersList" class="standing-orders-list">
+                        <div class="cart-empty">
+                            <div class="cart-empty-icon">📋</div>
+                            <p>No standing orders yet</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1021,6 +1253,25 @@
         };
 
         const api = new WholesalePortalAPI();
+
+        // Extend API with generic call method for standing orders
+        api.call = async function(action, data = {}, method = 'GET') {
+            const url = typeof TinySeedConfig !== 'undefined' ? TinySeedConfig.APPS_SCRIPT_URL : '';
+            if (!url) throw new Error('API not configured');
+
+            if (method === 'GET') {
+                const params = new URLSearchParams({ action, ...data });
+                const response = await fetch(`${url}?${params}`);
+                return response.json();
+            } else {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, ...data })
+                });
+                return response.json();
+            }
+        };
 
         // ═══════════════════════════════════════════════════════════════════════════
         // INITIALIZATION
@@ -1134,7 +1385,9 @@
             document.getElementById('appContainer').style.display = 'block';
 
             updateAccountUI();
-            loadProducts();
+            loadProducts().then(() => {
+                loadStandingOrders();
+            });
             loadOrders();
         }
 
@@ -1142,8 +1395,24 @@
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
 
-            event.target.classList.add('active');
+            // Find the clicked nav tab and activate it
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(t => {
+                if (t.textContent.toLowerCase().includes(tabId.toLowerCase().replace('-', ' ')) ||
+                    (tabId === 'catalog' && t.textContent.includes('Catalog')) ||
+                    (tabId === 'orders' && t.textContent.includes('History')) ||
+                    (tabId === 'standing' && t.textContent.includes('Standing')) ||
+                    (tabId === 'account' && t.textContent.includes('Account'))) {
+                    t.classList.add('active');
+                }
+            });
+
             document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            // Load data for standing orders tab
+            if (tabId === 'standing' && AppState.products.length > 0) {
+                populateProductDropdown();
+            }
         }
 
         function updateAccountUI() {
@@ -1456,6 +1725,270 @@
                     <div class="order-total">${TinySeedUtils.formatCurrency(order.Total)}</div>
                 </div>
             `).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // STANDING ORDERS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        AppState.standingOrders = [];
+
+        async function loadStandingOrders() {
+            if (!AppState.customer) return;
+
+            // Populate product dropdown
+            populateProductDropdown();
+
+            // Set default start date to today
+            document.getElementById('soStartDate').value = new Date().toISOString().split('T')[0];
+
+            try {
+                const result = await api.call('getStandingOrders', { customerId: AppState.customer.Customer_ID });
+                if (result.success) {
+                    AppState.standingOrders = result.standingOrders || [];
+                    renderStandingOrders();
+                }
+            } catch (error) {
+                // Demo mode - show sample data
+                AppState.standingOrders = [];
+                renderStandingOrders();
+            }
+        }
+
+        function populateProductDropdown() {
+            const select = document.getElementById('soProductSelect');
+            select.innerHTML = '<option value="">Select a product...</option>';
+
+            AppState.products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.cropId;
+                option.textContent = `${product.name} - $${product.price.toFixed(2)}/${product.unit}`;
+                option.dataset.unit = product.unit;
+                option.dataset.price = product.price;
+                option.dataset.name = product.name;
+                select.appendChild(option);
+            });
+        }
+
+        async function createStandingOrder() {
+            const productSelect = document.getElementById('soProductSelect');
+            const selectedOption = productSelect.options[productSelect.selectedIndex];
+
+            if (!productSelect.value) {
+                showToast('Please select a product', 'error');
+                return;
+            }
+
+            const orderData = {
+                customerId: AppState.customer.Customer_ID,
+                productId: productSelect.value,
+                productName: selectedOption.dataset.name,
+                quantity: parseInt(document.getElementById('soQuantity').value) || 1,
+                unit: selectedOption.dataset.unit,
+                frequency: document.getElementById('soFrequency').value,
+                dayOfWeek: document.getElementById('soDayOfWeek').value,
+                startDate: document.getElementById('soStartDate').value,
+                endDate: document.getElementById('soEndDate').value || null,
+                notes: document.getElementById('soNotes').value || ''
+            };
+
+            try {
+                const result = await api.call('createStandingOrder', orderData, 'POST');
+                if (result.success) {
+                    showToast('Standing order created!', 'success');
+                    resetStandingOrderForm();
+                    loadStandingOrders();
+                } else {
+                    showToast(result.error || 'Failed to create standing order', 'error');
+                }
+            } catch (error) {
+                // Demo mode
+                const demoOrder = {
+                    Standing_Order_ID: 'SO-' + Date.now(),
+                    ...orderData,
+                    status: 'Active',
+                    nextDueDate: getNextDueDate(orderData.startDate, orderData.dayOfWeek)
+                };
+                AppState.standingOrders.push(demoOrder);
+                renderStandingOrders();
+                showToast('Standing order created! (Demo mode)', 'success');
+                resetStandingOrderForm();
+            }
+        }
+
+        function getNextDueDate(startDate, dayOfWeek) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const targetDay = days.indexOf(dayOfWeek);
+            const start = new Date(startDate);
+            const today = new Date();
+            const baseDate = start > today ? start : today;
+
+            const daysUntilTarget = (targetDay - baseDate.getDay() + 7) % 7;
+            const nextDate = new Date(baseDate);
+            nextDate.setDate(baseDate.getDate() + (daysUntilTarget || 7));
+
+            return nextDate.toISOString().split('T')[0];
+        }
+
+        function resetStandingOrderForm() {
+            document.getElementById('soProductSelect').value = '';
+            document.getElementById('soQuantity').value = '1';
+            document.getElementById('soFrequency').value = 'WEEKLY';
+            document.getElementById('soDayOfWeek').value = 'Wednesday';
+            document.getElementById('soStartDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('soEndDate').value = '';
+            document.getElementById('soNotes').value = '';
+        }
+
+        function renderStandingOrders() {
+            const container = document.getElementById('standingOrdersList');
+
+            if (AppState.standingOrders.length === 0) {
+                container.innerHTML = `
+                    <div class="cart-empty">
+                        <div class="cart-empty-icon">📋</div>
+                        <p>No standing orders yet</p>
+                        <p style="font-size: 13px; margin-top: 8px;">Create your first standing order above!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = AppState.standingOrders.map(order => {
+                const status = (order.Status || order.status || 'Active').toLowerCase();
+                const isActive = status === 'active';
+                const isPaused = status === 'paused';
+
+                return `
+                    <div class="standing-order-card">
+                        <div class="standing-order-header">
+                            <div>
+                                <div class="standing-order-product">${order.Product_Name || order.productName}</div>
+                                <div class="standing-order-details">${order.Quantity || order.quantity} ${order.Unit || order.unit}</div>
+                            </div>
+                            <span class="standing-order-status ${status}">${status}</span>
+                        </div>
+                        <div class="standing-order-schedule">
+                            <span>📅 ${order.Frequency || order.frequency}</span>
+                            <span>📍 ${order.Day_Of_Week || order.dayOfWeek}s</span>
+                            ${order.Next_Due_Date || order.nextDueDate ? `<span class="standing-order-next">Next: ${TinySeedUtils.formatDate(order.Next_Due_Date || order.nextDueDate)}</span>` : ''}
+                        </div>
+                        ${order.Notes || order.notes ? `<div style="font-size: 13px; color: var(--text-muted);">📝 ${order.Notes || order.notes}</div>` : ''}
+                        <div class="standing-order-actions">
+                            ${isActive ? `
+                                <button class="so-action-btn pause" onclick="pauseStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')">Pause</button>
+                            ` : ''}
+                            ${isPaused ? `
+                                <button class="so-action-btn resume" onclick="resumeStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')">Resume</button>
+                            ` : ''}
+                            ${(isActive || isPaused) ? `
+                                <button class="so-action-btn edit" onclick="editStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')">Edit Qty</button>
+                                <button class="so-action-btn cancel" onclick="cancelStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')">Cancel</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function pauseStandingOrder(orderId) {
+            if (!confirm('Pause this standing order? You can resume it anytime.')) return;
+
+            try {
+                const result = await api.call('pauseStandingOrder', { standingOrderId: orderId }, 'POST');
+                if (result.success) {
+                    showToast('Standing order paused', 'success');
+                    loadStandingOrders();
+                } else {
+                    showToast(result.error || 'Failed to pause order', 'error');
+                }
+            } catch (error) {
+                // Demo mode
+                const order = AppState.standingOrders.find(o => (o.Standing_Order_ID || o.standingOrderId) === orderId);
+                if (order) {
+                    order.status = 'Paused';
+                    order.Status = 'Paused';
+                    renderStandingOrders();
+                    showToast('Standing order paused (Demo mode)', 'success');
+                }
+            }
+        }
+
+        async function resumeStandingOrder(orderId) {
+            try {
+                const result = await api.call('resumeStandingOrder', { standingOrderId: orderId }, 'POST');
+                if (result.success) {
+                    showToast('Standing order resumed', 'success');
+                    loadStandingOrders();
+                } else {
+                    showToast(result.error || 'Failed to resume order', 'error');
+                }
+            } catch (error) {
+                // Demo mode
+                const order = AppState.standingOrders.find(o => (o.Standing_Order_ID || o.standingOrderId) === orderId);
+                if (order) {
+                    order.status = 'Active';
+                    order.Status = 'Active';
+                    renderStandingOrders();
+                    showToast('Standing order resumed (Demo mode)', 'success');
+                }
+            }
+        }
+
+        async function editStandingOrder(orderId) {
+            const order = AppState.standingOrders.find(o => (o.Standing_Order_ID || o.standingOrderId) === orderId);
+            if (!order) return;
+
+            const newQty = prompt('Enter new quantity:', order.Quantity || order.quantity);
+            if (!newQty || isNaN(newQty) || parseInt(newQty) <= 0) {
+                if (newQty !== null) showToast('Please enter a valid quantity', 'error');
+                return;
+            }
+
+            try {
+                const result = await api.call('updateStandingOrder', {
+                    standingOrderId: orderId,
+                    quantity: parseInt(newQty)
+                }, 'POST');
+
+                if (result.success) {
+                    showToast('Quantity updated', 'success');
+                    loadStandingOrders();
+                } else {
+                    showToast(result.error || 'Failed to update order', 'error');
+                }
+            } catch (error) {
+                // Demo mode
+                if (order) {
+                    order.quantity = parseInt(newQty);
+                    order.Quantity = parseInt(newQty);
+                    renderStandingOrders();
+                    showToast('Quantity updated (Demo mode)', 'success');
+                }
+            }
+        }
+
+        async function cancelStandingOrder(orderId) {
+            if (!confirm('Cancel this standing order? This cannot be undone.')) return;
+
+            try {
+                const result = await api.call('cancelStandingOrder', { standingOrderId: orderId }, 'POST');
+                if (result.success) {
+                    showToast('Standing order cancelled', 'success');
+                    loadStandingOrders();
+                } else {
+                    showToast(result.error || 'Failed to cancel order', 'error');
+                }
+            } catch (error) {
+                // Demo mode
+                const order = AppState.standingOrders.find(o => (o.Standing_Order_ID || o.standingOrderId) === orderId);
+                if (order) {
+                    order.status = 'Cancelled';
+                    order.Status = 'Cancelled';
+                    renderStandingOrders();
+                    showToast('Standing order cancelled (Demo mode)', 'success');
+                }
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════

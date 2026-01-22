@@ -636,12 +636,22 @@ function verifySystemComplete() {
  * Get system status dashboard data
  */
 function getSystemDashboard() {
+  // Safely get integration status (may fail if OAuth2 library not installed)
+  let integrations = null;
+  try {
+    if (typeof getIntegrationStatus === 'function') {
+      integrations = getIntegrationStatus();
+    }
+  } catch (e) {
+    integrations = { error: e.message, note: 'OAuth2 library may not be installed' };
+  }
+
   return {
     verification: verifySystemComplete(),
     brief: generateUltimateMorningBrief(),
     autonomy: typeof getAutonomyStatus === 'function' ? getAutonomyStatus() : null,
     predictions: typeof getPredictionAccuracy === 'function' ? getPredictionAccuracy() : null,
-    integrations: typeof getIntegrationStatus === 'function' ? getIntegrationStatus() : null
+    integrations: integrations
   };
 }
 

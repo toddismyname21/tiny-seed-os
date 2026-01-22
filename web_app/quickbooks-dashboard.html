@@ -516,6 +516,199 @@
                 gap: 0.5rem;
             }
         }
+
+        /* ============================================= */
+        /* SETUP WIZARD MODAL */
+        /* ============================================= */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 { font-size: 1.25rem; }
+
+        .modal-body { padding: 1.5rem; }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .setup-step {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .setup-step h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--qb-green);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .setup-step p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .setup-step code {
+            background: var(--bg-dark);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .setup-step a {
+            color: var(--qb-green);
+            text-decoration: none;
+        }
+
+        .setup-step a:hover { text-decoration: underline; }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: monospace;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--qb-green);
+        }
+
+        .hint {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-warning {
+            background: rgba(244, 162, 97, 0.2);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-success {
+            background: rgba(42, 157, 143, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        /* ============================================= */
+        /* KEYBOARD SHORTCUTS HELP */
+        /* ============================================= */
+        .keyboard-help {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .keyboard-help.visible { display: block; }
+        .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help div { margin-bottom: 0.25rem; }
+
+        /* ============================================= */
+        /* PRINT STYLES */
+        /* ============================================= */
+        @media print {
+            body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .top-nav, .keyboard-help, .btn { display: none !important; }
+            .main-content { padding: 0; max-width: 100%; }
+            .card, .summary-card { background: white !important; border: 1px solid #ddd !important; box-shadow: none !important; page-break-inside: avoid; }
+            .summary-card .value { color: black !important; }
+            .summary-card .positive { color: #2a9d8f !important; }
+            .summary-card .negative { color: #e63946 !important; }
+            .transaction-item { background: #f9f9f9 !important; border: 1px solid #eee !important; }
+            @page { margin: 0.5in; }
+        }
     </style>
 </head>
 <body>
@@ -558,6 +751,9 @@
             </div>
             <button id="connectBtn" class="btn btn-primary" style="display: none;" onclick="connectQuickBooks()">
                 <i class="fas fa-link"></i> Connect QuickBooks
+            </button>
+            <button id="setupBtn" class="btn btn-secondary" onclick="openSetupWizard()">
+                <i class="fas fa-cog"></i> Setup Credentials
             </button>
         </div>
 
@@ -1013,8 +1209,186 @@
             loadDashboard();
         }
 
+        // =============================================
+        // KEYBOARD SHORTCUTS
+        // =============================================
+        document.addEventListener('keydown', function(e) {
+            if (e.target.matches('input, textarea, select')) return;
+            const key = e.key.toLowerCase();
+
+            switch (key) {
+                case 'r': refreshDashboard(); break;
+                case 'p': window.print(); break;
+                case 'h': window.location.href = 'index.html'; break;
+                case 'a': window.location.href = 'accounting.html'; break;
+                case '?': toggleKeyboardHelp(); break;
+                case 'escape': document.getElementById('keyboardHelp')?.classList.remove('visible'); break;
+            }
+        });
+
+        function toggleKeyboardHelp() {
+            document.getElementById('keyboardHelp')?.classList.toggle('visible');
+        }
+
+        // =============================================
+        // SETUP WIZARD FUNCTIONS
+        // =============================================
+        function openSetupWizard() {
+            document.getElementById('setupModal').classList.add('active');
+        }
+
+        function closeSetupWizard() {
+            document.getElementById('setupModal').classList.remove('active');
+        }
+
+        async function saveQuickBooksCredentials() {
+            const companyId = document.getElementById('companyId').value.trim();
+            const clientId = document.getElementById('clientId').value.trim();
+            const clientSecret = document.getElementById('clientSecret').value.trim();
+            const resultDiv = document.getElementById('setupResult');
+
+            // Validate
+            if (!companyId || !clientId || !clientSecret) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Please fill in all fields.</div>';
+                return;
+            }
+
+            if (!/^\d{10,20}$/.test(companyId)) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Company ID should be a 10-20 digit number.</div>';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="alert" style="background: var(--bg-light);"><i class="fas fa-spinner fa-spin"></i> Saving credentials...</div>';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveQuickBooksCredentials',
+                        companyId: companyId,
+                        clientId: clientId,
+                        clientSecret: clientSecret
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    resultDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Credentials saved successfully! The page will reload...</div>';
+                    setTimeout(() => {
+                        closeSetupWizard();
+                        loadDashboard();
+                    }, 2000);
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Error: ${result.error || 'Failed to save credentials'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Network error: ${error.message}</div>`;
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
+
+    <!-- Setup Wizard Modal -->
+    <div class="modal-overlay" id="setupModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog" style="color: var(--qb-green); margin-right: 0.5rem;"></i> QuickBooks Setup Wizard</h2>
+                <button class="close-btn" onclick="closeSetupWizard()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Owner Action Required:</strong> Follow these steps to connect QuickBooks to Tiny Seed Farm OS.
+                </div>
+
+                <div class="setup-step">
+                    <h4><span class="step-number">1</span> Find Your Company ID (Realm ID)</h4>
+                    <p>
+                        1. Log into <a href="https://qbo.intuit.com" target="_blank">QuickBooks Online</a><br>
+                        2. Look at the URL in your browser address bar<br>
+                        3. Find the number after <code>companyId=</code><br>
+                        <br>
+                        Example URL: <code>https://qbo.intuit.com/app/homepage?companyId=<strong>123456789012345</strong></code><br>
+                        The Company ID is: <code>123456789012345</code>
+                    </p>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">Enter Your Company ID</label>
+                        <input type="text" class="form-input" id="companyId" placeholder="e.g., 123456789012345">
+                        <p class="hint">This is a 15-digit number from your QuickBooks URL</p>
+                    </div>
+                </div>
+
+                <div class="setup-step">
+                    <h4><span class="step-number">2</span> Get Client ID & Client Secret</h4>
+                    <p>
+                        1. Go to <a href="https://developer.intuit.com" target="_blank">developer.intuit.com</a> (sign in with your Intuit account)<br>
+                        2. Click "My Apps" in the top menu<br>
+                        3. If you have an app, click on it. If not, click "Create an App" → "QuickBooks Online and Payments"<br>
+                        4. Go to the "Keys & credentials" section<br>
+                        5. Use the <strong>Production Keys</strong> (not Sandbox)<br>
+                        6. Copy the <strong>Client ID</strong> and <strong>Client Secret</strong>
+                    </p>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">Client ID</label>
+                        <input type="text" class="form-input" id="clientId" placeholder="e.g., ABcD1234EfGh5678IjKl9012MnOp3456">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Client Secret</label>
+                        <input type="password" class="form-input" id="clientSecret" placeholder="Your client secret (hidden)">
+                        <p class="hint">This will be stored securely in the backend</p>
+                    </div>
+                </div>
+
+                <div class="setup-step">
+                    <h4><span class="step-number">3</span> Add Redirect URI (Important!)</h4>
+                    <p>
+                        In your Intuit Developer App settings, add this Redirect URI:<br><br>
+                        <code style="display: block; padding: 0.75rem; background: var(--bg-dark); border-radius: 6px; word-break: break-all;">
+                            https://script.google.com/macros/s/AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE/exec
+                        </code>
+                        <br>
+                        This allows QuickBooks to redirect back to Tiny Seed Farm OS after authentication.
+                    </p>
+                </div>
+
+                <div class="setup-step">
+                    <h4><span class="step-number">4</span> Required Scopes</h4>
+                    <p>
+                        Make sure your app has these scopes enabled:<br>
+                        • <code>com.intuit.quickbooks.accounting</code> - Access accounting data<br>
+                        • <code>com.intuit.quickbooks.payment</code> - (Optional) Payment processing<br>
+                        <br>
+                        These should be enabled by default for QuickBooks Online apps.
+                    </p>
+                </div>
+
+                <div id="setupResult" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSetupWizard()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveQuickBooksCredentials()">
+                    <i class="fas fa-save"></i> Save Credentials
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Help Panel -->
+    <div class="keyboard-help" id="keyboardHelp">
+        <h4>Keyboard Shortcuts</h4>
+        <div><kbd>R</kbd> Refresh data</div>
+        <div><kbd>P</kbd> Print report</div>
+        <div><kbd>A</kbd> Accounting Hub</div>
+        <div><kbd>H</kbd> Home</div>
+        <div><kbd>?</kbd> Toggle help</div>
+        <div><kbd>Esc</kbd> Close help</div>
+    </div>
 </body>
 </html>

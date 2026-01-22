@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#FF8C00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="../manifest.json">
     <title>Market Sales - Tiny Seed Farm</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="api-config.js"></script>
@@ -1115,6 +1119,15 @@ Time window: ${new Date(result.timeWindow?.start).toLocaleTimeString()} - ${new 
             } else {
                 alert('Error processing sale: ' + result.error);
             }
+        }
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('../sw.js')
+                .then(reg => console.log('[SW] Registered'))
+                .catch(err => console.log('[SW] Registration failed:', err));
         }
     </script>
 </body>

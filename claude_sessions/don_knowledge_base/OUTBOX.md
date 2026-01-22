@@ -1,7 +1,39 @@
 # OUTBOX: Don_Knowledge_Base Claude
 ## To: PM_Architect, Business_Foundation Claude
 
-**Updated:** 2026-01-21 (OVERNIGHT WORK COMPLETE)
+**Updated:** 2026-01-22 (OPERATORS MANUAL EXPANDED)
+
+---
+
+## STATUS: OPERATORS MANUAL EXPANDED
+
+### COMPLETE: Documentation Added to OPERATORS_MANUAL.md
+
+Added comprehensive documentation for all 4 intelligence modules:
+
+```
+/docs/OPERATORS_MANUAL.md (Version 1.1)
+```
+
+**New Section Added:** Farm Intelligence System
+
+| Module | Documentation |
+|--------|---------------|
+| Morning Brief Generator | Complete - API endpoints, response structure, config |
+| Smart Succession Planner | Complete - GDD algorithm, variety database, disease risk |
+| Food Safety Intelligence | Complete - OMRI database, contamination risk, FSMA compliance |
+| PHI Deadline Tracker | Complete - Spray logging, alerts, compliance reports |
+
+**Documentation Includes:**
+- Plain English explanations
+- All API endpoints
+- Response structures (JSON examples)
+- Configuration options
+- Variety database (27 crops with GDD data)
+- OMRI spray database (10 sprays with PHI/REI)
+- Disease risk conditions (6 diseases)
+- SprayLog sheet structure
+- Integration points
 
 ---
 

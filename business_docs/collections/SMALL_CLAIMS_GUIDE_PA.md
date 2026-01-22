@@ -13,31 +13,48 @@
 | Court Name | Magisterial District Court |
 | Claim Limit | $12,000 |
 | Your Claim | $5,745.50 |
-| Filing Fee | ~$75-120 |
+| Filing Fee | ~$120 (for claims $4,001-$12,000) |
 | Lawyer Required? | NO |
 | Timeline | Hearing in 12-60 days |
 
 ---
 
+## YOUR COURT (Based on Rochester, PA address)
+
+### Magisterial District Court 36-3-02
+
+| Field | Information |
+|-------|-------------|
+| **Judge** | Hon. Edward C. Howe |
+| **Address** | 559 Third Avenue, Freedom, PA 15042 |
+| **Phone** | (724) 774-0840 |
+| **Fax** | (724) 774-3231 |
+| **Hours** | Call to confirm - typically 8:30 AM - 4:30 PM, Mon-Fri |
+
+**Municipalities Served:** Economy Borough, New Sewickley Township, Freedom Borough, Conway Borough, East Rochester, Rochester Borough
+
+**IMPORTANT:** If Alberta's is located in a different municipality, you may need to file in THEIR court. Call (724) 774-0840 to confirm jurisdiction before filing.
+
+**Alternative Court (if Alberta's is elsewhere in Beaver County):**
+- Judge: Hon. Daniel J. Viscuso
+- Address: 513 11th Street, New Brighton, PA 15066
+- Phone: (724) 770-2001
+
+---
+
 ## STEP-BY-STEP PROCESS
 
-### Step 1: Find the Correct Court
+### Step 1: Confirm the Correct Court
 
-**Options for where to file:**
-- Where the defendant (Alberta's) is located
-- Where the contract was signed
-- Where the work was performed (deliveries made)
+**Call (724) 774-0840 BEFORE going to file.** Ask:
+1. "Is this the correct court for a claim against a business located at [Alberta's address]?"
+2. "What is the current filing fee for a claim of $5,745.50?"
+3. "What forms do I need to bring?"
+4. "What are your hours?"
 
-**To find your court:**
-1. Go to: https://www.pacourts.us/courts/magisterial-district-courts
-2. Use the "District Court Finder"
-3. Enter Alberta's business address
-4. This will show the correct Magisterial District Court
-
-**Beaver County Magisterial District Courts:**
-- Call the court to confirm jurisdiction
-- Ask about current filing fees
-- Ask about hearing timeline
+**If filing in a different Beaver County court:**
+- Use the [District Court Finder](https://www.pacourts.us/courts/magisterial-district-courts)
+- Or call the main Beaver County Courts: (724) 728-5700
 
 ### Step 2: Get the Forms
 

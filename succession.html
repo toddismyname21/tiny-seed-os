@@ -639,6 +639,31 @@
             .header { padding: 1rem; }
             .main-container { padding: 80px 1rem 1rem; }
         }
+
+        /* ============================================= */
+        /* KEYBOARD SHORTCUTS HELP */
+        /* ============================================= */
+        .keyboard-help {
+            position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1rem; font-size: 0.75rem; color: var(--text-secondary); z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .keyboard-help.visible { display: block; }
+        .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help div { margin-bottom: 0.25rem; }
+
+        /* ============================================= */
+        /* PRINT STYLES */
+        /* ============================================= */
+        @media print {
+            body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .header, .keyboard-help, .btn, .action-bar { display: none !important; }
+            .main-container { max-width: 100%; padding: 0; margin: 0; }
+            .card, .form-section, .planting-card { background: white !important; border: 1px solid #ddd !important; box-shadow: none !important; page-break-inside: avoid; }
+            .form-input, .form-select { border: 1px solid #999 !important; background: white !important; color: black !important; }
+            .quantity-display .value { color: black !important; }
+            @page { margin: 0.5in; }
+        }
     </style>
 </head>
 <body>
@@ -2063,6 +2088,38 @@
         function hideLoading() {
             document.getElementById('loadingOverlay').classList.remove('visible');
         }
+
+        // ========================================
+        // KEYBOARD SHORTCUTS
+        // ========================================
+        document.addEventListener('keydown', function(e) {
+            if (e.target.matches('input, textarea, select')) return;
+            const key = e.key.toLowerCase();
+            switch (key) {
+                case 'c': if (typeof calculateSuccession === 'function') calculateSuccession(); break;
+                case 's': if (typeof savePlantings === 'function') savePlantings(); break;
+                case 'r': if (typeof resetForm === 'function') resetForm(); break;
+                case 'p': window.print(); break;
+                case 'h': window.location.href = 'index.html'; break;
+                case '?': toggleKeyboardHelp(); break;
+                case 'escape': document.getElementById('keyboardHelp')?.classList.remove('visible'); break;
+            }
+        });
+
+        function toggleKeyboardHelp() {
+            document.getElementById('keyboardHelp')?.classList.toggle('visible');
+        }
     </script>
+
+    <div class="keyboard-help" id="keyboardHelp">
+        <h4>Keyboard Shortcuts</h4>
+        <div><kbd>C</kbd> Calculate</div>
+        <div><kbd>S</kbd> Save plantings</div>
+        <div><kbd>R</kbd> Reset form</div>
+        <div><kbd>P</kbd> Print</div>
+        <div><kbd>H</kbd> Home</div>
+        <div><kbd>?</kbd> Toggle help</div>
+        <div><kbd>Esc</kbd> Close help</div>
+    </div>
 </body>
 </html>

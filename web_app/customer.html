@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Tiny Seed Farm - Order Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -2439,6 +2442,15 @@
         function editInstructions() { showToast('Edit instructions coming soon', 'info'); }
         function editPhone() { showToast('Edit phone coming soon', 'info'); }
         function editEmail() { showToast('Edit email coming soon', 'info'); }
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('../sw.js')
+                .then(reg => console.log('[SW] Registered'))
+                .catch(err => console.log('[SW] Registration failed:', err));
+        }
     </script>
 </body>
 </html>

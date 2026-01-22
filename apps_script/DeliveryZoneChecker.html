@@ -60,7 +60,7 @@
     @media (min-width: 900px) {
       .main-container { flex-direction: row; min-height: calc(100vh - 100px); }
     }
-    .sidebar { background: var(--bg-white); padding: 20px; width: 100%; }
+    .sidebar { background: var(--bg-white); padding: 20px; width: 100%; position: relative; z-index: 100; }
     @media (min-width: 900px) {
       .sidebar { width: 400px; min-width: 400px; overflow-y: auto; max-height: calc(100vh - 100px); }
     }
@@ -76,6 +76,7 @@
     .form-group input, .form-group textarea {
       width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 10px;
       font-size: 1rem; font-family: inherit; transition: border-color 0.2s;
+      position: relative; z-index: 101; -webkit-appearance: none; appearance: none;
     }
     .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
     .form-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
@@ -346,7 +347,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbzvrDVCBUIKO6v-3PDqRX87B94uMYULzuBO6e-G8wMPZBj-egyR2ftgAGrEPU8Z5ZJY/exec';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
 
     const ROUTE_STOPS = [
       { name: 'Farm (Start)', lat: 40.7456, lng: -80.2617, type: 'farm', icon: '🏠' },

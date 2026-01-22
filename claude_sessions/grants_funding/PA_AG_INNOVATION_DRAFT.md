@@ -329,11 +329,17 @@ Tiny Seed Farm has successfully operated as a commercial organic vegetable and f
 ### Previous Grant Experience
 
 Tiny Seed Farm has successfully participated in:
+- **PA Agricultural Innovation Grant - ROUND 1 RECIPIENT** (amount & project TBD)
 - Business Builder Subaward (Pennsylvania Association for Sustainable Agriculture)
-- PA Agricultural Innovation Grant (previous round)
 - PA Farm Vitality Grant
 
-[OWNER: PROVIDE DETAILS ON OUTCOMES OF PREVIOUS GRANTS]
+**NOTE:** Round 1 grant receipt may affect Round 2 eligibility - VERIFY WITH PDA
+
+[OWNER: PROVIDE DETAILS ON:
+- Round 1 grant amount received
+- Round 1 project description
+- Project completion status
+- Outcomes of all previous grants]
 
 ### Financial Capacity
 
@@ -394,21 +400,39 @@ I certify that the information provided in this application is true and accurate
 
 ## INTERNAL NOTES (Remove Before Submission)
 
+### CRITICAL QUESTION - MUST RESOLVE BEFORE APPLYING
+
+**TINY SEED FARM RECEIVED A ROUND 1 GRANT - CAN WE APPLY FOR ROUND 2?**
+
+- Status: **UNCLEAR** - official guidelines do not address this
+- Round 2 guidelines publish: January 24, 2026
+- Searched: PA Bulletin, PA.gov, PASA, Penn State - NO ANSWER FOUND
+
+**ACTION: Call Michael Roth TODAY**
+- Phone: 717-210-1217
+- Email: michroth@pa.gov
+- Ask: "Tiny Seed Farm received a Round 1 grant. Are we eligible to apply for Round 2 with a different project?"
+
+**IF ANSWER IS NO:** Redirect efforts to EQIP, SARE, Clif Bar Foundation
+**IF ANSWER IS YES:** Continue with this draft application
+
 ### Items Requiring Owner Action
-1. [ ] Insert phone number and email
-2. [ ] Provide dates and vendors for tunnel purchases
-3. [ ] Document previous grant outcomes
-4. [ ] Get letter from Don confirming land use authorization
-5. [ ] Gather equipment invoices for match documentation
-6. [ ] Obtain bank statements for cash match verification
-7. [ ] Create or obtain farm map/aerial photo
-8. [ ] Request letters of support
+1. [ ] **URGENT: Call Michael Roth to confirm eligibility** (717-210-1217)
+2. [ ] Insert phone number and email
+3. [ ] Provide dates and vendors for tunnel purchases
+4. [ ] Document previous grant outcomes
+5. [ ] Get letter from Don confirming land use authorization
+6. [ ] Gather equipment invoices for match documentation
+7. [ ] Obtain bank statements for cash match verification
+8. [ ] Create or obtain farm map/aerial photo
+9. [ ] Request letters of support
 
 ### Questions for PA Department of Agriculture
-1. Can previously purchased equipment count toward match?
-2. Is there priority for beginning farmers or organic operations?
-3. Can EQIP-funded projects stack with this grant?
-4. What level of property control documentation is required?
+1. **Can Round 1 applicants/recipients apply for Round 2?** (CRITICAL)
+2. Can previously purchased equipment count toward match?
+3. Is there priority for beginning farmers or organic operations?
+4. Can EQIP-funded projects stack with this grant?
+5. What level of property control documentation is required?
 
 ### Application Strengths
 - Previous applicant (familiarity with process)

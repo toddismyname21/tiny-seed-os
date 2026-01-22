@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery Zone Widget | Tiny Seed Farm</title>
+  <style>
+    /* Embeddable Widget Styles - Minimal footprint */
+    .tsf-zone-widget {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .tsf-header {
+      background: linear-gradient(135deg, #2d5a27, #4a7c43);
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .tsf-header svg { width: 24px; height: 24px; }
+    .tsf-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .tsf-body { padding: 16px; }
+    .tsf-input-group { margin-bottom: 12px; }
+    .tsf-input-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+    .tsf-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .tsf-input:focus {
+      outline: none;
+      border-color: #2d5a27;
+      box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.1);
+    }
+    .tsf-row { display: flex; gap: 8px; }
+    .tsf-row .tsf-input-group { flex: 1; }
+    .tsf-btn {
+      width: 100%;
+      padding: 12px;
+      background: #2d5a27;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .tsf-btn:hover { background: #1e3d1a; }
+    .tsf-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+    .tsf-btn svg { width: 16px; height: 16px; }
+    .tsf-result { margin-top: 16px; border-radius: 8px; padding: 14px; display: none; }
+    .tsf-result.show { display: block; }
+    .tsf-result.success {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+    }
+    .tsf-result.warning {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+    .tsf-result-icon { font-size: 24px; margin-bottom: 8px; }
+    .tsf-result-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tsf-result-text { font-size: 13px; opacity: 0.9; }
+    .tsf-code {
+      background: rgba(255,255,255,0.2);
+      border: 1px dashed rgba(255,255,255,0.5);
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 10px;
+      text-align: center;
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+    .tsf-fee { font-size: 13px; margin-top: 8px; }
+    .tsf-fee strong { font-size: 16px; }
+    .tsf-alternatives { margin-top: 12px; }
+    .tsf-alt-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; opacity: 0.9; }
+    .tsf-alt-item {
+      background: rgba(255,255,255,0.15);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .tsf-loading { text-align: center; padding: 20px; color: #6b7280; }
+    .tsf-loading svg { animation: tsf-spin 1s linear infinite; width: 24px; height: 24px; }
+    @keyframes tsf-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .tsf-hidden { display: none !important; }
+    .tsf-note {
+      font-size: 11px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    EMBEDDABLE WIDGET FOR SHOPIFY / CSA SIGNUP
+
+    To embed on Shopify:
+    1. Go to Online Store > Themes > Edit code
+    2. Find your cart page template or checkout section
+    3. Add an iframe or include this widget code
+
+    Or use the hosted version:
+    <iframe src="YOUR_WEBAPP_URL?action=deliveryWidget" width="100%" height="400" frameborder="0"></iframe>
+  -->
+
+  <div class="tsf-zone-widget" id="tsf-widget">
+    <div class="tsf-header">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+        <path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1h1a1 1 0 001-1V8h2l3 3v6a1 1 0 01-1 1h-1"/>
+      </svg>
+      <h3>Check Home Delivery Availability</h3>
+    </div>
+
+    <div class="tsf-body">
+      <form id="tsf-form">
+        <div class="tsf-input-group">
+          <label for="tsf-address">Street Address</label>
+          <input type="text" id="tsf-address" class="tsf-input" placeholder="123 Main Street" required>
+        </div>
+        <div class="tsf-row">
+          <div class="tsf-input-group">
+            <label for="tsf-city">City</label>
+            <input type="text" id="tsf-city" class="tsf-input" placeholder="Pittsburgh" required>
+          </div>
+          <div class="tsf-input-group" style="flex:0.6;">
+            <label for="tsf-zip">ZIP</label>
+            <input type="text" id="tsf-zip" class="tsf-input" placeholder="15201" maxlength="5" required>
+          </div>
+        </div>
+        <button type="submit" class="tsf-btn" id="tsf-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          Check My Address
+        </button>
+      </form>
+
+      <div class="tsf-loading tsf-hidden" id="tsf-loading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2d5a27" stroke-width="2">
+          <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-7.07l-2.83 2.83M9.76 14.24l-2.83 2.83m11.31 0l-2.83-2.83M9.76 9.76L6.93 6.93"/>
+        </svg>
+        <p style="margin-top:8px;font-size:13px;">Checking your address...</p>
+      </div>
+
+      <div class="tsf-result" id="tsf-result">
+        <div class="tsf-result-icon" id="tsf-icon"></div>
+        <div class="tsf-result-title" id="tsf-title"></div>
+        <div class="tsf-result-text" id="tsf-text"></div>
+        <div class="tsf-code tsf-hidden" id="tsf-code"></div>
+        <div class="tsf-fee tsf-hidden" id="tsf-fee"></div>
+        <div class="tsf-alternatives tsf-hidden" id="tsf-alts">
+          <div class="tsf-alt-title">Nearby Pickup Locations:</div>
+          <div id="tsf-alt-list"></div>
+        </div>
+      </div>
+
+      <p class="tsf-note">
+        Deliveries every Wednesday in the Pittsburgh area
+      </p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const API_BASE = 'https://script.google.com/macros/s/AKfycbyayQD18LoTXiE16bcG90zEMZlGZGtAgNeWco_528QIrZ_3pCgB5tmleR7NglI1q3No/exec';
+
+      const form = document.getElementById('tsf-form');
+      const btn = document.getElementById('tsf-btn');
+      const loading = document.getElementById('tsf-loading');
+      const result = document.getElementById('tsf-result');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const address = document.getElementById('tsf-address').value.trim();
+        const city = document.getElementById('tsf-city').value.trim();
+        const zip = document.getElementById('tsf-zip').value.trim();
+
+        if (!address || !city || !zip) return;
+
+        const fullAddress = `${address}, ${city}, PA ${zip}`;
+
+        // Show loading
+        form.classList.add('tsf-hidden');
+        loading.classList.remove('tsf-hidden');
+        result.classList.remove('show');
+
+        try {
+          const response = await fetch(`${API_BASE}?action=checkDeliveryZone&address=${encodeURIComponent(fullAddress)}`);
+          const data = await response.json();
+
+          loading.classList.add('tsf-hidden');
+          showResult(data);
+        } catch (err) {
+          loading.classList.add('tsf-hidden');
+          form.classList.remove('tsf-hidden');
+          alert('Error checking address. Please try again.');
+        }
+      });
+
+      function showResult(data) {
+        result.classList.add('show');
+
+        const icon = document.getElementById('tsf-icon');
+        const title = document.getElementById('tsf-title');
+        const text = document.getElementById('tsf-text');
+        const code = document.getElementById('tsf-code');
+        const fee = document.getElementById('tsf-fee');
+        const alts = document.getElementById('tsf-alts');
+        const altList = document.getElementById('tsf-alt-list');
+
+        if (data.success && data.likely_in_zone) {
+          // ACCEPTED
+          result.className = 'tsf-result show success';
+          icon.textContent = '✓';
+          title.textContent = 'You\'re in our delivery zone!';
+          text.textContent = 'Home delivery is available for your address.';
+
+          code.textContent = 'HOMEDELIVERY';
+          code.classList.remove('tsf-hidden');
+
+          fee.innerHTML = 'Delivery Fee: <strong>$15/week</strong>';
+          fee.classList.remove('tsf-hidden');
+
+          alts.classList.add('tsf-hidden');
+
+          // Dispatch event for Shopify integration
+          window.dispatchEvent(new CustomEvent('tsf-delivery-accepted', {
+            detail: { address: data.formattedAddress, code: 'HOMEDELIVERY', fee: 15 }
+          }));
+        } else {
+          // REJECTED
+          result.className = 'tsf-result show warning';
+          icon.textContent = '⚠';
+          title.textContent = 'Outside Delivery Zone';
+          text.textContent = data.distanceToRoute
+            ? `Your address is ${data.distanceToRoute} miles from our route.`
+            : 'Your address is outside our current delivery area.';
+
+          code.classList.add('tsf-hidden');
+          fee.classList.add('tsf-hidden');
+
+          // Show pickup alternatives
+          if (data.nearestPickupLocations && data.nearestPickupLocations.length > 0) {
+            altList.innerHTML = data.nearestPickupLocations.slice(0, 3).map(loc =>
+              `<div class="tsf-alt-item"><strong>${loc.name}</strong> - ${loc.distance} miles</div>`
+            ).join('');
+            alts.classList.remove('tsf-hidden');
+          } else {
+            alts.classList.add('tsf-hidden');
+          }
+
+          // Dispatch event
+          window.dispatchEvent(new CustomEvent('tsf-delivery-rejected', {
+            detail: { address: data.formattedAddress, distance: data.distanceToRoute }
+          }));
+        }
+
+        // Add reset button
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'tsf-btn';
+        resetBtn.style.marginTop = '12px';
+        resetBtn.style.background = 'rgba(255,255,255,0.2)';
+        resetBtn.textContent = 'Check Another Address';
+        resetBtn.onclick = resetForm;
+        result.appendChild(resetBtn);
+      }
+
+      function resetForm() {
+        result.classList.remove('show');
+        result.innerHTML = `
+          <div class="tsf-result-icon" id="tsf-icon"></div>
+          <div class="tsf-result-title" id="tsf-title"></div>
+          <div class="tsf-result-text" id="tsf-text"></div>
+          <div class="tsf-code tsf-hidden" id="tsf-code"></div>
+          <div class="tsf-fee tsf-hidden" id="tsf-fee"></div>
+          <div class="tsf-alternatives tsf-hidden" id="tsf-alts">
+            <div class="tsf-alt-title">Nearby Pickup Locations:</div>
+            <div id="tsf-alt-list"></div>
+          </div>
+        `;
+        form.reset();
+        form.classList.remove('tsf-hidden');
+      }
+
+      // Expose API for external integration
+      window.TinySeedDeliveryWidget = {
+        check: async function(address, city, zip) {
+          const fullAddress = `${address}, ${city}, PA ${zip}`;
+          const response = await fetch(`${API_BASE}?action=checkDeliveryZone&address=${encodeURIComponent(fullAddress)}`);
+          return response.json();
+        },
+        isInZone: async function(address, city, zip) {
+          const result = await this.check(address, city, zip);
+          return result.success && result.likely_in_zone;
+        }
+      };
+    })();
+  </script>
+
+  <!--
+    SHOPIFY INTEGRATION EXAMPLE:
+
+    <script>
+      // Listen for delivery zone events
+      window.addEventListener('tsf-delivery-accepted', function(e) {
+        console.log('Delivery accepted!', e.detail);
+        // Auto-apply discount code or update cart
+        // Shopify.checkout.cart.applyDiscount(e.detail.code);
+      });
+
+      window.addEventListener('tsf-delivery-rejected', function(e) {
+        console.log('Delivery rejected', e.detail);
+        // Show pickup options or hide delivery option
+      });
+
+      // Programmatic check
+      TinySeedDeliveryWidget.isInZone('123 Main St', 'Pittsburgh', '15201')
+        .then(inZone => {
+          if (inZone) {
+            document.getElementById('delivery-option').style.display = 'block';
+          }
+        });
+    </script>
+  -->
+</body>
+</html>

@@ -1135,6 +1135,17 @@ function doGet(e) {
         return jsonResponse(verifyCSASMSCode(e.parameter));
       case 'getWholesaleProducts':
         return jsonResponse(getWholesaleProducts(e.parameter));
+
+      // ============ WHOLESALE STANDING ORDERS GET ============
+      case 'getStandingOrders':
+        return jsonResponse(getStandingOrders(e.parameter));
+      case 'getStandingOrdersDue':
+        return jsonResponse(getStandingOrdersDue(e.parameter));
+      case 'getStandingOrdersDashboard':
+        return jsonResponse(getStandingOrdersDashboard(e.parameter));
+      case 'getFulfillmentLog':
+        return jsonResponse(getFulfillmentLog(e.parameter));
+
       case 'getCSAProducts':
         return jsonResponse(getCSAProducts(e.parameter));
       case 'getCSABoxContents':
@@ -2470,6 +2481,27 @@ function doPost(e) {
         return jsonResponse(sendCustomerMagicLink(data));
       case 'submitWholesaleOrder':
         return jsonResponse(submitWholesaleOrder(data));
+
+      // ============ WHOLESALE STANDING ORDERS ============
+      case 'initializeStandingOrdersModule':
+        return jsonResponse(initializeStandingOrdersModule());
+      case 'createStandingOrder':
+        return jsonResponse(createStandingOrder(data));
+      case 'updateStandingOrder':
+        return jsonResponse(updateStandingOrder(data));
+      case 'cancelStandingOrder':
+        return jsonResponse(cancelStandingOrder(data));
+      case 'pauseStandingOrder':
+        return jsonResponse(pauseStandingOrder(data));
+      case 'resumeStandingOrder':
+        return jsonResponse(resumeStandingOrder(data));
+      case 'markStandingOrderFulfilled':
+        return jsonResponse(markStandingOrderFulfilled(data));
+      case 'markStandingOrderShorted':
+        return jsonResponse(markStandingOrderShorted(data));
+      case 'bulkFulfillStandingOrders':
+        return jsonResponse(bulkFulfillStandingOrders(data));
+
       case 'submitCSAOrder':
         return jsonResponse(submitCSAOrder(data));
       case 'customizeCSABox':
@@ -14892,6 +14924,703 @@ function getProductsFromCrops(priceType, params) {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// WHOLESALE STANDING ORDERS SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// Allows chefs/wholesale customers to set up recurring orders with automatic shortage notifications
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+const STANDING_ORDER_SHEETS = {
+  STANDING_ORDERS: 'WHOLESALE_STANDING_ORDERS',
+  FULFILLMENT_LOG: 'WHOLESALE_FULFILLMENT_LOG'
+};
+
+/**
+ * Initialize Standing Orders sheets
+ */
+function initializeStandingOrdersModule() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  createSheetIfNotExists(ss, STANDING_ORDER_SHEETS.STANDING_ORDERS, [
+    'Standing_Order_ID', 'Customer_ID', 'Customer_Name', 'Customer_Phone', 'Customer_Email',
+    'Product_ID', 'Product_Name', 'Quantity', 'Unit', 'Unit_Price',
+    'Frequency', 'Day_of_Week', 'Start_Date', 'End_Date',
+    'Status', 'Last_Fulfilled_Date', 'Next_Due_Date', 'Total_Fulfilled', 'Total_Shorted',
+    'Created_Date', 'Notes'
+  ]);
+
+  createSheetIfNotExists(ss, STANDING_ORDER_SHEETS.FULFILLMENT_LOG, [
+    'Log_ID', 'Standing_Order_ID', 'Customer_ID', 'Product_Name', 'Quantity_Ordered',
+    'Quantity_Fulfilled', 'Fulfillment_Date', 'Status', 'Shortage_Reason',
+    'Notification_Sent', 'Notes'
+  ]);
+
+  return { success: true, message: 'Standing Orders module initialized' };
+}
+
+/**
+ * Create a new standing order
+ */
+function createStandingOrder(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
+    if (!sheet) { initializeStandingOrdersModule(); sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS); }
+
+    const standingOrderId = 'SO_' + Date.now();
+    const now = new Date();
+
+    // Calculate next due date based on frequency and day of week
+    const nextDueDate = calculateNextDueDate(data.dayOfWeek || 'Wednesday', data.frequency || 'WEEKLY', now);
+
+    const row = [
+      standingOrderId,
+      data.customerId || '',
+      data.customerName || '',
+      data.customerPhone || '',
+      data.customerEmail || '',
+      data.productId || '',
+      data.productName || '',
+      data.quantity || 1,
+      data.unit || 'each',
+      data.unitPrice || 0,
+      data.frequency || 'WEEKLY', // WEEKLY, BIWEEKLY, MONTHLY
+      data.dayOfWeek || 'Wednesday',
+      data.startDate || now.toISOString().split('T')[0],
+      data.endDate || '', // Empty = ongoing
+      'Active',
+      '', // Last_Fulfilled_Date
+      nextDueDate,
+      0, // Total_Fulfilled
+      0, // Total_Shorted
+      now.toISOString(),
+      data.notes || ''
+    ];
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      standingOrderId,
+      nextDueDate,
+      message: `Standing order created for ${data.productName} - ${data.frequency}`
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Calculate next due date based on frequency and day of week
+ */
+function calculateNextDueDate(dayOfWeek, frequency, fromDate) {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const targetDay = days.indexOf(dayOfWeek);
+  if (targetDay === -1) return fromDate.toISOString().split('T')[0];
+
+  const date = new Date(fromDate);
+  const currentDay = date.getDay();
+  let daysToAdd = (targetDay - currentDay + 7) % 7;
+  if (daysToAdd === 0) daysToAdd = 7; // If today is the target day, go to next week
+
+  date.setDate(date.getDate() + daysToAdd);
+  return date.toISOString().split('T')[0];
+}
+
+/**
+ * Get standing orders with filters
+ */
+function getStandingOrders(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
+    if (!sheet) return { success: true, orders: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, orders: [] };
+
+    const headers = data[0];
+    let orders = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    // Apply filters
+    if (params.customerId) orders = orders.filter(o => o.Customer_ID === params.customerId);
+    if (params.status) orders = orders.filter(o => o.Status === params.status);
+    if (params.productId) orders = orders.filter(o => o.Product_ID === params.productId);
+
+    return { success: true, orders, count: orders.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get standing orders due for fulfillment
+ */
+function getStandingOrdersDue(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
+    if (!sheet) return { success: true, orders: [], totals: {} };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, orders: [], totals: {} };
+
+    const headers = data[0];
+    const today = new Date();
+    const targetDate = params.date ? new Date(params.date) : today;
+    const endOfWeek = new Date(targetDate);
+    endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+    let dueOrders = [];
+    let totalsByProduct = {};
+
+    data.slice(1).forEach(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+
+      // Only active orders
+      if (obj.Status !== 'Active') return;
+
+      // Check if due this week
+      const nextDue = new Date(obj.Next_Due_Date);
+      if (nextDue >= targetDate && nextDue <= endOfWeek) {
+        // Check end date if set
+        if (obj.End_Date && new Date(obj.End_Date) < nextDue) return;
+
+        dueOrders.push(obj);
+
+        // Aggregate totals by product
+        const key = obj.Product_Name;
+        if (!totalsByProduct[key]) {
+          totalsByProduct[key] = { productId: obj.Product_ID, productName: key, unit: obj.Unit, totalQuantity: 0, orderCount: 0 };
+        }
+        totalsByProduct[key].totalQuantity += obj.Quantity;
+        totalsByProduct[key].orderCount++;
+      }
+    });
+
+    return {
+      success: true,
+      orders: dueOrders,
+      totals: Object.values(totalsByProduct),
+      weekStart: targetDate.toISOString().split('T')[0],
+      weekEnd: endOfWeek.toISOString().split('T')[0]
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update a standing order
+ */
+function updateStandingOrder(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
+    if (!sheet) return { success: false, error: 'Standing orders sheet not found' };
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.standingOrderId) {
+        // Update allowed fields
+        const updates = ['Quantity', 'Unit_Price', 'Frequency', 'Day_of_Week', 'End_Date', 'Status', 'Notes'];
+        updates.forEach(field => {
+          if (data[field] !== undefined || data[field.toLowerCase()] !== undefined) {
+            const col = headers.indexOf(field);
+            if (col !== -1) {
+              sheet.getRange(i + 1, col + 1).setValue(data[field] || data[field.toLowerCase()]);
+            }
+          }
+        });
+
+        // Recalculate next due date if frequency or day changed
+        if (data.frequency || data.dayOfWeek) {
+          const freq = data.frequency || values[i][headers.indexOf('Frequency')];
+          const day = data.dayOfWeek || values[i][headers.indexOf('Day_of_Week')];
+          const nextDue = calculateNextDueDate(day, freq, new Date());
+          const nextDueCol = headers.indexOf('Next_Due_Date');
+          if (nextDueCol !== -1) sheet.getRange(i + 1, nextDueCol + 1).setValue(nextDue);
+        }
+
+        return { success: true, message: 'Standing order updated' };
+      }
+    }
+
+    return { success: false, error: 'Standing order not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Cancel (deactivate) a standing order
+ */
+function cancelStandingOrder(data) {
+  return updateStandingOrder({ standingOrderId: data.standingOrderId, Status: 'Cancelled' });
+}
+
+/**
+ * Pause a standing order
+ */
+function pauseStandingOrder(data) {
+  return updateStandingOrder({ standingOrderId: data.standingOrderId, Status: 'Paused' });
+}
+
+/**
+ * Resume a paused standing order
+ */
+function resumeStandingOrder(data) {
+  const result = updateStandingOrder({ standingOrderId: data.standingOrderId, Status: 'Active' });
+  if (result.success) {
+    // Recalculate next due date from today
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.standingOrderId) {
+        const freq = values[i][headers.indexOf('Frequency')];
+        const day = values[i][headers.indexOf('Day_of_Week')];
+        const nextDue = calculateNextDueDate(day, freq, new Date());
+        const nextDueCol = headers.indexOf('Next_Due_Date');
+        sheet.getRange(i + 1, nextDueCol + 1).setValue(nextDue);
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Mark standing order as fulfilled
+ */
+function markStandingOrderFulfilled(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
+    let logSheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG);
+    if (!logSheet) { initializeStandingOrdersModule(); logSheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG); }
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.standingOrderId) {
+        const now = new Date();
+        const orderData = {};
+        headers.forEach((h, j) => orderData[h] = values[i][j]);
+
+        // Update standing order
+        const lastFulfilledCol = headers.indexOf('Last_Fulfilled_Date');
+        const totalFulfilledCol = headers.indexOf('Total_Fulfilled');
+        const nextDueCol = headers.indexOf('Next_Due_Date');
+
+        sheet.getRange(i + 1, lastFulfilledCol + 1).setValue(now.toISOString().split('T')[0]);
+        sheet.getRange(i + 1, totalFulfilledCol + 1).setValue((orderData.Total_Fulfilled || 0) + 1);
+
+        // Calculate next due date
+        const nextDue = calculateNextDueDateFromFrequency(orderData.Frequency, orderData.Day_of_Week, now);
+        sheet.getRange(i + 1, nextDueCol + 1).setValue(nextDue);
+
+        // Log fulfillment
+        logSheet.appendRow([
+          'FL_' + Date.now(),
+          data.standingOrderId,
+          orderData.Customer_ID,
+          orderData.Product_Name,
+          orderData.Quantity,
+          data.quantityFulfilled || orderData.Quantity,
+          now.toISOString(),
+          'Fulfilled',
+          '',
+          false,
+          data.notes || ''
+        ]);
+
+        return { success: true, message: 'Standing order marked as fulfilled', nextDueDate: nextDue };
+      }
+    }
+
+    return { success: false, error: 'Standing order not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Calculate next due date based on frequency
+ */
+function calculateNextDueDateFromFrequency(frequency, dayOfWeek, fromDate) {
+  const date = new Date(fromDate);
+
+  switch (frequency.toUpperCase()) {
+    case 'WEEKLY':
+      date.setDate(date.getDate() + 7);
+      break;
+    case 'BIWEEKLY':
+      date.setDate(date.getDate() + 14);
+      break;
+    case 'MONTHLY':
+      date.setMonth(date.getMonth() + 1);
+      break;
+    default:
+      date.setDate(date.getDate() + 7);
+  }
+
+  // Adjust to the correct day of week
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const targetDay = days.indexOf(dayOfWeek);
+  if (targetDay !== -1) {
+    const currentDay = date.getDay();
+    const diff = (targetDay - currentDay + 7) % 7;
+    date.setDate(date.getDate() + diff);
+  }
+
+  return date.toISOString().split('T')[0];
+}
+
+/**
+ * Mark standing order as shorted (unable to fulfill) - triggers notifications
+ */
+function markStandingOrderShorted(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
+    let logSheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG);
+    if (!logSheet) { initializeStandingOrdersModule(); logSheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG); }
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.standingOrderId) {
+        const now = new Date();
+        const orderData = {};
+        headers.forEach((h, j) => orderData[h] = values[i][j]);
+
+        // Update standing order
+        const totalShortedCol = headers.indexOf('Total_Shorted');
+        const nextDueCol = headers.indexOf('Next_Due_Date');
+
+        sheet.getRange(i + 1, totalShortedCol + 1).setValue((orderData.Total_Shorted || 0) + 1);
+
+        // Calculate next due date (still moves forward)
+        const nextDue = calculateNextDueDateFromFrequency(orderData.Frequency, orderData.Day_of_Week, now);
+        sheet.getRange(i + 1, nextDueCol + 1).setValue(nextDue);
+
+        // Log shortage
+        const logId = 'FL_' + Date.now();
+        logSheet.appendRow([
+          logId,
+          data.standingOrderId,
+          orderData.Customer_ID,
+          orderData.Product_Name,
+          orderData.Quantity,
+          data.quantityFulfilled || 0,
+          now.toISOString(),
+          'Shorted',
+          data.reason || 'Unspecified',
+          false,
+          data.notes || ''
+        ]);
+
+        // Send notifications
+        const notificationResult = sendShortageNotifications({
+          customerName: orderData.Customer_Name,
+          customerPhone: orderData.Customer_Phone,
+          customerEmail: orderData.Customer_Email,
+          productName: orderData.Product_Name,
+          quantity: orderData.Quantity,
+          unit: orderData.Unit,
+          reason: data.reason || 'Unspecified',
+          alternatives: data.alternatives || ''
+        });
+
+        // Update notification sent status
+        if (notificationResult.smsSent || notificationResult.emailSent) {
+          const logValues = logSheet.getDataRange().getValues();
+          for (let j = logValues.length - 1; j >= 0; j--) {
+            if (logValues[j][0] === logId) {
+              logSheet.getRange(j + 1, 10).setValue(true); // Notification_Sent column
+              break;
+            }
+          }
+        }
+
+        return {
+          success: true,
+          message: 'Standing order marked as shorted',
+          notificationResult,
+          nextDueDate: nextDue
+        };
+      }
+    }
+
+    return { success: false, error: 'Standing order not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send shortage notifications via SMS and Email
+ */
+function sendShortageNotifications(data) {
+  const result = { smsSent: false, emailSent: false };
+
+  // Format shortage reason for display
+  const reasonMap = {
+    'weather_damage': 'weather damage',
+    'crop_failure': 'crop failure',
+    'sold_out': 'high demand (sold out)',
+    'season_ended': 'the season ending for this crop',
+    'other': 'unforeseen circumstances'
+  };
+  const reasonText = reasonMap[data.reason] || data.reason || 'unforeseen circumstances';
+
+  // Send SMS via Twilio if phone available
+  if (data.customerPhone) {
+    try {
+      const smsMessage = `Hi ${data.customerName}, we're unable to fulfill your standing order for ${data.quantity} ${data.unit} of ${data.productName} this week due to ${reasonText}. We apologize for the inconvenience. -Tiny Seed Farm`;
+
+      const smsResult = sendSMS({
+        to: data.customerPhone,
+        message: smsMessage
+      });
+
+      result.smsSent = smsResult.success;
+      result.smsError = smsResult.error;
+    } catch (e) {
+      result.smsError = e.toString();
+    }
+  }
+
+  // Send Email via Gmail if email available
+  if (data.customerEmail) {
+    try {
+      const subject = `Tiny Seed Farm - Standing Order Update for ${data.productName}`;
+      const body = `
+Dear ${data.customerName},
+
+We regret to inform you that we are unable to fulfill your standing order this week:
+
+Product: ${data.productName}
+Quantity: ${data.quantity} ${data.unit}
+Reason: ${reasonText}
+
+${data.alternatives ? `\nAlternatives available:\n${data.alternatives}\n` : ''}
+We sincerely apologize for any inconvenience this may cause. Your standing order will automatically continue next ${getNextDeliveryDay(data.dayOfWeek)} as scheduled.
+
+If you have any questions or would like to make changes to your order, please reply to this email or call us.
+
+Thank you for your understanding and continued support of our farm.
+
+Warmly,
+Tiny Seed Farm
+`;
+
+      GmailApp.sendEmail(data.customerEmail, subject, body, {
+        name: 'Tiny Seed Farm',
+        replyTo: 'hello@tinyseedfarm.com'
+      });
+
+      result.emailSent = true;
+    } catch (e) {
+      result.emailError = e.toString();
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get next delivery day text
+ */
+function getNextDeliveryDay(dayOfWeek) {
+  return dayOfWeek || 'week';
+}
+
+/**
+ * Get fulfillment log with filters
+ */
+function getFulfillmentLog(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG);
+    if (!sheet) return { success: true, logs: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, logs: [] };
+
+    const headers = data[0];
+    let logs = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    // Apply filters
+    if (params.standingOrderId) logs = logs.filter(l => l.Standing_Order_ID === params.standingOrderId);
+    if (params.customerId) logs = logs.filter(l => l.Customer_ID === params.customerId);
+    if (params.status) logs = logs.filter(l => l.Status === params.status);
+
+    // Sort by date descending
+    logs.sort((a, b) => new Date(b.Fulfillment_Date) - new Date(a.Fulfillment_Date));
+
+    // Limit
+    if (params.limit) logs = logs.slice(0, parseInt(params.limit));
+
+    return { success: true, logs, count: logs.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get standing orders fulfillment dashboard for staff
+ */
+function getStandingOrdersDashboard(params) {
+  try {
+    const dueOrders = getStandingOrdersDue(params || {});
+    const allOrders = getStandingOrders({ status: 'Active' });
+
+    // Get inventory levels if available (for risk assessment)
+    let atRiskProducts = [];
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const invSheet = ss.getSheetByName('FARM_INVENTORY');
+      if (invSheet && dueOrders.success && dueOrders.totals.length > 0) {
+        const invData = invSheet.getDataRange().getValues();
+        const invHeaders = invData[0];
+        const nameCol = invHeaders.indexOf('Item_Name');
+        const qtyCol = invHeaders.indexOf('Quantity');
+
+        dueOrders.totals.forEach(product => {
+          // Find inventory
+          let inventoryQty = 0;
+          for (let i = 1; i < invData.length; i++) {
+            if (invData[i][nameCol] && invData[i][nameCol].toLowerCase().includes(product.productName.toLowerCase())) {
+              inventoryQty += invData[i][qtyCol] || 0;
+            }
+          }
+
+          if (inventoryQty < product.totalQuantity) {
+            atRiskProducts.push({
+              ...product,
+              inventoryAvailable: inventoryQty,
+              shortfall: product.totalQuantity - inventoryQty
+            });
+          }
+        });
+      }
+    } catch (e) {
+      // Inventory check is optional
+    }
+
+    return {
+      success: true,
+      dashboard: {
+        weekStart: dueOrders.weekStart,
+        weekEnd: dueOrders.weekEnd,
+        totalActiveOrders: allOrders.count || 0,
+        ordersDueThisWeek: dueOrders.orders ? dueOrders.orders.length : 0,
+        productTotals: dueOrders.totals || [],
+        atRiskProducts,
+        ordersByDay: groupOrdersByDay(dueOrders.orders || [])
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Group orders by delivery day
+ */
+function groupOrdersByDay(orders) {
+  const byDay = {};
+  orders.forEach(order => {
+    const day = order.Day_of_Week || 'Unassigned';
+    if (!byDay[day]) byDay[day] = [];
+    byDay[day].push(order);
+  });
+  return byDay;
+}
+
+/**
+ * Bulk fulfill all standing orders for a given date
+ */
+function bulkFulfillStandingOrders(data) {
+  try {
+    const dueOrders = getStandingOrdersDue({ date: data.date });
+    if (!dueOrders.success || !dueOrders.orders.length) {
+      return { success: true, message: 'No orders due', fulfilled: 0 };
+    }
+
+    let fulfilled = 0;
+    let errors = [];
+
+    dueOrders.orders.forEach(order => {
+      const result = markStandingOrderFulfilled({ standingOrderId: order.Standing_Order_ID });
+      if (result.success) fulfilled++;
+      else errors.push({ orderId: order.Standing_Order_ID, error: result.error });
+    });
+
+    return {
+      success: true,
+      fulfilled,
+      total: dueOrders.orders.length,
+      errors: errors.length > 0 ? errors : undefined
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Test Standing Orders module
+ */
+function testStandingOrders() {
+  Logger.log('=== Testing Standing Orders Module ===');
+
+  const initResult = initializeStandingOrdersModule();
+  Logger.log('Initialize: ' + JSON.stringify(initResult));
+
+  const createResult = createStandingOrder({
+    customerId: 'CUST_TEST',
+    customerName: 'Test Chef',
+    customerPhone: '+14125551234',
+    customerEmail: 'test@restaurant.com',
+    productId: 'PROD_TOMATO',
+    productName: 'Heirloom Tomatoes',
+    quantity: 10,
+    unit: 'lb',
+    unitPrice: 4.00,
+    frequency: 'WEEKLY',
+    dayOfWeek: 'Wednesday'
+  });
+  Logger.log('Create: ' + JSON.stringify(createResult));
+
+  const getResult = getStandingOrders({ customerId: 'CUST_TEST' });
+  Logger.log('Get: ' + JSON.stringify(getResult));
+
+  const dueResult = getStandingOrdersDue({});
+  Logger.log('Due: ' + JSON.stringify(dueResult));
+
+  const dashResult = getStandingOrdersDashboard({});
+  Logger.log('Dashboard: ' + JSON.stringify(dashResult));
+
+  Logger.log('=== Standing Orders Tests Complete ===');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

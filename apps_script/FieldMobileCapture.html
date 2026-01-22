@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>GPS Field Capture - Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-card: #1a1a1a;
+      --bg-accent: #242424;
+      --text-primary: #ffffff;
+      --text-secondary: #888888;
+      --accent-green: #22c55e;
+      --accent-blue: #3b82f6;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      padding: 16px 20px;
+      padding-top: max(16px, env(safe-area-inset-top));
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333;
+      flex-shrink: 0;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .header-status.ready { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+    .header-status.recording { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); animation: pulse 1s infinite; }
+    .header-status.error { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Map Container */
+    .map-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-overlay {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stat-chip {
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-chip .value {
+      font-weight: 600;
+    }
+
+    .stat-chip.points .value { color: var(--accent-blue); }
+    .stat-chip.area .value { color: var(--accent-green); }
+    .stat-chip.gps .value { color: var(--accent-amber); }
+
+    /* Controls Panel */
+    .controls-panel {
+      background: var(--bg-card);
+      padding: 20px;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      border-top: 1px solid #333;
+      flex-shrink: 0;
+    }
+
+    /* Recording Controls */
+    .record-button {
+      width: 100%;
+      padding: 18px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+
+    .record-button.start {
+      background: var(--accent-green);
+      color: black;
+    }
+
+    .record-button.stop {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    .record-button:disabled {
+      opacity: 0.5;
+    }
+
+    .record-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .record-icon.recording {
+      animation: pulse-record 1s infinite;
+    }
+
+    @keyframes pulse-record {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    /* Form Panel */
+    .form-panel {
+      display: none;
+    }
+
+    .form-panel.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      background: var(--bg-accent);
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: var(--text-primary);
+      font-size: 16px;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent-green);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      background: var(--bg-accent);
+      color: var(--text-primary);
+      border: 1px solid #444;
+    }
+
+    .btn-primary {
+      background: var(--accent-green);
+      color: black;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+    }
+
+    /* Preview Stats */
+    .preview-stats {
+      background: var(--bg-accent);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .preview-stats h3 {
+      font-size: 14px;
+      color: var(--accent-green);
+      margin-bottom: 12px;
+    }
+
+    .preview-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #333;
+    }
+
+    .preview-row:last-child {
+      border-bottom: none;
+    }
+
+    .preview-row .label {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .preview-row .value {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    /* Permission Screen */
+    .permission-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 100;
+    }
+
+    .permission-screen.hidden {
+      display: none;
+    }
+
+    .permission-icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+
+    .permission-screen h2 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    .permission-screen p {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .loading-overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #333;
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 20px;
+      right: 20px;
+      background: var(--bg-card);
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 16px 20px;
+      text-align: center;
+      transform: translateY(200px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 150;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { border-left: 4px solid var(--accent-green); }
+    .toast.error { border-left: 4px solid var(--accent-red); }
+
+    /* Accuracy Indicator */
+    .accuracy-indicator {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .accuracy-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .accuracy-dot.good { background: var(--accent-green); }
+    .accuracy-dot.medium { background: var(--accent-amber); }
+    .accuracy-dot.poor { background: var(--accent-red); }
+  </style>
+</head>
+<body>
+  <!-- Permission Screen -->
+  <div class="permission-screen" id="permission-screen">
+    <div class="permission-icon">📍</div>
+    <h2>Location Access Required</h2>
+    <p>To capture field boundaries, we need access to your device's GPS. This allows you to walk the perimeter while we track your path.</p>
+    <button class="btn btn-primary" style="width: 100%; max-width: 300px;" onclick="requestPermission()">
+      Enable Location
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <header class="header">
+    <h1><span>🌱</span> Field Capture</h1>
+    <span class="header-status ready" id="status-badge">READY</span>
+  </header>
+
+  <div class="map-container">
+    <div id="map"></div>
+    <div class="map-overlay">
+      <div class="stat-chip points">
+        <span>Points:</span>
+        <span class="value" id="point-count">0</span>
+      </div>
+      <div class="stat-chip area">
+        <span>Area:</span>
+        <span class="value" id="area-display">0 sq ft</span>
+      </div>
+    </div>
+    <div class="accuracy-indicator" id="accuracy-indicator">
+      <div class="accuracy-dot good" id="accuracy-dot"></div>
+      <span id="accuracy-text">GPS: --</span>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <!-- Recording Controls -->
+    <div id="recording-controls">
+      <button class="record-button start" id="record-btn" onclick="toggleRecording()">
+        <div class="record-icon"></div>
+        <span>Start Walking Boundary</span>
+      </button>
+    </div>
+
+    <!-- Form Panel (shows after recording) -->
+    <div class="form-panel" id="form-panel">
+      <div class="preview-stats">
+        <h3>Captured Boundary</h3>
+        <div class="preview-row">
+          <span class="label">Area</span>
+          <span class="value" id="final-area">-</span>
+        </div>
+        <div class="preview-row">
+          <span class="label">Perimeter</span>
+          <span class="value" id="final-perimeter">-</span>
+        </div>
+        <div class="preview-row">
+          <span class="label">Points</span>
+          <span class="value" id="final-points">-</span>
+        </div>
+        <div class="preview-row">
+          <span class="label">Est. Beds</span>
+          <span class="value" id="final-beds">-</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Field Name *</label>
+        <input type="text" id="field-name" placeholder="e.g., North Hillside">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Field Type</label>
+          <select id="field-type">
+            <option value="Veg">Vegetable</option>
+            <option value="Floral">Floral</option>
+            <option value="Perennial">Perennial</option>
+            <option value="Cover">Cover Crop</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Bed Width (in)</label>
+          <input type="number" id="bed-width" value="45" onchange="recalculateBeds()">
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="discardCapture()">
+          Discard
+        </button>
+        <button class="btn btn-primary" id="save-btn" onclick="saveField()">
+          Save Field
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEjb_a8VxoFb1aqEKZLdRW3NTaQKijWZ0&libraries=geometry"></script>
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONFIGURATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+    const FARM_CENTER = { lat: 40.7456217, lng: -80.1610431 };
+    const DEFAULT_BED_WIDTH = 45;
+    const DEFAULT_PATH_WIDTH = 12;
+    const GPS_INTERVAL = 2000; // 2 seconds between captures
+    const MIN_ACCURACY = 10; // meters - only capture if accuracy is better than this
+
+    let map = null;
+    let userMarker = null;
+    let pathLine = null;
+    let polygon = null;
+    let capturedPoints = [];
+    let isRecording = false;
+    let watchId = null;
+    let lastAccuracy = null;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkPermission();
+    });
+
+    function checkPermission() {
+      if (!navigator.geolocation) {
+        showError('Geolocation not supported on this device');
+        return;
+      }
+
+      // Try to get position to check permission
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          document.getElementById('permission-screen').classList.add('hidden');
+          initMap(pos.coords);
+        },
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            // Show permission screen
+          } else {
+            // Other error, might still work
+            document.getElementById('permission-screen').classList.add('hidden');
+            initMap(FARM_CENTER);
+          }
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+
+    function requestPermission() {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          document.getElementById('permission-screen').classList.add('hidden');
+          initMap(pos.coords);
+          showToast('Location access granted', 'success');
+        },
+        (err) => {
+          showToast('Please enable location in your device settings', 'error');
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+
+    function initMap(coords) {
+      const center = coords.latitude ? { lat: coords.latitude, lng: coords.longitude } : coords;
+
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: center,
+        zoom: 18,
+        mapTypeId: 'satellite',
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: 'greedy'
+      });
+
+      // User marker
+      userMarker = new google.maps.Marker({
+        position: center,
+        map: map,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: '#3b82f6',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        },
+        title: 'You are here'
+      });
+
+      // Path line (shows during recording)
+      pathLine = new google.maps.Polyline({
+        path: [],
+        strokeColor: '#22c55e',
+        strokeOpacity: 1,
+        strokeWeight: 4,
+        map: map
+      });
+
+      // Start watching location for user marker
+      startLocationWatch();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LOCATION TRACKING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function startLocationWatch() {
+      if (watchId) return;
+
+      watchId = navigator.geolocation.watchPosition(
+        updateLocation,
+        handleLocationError,
+        {
+          enableHighAccuracy: true,
+          maximumAge: 1000,
+          timeout: 10000
+        }
+      );
+    }
+
+    function updateLocation(position) {
+      const { latitude, longitude, accuracy } = position.coords;
+      const pos = { lat: latitude, lng: longitude };
+
+      // Update user marker
+      userMarker.setPosition(pos);
+
+      // Update accuracy indicator
+      lastAccuracy = accuracy;
+      updateAccuracyIndicator(accuracy);
+
+      // If recording, add point
+      if (isRecording && accuracy <= MIN_ACCURACY) {
+        addPoint(pos);
+      }
+    }
+
+    function handleLocationError(error) {
+      console.error('Location error:', error);
+      updateStatusBadge('error', 'GPS ERROR');
+    }
+
+    function updateAccuracyIndicator(accuracy) {
+      const dot = document.getElementById('accuracy-dot');
+      const text = document.getElementById('accuracy-text');
+
+      text.textContent = `GPS: ±${Math.round(accuracy)}m`;
+
+      dot.className = 'accuracy-dot';
+      if (accuracy <= 5) {
+        dot.classList.add('good');
+      } else if (accuracy <= 10) {
+        dot.classList.add('medium');
+      } else {
+        dot.classList.add('poor');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // RECORDING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function toggleRecording() {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    }
+
+    function startRecording() {
+      if (lastAccuracy && lastAccuracy > MIN_ACCURACY) {
+        showToast('Wait for better GPS accuracy', 'error');
+        return;
+      }
+
+      isRecording = true;
+      capturedPoints = [];
+
+      // Update UI
+      updateStatusBadge('recording', 'RECORDING');
+      const btn = document.getElementById('record-btn');
+      btn.className = 'record-button stop';
+      btn.innerHTML = '<div class="record-icon recording"></div><span>Stop & Review</span>';
+
+      // Clear existing polygon
+      if (polygon) {
+        polygon.setMap(null);
+        polygon = null;
+      }
+
+      // Clear path
+      pathLine.setPath([]);
+
+      // Add starting point
+      const pos = userMarker.getPosition();
+      addPoint({ lat: pos.lat(), lng: pos.lng() });
+
+      showToast('Walk the field boundary', 'success');
+    }
+
+    function stopRecording() {
+      isRecording = false;
+
+      // Update UI
+      updateStatusBadge('ready', 'READY');
+      const btn = document.getElementById('record-btn');
+      btn.className = 'record-button start';
+      btn.innerHTML = '<div class="record-icon"></div><span>Start Walking Boundary</span>';
+
+      if (capturedPoints.length < 3) {
+        showToast('Need at least 3 points for a field', 'error');
+        discardCapture();
+        return;
+      }
+
+      // Close the polygon
+      finishCapture();
+    }
+
+    function addPoint(pos) {
+      // Check if point is significantly different from last point
+      if (capturedPoints.length > 0) {
+        const last = capturedPoints[capturedPoints.length - 1];
+        const distance = google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(last.lat, last.lng),
+          new google.maps.LatLng(pos.lat, pos.lng)
+        );
+
+        // Only add if moved at least 2 meters
+        if (distance < 2) return;
+      }
+
+      capturedPoints.push(pos);
+
+      // Update path
+      pathLine.setPath(capturedPoints);
+
+      // Update stats
+      updateCaptureStats();
+
+      // Brief vibration feedback
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }
+
+    function updateCaptureStats() {
+      document.getElementById('point-count').textContent = capturedPoints.length;
+
+      if (capturedPoints.length >= 3) {
+        const area = google.maps.geometry.spherical.computeArea(
+          capturedPoints.map(p => new google.maps.LatLng(p.lat, p.lng))
+        );
+        const sqft = Math.round(area * 10.764); // m² to ft²
+        document.getElementById('area-display').textContent = formatArea(sqft);
+      }
+    }
+
+    function formatArea(sqft) {
+      if (sqft > 43560) {
+        return (sqft / 43560).toFixed(2) + ' ac';
+      }
+      return sqft.toLocaleString() + ' sq ft';
+    }
+
+    function finishCapture() {
+      // Create polygon
+      polygon = new google.maps.Polygon({
+        paths: capturedPoints,
+        fillColor: '#22c55e',
+        fillOpacity: 0.3,
+        strokeColor: '#22c55e',
+        strokeWeight: 3,
+        map: map
+      });
+
+      // Hide path line
+      pathLine.setPath([]);
+
+      // Fit map to polygon
+      const bounds = new google.maps.LatLngBounds();
+      capturedPoints.forEach(p => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
+      map.fitBounds(bounds);
+
+      // Show form panel
+      document.getElementById('recording-controls').style.display = 'none';
+      document.getElementById('form-panel').classList.add('active');
+
+      // Calculate stats
+      const area = google.maps.geometry.spherical.computeArea(
+        capturedPoints.map(p => new google.maps.LatLng(p.lat, p.lng))
+      );
+      const sqft = Math.round(area * 10.764);
+      const acres = (sqft / 43560).toFixed(2);
+
+      // Calculate perimeter
+      let perimeter = 0;
+      for (let i = 0; i < capturedPoints.length; i++) {
+        const j = (i + 1) % capturedPoints.length;
+        perimeter += google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(capturedPoints[i].lat, capturedPoints[i].lng),
+          new google.maps.LatLng(capturedPoints[j].lat, capturedPoints[j].lng)
+        );
+      }
+      const perimeterFt = Math.round(perimeter * 3.281);
+
+      document.getElementById('final-area').textContent = `${acres} ac (${sqft.toLocaleString()} sq ft)`;
+      document.getElementById('final-perimeter').textContent = `${perimeterFt.toLocaleString()} ft`;
+      document.getElementById('final-points').textContent = capturedPoints.length;
+
+      recalculateBeds();
+    }
+
+    function recalculateBeds() {
+      const bedWidth = parseInt(document.getElementById('bed-width').value) || DEFAULT_BED_WIDTH;
+      const pathWidth = DEFAULT_PATH_WIDTH;
+      const bedUnit = (bedWidth + pathWidth) / 12; // feet
+
+      // Rough estimate based on area
+      const area = google.maps.geometry.spherical.computeArea(
+        capturedPoints.map(p => new google.maps.LatLng(p.lat, p.lng))
+      );
+      const sqft = area * 10.764;
+
+      // Estimate beds (rough - actual calculation done server-side)
+      const avgBedLength = 100; // assume 100ft average
+      const estBeds = Math.floor(sqft / (avgBedLength * bedUnit));
+
+      document.getElementById('final-beds').textContent = `~${estBeds}`;
+    }
+
+    function discardCapture() {
+      capturedPoints = [];
+
+      if (polygon) {
+        polygon.setMap(null);
+        polygon = null;
+      }
+
+      pathLine.setPath([]);
+
+      document.getElementById('point-count').textContent = '0';
+      document.getElementById('area-display').textContent = '0 sq ft';
+
+      document.getElementById('form-panel').classList.remove('active');
+      document.getElementById('recording-controls').style.display = 'block';
+
+      document.getElementById('field-name').value = '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SAVE FIELD
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    async function saveField() {
+      const name = document.getElementById('field-name').value.trim();
+      if (!name) {
+        showToast('Please enter a field name', 'error');
+        return;
+      }
+
+      const type = document.getElementById('field-type').value;
+      const bedWidth = document.getElementById('bed-width').value;
+
+      showLoading(true);
+
+      try {
+        const params = new URLSearchParams({
+          action: 'createField',
+          name: name,
+          type: type,
+          bedWidth: bedWidth,
+          pathWidth: DEFAULT_PATH_WIDTH,
+          gpsPolygon: JSON.stringify(capturedPoints)
+        });
+
+        const response = await fetch(`${API_BASE}?${params}`);
+        const data = await response.json();
+
+        if (data.success) {
+          showToast(`Field "${name}" created with ${data.numberOfBeds} beds!`, 'success');
+
+          // Reset
+          discardCapture();
+
+          // Close if opened from dashboard
+          if (window.opener) {
+            window.opener.postMessage({ type: 'fieldCreated', name: name }, '*');
+            setTimeout(() => window.close(), 2000);
+          }
+        } else {
+          showToast('Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        console.error('Save error:', error);
+        showToast('Network error', 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UI HELPERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function updateStatusBadge(state, text) {
+      const badge = document.getElementById('status-badge');
+      badge.className = 'header-status ' + state;
+      badge.textContent = text;
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').classList.toggle('active', show);
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type + ' show';
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    function showError(message) {
+      document.getElementById('permission-screen').innerHTML = `
+        <div class="permission-icon">⚠️</div>
+        <h2>Error</h2>
+        <p>${message}</p>
+      `;
+    }
+  </script>
+</body>
+</html>

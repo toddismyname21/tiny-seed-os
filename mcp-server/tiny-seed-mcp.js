@@ -60,6 +60,17 @@ const {
   getPayPalFinancialSummary
 } = require('./paypal-integration');
 
+// Shopify Discount Code Creator
+const {
+  getCollections,
+  getProducts,
+  createPriceRule,
+  createDiscountCode,
+  listDiscountCodes,
+  deletePriceRule,
+  createNeighborDiscounts
+} = require('./shopify-discount');
+
 // API Configuration - Updated to v293 with MCP Direct Import endpoint
 const API_BASE = 'https://script.google.com/macros/s/AKfycbzQGqay-b2A97ThL33YSnLa4MBdu_48ReQMXV_ndtvfSzoYVhURlZy5cWbXQ2hDPx2d/exec';
 
@@ -260,6 +271,35 @@ const TOOLS = {
     description: "Get Capital tracking status including recent transactions and trigger status",
     parameters: {},
     action: "getCapitalTrackingStatus"
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SHOPIFY DISCOUNT TOOLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  shopify_list_discounts: {
+    description: "List all existing Shopify discount codes",
+    parameters: {},
+    action: "SHOPIFY_LIST_DISCOUNTS"
+  },
+  shopify_get_products: {
+    description: "Get all Shopify products (to identify CSA products for discounts)",
+    parameters: {},
+    action: "SHOPIFY_GET_PRODUCTS"
+  },
+  shopify_create_neighbor_discounts: {
+    description: "Create the NEIGHBOR direct mail campaign discount codes: NEIGHBOR-VEG-FULL ($30 off $600+), NEIGHBOR-VEG-HALF ($15 off $300+), NEIGHBOR-FLORAL ($20 off), and NEIGHBOR ($15 base)",
+    parameters: {
+      endsAt: "Expiration date in ISO format (default: 2026-03-31)",
+      dryRun: "Set to 'true' to preview without creating (default: false)"
+    },
+    action: "SHOPIFY_CREATE_NEIGHBOR_DISCOUNTS"
+  },
+  shopify_delete_discount: {
+    description: "Delete a Shopify price rule (and its discount codes) by ID",
+    parameters: {
+      priceRuleId: "The price rule ID to delete"
+    },
+    action: "SHOPIFY_DELETE_DISCOUNT"
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -773,6 +813,30 @@ class TinySeedMCPServer {
 
             case 'PAYPAL_SUMMARY':
               result = await getPayPalFinancialSummary();
+              break;
+
+            // Shopify Discount Tools
+            case 'SHOPIFY_LIST_DISCOUNTS':
+              result = await listDiscountCodes();
+              break;
+
+            case 'SHOPIFY_GET_PRODUCTS':
+              result = await getProducts();
+              break;
+
+            case 'SHOPIFY_CREATE_NEIGHBOR_DISCOUNTS':
+              result = await createNeighborDiscounts({
+                endsAt: args.endsAt || '2026-03-31T23:59:59-05:00',
+                dryRun: args.dryRun === 'true' || args.dryRun === true
+              });
+              break;
+
+            case 'SHOPIFY_DELETE_DISCOUNT':
+              if (!args.priceRuleId) {
+                result = { success: false, error: 'priceRuleId is required' };
+              } else {
+                result = await deletePriceRule(args.priceRuleId);
+              }
               break;
 
             default:

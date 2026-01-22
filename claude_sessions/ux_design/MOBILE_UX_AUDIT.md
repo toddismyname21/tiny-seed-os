@@ -1,12 +1,68 @@
 # Mobile UX Audit Report
-**Date:** 2026-01-16
+**Date:** 2026-01-21 (Updated)
 **Auditor:** UX_Design Claude
 
 ---
 
 ## Summary
 
-Comprehensive mobile UX improvements were made to `employee.html` to make the field worker experience feel premium, not clunky. All changes prioritize gloved-hand operation in outdoor conditions.
+Comprehensive mobile UX audit completed across all mobile-critical pages. The field worker experience is now premium, not clunky. All changes prioritize gloved-hand operation in outdoor conditions.
+
+---
+
+## Audit Status (2026-01-21)
+
+| Page | Status | Notes |
+|------|--------|-------|
+| `employee.html` | EXCELLENT | Already has 48-56px touch targets, bottom nav, full-screen modals |
+| `mobile.html` | N/A | File does not exist |
+| `field_app_mobile.html` | N/A | File does not exist |
+| `web_app/driver.html` | EXCELLENT | Has bottom nav (64px), touch-min variables, safe area insets |
+| `web_app/delivery-zone-checker.html` | IMPROVED | Added touch targets, full-screen modals on mobile |
+
+---
+
+## delivery-zone-checker.html Improvements (2026-01-21)
+
+Added mobile UX enhancements:
+
+```css
+/* Touch target variables */
+--touch-min: 48px;
+--touch-comfortable: 56px;
+
+/* Input improvements */
+.form-group input, .form-group textarea {
+  font-size: 16px; /* Prevents iOS zoom */
+  min-height: var(--touch-min);
+  touch-action: manipulation;
+}
+
+/* Button min-height */
+.btn {
+  min-height: var(--touch-comfortable);
+  touch-action: manipulation;
+}
+
+/* Copy button enlarged */
+.copy-btn {
+  padding: 14px 20px;
+  min-height: var(--touch-min);
+}
+
+/* Full-screen popup on mobile */
+@media (max-width: 480px) {
+  .popup-content {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+  }
+}
+```
+
+---
+
+## Previous Audit (2026-01-16)
 
 ---
 

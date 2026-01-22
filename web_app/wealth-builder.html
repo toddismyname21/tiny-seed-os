@@ -26,9 +26,19 @@
             --text-secondary: #8d99ae;
             --border: rgba(255,255,255,0.1);
             --gold: #ffd700;
+            /* Mobile-first touch targets */
+            --touch-min: 48px;
+            --touch-comfortable: 56px;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -193,6 +203,42 @@
         @media (max-width: 1200px) {
             .main-grid {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+                padding-top: calc(12px + var(--safe-top));
+                padding-bottom: calc(12px + var(--safe-bottom));
+            }
+
+            .header-title h1 {
+                font-size: 1.25rem;
+            }
+
+            .btn {
+                width: 100%;
             }
         }
 
@@ -678,15 +724,19 @@
 
         /* Buttons */
         .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
+            padding: 14px 24px;
+            border-radius: 10px;
             font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
             border: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            gap: 8px;
+            min-height: var(--touch-min);
+            touch-action: manipulation;
         }
 
         .btn-primary {
@@ -733,6 +783,34 @@
 
         .back-link:hover {
             color: var(--primary-light);
+        }
+
+        /* ============================================= */
+        /* KEYBOARD SHORTCUTS HELP */
+        /* ============================================= */
+        .keyboard-help {
+            position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1rem; font-size: 0.75rem; color: var(--text-secondary); z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .keyboard-help.visible { display: block; }
+        .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help div { margin-bottom: 0.25rem; }
+
+        /* ============================================= */
+        /* PRINT STYLES */
+        /* ============================================= */
+        @media print {
+            body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .keyboard-help, .btn, .back-link, .nav-actions { display: none !important; }
+            .container { max-width: 100%; padding: 0; }
+            .card, .stat-card, .portfolio-card { background: white !important; border: 1px solid #ddd !important; box-shadow: none !important; page-break-inside: avoid; }
+            .stat-value, .portfolio-value { color: black !important; }
+            .positive { color: #2a9d8f !important; }
+            .negative { color: #e63946 !important; }
+            .holding-item { background: #f9f9f9 !important; border: 1px solid #eee !important; }
+            canvas { max-height: 200px !important; }
+            @page { margin: 0.5in; }
         }
     </style>
 </head>
@@ -1559,14 +1637,44 @@ drift = current_percent - target_percent
 
         // Update needle based on current drawdown
         function updateRiskNeedle(drawdownPercent) {
-            // Convert drawdown (0-20%) to angle (-90 to 90 degrees)
             const maxDrawdown = 20;
             const angle = (drawdownPercent / maxDrawdown) * 180 - 90;
             document.getElementById('risk-needle').style.setProperty('--needle-angle', angle + 'deg');
         }
 
-        // Initialize with 3.2% drawdown
         updateRiskNeedle(3.2);
+
+        // ========================================
+        // KEYBOARD SHORTCUTS
+        // ========================================
+        document.addEventListener('keydown', function(e) {
+            if (e.target.matches('input, textarea, select')) return;
+            const key = e.key.toLowerCase();
+            switch (key) {
+                case 'p': window.print(); break;
+                case 'h': window.location.href = '../index.html'; break;
+                case '1': showSpec('adaptive'); break;
+                case '2': showSpec('core'); break;
+                case '3': showSpec('aggressive'); break;
+                case '?': toggleKeyboardHelp(); break;
+                case 'escape': document.getElementById('keyboardHelp')?.classList.remove('visible'); break;
+            }
+        });
+
+        function toggleKeyboardHelp() {
+            document.getElementById('keyboardHelp')?.classList.toggle('visible');
+        }
     </script>
+
+    <div class="keyboard-help" id="keyboardHelp">
+        <h4>Keyboard Shortcuts</h4>
+        <div><kbd>1</kbd> Adaptive Spec</div>
+        <div><kbd>2</kbd> Core Spec</div>
+        <div><kbd>3</kbd> Aggressive Spec</div>
+        <div><kbd>P</kbd> Print report</div>
+        <div><kbd>H</kbd> Home</div>
+        <div><kbd>?</kbd> Toggle help</div>
+        <div><kbd>Esc</kbd> Close help</div>
+    </div>
 </body>
 </html>

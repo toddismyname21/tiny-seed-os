@@ -1,15 +1,16 @@
 {
   "name": "tiny-seed-mcp",
-  "version": "1.0.0",
-  "description": "MCP Server for Tiny Seed Farm - Gives Claude direct access to farm operations",
+  "version": "1.1.0",
+  "description": "MCP Server for Tiny Seed Farm - Gives Claude direct access to farm operations including direct Shopify import",
   "main": "tiny-seed-mcp.js",
   "bin": {
     "tiny-seed-mcp": "./tiny-seed-mcp.js"
   },
   "scripts": {
-    "start": "node tiny-seed-mcp.js"
+    "start": "node tiny-seed-mcp.js",
+    "test-import": "node -e \"require('./shopify-direct-import').importCSAFromShopify({dryRun: true}).then(console.log)\""
   },
-  "keywords": ["mcp", "claude", "farm", "tiny-seed"],
+  "keywords": ["mcp", "claude", "farm", "tiny-seed", "shopify"],
   "author": "Tiny Seed Farm",
   "license": "MIT"
 }

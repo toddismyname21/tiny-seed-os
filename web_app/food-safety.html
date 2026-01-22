@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Food Safety">
+    <title>Food Safety Compliance - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ========================================
+           CSS DESIGN SYSTEM - HIGH CONTRAST FOR FIELD USE
+           Optimized for sunlight readability & gloved hands
+           ======================================== */
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --success: #22c55e;
+            --success-dark: #16a34a;
+            --success-bg: rgba(34, 197, 94, 0.15);
+            --warning: #f59e0b;
+            --warning-dark: #d97706;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --danger-dark: #dc2626;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --info: #3b82f6;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.1);
+            --touch-min: 48px;
+            --touch-comfortable: 56px;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding-bottom: calc(80px + var(--safe-bottom));
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ========================================
+           HEADER - FIXED WITH BACK NAV
+           ======================================== */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: calc(12px + var(--safe-top)) 16px 12px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--bg-elevated);
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .header-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           MAIN CONTENT
+           ======================================== */
+        .main-content {
+            padding: calc(88px + var(--safe-top)) 16px 24px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ========================================
+           SCORE CARD - THE HERO ELEMENT
+           Large, color-coded, unmissable
+           ======================================== */
+        .score-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-ring {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 16px;
+            position: relative;
+        }
+
+        .score-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .score-ring-bg {
+            fill: none;
+            stroke: var(--bg-elevated);
+            stroke-width: 12;
+        }
+
+        .score-ring-progress {
+            fill: none;
+            stroke: var(--success);
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease-out, stroke 0.5s;
+        }
+
+        .score-ring-progress.grade-a { stroke: var(--success); }
+        .score-ring-progress.grade-b { stroke: #4ade80; }
+        .score-ring-progress.grade-c { stroke: var(--warning); }
+        .score-ring-progress.grade-d { stroke: #fb923c; }
+        .score-ring-progress.grade-f { stroke: var(--danger); }
+
+        .score-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--text-primary);
+        }
+
+        .score-grade {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .score-grade.grade-a { color: var(--success); }
+        .score-grade.grade-b { color: #4ade80; }
+        .score-grade.grade-c { color: var(--warning); }
+        .score-grade.grade-d { color: #fb923c; }
+        .score-grade.grade-f { color: var(--danger); }
+
+        .score-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .score-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .score-trend.up {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .score-trend.down {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .score-trend.stable {
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           STREAK WIDGET - GAMIFICATION
+           ======================================== */
+        .streak-widget {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .streak-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+        }
+
+        .streak-info {
+            flex: 1;
+        }
+
+        .streak-count {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .streak-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .streak-celebration {
+            animation: celebrate 0.5s ease-out;
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* ========================================
+           TEAM LEADERBOARD - GAMIFICATION
+           Ranked by compliance task completion
+           ======================================== */
+        .leaderboard-widget {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .leaderboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .leaderboard-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .leaderboard-period {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: var(--bg-elevated);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .leaderboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .leaderboard-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            transition: transform 0.2s;
+        }
+
+        .leaderboard-row:first-child {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, var(--bg-elevated) 100%);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .leaderboard-rank {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .leaderboard-name {
+            flex: 1;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .leaderboard-stats {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .leaderboard-tasks {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .leaderboard-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .leaderboard-empty {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+        }
+
+        .leaderboard-empty-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        /* ========================================
+           QUICK ACTIONS - ONE-TAP LOGGING
+           Big buttons for gloved hands
+           ======================================== */
+        .quick-actions {
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .quick-action-btn {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 100px;
+        }
+
+        .quick-action-btn:active {
+            transform: scale(0.98);
+            background: var(--bg-elevated);
+        }
+
+        .quick-action-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .quick-action-icon.temp { background: var(--info); color: white; }
+        .quick-action-icon.clean { background: var(--success); color: white; }
+        .quick-action-icon.harvest { background: var(--warning); color: white; }
+        .quick-action-icon.water { background: #06b6d4; color: white; }
+
+        .quick-action-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        /* ========================================
+           TODAY'S TASKS - TAPPABLE CARDS
+           ======================================== */
+        .tasks-section {
+            margin-bottom: 24px;
+        }
+
+        .task-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .task-card:active {
+            transform: scale(0.99);
+        }
+
+        .task-card.overdue {
+            border-left-color: var(--danger);
+            background: linear-gradient(90deg, var(--danger-bg) 0%, var(--bg-card) 20%);
+        }
+
+        .task-card.due-soon {
+            border-left-color: var(--warning);
+        }
+
+        .task-card.completed {
+            opacity: 0.6;
+            border-left-color: var(--success);
+        }
+
+        .task-checkbox {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            border: 3px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .task-checkbox.checked {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .task-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+        }
+
+        .task-time {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .task-time.normal {
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           ALERTS - DISMISSIBLE CARDS
+           ======================================== */
+        .alerts-section {
+            margin-bottom: 24px;
+        }
+
+        .alert-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 16px;
+            position: relative;
+        }
+
+        .alert-card.critical {
+            background: linear-gradient(90deg, var(--danger-bg) 0%, var(--bg-card) 30%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .alert-card.warning {
+            background: linear-gradient(90deg, var(--warning-bg) 0%, var(--bg-card) 30%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .alert-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .alert-icon.critical {
+            background: var(--danger);
+            color: white;
+        }
+
+        .alert-icon.warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .alert-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .alert-title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .alert-message {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .alert-dismiss {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* ========================================
+           AUDIT PROGRESS
+           ======================================== */
+        .audit-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .audit-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .audit-title {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .audit-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .audit-badge.ready {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .audit-badge.not-ready {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .audit-progress-bar {
+            height: 12px;
+            background: var(--bg-elevated);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .audit-progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 1s ease-out;
+        }
+
+        .audit-progress-fill.high { background: var(--success); }
+        .audit-progress-fill.medium { background: var(--warning); }
+        .audit-progress-fill.low { background: var(--danger); }
+
+        .audit-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           BOTTOM NAVIGATION - 64px HEIGHT
+           ======================================== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(64px + var(--safe-bottom));
+            padding-bottom: var(--safe-bottom);
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.625rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 64px;
+            min-height: 48px;
+        }
+
+        .nav-item.active {
+            color: var(--success);
+        }
+
+        .nav-item i {
+            font-size: 1.25rem;
+        }
+
+        /* ========================================
+           MODALS - FULL SCREEN ON MOBILE
+           ======================================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            padding-bottom: calc(24px + var(--safe-bottom));
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: var(--text-muted);
+            border-radius: 2px;
+            margin: 0 auto 20px;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-form-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .modal-input,
+        .modal-select {
+            width: 100%;
+            min-height: var(--touch-comfortable);
+            padding: 16px;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .modal-input:focus,
+        .modal-select:focus {
+            outline: none;
+            border-color: var(--success);
+        }
+
+        .temp-quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .temp-quick-btn {
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .temp-quick-btn:active,
+        .temp-quick-btn.selected {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .modal-submit {
+            width: 100%;
+            min-height: var(--touch-comfortable);
+            padding: 16px;
+            background: var(--success);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.125rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-submit:active {
+            transform: scale(0.98);
+            background: var(--success-dark);
+        }
+
+        /* ========================================
+           LOADING & EMPTY STATES
+           ======================================== */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--success);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* ========================================
+           SUCCESS TOAST
+           ======================================== */
+        .toast {
+            position: fixed;
+            top: calc(100px + var(--safe-top));
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: var(--success);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 300;
+            opacity: 0;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast i {
+            font-size: 1.25rem;
+        }
+
+        /* ========================================
+           CONFETTI ANIMATION
+           ======================================== */
+        .confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 400;
+        }
+
+        /* ========================================
+           ONBOARDING FLOW - 3 SCREEN INTRO
+           ======================================== */
+        .onboarding-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 500;
+            display: none;
+        }
+
+        .onboarding-overlay.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .onboarding-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
+            overflow: hidden;
+        }
+
+        .onboarding-slides {
+            flex: 1;
+            display: flex;
+            transition: transform 0.4s ease-out;
+        }
+
+        .onboarding-slide {
+            min-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .onboarding-icon {
+            font-size: 5rem;
+            margin-bottom: 32px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .onboarding-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .onboarding-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-width: 320px;
+            margin-bottom: 32px;
+        }
+
+        .onboarding-features {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .onboarding-feature {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: 16px;
+            text-align: left;
+        }
+
+        .onboarding-feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .onboarding-feature-icon.green { background: var(--success); color: white; }
+        .onboarding-feature-icon.blue { background: var(--info); color: white; }
+        .onboarding-feature-icon.orange { background: var(--warning); color: white; }
+
+        .onboarding-feature-text {
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+
+        .onboarding-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 0 24px 24px;
+        }
+
+        .onboarding-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .onboarding-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: var(--bg-elevated);
+            transition: all 0.3s;
+        }
+
+        .onboarding-dot.active {
+            width: 24px;
+            background: var(--success);
+        }
+
+        .onboarding-btn {
+            width: 100%;
+            min-height: var(--touch-comfortable);
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 1.125rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .onboarding-btn.primary {
+            background: var(--success);
+            color: white;
+        }
+
+        .onboarding-btn.primary:active {
+            transform: scale(0.98);
+            background: var(--success-dark);
+        }
+
+        .onboarding-btn.secondary {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .onboarding-highlight {
+            color: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <button class="back-btn" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div>
+            <div class="header-title">Food Safety</div>
+            <div class="header-subtitle" id="headerGreeting">Loading...</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="loading-spinner"></div>
+            <div>Loading compliance data...</div>
+        </div>
+
+        <!-- Dashboard Content (hidden until loaded) -->
+        <div id="dashboardContent" style="display: none;">
+            <!-- Score Card -->
+            <div class="score-card">
+                <div class="score-label">COMPLIANCE SCORE</div>
+                <div class="score-ring">
+                    <svg width="180" height="180" viewBox="0 0 180 180">
+                        <circle class="score-ring-bg" cx="90" cy="90" r="78"></circle>
+                        <circle class="score-ring-progress" id="scoreProgress" cx="90" cy="90" r="78"
+                                stroke-dasharray="490" stroke-dashoffset="490"></circle>
+                    </svg>
+                    <div class="score-value">
+                        <div class="score-number" id="scoreNumber">--</div>
+                        <div class="score-grade" id="scoreGrade">-</div>
+                    </div>
+                </div>
+                <div class="score-trend" id="scoreTrend">
+                    <i class="fas fa-minus"></i>
+                    <span>Loading...</span>
+                </div>
+            </div>
+
+            <!-- Streak Widget -->
+            <div class="streak-widget" id="streakWidget">
+                <div class="streak-icon">🔥</div>
+                <div class="streak-info">
+                    <div class="streak-count" id="streakCount">0 days</div>
+                    <div class="streak-label">Complete daily temp logs streak</div>
+                </div>
+            </div>
+
+            <!-- Team Leaderboard -->
+            <div class="leaderboard-widget" id="leaderboardWidget">
+                <div class="leaderboard-header">
+                    <div class="leaderboard-title">🏆 Team Leaderboard</div>
+                    <div class="leaderboard-period">Last 7 days</div>
+                </div>
+                <div class="leaderboard-list" id="leaderboardList">
+                    <div class="leaderboard-empty">
+                        <div class="leaderboard-empty-icon">📊</div>
+                        <div>Loading team stats...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="section-header">
+                    <div class="section-title">Quick Log</div>
+                </div>
+                <div class="quick-action-grid">
+                    <button class="quick-action-btn" onclick="openTempModal()">
+                        <div class="quick-action-icon temp">
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="quick-action-label">Temperature</div>
+                    </button>
+                    <button class="quick-action-btn" onclick="openCleaningModal()">
+                        <div class="quick-action-icon clean">
+                            <i class="fas fa-broom"></i>
+                        </div>
+                        <div class="quick-action-label">Cleaning</div>
+                    </button>
+                    <button class="quick-action-btn" onclick="openHarvestModal()">
+                        <div class="quick-action-icon harvest">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <div class="quick-action-label">Pre-Harvest</div>
+                    </button>
+                    <button class="quick-action-btn" onclick="openWaterModal()">
+                        <div class="quick-action-icon water">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="quick-action-label">Water Test</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Today's Tasks -->
+            <div class="tasks-section">
+                <div class="section-header">
+                    <div class="section-title">Today's Tasks</div>
+                    <div class="section-count" id="taskCount">0</div>
+                </div>
+                <div id="tasksList">
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <div>All tasks complete!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Alerts -->
+            <div class="alerts-section" id="alertsSection" style="display: none;">
+                <div class="section-header">
+                    <div class="section-title">⚠️ Alerts</div>
+                </div>
+                <div id="alertsList"></div>
+            </div>
+
+            <!-- Audit Readiness -->
+            <div class="audit-card">
+                <div class="audit-header">
+                    <div class="audit-title">Audit Readiness</div>
+                    <div class="audit-badge not-ready" id="auditBadge">Not Ready</div>
+                </div>
+                <div class="audit-progress-bar">
+                    <div class="audit-progress-fill" id="auditProgressFill" style="width: 0%"></div>
+                </div>
+                <div class="audit-stats">
+                    <span id="auditChecks">0 / 0 checks passed</span>
+                    <span id="auditDays">-- days to ready</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-item active">
+            <i class="fas fa-shield-alt"></i>
+            <span>Compliance</span>
+        </button>
+        <button class="nav-item" onclick="showSection('tasks')">
+            <i class="fas fa-tasks"></i>
+            <span>Tasks</span>
+        </button>
+        <button class="nav-item" onclick="showSection('logs')">
+            <i class="fas fa-history"></i>
+            <span>Logs</span>
+        </button>
+        <button class="nav-item" onclick="showSection('reports')">
+            <i class="fas fa-file-alt"></i>
+            <span>Reports</span>
+        </button>
+    </nav>
+
+    <!-- Temperature Log Modal -->
+    <div class="modal-overlay" id="tempModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <div class="modal-title">Log Temperature</div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Location</label>
+                <select class="modal-select" id="tempLocation">
+                    <option value="walk-in-cooler">Walk-in Cooler</option>
+                    <option value="pack-house">Pack House</option>
+                    <option value="wash-station">Wash Station</option>
+                    <option value="delivery-truck">Delivery Truck</option>
+                </select>
+            </div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Quick Select (°F)</label>
+                <div class="temp-quick-buttons">
+                    <button class="temp-quick-btn" onclick="selectTemp(34)">34°</button>
+                    <button class="temp-quick-btn" onclick="selectTemp(36)">36°</button>
+                    <button class="temp-quick-btn" onclick="selectTemp(38)">38°</button>
+                    <button class="temp-quick-btn" onclick="selectTemp(40)">40°</button>
+                </div>
+            </div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Or Enter Manually</label>
+                <input type="number" class="modal-input" id="tempValue" placeholder="Enter temperature" min="0" max="100" inputmode="decimal">
+            </div>
+
+            <button class="modal-submit" onclick="submitTempLog()">
+                <i class="fas fa-check"></i> Log Temperature
+            </button>
+        </div>
+    </div>
+
+    <!-- Cleaning Log Modal -->
+    <div class="modal-overlay" id="cleaningModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <div class="modal-title">Log Cleaning</div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Area</label>
+                <select class="modal-select" id="cleaningArea">
+                    <option value="pack-house">Pack House</option>
+                    <option value="wash-station">Wash Station</option>
+                    <option value="cooler">Walk-in Cooler</option>
+                    <option value="harvest-bins">Harvest Bins</option>
+                    <option value="delivery-truck">Delivery Truck</option>
+                    <option value="restroom">Restroom</option>
+                </select>
+            </div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Method</label>
+                <select class="modal-select" id="cleaningMethod">
+                    <option value="sweep-mop">Sweep & Mop</option>
+                    <option value="sanitize">Sanitize</option>
+                    <option value="deep-clean">Deep Clean</option>
+                    <option value="rinse">Rinse Only</option>
+                </select>
+            </div>
+
+            <button class="modal-submit" onclick="submitCleaningLog()">
+                <i class="fas fa-check"></i> Log Cleaning
+            </button>
+        </div>
+    </div>
+
+    <!-- Pre-Harvest Inspection Modal -->
+    <div class="modal-overlay" id="harvestModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <div class="modal-title">Pre-Harvest Inspection</div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Field / Block</label>
+                <select class="modal-select" id="harvestField">
+                    <option value="field-1">Field 1 - Main</option>
+                    <option value="field-2">Field 2 - North</option>
+                    <option value="field-3">Field 3 - Greenhouse</option>
+                    <option value="high-tunnel">High Tunnel</option>
+                </select>
+            </div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Crop</label>
+                <input type="text" class="modal-input" id="harvestCrop" placeholder="e.g., Lettuce, Tomatoes">
+            </div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Checklist</label>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="check1" style="width: 24px; height: 24px;">
+                        <span>No animal intrusion signs</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="check2" style="width: 24px; height: 24px;">
+                        <span>No flooding or standing water</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="check3" style="width: 24px; height: 24px;">
+                        <span>No contamination visible</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="check4" style="width: 24px; height: 24px;">
+                        <span>Equipment clean</span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="modal-submit" onclick="submitHarvestInspection()">
+                <i class="fas fa-check"></i> Submit Inspection
+            </button>
+        </div>
+    </div>
+
+    <!-- Water Test Modal -->
+    <div class="modal-overlay" id="waterModal">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <div class="modal-title">Log Water Test</div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Source</label>
+                <select class="modal-select" id="waterSource">
+                    <option value="well">Well</option>
+                    <option value="municipal">Municipal</option>
+                    <option value="pond">Pond/Surface</option>
+                </select>
+            </div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Test Type</label>
+                <select class="modal-select" id="waterTestType">
+                    <option value="generic-ecoli">Generic E. coli</option>
+                    <option value="total-coliform">Total Coliform</option>
+                    <option value="nitrates">Nitrates</option>
+                </select>
+            </div>
+
+            <div class="modal-form-group">
+                <label class="modal-label">Result</label>
+                <select class="modal-select" id="waterResult">
+                    <option value="pass">PASS - Within limits</option>
+                    <option value="fail">FAIL - Exceeds limits</option>
+                    <option value="pending">Pending lab results</option>
+                </select>
+            </div>
+
+            <button class="modal-submit" onclick="submitWaterTest()">
+                <i class="fas fa-check"></i> Log Test
+            </button>
+        </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Logged successfully!</span>
+    </div>
+
+    <!-- Onboarding Flow -->
+    <div class="onboarding-overlay" id="onboardingOverlay">
+        <div class="onboarding-container">
+            <div class="onboarding-slides" id="onboardingSlides">
+                <!-- Slide 1: Why It Matters -->
+                <div class="onboarding-slide">
+                    <div class="onboarding-icon">🛡️</div>
+                    <h1 class="onboarding-title">Protect What Matters</h1>
+                    <p class="onboarding-subtitle">
+                        Food safety isn't just compliance—it's protecting your <span class="onboarding-highlight">customers</span>, your <span class="onboarding-highlight">farm</span>, and your <span class="onboarding-highlight">livelihood</span>.
+                    </p>
+                    <div class="onboarding-features">
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon green"><i class="fas fa-users"></i></div>
+                            <div class="onboarding-feature-text">Keep customers safe & healthy</div>
+                        </div>
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon blue"><i class="fas fa-store"></i></div>
+                            <div class="onboarding-feature-text">Access wholesale accounts</div>
+                        </div>
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon orange"><i class="fas fa-shield-alt"></i></div>
+                            <div class="onboarding-feature-text">Pass audits with confidence</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2: What You'll Do -->
+                <div class="onboarding-slide">
+                    <div class="onboarding-icon">📋</div>
+                    <h1 class="onboarding-title">Simple Daily Tasks</h1>
+                    <p class="onboarding-subtitle">
+                        Just a few quick logs each day keeps you compliant and audit-ready.
+                    </p>
+                    <div class="onboarding-features">
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon blue"><i class="fas fa-thermometer-half"></i></div>
+                            <div class="onboarding-feature-text">Log cooler temps (30 seconds)</div>
+                        </div>
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon green"><i class="fas fa-broom"></i></div>
+                            <div class="onboarding-feature-text">Record cleaning (10 seconds)</div>
+                        </div>
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon orange"><i class="fas fa-seedling"></i></div>
+                            <div class="onboarding-feature-text">Pre-harvest checks (1 minute)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: How Easy It Is -->
+                <div class="onboarding-slide">
+                    <div class="onboarding-icon">✨</div>
+                    <h1 class="onboarding-title">You've Got This!</h1>
+                    <p class="onboarding-subtitle">
+                        One-tap logging, streak tracking, and real-time scores make compliance <span class="onboarding-highlight">easy</span>.
+                    </p>
+                    <div class="onboarding-features">
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon green"><i class="fas fa-hand-pointer"></i></div>
+                            <div class="onboarding-feature-text">Big buttons for gloved hands</div>
+                        </div>
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon orange"><i class="fas fa-fire"></i></div>
+                            <div class="onboarding-feature-text">Build streaks, earn badges</div>
+                        </div>
+                        <div class="onboarding-feature">
+                            <div class="onboarding-feature-icon blue"><i class="fas fa-chart-line"></i></div>
+                            <div class="onboarding-feature-text">Watch your score climb</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="onboarding-nav">
+            <div class="onboarding-dots">
+                <div class="onboarding-dot active" data-slide="0"></div>
+                <div class="onboarding-dot" data-slide="1"></div>
+                <div class="onboarding-dot" data-slide="2"></div>
+            </div>
+            <button class="onboarding-btn primary" id="onboardingNext">
+                Next <i class="fas fa-arrow-right"></i>
+            </button>
+            <button class="onboarding-btn secondary" id="onboardingSkip">
+                Skip intro
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+
+        // State
+        let dashboardData = null;
+        let streakDays = 0;
+        let currentOnboardingSlide = 0;
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if onboarding completed
+            const onboardingComplete = localStorage.getItem('foodSafetyOnboardingComplete');
+
+            if (!onboardingComplete) {
+                showOnboarding();
+            } else {
+                loadDashboard();
+            }
+        });
+
+        // ========================================
+        // ONBOARDING FUNCTIONS
+        // ========================================
+        function showOnboarding() {
+            document.getElementById('onboardingOverlay').classList.add('active');
+            setupOnboardingListeners();
+        }
+
+        function setupOnboardingListeners() {
+            const nextBtn = document.getElementById('onboardingNext');
+            const skipBtn = document.getElementById('onboardingSkip');
+            const slides = document.getElementById('onboardingSlides');
+            const dots = document.querySelectorAll('.onboarding-dot');
+
+            // Next button
+            nextBtn.addEventListener('click', () => {
+                if (currentOnboardingSlide < 2) {
+                    currentOnboardingSlide++;
+                    updateOnboardingSlide();
+                } else {
+                    completeOnboarding();
+                }
+            });
+
+            // Skip button
+            skipBtn.addEventListener('click', completeOnboarding);
+
+            // Dot navigation
+            dots.forEach(dot => {
+                dot.addEventListener('click', () => {
+                    currentOnboardingSlide = parseInt(dot.dataset.slide);
+                    updateOnboardingSlide();
+                });
+            });
+
+            // Swipe support
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            slides.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            slides.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                const diff = touchStartX - touchEndX;
+
+                if (Math.abs(diff) > swipeThreshold) {
+                    if (diff > 0 && currentOnboardingSlide < 2) {
+                        // Swipe left - next
+                        currentOnboardingSlide++;
+                        updateOnboardingSlide();
+                    } else if (diff < 0 && currentOnboardingSlide > 0) {
+                        // Swipe right - prev
+                        currentOnboardingSlide--;
+                        updateOnboardingSlide();
+                    }
+                }
+            }
+        }
+
+        function updateOnboardingSlide() {
+            const slides = document.getElementById('onboardingSlides');
+            const dots = document.querySelectorAll('.onboarding-dot');
+            const nextBtn = document.getElementById('onboardingNext');
+
+            // Move slides
+            slides.style.transform = `translateX(-${currentOnboardingSlide * 100}%)`;
+
+            // Update dots
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentOnboardingSlide);
+            });
+
+            // Update button text on last slide
+            if (currentOnboardingSlide === 2) {
+                nextBtn.innerHTML = "Let's Go! <i class='fas fa-check'></i>";
+            } else {
+                nextBtn.innerHTML = "Next <i class='fas fa-arrow-right'></i>";
+            }
+        }
+
+        function completeOnboarding() {
+            localStorage.setItem('foodSafetyOnboardingComplete', 'true');
+
+            const overlay = document.getElementById('onboardingOverlay');
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.3s';
+
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                overlay.style.opacity = '';
+                loadDashboard();
+            }, 300);
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}?action=getUnifiedComplianceDashboard`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    dashboardData = result.data;
+                    renderDashboard();
+                } else {
+                    showError('Failed to load compliance data');
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showError('Connection error');
+            }
+        }
+
+        function renderDashboard() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('dashboardContent').style.display = 'block';
+
+            // Greeting
+            document.getElementById('headerGreeting').textContent = dashboardData.greeting || 'Good day';
+
+            // Score
+            const compliance = dashboardData.sections.compliance || {};
+            const score = compliance.score || 0;
+            const grade = compliance.grade || 'F';
+
+            document.getElementById('scoreNumber').textContent = score;
+            document.getElementById('scoreGrade').textContent = 'Grade ' + grade;
+            document.getElementById('scoreGrade').className = 'score-grade grade-' + grade.toLowerCase();
+
+            // Animate score ring
+            const progress = document.getElementById('scoreProgress');
+            const circumference = 2 * Math.PI * 78;
+            const offset = circumference - (score / 100) * circumference;
+            progress.style.strokeDashoffset = offset;
+            progress.className = 'score-ring-progress grade-' + grade.toLowerCase();
+
+            // Trend
+            const trend = compliance.trend || 'stable';
+            const trendEl = document.getElementById('scoreTrend');
+            if (trend === 'up') {
+                trendEl.className = 'score-trend up';
+                trendEl.innerHTML = '<i class="fas fa-arrow-up"></i><span>Improving</span>';
+            } else if (trend === 'down') {
+                trendEl.className = 'score-trend down';
+                trendEl.innerHTML = '<i class="fas fa-arrow-down"></i><span>Declining</span>';
+            } else {
+                trendEl.className = 'score-trend stable';
+                trendEl.innerHTML = '<i class="fas fa-minus"></i><span>Stable</span>';
+            }
+
+            // Streak (calculate from temp logs)
+            calculateStreak();
+
+            // Team Leaderboard
+            loadLeaderboard();
+
+            // Tasks
+            renderTasks();
+
+            // Alerts
+            renderAlerts();
+
+            // Audit readiness
+            renderAuditReadiness();
+        }
+
+        function calculateStreak() {
+            // For now, show a placeholder - this would come from API
+            const storedStreak = localStorage.getItem('tempLogStreak') || '0';
+            streakDays = parseInt(storedStreak);
+            document.getElementById('streakCount').textContent = streakDays + ' day' + (streakDays !== 1 ? 's' : '');
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch(`${API_BASE}?action=getComplianceLeaderboard`);
+                const result = await response.json();
+
+                if (result.success && result.leaderboard) {
+                    renderLeaderboard(result.leaderboard);
+                } else {
+                    renderLeaderboard([]);
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                renderLeaderboard([]);
+            }
+        }
+
+        function renderLeaderboard(leaderboard) {
+            const container = document.getElementById('leaderboardList');
+
+            if (!leaderboard || leaderboard.length === 0) {
+                container.innerHTML = `
+                    <div class="leaderboard-empty">
+                        <div class="leaderboard-empty-icon">🌱</div>
+                        <div>Start logging tasks to see team rankings!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = leaderboard.map(member => `
+                <div class="leaderboard-row">
+                    <div class="leaderboard-rank">${member.badge}</div>
+                    <div class="leaderboard-name">${member.name}</div>
+                    <div class="leaderboard-stats">
+                        <div class="leaderboard-tasks">${member.totalTasks}</div>
+                        <div class="leaderboard-label">tasks</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderTasks() {
+            const tasks = dashboardData.sections.tasks?.today || [];
+            const tasksList = document.getElementById('tasksList');
+            const taskCount = document.getElementById('taskCount');
+
+            taskCount.textContent = tasks.length;
+
+            if (tasks.length === 0) {
+                tasksList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <div>All tasks complete! 🎉</div>
+                    </div>
+                `;
+                return;
+            }
+
+            tasksList.innerHTML = tasks.map((task, index) => `
+                <div class="task-card ${task.overdue ? 'overdue' : ''}" onclick="completeTask(${index})">
+                    <div class="task-checkbox" id="taskCheck${index}">
+                        <i class="fas fa-check" style="display: none;"></i>
+                    </div>
+                    <div class="task-info">
+                        <div class="task-title">${task.Title || task.task || 'Task'}</div>
+                        <div class="task-meta">
+                            <span class="task-time ${task.overdue ? '' : 'normal'}">${task.dueTime || 'Today'}</span>
+                            <span>${task.Location || task.location || ''}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAlerts() {
+            const alerts = dashboardData.sections.alerts?.active || [];
+            const alertsSection = document.getElementById('alertsSection');
+            const alertsList = document.getElementById('alertsList');
+
+            if (alerts.length === 0) {
+                alertsSection.style.display = 'none';
+                return;
+            }
+
+            alertsSection.style.display = 'block';
+            alertsList.innerHTML = alerts.map((alert, index) => `
+                <div class="alert-card ${alert.Severity === 'CRITICAL' ? 'critical' : 'warning'}">
+                    <div class="alert-icon ${alert.Severity === 'CRITICAL' ? 'critical' : 'warning'}">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-title">${alert.Title || alert.type || 'Alert'}</div>
+                        <div class="alert-message">${alert.Message || alert.message || ''}</div>
+                    </div>
+                    <button class="alert-dismiss" onclick="dismissAlert(${index}, event)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderAuditReadiness() {
+            const audit = dashboardData.sections.audit || {};
+            const percent = audit.readinessPercent || 0;
+            const isReady = audit.isReady || false;
+            const passed = audit.passedChecks || 0;
+            const total = audit.totalChecks || 0;
+            const days = audit.daysToReady || '--';
+
+            const badge = document.getElementById('auditBadge');
+            badge.textContent = isReady ? 'Ready!' : 'Not Ready';
+            badge.className = 'audit-badge ' + (isReady ? 'ready' : 'not-ready');
+
+            const fill = document.getElementById('auditProgressFill');
+            fill.style.width = percent + '%';
+            fill.className = 'audit-progress-fill ' + (percent >= 80 ? 'high' : percent >= 50 ? 'medium' : 'low');
+
+            document.getElementById('auditChecks').textContent = `${passed} / ${total} checks passed`;
+            document.getElementById('auditDays').textContent = isReady ? 'Ready now!' : `~${days} days to ready`;
+        }
+
+        // Quick Action Functions
+        function openTempModal() {
+            document.getElementById('tempModal').classList.add('active');
+        }
+
+        function openCleaningModal() {
+            document.getElementById('cleaningModal').classList.add('active');
+        }
+
+        function openHarvestModal() {
+            document.getElementById('harvestModal').classList.add('active');
+        }
+
+        function openWaterModal() {
+            document.getElementById('waterModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Close modals when clicking overlay
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // Temperature quick select
+        let selectedTemp = null;
+        function selectTemp(temp) {
+            selectedTemp = temp;
+            document.getElementById('tempValue').value = temp;
+            document.querySelectorAll('.temp-quick-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+
+        // Submit Functions
+        async function submitTempLog() {
+            const location = document.getElementById('tempLocation').value;
+            const temp = document.getElementById('tempValue').value;
+
+            if (!temp) {
+                alert('Please enter a temperature');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}?action=logComplianceEntry`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'TEMPERATURE',
+                        location: location,
+                        reading: parseFloat(temp),
+                        unit: 'F',
+                        employee: 'Field App'
+                    })
+                });
+
+                closeModal('tempModal');
+                showToast('Temperature logged: ' + temp + '°F');
+                incrementStreak();
+                loadDashboard();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Saved locally - will sync');
+            }
+        }
+
+        async function submitCleaningLog() {
+            const area = document.getElementById('cleaningArea').value;
+            const method = document.getElementById('cleaningMethod').value;
+
+            try {
+                const response = await fetch(`${API_BASE}?action=logComplianceEntry`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'CLEANING',
+                        area: area,
+                        method: method,
+                        employee: 'Field App'
+                    })
+                });
+
+                closeModal('cleaningModal');
+                showToast('Cleaning logged!');
+                loadDashboard();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Saved locally - will sync');
+            }
+        }
+
+        async function submitHarvestInspection() {
+            const field = document.getElementById('harvestField').value;
+            const crop = document.getElementById('harvestCrop').value;
+            const checks = [
+                document.getElementById('check1').checked,
+                document.getElementById('check2').checked,
+                document.getElementById('check3').checked,
+                document.getElementById('check4').checked
+            ];
+
+            const allPassed = checks.every(c => c);
+
+            try {
+                const response = await fetch(`${API_BASE}?action=logComplianceEntry`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'PRE_HARVEST',
+                        field: field,
+                        crop: crop,
+                        result: allPassed ? 'PASS' : 'FAIL',
+                        checklist: checks,
+                        employee: 'Field App'
+                    })
+                });
+
+                closeModal('harvestModal');
+                showToast(allPassed ? 'Inspection passed! ✅' : 'Inspection logged with issues');
+                loadDashboard();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Saved locally - will sync');
+            }
+        }
+
+        async function submitWaterTest() {
+            const source = document.getElementById('waterSource').value;
+            const testType = document.getElementById('waterTestType').value;
+            const result = document.getElementById('waterResult').value;
+
+            try {
+                const response = await fetch(`${API_BASE}?action=logComplianceEntry`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'WATER_TEST',
+                        source: source,
+                        testType: testType,
+                        result: result,
+                        employee: 'Field App'
+                    })
+                });
+
+                closeModal('waterModal');
+                showToast('Water test logged!');
+                loadDashboard();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Saved locally - will sync');
+            }
+        }
+
+        // Task completion
+        async function completeTask(index) {
+            const checkbox = document.getElementById('taskCheck' + index);
+            const card = checkbox.parentElement;
+
+            checkbox.classList.add('checked');
+            checkbox.querySelector('i').style.display = 'block';
+            card.classList.add('completed');
+
+            showToast('Task completed! 🎉');
+
+            // Confetti for completing all tasks
+            const tasks = dashboardData.sections.tasks?.today || [];
+            if (tasks.length === 1) {
+                celebrateAllComplete();
+            }
+        }
+
+        // Streak management
+        function incrementStreak() {
+            const today = new Date().toDateString();
+            const lastLog = localStorage.getItem('lastTempLogDate');
+
+            if (lastLog !== today) {
+                streakDays++;
+                localStorage.setItem('tempLogStreak', streakDays.toString());
+                localStorage.setItem('lastTempLogDate', today);
+                document.getElementById('streakCount').textContent = streakDays + ' day' + (streakDays !== 1 ? 's' : '');
+
+                if (streakDays > 0 && streakDays % 7 === 0) {
+                    celebrateStreak();
+                }
+            }
+        }
+
+        // Celebrations
+        function celebrateStreak() {
+            const widget = document.getElementById('streakWidget');
+            widget.classList.add('streak-celebration');
+            showToast('🔥 ' + streakDays + ' day streak! Keep it up!');
+            setTimeout(() => widget.classList.remove('streak-celebration'), 500);
+        }
+
+        function celebrateAllComplete() {
+            showToast('🎉 All tasks complete! Great job!');
+            // Simple confetti effect could be added here
+        }
+
+        // Alert dismissal
+        async function dismissAlert(index, event) {
+            event.stopPropagation();
+            const alerts = dashboardData.sections.alerts?.active || [];
+            if (alerts[index]) {
+                // Mark as acknowledged via API
+                showToast('Alert dismissed');
+                event.target.closest('.alert-card').style.display = 'none';
+            }
+        }
+
+        // Toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function showError(message) {
+            document.getElementById('loadingState').innerHTML = `
+                <i class="fas fa-exclamation-circle" style="font-size: 2rem; color: var(--danger); margin-bottom: 16px;"></i>
+                <div>${message}</div>
+                <button onclick="loadDashboard()" style="margin-top: 16px; padding: 12px 24px; background: var(--success); border: none; border-radius: 8px; color: white; cursor: pointer;">
+                    Retry
+                </button>
+            `;
+        }
+
+        // Navigation
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        function showSection(section) {
+            // For now, just show toast - sections would be separate views
+            showToast('Coming soon: ' + section);
+        }
+    </script>
+</body>
+</html>

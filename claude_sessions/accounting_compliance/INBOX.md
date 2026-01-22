@@ -169,3 +169,9 @@ Generate on-demand:
 ---
 
 *Accounting_Compliance Claude - This is a major workstream. Take time to research properly before building.*
+
+---
+
+## IMPORTANT: READ UNIVERSAL_ACCESS.md
+You have full MCP server access and can deploy code via `clasp push`.
+See: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/UNIVERSAL_ACCESS.md`

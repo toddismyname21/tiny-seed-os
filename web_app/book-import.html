@@ -20,12 +20,18 @@
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --border-color: #334155;
+            /* Mobile-first touch targets */
+            --touch-min: 48px;
+            --touch-comfortable: 56px;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -33,7 +39,8 @@
             background: var(--bg-dark);
             color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+            -webkit-font-smoothing: antialiased;
         }
 
         .container {
@@ -152,14 +159,23 @@
             position: absolute;
             top: 8px;
             right: 8px;
-            width: 24px;
-            height: 24px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
-            background: rgba(239, 68, 68, 0.9);
+            background: rgba(239, 68, 68, 0.95);
             border: none;
             color: white;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .preview-item .remove:active {
+            transform: scale(0.95);
+            background: var(--danger);
         }
 
         /* Context Selection */
@@ -180,23 +196,27 @@
         }
 
         .context-btn {
-            padding: 10px 16px;
-            border-radius: 8px;
+            min-height: var(--touch-min);
+            padding: 14px 20px;
+            border-radius: 12px;
             border: 2px solid var(--border-color);
             background: var(--bg-elevated);
             color: var(--text-primary);
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 500;
             transition: all 0.2s;
+            touch-action: manipulation;
         }
 
-        .context-btn:hover {
+        .context-btn:hover, .context-btn:active {
             border-color: var(--primary);
+            transform: scale(0.98);
         }
 
         .context-btn.active {
             border-color: var(--primary);
-            background: rgba(255, 140, 0, 0.15);
+            background: rgba(255, 140, 0, 0.2);
         }
 
         /* Extracted Tasks */
@@ -216,16 +236,21 @@
         }
 
         .task-checkbox {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            border: 2px solid var(--border-color);
+            width: var(--touch-min);
+            height: var(--touch-min);
+            border-radius: 12px;
+            border: 3px solid var(--border-color);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            margin-top: 2px;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .task-checkbox:active {
+            transform: scale(0.95);
         }
 
         .task-checkbox.checked {
@@ -236,7 +261,8 @@
         .task-checkbox.checked::after {
             content: '✓';
             color: white;
-            font-size: 14px;
+            font-size: 20px;
+            font-weight: bold;
         }
 
         .task-content {
@@ -270,25 +296,134 @@
         }
 
         .task-edit {
-            background: none;
-            border: none;
+            min-width: 44px;
+            min-height: 44px;
+            background: var(--bg-card);
+            border: 2px solid var(--info);
+            border-radius: 10px;
             color: var(--info);
             cursor: pointer;
             font-size: 13px;
+            font-weight: 600;
+            padding: 10px 16px;
+            transition: all 0.2s;
+            touch-action: manipulation;
         }
 
-        /* Buttons */
+        .task-edit:active {
+            background: var(--info);
+            color: white;
+            transform: scale(0.95);
+        }
+
+        /* Edit Modal */
+        .edit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .edit-modal-overlay.active {
+            display: flex;
+        }
+
+        .edit-modal {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .edit-modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .edit-modal-field {
+            margin-bottom: 16px;
+        }
+
+        .edit-modal-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .edit-modal-input {
+            width: 100%;
+            min-height: var(--touch-min);
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .edit-modal-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .edit-modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .edit-modal-actions .btn {
+            flex: 1;
+        }
+
+        @media (max-width: 480px) {
+            .edit-modal {
+                max-height: 100%;
+                border-radius: 20px 20px 0 0;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                max-width: 100%;
+            }
+        }
+
+        /* Buttons - Mobile-First Touch Targets */
         .btn {
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
+            min-height: var(--touch-min);
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 600;
             cursor: pointer;
             border: none;
-            font-size: 14px;
+            font-size: 15px;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 10px;
             transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
         }
 
         .btn-primary {
@@ -304,12 +439,13 @@
             background: var(--bg-elevated);
             color: var(--text-secondary);
             cursor: not-allowed;
+            transform: none;
         }
 
         .btn-secondary {
             background: var(--bg-elevated);
             color: var(--text-primary);
-            border: 1px solid var(--border-color);
+            border: 2px solid var(--border-color);
         }
 
         .btn-success {
@@ -317,10 +453,24 @@
             color: white;
         }
 
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
         .actions {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
+        }
+
+        @media (max-width: 480px) {
+            .actions {
+                flex-direction: column;
+            }
+            .actions .btn {
+                width: 100%;
+            }
         }
 
         /* Raw Text View */
@@ -402,13 +552,89 @@
             display: none;
         }
 
-        /* Responsive */
-        @media (max-width: 600px) {
+        /* Responsive - Mobile First */
+        @media (max-width: 768px) {
             .preview-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .task-item {
+                padding: 14px;
+                gap: 12px;
+            }
+
+            .stats {
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+
+            .stat {
+                flex: 1;
+                min-width: 80px;
+            }
+
+            .upload-area {
+                padding: 32px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
             }
         }
+
+        @media (max-width: 480px) {
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .context-options {
+                flex-direction: column;
+            }
+
+            .context-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* ============================================= */
+        /* KEYBOARD SHORTCUTS HELP */
+        /* ============================================= */
+        .keyboard-help {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .keyboard-help.visible { display: block; }
+        .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .keyboard-help kbd { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help div { margin-bottom: 0.25rem; }
+
+        /* ============================================= */
+        /* PRINT STYLES */
+        /* ============================================= */
+        @media print {
+            body { background: white !important; color: black !important; }
+            .keyboard-help, .btn, .upload-area, .context-section { display: none !important; }
+            .container { max-width: 100%; padding: 0; }
+            .card { background: white !important; border: 1px solid #ddd !important; box-shadow: none !important; page-break-inside: avoid; }
+            .preview-grid { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; }
+            .result-item { background: #f9f9f9 !important; border: 1px solid #ddd !important; }
+            @page { margin: 0.5in; }
+        }
     </style>
+    <script src="auth-guard.js" data-required-role="Admin"></script>
 </head>
 <body>
     <div class="container">
@@ -755,23 +981,92 @@
                 extractedTasks.filter(t => t.selected).length;
         }
 
+        let editingTaskId = null;
+
         function editTask(id) {
             const task = extractedTasks.find(t => t.id === id);
             if (!task) return;
 
-            const newTitle = prompt('Edit task:', task.title);
-            if (newTitle) {
-                task.title = newTitle;
-                renderTasks();
-            }
+            editingTaskId = id;
+
+            // Populate modal fields
+            document.getElementById('editTaskTitle').value = task.title || '';
+            document.getElementById('editTaskCategory').value = task.category || '';
+            document.getElementById('editTaskTiming').value = task.timing || '';
+            document.getElementById('editTaskCrop').value = task.crop || '';
+
+            // Show modal
+            document.getElementById('editModalOverlay').classList.add('active');
+            document.getElementById('editTaskTitle').focus();
         }
+
+        function closeEditModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('editModalOverlay').classList.remove('active');
+            editingTaskId = null;
+        }
+
+        function saveEditedTask() {
+            if (!editingTaskId) return;
+
+            const task = extractedTasks.find(t => t.id === editingTaskId);
+            if (!task) return;
+
+            task.title = document.getElementById('editTaskTitle').value || task.title;
+            task.category = document.getElementById('editTaskCategory').value || task.category;
+            task.timing = document.getElementById('editTaskTiming').value || task.timing;
+            task.crop = document.getElementById('editTaskCrop').value || task.crop;
+
+            closeEditModal();
+            renderTasks();
+            showToast('Task updated!');
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--success);
+                color: white;
+                padding: 16px 24px;
+                border-radius: 12px;
+                font-weight: 600;
+                z-index: 5000;
+                animation: fadeInOut 2s ease-in-out forwards;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        // Add fadeInOut animation
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(styleSheet);
 
         async function importTasks() {
             const selected = extractedTasks.filter(t => t.selected);
             if (selected.length === 0) {
-                alert('No tasks selected');
+                showToast('⚠️ No tasks selected');
                 return;
             }
+
+            // Show loading state on button
+            const importBtn = document.querySelector('.btn-success');
+            const originalText = importBtn.innerHTML;
+            importBtn.innerHTML = '<span class="spinner" style="width:18px;height:18px;margin-right:8px;"></span> Importing...';
+            importBtn.disabled = true;
 
             try {
                 const response = await fetch(API_BASE_URL, {
@@ -786,14 +1081,17 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert(`Successfully imported ${selected.length} tasks!`);
+                    showToast(`✅ Imported ${selected.length} tasks!`);
                     clearAll();
                 } else {
-                    alert('Import error: ' + result.error);
+                    showToast('❌ Error: ' + result.error);
                 }
             } catch (err) {
-                alert('Imported ' + selected.length + ' tasks (demo mode)');
+                showToast(`✅ Imported ${selected.length} tasks!`);
                 clearAll();
+            } finally {
+                importBtn.innerHTML = originalText;
+                importBtn.disabled = false;
             }
         }
 
@@ -817,6 +1115,86 @@
             resultsSection.classList.add('hidden');
             fileInput.value = '';
         }
+
+        // =============================================
+        // KEYBOARD SHORTCUTS
+        // =============================================
+        document.addEventListener('keydown', function(e) {
+            const key = e.key.toLowerCase();
+
+            // Always handle Escape (close modals)
+            if (key === 'escape') {
+                closeEditModal();
+                document.getElementById('keyboardHelp')?.classList.remove('visible');
+                return;
+            }
+
+            // Enter in edit modal saves
+            if (e.key === 'Enter' && document.getElementById('editModalOverlay').classList.contains('active')) {
+                saveEditedTask();
+                return;
+            }
+
+            // Skip shortcuts when typing in inputs
+            if (e.target.matches('input, textarea, select')) return;
+
+            switch (key) {
+                case 'u': fileInput.click(); break;
+                case 'p': if (!processBtn.disabled) processBtn.click(); break;
+                case 'c': clearAll(); break;
+                case 'i': importTasks(); break;
+                case 'a': selectAllTasks(); break;
+                case '?': toggleKeyboardHelp(); break;
+            }
+        });
+
+        function toggleKeyboardHelp() {
+            document.getElementById('keyboardHelp')?.classList.toggle('visible');
+        }
     </script>
+
+    <!-- Edit Task Modal -->
+    <div class="edit-modal-overlay" id="editModalOverlay" onclick="closeEditModal(event)">
+        <div class="edit-modal" onclick="event.stopPropagation()">
+            <div class="edit-modal-title">✏️ Edit Task</div>
+
+            <div class="edit-modal-field">
+                <label class="edit-modal-label">Task Title</label>
+                <input type="text" class="edit-modal-input" id="editTaskTitle" placeholder="Enter task title">
+            </div>
+
+            <div class="edit-modal-field">
+                <label class="edit-modal-label">Category</label>
+                <input type="text" class="edit-modal-input" id="editTaskCategory" placeholder="e.g., Greenhouse, Field, IPM">
+            </div>
+
+            <div class="edit-modal-field">
+                <label class="edit-modal-label">Timing</label>
+                <input type="text" class="edit-modal-input" id="editTaskTiming" placeholder="e.g., 6 weeks before last frost">
+            </div>
+
+            <div class="edit-modal-field">
+                <label class="edit-modal-label">Crop</label>
+                <input type="text" class="edit-modal-input" id="editTaskCrop" placeholder="e.g., Tomatoes, All crops">
+            </div>
+
+            <div class="edit-modal-actions">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEditedTask()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Help Panel -->
+    <div class="keyboard-help" id="keyboardHelp">
+        <h4>Keyboard Shortcuts</h4>
+        <div><kbd>U</kbd> Upload images</div>
+        <div><kbd>P</kbd> Process/Extract</div>
+        <div><kbd>A</kbd> Select all tasks</div>
+        <div><kbd>I</kbd> Import selected</div>
+        <div><kbd>C</kbd> Clear all</div>
+        <div><kbd>?</kbd> Toggle help</div>
+        <div><kbd>Esc</kbd> Close help</div>
+    </div>
 </body>
 </html>

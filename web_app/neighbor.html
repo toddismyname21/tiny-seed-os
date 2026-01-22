@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2d5a27">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Welcome, Neighbor | Tiny Seed Farm</title>
     <meta name="description" content="You're invited to join our farm family. Fresh, local, organic produce from your neighborhood farm.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -696,24 +699,24 @@
             <div class="offer-cards">
                 <div class="offer-card">
                     <div class="offer-card-icon">
-                        <i class="fas fa-percent"></i>
+                        <i class="fas fa-carrot"></i>
                     </div>
-                    <h3>25% Off</h3>
-                    <p>Your first CSA box or farm store order</p>
+                    <h3>$30 Off Veggie CSA</h3>
+                    <p>Full shares ($600+) - A FREE week!</p>
                 </div>
                 <div class="offer-card">
                     <div class="offer-card-icon">
-                        <i class="fas fa-tractor"></i>
+                        <i class="fas fa-seedling"></i>
                     </div>
-                    <h3>Free Farm Tour</h3>
-                    <p>Bring the whole family to see where your food grows</p>
+                    <h3>$15 Off Veggie CSA</h3>
+                    <p>Half shares ($300+) - A FREE week!</p>
                 </div>
                 <div class="offer-card">
                     <div class="offer-card-icon">
-                        <i class="fas fa-star"></i>
+                        <i class="fas fa-spa"></i>
                     </div>
-                    <h3>Neighbor Pricing</h3>
-                    <p>Exclusive discounts all season long</p>
+                    <h3>$20 Off Floral CSA</h3>
+                    <p>All flower subscriptions - A FREE week!</p>
                 </div>
             </div>
         </div>
@@ -765,15 +768,16 @@
                     </button>
                 </form>
                 <div class="promo-code">
-                    Your discount code: <span>NEIGHBOR25</span>
+                    Use code <span>NEIGHBOR</span> at checkout for your free week!
                 </div>
             </div>
             <div class="form-success" id="formSuccess">
                 <i class="fas fa-check-circle"></i>
                 <h3>Welcome to the Family!</h3>
-                <p>Check your email for your welcome package and discount code.</p>
+                <p>Check your email for your welcome package with discount details.</p>
                 <div class="promo-code" style="margin-top: 1.5rem;">
-                    Your discount code: <span>NEIGHBOR25</span>
+                    Use code <span>NEIGHBOR</span> at checkout!<br>
+                    <small style="opacity: 0.8; font-size: 0.85rem;">$30 off Veggie CSA ($600+) | $15 off Veggie CSA ($300+) | $20 off Floral CSA</small>
                 </div>
             </div>
         </div>
@@ -872,8 +876,8 @@
     </div>
 
     <script>
-        // API Configuration
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+        // API Configuration - v323 deployment
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE/exec';
 
         // Get URL parameters for tracking
         function getUrlParams() {
@@ -980,6 +984,15 @@
             e.preventDefault();
             document.querySelector('#claim').scrollIntoView({ behavior: 'smooth' });
         });
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('../sw.js')
+                .then(reg => console.log('[SW] Registered'))
+                .catch(err => console.log('[SW] Registration failed:', err));
+        }
     </script>
 </body>
 </html>

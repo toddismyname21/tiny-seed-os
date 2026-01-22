@@ -1232,24 +1232,176 @@ function determineCustomerSegment(ltv) {
 }
 
 function calculateChurnRisk(context) {
-  let risk = 0;
+  // Enhanced churn risk calculation based on research
+  // Uses weighted factors for comprehensive risk assessment
 
-  // No recent orders
+  let risk = 0;
+  const signals = [];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 1: RECENCY - Days since last order (weight: 25%)
+  // ═══════════════════════════════════════════════════════════════════════════
   if (context.daysSinceLastOrder !== null) {
-    if (context.daysSinceLastOrder > 90) risk += 0.4;
-    else if (context.daysSinceLastOrder > 60) risk += 0.2;
-    else if (context.daysSinceLastOrder > 30) risk += 0.1;
+    if (context.daysSinceLastOrder > 120) {
+      risk += 0.25;
+      signals.push('NO_ORDERS_4_MONTHS');
+    } else if (context.daysSinceLastOrder > 90) {
+      risk += 0.20;
+      signals.push('NO_ORDERS_3_MONTHS');
+    } else if (context.daysSinceLastOrder > 60) {
+      risk += 0.12;
+      signals.push('NO_ORDERS_2_MONTHS');
+    } else if (context.daysSinceLastOrder > 45) {
+      risk += 0.06;
+      signals.push('ORDERING_SLOWED');
+    }
   }
 
-  // Declining sentiment
-  if (context.sentimentTrend === 'DECLINING') risk += 0.3;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 2: SENTIMENT TREND (weight: 25%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.sentimentTrend === 'DECLINING') {
+    risk += 0.25;
+    signals.push('SENTIMENT_DECLINING');
+  } else if (context.sentimentTrend === 'STABLE' && context.recentInteractions?.some(i => i.sentiment === 'NEGATIVE')) {
+    risk += 0.12;
+    signals.push('RECENT_NEGATIVE_SENTIMENT');
+  }
 
-  // Overdue commitments (we let them down)
-  if (context.overdueCommitments > 0) risk += 0.2;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 3: BROKEN PROMISES (weight: 20%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.overdueCommitments > 2) {
+    risk += 0.20;
+    signals.push('MULTIPLE_OVERDUE_COMMITMENTS');
+  } else if (context.overdueCommitments > 0) {
+    risk += 0.12;
+    signals.push('OVERDUE_COMMITMENT');
+  }
 
-  // CSA member not renewed (would need additional data)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 4: COMMUNICATION PATTERN CHANGES (weight: 15%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.daysSinceLastContact !== null && context.daysSinceLastContact > 30) {
+    risk += 0.15;
+    signals.push('COMMUNICATION_GAP');
+  }
+
+  // Message length/engagement decline would go here with more data
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 5: CSA STATUS (weight: 15%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.isCSAMember && context.csaStatus === 'LAPSED') {
+    risk += 0.15;
+    signals.push('CSA_LAPSED');
+  } else if (context.isCSAMember && context.csaStatus === 'EXPIRING_SOON') {
+    risk += 0.08;
+    signals.push('CSA_EXPIRING');
+  }
+
+  // Store signals for debugging/reporting
+  context.churnSignals = signals;
 
   return Math.min(risk, 1.0);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RFM SCORING - Recency, Frequency, Monetary Analysis
+// ═══════════════════════════════════════════════════════════════════════════
+
+function calculateRFMScore(context) {
+  // Each factor scored 1-5 (5 = best)
+
+  // RECENCY: Days since last order
+  let recencyScore = 5;
+  if (context.daysSinceLastOrder !== null) {
+    if (context.daysSinceLastOrder > 90) recencyScore = 1;
+    else if (context.daysSinceLastOrder > 60) recencyScore = 2;
+    else if (context.daysSinceLastOrder > 30) recencyScore = 3;
+    else if (context.daysSinceLastOrder > 14) recencyScore = 4;
+    else recencyScore = 5;
+  }
+
+  // FREQUENCY: Number of orders
+  let frequencyScore = 1;
+  if (context.totalOrders >= 20) frequencyScore = 5;
+  else if (context.totalOrders >= 10) frequencyScore = 4;
+  else if (context.totalOrders >= 5) frequencyScore = 3;
+  else if (context.totalOrders >= 2) frequencyScore = 2;
+  else frequencyScore = 1;
+
+  // MONETARY: Lifetime value
+  let monetaryScore = 1;
+  if (context.ltv >= 5000) monetaryScore = 5;
+  else if (context.ltv >= 1000) monetaryScore = 4;
+  else if (context.ltv >= 500) monetaryScore = 3;
+  else if (context.ltv >= 100) monetaryScore = 2;
+  else monetaryScore = 1;
+
+  // Combined score and segment
+  const rfmScore = `${recencyScore}${frequencyScore}${monetaryScore}`;
+  const totalScore = recencyScore + frequencyScore + monetaryScore;
+
+  let segment = 'NEW';
+  if (totalScore >= 13) segment = 'CHAMPION';
+  else if (totalScore >= 10) segment = 'LOYAL';
+  else if (totalScore >= 7) segment = 'POTENTIAL';
+  else if (totalScore >= 4) segment = 'AT_RISK';
+  else segment = 'HIBERNATING';
+
+  return {
+    recency: recencyScore,
+    frequency: frequencyScore,
+    monetary: monetaryScore,
+    rfmScore: rfmScore,
+    totalScore: totalScore,
+    segment: segment
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMMUNICATION PATTERN ANALYSIS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function analyzeCommuncationPatterns(interactions) {
+  if (!interactions || interactions.length < 2) {
+    return {
+      avgResponseTime: null,
+      messageLengthTrend: 'UNKNOWN',
+      engagementLevel: 'UNKNOWN',
+      preferredTiming: null
+    };
+  }
+
+  // Calculate response times
+  const responseTimes = [];
+  for (let i = 1; i < interactions.length; i++) {
+    if (interactions[i].direction !== interactions[i-1].direction) {
+      const prev = new Date(interactions[i-1].date);
+      const curr = new Date(interactions[i].date);
+      const diffHours = (curr - prev) / (1000 * 60 * 60);
+      if (diffHours > 0 && diffHours < 168) { // Within a week
+        responseTimes.push(diffHours);
+      }
+    }
+  }
+
+  const avgResponseTime = responseTimes.length > 0
+    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+    : null;
+
+  // Determine engagement level based on interaction frequency
+  let engagementLevel = 'LOW';
+  if (interactions.length >= 10) engagementLevel = 'HIGH';
+  else if (interactions.length >= 5) engagementLevel = 'MEDIUM';
+
+  return {
+    avgResponseTime: avgResponseTime,
+    messageLengthTrend: 'STABLE', // Would need message lengths to calculate
+    engagementLevel: engagementLevel,
+    interactionCount: interactions.length
+  };
 }
 
 function normalizePhoneNumber(phone) {

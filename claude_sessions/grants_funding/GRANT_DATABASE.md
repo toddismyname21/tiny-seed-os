@@ -1,9 +1,47 @@
 # Tiny Seed Farm - Agricultural Grant Database
 
-**Last Updated:** 2026-01-15
+**Last Updated:** 2026-01-21
 **Region:** Pennsylvania
 **Farm Type:** Vegetable and Flower Farm
 **Mission Focus:** Food Access & Community
+
+---
+
+## NEW OPPORTUNITIES DISCOVERED (2026-01-21 Research)
+
+### Northeast SARE Farmer Grant - STRONG FIT
+- **Status:** OPEN
+- **Deadline:** TBD (projects start March 1, 2026)
+- **Award:** $5,000 - $30,000
+- **Purpose:** Research sustainable agriculture practices
+- **Duration:** Up to 3 years (complete by Nov 30, 2029)
+- **Eligibility:** Commercial farm owners in PA (YES - Tiny Seed qualifies)
+- **Website:** [Northeast SARE Farmer Grant](https://northeast.sare.org/grants/get-a-grant/farmer-grant-program/)
+- **Fit for Tiny Seed:** Good for testing new practices, no match required
+
+### Northeast SARE Farming Community Grant
+- **Status:** OPEN
+- **Deadline:** February 23, 2026 (5 PM EST)
+- **Award:** $50,000 - $250,000 (from $3.3M pool)
+- **Purpose:** Community-focused sustainable agriculture projects
+- **Requirements:** Partnership/community focus
+- **Website:** [Northeast SARE Community Grant](https://northeast.sare.org/grants/farmingcommunity/)
+- **Fit for Tiny Seed:** Would need community partners
+
+### Regenerative Agriculture Pilot Program - NEW FOR 2026
+- **Status:** LAUNCHING 2026
+- **Award:** From $700 million pool
+- **Agency:** NRCS
+- **Purpose:** Lower production costs for regenerative practices
+- **Combines:** EQIP and CSP under one initiative
+- **Fit for Tiny Seed:** Excellent - organic practices align
+
+### Organic Transition Initiative
+- **Status:** ACTIVE
+- **Award:** From $75 million NRCS pool (part of $300M total)
+- **Purpose:** Support organic and transitioning producers
+- **Includes:** Mentoring, crop insurance, market development
+- **Fit for Tiny Seed:** Already certified, but may have resources
 
 ---
 

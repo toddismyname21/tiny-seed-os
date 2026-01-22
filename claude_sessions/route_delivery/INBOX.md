@@ -184,3 +184,9 @@ When new customer signs up for home delivery:
 ---
 
 *Route_Delivery Claude - Build this right and deliveries become profitable instead of a burden.*
+
+---
+
+## IMPORTANT: READ UNIVERSAL_ACCESS.md
+You have full MCP server access and can deploy code via `clasp push`.
+See: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/UNIVERSAL_ACCESS.md`

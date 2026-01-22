@@ -1,0 +1,5 @@
+SMS System Health Check URL:
+
+https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec?action=healthCheck
+
+Copy and paste this into Safari on your iPhone to test if the API is working.

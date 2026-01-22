@@ -147,21 +147,22 @@ Using USPS EDDM tool, select carrier routes in these areas:
 
 ## The Offer
 
-### Primary Offer: 25% Off First CSA Box
-- Code: `NEIGHBOR25`
-- Value: ~$30-50 savings
-- Easy to redeem online
+### "A FREE WEEK" Discount Structure
+Code: `NEIGHBOR` (single code, tiered discounts)
 
-### Secondary Offer: Free Farm Tour
-- Low commitment entry point
-- Builds relationship
-- Converts visitors to members
+| Product | Minimum | Discount | Value |
+|---------|---------|----------|-------|
+| Veggie CSA (Full Share) | $600+ | **$30 off** | 1 week free |
+| Veggie CSA (Half Share) | $300+ | **$15 off** | 1 week free |
+| Floral CSA (All) | Any | **$20 off** | 1 week free |
+| Add-ons | - | No discount | - |
 
 ### Why This Works:
-1. **Specific discount** - More compelling than "special pricing"
-2. **Dual offer** - Something for browsers AND buyers
-3. **Trackable code** - Measures direct mail ROI
-4. **Time-limited** - Creates urgency (expires March 31)
+1. **Clear value proposition** - "A FREE week of your subscription!"
+2. **Tiered structure** - Encourages full share signup for bigger savings
+3. **Single code** - Easy to remember: NEIGHBOR
+4. **Trackable** - All NEIGHBOR code usage = direct mail attribution
+5. **Excludes add-ons** - Protects margins on extras
 
 ---
 

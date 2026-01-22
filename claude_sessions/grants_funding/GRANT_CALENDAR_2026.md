@@ -1,19 +1,19 @@
 # Tiny Seed Farm - Grant Calendar 2026
 
 **Purpose:** Track all grant deadlines, reporting dates, and award cycles
-**Last Updated:** 2026-01-15
+**Last Updated:** 2026-01-21
 
 ---
 
-## URGENT: JANUARY 2026
+## URGENT: JANUARY 2026 (Updated Jan 21)
 
-| Date | Grant | Action | Notes |
-|------|-------|--------|-------|
-| **Jan 15** | VAPG | APPLICATION WINDOW OPENS | Register NOW if not done |
-| **Jan 23** | OBBBA Export Markets | **DEADLINE** | $285M pool - international markets |
-| Jan 24 | PA Ag Innovation | Guidelines Published | Review at pa.gov/aginnovation |
-| **Jan 30** | FruitGuys Community Fund | **DEADLINE** | Up to $5,000 for sustainability |
-| Jan 30 | PA Veterans in Ag | Application Opens | Through March 13 |
+| Date | Grant | Action | Status |
+|------|-------|--------|--------|
+| Jan 15 | VAPG | APPLICATION WINDOW OPEN | ✅ NOW OPEN - Deadline Apr 15 |
+| **Jan 23** | OBBBA Export Markets | **DEADLINE - 2 DAYS** | ⚠️ International exports - likely NOT relevant |
+| **Jan 24** | PA Ag Innovation | Guidelines Published | 📋 DOWNLOAD & REVIEW - 3 days |
+| **Jan 30** | FruitGuys Community Fund | **DEADLINE - 9 DAYS** | ⚠️ Up to $5,000 - EVALUATE FIT |
+| Jan 30 | PA Veterans in Ag | Application Opens | N/A (Todd not veteran) |
 
 ---
 
@@ -22,6 +22,7 @@
 | Date | Grant | Action | Notes |
 |------|-------|--------|-------|
 | Feb 2 | PA Ag Innovation | APPLICATION OPENS | Through April 18 |
+| **Feb 23** | NE SARE Farming Community | **DEADLINE 5 PM EST** | $50K-$250K - needs partners |
 | TBD | OBBBA Direct Payment | Payouts Scheduled | Check eligibility |
 
 ---
@@ -94,26 +95,29 @@ Based on historical patterns - verify current year dates:
 ## 2026 DEADLINE SUMMARY (Visual)
 
 ```
-JANUARY 2026
+JANUARY 2026 (Updated Jan 21)
 ------------------------------------------------------------
-[15] VAPG Opens
-[23] OBBBA Export Markets DEADLINE ***
-[24] PA Ag Innovation Guidelines
-[30] FruitGuys DEADLINE ***
-[30] PA Veterans Opens
+[15] VAPG Opens ✓ OPEN NOW
+[21] TODAY
+[23] OBBBA Export Markets DEADLINE *** (skip - not relevant)
+[24] PA Ag Innovation Guidelines - DOWNLOAD
+[30] FruitGuys DEADLINE *** - EVALUATE
+[30] PA Veterans Opens (N/A - not veteran)
 
 FEBRUARY 2026
 ------------------------------------------------------------
 [02] PA Ag Innovation Opens
+[23] NE SARE Farming Community DEADLINE *** (needs partners)
 
 MARCH 2026
 ------------------------------------------------------------
-[13] PA Veterans DEADLINE ***
+[01] NE SARE Farmer Grant Projects Start
+[13] PA Veterans DEADLINE *** (N/A)
 
 APRIL 2026
 ------------------------------------------------------------
 [15] VAPG DEADLINE ***
-[18] PA Ag Innovation DEADLINE ***
+[18] PA Ag Innovation DEADLINE *** - PRIORITY
 
 SEPTEMBER 2026
 ------------------------------------------------------------

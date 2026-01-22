@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#2d5a27">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="../manifest.json">
   <title>Check Delivery Availability | Tiny Seed Farm</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -24,6 +27,8 @@
       --warning: #f59e0b;
       --danger: #ef4444;
       --border: #e5e7eb;
+      --touch-min: 48px;
+      --touch-comfortable: 56px;
     }
 
     body {
@@ -146,9 +151,11 @@
       padding: 12px 14px;
       border: 2px solid var(--border);
       border-radius: 10px;
-      font-size: 1rem;
+      font-size: 16px; /* Prevents iOS zoom */
       font-family: inherit;
       transition: border-color 0.2s;
+      min-height: var(--touch-min);
+      touch-action: manipulation;
     }
 
     .form-group input:focus, .form-group textarea:focus {
@@ -178,6 +185,8 @@
       font-weight: 600;
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
+      min-height: var(--touch-comfortable);
+      touch-action: manipulation;
     }
 
     .btn:hover {
@@ -269,11 +278,13 @@
       color: var(--primary);
       border: none;
       border-radius: 8px;
-      padding: 10px 16px;
-      font-size: 0.9rem;
+      padding: 14px 20px;
+      font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
       margin-top: 8px;
+      min-height: var(--touch-min);
+      touch-action: manipulation;
     }
 
     .copy-btn.copied {
@@ -374,6 +385,21 @@
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
+    }
+
+    /* Full-screen popup on mobile */
+    @media (max-width: 480px) {
+      .popup-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+      }
+      .popup-overlay {
+        padding: 0;
+      }
     }
 
     .popup-header {
@@ -1019,6 +1045,15 @@
         document.getElementById('request-sent-popup').classList.add('show');
       }
     });
+  </script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js')
+        .then(reg => console.log('[SW] Registered'))
+        .catch(err => console.log('[SW] Registration failed:', err));
+    }
   </script>
 </body>
 </html>

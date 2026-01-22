@@ -1,205 +1,109 @@
-# INBOX: Don_Knowledge_Base Claude
-## From: PM_Architect
+# NEW MISSION: Expand Operators Manual
 
-**Created:** 2026-01-15
-**URGENT UPDATE:** 2026-01-16 - OVERNIGHT DIRECTIVE
-
----
-
-## OVERNIGHT MISSION (Owner is sleeping - WORK AUTONOMOUSLY)
-
-### PRIMARY ASSIGNMENT: LEASE RESEARCH SUPPORT + KRETSCHMANN DEEP DIVE
-
-**You are partnering with Business_Foundation Claude on this.**
-
-#### Your Research Focus
-
-1. **Don Lease History Email Archive (86MB)**
-   - Process the `Don Lease History.mbox` file
-   - Extract all relevant correspondence about land, lease, succession
-   - Document Don's stated intentions over time
-   - Note any commitments or promises made
-   - Timeline of the relationship
-
-2. **Don's Philosophy & Values**
-   - From his CSA letter and other docs, what does Don value?
-   - How does he view the land's future?
-   - What does "land trust" mean to him?
-   - What's his vision for succession?
-
-3. **Historical Context**
-   - How long has Don farmed this land?
-   - What's the history of the property?
-   - Any previous succession attempts or discussions?
-
-4. **Relationship Documentation**
-   - Create `/don_docs/relationship/` folder
-   - `TIMELINE.md` - Chronological history of Todd-Don relationship
-   - `DONS_COMMITMENTS.md` - All stated intentions/promises
-   - `CORRESPONDENCE_SUMMARY.md` - Key email excerpts
-
-#### Support Business_Foundation Claude
-
-They are creating THREE lease proposals. Provide them:
-- Evidence of Don's intentions
-- Quotes they can use
-- Historical context
-- Any red flags you find
-
-#### Deliverable: MORNING BRIEFING
-
-Create `/don_docs/MORNING_BRIEFING.md` with:
-- Summary of what you found in correspondence
-- Key quotes from Don
-- Timeline of major events
-- Recommended reading for owner
+**Date:** 2026-01-22
+**From:** PM Claude
+**Priority:** MEDIUM - DOCUMENTATION
 
 ---
 
-### SECONDARY ASSIGNMENT (If blocked on primary)
+## PREVIOUS TASK: COMPLETE ✅
 
-If you can't process the email archive or hit permissions:
-
-**Complete Data Integration Prep**
-- Finalize the 627 sowing records for Field_Operations
-- Package seed order data for Inventory_Traceability
-- Create import-ready CSV files
-- Document the data structure
+Excellent overnight work - MorningBriefGenerator.js and PHIDeadlineTracker.js deployed (~850 lines).
 
 ---
 
-### CHECK-IN PROTOCOL
+## NEW MISSION: Operators Manual Expansion
 
-Write to your OUTBOX when:
-1. Email archive processing complete (or blocked)
-2. Key findings documented
-3. Morning briefing ready
-4. If you find anything urgent
-
-**PM_Architect will check your OUTBOX.**
+We have a new Operators Manual at `/docs/OPERATORS_MANUAL.md`. It needs to include ALL the intelligence you built.
 
 ---
 
-## YOUR DOMAIN
+## YOUR MODULES TO DOCUMENT
 
-You are the knowledge curator for Don's 40 years of farming experience. Your job is to analyze his documents and extract wisdom to incorporate into Tiny Seed OS.
+You built ~1,800 lines of intelligence code:
 
----
-
-## CONTEXT
-
-Don is an experienced farmer who has been farming for 40 years. He has shared documents and spreadsheets with valuable information. Your job is to:
-
-1. Analyze all provided materials
-2. Extract actionable insights
-3. Identify what should be incorporated into the system
-4. Preserve institutional knowledge
+| Module | Lines | Document |
+|--------|-------|----------|
+| SmartSuccessionPlanner.js | ~450 | GDD planning, disease prediction |
+| FoodSafetyIntelligence.js | ~500 | PHI/REI, contamination risk |
+| MorningBriefGenerator.js | ~400 | Unified daily briefing |
+| PHIDeadlineTracker.js | ~450 | Spray compliance automation |
 
 ---
 
-## ASSIGNED TASKS
+## TASKS
 
-### 1. Document Analysis Folder
-**Priority: HIGH**
+### 1. Read the Current Manual
+`/docs/OPERATORS_MANUAL.md`
 
-Create and organize:
-```
-/don_docs/
-  /raw/           <- Owner uploads Don's originals here
-  /analyzed/      <- Your analysis notes
-  /extracted/     <- Clean data extracted from docs
-  /recommendations/ <- What to implement
+### 2. Add Your Intelligence Modules
+
+For each module, document:
+- What it does (plain English)
+- Key functions and what they return
+- API endpoints (if any)
+- How it integrates with other systems
+- Example usage
+
+### 3. Add Morning Brief Section
+
+Document the Morning Brief system:
+- What data it pulls
+- Weather integration
+- Alert priorities
+- How to customize
+
+### 4. Add Food Safety Section
+
+Document:
+- PHI/REI tracking
+- Spray logging
+- Compliance reports
+- Alert system
+
+### 5. Add GDD/Succession Section
+
+Document:
+- How GDD predictions work
+- Disease risk calculation
+- Harvest forecasting
+
+---
+
+## FORMAT
+
+Follow the existing manual format:
+```markdown
+## Section Name
+
+**File:** `path/to/file.js`
+
+### Features
+
+| Feature | Description | API Endpoint |
+|---------|-------------|--------------|
+| Feature Name | What it does | `?action=xxx` |
 ```
 
-### 2. Document Inventory
-**Priority: HIGH**
+---
 
-As documents come in:
-- Catalog each document
-- Note document type (spreadsheet, notes, plan, etc.)
-- Summarize key content
-- Rate relevance to system (HIGH/MEDIUM/LOW)
+## DELIVERABLES
 
-### 3. Knowledge Extraction
-**Priority: HIGH**
-
-For each document, extract:
-- **Crop-specific wisdom** (varieties, timing, techniques)
-- **Business practices** (pricing, markets, customers)
-- **Operational systems** (workflows, schedules, checklists)
-- **Lessons learned** (what worked, what didn't)
-- **Local knowledge** (PA-specific, regional markets, weather patterns)
-
-### 4. Integration Recommendations
-**Priority: MEDIUM**
-
-For each insight, recommend:
-- Which part of Tiny Seed OS should incorporate this
-- How to implement (new feature, data entry, documentation)
-- Priority level
-- Which Claude should handle implementation
-
-### 5. Knowledge Base Document
-**Priority: MEDIUM**
-
-Create a living document:
-- `DONS_WISDOM.md` - Organized collection of insights
-- Categorized by topic
-- Searchable
-- Referenced to original documents
+1. Updated `/docs/OPERATORS_MANUAL.md` with all your modules
+2. Update OUTBOX.md when complete
 
 ---
 
-## APPROACH
+## OWNER DIRECTIVE
 
-Don has 40 years of success. Treat his materials with respect:
-- Don't dismiss anything as outdated without consideration
-- Look for timeless principles, not just current practices
-- Note what's PA/region-specific vs universal
-- Flag anything that contradicts current system assumptions
+> "NO SHORTCUTS. STATE OF THE ART ONLY."
 
----
+**Document everything. Make it easy for anyone to understand the system.**
 
-## PM_ARCHITECT NOTE (2026-01-16)
-
-**Excellent work on the initial analysis.** Your OUTBOX shows critical progress:
-
-### Data Goldmine Discovered
-- 627 Greenhouse Sowing Records (2024)
-- 189 Seed Orders
-- 6 Soil Test Results
-- Complete variety database
-
-### Integration Ready
-Your recommendations are approved for handoff:
-1. **Field_Operations Claude** → Sowing data, variety database
-2. **Inventory_Traceability Claude** → Seed orders, supplier info
-
-### Still Pending
-- 86MB email archive (Don Lease History.mbox) - Process if time allows
-- Owner approval to proceed with data import
-
-### Context from Other Claudes
-Business_Foundation discovered Don has made public commitments to Todd about long-term lease but never signed an agreement. This adds context to the Don-Todd relationship you may see in correspondence.
+*PM Claude*
 
 ---
 
-## FIRST STEPS
-
-1. ~~Create folder structure~~ DONE
-2. ~~Wait for owner to upload Don's documents~~ DONE - Documents analyzed
-3. ~~Begin cataloging as documents arrive~~ DONE
-4. ~~Start with highest-value documents first~~ DONE
-
----
-
-## WRITE TO OUTBOX
-
-- Folder structure created
-- Document inventory (as items arrive)
-- Initial analysis findings
-- Top recommendations for implementation
-
----
-
-*Don_Knowledge_Base Claude - This is about preserving and leveraging 40 years of expertise. Take it seriously.*
+## IMPORTANT: READ UNIVERSAL_ACCESS.md
+You have full MCP server access and can deploy code via `clasp push`.
+See: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/UNIVERSAL_ACCESS.md`

@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#FF8C00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="../manifest.json">
     <title>Tiny Seed Farm - Farmers Market Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="api-config.js"></script>
@@ -1254,6 +1258,15 @@ Sales are pulled from your Shopify POS for the market time window.`);
             if (code >= 95) return '⛈️';
 
             return '☁️';
+        }
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('../sw.js')
+                .then(reg => console.log('[SW] Registered'))
+                .catch(err => console.log('[SW] Registration failed:', err));
         }
     </script>
 </body>

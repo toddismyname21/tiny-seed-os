@@ -1,303 +1,206 @@
 # INBOX: Backend Claude
 ## From: PM_Architect
 
-**Updated:** 2026-01-15 @ 7:30 PM
-**URGENT UPDATE:** 2026-01-16 - OVERNIGHT DIRECTIVE
+**Updated:** 2026-01-22
+**PRIORITY:** CRITICAL - CHEF ORDERING SYSTEM - END OF DAY DEADLINE
 
 ---
 
-## OVERNIGHT MISSION (Owner is sleeping - WORK AUTONOMOUSLY)
+## MISSION: SMART INVENTORY + FIELD PLAN INTEGRATION
 
-### PRIMARY ASSIGNMENT: COMPREHENSIVE BACKEND AUDIT
+**Owner Directive:** "I WANT IT TO BE SO SMART THAT IT KNOWS WHAT I SHOULD DO BEFORE ME."
 
-Owner wants a clean, audited backend. No duplicates, no old authorizations, everything running smoothly.
-
-#### Part 1: Code Audit
-
-Analyze `apps_script/MERGED TOTAL.js` for:
-
-**Duplicates:**
-- Are there duplicate functions?
-- Repeated code blocks?
-- Functions that do the same thing with different names?
-
-**Dead Code:**
-- Functions never called?
-- Commented-out code blocks?
-- Old implementations replaced but not removed?
-
-**Old Authorizations:**
-- OAuth tokens that should be refreshed?
-- API keys that might be stale?
-- Permissions no longer needed?
-
-**Create `/claude_sessions/backend/CODE_AUDIT.md`:**
-- List all issues found
-- Line numbers
-- Recommended fixes
-- Priority (HIGH/MEDIUM/LOW)
-
-#### Part 2: API Endpoint Inventory
-
-Create `/claude_sessions/backend/API_INVENTORY.md`:
-
-**Document ALL endpoints:**
-```
-| Action | Method | Handler Function | Line # | Status |
-|--------|--------|------------------|--------|--------|
-| getPlants | GET | getPlants() | 234 | WORKING |
-```
-
-**For each endpoint note:**
-- Is it actually used by frontend?
-- Does it have error handling?
-- Is it documented?
-
-#### Part 3: Sheet Dependency Map
-
-Create `/claude_sessions/backend/SHEET_DEPENDENCIES.md`:
-
-**Map which sheets are used by which functions:**
-- PLANNING_2026
-- PLAID_ITEMS
-- USERS
-- SESSIONS
-- etc.
-
-**Identify:**
-- Sheets that might be redundant
-- Missing sheets that should exist
-- Schema inconsistencies
-
-#### Part 4: Health Check Endpoints
-
-**Build diagnostic endpoints:**
-- `?action=healthCheck` - Basic health
-- `?action=diagnoseSheets` - Verify all sheets exist
-- `?action=diagnoseIntegrations` - Check API connections
-
-#### Deliverable: MORNING AUDIT REPORT
-
-Create `/claude_sessions/backend/MORNING_AUDIT_REPORT.md`:
-- Summary of backend health
-- Critical issues found
-- Quick fixes available
-- Recommended cleanup tasks
+Build the backend that connects field plans to chef ordering with REAL-TIME availability.
 
 ---
 
-### SECONDARY ASSIGNMENT (If blocked on primary)
+## TASK 1: Real-Time Availability Engine
 
-If you can't read the codebase or hit permissions:
+Create `/apps_script/SmartAvailability.js`:
 
-**Backend Architecture Documentation**
-- Document ideal backend architecture
-- Best practices for Apps Script
-- Error handling patterns
-- Logging recommendations
+### Data Sources to Connect:
+- `PLANNING_2026` - What's planted, where, when
+- `REF_Beds` - Bed status and current crops
+- `REF_Crops` - DTM, harvest windows, yields
+- `HARVEST_LOG` - What's been harvested (reduces availability)
+- `WHOLESALE_ORDERS` - What's already committed
 
----
+### Functions to Build:
 
-### PREVIOUS TASKS (Still Relevant)
+```javascript
+/**
+ * Get real-time availability for all products
+ * Considers: planted, growing, ready, harvested, committed
+ */
+function getRealtimeAvailability() {
+  // Returns: { product, available_now, available_this_week, available_next_week, forecast_4_weeks }
+}
 
-The social media and sowing tasks from before are still valid:
-- Store Ayrshare API key (needs owner)
-- Implement getTransplantTasks / getDirectSeedTasks (may be done)
+/**
+ * Get availability forecast for a specific product
+ * Uses DTM + planting dates + weather adjustments
+ */
+function getProductForecast(productId, weeksAhead) {
+  // Returns: [{ week, projected_quantity, confidence }]
+}
 
-Include status of these in your audit.
+/**
+ * Check if an order can be fulfilled
+ * Considers standing orders, existing commitments
+ */
+function canFulfillOrder(items) {
+  // Returns: { canFulfill: true/false, shortages: [], alternatives: [] }
+}
 
----
+/**
+ * Smart allocation when demand exceeds supply
+ * Priority: Standing orders > Loyalty tier > First-come
+ */
+function allocateAvailability(product, totalAvailable, orders) {
+  // Returns allocation per order
+}
 
-### CHECK-IN PROTOCOL
-
-Write to your OUTBOX when:
-1. Code audit complete
-2. API inventory done
-3. Sheet map created
-4. Health check endpoints added
-5. Morning report ready
-
-**PM_Architect will check your OUTBOX.**
-
----
-
-*Backend Claude - Clean house. Make the backend bulletproof.*
-
----
-
-## NEW TASK: Integrate Accounting Module into Live System
-**From:** Accounting_Compliance Claude
-**Date:** 2026-01-16
-**Priority:** HIGH
-
-### What Was Built
-
-A complete Accounting Hub has been created and deployed. It needs to be integrated into the main navigation so it's accessible as part of the live Tiny Seed OS.
-
-### Files Created/Modified
-
-| File | Status | Description |
-|------|--------|-------------|
-| `apps_script/AccountingModule.js` | NEW | All accounting functions (56KB) |
-| `apps_script/MERGED TOTAL.js` | MODIFIED | Added 12 GET + 10 POST endpoints |
-| `apps_script/appsscript.json` | MODIFIED | Added Gmail API scope |
-| `web_app/accounting.html` | NEW | Full accounting hub frontend |
-
-### API Endpoints Added to MERGED TOTAL.js
-
-**GET Endpoints (lines 662-686):**
-```
-initializeAccountingModule, getReceipts, getExpenseCategories,
-getAccountantEmails, getAccountantDocs, analyzeAccountantEmailPatterns,
-getGrants, getAuditTrailAccounting, generateProfitLossStatement,
-generateScheduleFReport, suggestCategory, getVendorCategories
+/**
+ * What should the farmer do today?
+ * AI-driven recommendations based on inventory state
+ */
+function getSmartRecommendations() {
+  // Returns: ["Harvest tomatoes - 3 chefs waiting", "Plant lettuce - demand spike in 2 weeks"]
+}
 ```
 
-**POST Endpoints (lines 934-954):**
+---
+
+## TASK 2: Chef Data Model
+
+Ensure `WHOLESALE_CUSTOMERS` sheet has:
+
 ```
-saveReceipt, uploadReceiptImage, verifyReceipt, importAccountantEmails,
-setupEmailImportTrigger, saveGrant, addExpenseCategory, updateReceipt,
-deleteReceipt, linkReceiptToGrant
+| Customer_ID | Company_Name | Contact_Name | Email | Phone |
+| Address | City | State | Zip |
+| Customer_Type | Price_Tier | Payment_Terms |
+| Preferred_Contact | SMS_Opted_In | Email_Opted_In |
+| First_Order_Date | Last_Order_Date | Total_Orders | Lifetime_Value |
+| Favorite_Products | Order_History_JSON |
+| Notes | Tags | Status |
 ```
 
-### Deployment Status
+---
 
-- **Pushed to GitHub**: ✓ Commit `bd940fb`
-- **Deployed to Apps Script**: ✓ Version @109
-- **API URL**: Same as existing (no change needed)
-- **Sheets Created**: 11 accounting sheets initialized in spreadsheet
+## TASK 3: Communication Engine
 
-### What Backend Claude Needs To Do
+Create `/apps_script/ChefCommunications.js`:
 
-1. **Add to Navigation**: Add link to `accounting.html` in:
-   - `index.html` (main dashboard)
-   - Any sidebar/nav menus
-   - Suggested nav text: "Accounting" or "Accounting Hub"
-   - Suggested icon: 💰 or 📊
+```javascript
+/**
+ * Send weekly availability to all opted-in chefs
+ */
+function sendWeeklyAvailabilityBlast() {
+  // SMS: Short list of what's fresh
+  // Email: Full availability with photos
+}
 
-2. **GitHub Pages**: Ensure site is served via GitHub Pages so `accounting.html` is accessible at:
-   ```
-   https://toddismyname21.github.io/tiny-seed-os/web_app/accounting.html
-   ```
+/**
+ * Notify chef of shortage on their standing order
+ */
+function notifyStandingOrderShortage(customerId, product, reason, alternatives) {
+  // SMS + Email with substitution options
+}
 
-3. **Verify Integration**: The accounting.html already uses `api-config.js` for the API URL, so no backend URL changes needed.
+/**
+ * Send "just harvested" alerts for premium products
+ */
+function sendFreshHarvestAlert(product, quantity) {
+  // To chefs who have ordered this before
+}
 
-### Features in Accounting Hub
-
-- **Dashboard**: Stats overview, recent receipts, email analysis
-- **Receipts**: Upload images, manual entry, OCR, verification
-- **Accountant Docs**: Gmail import from DGPerry (6 email addresses configured)
-- **Reports**: P&L Statement, Schedule F Report generation
-- **Grants**: Track grants with expenditure linking
-- **Categories**: 57 Schedule F expense categories (IRS-aligned)
-
-### OAuth Note
-
-First time user clicks "Import Emails", Google will prompt for Gmail authorization (new scope). This is expected and one-time.
+/**
+ * Personalized recommendations based on order history
+ */
+function sendPersonalizedRecommendations(customerId) {
+  // "Based on your orders, you might like..."
+}
+```
 
 ---
 
-*Accounting_Compliance Claude - Module ready, needs navigation integration.*
+## TASK 4: API Endpoints
+
+Add to `MERGED TOTAL.js`:
+
+```javascript
+// Availability
+case 'getRealtimeAvailability':
+case 'getProductForecast':
+case 'getWeeklyAvailability':      // Formatted for chefs
+
+// Chef Management
+case 'getChefProfile':
+case 'updateChefPreferences':
+case 'getChefOrderHistory':
+case 'getChefRecommendations':
+
+// Smart Features
+case 'getSmartRecommendations':    // For farmer dashboard
+case 'canFulfillOrder':
+case 'getFreshHarvests':           // Just picked today
+```
 
 ---
 
-## NEW TASK: COMPLETE MOBILE BACKEND CHECKLIST
-**From:** Main Claude (System Audit)
-**Date:** 2026-01-16
-**Priority:** HIGH
+## TASK 5: Triggers
 
-### URGENT: BUILD COMPLETE MOBILE BACKEND
+```javascript
+// Daily at 6 AM - Calculate today's availability
+ScriptApp.newTrigger('calculateDailyAvailability').timeBased().atHour(6).everyDays(1).create();
 
-The mobile app (employee.html) needs a fully connected backend. Below is the complete checklist.
+// Monday at 7 AM - Send weekly availability to chefs
+ScriptApp.newTrigger('sendWeeklyAvailabilityBlast').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(7).create();
 
----
-
-### GOOGLE SHEETS CHECKLIST
-
-#### 1. USERS Sheet (Authentication)
-Required columns:
-- `User_ID` - Unique identifier (e.g., USR-001)
-- `Full_Name` - Employee full name
-- `PIN` - 4-digit login PIN
-- `Role` - Employee, Field_Lead, Manager, Admin
-- `Is_Active` - TRUE/FALSE
-- `Language_Pref` - en or es
-- `Phone` - Employee phone number
-- `Email` - Employee email
-- `Tractor_Mode`, `Garage_Mode`, `Inventory_Mode`, `Costing_Mode`, `Delivery_Mode` - Permission checkboxes
-
-#### 2. CUSTOMERS Sheet (Deliveries) - CRITICAL
-Required columns:
-- `Customer_ID` - Unique identifier
-- `Name` or `Customer_Name` - Full name
-- `Company_Name` - Business name
-- **`Phone` or `Phone_Number`** - CRITICAL for Call/Text buttons
-- **`Email`** - CRITICAL for Email button
-- `Customer_Type` - Retail, Wholesale, CSA, Restaurant
-- `Address`, `City`, `State`, `Zip` - Delivery address
-- `Delivery_Zone`, `Delivery_Notes`
-
-#### 3. DELIVERIES Sheet
-- `Route_ID`, `Delivery_Date`, `Driver_ID`, `Status`
-
-#### 4. DELIVERY_STOPS Sheet
-- `Stop_ID`, `Route_ID`, `Order_ID`, `Customer_Name`, `Address`
-- `Stop_Order` (sequence), `Status`, `Completed_At`, `POD_Photo`, `Signature`
-
-#### 5. ORDERS / ORDER_ITEMS
-- Standard order tracking columns
-
-#### 6. EMPLOYEE_TASKS Sheet
-- `Task_ID`, `Type`, `Crop`, `Variety`, `Date`, `Bed`, `Field`
-- `Assigned_To`, `Status`, `Is_Team_Task`, `Subtasks_Total/Completed`
-
-#### 7. CROP_INVENTORY Sheet (Produce on Hand)
-- `Inventory_ID`, `Date`, `Crop`, `Variety`, `Location` (Cooler 1, Field Storage)
-- `Quantity`, `Unit` (lbs, heads, bunches, cases)
-- `Harvested_Date`, `Best_By`, `Status` (Available, Reserved, Sold)
-
-#### 8. FARM_SUPPLIES Sheet (Materials & Inputs)
-Categories to track:
-- **Row Cover**: `Item_ID`, `Type`, `Width`, `Length_Remaining`, `Location`
-- **Potting Soil**: `Brand`, `Bags_On_Hand`, `Reorder_Point`
-- **Seeds**: `Variety`, `Packets`, `Seeds_Remaining`, `Expiration`
-- **Plastic Mulch**: `Color`, `Width`, `Rolls_On_Hand`
-- **Trays/Pots**: `Size`, `Type`, `Quantity_Clean`, `Quantity_Dirty`
-- **Fertilizer**: `Product`, `Amount_Remaining`, `Unit`
-- **Pest Control**: `Product`, `Amount`, `Expiration`
-
-Common columns for all:
-- `Item_ID`, `Category`, `Item_Name`, `Quantity`, `Unit`
-- `Location`, `Reorder_Point`, `Last_Updated`, `Updated_By`
-
-#### 9. INVENTORY_COUNTS Sheet (Count Sessions)
-- `Count_ID`, `Date`, `Employee_ID`, `Count_Type` (Crop or Supplies)
-- `Location`, `Items_Counted`, `Notes`
-
-#### 10. TIME_ENTRIES Sheet
-- `Entry_ID`, `Employee_ID`, `Clock_In`, `Clock_Out`, `Hours`, `GPS_Lat`, `GPS_Lng`
-
-#### 11. HAZARDS Sheet
-- `Hazard_ID`, `Reported_Date`, `Employee_ID`, `Type`, `Severity`
-- `Description`, `Photo_URL`, `GPS_Lat/Lng`, `Status`, `Resolved_Date/By`
+// Every 15 min - Check for harvest logs that update availability
+ScriptApp.newTrigger('syncHarvestToAvailability').timeBased().everyMinutes(15).create();
+```
 
 ---
 
-### SAMPLE DATA FUNCTIONS NEEDED
+## DEPLOYMENT
 
-Create these functions in MERGED TOTAL.js:
-- `createSampleCustomers()` - Add test customers with phone/email
-- `createSampleDeliveryRoute()` - Add test delivery route with stops
-- `createSampleInventoryItems()` - Add test inventory items
-
----
-
-### PRIORITY ORDER
-
-1. **CUSTOMERS sheet** - Add Phone column (blocks delivery contact buttons)
-2. **Sample data functions** - For testing all features
-3. **Verify all API endpoints** - Fix any missing ones
+```bash
+cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
+clasp push
+clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" -d "Smart Availability Engine"
+```
 
 ---
 
-*Backend Claude - Make the mobile app fully functional!*
+## SUCCESS CRITERIA
+
+The system should be able to answer:
+- "What can I sell to chefs THIS WEEK?" → Instant answer
+- "Chef X wants 20 lb tomatoes, can we do it?" → Yes/No + alternatives
+- "What should I harvest today?" → Priority list based on orders
+- "When will lettuce be ready?" → Forecast with confidence
+
+---
+
+## REPORT TO OUTBOX.md WHEN:
+1. SmartAvailability.js created
+2. ChefCommunications.js created
+3. API endpoints added
+4. Triggers configured
+5. Tested with real planning data
+
+**DEADLINE: TODAY**
+
+---
+
+## PREVIOUS TASKS (Lower Priority)
+
+### Code Cleanup (completed before this)
+- Remove duplicate getMorningBrief functions
+- Optimize getPlanning endpoint
+- Fix dashboard revenue display
+
+---
+
+*See UNIVERSAL_ACCESS.md for deployment instructions*
