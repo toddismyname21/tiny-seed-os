@@ -2,11 +2,65 @@
 ## From: PM_Architect
 
 **Updated:** 2026-01-22
-**PRIORITY:** CRITICAL - CHEF ORDERING SYSTEM - END OF DAY DEADLINE
+**PRIORITY:** HIGH - EMPLOYEE INVITE SYSTEM
 
 ---
 
-## MISSION: SMART INVENTORY + FIELD PLAN INTEGRATION
+## NEW TASK: Employee Invitation System
+
+**Owner Request:** Add invite functionality for employees AND wholesale customers from the dashboard.
+
+### Employee Invite API Endpoints
+
+Add to `MERGED TOTAL.js`:
+
+```javascript
+case 'inviteEmployee':
+  // Creates employee account + sends magic link
+  // Params: { name, email, phone, role, permissions }
+  return jsonResponse(inviteEmployee(data));
+
+case 'sendEmployeeMagicLink':
+  // Resend login link to existing employee
+  return jsonResponse(sendEmployeeMagicLink(e.parameter.employeeId));
+
+case 'verifyEmployeeToken':
+  // Validate magic link token for employee login
+  return jsonResponse(verifyEmployeeToken(e.parameter.token));
+```
+
+### Employee Invitation Email Content
+
+The email should include:
+1. Welcome message with farm branding
+2. Magic link to activate account
+3. **Desktop Instructions:**
+   - "To add a desktop shortcut: Right-click on your desktop → New → Shortcut → Enter URL: https://toddismyname21.github.io/tiny-seed-os/employee.html"
+4. **Mobile Instructions:**
+   - iPhone: "Open Safari → Go to [URL] → Tap Share → Add to Home Screen"
+   - Android: "Open Chrome → Go to [URL] → Tap menu (⋮) → Add to Home Screen"
+
+### Employee Data Model
+
+Ensure `REF_Employees` or `EMPLOYEES` sheet has:
+```
+| Employee_ID | Name | Email | Phone | Role | PIN |
+| Magic_Token | Token_Expires | Status | Permissions |
+| Hire_Date | Emergency_Contact | Notes |
+```
+
+### Deployment
+
+After building:
+```bash
+cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
+clasp push
+clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" -d "Employee invite system"
+```
+
+---
+
+## PREVIOUS MISSION: SMART INVENTORY + FIELD PLAN INTEGRATION
 
 **Owner Directive:** "I WANT IT TO BE SO SMART THAT IT KNOWS WHAT I SHOULD DO BEFORE ME."
 
@@ -191,6 +245,47 @@ The system should be able to answer:
 5. Tested with real planning data
 
 **DEADLINE: TODAY**
+
+---
+
+## TASK 6: Chef Invitation System (FROM SALES CLAUDE)
+
+Sales Claude is busy. YOU handle chef invitations.
+
+### Invitation API Endpoints:
+```javascript
+case 'inviteChef':
+  // Creates account + sends magic link
+case 'sendChefMagicLink':
+  // Sends login email to existing chef
+case 'verifyChefToken':
+  // Validates magic link token
+case 'bulkInviteChefs':
+  // Invite multiple chefs at once
+```
+
+### Invitation Email:
+Create `/apps_script/emails/ChefInvitation.html`:
+```
+Subject: You're Invited - Order Fresh from Tiny Seed Farm
+
+Hi [Chef Name],
+
+You've been invited to order fresh, organic produce directly from Tiny Seed Farm.
+
+🌱 See what's fresh this week
+📱 Order from your phone in seconds
+🚚 Reliable delivery to your kitchen
+
+[BUTTON: Start Ordering →]
+```
+
+### SMS Invitation (Twilio):
+"Hi [Name]! Order fresh produce from Tiny Seed Farm: [link] -Todd"
+
+### Chef Data Sheet:
+Ensure `WHOLESALE_CUSTOMERS` sheet exists with columns:
+Customer_ID, Company_Name, Contact_Name, Email, Phone, Address, City, State, Zip, Magic_Token, Token_Expires, SMS_Opted_In, Email_Opted_In, Status
 
 ---
 

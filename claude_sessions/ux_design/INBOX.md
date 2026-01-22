@@ -2,11 +2,99 @@
 ## From: PM_Architect
 
 **Updated:** 2026-01-22
-**PRIORITY:** CRITICAL - CHEF MOBILE ORDERING APP - END OF DAY DEADLINE
+**PRIORITY:** HIGH - DASHBOARD INVITE BUTTONS
 
 ---
 
-## MISSION: WORLD-CLASS MOBILE CHEF ORDERING EXPERIENCE
+## NEW TASK: Add Invite Buttons to Dashboard
+
+**Owner Request:** The main dashboard needs invite buttons for:
+1. **Employees** - Send invite with desktop/mobile setup instructions
+2. **Wholesale Customers** - Send invite to chef ordering portal
+
+### Location
+Add to `master_dashboard_FIXED.html` or the main admin interface.
+
+### UI Requirements
+
+#### Invite Section (Card or Modal)
+```
+┌─────────────────────────────────────────────┐
+│  👥 Invite Team Members                      │
+├─────────────────────────────────────────────┤
+│  [👷 Invite Employee]  [🍳 Invite Chef]     │
+└─────────────────────────────────────────────┘
+```
+
+#### Employee Invite Modal
+```
+┌─────────────────────────────────────────────┐
+│  👷 Invite New Employee               [X]   │
+├─────────────────────────────────────────────┤
+│  Name: [________________________]           │
+│  Email: [_______________________]           │
+│  Phone: [_______________________]           │
+│  Role:  [Field Worker ▼]                    │
+│                                             │
+│  They'll receive:                           │
+│  ✓ Email with login link                    │
+│  ✓ Desktop shortcut instructions            │
+│  ✓ Mobile app install guide                 │
+│                                             │
+│           [Cancel]  [Send Invite]           │
+└─────────────────────────────────────────────┘
+```
+
+#### Chef Invite Modal
+```
+┌─────────────────────────────────────────────┐
+│  🍳 Invite New Chef                   [X]   │
+├─────────────────────────────────────────────┤
+│  Restaurant: [____________________]         │
+│  Contact Name: [__________________]         │
+│  Email: [_________________________]         │
+│  Phone: [_________________________]         │
+│                                             │
+│  They'll receive:                           │
+│  ✓ Email invitation to order portal         │
+│  ✓ SMS with quick link                      │
+│                                             │
+│           [Cancel]  [Send Invite]           │
+└─────────────────────────────────────────────┘
+```
+
+### API Endpoints to Call
+
+```javascript
+// Employee invite
+api.post('inviteEmployee', {
+  name: '...',
+  email: '...',
+  phone: '...',
+  role: '...'
+});
+
+// Chef invite (already exists)
+api.post('inviteChef', {
+  company_name: '...',
+  contact_name: '...',
+  email: '...',
+  phone: '...'
+});
+```
+
+### Files to Modify
+- `master_dashboard_FIXED.html` - Add invite section
+- Or create standalone `invite.html` if dashboard is complex
+
+### Success Criteria
+- One-click access to invite employees or chefs
+- Clean, simple forms
+- Confirmation message when invite sent
+
+---
+
+## PREVIOUS MISSION: WORLD-CLASS MOBILE CHEF ORDERING EXPERIENCE
 
 **Owner Directive:** "NO SHORTCUTS. ONLY THE BEST POSSIBLE. STATE OF THE ART."
 
