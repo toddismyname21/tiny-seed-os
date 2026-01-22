@@ -5578,6 +5578,149 @@
         }
 
         /* ========================================
+           VOICE COMMAND SYSTEM
+           Hands-free operation for field workers
+           ======================================== */
+        .voice-fab {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            border: none;
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+            cursor: pointer;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .voice-fab:active {
+            transform: scale(0.9);
+        }
+
+        .voice-fab i {
+            font-size: 28px;
+            color: white;
+        }
+
+        .voice-fab.listening {
+            animation: voice-pulse 1s infinite;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            box-shadow: 0 6px 30px rgba(220, 38, 38, 0.6);
+        }
+
+        @keyframes voice-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .voice-fab.listening i::before {
+            content: "\f130"; /* fa-microphone-slash */
+        }
+
+        .voice-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .voice-overlay.active {
+            display: flex;
+        }
+
+        .voice-status {
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .voice-waveform {
+            display: flex;
+            gap: 6px;
+            height: 60px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .voice-bar {
+            width: 8px;
+            background: #7c3aed;
+            border-radius: 4px;
+            animation: voice-wave 0.5s ease-in-out infinite;
+        }
+
+        .voice-bar:nth-child(1) { animation-delay: 0s; height: 20px; }
+        .voice-bar:nth-child(2) { animation-delay: 0.1s; height: 40px; }
+        .voice-bar:nth-child(3) { animation-delay: 0.2s; height: 60px; }
+        .voice-bar:nth-child(4) { animation-delay: 0.3s; height: 40px; }
+        .voice-bar:nth-child(5) { animation-delay: 0.4s; height: 20px; }
+
+        @keyframes voice-wave {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1); }
+        }
+
+        .voice-transcript {
+            color: #a5b4fc;
+            font-size: 20px;
+            min-height: 60px;
+            text-align: center;
+            max-width: 90%;
+            margin-bottom: 30px;
+        }
+
+        .voice-commands-hint {
+            color: #9ca3af;
+            font-size: 14px;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        .voice-commands-hint strong {
+            color: #7c3aed;
+        }
+
+        .voice-cancel-btn {
+            margin-top: 30px;
+            padding: 16px 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .voice-success {
+            color: #22c55e;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .voice-result {
+            color: white;
+            font-size: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* ========================================
            WILDLIFE TRACKER
            ======================================== */
         .wildlife-grid {
@@ -21439,6 +21582,378 @@
             _origInitCOS();
             setTimeout(addTeamQuickActions, 100);
         };
+    </script>
+
+    <!-- Voice Command FAB -->
+    <button class="voice-fab" id="voiceFab" onclick="startVoiceCommand()" aria-label="Voice Command">
+        <i class="fas fa-microphone"></i>
+    </button>
+
+    <!-- Voice Command Overlay -->
+    <div class="voice-overlay" id="voiceOverlay">
+        <div class="voice-status" id="voiceStatus">Listening...</div>
+        <div class="voice-waveform" id="voiceWaveform">
+            <div class="voice-bar"></div>
+            <div class="voice-bar"></div>
+            <div class="voice-bar"></div>
+            <div class="voice-bar"></div>
+            <div class="voice-bar"></div>
+        </div>
+        <div class="voice-transcript" id="voiceTranscript"></div>
+        <div class="voice-commands-hint">
+            <strong>Try saying:</strong><br>
+            "Log harvest 50 pounds lettuce"<br>
+            "Complete task"<br>
+            "Clock in" / "Clock out"<br>
+            "Log spray PyGanic field 2"
+        </div>
+        <button class="voice-cancel-btn" onclick="cancelVoiceCommand()">Cancel</button>
+    </div>
+
+    <script>
+    // ============================================
+    // VOICE COMMAND SYSTEM
+    // Hands-free operation for field workers
+    // ============================================
+
+    const VoiceCommand = {
+        recognition: null,
+        isListening: false,
+        synthesis: window.speechSynthesis,
+
+        // Ag-specific vocabulary for better recognition
+        AG_VOCAB: {
+            crops: ['lettuce', 'tomato', 'tomatoes', 'pepper', 'peppers', 'kale', 'spinach', 'arugula',
+                    'carrot', 'carrots', 'beet', 'beets', 'radish', 'onion', 'onions', 'garlic',
+                    'cucumber', 'cucumbers', 'squash', 'zucchini', 'pumpkin', 'melon', 'watermelon',
+                    'bean', 'beans', 'pea', 'peas', 'corn', 'potato', 'potatoes', 'sweet potato',
+                    'cabbage', 'broccoli', 'cauliflower', 'celery', 'chard', 'collards', 'turnip',
+                    'dahlia', 'dahlias', 'sunflower', 'sunflowers', 'zinnia', 'zinnias', 'tulip', 'tulips'],
+            units: ['pounds', 'lbs', 'heads', 'bunches', 'cases', 'bags', 'units', 'flats', 'trays'],
+            actions: ['harvest', 'log', 'complete', 'done', 'finish', 'start', 'clock', 'spray', 'plant',
+                      'transplant', 'seed', 'weed', 'water', 'irrigate', 'scout', 'inspect'],
+            products: ['pyganic', 'entrust', 'dipel', 'spinosad', 'neem', 'copper', 'sulfur', 'bt']
+        },
+
+        init: function() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                document.getElementById('voiceFab').style.display = 'none';
+                console.log('Voice commands not supported in this browser');
+                return false;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.recognition = new SpeechRecognition();
+            this.recognition.lang = AppState.language === 'es' ? 'es-ES' : 'en-US';
+            this.recognition.continuous = false;
+            this.recognition.interimResults = true;
+            this.recognition.maxAlternatives = 3;
+
+            this.recognition.onresult = (event) => this.handleResult(event);
+            this.recognition.onerror = (event) => this.handleError(event);
+            this.recognition.onend = () => this.handleEnd();
+
+            return true;
+        },
+
+        start: function() {
+            if (!this.recognition && !this.init()) {
+                showToast('Voice not supported', 'error');
+                return;
+            }
+
+            this.isListening = true;
+            document.getElementById('voiceFab').classList.add('listening');
+            document.getElementById('voiceOverlay').classList.add('active');
+            document.getElementById('voiceStatus').textContent = 'Listening...';
+            document.getElementById('voiceTranscript').textContent = '';
+            document.getElementById('voiceWaveform').style.display = 'flex';
+
+            try {
+                this.recognition.start();
+            } catch (e) {
+                console.error('Voice start error:', e);
+                this.stop();
+            }
+        },
+
+        stop: function() {
+            this.isListening = false;
+            document.getElementById('voiceFab').classList.remove('listening');
+            if (this.recognition) {
+                try { this.recognition.stop(); } catch(e) {}
+            }
+        },
+
+        cancel: function() {
+            this.stop();
+            document.getElementById('voiceOverlay').classList.remove('active');
+        },
+
+        handleResult: function(event) {
+            const transcript = Array.from(event.results)
+                .map(result => result[0].transcript)
+                .join('');
+
+            document.getElementById('voiceTranscript').textContent = '"' + transcript + '"';
+
+            // If final result, process the command
+            if (event.results[event.results.length - 1].isFinal) {
+                this.processCommand(transcript.toLowerCase().trim());
+            }
+        },
+
+        handleError: function(event) {
+            console.error('Voice recognition error:', event.error);
+            if (event.error === 'no-speech') {
+                document.getElementById('voiceStatus').textContent = 'No speech detected. Try again.';
+                setTimeout(() => this.cancel(), 2000);
+            } else {
+                showToast('Voice error: ' + event.error, 'error');
+                this.cancel();
+            }
+        },
+
+        handleEnd: function() {
+            if (this.isListening) {
+                // Restart if still supposed to be listening
+                // this.recognition.start();
+            }
+        },
+
+        speak: function(text) {
+            if (this.synthesis) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.1;
+                this.synthesis.speak(utterance);
+            }
+        },
+
+        showSuccess: function(message) {
+            const overlay = document.getElementById('voiceOverlay');
+            document.getElementById('voiceStatus').innerHTML = '<i class="fas fa-check-circle voice-success"></i>';
+            document.getElementById('voiceWaveform').style.display = 'none';
+            document.getElementById('voiceTranscript').innerHTML = '<div class="voice-result">' + message + '</div>';
+
+            this.speak(message);
+
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                this.stop();
+            }, 2500);
+        },
+
+        showError: function(message) {
+            document.getElementById('voiceStatus').textContent = message;
+            document.getElementById('voiceWaveform').style.display = 'none';
+            this.speak(message);
+            setTimeout(() => this.cancel(), 3000);
+        },
+
+        processCommand: function(command) {
+            console.log('Processing voice command:', command);
+            document.getElementById('voiceStatus').textContent = 'Processing...';
+            document.getElementById('voiceWaveform').style.display = 'none';
+
+            // HARVEST COMMAND: "log harvest 50 pounds lettuce" or "harvest 50 lbs tomatoes field 3"
+            const harvestMatch = command.match(/(?:log\s+)?harvest\s+(\d+(?:\.\d+)?)\s*(pounds?|lbs?|heads?|bunches?|cases?|bags?)?\s*(?:of\s+)?(\w+)/i);
+            if (harvestMatch) {
+                const quantity = parseFloat(harvestMatch[1]);
+                const unit = harvestMatch[2] || 'lbs';
+                const crop = harvestMatch[3];
+                return this.executeHarvest(quantity, unit, crop);
+            }
+
+            // CLOCK IN/OUT: "clock in" or "clock out"
+            const clockMatch = command.match(/clock\s*(in|out)/i);
+            if (clockMatch) {
+                return this.executeClock(clockMatch[1].toLowerCase());
+            }
+
+            // COMPLETE TASK: "complete task" or "done" or "finish task"
+            if (command.match(/(?:complete|done|finish)\s*(?:task)?/i)) {
+                return this.executeCompleteTask();
+            }
+
+            // START TIMER: "start timer" or "start task"
+            if (command.match(/start\s*(?:timer|task)?/i)) {
+                return this.executeStartTimer();
+            }
+
+            // SPRAY/INPUT LOG: "log spray pyganic field 2" or "spray entrust"
+            const sprayMatch = command.match(/(?:log\s+)?(?:spray|input|apply)\s+(\w+)(?:\s+(?:field|on)\s+(\d+|\w+))?/i);
+            if (sprayMatch) {
+                const product = sprayMatch[1];
+                const field = sprayMatch[2] || '';
+                return this.executeInputLog(product, field);
+            }
+
+            // SEED VERIFICATION: "verify seed" or "log seed"
+            if (command.match(/(?:verify|log)\s*seed/i)) {
+                openSeedVerificationForm();
+                this.showSuccess('Opening seed verification form');
+                return;
+            }
+
+            // EQUIPMENT CLEANING: "log cleaning" or "clean equipment"
+            if (command.match(/(?:log\s+)?clean(?:ing)?|equipment\s+clean/i)) {
+                openEquipmentCleanForm();
+                this.showSuccess('Opening equipment cleaning form');
+                return;
+            }
+
+            // BUFFER INSPECTION: "buffer check" or "inspect buffer"
+            if (command.match(/buffer|boundary\s*(?:check|inspect)?/i)) {
+                openBufferCheckForm();
+                this.showSuccess('Opening buffer inspection form');
+                return;
+            }
+
+            // Unknown command
+            this.showError("I didn't understand. Try: 'log harvest 50 pounds lettuce'");
+        },
+
+        executeHarvest: async function(quantity, unit, crop) {
+            try {
+                // Find matching planting
+                let planting = null;
+                const cropLower = crop.toLowerCase();
+
+                if (AppState.plantings && AppState.plantings.length > 0) {
+                    planting = AppState.plantings.find(p =>
+                        (p.Crop || '').toLowerCase().includes(cropLower) ||
+                        (p.Variety || '').toLowerCase().includes(cropLower)
+                    );
+                }
+
+                const logEntry = {
+                    logType: 'HARVEST_CTE',
+                    timestamp: new Date().toISOString(),
+                    employeeId: AppState.employee?.id || 'unknown',
+                    employeeName: AppState.employee?.name || 'Unknown',
+                    crop: crop,
+                    batchId: planting?.Batch_ID || '',
+                    quantity: quantity,
+                    unit: unit.replace(/s$/, ''), // Normalize unit
+                    lotCode: OfflineDB.generateLotCode(crop),
+                    destination: 'packhouse',
+                    gpsLat: ComplianceState?.currentGps?.lat || null,
+                    gpsLng: ComplianceState?.currentGps?.lng || null,
+                    synced: false,
+                    createdOffline: !navigator.onLine
+                };
+
+                await OfflineDB.saveComplianceLog(logEntry);
+                this.showSuccess(`Logged ${quantity} ${unit} ${crop} harvested!`);
+                updateComplianceBadge();
+
+            } catch (error) {
+                console.error('Voice harvest error:', error);
+                this.showError('Error logging harvest');
+            }
+        },
+
+        executeClock: function(direction) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+            if (direction === 'in') {
+                AppState.clockedIn = true;
+                AppState.clockInTime = now;
+                localStorage.setItem('clockInTime', now.toISOString());
+                this.showSuccess(`Clocked in at ${timeStr}`);
+            } else {
+                if (AppState.clockInTime) {
+                    const duration = Math.round((now - new Date(AppState.clockInTime)) / 60000);
+                    const hours = Math.floor(duration / 60);
+                    const mins = duration % 60;
+                    this.showSuccess(`Clocked out. Worked ${hours}h ${mins}m`);
+                } else {
+                    this.showSuccess(`Clocked out at ${timeStr}`);
+                }
+                AppState.clockedIn = false;
+                localStorage.removeItem('clockInTime');
+            }
+        },
+
+        executeCompleteTask: function() {
+            // Find the active timer task or first pending task
+            if (TaskTimer && TaskTimer.activeTaskId) {
+                completeTaskV2(TaskTimer.activeTaskId);
+                this.showSuccess('Task completed!');
+            } else if (AppState.tasks && AppState.tasks.length > 0) {
+                const pendingTask = AppState.tasks.find(t => t.Status !== 'Complete');
+                if (pendingTask) {
+                    completeTaskV2(pendingTask.Task_ID || pendingTask.id);
+                    this.showSuccess('Task completed!');
+                } else {
+                    this.showError('No pending tasks');
+                }
+            } else {
+                this.showError('No tasks to complete');
+            }
+        },
+
+        executeStartTimer: function() {
+            if (AppState.tasks && AppState.tasks.length > 0) {
+                const pendingTask = AppState.tasks.find(t => t.Status !== 'Complete');
+                if (pendingTask && typeof startTaskTimer === 'function') {
+                    startTaskTimer(pendingTask.Task_ID || pendingTask.id);
+                    this.showSuccess('Timer started!');
+                } else {
+                    this.showError('No tasks to start');
+                }
+            } else {
+                this.showError('No tasks available');
+            }
+        },
+
+        executeInputLog: async function(product, field) {
+            try {
+                const logEntry = {
+                    logType: 'INPUT_APPLICATION',
+                    timestamp: new Date().toISOString(),
+                    employeeId: AppState.employee?.id || 'unknown',
+                    employeeName: AppState.employee?.name || 'Unknown',
+                    productName: product,
+                    fieldId: field || '',
+                    organicCertified: true, // Assume organic
+                    gpsLat: ComplianceState?.currentGps?.lat || null,
+                    gpsLng: ComplianceState?.currentGps?.lng || null,
+                    synced: false,
+                    createdOffline: !navigator.onLine
+                };
+
+                await OfflineDB.saveComplianceLog(logEntry);
+                this.showSuccess(`Logged ${product} application${field ? ' on field ' + field : ''}`);
+                updateComplianceBadge();
+
+            } catch (error) {
+                console.error('Voice input log error:', error);
+                this.showError('Error logging input');
+            }
+        }
+    };
+
+    // Initialize voice commands on load
+    document.addEventListener('DOMContentLoaded', () => {
+        VoiceCommand.init();
+
+        // Restore clock-in state
+        const savedClockIn = localStorage.getItem('clockInTime');
+        if (savedClockIn) {
+            AppState.clockedIn = true;
+            AppState.clockInTime = new Date(savedClockIn);
+        }
+    });
+
+    function startVoiceCommand() {
+        VoiceCommand.start();
+    }
+
+    function cancelVoiceCommand() {
+        VoiceCommand.cancel();
+    }
     </script>
 </body>
 </html>
