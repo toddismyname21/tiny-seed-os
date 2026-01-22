@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chief of Staff - Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #141414;
+      --bg-card: #1a1a1a;
+      --bg-hover: #252525;
+      --bg-input: #1f1f1f;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0a0;
+      --text-muted: #666666;
+      --border-color: #2a2a2a;
+      --accent-green: #22c55e;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --critical: #ef4444;
+      --high: #f97316;
+      --medium: #eab308;
+      --low: #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Layout */
+    .app-container {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+    }
+
+    @media (max-width: 1200px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+      .chat-panel {
+        display: none;
+      }
+    }
+
+    /* Header */
+    .header {
+      grid-column: 1 / -1;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 20px;
+    }
+
+    .header-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .header-stat .count {
+      background: var(--bg-card);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .header-stat .count.critical { color: var(--critical); }
+    .header-stat .count.high { color: var(--high); }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent-green);
+      color: black;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn:hover { opacity: 0.9; }
+
+    /* Main Panel */
+    .main-panel {
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab:hover { color: var(--text-primary); }
+
+    .tab.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .tab-badge {
+      background: var(--critical);
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Communications List */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      padding: 6px 14px;
+      font-size: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-chip:hover { border-color: var(--accent-green); }
+    .filter-chip.active {
+      background: var(--accent-green);
+      color: black;
+      border-color: var(--accent-green);
+    }
+
+    .priority-group {
+      margin-bottom: 24px;
+    }
+
+    .priority-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .priority-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .priority-dot.critical { background: var(--critical); }
+    .priority-dot.high { background: var(--high); }
+    .priority-dot.medium { background: var(--medium); }
+    .priority-dot.low { background: var(--low); }
+
+    .priority-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .priority-header .count {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Message Card */
+    .message-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .message-card:hover {
+      border-color: var(--accent-green);
+      background: var(--bg-hover);
+    }
+
+    .message-card.selected {
+      border-color: var(--accent-green);
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    .message-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .message-type {
+      font-size: 18px;
+    }
+
+    .message-meta {
+      flex: 1;
+    }
+
+    .message-from {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .message-subject {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .message-summary {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .message-tags {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .message-tag {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+
+    .message-tag.intent { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+    .message-tag.sentiment-positive { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+    .message-tag.sentiment-negative { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+    .message-tag.commitment { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+
+    /* Reclassify Dropdown */
+    .reclassify-menu {
+      position: absolute;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 0;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      z-index: 100;
+      display: none;
+    }
+
+    .reclassify-menu.show { display: block; }
+
+    .reclassify-option {
+      padding: 10px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .reclassify-option:hover { background: var(--bg-hover); }
+
+    /* Chat Panel */
+    .chat-panel {
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .chat-title h2 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .chat-title p {
+      font-size: 12px;
+      color: var(--accent-green);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .chat-message {
+      margin-bottom: 16px;
+      max-width: 90%;
+    }
+
+    .chat-message.user {
+      margin-left: auto;
+    }
+
+    .chat-message.assistant {
+      margin-right: auto;
+    }
+
+    .chat-bubble {
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .chat-message.user .chat-bubble {
+      background: var(--accent-green);
+      color: black;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.assistant .chat-bubble {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-bubble p { margin-bottom: 8px; }
+    .chat-bubble p:last-child { margin-bottom: 0; }
+    .chat-bubble ul { margin: 8px 0; padding-left: 20px; }
+    .chat-bubble li { margin-bottom: 4px; }
+    .chat-bubble code {
+      background: rgba(0,0,0,0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .chat-time {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+
+    .chat-input-area {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .chat-input-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text-primary);
+      resize: none;
+      font-family: inherit;
+      min-height: 44px;
+      max-height: 120px;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--accent-green);
+    }
+
+    .chat-send {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--accent-green);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .chat-send:disabled {
+      background: var(--bg-card);
+      cursor: not-allowed;
+    }
+
+    .chat-send svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      overflow-x: auto;
+    }
+
+    .quick-action {
+      padding: 8px 14px;
+      font-size: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .quick-action:hover {
+      border-color: var(--accent-green);
+      background: var(--bg-hover);
+    }
+
+    /* Action Queue */
+    .action-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-amber);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .action-card.critical { border-left-color: var(--critical); }
+    .action-card.high { border-left-color: var(--high); }
+
+    .action-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .action-contact {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .action-score {
+      font-size: 12px;
+      padding: 4px 10px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+    }
+
+    .action-description {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .action-rationale {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .action-btn {
+      padding: 8px 16px;
+      font-size: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      font-weight: 500;
+    }
+
+    .action-btn.complete {
+      background: var(--accent-green);
+      color: black;
+    }
+
+    .action-btn.dismiss {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+
+    /* Commitments */
+    .commitment-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .commitment-card.overdue {
+      border-color: var(--critical);
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .commitment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .commitment-type {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .commitment-type.mine {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent-blue);
+    }
+
+    .commitment-type.theirs {
+      background: rgba(139, 92, 246, 0.2);
+      color: var(--accent-purple);
+    }
+
+    .commitment-deadline {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .commitment-deadline.overdue {
+      color: var(--critical);
+      font-weight: 600;
+    }
+
+    .commitment-contact {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .commitment-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { border-left: 4px solid var(--accent-green); }
+    .toast.error { border-left: 4px solid var(--accent-red); }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+    }
+
+    .typing-indicator span {
+      width: 8px;
+      height: 8px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 100% { opacity: 0.3; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-4px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1><span style="font-size: 24px;">🌱</span> Chief of Staff</h1>
+        <div class="header-stats">
+          <div class="header-stat">
+            <span>Critical:</span>
+            <span class="count critical" id="critical-count">0</span>
+          </div>
+          <div class="header-stat">
+            <span>High:</span>
+            <span class="count high" id="high-count">0</span>
+          </div>
+          <div class="header-stat">
+            <span>Overdue:</span>
+            <span class="count critical" id="overdue-count">0</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="refreshAll()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+          </svg>
+          Refresh
+        </button>
+        <button class="btn btn-primary" onclick="runTriage()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          Process Inbox
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Panel -->
+    <main class="main-panel">
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="communications" onclick="switchTab('communications')">
+          <span>Communications</span>
+          <span class="tab-badge" id="comms-badge">0</span>
+        </button>
+        <button class="tab" data-tab="actions" onclick="switchTab('actions')">
+          <span>Action Queue</span>
+        </button>
+        <button class="tab" data-tab="commitments" onclick="switchTab('commitments')">
+          <span>Commitments</span>
+        </button>
+      </div>
+
+      <!-- Communications Tab -->
+      <div class="tab-content active" id="tab-communications">
+        <div class="filter-bar">
+          <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">All</button>
+          <button class="filter-chip" data-filter="email" onclick="setFilter('email')">Email</button>
+          <button class="filter-chip" data-filter="sms" onclick="setFilter('sms')">SMS</button>
+          <button class="filter-chip" data-filter="unread" onclick="setFilter('unread')">Unread</button>
+          <button class="filter-chip" data-filter="commitment" onclick="setFilter('commitment')">Has Commitment</button>
+        </div>
+
+        <div id="communications-list">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Actions Tab -->
+      <div class="tab-content" id="tab-actions">
+        <div id="actions-list">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Commitments Tab -->
+      <div class="tab-content" id="tab-commitments">
+        <div class="filter-bar">
+          <button class="filter-chip active" data-filter="all" onclick="setCommitmentFilter('all')">All Open</button>
+          <button class="filter-chip" data-filter="overdue" onclick="setCommitmentFilter('overdue')">Overdue</button>
+          <button class="filter-chip" data-filter="mine" onclick="setCommitmentFilter('mine')">My Promises</button>
+          <button class="filter-chip" data-filter="theirs" onclick="setCommitmentFilter('theirs')">Their Promises</button>
+        </div>
+        <div id="commitments-list">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Chat Panel -->
+    <aside class="chat-panel">
+      <div class="chat-header">
+        <div class="chat-avatar">🤖</div>
+        <div class="chat-title">
+          <h2>Chief of Staff</h2>
+          <p>Online - Ready to help</p>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="quick-action" onclick="askQuestion('What needs my attention right now?')">What's urgent?</button>
+        <button class="quick-action" onclick="askQuestion('Give me my morning brief')">Morning Brief</button>
+        <button class="quick-action" onclick="askQuestion('What commitments are overdue?')">Overdue?</button>
+        <button class="quick-action" onclick="askQuestion('Summarize my emails from today')">Email Summary</button>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-message assistant">
+          <div class="chat-bubble">
+            <p>Good morning! I'm your Chief of Staff AI. I can help you:</p>
+            <ul>
+              <li>Review and prioritize communications</li>
+              <li>Track commitments and follow-ups</li>
+              <li>Draft responses</li>
+              <li>Analyze your inbox</li>
+            </ul>
+            <p>What would you like to know?</p>
+          </div>
+          <div class="chat-time">Just now</div>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+          <textarea class="chat-input" id="chat-input" placeholder="Ask me anything..." rows="1" onkeydown="handleChatKeydown(event)"></textarea>
+          <button class="chat-send" id="chat-send" onclick="sendMessage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Reclassify Menu -->
+  <div class="reclassify-menu" id="reclassify-menu">
+    <div class="reclassify-option" onclick="reclassify('CRITICAL')">
+      <span class="priority-dot critical"></span> Critical
+    </div>
+    <div class="reclassify-option" onclick="reclassify('HIGH')">
+      <span class="priority-dot high"></span> High
+    </div>
+    <div class="reclassify-option" onclick="reclassify('MEDIUM')">
+      <span class="priority-dot medium"></span> Medium
+    </div>
+    <div class="reclassify-option" onclick="reclassify('LOW')">
+      <span class="priority-dot low"></span> Low
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+
+    let communications = [];
+    let actions = [];
+    let commitments = [];
+    let currentFilter = 'all';
+    let commitmentFilter = 'all';
+    let selectedMessageId = null;
+    let conversationHistory = [];
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAllData();
+      autoResizeTextarea();
+    });
+
+    async function loadAllData() {
+      await Promise.all([
+        loadCommunications(),
+        loadActions(),
+        loadCommitments()
+      ]);
+    }
+
+    function refreshAll() {
+      loadAllData();
+      showToast('Refreshing data...', 'success');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // COMMUNICATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    async function loadCommunications() {
+      try {
+        // Load both email and SMS data
+        const [emailRes, smsRes] = await Promise.all([
+          fetch(`${API_BASE}?action=getEmailInboxState`).then(r => r.json()).catch(() => ({ success: false })),
+          fetch(`${API_BASE}?action=getSMSLog`).then(r => r.json()).catch(() => ({ success: false }))
+        ]);
+
+        communications = [];
+
+        // Process emails
+        if (emailRes.success && emailRes.emails) {
+          emailRes.emails.forEach(e => {
+            communications.push({
+              id: e.threadId || e.messageId,
+              type: 'email',
+              from: e.fromName || e.from,
+              subject: e.subject,
+              summary: e.aiSummary || '',
+              priority: e.priority || 'MEDIUM',
+              status: e.status,
+              category: e.category,
+              intent: e.aiSuggestedAction,
+              sentiment: e.sentiment,
+              hasCommitment: e.hasCommitment,
+              receivedAt: e.receivedAt,
+              isUnread: e.status === 'NEW'
+            });
+          });
+        }
+
+        // Process SMS
+        if (smsRes.success && smsRes.messages) {
+          smsRes.messages.forEach(s => {
+            communications.push({
+              id: s.messageId || s.id,
+              type: 'sms',
+              from: s.contactName || s.phoneNumber,
+              subject: s.message ? s.message.substring(0, 50) + '...' : '',
+              summary: s.aiSummary || s.message,
+              priority: s.priority || 'MEDIUM',
+              status: s.status,
+              category: s.category,
+              intent: s.intent,
+              sentiment: s.sentiment,
+              hasCommitment: s.hasCommitment,
+              receivedAt: s.timestamp,
+              isUnread: s.status === 'NEW'
+            });
+          });
+        }
+
+        // Sort by priority and time
+        const priorityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+        communications.sort((a, b) => {
+          if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+          }
+          return new Date(b.receivedAt) - new Date(a.receivedAt);
+        });
+
+        updateStats();
+        renderCommunications();
+      } catch (error) {
+        console.error('Load communications error:', error);
+        document.getElementById('communications-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>Unable to load communications</p>
+          </div>
+        `;
+      }
+    }
+
+    function updateStats() {
+      const critical = communications.filter(c => c.priority === 'CRITICAL').length;
+      const high = communications.filter(c => c.priority === 'HIGH').length;
+
+      document.getElementById('critical-count').textContent = critical;
+      document.getElementById('high-count').textContent = high;
+      document.getElementById('comms-badge').textContent = communications.filter(c => c.isUnread).length;
+    }
+
+    function renderCommunications() {
+      const container = document.getElementById('communications-list');
+      let filtered = communications;
+
+      // Apply filter
+      if (currentFilter === 'email') filtered = filtered.filter(c => c.type === 'email');
+      else if (currentFilter === 'sms') filtered = filtered.filter(c => c.type === 'sms');
+      else if (currentFilter === 'unread') filtered = filtered.filter(c => c.isUnread);
+      else if (currentFilter === 'commitment') filtered = filtered.filter(c => c.hasCommitment);
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>No communications found</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group by priority
+      const groups = {
+        CRITICAL: filtered.filter(c => c.priority === 'CRITICAL'),
+        HIGH: filtered.filter(c => c.priority === 'HIGH'),
+        MEDIUM: filtered.filter(c => c.priority === 'MEDIUM'),
+        LOW: filtered.filter(c => c.priority === 'LOW')
+      };
+
+      let html = '';
+
+      for (const [priority, items] of Object.entries(groups)) {
+        if (items.length === 0) continue;
+
+        html += `
+          <div class="priority-group">
+            <div class="priority-header">
+              <span class="priority-dot ${priority.toLowerCase()}"></span>
+              <h3>${priority}</h3>
+              <span class="count">${items.length}</span>
+            </div>
+        `;
+
+        for (const msg of items) {
+          html += renderMessageCard(msg);
+        }
+
+        html += '</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderMessageCard(msg) {
+      const timeAgo = formatTimeAgo(msg.receivedAt);
+      const icon = msg.type === 'email' ? '📧' : '💬';
+
+      let tags = '';
+      if (msg.intent) tags += `<span class="message-tag intent">${msg.intent}</span>`;
+      if (msg.sentiment === 'POSITIVE') tags += `<span class="message-tag sentiment-positive">Positive</span>`;
+      if (msg.sentiment === 'NEGATIVE') tags += `<span class="message-tag sentiment-negative">Negative</span>`;
+      if (msg.hasCommitment) tags += `<span class="message-tag commitment">Commitment</span>`;
+
+      return `
+        <div class="message-card ${selectedMessageId === msg.id ? 'selected' : ''}"
+             onclick="selectMessage('${msg.id}')"
+             oncontextmenu="showReclassifyMenu(event, '${msg.id}')">
+          <div class="message-header">
+            <span class="message-type">${icon}</span>
+            <div class="message-meta">
+              <div class="message-from">${escapeHtml(msg.from || 'Unknown')}</div>
+              <div class="message-time">${timeAgo}</div>
+            </div>
+          </div>
+          <div class="message-subject">${escapeHtml(msg.subject || 'No subject')}</div>
+          <div class="message-summary">${escapeHtml(msg.summary || '')}</div>
+          ${tags ? `<div class="message-tags">${tags}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('#tab-communications .filter-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.filter === filter);
+      });
+      renderCommunications();
+    }
+
+    function selectMessage(id) {
+      selectedMessageId = id;
+      renderCommunications();
+
+      // Load message details in chat
+      const msg = communications.find(c => c.id === id);
+      if (msg) {
+        askQuestion(`Tell me more about the ${msg.type} from ${msg.from}: "${msg.subject}"`);
+      }
+    }
+
+    function showReclassifyMenu(event, id) {
+      event.preventDefault();
+      selectedMessageId = id;
+
+      const menu = document.getElementById('reclassify-menu');
+      menu.style.left = event.pageX + 'px';
+      menu.style.top = event.pageY + 'px';
+      menu.classList.add('show');
+
+      document.addEventListener('click', hideReclassifyMenu, { once: true });
+    }
+
+    function hideReclassifyMenu() {
+      document.getElementById('reclassify-menu').classList.remove('show');
+    }
+
+    async function reclassify(newPriority) {
+      if (!selectedMessageId) return;
+
+      const msg = communications.find(c => c.id === selectedMessageId);
+      if (!msg) return;
+
+      try {
+        const endpoint = msg.type === 'email' ? 'reclassifyEmail' : 'reclassifySMS';
+        const response = await fetch(`${API_BASE}?action=${endpoint}&id=${selectedMessageId}&priority=${newPriority}`);
+        const result = await response.json();
+
+        if (result.success) {
+          msg.priority = newPriority;
+          renderCommunications();
+          updateStats();
+          showToast(`Reclassified as ${newPriority} - AI will learn from this`, 'success');
+        }
+      } catch (error) {
+        showToast('Failed to reclassify', 'error');
+      }
+
+      hideReclassifyMenu();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ACTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    async function loadActions() {
+      try {
+        const response = await fetch(`${API_BASE}?action=getActionQueue`);
+        const data = await response.json();
+
+        if (data.success) {
+          actions = data.actions || [];
+          renderActions();
+        }
+      } catch (error) {
+        console.error('Load actions error:', error);
+      }
+    }
+
+    function renderActions() {
+      const container = document.getElementById('actions-list');
+
+      if (actions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">✅</div>
+            <p>No pending actions</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      for (const action of actions) {
+        const priorityClass = action.queuePosition === 'CRITICAL' ? 'critical' :
+                              action.queuePosition === 'HIGH' ? 'high' : '';
+
+        html += `
+          <div class="action-card ${priorityClass}">
+            <div class="action-header">
+              <span class="action-contact">${escapeHtml(action.contactName || 'Unknown')}</span>
+              <span class="action-score">Score: ${action.priorityScore || 0}</span>
+            </div>
+            <div class="action-description">${escapeHtml(action.action || '')}</div>
+            <div class="action-rationale">${escapeHtml(action.rationale || '')}</div>
+            <div class="action-buttons">
+              <button class="action-btn complete" onclick="completeAction('${action.id}')">Mark Done</button>
+              <button class="action-btn dismiss" onclick="dismissAction('${action.id}')">Dismiss</button>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    async function completeAction(id) {
+      try {
+        const response = await fetch(`${API_BASE}?action=completeAction&actionId=${id}`);
+        await response.json();
+        actions = actions.filter(a => a.id !== id);
+        renderActions();
+        showToast('Action completed', 'success');
+      } catch (error) {
+        showToast('Failed to complete action', 'error');
+      }
+    }
+
+    async function dismissAction(id) {
+      try {
+        const response = await fetch(`${API_BASE}?action=dismissAction&actionId=${id}`);
+        await response.json();
+        actions = actions.filter(a => a.id !== id);
+        renderActions();
+      } catch (error) {
+        showToast('Failed to dismiss action', 'error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // COMMITMENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    async function loadCommitments() {
+      try {
+        const response = await fetch(`${API_BASE}?action=getOpenSMSCommitments`);
+        const data = await response.json();
+
+        if (data.success) {
+          commitments = data.commitments || [];
+          renderCommitments();
+
+          const overdue = commitments.filter(c => c.isOverdue).length;
+          document.getElementById('overdue-count').textContent = overdue;
+        }
+      } catch (error) {
+        console.error('Load commitments error:', error);
+      }
+    }
+
+    function renderCommitments() {
+      const container = document.getElementById('commitments-list');
+      let filtered = commitments;
+
+      if (commitmentFilter === 'overdue') filtered = filtered.filter(c => c.isOverdue);
+      else if (commitmentFilter === 'mine') filtered = filtered.filter(c => c.type === 'OUTBOUND');
+      else if (commitmentFilter === 'theirs') filtered = filtered.filter(c => c.type === 'INBOUND');
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <p>No commitments found</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      for (const c of filtered) {
+        const typeClass = c.type === 'OUTBOUND' ? 'mine' : 'theirs';
+        const typeLabel = c.type === 'OUTBOUND' ? 'My Promise' : 'Their Promise';
+
+        html += `
+          <div class="commitment-card ${c.isOverdue ? 'overdue' : ''}">
+            <div class="commitment-header">
+              <span class="commitment-type ${typeClass}">${typeLabel}</span>
+              <span class="commitment-deadline ${c.isOverdue ? 'overdue' : ''}">
+                ${c.isOverdue ? 'OVERDUE' : (c.deadline || 'No deadline')}
+              </span>
+            </div>
+            <div class="commitment-contact">${escapeHtml(c.contactName || 'Unknown')}</div>
+            <div class="commitment-text">${escapeHtml(c.text || '')}</div>
+            <div class="action-buttons">
+              <button class="action-btn complete" onclick="completeCommitment('${c.id}')">Complete</button>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function setCommitmentFilter(filter) {
+      commitmentFilter = filter;
+      document.querySelectorAll('#tab-commitments .filter-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.filter === filter);
+      });
+      renderCommitments();
+    }
+
+    async function completeCommitment(id) {
+      try {
+        const response = await fetch(`${API_BASE}?action=completeSMSCommitment&commitmentId=${id}`);
+        await response.json();
+        commitments = commitments.filter(c => c.id !== id);
+        renderCommitments();
+        showToast('Commitment completed', 'success');
+      } catch (error) {
+        showToast('Failed to complete commitment', 'error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHAT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function askQuestion(question) {
+      document.getElementById('chat-input').value = question;
+      sendMessage();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      // Add user message
+      addChatMessage(message, 'user');
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Show typing indicator
+      const typingId = showTypingIndicator();
+
+      try {
+        const response = await fetch(`${API_BASE}?action=chatWithChiefOfStaff&message=${encodeURIComponent(message)}&history=${encodeURIComponent(JSON.stringify(conversationHistory))}`);
+        const data = await response.json();
+
+        removeTypingIndicator(typingId);
+
+        if (data.success) {
+          addChatMessage(data.message, 'assistant');
+
+          // Update conversation history
+          conversationHistory.push({ role: 'user', content: message });
+          conversationHistory.push({ role: 'assistant', content: data.message });
+
+          // Keep last 10 exchanges
+          if (conversationHistory.length > 20) {
+            conversationHistory = conversationHistory.slice(-20);
+          }
+        } else {
+          addChatMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+        }
+      } catch (error) {
+        removeTypingIndicator(typingId);
+        addChatMessage('Connection error. Please check your network.', 'assistant');
+      }
+    }
+
+    function addChatMessage(content, role) {
+      const container = document.getElementById('chat-messages');
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const div = document.createElement('div');
+      div.className = `chat-message ${role}`;
+
+      // Simple markdown-ish parsing
+      let html = escapeHtml(content)
+        .replace(/\n/g, '</p><p>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+      div.innerHTML = `
+        <div class="chat-bubble"><p>${html}</p></div>
+        <div class="chat-time">${time}</div>
+      `;
+
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      const container = document.getElementById('chat-messages');
+      const id = 'typing-' + Date.now();
+
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = 'chat-message assistant';
+      div.innerHTML = `
+        <div class="chat-bubble">
+          <div class="typing-indicator">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      return id;
+    }
+
+    function removeTypingIndicator(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    function handleChatKeydown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function autoResizeTextarea() {
+      const textarea = document.getElementById('chat-input');
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TABS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+      document.getElementById(`tab-${tab}`).classList.add('active');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    async function runTriage() {
+      showToast('Processing inbox...', 'success');
+      try {
+        await fetch(`${API_BASE}?action=triageInbox`);
+        setTimeout(() => loadCommunications(), 3000);
+      } catch (error) {
+        showToast('Triage started in background', 'success');
+      }
+    }
+
+    function formatTimeAgo(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type + ' show';
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Close reclassify menu when clicking elsewhere
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.reclassify-menu')) {
+        hideReclassifyMenu();
+      }
+    });
+  </script>
+</body>
+</html>
