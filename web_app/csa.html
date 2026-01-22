@@ -628,132 +628,46 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           SOCIAL MEDIA CAROUSEL
+           TOP ROW - FLEX CLOCK + SOCIAL THUMBNAILS (Clean, Minimal)
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .social-carousel {
-            margin-bottom: 16px;
-            overflow: hidden;
-        }
-
-        .social-carousel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .social-carousel-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .social-carousel-link {
-            font-size: 13px;
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        .social-posts {
+        .dashboard-top-row {
             display: flex;
             gap: 12px;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 8px;
-            scrollbar-width: none;
-        }
-
-        .social-posts::-webkit-scrollbar {
-            display: none;
-        }
-
-        .social-post {
-            flex: 0 0 280px;
-            scroll-snap-align: start;
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .social-post-image {
-            width: 100%;
-            height: 160px;
-            object-fit: cover;
-            background: var(--bg-elevated);
-        }
-
-        .social-post-content {
-            padding: 12px;
-        }
-
-        .social-post-text {
-            font-size: 13px;
-            color: var(--text-primary);
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .social-post-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 8px;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .social-post-platform {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* ═══════════════════════════════════════════════════════════════════════════
-           FLEX FUNDS BALANCE - COMPACT CARD
-           ═══════════════════════════════════════════════════════════════════════════ */
-
-        .flex-funds-card-compact {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-radius: var(--radius-lg);
-            padding: 16px;
             margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            align-items: stretch;
         }
 
-        .flex-balance-section {
+        /* Flex Funds Clock Widget */
+        .flex-clock-widget {
+            background: #111827;
+            border-radius: var(--radius-lg);
+            padding: 14px 18px;
             display: flex;
-            align-items: center;
-            gap: 12px;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 140px;
         }
 
-        .flex-label {
-            font-size: 11px;
+        .flex-clock-label {
+            font-size: 9px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: rgba(255,255,255,0.6);
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 4px;
         }
 
         .flex-clock-display {
             display: flex;
             align-items: baseline;
-            gap: 2px;
         }
 
         .flex-clock-amount {
-            font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
-            font-size: 32px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 28px;
             font-weight: 700;
             color: #22c55e;
-            letter-spacing: 1px;
             line-height: 1;
             transition: color 0.3s;
         }
@@ -763,8 +677,8 @@
         }
 
         .flex-clock-cents {
-            font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
-            font-size: 16px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
             font-weight: 600;
             color: #22c55e;
             transition: color 0.3s;
@@ -774,55 +688,144 @@
             color: #ef4444;
         }
 
-        .flex-actions {
+        .flex-clock-actions {
             display: flex;
-            align-items: center;
-            gap: 12px;
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .flex-add-btn {
             background: #22c55e;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
             transition: all 0.2s;
         }
 
         .flex-add-btn:hover {
-            transform: scale(1.05);
             background: #16a34a;
-        }
-
-        .flex-add-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
         }
 
         .flex-history-btn {
             background: rgba(255,255,255,0.1);
             border: none;
-            color: rgba(255,255,255,0.7);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            color: rgba(255,255,255,0.6);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             transition: all 0.2s;
         }
 
         .flex-history-btn:hover {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
             color: white;
+        }
+
+        /* Social Thumbnails Strip */
+        .social-strip {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 10px 14px;
+            overflow: hidden;
+        }
+
+        .social-strip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .social-strip-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .social-strip-link {
+            font-size: 11px;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .social-thumbs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .social-thumbs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .social-thumb {
+            flex: 0 0 72px;
+            height: 72px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .social-thumb:hover {
+            transform: scale(1.05);
+        }
+
+        .social-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .social-thumb-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 4px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .social-thumb-overlay i {
+            color: white;
+            font-size: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-top-row {
+                flex-direction: column;
+            }
+
+            .flex-clock-widget {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .flex-clock-actions {
+                margin-top: 0;
+            }
+
+            .social-thumb {
+                flex: 0 0 64px;
+                height: 64px;
+            }
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
@@ -2256,38 +2259,32 @@
                 <button class="dismiss" onclick="dismissAlert()"><i class="fas fa-times"></i></button>
             </div>
 
-            <!-- Social Media Carousel -->
-            <div class="social-carousel" id="socialCarousel">
-                <div class="social-carousel-header">
-                    <span class="social-carousel-title">From the Farm</span>
-                    <a href="https://instagram.com/tinyseedfarm" target="_blank" class="social-carousel-link">
-                        Follow Us <i class="fas fa-external-link-alt" style="font-size: 10px;"></i>
-                    </a>
-                </div>
-                <div class="social-posts" id="socialPosts">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-
-            <!-- Flex Funds Balance - Compact Card -->
-            <div class="flex-funds-card-compact" id="flexFundsBanner">
-                <div class="flex-balance-section">
-                    <div>
-                        <div class="flex-label">Flex Funds</div>
-                        <div class="flex-clock-display">
-                            <span class="flex-clock-amount">$<span id="flexBalanceDollars">0</span></span>
-                            <span class="flex-clock-cents">.<span id="flexBalanceCents">00</span></span>
-                        </div>
+            <!-- Top Row: Flex Clock + Social Thumbnails -->
+            <div class="dashboard-top-row">
+                <!-- Flex Funds Clock Widget -->
+                <div class="flex-clock-widget" id="flexFundsBanner">
+                    <div class="flex-clock-label">Flex Funds</div>
+                    <div class="flex-clock-display">
+                        <span class="flex-clock-amount">$<span id="flexBalanceDollars">0</span></span>
+                        <span class="flex-clock-cents">.<span id="flexBalanceCents">00</span></span>
+                    </div>
+                    <div class="flex-clock-actions">
+                        <button class="flex-add-btn" onclick="purchaseFlexFunds()">+ Add</button>
+                        <button class="flex-history-btn" onclick="toggleFlexHistory()">History</button>
                     </div>
                 </div>
-                <div class="flex-actions">
-                    <button class="flex-history-btn" onclick="toggleFlexHistory()" title="View History">
-                        <i class="fas fa-history"></i>
-                    </button>
-                    <button class="flex-add-btn" onclick="purchaseFlexFunds()">
-                        <i class="fas fa-plus"></i>
-                        Add $50
-                    </button>
+
+                <!-- Social Thumbnails -->
+                <div class="social-strip">
+                    <div class="social-strip-header">
+                        <span class="social-strip-title">From the Farm</span>
+                        <a href="https://instagram.com/tinyseedfarm" target="_blank" class="social-strip-link">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                    <div class="social-thumbs" id="socialThumbs">
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
             </div>
 
@@ -3495,7 +3492,7 @@
         // ═══════════════════════════════════════════════════════════════════════════
 
         async function loadSocialPosts() {
-            const container = document.getElementById('socialPosts');
+            const container = document.getElementById('socialThumbs');
 
             // Try to fetch from API, fallback to sample data
             try {
@@ -3503,59 +3500,32 @@
                 const result = await response.json();
 
                 if (result.success && result.posts?.length > 0) {
-                    renderSocialPosts(result.posts);
+                    renderSocialThumbs(result.posts);
                     return;
                 }
             } catch (e) {
                 console.log('Loading sample social posts');
             }
 
-            // Sample posts for demo
+            // Sample posts for demo - clean farm imagery
             const samplePosts = [
-                {
-                    image: 'https://images.unsplash.com/photo-1592921870789-04563d55041c?w=400&h=300&fit=crop',
-                    text: 'First harvest of the season! These rainbow carrots are going straight into this week\'s boxes 🥕🌈',
-                    platform: 'instagram',
-                    date: '2 days ago'
-                },
-                {
-                    image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=300&fit=crop',
-                    text: 'Morning dew on the lettuce beds. Nothing beats fresh greens picked at sunrise 🌅',
-                    platform: 'instagram',
-                    date: '4 days ago'
-                },
-                {
-                    image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400&h=300&fit=crop',
-                    text: 'Greenhouse transplants are thriving! Getting ready for spring CSA season 🌱',
-                    platform: 'facebook',
-                    date: '1 week ago'
-                },
-                {
-                    image: 'https://images.unsplash.com/photo-1518977676601-b53f82ber?w=400&h=300&fit=crop',
-                    text: 'Thank you to everyone who visited us at the farmers market this weekend! 🙏',
-                    platform: 'instagram',
-                    date: '1 week ago'
-                }
+                { image: 'https://images.unsplash.com/photo-1592921870789-04563d55041c?w=200&h=200&fit=crop', platform: 'instagram' },
+                { image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=200&h=200&fit=crop', platform: 'instagram' },
+                { image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=200&h=200&fit=crop', platform: 'instagram' },
+                { image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=200&h=200&fit=crop', platform: 'instagram' },
+                { image: 'https://images.unsplash.com/photo-1518977676601-b53f82abe?w=200&h=200&fit=crop', platform: 'instagram' }
             ];
 
-            renderSocialPosts(samplePosts);
+            renderSocialThumbs(samplePosts);
         }
 
-        function renderSocialPosts(posts) {
-            const container = document.getElementById('socialPosts');
-            container.innerHTML = posts.map(post => `
-                <div class="social-post">
-                    <img src="${post.image}" alt="Farm post" class="social-post-image" onerror="this.src='https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=400&h=300&fit=crop'">
-                    <div class="social-post-content">
-                        <div class="social-post-text">${post.text}</div>
-                        <div class="social-post-meta">
-                            <span class="social-post-platform">
-                                <i class="fab fa-${post.platform}"></i>
-                                ${post.platform}
-                            </span>
-                            <span>•</span>
-                            <span>${post.date}</span>
-                        </div>
+        function renderSocialThumbs(posts) {
+            const container = document.getElementById('socialThumbs');
+            container.innerHTML = posts.slice(0, 5).map(post => `
+                <div class="social-thumb" onclick="window.open('https://instagram.com/tinyseedfarm', '_blank')">
+                    <img src="${post.image}" alt="Farm" onerror="this.src='https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=200&h=200&fit=crop'">
+                    <div class="social-thumb-overlay">
+                        <i class="fab fa-${post.platform || 'instagram'}"></i>
                     </div>
                 </div>
             `).join('');
