@@ -17733,8 +17733,18 @@
             };
 
             try {
-                await OfflineDB.saveComplianceLog(logEntry);
-                showToast('Seed verification logged!', 'success');
+                const localId = await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync
+                await OfflineDB.queueOperation('logComplianceEntry', {
+                    ...logEntry,
+                    localId: localId
+                });
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate(50);
+
+                showToast('Seed verification logged!' + (AppState.isOnline ? '' : ' (offline)'), 'success');
                 closeSeedVerificationModal();
                 loadComplianceLogs();
                 updateComplianceBadge();
@@ -17806,8 +17816,18 @@
             };
 
             try {
-                await OfflineDB.saveComplianceLog(logEntry);
-                showToast('Packing CTE logged!', 'success');
+                const localId = await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync
+                await OfflineDB.queueOperation('logComplianceEntry', {
+                    ...logEntry,
+                    localId: localId
+                });
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+
+                showToast('Packing CTE logged!' + (AppState.isOnline ? '' : ' (offline)'), 'success');
                 closePackingCTEModal();
                 loadComplianceLogs();
                 updateComplianceBadge();
@@ -17866,8 +17886,18 @@
             };
 
             try {
-                await OfflineDB.saveComplianceLog(logEntry);
-                showToast('Equipment cleaning logged!', 'success');
+                const localId = await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync
+                await OfflineDB.queueOperation('logComplianceEntry', {
+                    ...logEntry,
+                    localId: localId
+                });
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate(50);
+
+                showToast('Equipment cleaning logged!' + (AppState.isOnline ? '' : ' (offline)'), 'success');
                 closeEquipmentCleanModal();
                 loadComplianceLogs();
                 updateComplianceBadge();
@@ -17919,8 +17949,18 @@
             };
 
             try {
-                await OfflineDB.saveComplianceLog(logEntry);
-                showToast('Buffer inspection logged!', 'success');
+                const localId = await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync
+                await OfflineDB.queueOperation('logComplianceEntry', {
+                    ...logEntry,
+                    localId: localId
+                });
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate(50);
+
+                showToast('Buffer inspection logged!' + (AppState.isOnline ? '' : ' (offline)'), 'success');
                 closeBufferInspectionModal();
                 loadComplianceLogs();
                 updateComplianceBadge();
@@ -21843,7 +21883,14 @@
                     createdOffline: !navigator.onLine
                 };
 
-                await OfflineDB.saveComplianceLog(logEntry);
+                const localId = await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync
+                await OfflineDB.queueOperation('logComplianceEntry', {
+                    ...logEntry,
+                    localId: localId
+                });
+
                 this.showSuccess(`Logged ${quantity} ${unit} ${crop} harvested!`);
                 updateComplianceBadge();
 
@@ -21924,7 +21971,14 @@
                     createdOffline: !navigator.onLine
                 };
 
-                await OfflineDB.saveComplianceLog(logEntry);
+                const localId = await OfflineDB.saveComplianceLog(logEntry);
+
+                // Queue for sync
+                await OfflineDB.queueOperation('logComplianceEntry', {
+                    ...logEntry,
+                    localId: localId
+                });
+
                 this.showSuccess(`Logged ${product} application${field ? ' on field ' + field : ''}`);
                 updateComplianceBadge();
 
