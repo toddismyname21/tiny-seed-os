@@ -1421,3 +1421,29 @@ function getAllChefs() {
     return { success: false, error: error.toString() };
   }
 }
+
+/**
+ * Send a system email (for reports, updates, etc.)
+ *
+ * @param {Object} params - { to, subject, body, htmlBody }
+ * @returns {Object} { success }
+ */
+function sendSystemEmail(params) {
+  try {
+    const { to, subject, body, htmlBody } = params;
+
+    if (!to || !subject) {
+      return { success: false, error: 'Missing required fields: to, subject' };
+    }
+
+    GmailApp.sendEmail(to, subject, body || 'View in HTML', {
+      htmlBody: htmlBody || body,
+      name: 'Tiny Seed Farm System'
+    });
+
+    return { success: true, message: `Email sent to ${to}` };
+  } catch (error) {
+    Logger.log('sendSystemEmail error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}

@@ -2524,6 +2524,8 @@ function doPost(e) {
         return jsonResponse(inviteChef(data));
       case 'bulkInviteChefs':
         return jsonResponse(bulkInviteChefs(data.chefs || data));
+      case 'sendSystemEmail':
+        return jsonResponse(sendSystemEmail(data));
 
       // ============ SALES MODULE - CUSTOMER ACTIONS ============
       case 'sendCustomerMagicLink':
