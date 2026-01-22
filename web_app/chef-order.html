@@ -2087,10 +2087,8 @@
                     showToast(result.error || 'Failed to submit order', 'error');
                 }
             } catch (e) {
-                // Demo mode
-                showToast('Order submitted! (Demo)', 'success');
-                clearCart();
-                toggleCart();
+                console.error('Order submission error:', e);
+                showToast('Failed to submit order. Please try again.', 'error');
             }
         }
 
@@ -2140,8 +2138,8 @@
                     showToast(result.error || 'Failed to save', 'error');
                 }
             } catch (e) {
-                // Demo mode
-                showToast('Delivery instructions saved!', 'success');
+                console.error('Save delivery instructions error:', e);
+                showToast('Failed to save. Please try again.', 'error');
             }
         }
 

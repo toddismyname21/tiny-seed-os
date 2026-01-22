@@ -1585,31 +1585,59 @@
             grid.innerHTML = '<div class="skeleton" style="height: 200px;"></div>'.repeat(6);
 
             try {
-                const result = await api.getProducts();
-                if (result.success) {
-                    AppState.products = result.products;
+                // Try real-time availability first, then fall back to wholesale products
+                let result = await api.call('getRealtimeAvailability', {}, 'GET');
+
+                if (!result.success) {
+                    result = await api.getProducts();
+                }
+
+                if (result.success && (result.availability || result.products)) {
+                    // Convert availability to product format if needed
+                    if (result.availability) {
+                        AppState.products = result.availability.map(a => ({
+                            cropId: a.cropId || a.Crop_ID,
+                            name: a.product || a.cropName || a.name,
+                            variety: a.variety || '',
+                            category: a.category || 'Produce',
+                            unit: a.unit || 'lb',
+                            price: a.price || 0,
+                            available: a.available_now || a.quantity || 0,
+                            emoji: getCropEmoji(a.category)
+                        }));
+                    } else {
+                        AppState.products = result.products;
+                    }
                     renderProducts();
                 } else {
-                    grid.innerHTML = '<p style="color: var(--text-secondary);">Failed to load products</p>';
+                    grid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                            <h3 style="color: var(--text-primary); margin-bottom: 8px;">Unable to Load Products</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">${result.error || 'API connection failed'}</p>
+                            <button onclick="loadProducts()" class="btn btn-primary">Try Again</button>
+                        </div>`;
                 }
             } catch (error) {
-                // Load sample products for demo
-                AppState.products = getSampleProducts();
-                renderProducts();
+                console.error('Product load error:', error);
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🔌</div>
+                        <h3 style="color: var(--text-primary); margin-bottom: 8px;">Connection Error</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 16px;">Could not connect to the server. Please check your internet connection.</p>
+                        <button onclick="loadProducts()" class="btn btn-primary">Retry</button>
+                    </div>`;
             }
         }
 
-        function getSampleProducts() {
-            return [
-                { cropId: 'CRP-001', name: 'Mixed Salad Greens', variety: 'Spring Mix', category: 'Greens', unit: 'lb', price: 8.50, emoji: '🥬' },
-                { cropId: 'CRP-002', name: 'Cherry Tomatoes', variety: 'Sun Gold', category: 'Fruits', unit: 'pint', price: 5.00, emoji: '🍅' },
-                { cropId: 'CRP-003', name: 'Fresh Basil', variety: 'Genovese', category: 'Herbs', unit: 'bunch', price: 3.00, emoji: '🌿' },
-                { cropId: 'CRP-004', name: 'Rainbow Carrots', variety: 'Mixed', category: 'Roots', unit: 'bunch', price: 4.50, emoji: '🥕' },
-                { cropId: 'CRP-005', name: 'Lacinato Kale', variety: 'Dinosaur', category: 'Greens', unit: 'bunch', price: 3.50, emoji: '🥬' },
-                { cropId: 'CRP-006', name: 'Sunflowers', variety: 'ProCut Orange', category: 'Flowers', unit: 'bunch', price: 12.00, emoji: '🌻' },
-                { cropId: 'CRP-007', name: 'Sugar Snap Peas', variety: 'Super Sugar Snap', category: 'Fruits', unit: 'lb', price: 9.00, emoji: '🫛' },
-                { cropId: 'CRP-008', name: 'Fresh Cilantro', variety: 'Santo', category: 'Herbs', unit: 'bunch', price: 2.50, emoji: '🌿' }
-            ];
+        function getCropEmoji(category) {
+            const emojis = {
+                'Greens': '🥬', 'Lettuce': '🥬', 'Salad': '🥬',
+                'Tomatoes': '🍅', 'Fruits': '🍅',
+                'Herbs': '🌿', 'Roots': '🥕', 'Carrots': '🥕',
+                'Flowers': '🌻', 'Peppers': '🫑', 'Squash': '🎃'
+            };
+            return emojis[category] || '🥬';
         }
 
         function renderProducts() {
@@ -1807,11 +1835,8 @@
                     showToast(result.error || 'Failed to submit order', 'error');
                 }
             } catch (error) {
-                showToast('Order submitted! (Demo mode)', 'success');
-                AppState.cart = [];
-                saveCart();
-                updateCartUI();
-                toggleCart();
+                console.error('Order submission error:', error);
+                showToast('Failed to submit order. Please try again.', 'error');
             }
         }
 
@@ -1821,20 +1846,25 @@
 
         async function loadOrders() {
             if (!AppState.customer) return;
+            const container = document.getElementById('ordersList');
 
             try {
                 const result = await api.getOrderHistory(AppState.customer.Customer_ID);
                 if (result.success) {
-                    AppState.orders = result.orders;
+                    AppState.orders = result.orders || [];
+                    renderOrders();
+                } else {
+                    AppState.orders = [];
                     renderOrders();
                 }
             } catch (error) {
-                // Sample orders for demo
-                AppState.orders = [
-                    { Order_ID: 'ORD-2026011401', Order_Date: '2026-01-14', Status: 'Pending', Total: 156.50, items: ['Mixed Greens (10 lb)', 'Tomatoes (20 pints)'] },
-                    { Order_ID: 'ORD-2026010701', Order_Date: '2026-01-07', Status: 'Delivered', Total: 234.00, items: ['Basil (15 bunches)', 'Kale (20 bunches)'] }
-                ];
-                renderOrders();
+                console.error('Load orders error:', error);
+                container.innerHTML = `
+                    <div class="cart-empty">
+                        <div class="cart-empty-icon">⚠️</div>
+                        <p>Could not load orders</p>
+                        <button onclick="loadOrders()" class="btn" style="margin-top: 12px;">Retry</button>
+                    </div>`;
             }
         }
 
@@ -1941,17 +1971,8 @@
                     showToast(result.error || 'Failed to create standing order', 'error');
                 }
             } catch (error) {
-                // Demo mode
-                const demoOrder = {
-                    Standing_Order_ID: 'SO-' + Date.now(),
-                    ...orderData,
-                    status: 'Active',
-                    nextDueDate: getNextDueDate(orderData.startDate, orderData.dayOfWeek)
-                };
-                AppState.standingOrders.push(demoOrder);
-                renderStandingOrders();
-                showToast('Standing order created! (Demo mode)', 'success');
-                resetStandingOrderForm();
+                console.error('Create standing order error:', error);
+                showToast('Failed to create standing order. Please try again.', 'error');
             }
         }
 
@@ -2042,14 +2063,8 @@
                     showToast(result.error || 'Failed to pause order', 'error');
                 }
             } catch (error) {
-                // Demo mode
-                const order = AppState.standingOrders.find(o => (o.Standing_Order_ID || o.standingOrderId) === orderId);
-                if (order) {
-                    order.status = 'Paused';
-                    order.Status = 'Paused';
-                    renderStandingOrders();
-                    showToast('Standing order paused (Demo mode)', 'success');
-                }
+                console.error('Pause standing order error:', error);
+                showToast('Failed to pause order. Please try again.', 'error');
             }
         }
 
@@ -2063,14 +2078,8 @@
                     showToast(result.error || 'Failed to resume order', 'error');
                 }
             } catch (error) {
-                // Demo mode
-                const order = AppState.standingOrders.find(o => (o.Standing_Order_ID || o.standingOrderId) === orderId);
-                if (order) {
-                    order.status = 'Active';
-                    order.Status = 'Active';
-                    renderStandingOrders();
-                    showToast('Standing order resumed (Demo mode)', 'success');
-                }
+                console.error('Resume standing order error:', error);
+                showToast('Failed to resume order. Please try again.', 'error');
             }
         }
 
@@ -2097,13 +2106,8 @@
                     showToast(result.error || 'Failed to update order', 'error');
                 }
             } catch (error) {
-                // Demo mode
-                if (order) {
-                    order.quantity = parseInt(newQty);
-                    order.Quantity = parseInt(newQty);
-                    renderStandingOrders();
-                    showToast('Quantity updated (Demo mode)', 'success');
-                }
+                console.error('Edit standing order error:', error);
+                showToast('Failed to update order. Please try again.', 'error');
             }
         }
 
@@ -2119,14 +2123,8 @@
                     showToast(result.error || 'Failed to cancel order', 'error');
                 }
             } catch (error) {
-                // Demo mode
-                const order = AppState.standingOrders.find(o => (o.Standing_Order_ID || o.standingOrderId) === orderId);
-                if (order) {
-                    order.status = 'Cancelled';
-                    order.Status = 'Cancelled';
-                    renderStandingOrders();
-                    showToast('Standing order cancelled (Demo mode)', 'success');
-                }
+                console.error('Cancel standing order error:', error);
+                showToast('Failed to cancel order. Please try again.', 'error');
             }
         }
 
