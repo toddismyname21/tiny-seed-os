@@ -821,22 +821,6 @@ function doGet(e) {
       case 'testEmailWorkflow':
         return jsonResponse(testEmailWorkflowEngine());
 
-      // ============ CHIEF OF STAFF DASHBOARD ============
-      case 'getChiefOfStaffUI':
-        return HtmlService.createHtmlOutputFromFile('ChiefOfStaffDashboard')
-          .setTitle('Chief of Staff | Tiny Seed Farm')
-          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-      case 'reclassifyEmail':
-        return jsonResponse(reclassifyEmail(e.parameter));
-      case 'getEmailInboxState':
-        return jsonResponse(getEmailInboxState(e.parameter));
-      case 'getCombinedCommunications':
-        return jsonResponse(getCombinedCommunications(e.parameter));
-      case 'completeAction':
-        return jsonResponse(completeAction(e.parameter));
-      case 'dismissAction':
-        return jsonResponse(dismissAction(e.parameter));
-
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
         return testConnection();
@@ -1798,44 +1782,6 @@ function doGet(e) {
       case 'getAvailableFields':
         return jsonResponse(getAvailableFields(e.parameter));
 
-      // ============ FIELD MANAGEMENT MODULE ============
-      case 'getFieldsDashboard':
-        return jsonResponse(getFieldsDashboard(e.parameter));
-      case 'getFieldDetails':
-        return jsonResponse(getFieldDetails(e.parameter));
-      case 'createField':
-        return jsonResponse(createField(e.parameter));
-      case 'updateField':
-        return jsonResponse(updateField(e.parameter));
-      case 'deleteField':
-        return jsonResponse(deleteField(e.parameter));
-      case 'calculateBedsFromPolygon':
-        const polygonData = e.parameter.polygon ? JSON.parse(e.parameter.polygon) : null;
-        return jsonResponse(calculateBedsFromPolygon({
-          polygon: polygonData,
-          bedWidth: e.parameter.bedWidth,
-          pathWidth: e.parameter.pathWidth,
-          orientation: e.parameter.orientation
-        }));
-      case 'previewBedLayout':
-        return jsonResponse(previewBedLayout(e.parameter));
-      case 'regenerateFieldBeds':
-        return jsonResponse(regenerateFieldBeds(e.parameter));
-      case 'updateBed':
-        return jsonResponse(updateBed(e.parameter));
-      case 'updateBedLengths':
-        const lengthsData = e.parameter.lengths ? JSON.parse(e.parameter.lengths) : [];
-        return jsonResponse(updateBedLengths({
-          fieldName: e.parameter.fieldName,
-          lengths: lengthsData
-        }));
-      case 'ensureFieldSchemaExtensions':
-        return jsonResponse(ensureFieldSchemaExtensions());
-      case 'getFieldManagementUI':
-        return getFieldManagementDashboard();
-      case 'getFieldMobileUI':
-        return getFieldMobileCapture();
-
       // ============ MARKETING MODULE ============
       case 'getFarmPics':
         return jsonResponse(getFarmPics(e.parameter));
@@ -2046,8 +1992,6 @@ function doGet(e) {
         return jsonResponse(getQBOpenBills());
       case 'getQBProfitLossSummary':
         return jsonResponse(getQBProfitLossSummary());
-      case 'getQuickBooksAuthUrl':
-        return jsonResponse(getQuickBooksAuthUrl());
 
       // ============ FLOWER OPERATIONS ============
       case 'getFlowerTasks':
@@ -2843,8 +2787,6 @@ function doPost(e) {
         return jsonResponse(createQuickBooksInvoice(data));
       case 'createQuickBooksCustomer':
         return jsonResponse(createQuickBooksCustomer(data));
-      case 'saveQuickBooksCredentials':
-        return jsonResponse(saveQuickBooksCredentials(data));
 
       // ============ ACCOUNTING MODULE - POST ENDPOINTS ============
       case 'saveReceipt':
@@ -37493,148 +37435,6 @@ function disconnectQuickBooks() {
   PropertiesService.getUserProperties().deleteProperty('QB_REALM_ID');
   logIntegration('QuickBooks', 'Disconnect', 'SUCCESS', 'Disconnected from QuickBooks');
   return { success: true, message: 'Disconnected from QuickBooks' };
-}
-
-/**
- * Save QuickBooks credentials to Script Properties (called from Setup Wizard)
- */
-function saveQuickBooksCredentials(data) {
-  try {
-    const props = PropertiesService.getScriptProperties();
-
-    if (!data.companyId || !data.clientId || !data.clientSecret) {
-      return { success: false, error: 'Missing required credentials: companyId, clientId, clientSecret' };
-    }
-
-    // Save to Script Properties (persistent, secure)
-    props.setProperties({
-      'QB_COMPANY_ID': data.companyId,
-      'QB_CLIENT_ID': data.clientId,
-      'QB_CLIENT_SECRET': data.clientSecret,
-      'QB_ENABLED': 'true',
-      'QB_ENVIRONMENT': 'production'
-    });
-
-    // Also save company ID to user properties for OAuth
-    PropertiesService.getUserProperties().setProperty('QB_REALM_ID', data.companyId);
-
-    logIntegration('QuickBooks', 'SaveCredentials', 'SUCCESS', 'Credentials saved via Setup Wizard');
-
-    return {
-      success: true,
-      message: 'QuickBooks credentials saved successfully. You can now connect to QuickBooks.',
-      note: 'After saving, you will need to redeploy the Apps Script for changes to take effect.'
-    };
-  } catch (error) {
-    logIntegration('QuickBooks', 'SaveCredentials', 'ERROR', error.toString());
-    return { success: false, error: error.toString() };
-  }
-}
-
-/**
- * Get QuickBooks connection status for dashboard
- */
-function getQuickBooksConnectionStatus() {
-  try {
-    const props = PropertiesService.getScriptProperties();
-    const enabled = props.getProperty('QB_ENABLED') === 'true' || QUICKBOOKS_CONFIG.ENABLED;
-    const configured = props.getProperty('QB_CLIENT_ID') || QUICKBOOKS_CONFIG.CLIENT_ID !== 'YOUR_QB_CLIENT_ID';
-
-    if (!enabled || !configured) {
-      return {
-        connected: false,
-        message: 'QuickBooks is not configured. Use the Setup Wizard to add your credentials.',
-        configured: !!configured
-      };
-    }
-
-    const service = getQuickBooksOAuthService();
-
-    if (service.hasAccess()) {
-      // Try to get company info
-      const companyId = PropertiesService.getUserProperties().getProperty('QB_REALM_ID') ||
-                       props.getProperty('QB_COMPANY_ID') ||
-                       QUICKBOOKS_CONFIG.COMPANY_ID;
-
-      return {
-        connected: true,
-        companyName: 'Tiny Seed Farm LLC',
-        companyId: companyId,
-        message: 'Connected to QuickBooks'
-      };
-    } else {
-      return {
-        connected: false,
-        message: 'QuickBooks authorization required',
-        authUrl: getQuickBooksAuthorizationUrl()
-      };
-    }
-  } catch (error) {
-    return {
-      connected: false,
-      error: error.toString(),
-      message: 'Error checking QuickBooks status'
-    };
-  }
-}
-
-/**
- * Get QuickBooks authorization URL for frontend
- */
-function getQuickBooksAuthUrl() {
-  try {
-    const authUrl = getQuickBooksAuthorizationUrl();
-    return { success: true, url: authUrl };
-  } catch (error) {
-    return { success: false, error: error.toString() };
-  }
-}
-
-/**
- * Get full QuickBooks Dashboard data
- */
-function getQuickBooksDashboard() {
-  try {
-    // First check connection
-    const connectionStatus = getQuickBooksConnectionStatus();
-    if (!connectionStatus.connected) {
-      return { success: false, error: 'Not connected to QuickBooks', connection: connectionStatus };
-    }
-
-    // Get all dashboard data
-    const accounts = getQBAccountBalances();
-    const invoices = getQBOpenInvoices();
-    const bills = getQBOpenBills();
-    const profitLoss = getQBProfitLossSummary();
-
-    // Calculate summary
-    const cashOnHand = accounts.success ?
-      accounts.accounts.filter(a => a.accountType === 'Bank').reduce((sum, a) => sum + (a.balance || 0), 0) : 0;
-    const creditBalance = accounts.success ?
-      accounts.accounts.filter(a => a.accountType === 'Credit Card').reduce((sum, a) => sum + (a.balance || 0), 0) : 0;
-    const arBalance = invoices.success ? invoices.summary?.totalOutstanding || 0 : 0;
-    const apBalance = bills.success ? bills.summary?.totalOutstanding || 0 : 0;
-
-    return {
-      success: true,
-      dashboard: {
-        summary: {
-          cashOnHand: cashOnHand,
-          creditCardBalance: creditBalance,
-          accountsReceivable: arBalance,
-          accountsPayable: apBalance,
-          netCashPosition: cashOnHand - creditBalance
-        },
-        accounts: accounts.success ? accounts.accounts : [],
-        invoices: invoices.success ? invoices : { overdue: [], current: [], summary: {} },
-        bills: bills.success ? bills : { overdue: [], current: [], summary: {} },
-        profitLoss: profitLoss.success ? profitLoss.summary : {},
-        generatedAt: new Date().toISOString()
-      }
-    };
-  } catch (error) {
-    return { success: false, error: error.toString() };
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
