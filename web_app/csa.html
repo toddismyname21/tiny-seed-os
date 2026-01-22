@@ -628,75 +628,145 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
-           FLEX FUNDS BALANCE - DIGITAL CLOCK STYLE
+           SOCIAL MEDIA CAROUSEL
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .flex-funds-banner {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-radius: var(--radius-lg);
-            padding: 20px;
+        .social-carousel {
             margin-bottom: 16px;
-            position: relative;
             overflow: hidden;
         }
 
-        .flex-funds-banner::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent 40%, rgba(34, 197, 94, 0.1) 50%, transparent 60%);
-            animation: shimmerGlow 3s infinite;
+        .social-carousel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
         }
 
-        @keyframes shimmerGlow {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+        .social-carousel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .social-carousel-link {
+            font-size: 13px;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .social-posts {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+            scrollbar-width: none;
+        }
+
+        .social-posts::-webkit-scrollbar {
+            display: none;
+        }
+
+        .social-post {
+            flex: 0 0 280px;
+            scroll-snap-align: start;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .social-post-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background: var(--bg-elevated);
+        }
+
+        .social-post-content {
+            padding: 12px;
+        }
+
+        .social-post-text {
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .social-post-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .social-post-platform {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           FLEX FUNDS BALANCE - COMPACT CARD
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .flex-funds-card-compact {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .flex-balance-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .flex-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.6);
         }
 
         .flex-clock-display {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .flex-clock-label {
-            color: #22c55e;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            align-items: baseline;
+            gap: 2px;
         }
 
         .flex-clock-amount {
             font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
-            font-size: 56px;
+            font-size: 32px;
             font-weight: 700;
             color: #22c55e;
-            text-shadow: 0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3);
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             line-height: 1;
-            transition: color 0.3s, text-shadow 0.3s;
+            transition: color 0.3s;
         }
 
         .flex-clock-amount.zero {
             color: #ef4444;
-            text-shadow: 0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3);
         }
 
         .flex-clock-cents {
             font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
-            font-size: 24px;
+            font-size: 16px;
             font-weight: 600;
             color: #22c55e;
-            opacity: 0.8;
-            align-self: flex-start;
-            margin-top: 8px;
             transition: color 0.3s;
         }
 
@@ -704,34 +774,30 @@
             color: #ef4444;
         }
 
-        .flex-banner-row {
+        .flex-actions {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-top: 16px;
-            position: relative;
-            z-index: 1;
+            gap: 12px;
         }
 
         .flex-add-btn {
             background: #22c55e;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 50px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             transition: all 0.2s;
-            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
         }
 
         .flex-add-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+            background: #16a34a;
         }
 
         .flex-add-btn:disabled {
@@ -740,14 +806,22 @@
             transform: none;
         }
 
-        .flex-history-link {
+        .flex-history-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
             color: rgba(255,255,255,0.7);
-            font-size: 13px;
-            text-decoration: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
         }
 
-        .flex-history-link:hover {
+        .flex-history-btn:hover {
+            background: rgba(255,255,255,0.2);
             color: white;
         }
 
@@ -2182,27 +2256,52 @@
                 <button class="dismiss" onclick="dismissAlert()"><i class="fas fa-times"></i></button>
             </div>
 
-            <!-- Flex Funds Balance - Digital Clock Style (TOP of page) -->
-            <div class="flex-funds-banner" id="flexFundsBanner">
-                <div class="flex-clock-label">FLEX FUNDS BALANCE</div>
-                <div class="flex-clock-display">
-                    <span class="flex-clock-amount">$<span id="flexBalanceDollars">0</span></span>
-                    <span class="flex-clock-cents">.<span id="flexBalanceCents">00</span></span>
+            <!-- Social Media Carousel -->
+            <div class="social-carousel" id="socialCarousel">
+                <div class="social-carousel-header">
+                    <span class="social-carousel-title">From the Farm</span>
+                    <a href="https://instagram.com/tinyseedfarm" target="_blank" class="social-carousel-link">
+                        Follow Us <i class="fas fa-external-link-alt" style="font-size: 10px;"></i>
+                    </a>
                 </div>
-                <div class="flex-banner-row">
-                    <span class="flex-history-link" onclick="toggleFlexHistory()">
-                        <i class="fas fa-history"></i> View History
-                    </span>
+                <div class="social-posts" id="socialPosts">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Flex Funds Balance - Compact Card -->
+            <div class="flex-funds-card-compact" id="flexFundsBanner">
+                <div class="flex-balance-section">
+                    <div>
+                        <div class="flex-label">Flex Funds</div>
+                        <div class="flex-clock-display">
+                            <span class="flex-clock-amount">$<span id="flexBalanceDollars">0</span></span>
+                            <span class="flex-clock-cents">.<span id="flexBalanceCents">00</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-actions">
+                    <button class="flex-history-btn" onclick="toggleFlexHistory()" title="View History">
+                        <i class="fas fa-history"></i>
+                    </button>
                     <button class="flex-add-btn" onclick="purchaseFlexFunds()">
                         <i class="fas fa-plus"></i>
                         Add $50
                     </button>
                 </div>
-                <!-- Transaction History (slides down) -->
-                <div class="flex-history-panel" id="flexHistoryPanel" style="display: none;">
-                    <h4 style="color: white; font-size: 14px; margin-bottom: 12px;">Recent Transactions</h4>
-                    <div id="flexTransactionsList" class="flex-transactions-list">
-                        <div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">Loading...</div>
+            </div>
+
+            <!-- Flex History Modal -->
+            <div class="modal-overlay" id="flexHistoryModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Flex Funds History</h3>
+                        <button class="modal-close" onclick="toggleFlexHistory()"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="flexTransactionsList">
+                            <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3172,11 +3271,12 @@
             document.getElementById('appContainer').classList.add('active');
 
             updateUI();
+            loadSocialPosts();
+            loadFlexBalance();
             loadBoxContents();
             loadOrders();
             loadVacationHolds();
             checkAlerts();
-            loadFlexBalance();
         }
 
         function switchTab(tabId) {
@@ -3333,13 +3433,13 @@
         }
 
         function toggleFlexHistory() {
-            const historyPanel = document.getElementById('flexHistoryPanel');
-            const isVisible = historyPanel.style.display !== 'none';
+            const modal = document.getElementById('flexHistoryModal');
+            const isVisible = modal.style.display !== 'none';
 
             if (isVisible) {
-                historyPanel.style.display = 'none';
+                modal.style.display = 'none';
             } else {
-                historyPanel.style.display = 'block';
+                modal.style.display = 'flex';
                 loadFlexTransactions();
             }
         }
@@ -3349,44 +3449,116 @@
             const email = AppState.membership?.Email;
 
             if (!email) {
-                listEl.innerHTML = '<div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">Please log in to view history</div>';
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Please log in to view history</div>';
                 return;
             }
 
-            listEl.innerHTML = '<div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">Loading...</div>';
+            listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</div>';
 
             try {
                 const response = await fetch(`${API_URL}?action=getFlexTransactions&email=${encodeURIComponent(email)}`);
                 const result = await response.json();
 
                 if (result.success && result.transactions?.length > 0) {
-                    listEl.innerHTML = result.transactions.slice(0, 5).map(tx => {
+                    listEl.innerHTML = result.transactions.map(tx => {
                         const date = new Date(tx.timestamp);
-                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                        const typeLabel = tx.type === 'ADMIN_CREDIT' ? 'Credit' :
-                                          tx.type === 'PURCHASE' ? 'Added' :
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const typeLabel = tx.type === 'ADMIN_CREDIT' ? 'Credit Added' :
+                                          tx.type === 'PURCHASE' ? 'Funds Added' :
                                           tx.type === 'SPENT' ? 'Spent' : tx.type;
                         const isCredit = tx.type !== 'SPENT';
 
                         return `
-                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-color);">
                                 <div>
-                                    <div style="color: white; font-size: 13px;">${typeLabel}</div>
-                                    <div style="color: rgba(255,255,255,0.5); font-size: 11px;">${dateStr}</div>
+                                    <div style="font-weight: 500; color: var(--text-primary);">${typeLabel}</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">${dateStr}</div>
+                                    ${tx.reason ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${tx.reason}</div>` : ''}
                                 </div>
-                                <div style="font-weight: 600; color: ${isCredit ? '#4ade80' : '#ef4444'};">
+                                <div style="font-weight: 600; font-size: 16px; color: ${isCredit ? '#22c55e' : '#ef4444'};">
                                     ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}
                                 </div>
                             </div>
                         `;
                     }).join('');
                 } else {
-                    listEl.innerHTML = '<div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">No transactions yet</div>';
+                    listEl.innerHTML = '<div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);"><div style="font-size: 32px; margin-bottom: 8px;">💳</div>No transactions yet<br><small>Add funds or earn credits to get started</small></div>';
                 }
             } catch (error) {
                 console.log('Error loading transactions:', error);
-                listEl.innerHTML = '<div style="color: rgba(255,255,255,0.6); text-align: center; padding: 12px;">Failed to load</div>';
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Failed to load history</div>';
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SOCIAL MEDIA CAROUSEL
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadSocialPosts() {
+            const container = document.getElementById('socialPosts');
+
+            // Try to fetch from API, fallback to sample data
+            try {
+                const response = await fetch(`${API_URL}?action=getRecentSocialPosts`);
+                const result = await response.json();
+
+                if (result.success && result.posts?.length > 0) {
+                    renderSocialPosts(result.posts);
+                    return;
+                }
+            } catch (e) {
+                console.log('Loading sample social posts');
+            }
+
+            // Sample posts for demo
+            const samplePosts = [
+                {
+                    image: 'https://images.unsplash.com/photo-1592921870789-04563d55041c?w=400&h=300&fit=crop',
+                    text: 'First harvest of the season! These rainbow carrots are going straight into this week\'s boxes 🥕🌈',
+                    platform: 'instagram',
+                    date: '2 days ago'
+                },
+                {
+                    image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=300&fit=crop',
+                    text: 'Morning dew on the lettuce beds. Nothing beats fresh greens picked at sunrise 🌅',
+                    platform: 'instagram',
+                    date: '4 days ago'
+                },
+                {
+                    image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400&h=300&fit=crop',
+                    text: 'Greenhouse transplants are thriving! Getting ready for spring CSA season 🌱',
+                    platform: 'facebook',
+                    date: '1 week ago'
+                },
+                {
+                    image: 'https://images.unsplash.com/photo-1518977676601-b53f82ber?w=400&h=300&fit=crop',
+                    text: 'Thank you to everyone who visited us at the farmers market this weekend! 🙏',
+                    platform: 'instagram',
+                    date: '1 week ago'
+                }
+            ];
+
+            renderSocialPosts(samplePosts);
+        }
+
+        function renderSocialPosts(posts) {
+            const container = document.getElementById('socialPosts');
+            container.innerHTML = posts.map(post => `
+                <div class="social-post">
+                    <img src="${post.image}" alt="Farm post" class="social-post-image" onerror="this.src='https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=400&h=300&fit=crop'">
+                    <div class="social-post-content">
+                        <div class="social-post-text">${post.text}</div>
+                        <div class="social-post-meta">
+                            <span class="social-post-platform">
+                                <i class="fab fa-${post.platform}"></i>
+                                ${post.platform}
+                            </span>
+                            <span>•</span>
+                            <span>${post.date}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
