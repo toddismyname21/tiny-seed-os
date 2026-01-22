@@ -1216,6 +1216,15 @@
         <button class="tab-btn" onclick="showTab('roundups')">
             <i class="fas fa-coins"></i> Change Investing
         </button>
+        <button class="tab-btn" onclick="showTab('wishlist')">
+            <i class="fas fa-gift"></i> Wishlist
+        </button>
+        <button class="tab-btn" onclick="showTab('assets')">
+            <i class="fas fa-warehouse"></i> Assets
+        </button>
+        <button class="tab-btn" onclick="showTab('paymentplans')">
+            <i class="fas fa-file-invoice-dollar"></i> Payment Plans
+        </button>
         <button class="tab-btn" onclick="showTab('employees')">
             <i class="fas fa-users"></i> Team & Retirement
         </button>
@@ -2208,6 +2217,395 @@
                             </p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- WISHLIST TAB -->
+        <!-- ============================================= -->
+        <div id="tab-wishlist" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Wishlist Items</div>
+                            <div class="stat-value" id="wishlist-count">0</div>
+                        </div>
+                        <div class="stat-icon purple">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Total Wishlist Value</div>
+                            <div class="stat-value" id="wishlist-total">$0</div>
+                        </div>
+                        <div class="stat-icon gold">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Safe to Buy</div>
+                            <div class="stat-value" style="color: var(--success);" id="wishlist-safe">0</div>
+                        </div>
+                        <div class="stat-icon green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Cash Available</div>
+                            <div class="stat-value" id="wishlist-cash">$0</div>
+                        </div>
+                        <div class="stat-icon blue">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-gift"></i> Equipment Wishlist</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('addWishlistModal')">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Cost</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Recommendation</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wishlist-table-body">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <i class="fas fa-gift" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                                        No wishlist items yet. Click "Add Item" to get started.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-robot"></i> Smart Purchase Advisor</h3>
+                    </div>
+                    <div class="card-body" id="purchase-advisor">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle" style="color: var(--info);"></i>
+                            <div>
+                                <strong>How it works:</strong> The system analyzes your cash flow, debt, and emergency fund to tell you when it's safe to make purchases over $1,000.
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <h4 style="margin-bottom: 0.5rem;">Purchase Decision Factors:</h4>
+                            <ul style="font-size: 0.85rem; color: var(--text-secondary); padding-left: 1.25rem;">
+                                <li>Cash reserves vs 2-month expenses</li>
+                                <li>Emergency fund (3-month protection)</li>
+                                <li>Debt-to-income ratio (under 40%)</li>
+                                <li>Recent cash flow trend</li>
+                                <li>Seasonal farm patterns</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- ASSETS & INVENTORY TAB -->
+        <!-- ============================================= -->
+        <div id="tab-assets" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Total Asset Value</div>
+                            <div class="stat-value" style="color: var(--success);" id="assets-total">$0</div>
+                        </div>
+                        <div class="stat-icon green">
+                            <i class="fas fa-warehouse"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Equipment Value</div>
+                            <div class="stat-value" id="equipment-total">$0</div>
+                        </div>
+                        <div class="stat-icon blue">
+                            <i class="fas fa-tractor"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Vehicle Value</div>
+                            <div class="stat-value" id="vehicle-total">$0</div>
+                        </div>
+                        <div class="stat-icon orange">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Inventory Value</div>
+                            <div class="stat-value" id="inventory-total">$0</div>
+                        </div>
+                        <div class="stat-icon purple">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan Application Export -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(42, 157, 143, 0.1) 0%, var(--bg-card) 100%); border: 2px solid var(--success);">
+                <div class="card-header">
+                    <h3><i class="fas fa-file-pdf" style="color: var(--success);"></i> Loan Application Package</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-success btn-sm" onclick="generateLoanPackage()">
+                            <i class="fas fa-download"></i> Export Balance Sheet
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="generateAssetReport()">
+                            <i class="fas fa-file-alt"></i> Asset Schedule
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p style="color: var(--text-secondary);">Generate professional, loan-ready financial documents with one click. Includes Balance Sheet, Asset Schedule with MACRS depreciation, and Net Worth calculation.</p>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tractor"></i> Farm Assets</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('addAssetModal')">
+                            <i class="fas fa-plus"></i> Add Asset
+                        </button>
+                    </div>
+                    <div class="card-body" style="padding: 0; max-height: 500px; overflow-y: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Category</th>
+                                    <th>Purchase Price</th>
+                                    <th>Current Value</th>
+                                    <th>Condition</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assets-table-body">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <i class="fas fa-warehouse" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                                        No assets tracked yet. Add your farm equipment and vehicles.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-balance-scale"></i> Balance Sheet Summary</h3>
+                    </div>
+                    <div class="card-body" id="balance-sheet-summary">
+                        <div style="padding: 1rem; background: rgba(42, 157, 143, 0.1); border-radius: 8px; margin-bottom: 1rem;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">TOTAL ASSETS</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--success);" id="bs-assets">$0</div>
+                        </div>
+                        <div style="padding: 1rem; background: rgba(230, 57, 70, 0.1); border-radius: 8px; margin-bottom: 1rem;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">TOTAL LIABILITIES</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--danger);" id="bs-liabilities">$0</div>
+                        </div>
+                        <div style="padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">OWNER'S EQUITY (Net Worth)</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--info);" id="bs-equity">$0</div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem;">
+                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Asset Breakdown</h4>
+                            <div id="asset-breakdown">
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                    <span>Cash & Bank</span><span id="bs-cash">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                    <span>Investments</span><span id="bs-investments">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                    <span>Equipment</span><span id="bs-equipment">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                    <span>Vehicles</span><span id="bs-vehicles">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                                    <span>Inventory</span><span id="bs-inventory">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- PAYMENT PLANS TAB -->
+        <!-- ============================================= -->
+        <div id="tab-paymentplans" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Active Plans</div>
+                            <div class="stat-value" id="plans-active">0</div>
+                        </div>
+                        <div class="stat-icon blue">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Outstanding Balance</div>
+                            <div class="stat-value" id="plans-outstanding">$0</div>
+                        </div>
+                        <div class="stat-icon gold">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Collected This Month</div>
+                            <div class="stat-value" style="color: var(--success);" id="plans-collected">$0</div>
+                        </div>
+                        <div class="stat-icon green">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Overdue Payments</div>
+                            <div class="stat-value" style="color: var(--danger);" id="plans-overdue">0</div>
+                        </div>
+                        <div class="stat-icon red">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-file-invoice-dollar"></i> Customer Payment Plans</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('addPaymentPlanModal')">
+                            <i class="fas fa-plus"></i> New Plan
+                        </button>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Total Amount</th>
+                                    <th>Paid</th>
+                                    <th>Remaining</th>
+                                    <th>Next Due</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payment-plans-table-body">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <i class="fas fa-file-invoice-dollar" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                                        No payment plans yet. Create a plan for customers who want to pay in installments.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-info-circle"></i> Payment Plan Settings</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info" style="margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle" style="color: var(--info);"></i>
+                            <div>
+                                <strong>How it works:</strong> Customers can pay for CSA shares or large orders in installments with a small interest charge.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Default Down Payment</label>
+                            <select class="form-input" id="default-down-payment">
+                                <option value="10">10%</option>
+                                <option value="20" selected>20%</option>
+                                <option value="25">25%</option>
+                                <option value="50">50%</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Default Interest Rate</label>
+                            <select class="form-input" id="default-interest-rate">
+                                <option value="0">0% (No Interest)</option>
+                                <option value="3">3%</option>
+                                <option value="5" selected>5%</option>
+                                <option value="7">7%</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Default Installments</label>
+                            <select class="form-input" id="default-installments">
+                                <option value="2">2 payments</option>
+                                <option value="3">3 payments</option>
+                                <option value="4" selected>4 payments</option>
+                                <option value="6">6 payments</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overdue Payments Alert -->
+            <div class="card" id="overdue-section" style="display: none; border: 2px solid var(--danger);">
+                <div class="card-header" style="background: rgba(230, 57, 70, 0.1);">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Overdue Payments</h3>
+                </div>
+                <div class="card-body" id="overdue-payments-list">
                 </div>
             </div>
         </div>
@@ -3429,6 +3827,206 @@
                 <button class="btn btn-secondary" onclick="closeModal('paymentPlanModal')">Cancel</button>
                 <button class="btn btn-primary" onclick="createPaymentPlan()">
                     <i class="fas fa-save"></i> Create Payment Plan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Wishlist Item Modal -->
+    <div class="modal-overlay" id="addWishlistModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-gift"></i> Add Wishlist Item</h2>
+                <button class="modal-close" onclick="closeModal('addWishlistModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Item Name</label>
+                    <input type="text" class="form-input" id="wishlist-name" placeholder="e.g., Delivery Van, Greenhouse">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select class="form-input" id="wishlist-category">
+                        <option value="equipment">Equipment</option>
+                        <option value="vehicle">Vehicle</option>
+                        <option value="infrastructure">Infrastructure</option>
+                        <option value="technology">Technology</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Estimated Cost</label>
+                        <input type="number" class="form-input" id="wishlist-cost" placeholder="0.00" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-input" id="wishlist-priority">
+                            <option value="high">High</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes (optional)</label>
+                    <textarea class="form-input" id="wishlist-notes" rows="2" placeholder="Why do you need this?"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addWishlistModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveWishlistItem()">
+                    <i class="fas fa-save"></i> Add to Wishlist
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Asset Modal -->
+    <div class="modal-overlay" id="addAssetModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-warehouse"></i> Add Farm Asset</h2>
+                <button class="modal-close" onclick="closeModal('addAssetModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Asset Name</label>
+                    <input type="text" class="form-input" id="asset-name" placeholder="e.g., John Deere Tractor">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select class="form-input" id="asset-category">
+                        <option value="equipment">Equipment</option>
+                        <option value="vehicle">Vehicle</option>
+                        <option value="infrastructure">Infrastructure</option>
+                        <option value="inventory">Inventory</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Purchase Price</label>
+                        <input type="number" class="form-input" id="asset-purchase-price" placeholder="0.00" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Purchase Date</label>
+                        <input type="date" class="form-input" id="asset-purchase-date">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Current Value</label>
+                        <input type="number" class="form-input" id="asset-current-value" placeholder="0.00" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Condition</label>
+                        <select class="form-input" id="asset-condition">
+                            <option value="excellent">Excellent</option>
+                            <option value="good" selected>Good</option>
+                            <option value="fair">Fair</option>
+                            <option value="poor">Poor</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Serial Number (optional)</label>
+                    <input type="text" class="form-input" id="asset-serial" placeholder="For insurance/loans">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addAssetModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveAsset()">
+                    <i class="fas fa-save"></i> Add Asset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Payment Plan Modal -->
+    <div class="modal-overlay" id="addPaymentPlanModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-invoice-dollar"></i> Create Payment Plan</h2>
+                <button class="modal-close" onclick="closeModal('addPaymentPlanModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Customer Name</label>
+                        <input type="text" class="form-input" id="plan-customer-name" placeholder="Full name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Customer Email</label>
+                        <input type="email" class="form-input" id="plan-customer-email" placeholder="email@example.com">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Total Amount</label>
+                        <input type="number" class="form-input" id="plan-total" placeholder="0.00" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Down Payment %</label>
+                        <select class="form-input" id="plan-down-payment">
+                            <option value="10">10%</option>
+                            <option value="20" selected>20%</option>
+                            <option value="25">25%</option>
+                            <option value="50">50%</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Installments</label>
+                        <select class="form-input" id="plan-installments">
+                            <option value="2">2 payments</option>
+                            <option value="3">3 payments</option>
+                            <option value="4" selected>4 payments</option>
+                            <option value="6">6 payments</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Interest Rate</label>
+                        <select class="form-input" id="plan-interest">
+                            <option value="0">0% (No Interest)</option>
+                            <option value="3">3%</option>
+                            <option value="5" selected>5%</option>
+                            <option value="7">7%</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px; margin-top: 1rem;" id="plan-preview-box">
+                    <h4 style="margin-bottom: 0.5rem;">Payment Preview</h4>
+                    <div id="plan-preview-content" style="font-size: 0.9rem; color: var(--text-secondary);">
+                        Enter amount to see payment schedule...
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addPaymentPlanModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="savePaymentPlan()">
+                    <i class="fas fa-save"></i> Create Plan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Package Preview Modal -->
+    <div class="modal-overlay" id="loanPackageModal">
+        <div class="modal" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-pdf"></i> Loan Application Package Preview</h2>
+                <button class="modal-close" onclick="closeModal('loanPackageModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div id="loan-package-content">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('loanPackageModal')">Close</button>
+                <button class="btn btn-primary" onclick="printLoanPackage()">
+                    <i class="fas fa-print"></i> Print / Save PDF
                 </button>
             </div>
         </div>
@@ -6644,6 +7242,110 @@
                 console.error('Drive save error:', error);
                 showNotification('Failed to save to Drive: ' + error.message, 'error');
             }
+        }
+
+        // =============================================
+        // LOAN PACKAGE FUNCTIONS
+        // =============================================
+        async function generateLoanPackage() {
+            showNotification('Generating loan package...', 'info');
+            try {
+                const balanceSheet = AssetManager.generateBalanceSheet();
+                const html = generateBalanceSheetHTML(balanceSheet);
+                document.getElementById('loan-package-content').innerHTML = html;
+                openModal('loanPackageModal');
+                showNotification('Loan package ready!', 'success');
+            } catch (error) {
+                showNotification('Failed to generate: ' + error.message, 'error');
+            }
+        }
+
+        async function generateAssetReport() {
+            showNotification('Generating asset schedule...', 'info');
+            try {
+                const schedule = AssetManager.generateAssetSchedule();
+                document.getElementById('loan-package-content').innerHTML = schedule.html;
+                openModal('loanPackageModal');
+                showNotification('Asset schedule ready!', 'success');
+            } catch (error) {
+                showNotification('Failed to generate: ' + error.message, 'error');
+            }
+        }
+
+        function generateBalanceSheetHTML(data) {
+            const date = new Date().toLocaleDateString();
+            return `
+                <div style="font-family: 'Times New Roman', serif; padding: 20px;">
+                    <h1 style="border-bottom: 2px solid #2a9d8f; padding-bottom: 10px;">Tiny Seed Farm - Balance Sheet</h1>
+                    <p><strong>As of:</strong> ${date}</p>
+                    <h2>Assets</h2>
+                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Cash & Bank</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.cash || 0).toLocaleString()}</td></tr>
+                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Investments</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.investments || 0).toLocaleString()}</td></tr>
+                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Equipment</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.equipment || 0).toLocaleString()}</td></tr>
+                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Vehicles</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.vehicles || 0).toLocaleString()}</td></tr>
+                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Inventory</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.inventory || 0).toLocaleString()}</td></tr>
+                        <tr style="font-weight: bold; background: #f5f5f5;"><td style="padding: 8px;">TOTAL ASSETS</td><td style="text-align: right; padding: 8px;">$${(data?.assets?.total || 0).toLocaleString()}</td></tr>
+                    </table>
+                    <h2>Liabilities</h2>
+                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Credit Cards</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.liabilities?.creditCards || 0).toLocaleString()}</td></tr>
+                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Loans</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.liabilities?.loans || 0).toLocaleString()}</td></tr>
+                        <tr style="font-weight: bold; background: #f5f5f5;"><td style="padding: 8px;">TOTAL LIABILITIES</td><td style="text-align: right; padding: 8px;">$${(data?.liabilities?.total || 0).toLocaleString()}</td></tr>
+                    </table>
+                    <h2>Owner's Equity</h2>
+                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                        <tr style="font-weight: bold; background: #e8f5e9;"><td style="padding: 8px;">NET WORTH</td><td style="text-align: right; padding: 8px;">$${(data?.equity || 0).toLocaleString()}</td></tr>
+                    </table>
+                    <p style="margin-top: 40px; font-size: 0.9em; color: #666;">Generated by Tiny Seed Farm Financial System</p>
+                </div>
+            `;
+        }
+
+        function printLoanPackage() {
+            const content = document.getElementById('loan-package-content').innerHTML;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head><title>Tiny Seed Farm Loan Package</title>
+                <style>body { font-family: 'Times New Roman', serif; margin: 40px; } @media print { body { margin: 20px; } }</style>
+                </head>
+                <body>${content}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        // Wrapper for Payment Plan save from new modal
+        function savePaymentPlan() {
+            const customerName = document.getElementById('plan-customer-name')?.value;
+            const customerEmail = document.getElementById('plan-customer-email')?.value;
+            const total = parseFloat(document.getElementById('plan-total')?.value) || 0;
+            const downPercent = parseInt(document.getElementById('plan-down-payment')?.value) || 20;
+            const installments = parseInt(document.getElementById('plan-installments')?.value) || 4;
+            const interest = parseInt(document.getElementById('plan-interest')?.value) || 5;
+
+            if (!customerName || total <= 0) {
+                showNotification('Please enter customer name and amount', 'warning');
+                return;
+            }
+
+            PaymentPlanManager.create({
+                customerName,
+                customerEmail,
+                totalAmount: total,
+                downPaymentPercent: downPercent,
+                installments,
+                interestRate: interest
+            });
+
+            closeModal('addPaymentPlanModal');
+            // Clear form
+            document.getElementById('plan-customer-name').value = '';
+            document.getElementById('plan-customer-email').value = '';
+            document.getElementById('plan-total').value = '';
         }
 
         // =============================================
