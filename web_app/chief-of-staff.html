@@ -483,6 +483,235 @@
             color: var(--text-primary);
         }
 
+        /* Task Board */
+        .task-board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .task-board-header h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .btn-add-task {
+            padding: 10px 20px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add-task:hover {
+            background: var(--accent-hover);
+        }
+
+        .task-columns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            height: calc(100% - 60px);
+        }
+
+        .task-column {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .column-header.pending { background: rgba(234, 179, 8, 0.2); color: #fbbf24; }
+        .column-header.in-progress { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .column-header.completed { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+
+        .column-count {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .task-card {
+            background: var(--bg-input);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+
+        .task-card:hover {
+            transform: translateX(4px);
+            background: rgba(79, 70, 229, 0.15);
+        }
+
+        .task-card.priority-critical { border-left-color: var(--critical); }
+        .task-card.priority-high { border-left-color: var(--high); }
+        .task-card.priority-medium { border-left-color: var(--medium); }
+        .task-card.priority-low { border-left-color: var(--low); }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .task-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-assignee {
+            background: rgba(79, 70, 229, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .task-action-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .task-action-btn.start { background: #3b82f6; color: white; }
+        .task-action-btn.complete { background: #22c55e; color: white; }
+        .task-action-btn.delete { background: #ef4444; color: white; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal-header h3 { margin: 0; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .btn-cancel {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            padding: 10px 20px;
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 900px) {
             .app-container {
@@ -498,6 +727,10 @@
 
             .stats-bar {
                 display: none;
+            }
+
+            .task-columns {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -516,12 +749,103 @@
             </div>
 
             <div class="tabs">
+                <div class="tab" data-tab="taskboard">📋 Task Board</div>
                 <div class="tab active" data-tab="communications">Communications</div>
                 <div class="tab" data-tab="actions">Action Queue</div>
                 <div class="tab" data-tab="commitments">Commitments</div>
             </div>
 
             <div class="tab-content">
+                <!-- Task Board Tab -->
+                <div class="tab-pane" id="taskboard-tab">
+                    <div class="task-board-header">
+                        <h2>Admin Task Board</h2>
+                        <button class="btn-add-task" onclick="showAddTaskModal()">+ New Task</button>
+                    </div>
+
+                    <div class="task-columns">
+                        <!-- To Delegate Column -->
+                        <div class="task-column" data-status="pending">
+                            <div class="column-header pending">
+                                <span>📥 To Delegate</span>
+                                <span class="column-count" id="pendingCount">0</span>
+                            </div>
+                            <div class="task-list" id="pendingTasks"></div>
+                        </div>
+
+                        <!-- In Progress Column -->
+                        <div class="task-column" data-status="in_progress">
+                            <div class="column-header in-progress">
+                                <span>⚡ In Progress</span>
+                                <span class="column-count" id="progressCount">0</span>
+                            </div>
+                            <div class="task-list" id="progressTasks"></div>
+                        </div>
+
+                        <!-- Completed Column -->
+                        <div class="task-column" data-status="completed">
+                            <div class="column-header completed">
+                                <span>✅ Completed</span>
+                                <span class="column-count" id="completedCount">0</span>
+                            </div>
+                            <div class="task-list" id="completedTasks"></div>
+                        </div>
+                    </div>
+
+                    <!-- Add Task Modal -->
+                    <div class="modal" id="addTaskModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3>Add New Task</h3>
+                                <button class="modal-close" onclick="hideAddTaskModal()">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label>Task Title</label>
+                                    <input type="text" id="taskTitle" placeholder="What needs to be done?">
+                                </div>
+                                <div class="form-group">
+                                    <label>Description</label>
+                                    <textarea id="taskDescription" rows="3" placeholder="Details about the task..."></textarea>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Assign To</label>
+                                        <select id="taskAssignee">
+                                            <option value="">Select Claude...</option>
+                                            <option value="backend">Backend Claude</option>
+                                            <option value="ux_design">UX Design Claude</option>
+                                            <option value="sales_crm">Sales/CRM Claude</option>
+                                            <option value="mobile_employee">Mobile Employee Claude</option>
+                                            <option value="financial">Financial Claude</option>
+                                            <option value="inventory">Inventory Claude</option>
+                                            <option value="social_media">Social Media Claude</option>
+                                            <option value="security">Security Claude</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Priority</label>
+                                        <select id="taskPriority">
+                                            <option value="critical">🔴 Critical</option>
+                                            <option value="high">🟠 High</option>
+                                            <option value="medium" selected>🟡 Medium</option>
+                                            <option value="low">🟢 Low</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Deadline</label>
+                                    <input type="date" id="taskDeadline">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn-cancel" onclick="hideAddTaskModal()">Cancel</button>
+                                <button class="btn-primary" onclick="addTask()">Add Task</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Communications Tab -->
                 <div class="tab-pane active" id="communications-tab">
                     <div class="filter-bar">
@@ -974,6 +1298,227 @@
                 </div>
             `;
         }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // TASK BOARD
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let tasks = [];
+        const TASK_STORAGE_KEY = 'tinyseed_admin_tasks';
+
+        // Load tasks from localStorage
+        function loadTasks() {
+            const stored = localStorage.getItem(TASK_STORAGE_KEY);
+            if (stored) {
+                tasks = JSON.parse(stored);
+            }
+            renderTasks();
+        }
+
+        // Save tasks to localStorage
+        function saveTasks() {
+            localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(tasks));
+        }
+
+        // Render all tasks
+        function renderTasks() {
+            const pending = tasks.filter(t => t.status === 'pending');
+            const inProgress = tasks.filter(t => t.status === 'in_progress');
+            const completed = tasks.filter(t => t.status === 'completed');
+
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('progressCount').textContent = inProgress.length;
+            document.getElementById('completedCount').textContent = completed.length;
+
+            document.getElementById('pendingTasks').innerHTML = pending.map(t => taskCardHTML(t)).join('') ||
+                '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No tasks to delegate</div>';
+
+            document.getElementById('progressTasks').innerHTML = inProgress.map(t => taskCardHTML(t)).join('') ||
+                '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No tasks in progress</div>';
+
+            document.getElementById('completedTasks').innerHTML = completed.map(t => taskCardHTML(t)).join('') ||
+                '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No completed tasks</div>';
+        }
+
+        // Task card HTML
+        function taskCardHTML(task) {
+            const assigneeNames = {
+                'backend': 'Backend',
+                'ux_design': 'UX Design',
+                'sales_crm': 'Sales/CRM',
+                'mobile_employee': 'Mobile',
+                'financial': 'Financial',
+                'inventory': 'Inventory',
+                'social_media': 'Social Media',
+                'security': 'Security'
+            };
+
+            let actions = '';
+            if (task.status === 'pending') {
+                actions = `
+                    <button class="task-action-btn start" onclick="startTask('${task.id}')">Start</button>
+                    <button class="task-action-btn delete" onclick="deleteTask('${task.id}')">Delete</button>
+                `;
+            } else if (task.status === 'in_progress') {
+                actions = `
+                    <button class="task-action-btn complete" onclick="completeTask('${task.id}')">Complete</button>
+                    <button class="task-action-btn delete" onclick="deleteTask('${task.id}')">Delete</button>
+                `;
+            }
+
+            return `
+                <div class="task-card priority-${task.priority}">
+                    <div class="task-title">${task.title}</div>
+                    ${task.description ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">${task.description}</div>` : ''}
+                    <div class="task-meta">
+                        <span class="task-assignee">${assigneeNames[task.assignee] || task.assignee || 'Unassigned'}</span>
+                        ${task.deadline ? `<span>Due: ${new Date(task.deadline).toLocaleDateString()}</span>` : ''}
+                    </div>
+                    ${actions ? `<div class="task-actions">${actions}</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Show add task modal
+        function showAddTaskModal() {
+            document.getElementById('addTaskModal').classList.add('show');
+            document.getElementById('taskTitle').focus();
+        }
+
+        // Hide add task modal
+        function hideAddTaskModal() {
+            document.getElementById('addTaskModal').classList.remove('show');
+            // Clear form
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskDescription').value = '';
+            document.getElementById('taskAssignee').value = '';
+            document.getElementById('taskPriority').value = 'medium';
+            document.getElementById('taskDeadline').value = '';
+        }
+
+        // Add new task
+        function addTask() {
+            const title = document.getElementById('taskTitle').value.trim();
+            if (!title) {
+                alert('Please enter a task title');
+                return;
+            }
+
+            const task = {
+                id: 'TASK-' + Date.now(),
+                title: title,
+                description: document.getElementById('taskDescription').value.trim(),
+                assignee: document.getElementById('taskAssignee').value,
+                priority: document.getElementById('taskPriority').value,
+                deadline: document.getElementById('taskDeadline').value,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+
+            tasks.unshift(task);
+            saveTasks();
+            renderTasks();
+            hideAddTaskModal();
+
+            // If assignee is selected, offer to write to their INBOX
+            if (task.assignee) {
+                delegateToInbox(task);
+            }
+        }
+
+        // Start a task
+        function startTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = 'in_progress';
+                task.startedAt = new Date().toISOString();
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        // Complete a task
+        function completeTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = 'completed';
+                task.completedAt = new Date().toISOString();
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        // Delete a task
+        function deleteTask(taskId) {
+            if (confirm('Delete this task?')) {
+                tasks = tasks.filter(t => t.id !== taskId);
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        // Delegate task to Claude's INBOX
+        async function delegateToInbox(task) {
+            const inboxPaths = {
+                'backend': 'backend/INBOX.md',
+                'ux_design': 'ux_design/INBOX.md',
+                'sales_crm': 'sales_crm/INBOX.md',
+                'mobile_employee': 'mobile_employee/INBOX.md',
+                'financial': 'financial/INBOX.md',
+                'inventory': 'inventory_traceability/INBOX.md',
+                'social_media': 'social_media/INBOX.md',
+                'security': 'security/INBOX.md'
+            };
+
+            const assigneeNames = {
+                'backend': 'Backend Claude',
+                'ux_design': 'UX Design Claude',
+                'sales_crm': 'Sales/CRM Claude',
+                'mobile_employee': 'Mobile Employee Claude',
+                'financial': 'Financial Claude',
+                'inventory': 'Inventory Claude',
+                'social_media': 'Social Media Claude',
+                'security': 'Security Claude'
+            };
+
+            const inboxPath = inboxPaths[task.assignee];
+            if (!inboxPath) return;
+
+            // Create delegation message
+            const delegationMsg = `
+## Task Delegated: ${task.title}
+**Priority:** ${task.priority.toUpperCase()}
+**Deadline:** ${task.deadline || 'None specified'}
+**Assigned:** ${new Date().toISOString()}
+
+### Description
+${task.description || 'No additional details'}
+
+### Instructions
+Complete this task and update your OUTBOX.md when done.
+
+---
+`;
+            console.log(`Task delegated to ${assigneeNames[task.assignee]}:`, delegationMsg);
+
+            // Show confirmation
+            addChatMessage('assistant', `Task "${task.title}" has been assigned to ${assigneeNames[task.assignee]}. When that Claude session starts, they'll see this in their INBOX.`);
+        }
+
+        // Add message to chat
+        function addChatMessage(role, content) {
+            const chatMessages = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${role}`;
+            msgDiv.innerHTML = `<div class="chat-bubble">${content}</div>`;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Initialize task board
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTasks();
+        });
     </script>
 </body>
 </html>
