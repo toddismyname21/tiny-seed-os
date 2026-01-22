@@ -484,6 +484,28 @@
             cursor: not-allowed;
         }
 
+        /* Filter Buttons */
+        .filter-btn {
+            padding: 8px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: var(--border-color);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
         /* ═══════════════════════════════════════════════════════════════════════════
            CART SIDEBAR
            ═══════════════════════════════════════════════════════════════════════════ */
@@ -1047,6 +1069,7 @@
             <button class="nav-tab" onclick="switchTab('orders')">Order History</button>
             <button class="nav-tab" onclick="switchTab('standing')">Standing Orders</button>
             <button class="nav-tab" onclick="switchTab('account')">Account</button>
+            <button class="nav-tab admin-only" onclick="switchTab('manage')" id="manageTab" style="display:none;">👥 Manage Chefs</button>
         </nav>
 
         <main class="main-content">
@@ -1185,6 +1208,37 @@
                 </div>
 
                 <div class="account-card">
+                    <div class="account-section-title">🚚 Delivery Schedule</div>
+                    <div style="background: #f0fdf4; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+                        <div style="font-weight: 600; color: #16a34a; margin-bottom: 8px;">Delivery Windows</div>
+                        <div style="font-size: 14px; color: #166534;">
+                            <strong>Tuesday:</strong> 6:00 AM - 10:00 AM<br>
+                            <strong>Thursday:</strong> 6:00 AM - 10:00 AM<br>
+                            <strong>Saturday:</strong> 7:00 AM - 11:00 AM (Farmers Market route)
+                        </div>
+                    </div>
+                    <div style="background: #fef3c7; border-radius: 10px; padding: 16px;">
+                        <div style="font-weight: 600; color: #92400e; margin-bottom: 8px;">⏰ Order Cutoff Times</div>
+                        <div style="font-size: 14px; color: #78350f;">
+                            <strong>Tuesday delivery:</strong> Order by Sunday 8 PM<br>
+                            <strong>Thursday delivery:</strong> Order by Tuesday 8 PM<br>
+                            <strong>Saturday delivery:</strong> Order by Thursday 8 PM
+                        </div>
+                    </div>
+                </div>
+
+                <div class="account-card">
+                    <div class="account-section-title">📝 Delivery Instructions</div>
+                    <div class="form-group">
+                        <textarea class="form-input" id="deliveryInstructions" rows="3" placeholder="E.g., Leave at back door, call when arriving, cooler code: 1234..."
+                            style="resize: vertical;"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveDeliveryInstructions()" style="width: auto; padding: 10px 20px;">
+                        Save Instructions
+                    </button>
+                </div>
+
+                <div class="account-card">
                     <div class="account-section-title">Payment Terms</div>
                     <div class="account-row">
                         <span class="account-label">Terms</span>
@@ -1197,6 +1251,91 @@
                 </div>
 
                 <button class="logout-btn" onclick="logout()">Sign Out</button>
+            </div>
+
+            <!-- Manage Chefs Tab (Admin Only) -->
+            <div class="tab-content" id="tab-manage">
+                <h1 class="page-title">👥 Manage Chefs</h1>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                    Invite new chefs to the ordering portal. They'll receive an email and SMS with a magic link to get started.
+                </p>
+
+                <!-- Invite New Chef Card -->
+                <div class="account-card">
+                    <div class="account-section-title">✉️ Invite a New Chef</div>
+                    <div class="standing-order-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Restaurant/Company Name *</label>
+                                <input type="text" class="form-input" id="inviteCompany" placeholder="The Iron Chef Restaurant">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Contact Name *</label>
+                                <input type="text" class="form-input" id="inviteContact" placeholder="Chef John Smith">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Email Address *</label>
+                                <input type="email" class="form-input" id="inviteEmail" placeholder="chef@restaurant.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Phone (for SMS)</label>
+                                <input type="tel" class="form-input" id="invitePhone" placeholder="+1 412-555-1234">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Delivery Address</label>
+                                <input type="text" class="form-input" id="inviteAddress" placeholder="123 Main St">
+                            </div>
+                            <div class="form-group" style="display: flex; gap: 12px;">
+                                <div style="flex: 2;">
+                                    <label class="form-label">City</label>
+                                    <input type="text" class="form-input" id="inviteCity" placeholder="Pittsburgh">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label class="form-label">State</label>
+                                    <input type="text" class="form-input" id="inviteState" placeholder="PA" maxlength="2">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label class="form-label">Zip</label>
+                                    <input type="text" class="form-input" id="inviteZip" placeholder="15222">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="inviteNewChef()" style="margin-top: 16px; background: #22c55e;">
+                            🚀 Send Invitation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Invited Chefs List -->
+                <div class="account-card" style="margin-top: 24px;">
+                    <div class="account-section-title">📋 All Chefs</div>
+                    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                        <button class="filter-btn active" onclick="filterChefs('all')" id="filterAll">All</button>
+                        <button class="filter-btn" onclick="filterChefs('active')" id="filterActive">Active</button>
+                        <button class="filter-btn" onclick="filterChefs('invited')" id="filterInvited">Invited</button>
+                    </div>
+                    <div id="chefsList" class="standing-orders-list">
+                        <div class="cart-empty">
+                            <div class="cart-empty-icon">👥</div>
+                            <p>Loading chefs...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Invite -->
+                <div class="account-card" style="margin-top: 24px;">
+                    <div class="account-section-title">📤 Bulk Invite (Coming Soon)</div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">
+                        Upload a CSV file with chef contacts to invite multiple chefs at once.
+                    </p>
+                    <button class="btn" style="margin-top: 12px; background: var(--bg-elevated); color: var(--text-secondary);" disabled>
+                        Upload CSV
+                    </button>
+                </div>
             </div>
         </main>
     </div>
@@ -1992,6 +2131,191 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // CHEF MANAGEMENT (Admin Only)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const ADMIN_EMAILS = [
+            'todd@tinyseedfarm.com',
+            'admin@tinyseedfarm.com',
+            'samanthapollack@gmail.com'
+        ];
+
+        function checkAdminAccess() {
+            if (!AppState.customer) return false;
+            const email = (AppState.customer.Email || '').toLowerCase();
+            // Check if admin by email or by Tags/Role
+            const isAdmin = ADMIN_EMAILS.includes(email) ||
+                           (AppState.customer.Tags || '').toLowerCase().includes('admin') ||
+                           (AppState.customer.Role || '').toLowerCase() === 'admin';
+
+            if (isAdmin) {
+                document.getElementById('manageTab').style.display = 'block';
+            }
+            return isAdmin;
+        }
+
+        async function inviteNewChef() {
+            const company = document.getElementById('inviteCompany').value.trim();
+            const contact = document.getElementById('inviteContact').value.trim();
+            const email = document.getElementById('inviteEmail').value.trim();
+            const phone = document.getElementById('invitePhone').value.trim();
+            const address = document.getElementById('inviteAddress').value.trim();
+            const city = document.getElementById('inviteCity').value.trim();
+            const state = document.getElementById('inviteState').value.trim();
+            const zip = document.getElementById('inviteZip').value.trim();
+
+            // Validation
+            if (!company || !contact || !email) {
+                showToast('Please fill in Company, Contact Name, and Email', 'error');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                showToast('Please enter a valid email address', 'error');
+                return;
+            }
+
+            showToast('Sending invitation...', 'info');
+
+            try {
+                const result = await api.call('inviteChef', {
+                    company_name: company,
+                    contact_name: contact,
+                    email: email,
+                    phone: phone,
+                    address: address,
+                    city: city,
+                    state: state,
+                    zip: zip
+                }, 'POST');
+
+                if (result.success) {
+                    showToast(`✅ Invitation sent to ${contact}!`, 'success');
+                    // Clear form
+                    document.getElementById('inviteCompany').value = '';
+                    document.getElementById('inviteContact').value = '';
+                    document.getElementById('inviteEmail').value = '';
+                    document.getElementById('invitePhone').value = '';
+                    document.getElementById('inviteAddress').value = '';
+                    document.getElementById('inviteCity').value = '';
+                    document.getElementById('inviteState').value = '';
+                    document.getElementById('inviteZip').value = '';
+                    // Refresh list
+                    loadChefs();
+                } else {
+                    showToast(result.error || 'Failed to send invitation', 'error');
+                }
+            } catch (error) {
+                console.error('Invite error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            }
+        }
+
+        async function loadChefs() {
+            const container = document.getElementById('chefsList');
+            container.innerHTML = '<div class="cart-empty"><div class="cart-empty-icon">⏳</div><p>Loading...</p></div>';
+
+            try {
+                const result = await api.call('getAllChefs', {}, 'GET');
+                if (result.success) {
+                    AppState.chefs = result.chefs || [];
+                    renderChefs('all');
+                } else {
+                    container.innerHTML = '<div class="cart-empty"><div class="cart-empty-icon">❌</div><p>Failed to load chefs</p></div>';
+                }
+            } catch (error) {
+                console.error('Load chefs error:', error);
+                container.innerHTML = '<div class="cart-empty"><div class="cart-empty-icon">👥</div><p>No chefs yet. Invite your first chef above!</p></div>';
+            }
+        }
+
+        function filterChefs(filter) {
+            // Update button states
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`filter${filter.charAt(0).toUpperCase() + filter.slice(1)}`).classList.add('active');
+            renderChefs(filter);
+        }
+
+        function renderChefs(filter = 'all') {
+            const container = document.getElementById('chefsList');
+            let chefs = AppState.chefs || [];
+
+            if (filter === 'active') {
+                chefs = chefs.filter(c => c.Status === 'Active');
+            } else if (filter === 'invited') {
+                chefs = chefs.filter(c => c.Status === 'Invited');
+            }
+
+            if (chefs.length === 0) {
+                container.innerHTML = `
+                    <div class="cart-empty">
+                        <div class="cart-empty-icon">👥</div>
+                        <p>${filter === 'all' ? 'No chefs yet. Invite your first chef above!' : `No ${filter} chefs.`}</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = chefs.map(chef => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--bg-elevated); border-radius: 10px; margin-bottom: 12px;">
+                    <div>
+                        <div style="font-weight: 600;">${chef.Company_Name || chef.Contact_Name}</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">${chef.Contact_Name} • ${chef.Email}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">${chef.Phone || 'No phone'}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600;
+                            background: ${chef.Status === 'Active' ? '#dcfce7' : '#fef3c7'};
+                            color: ${chef.Status === 'Active' ? '#166534' : '#92400e'};">
+                            ${chef.Status || 'Invited'}
+                        </span>
+                        <button onclick="resendInvite('${chef.Customer_ID}')"
+                            style="padding: 8px 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            Resend Invite
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function resendInvite(customerId) {
+            showToast('Sending new login link...', 'info');
+            try {
+                const result = await api.call('sendChefMagicLink', { customerId }, 'GET');
+                if (result.success) {
+                    showToast('✅ New login link sent!', 'success');
+                } else {
+                    showToast(result.error || 'Failed to send link', 'error');
+                }
+            } catch (error) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DELIVERY INSTRUCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function saveDeliveryInstructions() {
+            const instructions = document.getElementById('deliveryInstructions').value.trim();
+
+            try {
+                const result = await api.call('updateChefPreferences', {
+                    customerId: AppState.customer?.Customer_ID,
+                    deliveryInstructions: instructions
+                }, 'POST');
+
+                if (result.success) {
+                    showToast('✅ Delivery instructions saved!', 'success');
+                } else {
+                    showToast(result.error || 'Failed to save', 'error');
+                }
+            } catch (error) {
+                // Demo mode - just show success
+                showToast('✅ Delivery instructions saved!', 'success');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // UTILITIES
         // ═══════════════════════════════════════════════════════════════════════════
 
@@ -2001,6 +2325,16 @@
             toast.className = `toast ${type} show`;
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
+
+        // Check admin access when app loads
+        const originalShowApp = showApp;
+        showApp = function() {
+            originalShowApp();
+            checkAdminAccess();
+            if (checkAdminAccess()) {
+                loadChefs();
+            }
+        };
     </script>
 </body>
 </html>

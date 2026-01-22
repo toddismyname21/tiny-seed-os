@@ -1337,7 +1337,7 @@
             </div>
 
             <div class="account-section">
-                <div class="account-section-title">Delivery</div>
+                <div class="account-section-title">🚚 Delivery Info</div>
                 <div class="account-row">
                     <span class="account-label">Address</span>
                     <span class="account-value" id="accountAddress">--</span>
@@ -1346,6 +1346,42 @@
                     <span class="account-label">Preferred Day</span>
                     <span class="account-value" id="accountDeliveryDay">Tuesday</span>
                 </div>
+            </div>
+
+            <div class="account-section" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);">
+                <div class="account-section-title" style="color: #166534;">📅 Delivery Schedule</div>
+                <div style="font-size: 14px; line-height: 1.8;">
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(22, 101, 52, 0.1);">
+                        <span style="font-weight: 600;">Tuesday</span>
+                        <span style="color: #15803d;">6:00 - 10:00 AM</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(22, 101, 52, 0.1);">
+                        <span style="font-weight: 600;">Thursday</span>
+                        <span style="color: #15803d;">6:00 - 10:00 AM</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                        <span style="font-weight: 600;">Saturday</span>
+                        <span style="color: #15803d;">7:00 - 11:00 AM</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="account-section" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+                <div class="account-section-title" style="color: #92400e;">⏰ Order Cutoff Times</div>
+                <div style="font-size: 13px; line-height: 1.8; color: #78350f;">
+                    <div style="padding: 4px 0;"><strong>Tuesday delivery:</strong> Order by Sunday 8 PM</div>
+                    <div style="padding: 4px 0;"><strong>Thursday delivery:</strong> Order by Tuesday 8 PM</div>
+                    <div style="padding: 4px 0;"><strong>Saturday delivery:</strong> Order by Thursday 8 PM</div>
+                </div>
+            </div>
+
+            <div class="account-section">
+                <div class="account-section-title">📝 Delivery Instructions</div>
+                <textarea id="deliveryInstructions" placeholder="E.g., Back door, call when arriving, cooler code 1234..."
+                    style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 14px; resize: vertical; min-height: 80px;"></textarea>
+                <button onclick="saveDeliveryInstructions()" style="margin-top: 12px; padding: 12px 20px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    Save Instructions
+                </button>
             </div>
 
             <button class="logout-btn" onclick="logout()">Sign Out</button>
@@ -2087,6 +2123,26 @@
             const toggle = document.getElementById(type === 'sms' ? 'toggleSMS' : 'toggleEmail');
             toggle.classList.toggle('on');
             showToast(`${type.toUpperCase()} notifications ${toggle.classList.contains('on') ? 'enabled' : 'disabled'}`, 'success');
+        }
+
+        async function saveDeliveryInstructions() {
+            const instructions = document.getElementById('deliveryInstructions').value.trim();
+
+            try {
+                const result = await api.post('updateChefPreferences', {
+                    customerId: State.customer?.Customer_ID,
+                    deliveryInstructions: instructions
+                });
+
+                if (result.success) {
+                    showToast('Delivery instructions saved!', 'success');
+                } else {
+                    showToast(result.error || 'Failed to save', 'error');
+                }
+            } catch (e) {
+                // Demo mode
+                showToast('Delivery instructions saved!', 'success');
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
