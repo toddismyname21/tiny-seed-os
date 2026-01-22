@@ -780,6 +780,8 @@ function doGet(e) {
         return jsonResponse(searchEmailsNatural(e.parameter.query || e.parameter.q));
       case 'deepSearchEmails':
         return jsonResponse(deepSearchEmails(e.parameter.query || e.parameter.q));
+      case 'createEmailDraft':
+        return jsonResponse(createEmailDraft(e.parameter));
       case 'getEmailSummary':
         return jsonResponse(getEmailSummary(e.parameter.period));
 
@@ -920,7 +922,7 @@ function doGet(e) {
         return jsonResponse(checkSentimentHealth(e.parameter));
 
       // ============ AUTONOMOUS SOCIAL BRAIN (GET) ============
-      case 'getDailyBriefing':
+      case 'getSocialBriefing':  // Renamed from 'getDailyBriefing' to avoid duplicate with compliance briefing
         return jsonResponse(generateDailyBriefing(e.parameter));
       case 'getSocialActionQueue':
         return jsonResponse(getSocialActionQueue(e.parameter));
@@ -944,6 +946,18 @@ function doGet(e) {
         return jsonResponse(getCompetitorAlerts(e.parameter));
       case 'getMarketingAutomationDashboard':
         return jsonResponse(getMarketingAutomationDashboard(e.parameter));
+
+      // ============ SEO DOMINATION v3 ============
+      case 'getSEOCompetitors':
+        return jsonResponse(getSEOCompetitors(e.parameter));
+      case 'getAIShareOfVoiceMetrics':
+        return jsonResponse(getAIShareOfVoiceMetrics(e.parameter));
+      case 'getVideoAnalytics':
+        return jsonResponse(getVideoAnalytics(e.parameter));
+      case 'getVideoContentStrategy':
+        return jsonResponse(getVideoContentStrategy());
+      case 'getSEOMasterDashboard':
+        return jsonResponse(getSEOMasterDashboard(e.parameter));
 
       // ============ LEGACY ENDPOINTS ============
       case 'getPlanning':
@@ -1236,10 +1250,10 @@ function doGet(e) {
       case 'logDeliveryIssue':
         return jsonResponse(logDeliveryIssue(e.parameter));
 
-      // ============ TIME CLOCK ============
-      case 'clockIn':
+      // ============ DRIVER TIME CLOCK ============
+      case 'driverClockIn':
         return jsonResponse(handleClockIn(e.parameter));
-      case 'clockOut':
+      case 'driverClockOut':
         return jsonResponse(handleClockOut(e.parameter));
       case 'getTimesheet':
         return jsonResponse(getTimesheet(e.parameter));
@@ -1327,6 +1341,8 @@ function doGet(e) {
         return jsonResponse(getFullTraceabilityReport(e.parameter.lotNumber));
       case 'getUnifiedComplianceDashboard':
         return jsonResponse(getUnifiedComplianceDashboard());
+      case 'getComplianceLeaderboard':
+        return jsonResponse(getComplianceLeaderboard());
       case 'sendOwnerMasterBrief':
         return jsonResponse(sendOwnerMasterBrief());
 
@@ -1649,6 +1665,76 @@ function doGet(e) {
       case 'getPayPalFinancialSummary':
         return jsonResponse(getPayPalFinancialSummary());
 
+      // ============ SMART FINANCIAL SYSTEM - WISHLIST ============
+      case 'getWishlist':
+        return jsonResponse(getWishlistItems());
+      case 'saveWishlist':
+        return jsonResponse(saveWishlistItems(e.parameter));
+      case 'addWishlistItem':
+        return jsonResponse(addWishlistItem(e.parameter));
+      case 'removeWishlistItem':
+        return jsonResponse(removeWishlistItem(e.parameter.id));
+
+      // ============ SMART FINANCIAL SYSTEM - BILLS & RECEIPTS ============
+      case 'getBills':
+        return jsonResponse(getBillItems());
+      case 'saveBills':
+        return jsonResponse(saveBillItems(e.parameter));
+      case 'addBill':
+        return jsonResponse(addBillItem(e.parameter));
+      case 'markBillPaid':
+        return jsonResponse(markBillPaid(e.parameter.id));
+
+      // ============ SMART FINANCIAL SYSTEM - ASSET TRACKING ============
+      case 'getAssets':
+        return jsonResponse(getAssetItems());
+      case 'saveAssets':
+        return jsonResponse(saveAssetItems(e.parameter));
+      case 'addAsset':
+        return jsonResponse(addAssetItem(e.parameter));
+      case 'generateAssetSchedule':
+        return jsonResponse(generateAssetSchedule());
+      case 'generateBalanceSheet':
+        return jsonResponse(generateBalanceSheet());
+
+      // ============ SMART FINANCIAL SYSTEM - INVESTMENTS ============
+      case 'getAlpacaConfig':
+        return jsonResponse(getAlpacaConfig());
+      case 'saveAlpacaConfig':
+        return jsonResponse(saveAlpacaConfig(e.parameter));
+      case 'getRoundUpPool':
+        return jsonResponse(getRoundUpPool());
+      case 'calculateRoundUpsFromOrders':
+        return jsonResponse(calculateRoundUpsFromOrders());
+
+      // ============ SMART FINANCIAL SYSTEM - PAYMENT PLANS ============
+      case 'getPaymentPlans':
+        return jsonResponse(getPaymentPlans());
+      case 'savePaymentPlans':
+        return jsonResponse(savePaymentPlans(e.parameter));
+      case 'createPaymentPlan':
+        return jsonResponse(createPaymentPlan(e.parameter));
+      case 'recordPayment':
+        return jsonResponse(recordPaymentPlanPayment(e.parameter));
+      case 'getOverduePayments':
+        return jsonResponse(getOverduePaymentPlans());
+
+      // ============ SMART FINANCIAL SYSTEM - HEALTH SCORE ============
+      case 'getFinancialHealthScore':
+        return jsonResponse(getFinancialHealthScore());
+      case 'getFinancialRecommendations':
+        return jsonResponse(getFinancialRecommendations());
+      case 'calculateNetWorth':
+        return jsonResponse(calculateNetWorth());
+
+      // ============ SMART FINANCIAL SYSTEM - LOAN PACKAGE EXPORT ============
+      case 'generateLoanPackage':
+        return jsonResponse(generateLoanPackage());
+      case 'saveLoanPackageToHTML':
+        return jsonResponse(saveLoanPackageToHTML());
+      case 'generateDebtSchedule':
+        return jsonResponse(generateDebtSchedule());
+
       // ============ CROP ROTATION & FIELD TIME ============
       case 'getFieldTimeGroups':
         return jsonResponse(getFieldTimeGroups(e.parameter));
@@ -1700,8 +1786,7 @@ function doGet(e) {
         return jsonResponse(getEmployeeFarmPics(e.parameter));
       case 'getMarketingCampaigns':
         return jsonResponse(getMarketingCampaigns(e.parameter));
-      case 'getScheduledPosts':
-        return jsonResponse(getScheduledPosts(e.parameter));
+      // case 'getScheduledPosts' - handled above in SOCIAL INTELLIGENCE section
       case 'getMarketingBudget':
         return jsonResponse(getMarketingBudget(e.parameter));
       case 'getMarketingSpend':
@@ -1733,8 +1818,7 @@ function doGet(e) {
           campaign: e.parameter.campaign || '',
           timestamp: e.parameter.timestamp || new Date().toISOString()
         }));
-      case 'getNeighborSignups':
-        return jsonResponse(getNeighborSignups(e.parameter));
+      // case 'getNeighborSignups' - handled above in SOCIAL INTELLIGENCE section
 
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'initSeedInventory':
@@ -1940,13 +2024,8 @@ function doGet(e) {
       case 'getTaskTemplates':
         return jsonResponse(getTaskTemplates(e.parameter));
 
-      // ============ GDD HARVEST PREDICTION ENGINE ============
-      case 'calculateGDD':
-        return jsonResponse(calculateGDD(e.parameter));
-      case 'getHarvestPredictions':
-        return jsonResponse(getHarvestPredictions(e.parameter));
-      case 'getPredictiveAlerts':
-        return jsonResponse(getPredictiveAlerts(e.parameter));
+      // NOTE: GDD Harvest Prediction endpoints (calculateGDD, getHarvestPredictions, getPredictiveAlerts)
+      // are handled above around line ~993-1003
 
       // ═══════════════════════════════════════════════════════════════════════════
       // STATE-OF-THE-ART CHIEF OF STAFF - 11 MODULES, 70+ ENDPOINTS
@@ -2569,8 +2648,7 @@ function doPost(e) {
         return jsonResponse(generateContent(data));
       case 'analyzeVoiceMatch':
         return jsonResponse(analyzeVoiceMatch(data));
-      case 'schedulePost':
-        return jsonResponse(schedulePost(data));
+      // case 'schedulePost' - handled above in MARKETING MODULE section
       case 'pauseAllScheduledPosts':
         return jsonResponse(pauseAllScheduledPosts(data));
       case 'resumeScheduledPosts':
@@ -2649,6 +2727,24 @@ function doPost(e) {
       case 'setupCompetitorMonitoringTrigger':
         return jsonResponse(setupCompetitorMonitoringTrigger());
 
+      // ============ SEO DOMINATION v3 ============
+      case 'initializeSEOv3':
+        return jsonResponse(initializeSEOv3());
+      case 'addSEOCompetitor':
+        return jsonResponse(addSEOCompetitor(data));
+      case 'logAIShareOfVoice':
+        return jsonResponse(logAIShareOfVoice(data));
+      case 'generateReviewQRCode':
+        return jsonResponse(generateReviewQRCode(data));
+      case 'setGooglePlaceId':
+        return jsonResponse(setGooglePlaceId(data.placeId));
+      case 'logVideoContent':
+        return jsonResponse(logVideoContent(data));
+      case 'scoreContentForAEO':
+        return jsonResponse(scoreContentForAEO(data));
+      case 'analyzeReviewSentimentEnhanced':
+        return jsonResponse(analyzeReviewSentimentEnhanced(data));
+
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
         return jsonResponse(addSeedLot(data));
@@ -2683,8 +2779,7 @@ function doPost(e) {
         return jsonResponse(completeRecommendation(data));
 
       // ============ SHOPIFY & QUICKBOOKS INTEGRATION ============
-      case 'shopifyWebhook':
-        return jsonResponse(handleShopifyWebhook(e));
+      // case 'shopifyWebhook' - handled above in CSA section (uses data not e)
       case 'createQuickBooksInvoice':
         return jsonResponse(createQuickBooksInvoice(data));
       case 'createQuickBooksCustomer':
@@ -35535,6 +35630,428 @@ function testSEOIntelligence() {
   Logger.log('=== SEO Intelligence Tests Complete ===');
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// SEO DOMINATION MODULE v3.0 - BEST-IN-CLASS ENHANCEMENTS
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// Research-backed features based on 2025-2026 local SEO best practices:
+// - AI Share of Voice (SOV) tracking vs competitors (new battleground per Birdeye/Semrush)
+// - Review QR Code generation (62% of businesses report higher sales)
+// - Video Content Strategy tracking (TikTok #FarmTok has 5B+ views)
+// - AEO Content Scoring (80% of consumers use zero-click results)
+// - Enhanced NLP Sentiment Analysis (Google AI now assesses review quality)
+// - Competitor SEO Intelligence (rankings, reviews, SOV comparison)
+// Sources: BrightLocal 2026, Semrush, LocalFalcon, Conductor AEO Report
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize SEO v3 Enhancement sheets
+ */
+function initializeSEOv3() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  createSheetIfNotExists(ss, 'SEO_Competitors', [
+    'Competitor_ID', 'Name', 'Website', 'GBP_URL', 'Place_ID',
+    'Primary_Category', 'Review_Count', 'Avg_Rating', 'Last_Checked',
+    'Target_Keywords', 'Notes', 'Active'
+  ]);
+
+  createSheetIfNotExists(ss, 'SEO_AI_ShareOfVoice', [
+    'Date', 'Platform', 'Query', 'Our_Position', 'Competitor_1_Name', 'Competitor_1_Position',
+    'Competitor_2_Name', 'Competitor_2_Position', 'Competitor_3_Name', 'Competitor_3_Position',
+    'Our_SOV_Score', 'Notes'
+  ]);
+
+  createSheetIfNotExists(ss, 'SEO_VideoContent', [
+    'Video_ID', 'Platform', 'Title', 'URL', 'Publish_Date', 'Views', 'Likes',
+    'Comments', 'Shares', 'Duration_Seconds', 'Content_Pillar', 'Trending_Audio',
+    'Hashtags', 'Performance_Score', 'Last_Updated'
+  ]);
+
+  createSheetIfNotExists(ss, 'SEO_AEO_Scores', [
+    'Content_ID', 'URL', 'Title', 'Date_Scored', 'Has_FAQ_Schema', 'Has_HowTo_Schema',
+    'Question_Count', 'Answer_Directness_Score', 'Header_Structure_Score',
+    'List_Format_Score', 'Conciseness_Score', 'Total_AEO_Score', 'Recommendations'
+  ]);
+
+  createSheetIfNotExists(ss, 'SEO_ReviewQRCodes', [
+    'QR_ID', 'Created_Date', 'Location', 'QR_URL', 'Short_URL', 'Scans',
+    'Reviews_Generated', 'Conversion_Rate', 'Active'
+  ]);
+
+  return { success: true, message: 'SEO v3 Enhancement sheets created' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEO COMPETITOR INTELLIGENCE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function addSEOCompetitor(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_Competitors');
+    if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_Competitors'); }
+
+    const competitorId = 'COMP_' + Date.now();
+    sheet.appendRow([
+      competitorId, params.name || '', params.website || '', params.gbpUrl || '',
+      params.placeId || '', params.primaryCategory || 'Farm', params.reviewCount || 0,
+      params.avgRating || 0, new Date().toISOString(), params.targetKeywords || 'farm pittsburgh',
+      params.notes || '', true
+    ]);
+
+    return { success: true, competitorId, message: `Added competitor: ${params.name}` };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getSEOCompetitors(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_Competitors');
+    if (!sheet) return { success: true, competitors: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, competitors: [] };
+
+    const headers = data[0];
+    const competitors = data.slice(1).filter(row => params.includeInactive || row[11] !== false)
+      .map(row => { const obj = {}; headers.forEach((h, i) => obj[h] = row[i]); return obj; });
+
+    return { success: true, competitors, count: competitors.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AI SHARE OF VOICE (SOV) CALCULATOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+function logAIShareOfVoice(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_AI_ShareOfVoice');
+    if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_AI_ShareOfVoice'); }
+
+    const positionScores = { 'featured': 100, 'first_mentioned': 80, 'linked': 70, 'mentioned': 50, 'not_found': 0 };
+    const ourScore = positionScores[params.ourPosition] || 0;
+    const comp1Score = positionScores[params.competitor1Position] || 0;
+    const comp2Score = positionScores[params.competitor2Position] || 0;
+    const comp3Score = positionScores[params.competitor3Position] || 0;
+    const totalScore = ourScore + comp1Score + comp2Score + comp3Score;
+    const sovScore = totalScore > 0 ? Math.round((ourScore / totalScore) * 100) : 0;
+
+    sheet.appendRow([
+      new Date().toISOString(), params.platform || 'chatgpt', params.query || 'farm pittsburgh',
+      params.ourPosition || 'not_found', params.competitor1Name || '', params.competitor1Position || 'not_found',
+      params.competitor2Name || '', params.competitor2Position || 'not_found',
+      params.competitor3Name || '', params.competitor3Position || 'not_found', sovScore, params.notes || ''
+    ]);
+
+    if (sovScore < 25 && totalScore > 0) {
+      createSEOAlert({ type: 'low_ai_sov', severity: 'high',
+        title: `Low AI Share of Voice on ${params.platform}`,
+        details: `SOV is only ${sovScore}% for "${params.query}". Competitors dominating AI results.`,
+        actionRequired: 'Create FAQ content, add structured data, build authoritative backlinks'
+      });
+    }
+
+    return { success: true, sovScore, message: `AI SOV logged: ${sovScore}%` };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getAIShareOfVoiceMetrics(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_AI_ShareOfVoice');
+    if (!sheet) return { success: true, metrics: { avgSOV: 0, checks: 0 } };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, metrics: { avgSOV: 0, checks: 0 } };
+
+    const days = parseInt(params.days) || 30;
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+    const filtered = data.slice(1).filter(row => new Date(row[0]) >= cutoff && (!params.platform || row[1] === params.platform));
+
+    if (filtered.length === 0) return { success: true, metrics: { avgSOV: 0, checks: 0 } };
+
+    const sovScores = filtered.map(row => row[10]);
+    const avgSOV = Math.round(sovScores.reduce((a, b) => a + b, 0) / sovScores.length);
+
+    const byPlatform = {};
+    filtered.forEach(row => {
+      const p = row[1];
+      if (!byPlatform[p]) byPlatform[p] = { scores: [], appearances: 0 };
+      byPlatform[p].scores.push(row[10]);
+      if (row[3] !== 'not_found') byPlatform[p].appearances++;
+    });
+    Object.keys(byPlatform).forEach(p => {
+      byPlatform[p].avgSOV = Math.round(byPlatform[p].scores.reduce((a, b) => a + b, 0) / byPlatform[p].scores.length);
+      byPlatform[p].appearanceRate = Math.round((byPlatform[p].appearances / byPlatform[p].scores.length) * 100);
+      delete byPlatform[p].scores;
+    });
+
+    return { success: true, metrics: { avgSOV, checks: filtered.length, byPlatform,
+      trend: sovScores.length > 1 ? (sovScores[sovScores.length - 1] > sovScores[0] ? 'improving' : 'declining') : 'stable' }};
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REVIEW QR CODE GENERATOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+function generateReviewQRCode(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_ReviewQRCodes');
+    if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_ReviewQRCodes'); }
+
+    const placeId = params.placeId || PropertiesService.getScriptProperties().getProperty('GOOGLE_PLACE_ID') || '';
+    if (!placeId) {
+      return { success: false, error: 'Place ID required. Find yours at: https://developers.google.com/maps/documentation/places/web-service/place-id' };
+    }
+
+    const reviewUrl = `https://search.google.com/local/writereview?placeid=${placeId}`;
+    const size = params.size || 300;
+    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodeURIComponent(reviewUrl)}&choe=UTF-8`;
+    const qrId = 'QR_' + Date.now();
+
+    sheet.appendRow([qrId, new Date().toISOString(), params.location || 'General', qrUrl, reviewUrl, 0, 0, 0, true]);
+
+    return { success: true, qrId, qrImageUrl: qrUrl, reviewUrl, size,
+      instructions: { print: `Download QR image from: ${qrUrl}`, display: 'Print at pickup locations, farmers market, receipts' }};
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function setGooglePlaceId(placeId) {
+  if (!placeId) return { success: false, error: 'Place ID required' };
+  PropertiesService.getScriptProperties().setProperty('GOOGLE_PLACE_ID', placeId);
+  return { success: true, message: 'Google Place ID saved', placeId };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIDEO CONTENT STRATEGY MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function logVideoContent(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_VideoContent');
+    if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_VideoContent'); }
+
+    const videoId = 'VID_' + Date.now();
+    const views = parseInt(params.views) || 0;
+    const likes = parseInt(params.likes) || 0;
+    const comments = parseInt(params.comments) || 0;
+    const shares = parseInt(params.shares) || 0;
+    const performanceScore = Math.min(100, Math.round((views/1000)*40 + (likes/100)*30 + (comments/10)*20 + (shares/10)*10));
+
+    sheet.appendRow([
+      videoId, params.platform || 'tiktok', params.title || '', params.url || '',
+      params.publishDate || new Date().toISOString(), views, likes, comments, shares,
+      params.durationSeconds || 0, params.contentPillar || '', params.trendingAudio || '',
+      params.hashtags || '', performanceScore, new Date().toISOString()
+    ]);
+
+    return { success: true, videoId, performanceScore, message: `Video logged (Score: ${performanceScore})` };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getVideoAnalytics(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('SEO_VideoContent');
+    if (!sheet) return { success: true, analytics: { totalVideos: 0 } };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, analytics: { totalVideos: 0 } };
+
+    const filtered = params.platform ? data.slice(1).filter(row => row[1] === params.platform) : data.slice(1);
+    const totalViews = filtered.reduce((sum, row) => sum + (row[5] || 0), 0);
+    const avgPerformance = filtered.length > 0 ? Math.round(filtered.reduce((sum, row) => sum + (row[13] || 0), 0) / filtered.length) : 0;
+    const topVideos = [...filtered].sort((a, b) => (b[13] || 0) - (a[13] || 0)).slice(0, 5)
+      .map(row => ({ title: row[2], platform: row[1], views: row[5], score: row[13] }));
+
+    return { success: true, analytics: { totalVideos: filtered.length, totalViews, avgPerformance, topVideos }};
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getVideoContentStrategy() {
+  return { success: true, strategy: {
+    platforms: {
+      tiktok: { priority: 'HIGH', reason: '#FarmTok 5B+ views. New accounts can go viral.',
+        frequency: '1-4x daily', hashtags: ['#FarmTok', '#Agriculture', '#FarmLife', '#OrganicFarming'] },
+      youtube_shorts: { priority: 'HIGH', reason: 'YouTube highly cited by AI models.',
+        frequency: '3-5x weekly shorts', contentTypes: ['How-to guides', 'Farm tours', 'CSA unboxings'] },
+      instagram_reels: { priority: 'MEDIUM', reason: 'Good for existing audience. Cross-post from TikTok.',
+        frequency: '1x daily', contentTypes: ['Aesthetic farm shots', 'Flower arrangements'] }
+    },
+    contentPillars: [
+      { name: 'Educational/How-To', percentage: 30 },
+      { name: 'Behind-the-Scenes', percentage: 30 },
+      { name: 'Trend Participation', percentage: 20 },
+      { name: 'Entertainment/Personality', percentage: 20 }
+    ],
+    viralTips: ['Hook in first 1-2 seconds', 'Use trending audio within 48 hours', 'Authentic > polished', 'Post consistently']
+  }};
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AEO (ANSWER ENGINE OPTIMIZATION) CONTENT SCORER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function scoreContentForAEO(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('SEO_AEO_Scores');
+    if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_AEO_Scores'); }
+
+    const content = params.content || '';
+    let scores = { faqSchema: 0, howToSchema: 0, questionCount: 0, answerDirectness: 0, headerStructure: 0, listFormat: 0, conciseness: 0 };
+
+    if (params.hasFaqSchema || content.includes('FAQPage')) scores.faqSchema = 100;
+    if (params.hasHowToSchema || content.includes('HowTo')) scores.howToSchema = 100;
+
+    const questions = content.match(/\b(what|how|why|when|where|can|do|is|are|should)\b[^.?]*\?/gi) || [];
+    scores.questionCount = Math.min(100, questions.length * 15);
+
+    const directAnswers = content.match(/\?[\s\n]+[A-Z][^.!?]+[.!]/g) || [];
+    scores.answerDirectness = Math.min(100, (directAnswers.length / Math.max(questions.length, 1)) * 100);
+
+    const headers = content.match(/#{2,3}\s|<h[23]/gi) || [];
+    scores.headerStructure = Math.min(100, headers.length * 12);
+
+    const lists = content.match(/^[\s]*[-*•]\s|^[\s]*\d+[.)]\s/gm) || [];
+    scores.listFormat = Math.min(100, lists.length * 5);
+
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const avgSentenceLength = sentences.length > 0 ? content.split(/\s+/).length / sentences.length : 0;
+    scores.conciseness = avgSentenceLength <= 20 ? 100 : avgSentenceLength <= 25 ? 75 : avgSentenceLength <= 30 ? 50 : 25;
+
+    const totalScore = Math.round(
+      scores.faqSchema * 0.15 + scores.howToSchema * 0.10 + scores.questionCount * 0.20 +
+      scores.answerDirectness * 0.20 + scores.headerStructure * 0.15 + scores.listFormat * 0.10 + scores.conciseness * 0.10
+    );
+
+    const recommendations = [];
+    if (scores.faqSchema < 100) recommendations.push('Add FAQ schema markup');
+    if (scores.questionCount < 50) recommendations.push('Add question-based headers');
+    if (scores.answerDirectness < 50) recommendations.push('Put concise answers after questions');
+    if (scores.headerStructure < 50) recommendations.push('Add more H2/H3 headers');
+    if (scores.listFormat < 50) recommendations.push('Use bullet points');
+
+    const contentId = 'AEO_' + Date.now();
+    sheet.appendRow([contentId, params.url || '', params.title || '', new Date().toISOString(),
+      scores.faqSchema === 100, scores.howToSchema === 100, questions.length,
+      scores.answerDirectness, scores.headerStructure, scores.listFormat, scores.conciseness,
+      totalScore, recommendations.join('; ')]);
+
+    return { success: true, contentId, totalScore, grade: totalScore >= 80 ? 'A' : totalScore >= 60 ? 'B' : totalScore >= 40 ? 'C' : 'D',
+      scores, recommendations };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENHANCED SENTIMENT ANALYSIS (NLP-Style)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function analyzeReviewSentimentEnhanced(params) {
+  const text = (params.reviewText || '').toLowerCase();
+  const rating = parseInt(params.rating) || 0;
+
+  const positiveStrong = ['amazing', 'excellent', 'outstanding', 'incredible', 'fantastic', 'love', 'best', 'perfect'];
+  const positiveMedium = ['great', 'good', 'delicious', 'fresh', 'wonderful', 'recommend', 'happy', 'enjoy'];
+  const negativeStrong = ['terrible', 'awful', 'horrible', 'worst', 'disgusting', 'hate', 'never again'];
+  const negativeMedium = ['bad', 'poor', 'disappointed', 'unhappy', 'problem', 'issue', 'wrong'];
+  const specificityIndicators = ['tomato', 'lettuce', 'pepper', 'carrot', 'pickup', 'delivery', 'box', 'share', 'organic', 'fresh'];
+
+  let sentimentScore = 50;
+  positiveStrong.forEach(word => { if (text.includes(word)) sentimentScore += 15; });
+  positiveMedium.forEach(word => { if (text.includes(word)) sentimentScore += 8; });
+  negativeStrong.forEach(word => { if (text.includes(word)) sentimentScore -= 20; });
+  negativeMedium.forEach(word => { if (text.includes(word)) sentimentScore -= 10; });
+  sentimentScore += (rating - 3) * 10;
+  sentimentScore = Math.max(0, Math.min(100, sentimentScore));
+
+  let specificityScore = 0;
+  specificityIndicators.forEach(word => { if (text.includes(word)) specificityScore += 10; });
+  specificityScore = Math.min(100, specificityScore);
+
+  const wordCount = text.split(/\s+/).length;
+  const sentiment = sentimentScore >= 75 ? 'very_positive' : sentimentScore >= 55 ? 'positive' :
+    sentimentScore >= 45 ? 'neutral' : sentimentScore >= 25 ? 'negative' : 'very_negative';
+
+  return { success: true, sentiment, sentimentScore, specificityScore, wordCount,
+    shouldPrioritizeResponse: sentiment === 'very_negative' || sentiment === 'negative' || specificityScore >= 70 };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MASTER SEO DOMINATION DASHBOARD v3
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSEOMasterDashboard(params) {
+  try {
+    const baseDashboard = getSEODashboardEnhanced({});
+    const aiSOV = getAIShareOfVoiceMetrics({ days: 30 });
+    const videoAnalytics = getVideoAnalytics({});
+    const competitors = getSEOCompetitors({});
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aeoSheet = ss.getSheetByName('SEO_AEO_Scores');
+    let avgAEOScore = 0;
+    if (aeoSheet && aeoSheet.getLastRow() > 1) {
+      const aeoData = aeoSheet.getDataRange().getValues().slice(1);
+      const scores = aeoData.map(row => row[11]).filter(s => s > 0);
+      avgAEOScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    }
+
+    const dominationScore = Math.round(
+      (baseDashboard.overallScore || 0) * 0.25 + (aiSOV.metrics?.avgSOV || 0) * 0.25 +
+      (videoAnalytics.analytics?.avgPerformance || 0) * 0.15 + avgAEOScore * 0.20 +
+      ((baseDashboard.reviews?.averageRating || 0) * 20) * 0.15
+    );
+
+    const priorityActions = [];
+    if ((baseDashboard.reviews?.totalReviews || 0) < 15) priorityActions.push({ priority: 1, action: 'Get 15+ Google reviews', impact: 'high' });
+    if ((aiSOV.metrics?.avgSOV || 0) < 30) priorityActions.push({ priority: 2, action: 'Increase AI Share of Voice', impact: 'high' });
+    if ((videoAnalytics.analytics?.totalVideos || 0) < 5) priorityActions.push({ priority: 3, action: 'Start TikTok/YouTube Shorts', impact: 'high' });
+    if (avgAEOScore < 60) priorityActions.push({ priority: 4, action: 'Restructure content for AI extraction', impact: 'high' });
+
+    return { success: true, dominationScore,
+      grade: dominationScore >= 80 ? 'A - Dominating' : dominationScore >= 60 ? 'B - Competitive' : dominationScore >= 40 ? 'C - Building' : 'D - Needs Work',
+      components: { baseSEO: baseDashboard, aiVisibility: aiSOV.metrics, videoContent: videoAnalytics.analytics, aeoReadiness: avgAEOScore, competitors: competitors.count },
+      priorityActions, lastUpdated: new Date().toISOString() };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function testSEOv3() {
+  Logger.log('=== Testing SEO v3 Enhancements ===');
+  const initResult = initializeSEOv3();
+  Logger.log('Init v3: ' + JSON.stringify(initResult));
+  const sovResult = logAIShareOfVoice({ platform: 'chatgpt', query: 'best CSA pittsburgh', ourPosition: 'mentioned', competitor1Name: 'Other Farm', competitor1Position: 'featured' });
+  Logger.log('AI SOV: ' + JSON.stringify(sovResult));
+  const aeoResult = scoreContentForAEO({ title: 'What is a CSA?', content: 'What is a CSA? A CSA connects you with a local farm. How does it work? You pay upfront.' });
+  Logger.log('AEO Score: ' + JSON.stringify(aeoResult));
+  const dashResult = getSEOMasterDashboard({});
+  Logger.log('Master Dashboard: ' + JSON.stringify(dashResult));
+  Logger.log('=== SEO v3 Tests Complete ===');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SHOPIFY & QUICKBOOKS INTEGRATION MODULE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -42288,6 +42805,46 @@ function getUnifiedComplianceDashboard() {
   dashboard.priorityActions = generatePriorityActions(dashboard);
 
   return { success: true, data: dashboard };
+}
+
+/**
+ * Get Compliance Team Leaderboard - ranks team by task completion (7 days)
+ */
+function getComplianceLeaderboard() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('COMPLIANCE_LOG');
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, leaderboard: [], period: '7 days', message: 'No compliance data yet' };
+    }
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const employeeCol = headers.indexOf('Employee_Name');
+    const timestampCol = headers.indexOf('Timestamp');
+    const logTypeCol = headers.indexOf('Log_Type');
+    if (employeeCol < 0) return { success: false, error: 'Employee_Name column not found' };
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const stats = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const ts = data[i][timestampCol];
+      const emp = data[i][employeeCol] || 'Unknown';
+      const type = (data[i][logTypeCol] || '').toUpperCase();
+      let logDate = ts instanceof Date ? ts : new Date(ts);
+      if (isNaN(logDate) || logDate < sevenDaysAgo) continue;
+      if (!stats[emp]) stats[emp] = { name: emp, totalTasks: 0, tempLogs: 0, cleaningLogs: 0, inspections: 0 };
+      stats[emp].totalTasks++;
+      if (type.includes('TEMP')) stats[emp].tempLogs++;
+      else if (type.includes('CLEAN')) stats[emp].cleaningLogs++;
+      else if (type.includes('HARVEST') || type.includes('INSPECT')) stats[emp].inspections++;
+    }
+
+    const board = Object.values(stats).sort((a, b) => b.totalTasks - a.totalTasks).slice(0, 10)
+      .map((e, i) => ({ rank: i + 1, ...e, badge: i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '⭐' }));
+    return { success: true, leaderboard: board, period: '7 days', totalTeamTasks: board.reduce((s, e) => s + e.totalTasks, 0) };
+  } catch (e) { return { success: false, error: e.message }; }
 }
 
 function getTimeBasedGreeting() {
@@ -51332,6 +51889,54 @@ function deepSearchEmails(query) {
       totalThreads: threads.length,
       totalMessages: results.length,
       results: results
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Create an email draft in Gmail
+ * @param {Object} params - Draft parameters
+ * @param {string} params.to - Recipient email address
+ * @param {string} params.subject - Email subject
+ * @param {string} params.body - Email body (plain text)
+ * @param {string} [params.cc] - CC recipients (comma-separated)
+ * @param {string} [params.replyTo] - Thread ID to reply to (optional)
+ * @returns {Object} Result with draft ID
+ */
+function createEmailDraft(params) {
+  try {
+    if (!params.to || !params.subject || !params.body) {
+      return { success: false, error: 'Missing required parameters: to, subject, body' };
+    }
+
+    let draft;
+
+    if (params.replyTo) {
+      // Reply to existing thread
+      const thread = GmailApp.getThreadById(params.replyTo);
+      if (!thread) {
+        return { success: false, error: 'Thread not found: ' + params.replyTo };
+      }
+      const messages = thread.getMessages();
+      const lastMessage = messages[messages.length - 1];
+      draft = lastMessage.createDraftReply(params.body);
+    } else {
+      // New email draft
+      draft = GmailApp.createDraft(params.to, params.subject, params.body, {
+        cc: params.cc || '',
+        name: 'Todd Wilson',
+        replyTo: 'todd@tinyseedfarmpgh.com'
+      });
+    }
+
+    return {
+      success: true,
+      draftId: draft.getId(),
+      message: 'Draft created successfully',
+      to: params.to,
+      subject: params.subject
     };
   } catch (error) {
     return { success: false, error: error.message };
