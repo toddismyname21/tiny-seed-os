@@ -268,6 +268,77 @@
             border-color: var(--primary);
         }
 
+        /* Multi-select variety filter */
+        .variety-filter-container {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .variety-filter-container:empty::after {
+            content: 'Select a crop first';
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            display: block;
+            padding: 8px;
+        }
+
+        .variety-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .variety-checkbox:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .variety-checkbox input {
+            accent-color: var(--primary);
+            width: 16px;
+            height: 16px;
+        }
+
+        .variety-checkbox .count {
+            margin-left: auto;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .variety-select-all {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .variety-select-all button {
+            flex: 1;
+            padding: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .variety-select-all button:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
         /* Unassigned Plantings Right Sidebar - Gantt-Style Timeline */
         .unassigned-panel {
             position: fixed;
@@ -2326,9 +2397,14 @@
 
             <div class="filter-group">
                 <label>Crop</label>
-                <select class="filter-control" id="cropFilter" onchange="applyFilters()">
+                <select class="filter-control" id="cropFilter" onchange="updateVarietyFilter(); applyFilters()">
                     <option value="">All Crops</option>
                 </select>
+            </div>
+
+            <div class="filter-group" id="varietyFilterGroup">
+                <label>Varieties <span id="varietySelectedCount" style="color: var(--text-secondary); font-size: 0.8rem;"></span></label>
+                <div class="variety-filter-container" id="varietyFilter"></div>
             </div>
 
             <div class="filter-group">
@@ -3294,6 +3370,84 @@
             fields.forEach(field => {
                 fieldFilter.innerHTML += `<option value="${field}">Field ${field}</option>`;
             });
+
+            // Initialize variety filter
+            updateVarietyFilter();
+        }
+
+        // Update variety filter based on selected crop
+        function updateVarietyFilter() {
+            const cropFilter = document.getElementById('cropFilter').value;
+            const varietyContainer = document.getElementById('varietyFilter');
+            const countSpan = document.getElementById('varietySelectedCount');
+
+            // Get varieties for selected crop (or all if no crop selected)
+            let relevantPlantings = plantings;
+            if (cropFilter) {
+                relevantPlantings = plantings.filter(p => p.crop === cropFilter);
+            }
+
+            // Count plantings by variety
+            const varietyCounts = {};
+            relevantPlantings.forEach(p => {
+                const variety = p.variety || 'Unknown';
+                const key = cropFilter ? variety : `${p.crop} - ${variety}`;
+                varietyCounts[key] = (varietyCounts[key] || 0) + 1;
+            });
+
+            const varieties = Object.keys(varietyCounts).sort();
+
+            if (varieties.length === 0) {
+                varietyContainer.innerHTML = '';
+                countSpan.textContent = '';
+                return;
+            }
+
+            // Build multi-select checkboxes
+            let html = `
+                <div class="variety-select-all">
+                    <button onclick="selectAllVarieties(true)">Select All</button>
+                    <button onclick="selectAllVarieties(false)">Clear All</button>
+                </div>
+            `;
+
+            varieties.forEach(variety => {
+                const count = varietyCounts[variety];
+                const escapedVariety = variety.replace(/"/g, '&quot;');
+                html += `
+                    <label class="variety-checkbox">
+                        <input type="checkbox" checked value="${escapedVariety}" onchange="applyFilters()">
+                        <span>${variety}</span>
+                        <span class="count">(${count})</span>
+                    </label>
+                `;
+            });
+
+            varietyContainer.innerHTML = html;
+            updateVarietyCount();
+        }
+
+        // Select/deselect all varieties
+        function selectAllVarieties(selectAll) {
+            const checkboxes = document.querySelectorAll('#varietyFilter input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = selectAll);
+            updateVarietyCount();
+            applyFilters();
+        }
+
+        // Update selected variety count display
+        function updateVarietyCount() {
+            const checkboxes = document.querySelectorAll('#varietyFilter input[type="checkbox"]');
+            const checked = document.querySelectorAll('#varietyFilter input[type="checkbox"]:checked');
+            const countSpan = document.getElementById('varietySelectedCount');
+
+            if (checkboxes.length === 0) {
+                countSpan.textContent = '';
+            } else if (checked.length === checkboxes.length) {
+                countSpan.textContent = '(all selected)';
+            } else {
+                countSpan.textContent = `(${checked.length}/${checkboxes.length})`;
+            }
         }
 
         // Demo Data - matches actual farm data structure
@@ -3357,12 +3511,27 @@
             const statusFilters = Array.from(document.querySelectorAll('.checkbox-filter input:checked'))
                                       .map(cb => cb.dataset.status);
 
+            // Get selected varieties from multi-select
+            const varietyCheckboxes = document.querySelectorAll('#varietyFilter input[type="checkbox"]:checked');
+            const selectedVarieties = Array.from(varietyCheckboxes).map(cb => cb.value);
+
             filteredPlantings = plantings.filter(p => {
                 if (cropFilter && p.crop !== cropFilter) return false;
                 if (fieldFilter && p.field !== fieldFilter) return false;
                 if (!statusFilters.includes(p.status)) return false;
+
+                // Filter by selected varieties (if any are selected)
+                if (selectedVarieties.length > 0) {
+                    const pVariety = p.variety || 'Unknown';
+                    const varietyKey = cropFilter ? pVariety : `${p.crop} - ${pVariety}`;
+                    if (!selectedVarieties.includes(varietyKey)) return false;
+                }
+
                 return true;
             });
+
+            // Update variety count display
+            updateVarietyCount();
 
             // Set fixed timeline for 2026 season (don't auto-calculate - prevents crashes with bad data)
             timelineStart = new Date('2026-01-01');
@@ -3531,47 +3700,71 @@
                     return bedDisplay;
                 };
                 getGroupMeta = (plantings) => plantings.length > 0 ? `${plantings.length} plantings` : 'Empty';
-            } else if (viewMode === 'crop') {
-                // CROP VIEW: Include ALL plantings (assigned + unassigned) to see full picture
-                const allPlantingsForCropView = plantings.filter(p => {
-                    const cropFilter = document.getElementById('cropFilter').value;
-                    if (cropFilter && p.crop !== cropFilter) return false;
+            } else if (viewMode === 'crop' || viewMode === 'variety') {
+                // CROP/VARIETY VIEW: ONE ROW PER PLANTING for clear succession visualization
+                // Include ALL plantings (assigned + unassigned) to see full picture
+
+                // Get selected varieties from multi-select
+                const varietyCheckboxes = document.querySelectorAll('#varietyFilter input[type="checkbox"]:checked');
+                const selectedVarieties = Array.from(varietyCheckboxes).map(cb => cb.value);
+                const cropFilterVal = document.getElementById('cropFilter').value;
+
+                const allPlantingsForView = plantings.filter(p => {
+                    if (cropFilterVal && p.crop !== cropFilterVal) return false;
+
+                    // Filter by selected varieties
+                    if (selectedVarieties.length > 0) {
+                        const pVariety = p.variety || 'Unknown';
+                        const varietyKey = cropFilterVal ? pVariety : `${p.crop} - ${pVariety}`;
+                        if (!selectedVarieties.includes(varietyKey)) return false;
+                    }
+
                     return true;
                 });
-                groups = [...new Set(allPlantingsForCropView.map(p => p.crop))].filter(c => c).sort();
-                headerIcon = 'fa-seedling';
-                headerLabel = 'Crops';
-                getGroupName = (group) => group;
-                getGroupMeta = (groupPlantings) => {
-                    const unassignedCount = groupPlantings.filter(p => p.isUnassigned).length;
-                    return unassignedCount > 0
-                        ? `${groupPlantings.length} plantings (${unassignedCount} unassigned)`
-                        : `${groupPlantings.length} plantings`;
-                };
-                // Override filteredPlantings for crop view
-                filteredPlantings = allPlantingsForCropView;
-            } else if (viewMode === 'variety') {
-                // VARIETY VIEW: Include ALL plantings (assigned + unassigned) to see full picture
-                const allPlantingsForVarietyView = plantings.filter(p => {
-                    const cropFilter = document.getElementById('cropFilter').value;
-                    if (cropFilter && p.crop !== cropFilter) return false;
-                    return true;
+
+                // Sort by crop, then variety, then planned date for clear succession view
+                allPlantingsForView.sort((a, b) => {
+                    // First by crop
+                    if (a.crop !== b.crop) return (a.crop || '').localeCompare(b.crop || '');
+                    // Then by variety
+                    const aVar = a.variety || 'Unknown';
+                    const bVar = b.variety || 'Unknown';
+                    if (aVar !== bVar) return aVar.localeCompare(bVar);
+                    // Then by planned date
+                    const aDate = a.plannedDate || a.seedDate || a.startDate;
+                    const bDate = b.plannedDate || b.seedDate || b.startDate;
+                    return new Date(aDate) - new Date(bDate);
                 });
-                groups = [...new Set(allPlantingsForVarietyView.map(p => `${p.crop}|${p.variety || 'Unknown'}`))].filter(v => v).sort();
-                headerIcon = 'fa-leaf';
-                headerLabel = 'Varieties';
+
+                // Each planting gets its own row - use index as group identifier
+                groups = allPlantingsForView.map((p, i) => `planting_${i}`);
+
+                headerIcon = viewMode === 'crop' ? 'fa-seedling' : 'fa-leaf';
+                headerLabel = viewMode === 'crop' ? 'Plantings by Crop' : 'Plantings by Variety';
+
+                // Store the sorted plantings for row rendering
+                window._cropViewPlantings = allPlantingsForView;
+
                 getGroupName = (group) => {
-                    const [crop, variety] = group.split('|');
-                    return `${crop} - ${variety}`;
+                    const idx = parseInt(group.split('_')[1]);
+                    const p = allPlantingsForView[idx];
+                    if (!p) return group;
+                    const variety = p.variety || 'Unknown';
+                    const location = p.isUnassigned ? '⚠️ Unassigned' : `${p.field}-${(p.bed || '').toString().padStart(2, '0')}`;
+                    return `${p.crop} - ${variety}`;
                 };
+
                 getGroupMeta = (groupPlantings) => {
-                    const unassignedCount = groupPlantings.filter(p => p.isUnassigned).length;
-                    return unassignedCount > 0
-                        ? `${groupPlantings.length} successions (${unassignedCount} unassigned)`
-                        : `${groupPlantings.length} successions`;
+                    if (groupPlantings.length === 0) return '';
+                    const p = groupPlantings[0];
+                    const location = p.isUnassigned ? '⚠️ Unassigned' : `${p.field}-${(p.bed || '').toString().padStart(2, '0')}`;
+                    const plannedDate = p.plannedDate || p.seedDate;
+                    const dateStr = plannedDate ? new Date(plannedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                    return `${location} | ${dateStr}`;
                 };
-                // Override filteredPlantings for variety view
-                filteredPlantings = allPlantingsForVarietyView;
+
+                // Override filteredPlantings
+                filteredPlantings = allPlantingsForView;
             } else {
                 // Default: field view
                 groups = [...new Set(filteredPlantings.map(p => p.field))].sort();
@@ -3604,17 +3797,24 @@
                         return p.field === field && (pBed === bed || `Field ${p.field}-${pBed.toString().padStart(2,'0')}` === bed);
                     });
                     isEmpty = groupPlantings.length === 0;
-                } else if (viewMode === 'crop') {
-                    groupPlantings = filteredPlantings.filter(p => p.crop === group);
-                } else if (viewMode === 'variety') {
-                    const [crop, variety] = group.split('|');
-                    groupPlantings = filteredPlantings.filter(p => p.crop === crop && (p.variety || 'Unknown') === variety);
+                } else if (viewMode === 'crop' || viewMode === 'variety') {
+                    // ONE ROW PER PLANTING - get the single planting for this row
+                    const idx = parseInt(group.split('_')[1]);
+                    const singlePlanting = window._cropViewPlantings ? window._cropViewPlantings[idx] : null;
+                    groupPlantings = singlePlanting ? [singlePlanting] : [];
                 } else {
                     groupPlantings = filteredPlantings.filter(p => p.field === group);
                 }
 
-                const stackedPlantings = calculateStacking(groupPlantings);
-                const rowHeight = Math.max(50, (stackedPlantings.maxStack + 1) * 44);
+                // For crop/variety view, no stacking needed (one planting per row)
+                let stackedPlantings;
+                if ((viewMode === 'crop' || viewMode === 'variety') && groupPlantings.length === 1) {
+                    // Single planting per row - no stacking
+                    stackedPlantings = { plantings: groupPlantings.map(p => ({ ...p, stackLevel: 0 })), maxStack: 0 };
+                } else {
+                    stackedPlantings = calculateStacking(groupPlantings);
+                }
+                const rowHeight = (viewMode === 'crop' || viewMode === 'variety') ? 50 : Math.max(50, (stackedPlantings.maxStack + 1) * 44);
                 rowHeights.push(rowHeight);
 
                 const emptyClass = isEmpty ? ' empty-bed' : '';
