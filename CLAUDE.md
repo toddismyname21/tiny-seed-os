@@ -1,69 +1,185 @@
-# Tiny Seed Farm OS - Claude Context
+# MANDATORY: READ BEFORE ANY WORK
 
-## You Are: UX/Design Claude
+## STOP. DO NOT PROCEED UNTIL YOU COMPLETE THESE STEPS.
 
-You are the UX/Design specialist for Tiny Seed Farm OS. Your role includes:
-- Building and refining user interfaces for farm operations
-- CSA Customer Portal development and testing
-- Frontend HTML/CSS/JS work in `web_app/` directory
-- Ensuring great user experience across all farm tools
-- Working with the MCP server tools for direct farm operations
-
-The owner (Todd) has given you autonomy to take action. Use good judgment.
+This file is automatically read by Claude Code at the start of every session. These rules are NON-NEGOTIABLE.
 
 ---
 
-## Current Session Status (2026-01-21)
+## STEP 1: IDENTIFY YOUR ROLE
 
-### FULL AUTONOMY ENABLED
-As of 2026-01-21, Claude has full API access to all farm systems. No manual intervention required.
+You MUST identify which Claude role you are operating as:
 
-### Just Completed
-- CSA Portal is LIVE with sample box contents (35 items across 6 share types)
-- Fixed date handling bugs in `getCSABoxContents`
-- Deployed to **v240** (primary deployment)
-- **Shopify API token updated with ALL SCOPES**
-- **CSA Order Webhook REGISTERED** (ID: 1499426226329)
-- Credentials stored securely in `.secrets/CREDENTIALS.md` (git-ignored)
+| Role | Scope | Files You Can Touch |
+|------|-------|---------------------|
+| **PM_Architect** | Coordination, architecture | Documentation, coordination files |
+| **Backend_Claude** | Apps Script ONLY | `/apps_script/*.js` ONLY |
+| **Desktop_Claude** | Desktop HTML | Root `.html`, `web_app/` admin files |
+| **Mobile_Claude** | Mobile apps | Mobile `.html`, PWA manifests |
+| **UX_Design_Claude** | Design system | CSS, design documentation |
+| **Sales_Claude** | Sales features | Sales-related files only |
+| **Security_Claude** | Auth, permissions | Auth files only |
+
+**If unclear, ASK THE USER which role you should operate as.**
+
+---
+
+## STEP 2: CHECK THE MANIFEST BEFORE BUILDING ANYTHING
+
+**MANDATORY:** Before creating ANY new file or function, check if it already exists.
+
+Read: `claude_sessions/pm_architect/SYSTEM_MANIFEST.md`
+
+This file contains:
+- Every Apps Script file and its purpose
+- Every HTML file and its status
+- Every API endpoint
+- What's working vs what's broken
+- What's already built but disconnected
+
+**IF YOU BUILD SOMETHING THAT ALREADY EXISTS, YOU ARE CREATING FRAGMENTATION.**
+
+---
+
+## STEP 3: CHECK FOR DUPLICATES
+
+Before adding ANY function, search for similar functions:
+
+```
+Grep for: function name, similar keywords, related functionality
+```
+
+**Known duplicate systems that MUST NOT be duplicated further:**
+
+| System | Locations | Action |
+|--------|-----------|--------|
+| Morning Brief | 4 versions exist | DO NOT CREATE ANOTHER |
+| Approval System | 2 versions exist | DO NOT CREATE ANOTHER |
+| Email Processing | 3 versions exist | DO NOT CREATE ANOTHER |
+
+---
+
+## STEP 4: LOG YOUR CHANGES
+
+After completing ANY work, you MUST:
+
+1. **Update CHANGE_LOG.md** in the root directory with:
+   - Date
+   - Your Claude role
+   - Files created/modified
+   - Functions added/changed
+   - Why you made the change
+
+2. **Update your session's OUTBOX.md** with a full report
+
+---
+
+## FORBIDDEN ACTIONS
+
+### NEVER DO THESE THINGS:
+
+1. **NEVER** create a new file without checking SYSTEM_MANIFEST.md first
+2. **NEVER** add demo/sample data fallbacks (show errors instead)
+3. **NEVER** hardcode API URLs (use api-config.js)
+4. **NEVER** touch files outside your role's scope
+5. **NEVER** deploy without updating CHANGE_LOG.md
+6. **NEVER** skip the duplicate check
+7. **NEVER** create a new Morning Brief function (4 already exist)
+8. **NEVER** create a new Approval system (2 already exist)
+
+---
+
+## ENFORCEMENT CHECKLIST
+
+Before starting work, confirm:
+
+- [ ] I know which Claude role I am
+- [ ] I have read SYSTEM_MANIFEST.md
+- [ ] I have checked for existing similar functionality
+- [ ] I understand what files I can and cannot touch
+
+Before deploying, confirm:
+
+- [ ] I updated CHANGE_LOG.md
+- [ ] I updated my OUTBOX.md
+- [ ] I did not create duplicates
+- [ ] I did not add demo data fallbacks
+
+---
+
+## CRITICAL CONTEXT
+
+### Chief of Staff Backend EXISTS But Is NOT Connected
+
+12 backend modules are ALREADY BUILT in `/apps_script/`:
+- ChiefOfStaff_Voice.js
+- ChiefOfStaff_Memory.js
+- ChiefOfStaff_Autonomy.js
+- ChiefOfStaff_ProactiveIntel.js
+- ChiefOfStaff_StyleMimicry.js
+- ChiefOfStaff_Calendar.js
+- ChiefOfStaff_Predictive.js
+- ChiefOfStaff_SMS.js
+- ChiefOfStaff_FileOrg.js
+- ChiefOfStaff_Integrations.js
+- ChiefOfStaff_MultiAgent.js
+- EmailWorkflowEngine.js
+
+**DO NOT REBUILD THESE. Connect them to the frontend instead.**
+
+---
+
+## KEY URLS
+
+| Resource | URL |
+|----------|-----|
+| API Endpoint | `https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec` |
+| Google Sheet | `128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc` |
+| GitHub Pages | `https://toddismyname21.github.io/tiny-seed-os/` |
+
+---
+
+## IF YOU VIOLATE THESE RULES
+
+The owner has explicitly stated they will stop all building until enforcement is in place. Violations cause:
+- Wasted time and money
+- System fragmentation
+- Duplicate functionality
+- Information falling through cracks
+
+**FOLLOW THE RULES. NO EXCEPTIONS.**
+
+---
+
+## QUICK REFERENCE FILES
+
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | This file - mandatory rules |
+| `CHANGE_LOG.md` | Central change tracking |
+| `claude_sessions/pm_architect/SYSTEM_MANIFEST.md` | Complete system inventory |
+| `claude_sessions/pm_architect/CLAUDE_ROLES.md` | Role definitions |
+| `claude_sessions/pm_architect/DEPLOYMENT_PROTOCOL.md` | How to deploy |
+| `claude_sessions/CLAUDE_INTEGRATION_STANDARDS.md` | Coding standards |
+
+---
+
+**This file was created to enforce system coherence after significant fragmentation was discovered. Respect it.**
+
+---
+
+## SESSION CONTEXT (For Reference)
 
 ### Primary API Endpoint
 ```
-https://script.google.com/macros/s/AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE/exec
+https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec
 ```
 
-**Deployment v323** - Smart Financial System (2026-01-22)
-
-### Active Automations
-| Automation | Status | Description |
-|------------|--------|-------------|
-| CSA Order Webhook | ACTIVE | New Shopify orders auto-create CSA members |
-
-### MCP Server
-- Located at: `/mcp-server/tiny-seed-mcp.js`
-- 40+ tools for Shopify, QuickBooks, Markets, CSA, Marketing, Food Safety
-- Config is in `.claude/settings.json` - should auto-load on new sessions
-- **Full Shopify access** - can register webhooks, sync orders, manage customers
-
 ### Key Files
-- `apps_script/MERGED TOTAL.js` - Main backend (50,000+ lines)
-- `web_app/csa.html` - CSA Customer Portal
-- `claude_sessions/CSA_PORTAL_SETUP.md` - Full setup documentation
-- `claude_sessions/MCP_SERVER_ACCESS.md` - API reference
-- `.secrets/CREDENTIALS.md` - Secure credentials (NEVER commit)
-
-### Working Endpoints
-| Endpoint | Purpose |
-|----------|---------|
-| `getCSABoxContents` | Weekly box items by share type |
-| `sendCSAMagicLink` | Send login email to CSA member |
-| `verifyCSAMagicLink` | Validate login token |
-| `getCSAMembers` | List CSA members |
-| `registerCSAOrderWebhook` | Register Shopify webhook |
-| `listShopifyWebhooks` | View active webhooks |
-| `syncShopifyOrders` | Pull orders from Shopify |
-| `fixBoxContentsData` | Reset/repopulate sample box data |
+- `apps_script/MERGED TOTAL.js` - Main backend (50,000+ lines, 230+ endpoints)
+- `web_app/api-config.js` - API configuration (USE THIS)
+- `web_app/auth-guard.js` - Authentication
 
 ### Shopify Store
 - Store: `tiny-seed-farmers-market.myshopify.com`
-- Connection: **FULL ACCESS** (all scopes enabled)
 - Owner: Todd Wilson (todd@tinyseedfarmpgh.com)
