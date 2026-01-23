@@ -501,27 +501,27 @@ The Chief of Staff has extensive backend functionality that was NEVER connected 
 
 | Purpose | URL |
 |---------|-----|
-| Main Dashboard | https://toddismyname21.github.io/tiny-seed-os/index.html |
-| Employee App | https://toddismyname21.github.io/tiny-seed-os/employee.html |
-| Chef Ordering | https://toddismyname21.github.io/tiny-seed-os/web_app/chef-order.html |
-| Driver App | https://toddismyname21.github.io/tiny-seed-os/web_app/driver.html |
-| Chief of Staff | https://toddismyname21.github.io/tiny-seed-os/web_app/chief-of-staff.html |
-| API Endpoint | https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec |
+| Main Dashboard | https://app.tinyseedfarm.com/index.html |
+| Employee App | https://app.tinyseedfarm.com/employee.html |
+| Chef Ordering | https://app.tinyseedfarm.com/web_app/chef-order.html |
+| Driver App | https://app.tinyseedfarm.com/web_app/driver.html |
+| Chief of Staff | https://app.tinyseedfarm.com/web_app/chief-of-staff.html |
+| API Endpoint | https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec |
 
 ## Key IDs
 
 | Item | ID |
 |------|---|
 | Google Sheet | 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc |
-| Deployment ID | AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc |
+| Deployment ID (v201) | AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp |
 
 ## Deployment Commands
 
 ```bash
 # Apps Script
 cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
-clasp push
-clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" -d "Description"
+PATH="/opt/homebrew/bin:$PATH" clasp push
+PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" -d "Description"
 
 # GitHub Pages (Frontend)
 git add .

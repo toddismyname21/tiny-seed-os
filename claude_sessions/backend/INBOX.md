@@ -6,6 +6,75 @@
 
 ---
 
+## 🚨 CRITICAL: MERGE + FIX + REDEPLOY - 2026-01-22 EVENING
+
+**From:** PM_Architect
+**Priority:** CRITICAL - SYSTEM BROKEN
+**Deadline:** IMMEDIATE
+
+### PROBLEM
+Full system audit completed. Found CRITICAL issues preventing system from working.
+
+### TASK 1: MERGE SmartLaborIntelligence.js (BLOCKING)
+
+The file `apps_script/SmartLaborIntelligence.js` (1,483 lines) was created but **NEVER MERGED** into MERGED TOTAL.js.
+
+**These functions exist in SmartLaborIntelligence.js but are NOT deployed:**
+- `initializeSmartLaborSheets()`
+- `getBenchmark()` / `setBenchmark()`
+- `generateDailyPrescription()`
+- `getMyWorkOrder()`
+- `checkInTask()` / `checkOutTask()`
+- `getLaborAlerts()`
+- `getEmployeeEfficiencyTrend()`
+- `getLaborIntelligenceDashboard()`
+- `getEmployeeMessages()` / `markMessageRead()`
+
+**FIX:** Copy all functions from SmartLaborIntelligence.js into MERGED TOTAL.js (before the doGet function).
+
+### TASK 2: FIX 13 BROKEN ENDPOINTS
+
+Desktop audit found these broken API calls:
+
+| File | Broken Call | Fix |
+|------|-------------|-----|
+| customer.html | `getRetailProducts` | Add route OR change to `getWholesaleProducts` |
+| customer.html | `sendMagicLink` | Change call to `sendCustomerMagicLink` |
+| csa.html | `getRecentSocialPosts` | Add route to backend |
+| csa.html | `submitCSADispute` | Add route to backend |
+| food-safety.html | `logComplianceEntry` (x4) | Use specific compliance functions |
+| index.html | `getProductCatalog` | Change to `getWholesaleProducts` |
+| index.html | `getCustomers` | Change to `getSalesCustomers` |
+| marketing-command-center.html | `postToAppFeed` | Add route or remove feature |
+| quickbooks-dashboard.html | `saveQuickBooksCredentials` | Add route to backend |
+| admin.html | `configureClaudeAPI` | Add route to backend |
+
+**FIX:** Add missing routes to MERGED TOTAL.js doGet switch statement.
+
+### TASK 3: REDEPLOY
+
+After merging and fixing:
+```bash
+cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
+PATH="/opt/homebrew/bin:$PATH" clasp push
+PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" -d "v202: Merge SmartLabor + Fix broken endpoints"
+```
+
+### TASK 4: UPDATE DOCUMENTATION
+
+After deployment, update:
+- `claude_sessions/backend/OUTBOX.md` with completion status
+- `claude_sessions/SYSTEM_STATUS.md` (create if needed) with live system state
+
+### AUDIT REPORTS FOR REFERENCE
+- Desktop: `claude_sessions/DESKTOP_AUDIT_REPORT.md`
+- Mobile: `claude_sessions/MOBILE_AUDIT_REPORT.md`
+
+**THIS IS BLOCKING THE ENTIRE SYSTEM. FIX IMMEDIATELY.**
+
+---
+
+
 ## NEW TASK: Employee Invitation System
 
 **Owner Request:** Add invite functionality for employees AND wholesale customers from the dashboard.
