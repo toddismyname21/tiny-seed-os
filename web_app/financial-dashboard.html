@@ -9,11 +9,12 @@
     <script src="auth-guard.js" data-required-role="Admin"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+    <script src="api-config.js"></script>
     <style>
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
-            --primary-dark: #1e3d1a;
+            --primary: #22c55e;
+            --primary-light: #4ade80;
+            --primary-dark: #16a34a;
             --secondary: #f4a261;
             --accent: #e76f51;
             --success: #2a9d8f;
@@ -4278,7 +4279,7 @@
         // =============================================
         const API_CONFIG = {
             sheetId: '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc',
-            apiUrl: 'https://script.google.com/macros/s/AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE/exec'
+            apiUrl: (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec'
         };
 
         // =============================================
@@ -6669,7 +6670,7 @@
         // =============================================
         // MARKETING FUNCTIONS
         // =============================================
-        const MARKETING_API_URL = 'https://script.google.com/macros/s/AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE/exec';
+        const MARKETING_API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
 
         async function loadMarketingData() {
             try {

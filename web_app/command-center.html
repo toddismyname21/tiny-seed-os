@@ -684,8 +684,8 @@
   </main>
 
   <script>
-    // API Configuration
-    const API_URL = window.API_CONFIG?.API_URL || 'https://script.google.com/macros/s/AKfycbyayQD18LoTXiE16bcG90zEMZlGZGtAgNeWco_528QIrZ_3pCgB5tmleR7NglI1q3No/exec';
+    // API Configuration - Use api-config.js with fallback
+    const API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
 
     // State
     let currentStatus = 'NEW,TRIAGED';
