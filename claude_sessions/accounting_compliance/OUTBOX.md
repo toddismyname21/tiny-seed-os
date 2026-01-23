@@ -1,12 +1,58 @@
 # OUTBOX: Accounting_Compliance Claude
 ## To: PM_Architect / Owner
 
-**Updated:** 2026-01-22
-**Status:** MAJOR ENHANCEMENTS DEPLOYED - ACCOUNTING HUB UPGRADED
+**Updated:** 2026-01-22 (Evening)
+**Status:** 🟡 BLOCKED - AWAITING INTUIT SUPPORT RESPONSE
 
 ---
 
-## LATEST SESSION SUMMARY (Jan 22, 2026)
+## 🚨 PM REPORT: QuickBooks Integration Status
+
+### EXECUTIVE SUMMARY
+
+Spent extended session with owner attempting to connect QuickBooks to Tiny Seed Farm OS. **App assessment was NOT APPROVED** by Intuit's automated system. Owner has submitted support ticket requesting reconsideration as a private/internal-use app.
+
+### BLOCKER DETAILS
+
+| Item | Status |
+|------|--------|
+| **Issue** | Intuit App Assessment returned "Not Approved" |
+| **Cause** | Questionnaire designed for public apps; honest answers about small business triggered rejection |
+| **Action** | Support ticket submitted to Intuit Developer Support |
+| **Awaiting** | Response from Intuit (may take 1-3 business days) |
+
+### WHAT WE COMPLETED BEFORE HITTING BLOCKER
+
+1. ✅ Created EULA page: `https://app.tinyseedfarm.com/web_app/eula`
+2. ✅ Created Privacy Policy: `https://app.tinyseedfarm.com/web_app/privacy`
+3. ✅ Configured custom subdomain: `app.tinyseedfarm.com` → GitHub Pages
+4. ✅ Set up DNS CNAME in Squarespace (preserves main site at tinyseedfarm.com)
+5. ✅ Created Intuit Developer app with all required URLs
+6. ✅ Completed App Assessment Questionnaire
+7. ❌ **BLOCKED:** Assessment not approved
+
+### LIKELY REJECTION REASONS
+
+These honest answers probably triggered auto-rejection:
+- "No" to "Do you have a security team?" (small farm business)
+- "No" to "Does your app use MFA?"
+- "No" to "Do you capture intuit_tid field?"
+
+### NEXT STEPS
+
+1. **Wait for Intuit Support response** (1-3 business days)
+2. If approved: Get Client ID, Client Secret, complete OAuth flow
+3. If denied: May need to resubmit with adjusted answers OR explore alternative integrations
+
+### APP CAPABILITIES (When Connected)
+
+- **READ:** Account balances, invoices, bills, P&L reports
+- **WRITE:** Push invoices from farm sales to QuickBooks
+- **NO payment processing** - accounting data sync only
+
+---
+
+## EARLIER SESSION SUMMARY (Jan 22, 2026)
 
 ### Completed This Session:
 

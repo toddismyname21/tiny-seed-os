@@ -1399,6 +1399,8 @@ function doGet(e) {
         return jsonResponse(getComplianceLeaderboard());
       case 'sendOwnerMasterBrief':
         return jsonResponse(sendOwnerMasterBrief());
+      case 'sendWholesaleMeetingBrief':
+        return jsonResponse(sendWholesaleMeetingBrief());
 
       // ============ LABEL GENERATION ============
       case 'getMarketSignItems':
@@ -1415,6 +1417,10 @@ function doGet(e) {
       // ============ EMPLOYEE MOBILE APP ============
       case 'authenticateEmployee':
         return jsonResponse(authenticateEmployee(e.parameter));
+      case 'verifyEmployeeToken':
+        return jsonResponse(verifyEmployeeToken(e.parameter.token));
+      case 'getAllEmployees':
+        return jsonResponse(getAllEmployees());
       case 'clockIn':
         return jsonResponse(clockIn(e.parameter));
       case 'clockOut':
@@ -2695,6 +2701,24 @@ function doPost(e) {
       case 'unlockAchievement':
         return jsonResponse(unlockAchievement(data));
 
+      // ============ EMPLOYEE INVITATION SYSTEM (POST) ============
+      case 'inviteEmployee':
+        return jsonResponse(inviteEmployee(data));
+      case 'sendEmployeeMagicLink':
+        return jsonResponse(sendEmployeeMagicLink(data.userId || data.employeeId));
+      case 'bulkInviteEmployees':
+        return jsonResponse(bulkInviteEmployees(data.employees || data));
+
+      // ============ CHEF INVITATION SYSTEM (POST) ============
+      case 'inviteChef':
+        return jsonResponse(inviteChef(data));
+      case 'sendChefMagicLink':
+        return jsonResponse(sendChefMagicLink(data.customerId));
+      case 'bulkInviteChefs':
+        return jsonResponse(bulkInviteChefs(data.chefs || data));
+      case 'verifyChefToken':
+        return jsonResponse(verifyChefToken(data.token));
+
       // ============ FINANCIAL MODULE - ROUND-UPS ============
       case 'saveRoundUp':
         return jsonResponse(saveRoundUp(data));
@@ -3790,6 +3814,542 @@ function resetUserPin(data) {
 
     return { success: true, newPin: newPin, message: 'PIN reset successfully' };
   } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMPLOYEE INVITATION SYSTEM - MAGIC LINK AUTHENTICATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const EMPLOYEE_APP_URL = 'https://toddismyname21.github.io/tiny-seed-os/web_app/employee.html';
+
+/**
+ * Generate a secure magic token for passwordless authentication
+ */
+function generateEmployeeMagicToken() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 32; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
+/**
+ * Invite a new employee - create account + send magic link
+ *
+ * @param {Object} data - { fullName, email, phone, role, username }
+ * @returns {Object} { success, userId, inviteUrl }
+ */
+function inviteEmployee(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      sheet = createUsersSheet(ss);
+    }
+
+    // Check if employee already exists by email
+    const sheetData = sheet.getDataRange().getValues();
+    const headers = sheetData[0];
+    const emailCol = headers.indexOf('Email');
+
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][emailCol] && sheetData[i][emailCol].toLowerCase() === (data.email || '').toLowerCase()) {
+        // Employee exists - just send a new magic link
+        return sendEmployeeMagicLink(sheetData[i][0]); // User_ID is first column
+      }
+    }
+
+    // Generate User ID
+    const lastRow = sheet.getLastRow();
+    const userId = 'USR-' + String(lastRow).padStart(3, '0');
+
+    // Generate magic token
+    const magicToken = generateEmployeeMagicToken();
+    const tokenExpires = new Date();
+    tokenExpires.setDate(tokenExpires.getDate() + 7); // Token valid for 7 days
+
+    // Generate username from full name if not provided
+    const username = data.username || (data.fullName || '').toLowerCase().replace(/\s+/g, '.').replace(/[^a-z.]/g, '');
+
+    // Create the employee record
+    const newRow = [
+      userId,
+      username,
+      '0000', // Default PIN (will use magic link instead)
+      data.fullName || '',
+      data.email || '',
+      data.role || 'Employee',
+      true, // Is_Active
+      '', // Last_Login
+      new Date().toISOString() // Created_At
+    ];
+
+    sheet.appendRow(newRow);
+
+    // Add magic token columns if they don't exist
+    let magicTokenCol = headers.indexOf('Magic_Token');
+    let tokenExpiresCol = headers.indexOf('Token_Expires');
+    let phoneCol = headers.indexOf('Phone');
+
+    if (phoneCol === -1) {
+      phoneCol = headers.length;
+      sheet.getRange(1, phoneCol + 1).setValue('Phone');
+    }
+
+    if (magicTokenCol === -1) {
+      magicTokenCol = phoneCol + 1;
+      sheet.getRange(1, magicTokenCol + 1).setValue('Magic_Token');
+    }
+
+    if (tokenExpiresCol === -1) {
+      tokenExpiresCol = magicTokenCol + 1;
+      sheet.getRange(1, tokenExpiresCol + 1).setValue('Token_Expires');
+    }
+
+    // Set the magic token, expiration, and phone
+    const newRowNum = sheet.getLastRow();
+    if (data.phone) {
+      sheet.getRange(newRowNum, phoneCol + 1).setValue(data.phone);
+    }
+    sheet.getRange(newRowNum, magicTokenCol + 1).setValue(magicToken);
+    sheet.getRange(newRowNum, tokenExpiresCol + 1).setValue(tokenExpires.toISOString());
+
+    // Build the invitation URL
+    const inviteUrl = `${EMPLOYEE_APP_URL}?token=${magicToken}`;
+
+    // Send invitation email
+    const emailResult = sendEmployeeInvitationEmail(data, inviteUrl);
+
+    // Send invitation SMS if phone provided
+    let smsResult = { success: false, message: 'No phone provided' };
+    if (data.phone) {
+      smsResult = sendEmployeeInvitationSMS(data, inviteUrl);
+    }
+
+    return {
+      success: true,
+      userId: userId,
+      username: username,
+      inviteUrl: inviteUrl,
+      email_sent: emailResult.success,
+      sms_sent: smsResult.success,
+      message: `Employee ${data.fullName} invited successfully`
+    };
+  } catch (error) {
+    Logger.log('inviteEmployee error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send magic link to existing employee
+ *
+ * @param {string} userId - User ID
+ * @returns {Object} { success, inviteUrl }
+ */
+function sendEmployeeMagicLink(userId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'Users sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const userIdCol = headers.indexOf('User_ID');
+
+    // Find the employee
+    let rowIndex = -1;
+    let employee = null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][userIdCol] === userId) {
+        rowIndex = i;
+        employee = {};
+        headers.forEach((h, idx) => employee[h] = data[i][idx]);
+        break;
+      }
+    }
+
+    if (!employee) {
+      return { success: false, error: 'Employee not found' };
+    }
+
+    // Generate new magic token
+    const magicToken = generateEmployeeMagicToken();
+    const tokenExpires = new Date();
+    tokenExpires.setDate(tokenExpires.getDate() + 7);
+
+    // Update token in sheet
+    let magicTokenCol = headers.indexOf('Magic_Token');
+    let tokenExpiresCol = headers.indexOf('Token_Expires');
+
+    if (magicTokenCol === -1) {
+      magicTokenCol = headers.length;
+      sheet.getRange(1, magicTokenCol + 1).setValue('Magic_Token');
+    }
+
+    if (tokenExpiresCol === -1) {
+      tokenExpiresCol = magicTokenCol + 1;
+      sheet.getRange(1, tokenExpiresCol + 1).setValue('Token_Expires');
+    }
+
+    sheet.getRange(rowIndex + 1, magicTokenCol + 1).setValue(magicToken);
+    sheet.getRange(rowIndex + 1, tokenExpiresCol + 1).setValue(tokenExpires.toISOString());
+
+    const inviteUrl = `${EMPLOYEE_APP_URL}?token=${magicToken}`;
+
+    // Send email
+    const employeeData = {
+      email: employee.Email,
+      fullName: employee.Full_Name,
+      phone: employee.Phone
+    };
+
+    const emailResult = sendEmployeeLoginEmail(employeeData, inviteUrl);
+
+    // Send SMS if phone exists
+    let smsResult = { success: false };
+    if (employee.Phone) {
+      smsResult = sendEmployeeLoginSMS(employeeData, inviteUrl);
+    }
+
+    return {
+      success: true,
+      userId: userId,
+      inviteUrl: inviteUrl,
+      email_sent: emailResult.success,
+      sms_sent: smsResult.success
+    };
+  } catch (error) {
+    Logger.log('sendEmployeeMagicLink error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Verify a magic link token and return employee info
+ *
+ * @param {string} token - Magic token from URL
+ * @returns {Object} { valid, userId, employee }
+ */
+function verifyEmployeeToken(token) {
+  try {
+    if (!token) {
+      return { valid: false, error: 'No token provided' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { valid: false, error: 'Users sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const magicTokenCol = headers.indexOf('Magic_Token');
+    const tokenExpiresCol = headers.indexOf('Token_Expires');
+
+    if (magicTokenCol === -1) {
+      return { valid: false, error: 'Magic token system not configured' };
+    }
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][magicTokenCol] === token) {
+        // Check expiration
+        const expires = data[i][tokenExpiresCol];
+        if (expires) {
+          const expiresDate = new Date(expires);
+          if (expiresDate < new Date()) {
+            return { valid: false, error: 'Token expired. Please request a new login link.' };
+          }
+        }
+
+        // Build employee object (exclude sensitive fields)
+        const employee = {};
+        headers.forEach((h, idx) => {
+          if (h !== 'Magic_Token' && h !== 'Token_Expires' && h !== 'PIN') {
+            employee[h] = data[i][idx];
+          }
+        });
+
+        // Update last login
+        const lastLoginCol = headers.indexOf('Last_Login');
+        if (lastLoginCol !== -1) {
+          sheet.getRange(i + 1, lastLoginCol + 1).setValue(new Date().toISOString());
+        }
+
+        return {
+          valid: true,
+          userId: employee.User_ID,
+          employee: employee
+        };
+      }
+    }
+
+    return { valid: false, error: 'Invalid token. Please request a new login link.' };
+  } catch (error) {
+    Logger.log('verifyEmployeeToken error: ' + error.toString());
+    return { valid: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send employee invitation email (new employee)
+ */
+function sendEmployeeInvitationEmail(data, inviteUrl) {
+  try {
+    const subject = `🌱 Welcome to Tiny Seed Farm - Your Team Login`;
+
+    const body = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #fafafa;">
+        <div style="background: linear-gradient(135deg, #22c55e, #15803d); color: white; padding: 40px; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px;">🌱 Welcome to the Team!</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">Tiny Seed Farm</p>
+        </div>
+
+        <div style="padding: 30px; background: white;">
+          <h2 style="color: #1c1917; margin-top: 0;">Hi ${data.fullName || 'Team Member'},</h2>
+
+          <p style="font-size: 16px; line-height: 1.6; color: #44403c;">
+            You've been added to the Tiny Seed Farm team! Use the button below to access your employee portal - no password needed.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${inviteUrl}"
+               style="background: #22c55e; color: white; padding: 18px 40px; text-decoration: none;
+                      border-radius: 8px; font-weight: bold; font-size: 18px; display: inline-block;
+                      box-shadow: 0 4px 6px rgba(34, 197, 94, 0.3);">
+              Open Employee Portal →
+            </a>
+          </div>
+
+          <div style="background: #f5f5f4; border-radius: 12px; padding: 20px; margin: 25px 0;">
+            <h3 style="margin: 0 0 15px 0; color: #1c1917; font-size: 16px;">📱 Add to Your Phone (Recommended)</h3>
+
+            <div style="margin-bottom: 15px;">
+              <strong style="color: #22c55e;">iPhone (Safari):</strong>
+              <ol style="margin: 5px 0 0 0; padding-left: 20px; color: #44403c; font-size: 14px;">
+                <li>Open the link above in Safari</li>
+                <li>Tap the <strong>Share</strong> button (square with arrow)</li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>Add</strong></li>
+              </ol>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+              <strong style="color: #22c55e;">Android (Chrome):</strong>
+              <ol style="margin: 5px 0 0 0; padding-left: 20px; color: #44403c; font-size: 14px;">
+                <li>Open the link above in Chrome</li>
+                <li>Tap the <strong>⋮ Menu</strong> (three dots)</li>
+                <li>Tap <strong>"Add to Home screen"</strong></li>
+                <li>Tap <strong>Add</strong></li>
+              </ol>
+            </div>
+
+            <div>
+              <strong style="color: #22c55e;">Desktop Shortcut:</strong>
+              <ol style="margin: 5px 0 0 0; padding-left: 20px; color: #44403c; font-size: 14px;">
+                <li>Right-click on your desktop</li>
+                <li>Select <strong>New → Shortcut</strong></li>
+                <li>Paste this URL: <code style="background: #e7e5e4; padding: 2px 6px; border-radius: 3px; font-size: 12px;">${inviteUrl}</code></li>
+                <li>Name it "Tiny Seed Farm"</li>
+              </ol>
+            </div>
+          </div>
+
+          <p style="font-size: 14px; color: #78716c; text-align: center;">
+            This link is personal to you. Don't share it with others.
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 25px 0;">
+
+          <p style="font-size: 16px; color: #1c1917; text-align: center;">
+            Questions? Reply to this email or ask a manager.<br>
+            <strong>Welcome aboard! 🌱</strong>
+          </p>
+        </div>
+
+        <div style="background: #f5f5f4; padding: 15px; text-align: center; font-size: 12px; color: #78716c;">
+          Tiny Seed Farm | Pittsburgh, PA<br>
+          This link expires in 7 days
+        </div>
+      </div>
+    `;
+
+    GmailApp.sendEmail(data.email, subject, 'View in HTML', { htmlBody: body });
+    return { success: true };
+  } catch (error) {
+    Logger.log('sendEmployeeInvitationEmail error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send employee invitation SMS (new employee)
+ */
+function sendEmployeeInvitationSMS(data, inviteUrl) {
+  try {
+    const message = `🌱 Welcome to Tiny Seed Farm, ${data.fullName || 'team member'}! Access your employee portal here: ${inviteUrl} - Save this link to your phone's home screen for easy access!`;
+
+    return sendSMS(data.phone, message);
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send employee login email (existing employee, new magic link)
+ */
+function sendEmployeeLoginEmail(data, inviteUrl) {
+  try {
+    const subject = `🌱 Your Tiny Seed Farm Login Link`;
+
+    const body = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 25px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">🌱 Tiny Seed Farm</h1>
+        </div>
+
+        <div style="padding: 25px; background: white; border: 1px solid #e7e5e4; border-top: none;">
+          <p style="font-size: 16px;">Hi ${data.fullName || 'Team Member'},</p>
+
+          <p style="font-size: 16px;">Here's your login link:</p>
+
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${inviteUrl}"
+               style="background: #22c55e; color: white; padding: 15px 30px; text-decoration: none;
+                      border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+              Open Employee Portal →
+            </a>
+          </div>
+
+          <p style="font-size: 14px; color: #78716c; text-align: center;">
+            Link expires in 7 days. Need a new one? Ask your manager.
+          </p>
+        </div>
+
+        <div style="background: #f5f5f4; padding: 15px; text-align: center; font-size: 12px; color: #78716c; border-radius: 0 0 12px 12px;">
+          Tiny Seed Farm Employee Portal
+        </div>
+      </div>
+    `;
+
+    GmailApp.sendEmail(data.email, subject, 'View in HTML', { htmlBody: body });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send employee login SMS (existing employee)
+ */
+function sendEmployeeLoginSMS(data, inviteUrl) {
+  try {
+    const message = `🌱 Your Tiny Seed Farm login: ${inviteUrl}`;
+    return sendSMS(data.phone, message);
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Bulk invite multiple employees
+ *
+ * @param {Array} employeeList - [{ fullName, email, phone, role }, ...]
+ * @returns {Object} { success, results, summary }
+ */
+function bulkInviteEmployees(employeeList) {
+  try {
+    if (!employeeList || !Array.isArray(employeeList)) {
+      return { success: false, error: 'Invalid employee list' };
+    }
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const emp of employeeList) {
+      if (!emp.email) {
+        results.push({ email: emp.email, success: false, error: 'No email provided' });
+        failCount++;
+        continue;
+      }
+
+      const result = inviteEmployee(emp);
+      results.push({
+        email: emp.email,
+        fullName: emp.fullName,
+        ...result
+      });
+
+      if (result.success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+
+      // Small delay to avoid rate limiting
+      Utilities.sleep(500);
+    }
+
+    return {
+      success: true,
+      total: employeeList.length,
+      succeeded: successCount,
+      failed: failCount,
+      results: results
+    };
+  } catch (error) {
+    Logger.log('bulkInviteEmployees error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all employees with their invitation status
+ */
+function getAllEmployees() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: true, employees: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, employees: [] };
+
+    const headers = data[0];
+    const employees = data.slice(1)
+      .map(row => {
+        const obj = {};
+        headers.forEach((h, i) => {
+          if (h !== 'Magic_Token' && h !== 'PIN') { // Don't expose sensitive fields
+            obj[h] = row[i];
+          }
+        });
+        return obj;
+      })
+      .filter(e => e.User_ID); // Filter out empty rows
+
+    return {
+      success: true,
+      total: employees.length,
+      active: employees.filter(e => e.Is_Active === true || e.Is_Active === 'TRUE').length,
+      employees: employees
+    };
+  } catch (error) {
+    Logger.log('getAllEmployees error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -59097,5 +59657,221 @@ function debugBoxContents() {
     };
   } catch (error) {
     return { success: false, error: error.toString() };
+  }
+}
+// ═══════════════════════════════════════════════════════════════════════════
+// WHOLESALE MEETING BRIEF EMAIL
+// ═══════════════════════════════════════════════════════════════════════════
+
+function sendWholesaleMeetingBrief() {
+  const today = new Date();
+
+  const emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; line-height: 1.6; }
+    .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #2d5a27, #4a8f42); padding: 25px; border-radius: 12px; margin: -30px -30px 25px -30px; text-align: center; color: white; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .header p { margin: 5px 0 0 0; opacity: 0.9; }
+    h2 { color: #2d5a27; border-bottom: 2px solid #e8f5e9; padding-bottom: 10px; margin-top: 30px; }
+    h3 { color: #4a8f42; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+    th { background: #f5f9f5; color: #2d5a27; font-weight: 600; }
+    .price { color: #2d5a27; font-weight: 600; }
+    .highlight { background: #fff9e6; padding: 15px; border-radius: 8px; border-left: 4px solid #ffd93d; margin: 15px 0; }
+    .checklist { background: #f5f9f5; padding: 15px; border-radius: 8px; }
+    .checklist li { margin-bottom: 8px; }
+    .tip { background: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3; margin: 15px 0; }
+    .footer { text-align: center; color: #888; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>WHOLESALE MEETING BRIEF</h1>
+    <p>Tiny Seed Farm - Comprehensive Product & Sales Guide</p>
+    <p style="opacity: 0.7; font-size: 12px;">Prepared: ${today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+  </div>
+
+  <h2>PRODUCT SUMMARY BY CATEGORY</h2>
+  <table>
+    <tr><th>Category</th><th>Products</th><th>Wholesale Range</th><th>Peak Season</th></tr>
+    <tr><td>Tomatoes</td><td>4</td><td>Contact for pricing</td><td>Jun-Oct</td></tr>
+    <tr><td>Peppers</td><td>15</td><td class="price">$5 - $5.50/lb</td><td>Jul-Oct</td></tr>
+    <tr><td>Salad Greens</td><td>9</td><td class="price">$12.50/lb, $63-66/case</td><td>Apr-Nov</td></tr>
+    <tr><td>Bunched Greens</td><td>8</td><td class="price">$20-30/12ct</td><td>Apr-Nov</td></tr>
+    <tr><td>Head Lettuce</td><td>12</td><td class="price">$20-50/12-24ct</td><td>Apr-Nov</td></tr>
+    <tr><td>Brassicas</td><td>9</td><td class="price">$1.75 - $5.50/lb</td><td>Apr-Nov</td></tr>
+    <tr><td>Root Vegetables</td><td>12</td><td class="price">$2.25 - $3/lb</td><td>Jun-Nov</td></tr>
+    <tr><td>Herbs</td><td>16</td><td class="price">$11 - $30/unit</td><td>May-Nov</td></tr>
+    <tr><td>Mushrooms</td><td>3</td><td class="price">$12 - $18/lb</td><td>Year-round!</td></tr>
+    <tr><td>Flowers</td><td>7</td><td class="price">$6/8oz edible</td><td>Jun-Oct</td></tr>
+    <tr style="font-weight: bold; background: #f5f9f5;"><td>TOTAL</td><td colspan="3">~120 products</td></tr>
+  </table>
+
+  <h2>HIGH-VALUE ITEMS FOR CHEFS</h2>
+
+  <h3>Signature Salad Mixes</h3>
+  <table>
+    <tr><th>Product</th><th>Wholesale Price</th></tr>
+    <tr><td>King Spring Mix</td><td class="price">$12.50/lb, $63/6# case</td></tr>
+    <tr><td>Something Fresh Mix</td><td class="price">$12.50/lb, $66/6# case</td></tr>
+    <tr><td>Fancy Pants Mix</td><td class="price">$12.50/lb, $66/6# case</td></tr>
+    <tr><td>Arugula</td><td class="price">$12.50/lb, $66/6# case</td></tr>
+  </table>
+
+  <h3>Chef-Favorite Specialty Items</h3>
+  <table>
+    <tr><th>Product</th><th>Wholesale Price</th></tr>
+    <tr><td>Lion's Mane Mushrooms</td><td class="price">$18/lb</td></tr>
+    <tr><td>Oyster Mushrooms</td><td class="price">$12/lb (year-round!)</td></tr>
+    <tr><td>Broccolini</td><td class="price">$5.50/lb</td></tr>
+    <tr><td>Shishito Peppers</td><td class="price">$5.50/lb</td></tr>
+    <tr><td>Celtuce</td><td class="price">$24/12ct (unique!)</td></tr>
+    <tr><td>Edible Flowers</td><td class="price">$6/8oz</td></tr>
+  </table>
+
+  <h3>Premium Herbs</h3>
+  <table>
+    <tr><th>Product</th><th>Wholesale Price</th></tr>
+    <tr><td>Basil (Genovese, Holy, Thai)</td><td class="price">$11/lb</td></tr>
+    <tr><td>Cilantro</td><td class="price">$26.50/24ct</td></tr>
+    <tr><td>Parsley</td><td class="price">$30/24ct</td></tr>
+    <tr><td>Fresh Oregano & Sage</td><td class="price">$12/12ct</td></tr>
+  </table>
+
+  <h2>THE 5 GOLDEN RULES OF WHOLESALE</h2>
+
+  <div class="highlight">
+    <strong>1. Consistency is King</strong> - Chefs need reliable supply. If you can't deliver consistently, they'll go back to their distributor.
+  </div>
+  <div class="highlight">
+    <strong>2. Communication is Everything</strong> - Chefs need frequent updates. Failing to communicate will get you blacklisted fast.
+  </div>
+  <div class="highlight">
+    <strong>3. Never Deliver During Service</strong> - Avoid 11am-2pm and 5-10pm. You'll inconvenience the chef and lose the sale.
+  </div>
+  <div class="highlight">
+    <strong>4. Sell Your Story</strong> - Restaurants want to sell a story as much as your produce. Emphasize the human connection vs. wholesalers.
+  </div>
+  <div class="highlight">
+    <strong>5. Samples Speak Louder Than Words</strong> - Bring free samples to every prospective meeting.
+  </div>
+
+  <h2>COMMUNICATION BEST PRACTICES</h2>
+
+  <div class="tip">
+    <strong>Weekly Updates:</strong> Send availability lists every Monday. Include what's coming in 1-2 weeks. Note any supply issues early. Provide alternatives when items are short.
+  </div>
+
+  <div class="tip">
+    <strong>Delivery Protocol:</strong> Set a consistent delivery schedule. Define minimum order requirements upfront. Provide emergency contact for urgent issues. Give ample notice if you can't deliver.
+  </div>
+
+  <div class="tip">
+    <strong>When Things Go Wrong:</strong> Communicate EARLY if there's a supply issue. Always offer alternatives. Never surprise a chef with missing items.
+  </div>
+
+  <h2>YOUR KEY SELLING POINTS</h2>
+  <ul>
+    <li><strong>"We have GAP-compliant food safety systems"</strong></li>
+    <li><strong>"Full lot-code traceability - we can track any item back to the field"</strong></li>
+    <li><strong>"120+ products across all categories"</strong></li>
+    <li><strong>"Year-round mushroom supply"</strong></li>
+    <li><strong>"Signature salad mixes exclusive to us"</strong></li>
+    <li><strong>"Pre-season planning - we can grow what you need"</strong></li>
+  </ul>
+
+  <h2>QUESTIONS TO ASK</h2>
+  <ol>
+    <li>What products are you having trouble sourcing?</li>
+    <li>What quality issues do you have with current suppliers?</li>
+    <li>What's your ideal delivery schedule?</li>
+    <li>What certifications do your accounts require?</li>
+    <li>What volume commitments can we discuss?</li>
+    <li>How do you prefer to communicate (text, email, phone)?</li>
+  </ol>
+
+  <h2>RED FLAGS TO WATCH FOR</h2>
+  <ul style="color: #d32f2f;">
+    <li>Wants to pay net-60 or longer</li>
+    <li>Won't commit to any volume</li>
+    <li>Wants exclusive but won't guarantee purchases</li>
+    <li>Unrealistic quality expectations without premium pricing</li>
+  </ul>
+
+  <h2>MEETING CHECKLIST</h2>
+
+  <div class="checklist">
+    <strong>Before the Meeting:</strong>
+    <ul>
+      <li>☐ Print this brief</li>
+      <li>☐ Bring product samples</li>
+      <li>☐ Bring business cards</li>
+      <li>☐ Bring wholesale price list</li>
+      <li>☐ Have farm photos on phone</li>
+    </ul>
+  </div>
+
+  <div class="checklist">
+    <strong>During the Meeting:</strong>
+    <ul>
+      <li>☐ Listen more than talk</li>
+      <li>☐ Take notes on their needs</li>
+      <li>☐ Don't over-promise</li>
+      <li>☐ Set clear next steps</li>
+    </ul>
+  </div>
+
+  <div class="checklist">
+    <strong>After the Meeting:</strong>
+    <ul>
+      <li>☐ Send follow-up email within 24 hours</li>
+      <li>☐ Include any samples discussed</li>
+      <li>☐ Propose specific next steps</li>
+  </ul>
+  </div>
+
+  <h2>MARKET TRENDS (2025-2026)</h2>
+  <ul>
+    <li><strong>25% of chefs</strong> have shifted to buying more local</li>
+    <li><strong>24% already</strong> buy predominantly local</li>
+    <li><strong>35%</strong> use a mix of local and national suppliers</li>
+    <li><strong>Nearshoring</strong> is hot - restaurants avoiding supply chain delays</li>
+  </ul>
+
+  <div class="footer">
+    <p><strong>Good luck in your meeting! You've got this.</strong></p>
+    <p>Full brief saved at: claude_sessions/field_operations/WHOLESALE_MEETING_BRIEF.md</p>
+    <p>Prepared by Field Operations Claude | Tiny Seed OS</p>
+  </div>
+
+</div>
+</body>
+</html>
+`;
+
+  try {
+    MailApp.sendEmail({
+      to: 'todd@tinyseedfarmpgh.com',
+      subject: '🌱 WHOLESALE MEETING BRIEF - ' + today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      htmlBody: emailBody
+    });
+
+    return {
+      success: true,
+      message: 'Wholesale Meeting Brief sent to todd@tinyseedfarmpgh.com',
+      timestamp: today.toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
   }
 }

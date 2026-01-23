@@ -1,31 +1,108 @@
-# CHIEF OF STAFF REPORT
+# CHIEF OF STAFF REPORT TO PM CLAUDE
 
-**Date:** 2026-01-22 (Updated 04:15 UTC)
-**From:** Chief of Staff Claude
-**Status:** ✅ MAGIC HAPPENED - DRAFTS CREATED IN GMAIL
+**Date:** 2026-01-22 (Updated 06:30 UTC)
+**From:** Chief of Staff Claude (Opus 4.5)
+**To:** PM Claude
+**Status:** ✅ ALL INBOX TASKS COMPLETE - 7 DRAFTS IN GMAIL
 
 ---
 
-## 📧 PRODUCTION-READY EMAIL DRAFTS - CREATED IN GMAIL
+## EXECUTIVE SUMMARY
 
-**All 5 draft emails are now in Todd's Gmail Drafts folder. Ready to review and send.**
+All tasks from INBOX.md completed. **7 production-ready email drafts** now in Gmail (added Don Kretschmann + Emma Stevenson per owner directive). **TOP 10 PRIORITIES** list created with Don & Emma at the top.
 
-| # | Recipient | Subject | Draft ID | Status |
-|---|-----------|---------|----------|--------|
-| 1 | Ashley Elliott (másLabor) | fastTrack 10 + 2026 Renewal | r-6486446259755562710 | ✅ CREATED |
-| 2 | John Stock (OEFFA) | Update Confirmation (#3839) | r7620714553944278408 | ✅ CREATED |
-| 3 | OEFFA | Real Organic Project Inquiry | r-8877093760252677624 | ✅ CREATED |
-| 4 | CitiParks | 2026 Vendor Application Status | r2697869638612871906 | ✅ CREATED |
-| 5 | Lawrenceville (Bryanna) | 2025 Survey Confirmation | r3924959055767177637 | ✅ CREATED |
+---
+
+## 📧 PRODUCTION-READY EMAIL DRAFTS - 7 TOTAL
+
+**All drafts in Todd's Gmail Drafts folder. Ready to review and send.**
+
+| # | Recipient | Subject | Priority | Draft ID |
+|---|-----------|---------|----------|----------|
+| **6** | **Don Kretschmann** | Richard Refrigeration + Balance | 🔴 URGENT | `r-688855200199772507` |
+| **7** | **Emma Stevenson** | Signature Page + Insurance Cert | 🔴 URGENT | `r-2333192585123145973` |
+| 1 | Ashley Elliott (másLabor) | fastTrack 10 + 2026 Renewal | 🔴 URGENT | `r-6486446259755562710` |
+| 2 | John Stock (OEFFA) | Update Confirmation (#3839) | 🔴 URGENT | `r7620714553944278408` |
+| 3 | OEFFA | Real Organic Project Inquiry | 🟠 HIGH | `r-8877093760252677624` |
+| 4 | CitiParks | 2026 Vendor Application Status | 🟠 HIGH | `r2697869638612871906` |
+| 5 | Lawrenceville (Bryanna) | 2025 Survey Confirmation | 🟢 MEDIUM | `r3924959055767177637` |
 
 ### To Send:
-1. Open Gmail
-2. Go to Drafts folder
-3. Review each email
-4. Click Send
+1. Open Gmail → Drafts folder
+2. Review each email (especially #6 & #7)
+3. Click Send
 
-### Full email text available in:
-`/claude_sessions/email_chief_of_staff/EMAIL_DRAFTS.md`
+---
+
+## 🔥 TOP 10 PRIORITIES (Created per owner request)
+
+| # | Priority | Action | Deadline |
+|---|----------|--------|----------|
+| 1 | 🔴 EMMA - Signature Page | Sign & return TODAY | IMMEDIATE |
+| 2 | 🔴 DON - Refrigeration Bill | Pay Richard Refrigeration | THIS WEEK |
+| 3 | 🔴 DON - $16K Balance | Arrange payment plan | THIS WEEK |
+| 4 | 🔴 H2A - fastTrack 10 | Complete form, get Juan Pablos | April 1, 2026 |
+| 5 | 🔴 CitiParks Application | Complete Marketspread | Feb 13, 2026 |
+| 6 | 🟠 OEFFA Renewal | Confirm docs, pay fee | Feb 15, 2026 |
+| 7 | 🟠 DON - Field Planning | Reply to coordination emails | This week |
+| 8 | 🟠 Tax Organizer | Complete DGPerry docs | Tax season |
+| 9 | 🟢 Lawrenceville Survey | Confirm submission | This week |
+| 10 | 🟢 Real Organic Project | Send inquiry to OEFFA | This week |
+
+**Full details:** `/claude_sessions/email_chief_of_staff/TOP_10_PRIORITIES.md`
+
+---
+
+## 📊 EMAIL SWEEP RESULTS (Deep Search - 500 threads)
+
+| Search | Threads | Messages | Key Findings |
+|--------|---------|----------|--------------|
+| **Don Kretschmann** | 93 | 208 | Richard Refrigeration unpaid, $16K+ owed, field planning |
+| **Emma Stevenson** | 28 | 118 | Signature page ASAP, location questions, CitiParks cert |
+| H2A/másLabor | 45+ | 100+ | Case #93818, fastTrack 10 missing |
+| OEFFA | 30+ | 60+ | Cert #3839, renewal Feb 15 |
+| CitiParks | 19 | 24 | App deadline Feb 13 |
+
+---
+
+## 💰 FINANCIAL SUMMARY
+
+| Payable | Amount | Status |
+|---------|--------|--------|
+| Don Kretschmann | **$16,000+** | Outstanding |
+| Richard Refrigeration | TBD | Unpaid |
+| OEFFA Renewal | TBD | Due Feb 15 |
+
+---
+
+## 📁 FILES CREATED/UPDATED THIS SESSION
+
+| File | Status |
+|------|--------|
+| `TOP_10_PRIORITIES.md` | ✅ NEW |
+| `EMAIL_DRAFTS.md` | ✅ UPDATED (7 emails) |
+| `FARMERS_MARKET_RESEARCH.md` | ✅ COMPLETE |
+| `OUTBOX.md` | ✅ THIS REPORT |
+
+---
+
+## ✅ MISSION STATUS
+
+| Task | Status |
+|------|--------|
+| Don Kretschmann Response | ✅ DRAFT IN GMAIL |
+| Emma Stevenson Response | ✅ DRAFT IN GMAIL |
+| Top 10 Priorities List | ✅ COMPLETE |
+| H2A Application Response | ✅ DRAFT READY |
+| OEFFA Certification Status | ✅ RESEARCHED |
+| Real Organic Project Inquiry | ✅ DRAFT READY |
+| Farmers Market Research (4 markets) | ✅ COMPLETE |
+
+**ALL INBOX TASKS COMPLETE. PRODUCTION READY. NO COMPROMISES.**
+
+---
+
+*Chief of Staff Claude (Opus 4.5) - Report submitted 2026-01-22*
 
 ---
 

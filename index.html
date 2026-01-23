@@ -1510,6 +1510,113 @@
         .stat-trend.down { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
 
         /* ========================================
+           INVITE TEAM MEMBERS SECTION
+           ======================================== */
+        .invite-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .invite-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-light) 100%);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .invite-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .invite-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .invite-title h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+        }
+
+        .invite-title p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .invite-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .invite-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            min-height: 48px;
+        }
+
+        .invite-btn.employee {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .invite-btn.employee:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(45, 90, 39, 0.4);
+        }
+
+        .invite-btn.chef {
+            background: linear-gradient(135deg, var(--secondary) 0%, #e8985a 100%);
+            color: white;
+        }
+
+        .invite-btn.chef:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(244, 162, 97, 0.4);
+        }
+
+        .invite-btn i {
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .invite-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .invite-buttons {
+                flex-direction: column;
+            }
+
+            .invite-btn {
+                justify-content: center;
+            }
+        }
+
+        /* ========================================
            OVERDUE TASKS - Warning Section
            ======================================== */
         .overdue-tasks {
@@ -3257,6 +3364,31 @@
                 </div>
             </div>
 
+            <!-- Invite Team Members Section -->
+            <div class="invite-section" data-role="Admin">
+                <div class="invite-card">
+                    <div class="invite-header">
+                        <div class="invite-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="invite-title">
+                            <h3>Invite Team Members</h3>
+                            <p>Add employees or wholesale customers</p>
+                        </div>
+                    </div>
+                    <div class="invite-buttons">
+                        <button class="invite-btn employee" onclick="openInviteEmployee()">
+                            <i class="fas fa-hard-hat"></i>
+                            <span>Invite Employee</span>
+                        </button>
+                        <button class="invite-btn chef" onclick="openInviteChef()">
+                            <i class="fas fa-utensils"></i>
+                            <span>Invite Chef</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Overdue Tasks - Warning Section -->
             <div class="overdue-tasks" id="overdueTasks">
                 <div class="overdue-tasks-header">
@@ -3869,6 +4001,105 @@
         </div>
     </div>
 
+    <!-- Invite Employee Modal -->
+    <div class="modal-overlay" id="inviteEmployeeModal">
+        <div class="modal" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-hard-hat" style="color: var(--primary);"></i> Invite New Employee</h3>
+                <button class="modal-close" onclick="closeInviteEmployee()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Full Name *</label>
+                    <input type="text" id="inviteEmpName" placeholder="John Smith" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email *</label>
+                    <input type="email" id="inviteEmpEmail" placeholder="john@example.com" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Phone</label>
+                    <input type="tel" id="inviteEmpPhone" placeholder="(412) 555-1234" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Role *</label>
+                    <select id="inviteEmpRole" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                        <option value="Field Worker">Field Worker</option>
+                        <option value="Packhouse">Packhouse</option>
+                        <option value="Driver">Driver</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(42, 157, 143, 0.1); border-radius: 8px; border: 1px solid rgba(42, 157, 143, 0.3);">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--success);">They'll receive:</div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <i class="fas fa-check" style="color: var(--success);"></i> Email with login link
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <i class="fas fa-check" style="color: var(--success);"></i> Desktop shortcut instructions
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-check" style="color: var(--success);"></i> Mobile app install guide
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeInviteEmployee()">Cancel</button>
+                <button class="btn btn-primary" id="sendEmployeeInviteBtn" onclick="sendEmployeeInvite()">
+                    <i class="fas fa-paper-plane"></i> Send Invite
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite Chef Modal -->
+    <div class="modal-overlay" id="inviteChefModal">
+        <div class="modal" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-utensils" style="color: var(--secondary);"></i> Invite New Chef</h3>
+                <button class="modal-close" onclick="closeInviteChef()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Restaurant Name *</label>
+                    <input type="text" id="inviteChefCompany" placeholder="The French Kitchen" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Contact Name *</label>
+                    <input type="text" id="inviteChefName" placeholder="Chef Maria" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email *</label>
+                    <input type="email" id="inviteChefEmail" placeholder="chef@restaurant.com" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Phone</label>
+                    <input type="tel" id="inviteChefPhone" placeholder="(412) 555-1234" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                </div>
+                <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(244, 162, 97, 0.1); border-radius: 8px; border: 1px solid rgba(244, 162, 97, 0.3);">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--secondary);">They'll receive:</div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <i class="fas fa-check" style="color: var(--secondary);"></i> Email invitation to order portal
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-check" style="color: var(--secondary);"></i> SMS with quick link
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeInviteChef()">Cancel</button>
+                <button class="btn btn-primary" id="sendChefInviteBtn" onclick="sendChefInvite()" style="background: var(--secondary);">
+                    <i class="fas fa-paper-plane"></i> Send Invite
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ========================================
         // CONFIGURATION
@@ -3980,6 +4211,111 @@
             localStorage.setItem('tinyseed_settings', JSON.stringify(settings));
             closeSettings();
             showToast('Settings saved successfully', 'success');
+        }
+
+        // ========================================
+        // INVITE TEAM MEMBERS
+        // ========================================
+        function openInviteEmployee() {
+            document.getElementById('inviteEmpName').value = '';
+            document.getElementById('inviteEmpEmail').value = '';
+            document.getElementById('inviteEmpPhone').value = '';
+            document.getElementById('inviteEmpRole').value = 'Field Worker';
+            document.getElementById('inviteEmployeeModal').classList.add('visible');
+        }
+
+        function closeInviteEmployee() {
+            document.getElementById('inviteEmployeeModal').classList.remove('visible');
+        }
+
+        async function sendEmployeeInvite() {
+            const name = document.getElementById('inviteEmpName').value.trim();
+            const email = document.getElementById('inviteEmpEmail').value.trim();
+            const phone = document.getElementById('inviteEmpPhone').value.trim();
+            const role = document.getElementById('inviteEmpRole').value;
+
+            if (!name || !email) {
+                showToast('Please fill in name and email', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('sendEmployeeInviteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+            try {
+                const response = await fetch(`${API_URL}?action=inviteEmployee`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, phone, role })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Invite sent to ${name}!`, 'success');
+                    closeInviteEmployee();
+                } else {
+                    throw new Error(data.error || 'Failed to send invite');
+                }
+            } catch (error) {
+                console.error('Error sending employee invite:', error);
+                showToast(error.message || 'Failed to send invite', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite';
+            }
+        }
+
+        function openInviteChef() {
+            document.getElementById('inviteChefCompany').value = '';
+            document.getElementById('inviteChefName').value = '';
+            document.getElementById('inviteChefEmail').value = '';
+            document.getElementById('inviteChefPhone').value = '';
+            document.getElementById('inviteChefModal').classList.add('visible');
+        }
+
+        function closeInviteChef() {
+            document.getElementById('inviteChefModal').classList.remove('visible');
+        }
+
+        async function sendChefInvite() {
+            const company_name = document.getElementById('inviteChefCompany').value.trim();
+            const contact_name = document.getElementById('inviteChefName').value.trim();
+            const email = document.getElementById('inviteChefEmail').value.trim();
+            const phone = document.getElementById('inviteChefPhone').value.trim();
+
+            if (!company_name || !contact_name || !email) {
+                showToast('Please fill in restaurant, contact name, and email', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('sendChefInviteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+            try {
+                const response = await fetch(`${API_URL}?action=inviteChef`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ company_name, contact_name, email, phone })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Invite sent to ${contact_name} at ${company_name}!`, 'success');
+                    closeInviteChef();
+                } else {
+                    throw new Error(data.error || 'Failed to send invite');
+                }
+            } catch (error) {
+                console.error('Error sending chef invite:', error);
+                showToast(error.message || 'Failed to send invite', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite';
+            }
         }
 
         // ========================================

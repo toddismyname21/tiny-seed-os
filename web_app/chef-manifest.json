@@ -1,0 +1,88 @@
+{
+  "name": "Tiny Seed Farm - Chef Orders",
+  "short_name": "TSF Orders",
+  "description": "Order fresh produce directly from Tiny Seed Farm",
+  "start_url": "/web_app/chef-order.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#22c55e",
+  "categories": ["food", "business"],
+  "icons": [
+    {
+      "src": "chef-assets/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "chef-assets/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "chef-assets/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "chef-assets/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "chef-assets/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "chef-assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "chef-assets/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "chef-assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "chef-assets/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Fresh produce available for order"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick Reorder",
+      "short_name": "Reorder",
+      "description": "Reorder your last order",
+      "url": "/web_app/chef-order.html?tab=reorder",
+      "icons": [{ "src": "chef-assets/icon-reorder.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Today's Fresh",
+      "short_name": "Fresh",
+      "description": "See what's harvested today",
+      "url": "/web_app/chef-order.html?tab=fresh",
+      "icons": [{ "src": "chef-assets/icon-fresh.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

@@ -1,7 +1,116 @@
 # OUTBOX: Sales_CRM Claude
 ## To: PM_Architect
 
-**Updated:** 2026-01-22 (SEO v3.0 Best-in-Class Deployed)
+**Updated:** 2026-01-22 (Wholesale Standing Orders System COMPLETE)
+
+---
+
+## STATUS: WHOLESALE STANDING ORDERS SYSTEM - DEPLOYED
+
+### Latest Delivery: Standing Orders for Wholesale Customers
+
+**Deployed:** Apps Script v329 | GitHub committed
+
+### What Was Built
+
+**1. Data Model**
+- `WHOLESALE_STANDING_ORDERS` sheet structure created
+- `WHOLESALE_FULFILLMENT_LOG` for tracking history
+- Fields: Standing_Order_ID, Customer_ID, Product_ID, Product_Name, Quantity, Unit, Frequency, Day_of_Week, Start_Date, End_Date, Status, Last_Fulfilled, Next_Due_Date, Notes
+
+**2. Backend API Endpoints (15 functions)**
+
+| Function | Purpose |
+|----------|---------|
+| `initializeStandingOrdersModule()` | Create sheets with headers |
+| `createStandingOrder()` | Create new standing order |
+| `getStandingOrders()` | Get with filters (customerId, status, productId) |
+| `getStandingOrdersDue()` | Get orders due this week |
+| `updateStandingOrder()` | Update order details |
+| `cancelStandingOrder()` | Set status to Cancelled |
+| `pauseStandingOrder()` | Pause recurring order |
+| `resumeStandingOrder()` | Resume paused order |
+| `markStandingOrderFulfilled()` | Mark fulfilled + calc next due date |
+| `markStandingOrderShorted()` | Mark shorted + trigger notifications |
+| `sendShortageNotifications()` | SMS via Twilio + Email via GmailApp |
+| `getFulfillmentLog()` | Get fulfillment history |
+| `getStandingOrdersDashboard()` | Staff dashboard with totals |
+| `bulkFulfillStandingOrders()` | Bulk fulfill all due orders |
+
+**3. Auto-Notification System**
+
+When orders can't be fulfilled:
+- **SMS** (via existing Twilio): "Hi [Chef], we're unable to fulfill your standing order for [Product] this week due to [reason]. We apologize. -Tiny Seed Farm"
+- **Email** (via GmailApp): Detailed message with alternatives
+
+Shortage reasons:
+- Weather damage
+- Crop failure
+- Sold out
+- Season ended
+- Other
+
+**4. Wholesale Portal UI (`web_app/wholesale.html`)**
+
+Added "Standing Orders" tab for chefs:
+- Create standing order form (product, quantity, frequency, day of week, start/end dates)
+- View active standing orders
+- Pause/Resume functionality
+- Edit quantity
+- Cancel orders
+
+**5. Staff Fulfillment Dashboard (`web_app/admin.html`)**
+
+Added "Wholesale > Standing Orders" nav section:
+- Stats: Due this week, Fulfilled, At Risk, Active Customers
+- Due orders table with one-click Fulfill/Short buttons
+- Product totals by quantity
+- At-risk product flagging (low inventory)
+- Recent shortages history
+- Bulk fulfill all option
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `apps_script/MERGED TOTAL.js` | +500 lines: Standing Orders module |
+| `web_app/wholesale.html` | +300 lines: Standing Orders tab |
+| `web_app/admin.html` | +367 lines: Fulfillment dashboard |
+
+### How To Test
+
+1. **Initialize sheets:**
+   ```javascript
+   initializeStandingOrdersModule()
+   ```
+
+2. **Create a test standing order:**
+   ```javascript
+   createStandingOrder({
+     customerId: 'CUST-123',
+     productId: 'CRP-001',
+     productName: 'Mixed Greens',
+     quantity: 5,
+     unit: 'lb',
+     frequency: 'WEEKLY',
+     dayOfWeek: 'Wednesday',
+     startDate: '2026-01-22'
+   })
+   ```
+
+3. **Get due orders:**
+   ```javascript
+   getStandingOrdersDue({})
+   ```
+
+4. **View dashboard:**
+   - Go to Admin Panel → Wholesale → Standing Orders
+
+### Deployment Info
+
+- Apps Script: v329
+- Deployment ID: `AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc`
+- GitHub: Committed & pushed
 
 ---
 
