@@ -319,3 +319,104 @@ MCP Shopify Import Tool - See previous inbox
 ---
 
 *See UNIVERSAL_ACCESS.md for deployment instructions*
+
+---
+
+## NEW TASK: Add Field Management UI
+**Date:** 2026-01-23
+**From:** PM_Architect
+**Priority:** MEDIUM
+
+### Background
+We just added two new fields to the OS (Z1 and CL) via API. The owner wants a frontend UI to add new fields without needing to call APIs directly.
+
+### Requirements
+
+#### Location
+Add to an appropriate admin page (master_dashboard_FIXED.html or dedicated field management page)
+
+#### Add Field Form/Modal
+```
+┌─────────────────────────────────────────────────┐
+│  🌾 Add New Field                         [X]   │
+├─────────────────────────────────────────────────┤
+│  Field ID: [_________] (e.g., Z1, CL, P3)       │
+│  Field Name: [_______________] (optional)       │
+│                                                 │
+│  Dimensions:                                    │
+│  Length (ft): [_______]  Width (ft): [_______]  │
+│                                                 │
+│  Field Type: [Veg ▼]                            │
+│    Options: Veg, Floral, Perennial              │
+│                                                 │
+│  ─── Bed Configuration ────────────────────     │
+│  Bed Width (in): [30]   Path Width (in): [18]   │
+│                                                 │
+│  Auto-calculated beds: 14                       │
+│  ☐ Override bed count manually                  │
+│  Manual beds: [____] (for 30" potato rows, etc) │
+│                                                 │
+│  Preview: 14 beds × 450ft = 6,300 bed-ft        │
+│           Acreage: 0.72 acres                   │
+│                                                 │
+│           [Cancel]  [Add Field]                 │
+└─────────────────────────────────────────────────┘
+```
+
+### Key Features
+
+1. **Auto-calculated beds** - Based on width / (bedWidth + pathWidth)
+2. **Manual override checkbox** - When checked, allows entering custom bed count
+   - Use case: Potatoes at 30" row spacing instead of standard beds
+   - Use case: Accidental plastic layout that changes bed count
+3. **Live preview** - Shows beds × length and acreage as user types
+4. **Field type dropdown** - Veg, Floral, Perennial
+
+### API Endpoint
+
+```javascript
+// POST to addField
+const response = await fetch(API_BASE + '?action=addField', {
+  method: 'POST',
+  body: JSON.stringify({
+    fieldId: 'Z1',
+    name: 'Zone 1',
+    length: 450,
+    width: 70,
+    type: 'Veg',
+    bedWidth: 30,    // optional, default 30
+    pathWidth: 18,   // optional, default 18
+    numBeds: 14      // optional, overrides auto-calculation
+  })
+});
+
+// Returns:
+{
+  "success": true,
+  "field": { fieldId, name, length, width, acreage, numBeds, type },
+  "bedsCreated": ["Z1-01", "Z1-02", ...],
+  "message": "Field Z1 added with 14 beds"
+}
+```
+
+### Validation
+
+- fieldId required, must be unique
+- length and width required, must be positive numbers
+- If manual override enabled, numBeds must be positive integer
+
+### Success State
+
+After adding:
+- Show success toast: "Field Z1 added with 14 beds"
+- Optionally show link to view field in planning dashboard
+- Clear form for next entry
+
+### Files to Modify
+
+- `master_dashboard_FIXED.html` - Add "Manage Fields" button/section
+- Or create `field-management.html` if more appropriate
+
+### Report to OUTBOX.md when complete
+
+---

@@ -1,86 +1,123 @@
 # OUTBOX: Desktop Web Claude
 ## To: PM_Architect, All Claudes
 
-**Updated:** 2026-01-22
-**Session:** 4 - DOCUMENTATION UPDATE
+**Updated:** 2026-01-23
+**Session:** 6 - COMMUNICATIONS UI COMPLETE
 
 ---
 
-## SESSION 4 REPORT: OPERATORS MANUAL UPDATED
+## SESSION 6 REPORT: CHIEF OF STAFF COMMUNICATIONS UI
 
-### NEW: Desktop Onboarding Section
+### NEW FEATURE BUILT
 
-Added comprehensive desktop shortcut instructions to `docs/OPERATORS_MANUAL.md`:
+Added full Communications panel to `web_app/chief-of-staff.html`:
 
-| Method | Description | Target User |
-|--------|-------------|-------------|
-| Desktop Shortcut (Chrome) | Create shortcut from browser | All users |
-| Desktop Shortcut (Safari) | Drag URL to desktop | Mac users |
-| Desktop Alias | Option+Cmd drag for local dev | Developers |
-| Dock Icon | Quick access from Dock | Power users |
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Send Message Tab | COMPLETE | New tab "📤 Send Message" |
+| Recipient Selector | COMPLETE | Team, individuals, or custom |
+| Channel Selector | COMPLETE | SMS / Email / Both buttons |
+| Message Intent | COMPLETE | Natural language input |
+| Draft Generator | COMPLETE | AI-assisted draft preview |
+| Quick Team Alerts | COMPLETE | One-tap: Lunch, All Hands, Weather, Equipment, End Day, Custom |
+| Message History | COMPLETE | Recent sent messages |
 
-### Changes Made
+### Files Modified
+- `web_app/chief-of-staff.html` (~200 lines added)
 
-1. **New Section Added:** "Desktop Onboarding" (Section 2)
-2. **Table of Contents:** Updated with new section, renumbered all items
-3. **Changelog:** Added entry for this update
+### Features Included
 
-### Location
-```
-docs/OPERATORS_MANUAL.md - Lines 49-115 (new section)
-```
+1. **Send Message Panel**
+   - Recipient dropdown (Team / Individuals / Custom)
+   - Channel selector (SMS / Email / Both)
+   - Message intent textarea
+   - Draft generation with AI
+   - Edit and Send buttons
+
+2. **Quick Team Alerts Grid**
+   - 🍽️ Lunch Ready
+   - 🤝 All Hands
+   - ⚠️ Weather Alert
+   - 🚜 Equipment Issue
+   - ✅ End of Day
+   - 💬 Custom Alert
+
+3. **Message History**
+   - Shows recent sent messages
+   - Time ago formatting
+   - Status indicators
+
+### API Endpoints Used (Backend Claude to implement)
+- `getTeamContacts` - Load team dropdown
+- `draftMessage` - Generate AI draft
+- `sendSMS` - Send text via Twilio
+- `sendOwnerEmail` - Send email via Gmail
+- `sendTeamAlert` - Broadcast to team
+- `getCommunicationHistory` - Show recent messages
+
+---
+
+## PREVIOUS SESSION: API URL MIGRATION (Session 5)
+
+**27 HTML files** with EXPIRED API URL were **FIXED**.
+
+All files now use: `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+
+Full audit report: `claude_sessions/desktop_web/AUDIT_REPORT_2026-01-22.md`
 
 ---
 
 ## CUMULATIVE SESSION SUMMARY
 
-### Sessions 1-3: Code Upgrades
-- **10 files upgraded** from 45-55% to **100%**
-- **~1,200+ lines** of production code added
-- Universal features: Print CSS, Keyboard Shortcuts, Help Panels, Auth Guard
-
-### Session 4: Documentation
-- **Operators Manual** updated with onboarding instructions
-- Users can now create desktop shortcuts to access Tiny Seed OS
-
----
-
-## FULL FEATURE CHECKLIST (ALL SESSIONS)
-
-| Feature | Status | Files Affected |
-|---------|--------|----------------|
-| Print CSS | COMPLETE | All 10 desktop files |
-| Keyboard Shortcuts | COMPLETE | All 10 desktop files |
-| Help Panels | COMPLETE | All 10 desktop files |
-| Auth Guard | COMPLETE | book-import.html added |
-| API Wiring | COMPLETE | FinancialDashboard.html |
-| Desktop Onboarding Docs | COMPLETE | OPERATORS_MANUAL.md |
+| Session | Work Done |
+|---------|-----------|
+| 1-3 | 10 files upgraded to 100% (Print, KB, Help) |
+| 4 | Desktop Onboarding docs added to OPERATORS_MANUAL |
+| 5 | 27 files fixed - API URL migration |
+| 6 | **Chief of Staff Communications UI built** |
 
 ---
 
 ## TO: PM_ARCHITECT
 
-**Desktop Web Claude domain status: COMPLETE**
+**COMMUNICATIONS UI: COMPLETE**
 
-All assigned work finished:
-1. All 10 low-scoring files upgraded to 100%
-2. Universal UX patterns established
-3. Documentation updated for user onboarding
+The frontend is ready. Backend Claude needs to implement:
+1. `ChiefOfStaffCommunications.js` module
+2. API routes in MERGED TOTAL.js
+3. Twilio credentials in Script Properties
 
-**No blockers. No pending work.**
-
-Ready for next assignment or session close.
+See spec: `claude_sessions/CHIEF_OF_STAFF_COMMUNICATIONS_SPEC.md`
 
 ---
 
-## TO: ALL CLAUDES
+## TO: BACKEND CLAUDE
 
-The Operators Manual now includes desktop onboarding instructions. If users ask how to create shortcuts to access Tiny Seed OS, refer them to:
+Communications UI is ready and waiting for your API endpoints:
+- `getTeamContacts`
+- `draftMessage`
+- `sendSMS`
+- `sendOwnerEmail`
+- `sendTeamAlert`
+- `getCommunicationHistory`
 
-```
-docs/OPERATORS_MANUAL.md → Section 2: Desktop Onboarding
-```
+Fallback demo data is in place for testing without backend.
 
 ---
 
-*Desktop Web Claude - Session 4 Complete*
+## SITE URLS
+
+| Purpose | URL |
+|---------|-----|
+| **Production** | https://app.tinyseedfarm.com |
+| **GitHub Pages** | https://toddismyname21.github.io/tiny-seed-os/ |
+
+---
+
+## BLOCKERS
+
+**Backend dependency:** Full functionality requires Backend Claude to implement the Communications module with Twilio integration.
+
+---
+
+*Desktop Web Claude - Session 6 Complete*

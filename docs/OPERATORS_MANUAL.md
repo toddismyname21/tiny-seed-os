@@ -1,7 +1,7 @@
 # Tiny Seed OS - Operators Manual
 
-**Version:** 1.1
-**Last Updated:** 2026-01-22
+**Version:** 1.2
+**Last Updated:** 2026-01-23
 **Maintained By:** PM Claude
 
 ---
@@ -741,8 +741,32 @@ The module creates/uses a SprayLog sheet:
 
 ### Base URL
 ```
-https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec
+https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec
 ```
+
+### Key Endpoints (v362)
+
+#### Universal Sheet Access
+| Endpoint | Purpose |
+|----------|---------|
+| `?action=listSheets` | List all 201 sheets in the spreadsheet |
+| `?action=getSheetData&sheetName=NAME` | Read any sheet by name |
+| `?action=getSheetData&sheetName=NAME&limit=50&offset=0` | Paginated access |
+
+#### Field Management
+| Endpoint | Purpose |
+|----------|---------|
+| `?action=addField` | Add new field with auto-generated beds |
+
+**addField Parameters:**
+- `fieldId` - Unique field ID (e.g., Z1, CL)
+- `name` - Field name (optional)
+- `length` - Length in feet
+- `width` - Width in feet
+- `type` - Veg, Floral, or Perennial
+- `bedWidth` - Bed width in inches (default 30)
+- `pathWidth` - Path width in inches (default 18)
+- `numBeds` - Manual override for bed count (optional)
 
 ### Request Format
 ```
@@ -776,9 +800,16 @@ POST: Body as JSON, action in query string
 |-------|---------|
 | USERS | User accounts and permissions |
 | SESSIONS | Active login sessions |
-| PLANNING_2026 | Crop planning data |
+| PLANNING_2026 | Crop planning data (474 rows) |
 | CUSTOMERS | Customer records |
 | ORDERS | Sales orders |
+
+### Field & Bed Sheets
+| Sheet | Purpose |
+|-------|---------|
+| REF_Fields | All field definitions (24+ fields) |
+| REF_Beds | All bed definitions (212 beds) |
+| REF_Crops | Crop reference data |
 
 ### Financial Sheets
 | Sheet | Purpose |
@@ -800,6 +831,11 @@ POST: Body as JSON, action in query string
 
 | Date | Change | Updated By |
 |------|--------|------------|
+| 2026-01-23 | Added universal sheet access (getSheetData, listSheets) - 201 sheets accessible | PM_Architect |
+| 2026-01-23 | Added addField endpoint with manual bed count override | PM_Architect |
+| 2026-01-23 | Added fields Z1 (70x450 Veg, 17 beds) and CL (120x20 Floral, 5 beds) | PM_Architect |
+| 2026-01-23 | Updated API base URL to v362 deployment | PM_Architect |
+| 2026-01-23 | Added REF_Fields and REF_Beds sheet documentation | PM_Architect |
 | 2026-01-22 | Added Desktop Onboarding section with step-by-step shortcut instructions for macOS | Desktop Web Claude |
 | 2026-01-22 | Added Farm Intelligence System (~1,800 lines): Morning Brief Generator, Smart Succession Planner, Food Safety Intelligence, PHI Deadline Tracker | Don_Knowledge_Base Claude |
 | 2026-01-21 | Initial manual created | PM Claude |

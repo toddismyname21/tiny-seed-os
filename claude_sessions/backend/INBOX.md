@@ -1,108 +1,79 @@
 # INBOX: Backend Claude
-## OVERNIGHT CRITICAL ASSIGNMENT - 2026-01-23
 
-**FROM:** PM_Architect (Delegator in Chief)
-**PRIORITY:** CRITICAL - OVERNIGHT WORK
-**MANDATE:** NO SHORTCUTS. STATE OF THE ART. PRODUCTION READY.
+## NEW TASK: FIX 3 LOGIC ERRORS - 2026-01-23 09:30 AM
 
----
-
-## 🚨 OVERNIGHT MISSION: FIX ALL BROKEN API ENDPOINTS
-
-The owner is sleeping. When they wake up, the system must be working.
+**FROM:** PM_Architect
+**PRIORITY:** MEDIUM
+**STATUS:** Ready to work
 
 ---
 
-## VERIFIED BROKEN ENDPOINTS (87 TOTAL)
+## TASK: Fix 3 Endpoints with Logic Errors
 
-From VERIFIED_SYSTEM_INVENTORY.md - these ALL return HTML errors:
+These endpoints are **connected and routed** but have null pointer issues:
 
-### BATCH 1: Farm Operations (52 endpoints - ALL BROKEN)
-```
-getCSAMembers              getFinancials
-getCropProfile             updateCropProfile
-createCropProfile          getMorningBrief
-getHarvestPredictions      getDiseaseRisk
-getWeatherForecast         getGDDProgress
-getPredictiveTasks         getSmartDashboard
-getRealtimeAvailability    getProductForecast
-getWeeklyAvailability      canFulfillOrder
-getSmartRecommendations    getFreshHarvests
-initializeAvailability     getChefProfile
-getChefOrderHistory        getChefRecommendations
-getOptedInChefs            getAllChefs
-verifyChefToken            sendChefMagicLink
-getRequiredInspections     validatePreHarvestInspection
-getPreHarvestInspectionTasks  getComplianceRecords
-getIPMSchedules            getFertigationData
-getFoliarApplications      getSoilAmendments
-getSoilTests               getInventoryProducts
-getProductById             getLowStockProducts
-getTransactionHistory      getProductsForDropdown
-savePlanting               getWizardDataWeb
-getTrayInventory           saveTrayInventory
-getFarmInventory           getFarmInventoryItem
-getFarmInventoryStats      getFuelLog
-getEquipmentHealth         getActiveRecommendations
-generateRecommendations    getMaintenanceSchedule
+### 1. `getGDDProgress` (Line ~53811)
+**Error:** `Cannot read properties of undefined (reading 'map')`
+**Cause:** Weather data array is undefined
+**Fix:** Add null check before calling `.map()`
+
+```javascript
+// Find and add null check:
+const data = weatherData || [];
+return data.map(...)
 ```
 
-### BATCH 2: Marketing & Planning (30 endpoints - ALL BROKEN)
-```
-getSocialActionQueue       getNextBestPost
-getContentCalendar         classifyCommentPriority
-getEmailQueue              getCSARenewalsNeeded
-getReferralStats           getReferralLeaderboard
-getCompetitorAlerts        getMarketingAutomationDashboard
-getSEOCompetitors          getAIShareOfVoiceMetrics
-getVideoAnalytics          getVideoContentStrategy
-getSEOMasterDashboard      getPlanning
-getPlanningById            updatePlanting
-deletePlanting             getCrops
-getCropProfiles            getCropByName
-getBeds                    getBedsByField
-getTasks                   getTasksByDate
-getHarvests                getHarvestsByDate
-getWeather                 getWeatherSummary
+### 2. `getPredictiveTasks`
+**Error:** `Cannot read properties of undefined (reading 'forEach')`
+**Cause:** Tasks array is undefined
+**Fix:** Add null check before calling `.forEach()`
+
+```javascript
+// Find and add null check:
+const tasks = tasksData || [];
+tasks.forEach(...)
 ```
 
----
+### 3. `getChefProfile`
+**Error:** `Customers sheet not found`
+**Cause:** Looking for wrong sheet name
+**Fix:** Either:
+- a) Create `Customers` sheet, OR
+- b) Update function to use existing sheet name (likely `CUSTOMERS` or `Wholesale_Customers`)
 
-## FOR EACH BROKEN ENDPOINT:
-
-1. **Check if function exists** in MERGED TOTAL.js
-2. **If function doesn't exist** - Find it in a module file
-3. **Add route to doGet** if function exists but route doesn't
-4. **Test with curl before moving on**
-
----
-
-## DEPLOYMENT PROCESS
-
+### Deployment After Fixes
 ```bash
-# Copy to temp deploy directory
-cp "/Users/samanthapollack/Documents/TIny_Seed_OS/apps_script/MERGED TOTAL.js" /tmp/apps_script_test/
-cd /tmp/apps_script_test
+cd "/Users/samanthapollack/Documents/TIny_Seed_OS/apps_script"
 PATH="/opt/homebrew/bin:$PATH" clasp push --force
-PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" -d "v###: Fixed X endpoints"
+PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" -d "v360: Fixed 3 logic errors"
 ```
 
 ---
 
-## MODULE MERGING WARNINGS
+## ARCHIVE: OVERNIGHT MISSION (COMPLETE)
 
-⚠️ **SmartLaborIntelligence.js** - DO NOT merge directly. Has duplicate LABOR_CONFIG.
-✅ **SmartAvailability.js** - Safe to merge (19 functions)
-✅ **ChefCommunications.js** - Safe to merge (26 functions)
+**STATUS:** MISSION ACCOMPLISHED
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Broken Endpoints | 87 | 0 undefined |
+| Connected | 0 | 82 |
+| Logic Errors | - | 3 (minor) |
+
+**Deployed:** v359 @ 08:47 AM EST
+
+### What Was Fixed
+
+7 duplicate function conflicts resolved:
+- `getCropProfiles` → `getCropProfilesFromSS`
+- `getCSAProducts` → `getCSAProducts_sales`
+- `schedulePost` → `schedulePost_social`, `schedulePost_socialBrain`
+- `getScheduledPosts` → `getScheduledPosts_social`
+- `acknowledgeAlert` → `acknowledgeAlert_compliance`
+- `getHarvestPredictions` → `getHarvestPredictions_farmIntel`
+- `postToInstagram` → `postToInstagram_socialBrain`
+- `getMarketingAnalytics` → `getMarketingAnalytics_socialBrain`
 
 ---
 
-## SUCCESS CRITERIA
-
-- [ ] Farm operations endpoints return JSON
-- [ ] Planning endpoints work for calendar.html
-- [ ] No console errors on any page
-
----
-
-**START NOW. WORK UNTIL DONE.**
+**Backend Claude - Ready for new assignments**

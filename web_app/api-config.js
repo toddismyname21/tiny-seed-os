@@ -24,10 +24,10 @@ const TINY_SEED_API = {
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
     // LAST UPDATED: 2026-01-23
-    // UPDATED BY: Claude - Fixed Plan_Field_Sow column mapping in getPlanningDataInternal (v375)
+    // UPDATED BY: Claude - Full Chief of Staff v377: Voice, SMS Briefing, Learning, Predictive Staffing
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbwRKEbHUvNJwUDxl4_FYYrvFXo6h5YyyDajGQpnFWMkNtKGXo8tIN9o7hY3tpFIuKEc/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbxkdbFdK9JlZZHK-SXh8FGF8hQtdGTufj2TWSxiAvD2t2FZUsgeFKeEZaECmcqF8-4h/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

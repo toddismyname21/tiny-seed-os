@@ -1,7 +1,154 @@
 # OUTBOX: Sales_CRM Claude
 ## To: PM_Architect
 
-**Updated:** 2026-01-22 (Wholesale Standing Orders System COMPLETE)
+**Updated:** 2026-01-23 (Phase 1 Audit COMPLETE + All INBOX Tasks DONE)
+
+---
+
+## PHASE 1 AUDIT COMPLETE - 2026-01-23
+
+### Files Audited
+
+| File | Status | Issues Found | Fixed |
+|------|--------|--------------|-------|
+| `web_app/sales.html` | ✅ PASSED | None | N/A |
+| `web_app/customer.html` | ✅ FIXED | `CONFIG.API_URL` undefined | Yes |
+| `web_app/wholesale.html` | ✅ FIXED | `TinySeedConfig.APPS_SCRIPT_URL` undefined | Yes |
+| `web_app/csa.html` | ✅ PASSED | None | N/A |
+
+### Bugs Fixed
+
+**customer.html (Lines 1787, 1803):**
+- Bug: Used `CONFIG.API_URL` which was never defined
+- Fix: Replaced with `TINY_SEED_API.MAIN_API`
+- Commit: `4b97f1e`
+
+**wholesale.html (Line 1398):**
+- Bug: Used `TinySeedConfig.APPS_SCRIPT_URL` which doesn't exist
+- Fix: Replaced with `TINY_SEED_API.MAIN_API`
+- Commit: `4b97f1e`
+
+### Audit Methodology
+
+For each file:
+1. ✅ Verified `api-config.js` is included
+2. ✅ Verified API class (SalesAPI, CustomerPortalAPI, etc.) is used
+3. ✅ Verified all API endpoints exist in MERGED TOTAL.js
+4. ✅ Fixed any hardcoded or undefined API URLs
+
+### Backend Endpoint Verification
+
+All required endpoints exist in MERGED TOTAL.js:
+- `getDashboardStats` ✅
+- `getSalesOrders` ✅
+- `getSalesCustomers` ✅
+- `getInventoryProducts` ✅
+- `sendMagicLink` ✅
+- `sendCustomerMagicLink` ✅
+- `lookupCustomerByEmail` ✅
+- CSA endpoints (15+) ✅
+- Standing Orders endpoints (15) ✅
+
+---
+
+## STATUS: CHEF INVITATION SYSTEM - DEPLOYED (URGENT)
+
+### Latest Delivery: Chef Invitation System
+
+**Deployed:** Apps Script v346 | GitHub pushed | **OWNER CAN INVITE CHEFS TONIGHT**
+
+### What Was Built
+
+**1. inviteChef() API Endpoint**
+```javascript
+// POST action: 'inviteChef'
+inviteChef({
+  email: 'chef@restaurant.com',      // Required
+  companyName: 'The Restaurant',
+  contactName: 'Chef John',
+  phone: '+14125551234',              // For SMS
+  address: '123 Main St',
+  city: 'Pittsburgh',
+  state: 'PA',
+  zip: '15213'
+})
+// Returns: { success, customerId, inviteUrl, emailSent, smsSent }
+```
+
+**2. Magic Link Flow**
+1. Creates WHOLESALE_CUSTOMERS record (Status: Invited)
+2. Generates unique token (stored in AUTH_TOKENS, 24hr expiry)
+3. Sends invitation email with branded template
+4. Sends SMS if phone provided: "Hi Chef! You're invited to order fresh produce..."
+5. Chef clicks link → token verified → logged into portal
+
+**3. Bulk Invite Function**
+```javascript
+// POST action: 'inviteMultipleChefs'
+inviteMultipleChefs({
+  chefs: [
+    { email: 'chef1@resto.com', name: 'Chef A', company: 'Resto A', phone: '+14125551111' },
+    { email: 'chef2@resto.com', name: 'Chef B', company: 'Resto B', phone: '+14125552222' }
+  ]
+})
+// Returns: { success, totalInvited, totalFailed, invited: [...], failed: [...] }
+```
+
+**4. Email Template**
+- Created `apps_script/emails/ChefInvitation.html`
+- Beautiful branded email with:
+  - 🥬 See what's fresh
+  - 📱 Order from your phone
+  - 🚚 Reliable delivery
+  - 📋 Standing orders
+- CTA button + fallback link
+
+**5. GET Endpoints**
+```javascript
+// GET action: 'getWholesaleCustomers'
+// GET action: 'getWholesaleCustomer' (params: customerId)
+```
+
+### API Endpoints Added
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `inviteChef` | POST | Invite single chef |
+| `inviteMultipleChefs` | POST | Bulk invite |
+| `verifyChefToken` | POST | Verify magic link |
+| `getWholesaleCustomers` | GET | List all wholesale customers |
+| `getWholesaleCustomer` | GET | Get single customer |
+
+### Sheets Created
+
+- `WHOLESALE_CUSTOMERS` - Chef/restaurant accounts
+- `AUTH_TOKENS` - Magic link tokens (auto-expires)
+
+### How to Invite Chefs Tonight
+
+**Option 1: Single Invite (from Apps Script or API)**
+```javascript
+inviteChef({
+  email: 'chef@restaurant.com',
+  companyName: 'Restaurant Name',
+  contactName: 'Chef Name',
+  phone: '+14125551234'
+})
+```
+
+**Option 2: Bulk Invite**
+```javascript
+inviteMultipleChefs({
+  chefs: [
+    { email: 'chef1@email.com', company: 'Restaurant 1', name: 'Chef 1', phone: '+1...' },
+    { email: 'chef2@email.com', company: 'Restaurant 2', name: 'Chef 2', phone: '+1...' }
+  ]
+})
+```
+
+**Option 3: From Index Dashboard**
+- Quick Action buttons already added
+- "Invite Chef" and "Invite Employee" buttons work
 
 ---
 

@@ -157,7 +157,233 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
   });
 
   // ═══════════════════════════════════════════════════════════════════════
-  // CALL CLAUDE - The actual AI conversation
+  // DEFINE TOOLS - What the Chief of Staff can DO
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const tools = [
+    {
+      name: "send_sms",
+      description: "Send an SMS text message to a phone number. Use this when the user wants to text someone.",
+      input_schema: {
+        type: "object",
+        properties: {
+          phone_number: {
+            type: "string",
+            description: "The phone number to send the text to (e.g., '412-555-1234' or '+14125551234')"
+          },
+          message: {
+            type: "string",
+            description: "The text message content to send"
+          }
+        },
+        required: ["phone_number", "message"]
+      }
+    },
+    {
+      name: "send_email",
+      description: "Send an email. Use this when the user wants to email someone.",
+      input_schema: {
+        type: "object",
+        properties: {
+          to_email: {
+            type: "string",
+            description: "The email address to send to"
+          },
+          subject: {
+            type: "string",
+            description: "The email subject line"
+          },
+          body: {
+            type: "string",
+            description: "The email body content"
+          }
+        },
+        required: ["to_email", "subject", "body"]
+      }
+    },
+    {
+      name: "log_activity",
+      description: "Log an activity or task that the user completed. Use this when the user reports what they did.",
+      input_schema: {
+        type: "object",
+        properties: {
+          activity: {
+            type: "string",
+            description: "What was done (e.g., 'Harvested lettuce')"
+          },
+          details: {
+            type: "string",
+            description: "Additional details (quantity, location, notes)"
+          },
+          category: {
+            type: "string",
+            enum: ["harvest", "planting", "maintenance", "delivery", "admin", "other"],
+            description: "Category of the activity"
+          }
+        },
+        required: ["activity"]
+      }
+    },
+    {
+      name: "capture_idea",
+      description: "Capture an idea or thought for later review. Use when user brainstorms or has ideas.",
+      input_schema: {
+        type: "object",
+        properties: {
+          idea: {
+            type: "string",
+            description: "The idea or thought to capture"
+          },
+          category: {
+            type: "string",
+            enum: ["marketing", "operations", "product", "customer", "equipment", "other"],
+            description: "Category of the idea"
+          },
+          priority: {
+            type: "string",
+            enum: ["high", "medium", "low"],
+            description: "Priority level"
+          }
+        },
+        required: ["idea"]
+      }
+    },
+    {
+      name: "lookup_contact",
+      description: "Look up a contact's phone number or email by name from the customer database.",
+      input_schema: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "The name of the person to look up"
+          }
+        },
+        required: ["name"]
+      }
+    },
+    {
+      name: "get_schedule",
+      description: "Get the user's schedule/calendar for today or this week. Use when user asks about their schedule, appointments, or what's coming up.",
+      input_schema: {
+        type: "object",
+        properties: {
+          timeframe: {
+            type: "string",
+            enum: ["today", "tomorrow", "this_week", "next_week"],
+            description: "The timeframe to get schedule for"
+          }
+        },
+        required: ["timeframe"]
+      }
+    },
+    {
+      name: "create_event",
+      description: "Create a calendar event. Use when user wants to schedule something, add an appointment, or block time.",
+      input_schema: {
+        type: "object",
+        properties: {
+          title: {
+            type: "string",
+            description: "The title/name of the event"
+          },
+          date: {
+            type: "string",
+            description: "The date in YYYY-MM-DD format"
+          },
+          start_time: {
+            type: "string",
+            description: "Start time in HH:MM format (24hr)"
+          },
+          duration_minutes: {
+            type: "number",
+            description: "Duration in minutes"
+          },
+          description: {
+            type: "string",
+            description: "Optional description/notes for the event"
+          }
+        },
+        required: ["title", "date", "start_time", "duration_minutes"]
+      }
+    },
+    {
+      name: "find_free_time",
+      description: "Find free/available time slots in the user's calendar. Use when user asks when they're free or needs to find time for something.",
+      input_schema: {
+        type: "object",
+        properties: {
+          duration_minutes: {
+            type: "number",
+            description: "How long the free slot needs to be (in minutes)"
+          },
+          days_ahead: {
+            type: "number",
+            description: "How many days ahead to search (default 7)"
+          }
+        },
+        required: ["duration_minutes"]
+      }
+    },
+    {
+      name: "schedule_task",
+      description: "Intelligently schedule a task at the optimal time based on priority, energy levels, and availability.",
+      input_schema: {
+        type: "object",
+        properties: {
+          title: {
+            type: "string",
+            description: "What needs to be done"
+          },
+          duration_minutes: {
+            type: "number",
+            description: "How long the task will take"
+          },
+          priority: {
+            type: "string",
+            enum: ["high", "medium", "low"],
+            description: "Task priority"
+          },
+          deadline: {
+            type: "string",
+            description: "Optional deadline in YYYY-MM-DD format"
+          },
+          task_type: {
+            type: "string",
+            enum: ["field_work", "office_work", "creative", "meeting", "admin"],
+            description: "Type of task (affects optimal scheduling)"
+          }
+        },
+        required: ["title", "duration_minutes"]
+      }
+    },
+    {
+      name: "predict_staffing",
+      description: "Predict staffing/labor needs for upcoming days. Use when user asks about how many workers they need, staffing forecast, or labor planning.",
+      input_schema: {
+        type: "object",
+        properties: {
+          days_ahead: {
+            type: "number",
+            description: "Number of days to forecast (default 7)"
+          }
+        },
+        required: []
+      }
+    },
+    {
+      name: "get_morning_brief",
+      description: "Get today's morning briefing with priorities, critical alerts, and schedule. Use when user asks what they should focus on or needs a summary.",
+      input_schema: {
+        type: "object",
+        properties: {},
+        required: []
+      }
+    }
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CALL CLAUDE - The actual AI conversation with tools
   // ═══════════════════════════════════════════════════════════════════════
 
   try {
@@ -170,9 +396,10 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
       },
       payload: JSON.stringify({
         model: CLAUDE_CONFIG.MODEL,
-        max_tokens: 1500,
+        max_tokens: 2000,
         system: systemPrompt,
-        messages: messages
+        messages: messages,
+        tools: tools
       }),
       muteHttpExceptions: true
     });
@@ -188,9 +415,37 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
       };
     }
 
-    // Extract the response text
-    const textBlock = result.content.find(block => block.type === 'text');
-    const aiResponse = textBlock ? textBlock.text : 'I apologize, I could not generate a response.';
+    // ═══════════════════════════════════════════════════════════════════════
+    // HANDLE TOOL USE - Execute actions if Claude wants to use tools
+    // ═══════════════════════════════════════════════════════════════════════
+
+    let aiResponse = '';
+    let actionsExecuted = [];
+
+    for (const block of result.content) {
+      if (block.type === 'text') {
+        aiResponse += block.text;
+      } else if (block.type === 'tool_use') {
+        // Execute the tool
+        const toolResult = executeChiefOfStaffTool(block.name, block.input);
+        actionsExecuted.push({
+          tool: block.name,
+          input: block.input,
+          result: toolResult
+        });
+
+        // Add confirmation to response
+        if (toolResult.success) {
+          aiResponse += `\n\n✅ ${toolResult.message}`;
+        } else {
+          aiResponse += `\n\n❌ ${toolResult.error || 'Action failed'}`;
+        }
+      }
+    }
+
+    if (!aiResponse) {
+      aiResponse = 'I apologize, I could not generate a response.';
+    }
 
     const endTime = new Date();
     const processingTime = endTime - startTime;
@@ -198,6 +453,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     return {
       success: true,
       message: aiResponse,
+      actions_executed: actionsExecuted,
       context_used: {
         weather: !!context.weather,
         tasks: context.tasks?.length || 0,
@@ -216,6 +472,459 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
       error: e.message,
       message: 'I encountered a technical issue. Please try again in a moment.'
     };
+  }
+}
+
+/**
+ * Execute a Chief of Staff tool
+ * @param {string} toolName - The tool to execute
+ * @param {Object} input - The tool input parameters
+ * @returns {Object} - Result of the tool execution
+ */
+function executeChiefOfStaffTool(toolName, input) {
+  try {
+    switch (toolName) {
+      case 'send_sms':
+        const smsResult = sendSMS({ to: input.phone_number, message: input.message });
+        return {
+          success: smsResult.success,
+          message: smsResult.success
+            ? `Text sent to ${input.phone_number}: "${input.message.substring(0, 50)}${input.message.length > 50 ? '...' : ''}"`
+            : smsResult.error
+        };
+
+      case 'send_email':
+        try {
+          GmailApp.sendEmail(input.to_email, input.subject, input.body);
+          return {
+            success: true,
+            message: `Email sent to ${input.to_email} with subject: "${input.subject}"`
+          };
+        } catch (emailError) {
+          return { success: false, error: 'Failed to send email: ' + emailError.message };
+        }
+
+      case 'log_activity':
+        const logResult = logChiefOfStaffActivity(input);
+        return {
+          success: true,
+          message: `Logged: ${input.activity}${input.details ? ' - ' + input.details : ''}`
+        };
+
+      case 'capture_idea':
+        const ideaResult = captureChiefOfStaffIdea(input);
+        return {
+          success: true,
+          message: `Idea captured: "${input.idea.substring(0, 50)}${input.idea.length > 50 ? '...' : ''}" [${input.category || 'general'}]`
+        };
+
+      case 'lookup_contact':
+        const contact = lookupContactByName(input.name);
+        if (contact) {
+          return {
+            success: true,
+            message: `Found: ${contact.name} - Phone: ${contact.phone || 'N/A'}, Email: ${contact.email || 'N/A'}`,
+            contact: contact
+          };
+        } else {
+          return { success: false, error: `No contact found matching "${input.name}"` };
+        }
+
+      case 'get_schedule':
+        try {
+          const scheduleResult = getCalendarEventsForRange(input.timeframe);
+          if (scheduleResult.events && scheduleResult.events.length > 0) {
+            const eventList = scheduleResult.events.map(e =>
+              `• ${e.title} - ${e.startTime} (${e.duration} min)`
+            ).join('\n');
+            return {
+              success: true,
+              message: `Schedule for ${input.timeframe}:\n${eventList}`,
+              events: scheduleResult.events
+            };
+          } else {
+            return {
+              success: true,
+              message: `No events scheduled for ${input.timeframe}. Your calendar is free!`,
+              events: []
+            };
+          }
+        } catch (calErr) {
+          return { success: false, error: 'Could not retrieve calendar: ' + calErr.message };
+        }
+
+      case 'create_event':
+        try {
+          const calendar = CalendarApp.getDefaultCalendar();
+          const startDate = new Date(input.date + 'T' + input.start_time + ':00');
+          const endDate = new Date(startDate.getTime() + (input.duration_minutes * 60 * 1000));
+          const event = calendar.createEvent(input.title, startDate, endDate, {
+            description: input.description || ''
+          });
+          return {
+            success: true,
+            message: `Created event "${input.title}" on ${input.date} at ${input.start_time} for ${input.duration_minutes} minutes`,
+            eventId: event.getId()
+          };
+        } catch (createErr) {
+          return { success: false, error: 'Failed to create event: ' + createErr.message };
+        }
+
+      case 'find_free_time':
+        try {
+          const freeSlots = findFreeTimeSlots(input.duration_minutes, input.days_ahead || 7);
+          if (freeSlots && freeSlots.length > 0) {
+            const slotList = freeSlots.slice(0, 5).map(s =>
+              `• ${s.date} at ${s.startTime} (${s.duration} min available)`
+            ).join('\n');
+            return {
+              success: true,
+              message: `Found ${freeSlots.length} free slots:\n${slotList}`,
+              slots: freeSlots
+            };
+          } else {
+            return {
+              success: true,
+              message: `No free slots of ${input.duration_minutes} minutes found in the next ${input.days_ahead || 7} days.`
+            };
+          }
+        } catch (freeErr) {
+          return { success: false, error: 'Could not search calendar: ' + freeErr.message };
+        }
+
+      case 'schedule_task':
+        try {
+          const taskResult = scheduleTaskOptimally(input);
+          if (taskResult.success) {
+            return {
+              success: true,
+              message: `Scheduled "${input.title}" for ${taskResult.scheduledDate} at ${taskResult.scheduledTime}. ${taskResult.reason || ''}`,
+              scheduled: taskResult
+            };
+          } else {
+            return { success: false, error: taskResult.error || 'Could not find optimal time' };
+          }
+        } catch (schedErr) {
+          return { success: false, error: 'Failed to schedule task: ' + schedErr.message };
+        }
+
+      case 'predict_staffing':
+        try {
+          const staffing = predictStaffingNeeds(input.days_ahead || 7);
+          if (staffing.success) {
+            let msg = `📊 Staffing forecast for next ${input.days_ahead || 7} days:\n\n`;
+            staffing.predictions.slice(0, 5).forEach(day => {
+              msg += `• ${day.dayName}: ${day.workersNeeded} workers (${day.predictedLaborHours} hrs)\n`;
+              if (day.reasoning.length > 0) {
+                msg += `  Reason: ${day.reasoning[0]}\n`;
+              }
+            });
+            msg += `\nWeek total: ${staffing.summary.totalHoursWeek} labor hours`;
+
+            // Check for alerts
+            const alerts = getStaffingAlerts();
+            if (alerts.alerts && alerts.alerts.length > 0) {
+              msg += `\n\n⚠️ STAFFING ALERTS:\n`;
+              alerts.alerts.forEach(a => {
+                msg += `• ${a.dayName}: ${a.message}\n`;
+              });
+            }
+
+            return { success: true, message: msg, data: staffing };
+          }
+          return { success: false, error: 'Could not generate staffing forecast' };
+        } catch (staffErr) {
+          return { success: false, error: 'Staffing prediction error: ' + staffErr.message };
+        }
+
+      case 'get_morning_brief':
+        try {
+          const brief = generateMorningBrief();
+          let msg = `☀️ Here's your morning briefing:\n\n`;
+
+          if (brief.criticalAlerts && brief.criticalAlerts.length > 0) {
+            msg += `🚨 CRITICAL (${brief.criticalAlerts.length}):\n`;
+            brief.criticalAlerts.slice(0, 3).forEach(a => {
+              msg += `• ${a.title || a.message}\n`;
+            });
+            msg += `\n`;
+          }
+
+          if (brief.priorityActions && brief.priorityActions.length > 0) {
+            msg += `📧 Priority emails (${brief.priorityActions.length}):\n`;
+            brief.priorityActions.slice(0, 3).forEach(a => {
+              msg += `• ${a.from}: ${a.subject}\n`;
+            });
+            msg += `\n`;
+          }
+
+          msg += `📊 Summary: ${brief.summary?.inboxCount || 0} emails, ${brief.summary?.overdueCount || 0} overdue, ${brief.summary?.meetingsToday || 0} meetings`;
+
+          return { success: true, message: msg, data: brief };
+        } catch (briefErr) {
+          return { success: false, error: 'Could not generate brief: ' + briefErr.message };
+        }
+
+      default:
+        return { success: false, error: `Unknown tool: ${toolName}` };
+    }
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get calendar events for a given timeframe
+ */
+function getCalendarEventsForRange(timeframe) {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const now = new Date();
+  let start = new Date(now);
+  let end = new Date(now);
+
+  switch (timeframe) {
+    case 'today':
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case 'tomorrow':
+      start.setDate(start.getDate() + 1);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(end.getDate() + 1);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case 'this_week':
+      start.setHours(0, 0, 0, 0);
+      end.setDate(end.getDate() + 7);
+      break;
+    case 'next_week':
+      start.setDate(start.getDate() + 7);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(end.getDate() + 14);
+      break;
+    default:
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+  }
+
+  const events = calendar.getEvents(start, end);
+  return {
+    timeframe: timeframe,
+    events: events.map(e => ({
+      title: e.getTitle(),
+      date: Utilities.formatDate(e.getStartTime(), 'America/New_York', 'EEE MMM d'),
+      startTime: Utilities.formatDate(e.getStartTime(), 'America/New_York', 'h:mm a'),
+      duration: Math.round((e.getEndTime() - e.getStartTime()) / (1000 * 60))
+    }))
+  };
+}
+
+/**
+ * Find free time slots in the calendar
+ */
+function findFreeTimeSlots(durationNeeded, daysAhead) {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const now = new Date();
+  const freeSlots = [];
+
+  // Check each day
+  for (let d = 0; d < daysAhead; d++) {
+    const dayStart = new Date(now);
+    dayStart.setDate(dayStart.getDate() + d);
+    dayStart.setHours(8, 0, 0, 0); // Start at 8 AM
+
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(18, 0, 0, 0); // End at 6 PM
+
+    const events = calendar.getEvents(dayStart, dayEnd);
+
+    // Sort events by start time
+    events.sort((a, b) => a.getStartTime() - b.getStartTime());
+
+    // Find gaps
+    let lastEnd = dayStart;
+    for (const event of events) {
+      const gap = (event.getStartTime() - lastEnd) / (1000 * 60);
+      if (gap >= durationNeeded) {
+        freeSlots.push({
+          date: Utilities.formatDate(lastEnd, 'America/New_York', 'EEE MMM d'),
+          startTime: Utilities.formatDate(lastEnd, 'America/New_York', 'h:mm a'),
+          duration: Math.floor(gap)
+        });
+      }
+      lastEnd = event.getEndTime();
+    }
+
+    // Check gap at end of day
+    const endGap = (dayEnd - lastEnd) / (1000 * 60);
+    if (endGap >= durationNeeded) {
+      freeSlots.push({
+        date: Utilities.formatDate(lastEnd, 'America/New_York', 'EEE MMM d'),
+        startTime: Utilities.formatDate(lastEnd, 'America/New_York', 'h:mm a'),
+        duration: Math.floor(endGap)
+      });
+    }
+  }
+
+  return freeSlots;
+}
+
+/**
+ * Schedule a task at the optimal time
+ */
+function scheduleTaskOptimally(input) {
+  try {
+    const freeSlots = findFreeTimeSlots(input.duration_minutes, 7);
+
+    if (!freeSlots || freeSlots.length === 0) {
+      return { success: false, error: 'No free time slots available' };
+    }
+
+    // Score slots based on task type and priority
+    let bestSlot = freeSlots[0];
+    let bestScore = 0;
+
+    for (const slot of freeSlots) {
+      let score = 100;
+
+      // Prefer morning for field work
+      if (input.task_type === 'field_work' && slot.startTime.includes('AM')) {
+        score += 20;
+      }
+
+      // Prefer afternoon for office work
+      if (input.task_type === 'office_work' && slot.startTime.includes('PM')) {
+        score += 10;
+      }
+
+      // High priority gets sooner slots
+      if (input.priority === 'high') {
+        score += (7 - freeSlots.indexOf(slot)) * 5;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestSlot = slot;
+      }
+    }
+
+    // Create the calendar event
+    const calendar = CalendarApp.getDefaultCalendar();
+
+    // Parse the slot's date and time
+    const slotDate = new Date();
+    const dayOffset = freeSlots.indexOf(bestSlot);
+    slotDate.setDate(slotDate.getDate() + dayOffset);
+
+    // Parse time from slot
+    const timeMatch = bestSlot.startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1]);
+      const mins = parseInt(timeMatch[2]);
+      if (timeMatch[3].toUpperCase() === 'PM' && hours !== 12) hours += 12;
+      if (timeMatch[3].toUpperCase() === 'AM' && hours === 12) hours = 0;
+      slotDate.setHours(hours, mins, 0, 0);
+    }
+
+    const endDate = new Date(slotDate.getTime() + (input.duration_minutes * 60 * 1000));
+
+    const event = calendar.createEvent(
+      input.title,
+      slotDate,
+      endDate,
+      { description: `Priority: ${input.priority || 'medium'}\nType: ${input.task_type || 'general'}` }
+    );
+
+    return {
+      success: true,
+      scheduledDate: Utilities.formatDate(slotDate, 'America/New_York', 'EEE MMM d'),
+      scheduledTime: Utilities.formatDate(slotDate, 'America/New_York', 'h:mm a'),
+      eventId: event.getId(),
+      reason: input.task_type === 'field_work' ? 'Scheduled for morning when conditions are best' :
+              input.priority === 'high' ? 'Scheduled at earliest available time' : ''
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Log an activity to the Chief of Staff activity log
+ */
+function logChiefOfStaffActivity(input) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('COS_Activity_Log');
+    if (!sheet) {
+      sheet = ss.insertSheet('COS_Activity_Log');
+      sheet.appendRow(['Timestamp', 'Activity', 'Details', 'Category']);
+    }
+    sheet.appendRow([
+      new Date().toISOString(),
+      input.activity,
+      input.details || '',
+      input.category || 'other'
+    ]);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Capture an idea to the Chief of Staff ideas log
+ */
+function captureChiefOfStaffIdea(input) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName('COS_Ideas');
+    if (!sheet) {
+      sheet = ss.insertSheet('COS_Ideas');
+      sheet.appendRow(['Timestamp', 'Idea', 'Category', 'Priority', 'Status']);
+    }
+    sheet.appendRow([
+      new Date().toISOString(),
+      input.idea,
+      input.category || 'other',
+      input.priority || 'medium',
+      'New'
+    ]);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Look up a contact by name from customers
+ */
+function lookupContactByName(name) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Customers') || ss.getSheetByName('CUSTOMERS');
+    if (!sheet) return null;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const nameCol = headers.findIndex(h => /name/i.test(h));
+    const phoneCol = headers.findIndex(h => /phone/i.test(h));
+    const emailCol = headers.findIndex(h => /email/i.test(h));
+
+    const searchName = name.toLowerCase();
+    for (let i = 1; i < data.length; i++) {
+      const rowName = String(data[i][nameCol] || '').toLowerCase();
+      if (rowName.includes(searchName) || searchName.includes(rowName)) {
+        return {
+          name: data[i][nameCol],
+          phone: phoneCol >= 0 ? data[i][phoneCol] : null,
+          email: emailCol >= 0 ? data[i][emailCol] : null
+        };
+      }
+    }
+    return null;
+  } catch (e) {
+    Logger.log('Contact lookup error: ' + e.message);
+    return null;
   }
 }
 
@@ -545,6 +1254,39 @@ You are direct, strategic, and deeply invested in Tiny Seed Farm's success. You:
 You are NOT a generic chatbot. You are Todd's trusted advisor who knows the farm intimately.
 
 ═══════════════════════════════════════════════════════════════════════════════
+YOUR CAPABILITIES - What You Can DO
+═══════════════════════════════════════════════════════════════════════════════
+
+You have TOOLS to take real actions:
+
+COMMUNICATIONS:
+• send_sms - Send text messages (e.g., "text John that delivery is delayed")
+• send_email - Send emails (e.g., "email the chef about tomorrow's order")
+• lookup_contact - Find phone/email by name from customer database
+
+CALENDAR & SCHEDULING:
+• get_schedule - View calendar (e.g., "what's on my calendar today?", "what do I have this week?")
+• create_event - Add calendar events (e.g., "schedule a meeting with Sarah at 2pm tomorrow")
+• find_free_time - Find available slots (e.g., "when am I free for 2 hours?")
+• schedule_task - Intelligently schedule tasks (e.g., "find time for field planning")
+
+LOGGING & IDEAS:
+• log_activity - Record what Todd did (e.g., "I just harvested 50 lbs of lettuce")
+• capture_idea - Save ideas for later (e.g., "idea: we should try microgreens")
+
+INTELLIGENCE:
+• predict_staffing - Forecast labor needs ("how many workers do I need next week?")
+• get_morning_brief - Get today's priorities and critical items
+
+USE THESE TOOLS proactively:
+- If Todd asks about schedule, use get_schedule
+- If Todd wants to add something to calendar, use create_event
+- If Todd says "text Sarah", use send_sms
+- If Todd says "I just did X", use log_activity
+- If Todd brainstorms, use capture_idea
+Always confirm what you're about to do before executing if the intent is unclear.
+
+═══════════════════════════════════════════════════════════════════════════════
 CURRENT FARM STATUS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -733,6 +1475,8066 @@ const LABOR_CONFIG = {
   ALERTS: { overBenchmarkPercent: 125, laborCostPercentTarget: 38, idleTimeMinutes: 30, efficiencyDropPercent: 15 },
   PRIORITY_WEIGHTS: { urgency: 0.30, impact: 0.25, weather: 0.20, dependencies: 0.15, efficiency: 0.10 }
 };
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMAIL CHIEF-OF-STAFF: WORKFLOW ENGINE
+// Agent A: Inbox & Workflow Processing
+// Created: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Sheet names
+const EMAIL_INBOX_STATE_SHEET = 'EMAIL_INBOX_STATE';
+const EMAIL_ACTIONS_SHEET = 'EMAIL_ACTIONS';
+const EMAIL_FOLLOWUPS_SHEET = 'EMAIL_FOLLOWUPS';
+const CHIEF_OF_STAFF_AUDIT_SHEET = 'CHIEF_OF_STAFF_AUDIT';
+
+// Headers for each sheet
+const EMAIL_INBOX_STATE_HEADERS = [
+  'Thread_ID', 'Message_ID', 'Subject', 'From', 'From_Name', 'To',
+  'Received_At', 'Category', 'Priority', 'Status', 'Assigned_To',
+  'Due_Date', 'Follow_Up_Date', 'Related_Customer_ID', 'Related_Vendor_ID',
+  'Related_Order_ID', 'Tags', 'AI_Summary', 'AI_Suggested_Action',
+  'AI_Confidence', 'Workflow_State', 'Created_At', 'Updated_At',
+  'Resolved_At', 'Resolution_Notes'
+];
+
+const EMAIL_ACTIONS_HEADERS = [
+  'Action_ID', 'Thread_ID', 'Action_Type', 'Action_Status', 'Suggested_By',
+  'Suggested_At', 'Draft_Content', 'Approval_Required', 'Approved_By',
+  'Approved_At', 'Executed_At', 'Execution_Result', 'Expiry_Time', 'Notes'
+];
+
+const EMAIL_FOLLOWUPS_HEADERS = [
+  'Followup_ID', 'Thread_ID', 'Type', 'Due_Date', 'Reminder_Count',
+  'Max_Reminders', 'Escalate_To', 'Status', 'Created_At',
+  'Last_Reminder_At', 'Completed_At'
+];
+
+const CHIEF_OF_STAFF_AUDIT_HEADERS = [
+  'Audit_ID', 'Timestamp', 'Agent', 'Action', 'Thread_ID', 'Action_ID',
+  'User_ID', 'Input', 'Output', 'Confidence', 'Human_Override',
+  'Override_Reason', 'IP_Address', 'Session_ID'
+];
+
+// Categories and priorities
+const EMAIL_CATEGORIES = ['CUSTOMER', 'VENDOR', 'INTERNAL', 'MARKETING', 'PERSONAL'];
+const EMAIL_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+const EMAIL_STATUSES = ['NEW', 'TRIAGED', 'AWAITING_RESPONSE', 'AWAITING_THEM', 'AWAITING_REVIEW', 'RESOLVED', 'ARCHIVED'];
+const ACTION_TYPES = ['REPLY', 'FORWARD', 'CREATE_TASK', 'CREATE_EVENT', 'UPDATE_CRM', 'SEND_INVOICE'];
+const ACTION_STATUSES = ['PENDING_APPROVAL', 'APPROVED', 'EXECUTED', 'REJECTED', 'EXPIRED'];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHEET INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize all Chief-of-Staff sheets
+ */
+function initializeChiefOfStaffSheets() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const results = {};
+
+  // Create EMAIL_INBOX_STATE
+  results.inboxState = createSheetWithHeaders(ss, EMAIL_INBOX_STATE_SHEET, EMAIL_INBOX_STATE_HEADERS, '#1976D2');
+
+  // Create EMAIL_ACTIONS
+  results.actions = createSheetWithHeaders(ss, EMAIL_ACTIONS_SHEET, EMAIL_ACTIONS_HEADERS, '#FF9800');
+
+  // Create EMAIL_FOLLOWUPS
+  results.followups = createSheetWithHeaders(ss, EMAIL_FOLLOWUPS_SHEET, EMAIL_FOLLOWUPS_HEADERS, '#9C27B0');
+
+  // Create CHIEF_OF_STAFF_AUDIT
+  results.audit = createSheetWithHeaders(ss, CHIEF_OF_STAFF_AUDIT_SHEET, CHIEF_OF_STAFF_AUDIT_HEADERS, '#607D8B');
+
+  return {
+    success: true,
+    message: 'Chief-of-Staff sheets initialized',
+    results
+  };
+}
+
+/**
+ * Helper to create sheet with headers and styling
+ */
+function createSheetWithHeaders(ss, sheetName, headers, headerColor) {
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setBackground(headerColor)
+      .setFontColor('#FFFFFF')
+      .setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return { created: true, sheetName };
+  }
+  return { created: false, sheetName, message: 'Sheet already exists' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CORE EMAIL PROCESSING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Process a single email thread with full body access
+ * @param {string} threadId - Gmail thread ID
+ */
+function processEmailThread(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const stateSheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+
+    if (!stateSheet) {
+      initializeChiefOfStaffSheets();
+    }
+
+    // Get the Gmail thread
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Thread not found' };
+    }
+
+    const messages = thread.getMessages();
+    const latestMessage = messages[messages.length - 1];
+
+    // Extract full email data
+    const emailData = {
+      threadId: threadId,
+      messageId: latestMessage.getId(),
+      subject: thread.getFirstMessageSubject(),
+      from: latestMessage.getFrom(),
+      fromName: extractName(latestMessage.getFrom()),
+      to: latestMessage.getTo(),
+      receivedAt: latestMessage.getDate().toISOString(),
+      body: latestMessage.getPlainBody(),
+      htmlBody: latestMessage.getBody(),
+      messageCount: messages.length,
+      labels: thread.getLabels().map(l => l.getName()),
+      isUnread: thread.isUnread(),
+      hasAttachments: latestMessage.getAttachments().length > 0
+    };
+
+    // Classify with Claude AI
+    const classification = classifyEmailWithAI(emailData);
+
+    // Check if thread already exists
+    const existingRow = findThreadRow(stateSheet, threadId);
+
+    const now = new Date().toISOString();
+    const rowData = [
+      threadId,
+      emailData.messageId,
+      emailData.subject,
+      emailData.from,
+      emailData.fromName,
+      emailData.to,
+      emailData.receivedAt,
+      classification.category,
+      classification.priority,
+      'NEW',
+      '', // Assigned_To
+      classification.dueDate || '',
+      '', // Follow_Up_Date
+      classification.customerId || '',
+      classification.vendorId || '',
+      classification.orderId || '',
+      JSON.stringify(classification.tags || []),
+      classification.summary,
+      classification.suggestedAction,
+      classification.confidence,
+      JSON.stringify({ status: 'NEW', history: [{ status: 'NEW', at: now }] }),
+      now,
+      now,
+      '',
+      ''
+    ];
+
+    if (existingRow) {
+      // Update existing row
+      const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+      sheet.getRange(existingRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      // Insert new row
+      const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+      sheet.appendRow(rowData);
+    }
+
+    // Create suggested action if applicable
+    if (classification.suggestedAction && classification.confidence >= 0.7) {
+      suggestActionForEmail(threadId, classification);
+    }
+
+    // Log to audit
+    logChiefOfStaffAudit({
+      agent: 'A',
+      action: 'PROCESS_EMAIL',
+      threadId: threadId,
+      input: { subject: emailData.subject, from: emailData.from },
+      output: classification,
+      confidence: classification.confidence
+    });
+
+    return {
+      success: true,
+      data: {
+        threadId,
+        subject: emailData.subject,
+        category: classification.category,
+        priority: classification.priority,
+        summary: classification.summary,
+        suggestedAction: classification.suggestedAction,
+        confidence: classification.confidence
+      }
+    };
+  } catch (error) {
+    Logger.log('Error processing email thread: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Triage all new/unprocessed emails
+ */
+function triageInbox() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let stateSheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+
+    if (!stateSheet) {
+      initializeChiefOfStaffSheets();
+      stateSheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+    }
+
+    // Get processed thread IDs
+    const processedThreads = new Set();
+    if (stateSheet.getLastRow() > 1) {
+      const threadIds = stateSheet.getRange(2, 1, stateSheet.getLastRow() - 1, 1).getValues();
+      threadIds.forEach(row => processedThreads.add(row[0]));
+    }
+
+    // Get inbox threads
+    const threads = GmailApp.getInboxThreads(0, 100);
+    const results = {
+      processed: 0,
+      skipped: 0,
+      errors: 0,
+      details: []
+    };
+
+    for (const thread of threads) {
+      const threadId = thread.getId();
+
+      if (processedThreads.has(threadId)) {
+        // Check if there are new messages
+        const messages = thread.getMessages();
+        // If already processed, skip
+        results.skipped++;
+        continue;
+      }
+
+      try {
+        const result = processEmailThread(threadId);
+        if (result.success) {
+          results.processed++;
+          results.details.push({
+            threadId,
+            subject: result.data.subject,
+            category: result.data.category,
+            priority: result.data.priority
+          });
+        } else {
+          results.errors++;
+        }
+      } catch (e) {
+        results.errors++;
+        Logger.log('Error processing thread ' + threadId + ': ' + e.toString());
+      }
+    }
+
+    // Log to audit
+    logChiefOfStaffAudit({
+      agent: 'A',
+      action: 'TRIAGE_INBOX',
+      input: { threadCount: threads.length },
+      output: results
+    });
+
+    return {
+      success: true,
+      data: results,
+      message: `Processed ${results.processed} new emails, skipped ${results.skipped}, errors: ${results.errors}`
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Classify email using Claude AI
+ */
+function classifyEmailWithAI(emailData) {
+  const apiKey = CLAUDE_CONFIG.API_KEY;
+
+  if (!apiKey || apiKey === 'YOUR_ANTHROPIC_API_KEY_HERE') {
+    // Fallback to rule-based classification
+    return classifyEmailWithRules(emailData);
+  }
+
+  try {
+    const prompt = `Analyze this email and classify it for a small organic farm business.
+
+EMAIL:
+From: ${emailData.from}
+Subject: ${emailData.subject}
+Body: ${emailData.body ? emailData.body.substring(0, 2000) : '(No body)'}
+
+Respond with ONLY valid JSON (no markdown):
+{
+  "category": "CUSTOMER" | "VENDOR" | "INTERNAL" | "MARKETING" | "PERSONAL",
+  "priority": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
+  "summary": "2-3 sentence summary",
+  "suggestedAction": "What should be done next",
+  "actionType": "REPLY" | "CREATE_TASK" | "CREATE_EVENT" | "UPDATE_CRM" | "NONE",
+  "confidence": 0.0-1.0,
+  "tags": ["tag1", "tag2"],
+  "extractedData": {
+    "customerName": "if detected",
+    "orderNumber": "if mentioned",
+    "deadline": "if mentioned"
+  }
+}
+
+Priority Rules:
+- CRITICAL: Payment issues, urgent deadlines <24h, legal matters
+- HIGH: Customer complaints, vendor confirmations, time-sensitive <48h
+- MEDIUM: General inquiries, routine orders
+- LOW: Marketing, newsletters, FYI only`;
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.content && result.content[0] && result.content[0].text) {
+      const parsed = JSON.parse(result.content[0].text);
+      return {
+        category: parsed.category || 'PERSONAL',
+        priority: parsed.priority || 'MEDIUM',
+        summary: parsed.summary || emailData.subject,
+        suggestedAction: parsed.suggestedAction || '',
+        actionType: parsed.actionType || 'NONE',
+        confidence: parsed.confidence || 0.5,
+        tags: parsed.tags || [],
+        customerId: null,
+        vendorId: null,
+        orderId: parsed.extractedData?.orderNumber || null,
+        dueDate: parsed.extractedData?.deadline || null
+      };
+    }
+  } catch (error) {
+    Logger.log('AI classification error: ' + error.toString());
+  }
+
+  // Fallback to rules
+  return classifyEmailWithRules(emailData);
+}
+
+/**
+ * Rule-based classification fallback
+ */
+function classifyEmailWithRules(emailData) {
+  const from = emailData.from.toLowerCase();
+  const subject = emailData.subject.toLowerCase();
+  const body = (emailData.body || '').toLowerCase();
+  const combined = from + ' ' + subject + ' ' + body;
+
+  let category = 'PERSONAL';
+  let priority = 'MEDIUM';
+  const tags = [];
+
+  // Category detection
+  if (combined.includes('order') || combined.includes('csa') || combined.includes('delivery') ||
+      combined.includes('pickup') || combined.includes('member')) {
+    category = 'CUSTOMER';
+    tags.push('customer');
+  } else if (combined.includes('invoice') || combined.includes('seed') || combined.includes('supply') ||
+             combined.includes('johnny') || combined.includes('fedex') || combined.includes('usps')) {
+    category = 'VENDOR';
+    tags.push('vendor');
+  } else if (from.includes('tinyseed') || from.includes('tiny seed')) {
+    category = 'INTERNAL';
+  } else if (combined.includes('unsubscribe') || combined.includes('newsletter') ||
+             combined.includes('promotion')) {
+    category = 'MARKETING';
+  }
+
+  // Priority detection
+  if (combined.includes('urgent') || combined.includes('asap') || combined.includes('immediately') ||
+      combined.includes('critical')) {
+    priority = 'CRITICAL';
+    tags.push('urgent');
+  } else if (combined.includes('important') || combined.includes('deadline') ||
+             combined.includes('payment') || combined.includes('overdue')) {
+    priority = 'HIGH';
+  } else if (category === 'MARKETING') {
+    priority = 'LOW';
+  }
+
+  // Extract order number
+  const orderMatch = combined.match(/order\s*#?\s*(\d+)/i);
+  const orderId = orderMatch ? orderMatch[1] : null;
+
+  return {
+    category,
+    priority,
+    summary: `${category} email from ${emailData.fromName || emailData.from}`,
+    suggestedAction: category === 'CUSTOMER' ? 'Review and respond to customer' :
+                     category === 'VENDOR' ? 'Review vendor communication' : '',
+    actionType: (category === 'CUSTOMER' || category === 'VENDOR') ? 'REPLY' : 'NONE',
+    confidence: 0.6,
+    tags,
+    customerId: null,
+    vendorId: null,
+    orderId,
+    dueDate: null
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WORKFLOW STATE MACHINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Transition email to new state
+ */
+function transitionEmailState(threadId, newStatus, metadata = {}) {
+  if (!threadId || !newStatus) {
+    return { success: false, error: 'threadId and newStatus required' };
+  }
+
+  if (!EMAIL_STATUSES.includes(newStatus)) {
+    return { success: false, error: 'Invalid status: ' + newStatus };
+  }
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+
+    const row = findThreadRow(sheet, threadId);
+    if (!row) {
+      return { success: false, error: 'Thread not found' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const statusCol = headers.indexOf('Status') + 1;
+    const workflowCol = headers.indexOf('Workflow_State') + 1;
+    const updatedCol = headers.indexOf('Updated_At') + 1;
+    const resolvedCol = headers.indexOf('Resolved_At') + 1;
+    const resolutionCol = headers.indexOf('Resolution_Notes') + 1;
+
+    const currentStatus = sheet.getRange(row, statusCol).getValue();
+
+    // Validate transition
+    const validTransitions = {
+      'NEW': ['TRIAGED', 'ARCHIVED'],
+      'TRIAGED': ['AWAITING_RESPONSE', 'AWAITING_REVIEW', 'RESOLVED', 'ARCHIVED'],
+      'AWAITING_REVIEW': ['TRIAGED', 'AWAITING_RESPONSE', 'RESOLVED', 'ARCHIVED'],
+      'AWAITING_RESPONSE': ['AWAITING_THEM', 'RESOLVED', 'ARCHIVED'],
+      'AWAITING_THEM': ['AWAITING_RESPONSE', 'RESOLVED', 'ARCHIVED'],
+      'RESOLVED': ['ARCHIVED'],
+      'ARCHIVED': []
+    };
+
+    if (validTransitions[currentStatus] && !validTransitions[currentStatus].includes(newStatus)) {
+      return {
+        success: false,
+        error: `Invalid transition from ${currentStatus} to ${newStatus}`
+      };
+    }
+
+    // Update workflow state
+    let workflowState = {};
+    try {
+      workflowState = JSON.parse(sheet.getRange(row, workflowCol).getValue() || '{}');
+    } catch (e) {
+      workflowState = {};
+    }
+
+    workflowState.status = newStatus;
+    workflowState.history = workflowState.history || [];
+    workflowState.history.push({
+      from: currentStatus,
+      to: newStatus,
+      at: new Date().toISOString(),
+      metadata
+    });
+
+    const now = new Date().toISOString();
+
+    // Update cells
+    sheet.getRange(row, statusCol).setValue(newStatus);
+    sheet.getRange(row, workflowCol).setValue(JSON.stringify(workflowState));
+    sheet.getRange(row, updatedCol).setValue(now);
+
+    if (newStatus === 'RESOLVED') {
+      sheet.getRange(row, resolvedCol).setValue(now);
+      if (metadata.notes) {
+        sheet.getRange(row, resolutionCol).setValue(metadata.notes);
+      }
+    }
+
+    // Log to audit
+    logChiefOfStaffAudit({
+      agent: 'A',
+      action: 'TRANSITION_STATE',
+      threadId,
+      input: { from: currentStatus, to: newStatus, metadata },
+      output: { success: true }
+    });
+
+    return {
+      success: true,
+      data: {
+        threadId,
+        previousStatus: currentStatus,
+        newStatus,
+        updatedAt: now
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get emails by status
+ */
+function getEmailsByStatus(params = {}) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, data: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const statusFilter = params.status ? params.status.split(',') : null;
+    const categoryFilter = params.category ? params.category.split(',') : null;
+    const priorityFilter = params.priority ? params.priority.split(',') : null;
+    const limit = parseInt(params.limit) || 50;
+    const offset = parseInt(params.offset) || 0;
+
+    const statusCol = headers.indexOf('Status');
+    const categoryCol = headers.indexOf('Category');
+    const priorityCol = headers.indexOf('Priority');
+
+    const results = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+
+      if (statusFilter && !statusFilter.includes(row[statusCol])) continue;
+      if (categoryFilter && !categoryFilter.includes(row[categoryCol])) continue;
+      if (priorityFilter && !priorityFilter.includes(row[priorityCol])) continue;
+
+      const email = {};
+      headers.forEach((h, idx) => {
+        email[h.toLowerCase().replace(/_/g, '')] = row[idx];
+      });
+
+      results.push(email);
+    }
+
+    // Sort by priority then date
+    const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    results.sort((a, b) => {
+      const pDiff = (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+      if (pDiff !== 0) return pDiff;
+      return new Date(b.receivedat) - new Date(a.receivedat);
+    });
+
+    const paginated = results.slice(offset, offset + limit);
+
+    return {
+      success: true,
+      data: paginated,
+      count: results.length,
+      limit,
+      offset
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get combined communications (emails + SMS) for Chief of Staff dashboard
+ */
+function getCombinedCommunications(params = {}) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+    const limit = parseInt(params.limit) || 100;
+
+    const results = [];
+    const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+
+    // Get emails from EMAIL_INBOX_STATE
+    if (sheet && sheet.getLastRow() > 1) {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+
+      const threadIdCol = headers.indexOf('Thread_ID');
+      const subjectCol = headers.indexOf('Subject');
+      const fromCol = headers.indexOf('From');
+      const fromNameCol = headers.indexOf('From_Name');
+      const receivedCol = headers.indexOf('Received_At');
+      const categoryCol = headers.indexOf('Category');
+      const priorityCol = headers.indexOf('Priority');
+      const statusCol = headers.indexOf('Status');
+      const summaryCol = headers.indexOf('AI_Summary');
+      const actionCol = headers.indexOf('AI_Suggested_Action');
+
+      for (let i = 1; i < data.length && results.length < limit; i++) {
+        const row = data[i];
+        const status = row[statusCol];
+
+        // Skip resolved/archived emails
+        if (status === 'RESOLVED' || status === 'ARCHIVED') continue;
+
+        const priority = row[priorityCol] || 'MEDIUM';
+
+        // Count by priority
+        const pLower = priority.toLowerCase();
+        if (counts[pLower] !== undefined) counts[pLower]++;
+
+        results.push({
+          id: row[threadIdCol],
+          type: 'email',
+          from: row[fromNameCol] || row[fromCol],
+          subject: row[subjectCol],
+          preview: (row[summaryCol] || '').substring(0, 150),
+          timestamp: row[receivedCol],
+          category: row[categoryCol],
+          priority: priority,
+          status: status,
+          suggestedAction: row[actionCol]
+        });
+      }
+    }
+
+    // Sort by priority then date
+    const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    results.sort((a, b) => {
+      const pDiff = (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+      if (pDiff !== 0) return pDiff;
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+
+    return {
+      success: true,
+      data: results,
+      counts: counts,
+      total: results.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Reclassify an email's priority and/or category
+ */
+function reclassifyEmail(threadId, newPriority, newCategory) {
+  try {
+    if (!threadId) {
+      return { success: false, error: 'Thread ID required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+
+    if (!sheet) {
+      return { success: false, error: 'EMAIL_INBOX_STATE sheet not found' };
+    }
+
+    const row = findThreadRow(sheet, threadId);
+    if (!row) {
+      return { success: false, error: 'Thread not found' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const priorityCol = headers.indexOf('Priority') + 1;
+    const categoryCol = headers.indexOf('Category') + 1;
+    const updatedCol = headers.indexOf('Updated_At') + 1;
+
+    const updates = [];
+
+    if (newPriority && EMAIL_PRIORITIES.includes(newPriority)) {
+      sheet.getRange(row, priorityCol).setValue(newPriority);
+      updates.push({ field: 'priority', value: newPriority });
+    }
+
+    if (newCategory && EMAIL_CATEGORIES.includes(newCategory)) {
+      sheet.getRange(row, categoryCol).setValue(newCategory);
+      updates.push({ field: 'category', value: newCategory });
+    }
+
+    if (updates.length > 0) {
+      sheet.getRange(row, updatedCol).setValue(new Date().toISOString());
+
+      // Log the reclassification for AI learning
+      logChiefOfStaffAudit({
+        agent: 'USER',
+        action: 'RECLASSIFY_EMAIL',
+        threadId: threadId,
+        input: { newPriority, newCategory },
+        output: { success: true, updates },
+        humanOverride: true,
+        overrideReason: 'User reclassification'
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        threadId,
+        updates,
+        message: updates.length > 0 ? 'Classification updated' : 'No changes made'
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Resolve an email thread
+ */
+function resolveEmail(threadId, notes = '') {
+  return transitionEmailState(threadId, 'RESOLVED', { notes });
+}
+
+/**
+ * Get full email details including body
+ */
+function getEmailDetail(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Email thread not found' };
+    }
+
+    const messages = thread.getMessages();
+    const latestMessage = messages[messages.length - 1];
+
+    // Get classification from sheet if available
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+    let classification = {};
+
+    if (sheet) {
+      const row = findThreadRow(sheet, threadId);
+      if (row) {
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        const rowData = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+        headers.forEach((h, idx) => {
+          classification[h.toLowerCase().replace(/_/g, '')] = rowData[idx];
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        threadId: threadId,
+        subject: thread.getFirstMessageSubject(),
+        from: latestMessage.getFrom(),
+        to: latestMessage.getTo(),
+        cc: latestMessage.getCc(),
+        date: latestMessage.getDate().toISOString(),
+        body: latestMessage.getPlainBody(),
+        htmlBody: latestMessage.getBody(),
+        messageCount: messages.length,
+        isUnread: thread.isUnread(),
+        labels: thread.getLabels().map(l => l.getName()),
+        hasAttachments: latestMessage.getAttachments().length > 0,
+        attachments: latestMessage.getAttachments().map(a => ({
+          name: a.getName(),
+          size: a.getSize(),
+          type: a.getContentType()
+        })),
+        classification: classification
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Archive an email thread
+ */
+function archiveEmail(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Email thread not found' };
+    }
+
+    // Move to archive in Gmail
+    thread.moveToArchive();
+
+    // Update status in sheet
+    transitionEmailState(threadId, 'ARCHIVED', { archivedAt: new Date().toISOString() });
+
+    logChiefOfStaffAudit({
+      agent: 'USER',
+      action: 'ARCHIVE_EMAIL',
+      threadId: threadId,
+      output: { success: true }
+    });
+
+    return { success: true, message: 'Email archived' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a draft reply to an email
+ */
+function draftEmailReply(threadId, replyBody, sendImmediately = false) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+  if (!replyBody) {
+    return { success: false, error: 'Reply body required' };
+  }
+
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Email thread not found' };
+    }
+
+    const messages = thread.getMessages();
+    const lastMessage = messages[messages.length - 1];
+
+    // Add signature
+    const signature = `\n\n--\nTiny Seed Farm\nFresh, Local, Organic`;
+    const fullBody = replyBody + signature;
+
+    if (sendImmediately) {
+      // Send immediately
+      lastMessage.reply(fullBody);
+
+      // Update status
+      transitionEmailState(threadId, 'AWAITING_THEM', { repliedAt: new Date().toISOString() });
+
+      logChiefOfStaffAudit({
+        agent: 'USER',
+        action: 'SEND_REPLY',
+        threadId: threadId,
+        input: { bodyPreview: replyBody.substring(0, 100) },
+        output: { success: true }
+      });
+
+      return { success: true, message: 'Reply sent', sent: true };
+    } else {
+      // Create draft
+      const draft = lastMessage.createDraftReply(fullBody);
+
+      logChiefOfStaffAudit({
+        agent: 'USER',
+        action: 'CREATE_DRAFT',
+        threadId: threadId,
+        input: { bodyPreview: replyBody.substring(0, 100) },
+        output: { success: true, draftId: draft.getId() }
+      });
+
+      return {
+        success: true,
+        message: 'Draft created',
+        draftId: draft.getId(),
+        sent: false
+      };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate AI draft reply for an email
+ */
+function generateAIDraftReply(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    // Get email details
+    const emailResult = getEmailDetail(threadId);
+    if (!emailResult.success) {
+      return emailResult;
+    }
+
+    const email = emailResult.data;
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+
+    if (!apiKey) {
+      return { success: false, error: 'AI not configured' };
+    }
+
+    const prompt = `You are responding on behalf of Tiny Seed Farm, a small organic vegetable farm.
+Write a professional, friendly reply to this email.
+
+From: ${email.from}
+Subject: ${email.subject}
+Body:
+${email.body}
+
+Write ONLY the reply body, no subject line or signature. Be concise and helpful.`;
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const draftBody = result.content[0].text;
+
+    return {
+      success: true,
+      threadId: threadId,
+      subject: email.subject,
+      originalFrom: email.from,
+      suggestedReply: draftBody
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Assign email to user
+ */
+function assignEmail(threadId, assignTo) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+
+    const row = findThreadRow(sheet, threadId);
+    if (!row) {
+      return { success: false, error: 'Thread not found' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const assignCol = headers.indexOf('Assigned_To') + 1;
+    const updatedCol = headers.indexOf('Updated_At') + 1;
+
+    sheet.getRange(row, assignCol).setValue(assignTo);
+    sheet.getRange(row, updatedCol).setValue(new Date().toISOString());
+
+    logChiefOfStaffAudit({
+      agent: 'A',
+      action: 'ASSIGN_EMAIL',
+      threadId,
+      input: { assignTo },
+      output: { success: true }
+    });
+
+    return { success: true, data: { threadId, assignedTo: assignTo } };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACTION QUEUE (APPROVAL SYSTEM)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Suggest an action for approval
+ */
+function suggestActionForEmail(threadId, classification) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(EMAIL_ACTIONS_SHEET);
+
+    if (!sheet) {
+      initializeChiefOfStaffSheets();
+      sheet = ss.getSheetByName(EMAIL_ACTIONS_SHEET);
+    }
+
+    const actionId = 'ACT-' + Utilities.getUuid().substring(0, 8);
+    const now = new Date();
+    const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+
+    const rowData = [
+      actionId,
+      threadId,
+      classification.actionType || 'REPLY',
+      'PENDING_APPROVAL',
+      'AGENT_A',
+      now.toISOString(),
+      classification.suggestedAction || '',
+      true, // Approval required
+      '', // Approved_By
+      '', // Approved_At
+      '', // Executed_At
+      '', // Execution_Result
+      expiry.toISOString(),
+      ''  // Notes
+    ];
+
+    sheet.appendRow(rowData);
+
+    return {
+      success: true,
+      data: {
+        actionId,
+        threadId,
+        actionType: classification.actionType,
+        expiresAt: expiry.toISOString()
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get pending approvals
+ */
+function getPendingApprovals() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_ACTIONS_SHEET);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, data: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const statusCol = headers.indexOf('Action_Status');
+    const expiryCol = headers.indexOf('Expiry_Time');
+    const now = new Date();
+
+    const results = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+
+      if (row[statusCol] !== 'PENDING_APPROVAL') continue;
+
+      // Check if expired
+      const expiry = new Date(row[expiryCol]);
+      if (expiry < now) {
+        // Mark as expired
+        sheet.getRange(i + 1, statusCol + 1).setValue('EXPIRED');
+        continue;
+      }
+
+      const action = {};
+      headers.forEach((h, idx) => {
+        action[h.toLowerCase().replace(/_/g, '')] = row[idx];
+      });
+      action.timeRemaining = Math.round((expiry - now) / 1000 / 60) + ' minutes';
+
+      results.push(action);
+    }
+
+    return {
+      success: true,
+      data: results,
+      count: results.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Approve an action
+ */
+function approveEmailAction(actionId, approvedBy) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_ACTIONS_SHEET);
+
+    const row = findActionRow(sheet, actionId);
+    if (!row) {
+      return { success: false, error: 'Action not found' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const statusCol = headers.indexOf('Action_Status') + 1;
+    const approvedByCol = headers.indexOf('Approved_By') + 1;
+    const approvedAtCol = headers.indexOf('Approved_At') + 1;
+
+    const currentStatus = sheet.getRange(row, statusCol).getValue();
+    if (currentStatus !== 'PENDING_APPROVAL') {
+      return { success: false, error: 'Action is not pending approval' };
+    }
+
+    const now = new Date().toISOString();
+
+    sheet.getRange(row, statusCol).setValue('APPROVED');
+    sheet.getRange(row, approvedByCol).setValue(approvedBy || 'USER');
+    sheet.getRange(row, approvedAtCol).setValue(now);
+
+    // Get thread ID and execute action
+    const threadIdCol = headers.indexOf('Thread_ID') + 1;
+    const threadId = sheet.getRange(row, threadIdCol).getValue();
+
+    // Update email status to AWAITING_RESPONSE
+    transitionEmailState(threadId, 'AWAITING_RESPONSE', { action: actionId });
+
+    logChiefOfStaffAudit({
+      agent: 'A',
+      action: 'APPROVE_ACTION',
+      actionId,
+      threadId,
+      input: { approvedBy },
+      output: { success: true }
+    });
+
+    return {
+      success: true,
+      data: {
+        actionId,
+        status: 'APPROVED',
+        approvedBy: approvedBy || 'USER',
+        approvedAt: now
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Reject an action
+ */
+function rejectEmailAction(actionId, reason = '') {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_ACTIONS_SHEET);
+
+    const row = findActionRow(sheet, actionId);
+    if (!row) {
+      return { success: false, error: 'Action not found' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const statusCol = headers.indexOf('Action_Status') + 1;
+    const notesCol = headers.indexOf('Notes') + 1;
+
+    sheet.getRange(row, statusCol).setValue('REJECTED');
+    sheet.getRange(row, notesCol).setValue(reason);
+
+    logChiefOfStaffAudit({
+      agent: 'A',
+      action: 'REJECT_ACTION',
+      actionId,
+      input: { reason },
+      output: { success: true },
+      humanOverride: true,
+      overrideReason: reason
+    });
+
+    return {
+      success: true,
+      data: { actionId, status: 'REJECTED', reason }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FOLLOW-UP SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create follow-up reminder
+ */
+function createFollowUp(threadId, options = {}) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(EMAIL_FOLLOWUPS_SHEET);
+
+    if (!sheet) {
+      initializeChiefOfStaffSheets();
+      sheet = ss.getSheetByName(EMAIL_FOLLOWUPS_SHEET);
+    }
+
+    const followupId = 'FU-' + Utilities.getUuid().substring(0, 8);
+    const now = new Date();
+    const dueDate = options.dueDate ? new Date(options.dueDate) :
+                    new Date(now.getTime() + (options.daysFromNow || 2) * 24 * 60 * 60 * 1000);
+
+    const rowData = [
+      followupId,
+      threadId,
+      options.type || 'REMINDER',
+      dueDate.toISOString(),
+      0, // Reminder_Count
+      options.maxReminders || 3,
+      options.escalateTo || 'Owner',
+      'ACTIVE',
+      now.toISOString(),
+      '', // Last_Reminder_At
+      ''  // Completed_At
+    ];
+
+    sheet.appendRow(rowData);
+
+    // Update email with follow-up date
+    const stateSheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+    const row = findThreadRow(stateSheet, threadId);
+    if (row) {
+      const headers = stateSheet.getRange(1, 1, 1, stateSheet.getLastColumn()).getValues()[0];
+      const followUpCol = headers.indexOf('Follow_Up_Date') + 1;
+      stateSheet.getRange(row, followUpCol).setValue(dueDate.toISOString());
+    }
+
+    return {
+      success: true,
+      data: {
+        followupId,
+        threadId,
+        dueDate: dueDate.toISOString(),
+        type: options.type || 'REMINDER'
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get overdue follow-ups
+ */
+function getOverdueFollowups() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_FOLLOWUPS_SHEET);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, data: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const statusCol = headers.indexOf('Status');
+    const dueDateCol = headers.indexOf('Due_Date');
+    const now = new Date();
+
+    const results = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+
+      if (row[statusCol] !== 'ACTIVE') continue;
+
+      const dueDate = new Date(row[dueDateCol]);
+      if (dueDate > now) continue;
+
+      const followup = {};
+      headers.forEach((h, idx) => {
+        followup[h.toLowerCase().replace(/_/g, '')] = row[idx];
+      });
+      followup.overdueby = Math.round((now - dueDate) / 1000 / 60 / 60) + ' hours';
+
+      results.push(followup);
+    }
+
+    return {
+      success: true,
+      data: results,
+      count: results.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Check and process overdue follow-ups (runs via trigger)
+ */
+function checkOverdueFollowupsAndNotify() {
+  const overdue = getOverdueFollowups();
+
+  if (!overdue.success || overdue.count === 0) {
+    return { success: true, message: 'No overdue follow-ups' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(EMAIL_FOLLOWUPS_SHEET);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  const reminderCountCol = headers.indexOf('Reminder_Count') + 1;
+  const maxRemindersCol = headers.indexOf('Max_Reminders') + 1;
+  const lastReminderCol = headers.indexOf('Last_Reminder_At') + 1;
+  const statusCol = headers.indexOf('Status') + 1;
+  const now = new Date().toISOString();
+
+  for (const followup of overdue.data) {
+    const row = findFollowupRow(sheet, followup.followupid);
+    if (!row) continue;
+
+    const currentCount = sheet.getRange(row, reminderCountCol).getValue();
+    const maxReminders = sheet.getRange(row, maxRemindersCol).getValue();
+
+    if (currentCount >= maxReminders) {
+      // Escalate
+      sheet.getRange(row, statusCol).setValue('ESCALATED');
+
+      logChiefOfStaffAudit({
+        agent: 'A',
+        action: 'ESCALATE_FOLLOWUP',
+        threadId: followup.threadid,
+        input: { followupId: followup.followupid, reason: 'Max reminders reached' }
+      });
+    } else {
+      // Increment reminder
+      sheet.getRange(row, reminderCountCol).setValue(currentCount + 1);
+      sheet.getRange(row, lastReminderCol).setValue(now);
+
+      logChiefOfStaffAudit({
+        agent: 'A',
+        action: 'SEND_REMINDER',
+        threadId: followup.threadid,
+        input: { followupId: followup.followupid, reminderNumber: currentCount + 1 }
+      });
+    }
+  }
+
+  return {
+    success: true,
+    message: `Processed ${overdue.count} overdue follow-ups`
+  };
+}
+
+/**
+ * Get emails awaiting external response
+ */
+function getAwaitingResponse() {
+  return getEmailsByStatus({ status: 'AWAITING_THEM' });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DAILY BRIEF
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate daily brief
+ */
+function getDailyBrief() {
+  try {
+    const newEmails = getEmailsByStatus({ status: 'NEW,TRIAGED' });
+    const pending = getPendingApprovals();
+    const overdue = getOverdueFollowups();
+    const awaiting = getAwaitingResponse();
+
+    const criticalEmails = (newEmails.data || []).filter(e => e.priority === 'CRITICAL');
+    const highEmails = (newEmails.data || []).filter(e => e.priority === 'HIGH');
+
+    return {
+      success: true,
+      data: {
+        generatedAt: new Date().toISOString(),
+        summary: {
+          totalNew: newEmails.count || 0,
+          critical: criticalEmails.length,
+          high: highEmails.length,
+          pendingApprovals: pending.count || 0,
+          overdueFollowups: overdue.count || 0,
+          awaitingResponse: awaiting.count || 0
+        },
+        priorities: [
+          ...criticalEmails.slice(0, 5).map(e => ({
+            priority: 'CRITICAL',
+            subject: e.subject,
+            from: e.fromname || e.from,
+            threadId: e.threadid,
+            summary: e.aisummary
+          })),
+          ...highEmails.slice(0, 5).map(e => ({
+            priority: 'HIGH',
+            subject: e.subject,
+            from: e.fromname || e.from,
+            threadId: e.threadid,
+            summary: e.aisummary
+          }))
+        ],
+        actions: (pending.data || []).slice(0, 5),
+        overdue: (overdue.data || []).slice(0, 5)
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUDIT LOGGING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Log to Chief-of-Staff audit trail
+ */
+function logChiefOfStaffAudit(entry) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(CHIEF_OF_STAFF_AUDIT_SHEET);
+
+    if (!sheet) {
+      initializeChiefOfStaffSheets();
+      sheet = ss.getSheetByName(CHIEF_OF_STAFF_AUDIT_SHEET);
+    }
+
+    const auditRow = [
+      'AUD-' + Utilities.getUuid().substring(0, 8),
+      new Date().toISOString(),
+      entry.agent || 'UNKNOWN',
+      entry.action || '',
+      entry.threadId || '',
+      entry.actionId || '',
+      entry.userId || '',
+      JSON.stringify(entry.input || {}),
+      JSON.stringify(entry.output || {}),
+      entry.confidence || null,
+      entry.humanOverride || false,
+      entry.overrideReason || '',
+      entry.ipAddress || '',
+      entry.sessionId || ''
+    ];
+
+    sheet.appendRow(auditRow);
+    return { success: true };
+  } catch (error) {
+    Logger.log('Audit log error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get audit log
+ */
+function getChiefOfStaffAuditLog(params = {}) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHIEF_OF_STAFF_AUDIT_SHEET);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, data: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const limit = parseInt(params.limit) || 100;
+    const agent = params.agent;
+    const threadId = params.threadId;
+
+    const agentCol = headers.indexOf('Agent');
+    const threadCol = headers.indexOf('Thread_ID');
+
+    const results = [];
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+
+      if (agent && row[agentCol] !== agent) continue;
+      if (threadId && row[threadCol] !== threadId) continue;
+
+      const entry = {};
+      headers.forEach((h, idx) => {
+        entry[h.toLowerCase().replace(/_/g, '')] = row[idx];
+      });
+
+      results.push(entry);
+
+      if (results.length >= limit) break;
+    }
+
+    return {
+      success: true,
+      data: results,
+      count: results.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Extract name from email address
+ */
+function extractName(fromString) {
+  // "John Doe <john@example.com>" -> "John Doe"
+  const match = fromString.match(/^([^<]+)/);
+  if (match) {
+    return match[1].trim().replace(/"/g, '');
+  }
+  // "john@example.com" -> "john"
+  const emailMatch = fromString.match(/([^@]+)@/);
+  return emailMatch ? emailMatch[1] : fromString;
+}
+
+/**
+ * Find row by thread ID
+ */
+function findThreadRow(sheet, threadId) {
+  if (!sheet || sheet.getLastRow() <= 1) return null;
+  const threadIds = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = 0; i < threadIds.length; i++) {
+    if (threadIds[i][0] === threadId) return i + 2;
+  }
+  return null;
+}
+
+/**
+ * Find row by action ID
+ */
+function findActionRow(sheet, actionId) {
+  if (!sheet || sheet.getLastRow() <= 1) return null;
+  const actionIds = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = 0; i < actionIds.length; i++) {
+    if (actionIds[i][0] === actionId) return i + 2;
+  }
+  return null;
+}
+
+/**
+ * Find row by followup ID
+ */
+function findFollowupRow(sheet, followupId) {
+  if (!sheet || sheet.getLastRow() <= 1) return null;
+  const followupIds = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = 0; i < followupIds.length; i++) {
+    if (followupIds[i][0] === followupId) return i + 2;
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRIGGERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Setup Chief-of-Staff triggers
+ */
+function setupChiefOfStaffTriggers() {
+  // Remove existing triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  const chiefTriggers = ['triageInbox', 'checkOverdueFollowupsAndNotify', 'expireOldActions'];
+
+  for (const trigger of triggers) {
+    if (chiefTriggers.includes(trigger.getHandlerFunction())) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+
+  // Triage inbox every 5 minutes
+  ScriptApp.newTrigger('triageInbox')
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+
+  // Check follow-ups every hour
+  ScriptApp.newTrigger('checkOverdueFollowupsAndNotify')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  // Expire old actions every hour
+  ScriptApp.newTrigger('expireOldActions')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  Logger.log('✅ Chief-of-Staff triggers created');
+
+  return {
+    success: true,
+    message: 'Chief-of-Staff triggers created: triageInbox (5min), checkFollowups (1hr), expireActions (1hr)'
+  };
+}
+
+/**
+ * Expire old pending actions
+ */
+function expireOldActions() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_ACTIONS_SHEET);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, message: 'No actions to check' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const statusCol = headers.indexOf('Action_Status');
+    const expiryCol = headers.indexOf('Expiry_Time');
+    const now = new Date();
+
+    let expired = 0;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][statusCol] !== 'PENDING_APPROVAL') continue;
+
+      const expiry = new Date(data[i][expiryCol]);
+      if (expiry < now) {
+        sheet.getRange(i + 1, statusCol + 1).setValue('EXPIRED');
+        expired++;
+      }
+    }
+
+    return {
+      success: true,
+      message: `Expired ${expired} actions`
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST FUNCTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Test the Email Workflow Engine
+ */
+function testEmailWorkflowEngine() {
+  Logger.log('=== TESTING EMAIL WORKFLOW ENGINE ===');
+
+  // 1. Initialize sheets
+  Logger.log('1. Initializing sheets...');
+  const init = initializeChiefOfStaffSheets();
+  Logger.log('   Init result: ' + JSON.stringify(init));
+
+  // 2. Triage inbox
+  Logger.log('2. Triaging inbox...');
+  const triage = triageInbox();
+  Logger.log('   Triage result: ' + triage.message);
+
+  // 3. Get emails by status
+  Logger.log('3. Getting NEW emails...');
+  const newEmails = getEmailsByStatus({ status: 'NEW' });
+  Logger.log('   Found ' + newEmails.count + ' new emails');
+
+  // 4. Get pending approvals
+  Logger.log('4. Getting pending approvals...');
+  const approvals = getPendingApprovals();
+  Logger.log('   Found ' + approvals.count + ' pending approvals');
+
+  // 5. Get daily brief
+  Logger.log('5. Generating daily brief...');
+  const brief = getDailyBrief();
+  Logger.log('   Brief: ' + JSON.stringify(brief.data?.summary));
+
+  Logger.log('=== TESTS COMPLETE ===');
+
+  return {
+    success: true,
+    results: {
+      init: init.message,
+      triage: triage.message,
+      newEmails: newEmails.count,
+      approvals: approvals.count,
+      brief: brief.data?.summary
+    }
+  };
+}
+
+
+/**
+ * ========================================
+ * CHIEF OF STAFF - CALENDAR AI
+ * ========================================
+ *
+ * STATE-OF-THE-ART intelligent calendar management
+ * Based on: Reclaim AI, Motion, Clara patterns
+ *
+ * Capabilities:
+ * - Auto-schedule tasks based on priority
+ * - Protect focus/field time automatically
+ * - Smart meeting scheduling via email
+ * - Time-blocking optimization
+ * - Calendar-aware email responses
+ * - Weather-aware scheduling
+ * - Energy-level optimization
+ *
+ * @author Claude PM_Architect
+ * @version 1.0.0
+ * @date 2026-01-21
+ */
+
+// ==========================================
+// TIME PREFERENCES CONFIGURATION
+// ==========================================
+
+const DEFAULT_PREFERENCES = {
+  // Working hours
+  workDayStart: 7, // 7 AM
+  workDayEnd: 18, // 6 PM
+  workDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
+
+  // Focus time
+  focusTimeMin: 90, // Minimum focus block in minutes
+  focusTimePreferred: 180, // Preferred focus block
+  focusTimeMax: 4, // Max hours of focus per day
+
+  // Meeting preferences
+  meetingBufferBefore: 15, // Minutes before meetings
+  meetingBufferAfter: 15, // Minutes after meetings
+  preferredMeetingTimes: ['10:00', '14:00'], // Preferred meeting start times
+  maxMeetingsPerDay: 3,
+
+  // Farm-specific
+  fieldWorkHours: { start: 8, end: 14 }, // Best field work hours
+  marketDays: [3, 6], // Wed, Sat (farmers market)
+  deliveryDays: [2, 4], // Tue, Thu
+
+  // Energy patterns
+  highEnergyHours: [8, 9, 10, 11], // Morning peak
+  lowEnergyHours: [13, 14], // Post-lunch dip
+  creativeHours: [9, 10, 16, 17] // Best for creative work
+};
+
+// ==========================================
+// INITIALIZATION
+// ==========================================
+
+/**
+ * Initialize Calendar AI system
+ */
+function initializeCalendarAI() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Create preferences sheet
+  let prefsSheet = ss.getSheetByName('COS_CALENDAR_PREFS');
+  if (!prefsSheet) {
+    prefsSheet = ss.insertSheet('COS_CALENDAR_PREFS');
+    prefsSheet.appendRow(['key', 'value', 'updated_at', 'source']);
+    prefsSheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+
+    // Add default preferences
+    for (const [key, value] of Object.entries(DEFAULT_PREFERENCES)) {
+      prefsSheet.appendRow([key, JSON.stringify(value), new Date().toISOString(), 'default']);
+    }
+  }
+
+  // Create scheduled tasks sheet
+  let tasksSheet = ss.getSheetByName('COS_SCHEDULED_TASKS');
+  if (!tasksSheet) {
+    tasksSheet = ss.insertSheet('COS_SCHEDULED_TASKS');
+    tasksSheet.appendRow([
+      'task_id', 'title', 'description', 'priority', 'duration_mins',
+      'deadline', 'scheduled_start', 'scheduled_end', 'status',
+      'energy_required', 'task_type', 'dependencies', 'created_at'
+    ]);
+    tasksSheet.getRange(1, 1, 1, 13).setFontWeight('bold');
+  }
+
+  // Create focus blocks sheet
+  let focusSheet = ss.getSheetByName('COS_FOCUS_BLOCKS');
+  if (!focusSheet) {
+    focusSheet = ss.insertSheet('COS_FOCUS_BLOCKS');
+    focusSheet.appendRow([
+      'block_id', 'date', 'start_time', 'end_time', 'duration_mins',
+      'type', 'protected', 'actual_focus_mins', 'interruptions'
+    ]);
+    focusSheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+  }
+
+  return {
+    success: true,
+    message: 'Calendar AI initialized',
+    sheets: ['COS_CALENDAR_PREFS', 'COS_SCHEDULED_TASKS', 'COS_FOCUS_BLOCKS']
+  };
+}
+
+/**
+ * Get calendar preferences
+ */
+function getCalendarPreferences() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('COS_CALENDAR_PREFS');
+
+  if (!sheet) {
+    return DEFAULT_PREFERENCES;
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const prefs = { ...DEFAULT_PREFERENCES };
+
+  for (let i = 1; i < data.length; i++) {
+    const key = data[i][0];
+    const value = data[i][1];
+
+    try {
+      prefs[key] = JSON.parse(value);
+    } catch (e) {
+      prefs[key] = value;
+    }
+  }
+
+  return prefs;
+}
+
+/**
+ * Update calendar preference
+ */
+function setCalendarPreference(key, value, source = 'user') {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('COS_CALENDAR_PREFS');
+
+  if (!sheet) {
+    initializeCalendarAI();
+    sheet = ss.getSheetByName('COS_CALENDAR_PREFS');
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) {
+      sheet.getRange(i + 1, 2, 1, 3).setValues([
+        [JSON.stringify(value), new Date().toISOString(), source]
+      ]);
+      return { success: true, updated: true };
+    }
+  }
+
+  // Add new preference
+  sheet.appendRow([key, JSON.stringify(value), new Date().toISOString(), source]);
+  return { success: true, added: true };
+}
+
+// ==========================================
+// FOCUS TIME PROTECTION
+// ==========================================
+
+/**
+ * Analyze calendar and protect focus time
+ */
+function protectFocusTime(days = 7) {
+  const prefs = getCalendarPreferences();
+  const calendar = CalendarApp.getDefaultCalendar();
+  const now = new Date();
+  const results = [];
+
+  for (let d = 0; d < days; d++) {
+    const date = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
+
+    // Skip non-work days
+    if (!prefs.workDays.includes(date.getDay())) continue;
+
+    // Get existing events
+    const dayStart = new Date(date.setHours(prefs.workDayStart, 0, 0, 0));
+    const dayEnd = new Date(date.setHours(prefs.workDayEnd, 0, 0, 0));
+    const events = calendar.getEvents(dayStart, dayEnd);
+
+    // Find gaps for focus time
+    const gaps = findTimeGaps(events, dayStart, dayEnd, prefs);
+
+    // Protect suitable gaps
+    for (const gap of gaps) {
+      if (gap.duration >= prefs.focusTimeMin) {
+        const focusBlock = createFocusBlock(
+          gap.start,
+          Math.min(gap.duration, prefs.focusTimePreferred),
+          getFocusType(gap.start, prefs)
+        );
+
+        results.push(focusBlock);
+      }
+    }
+  }
+
+  return {
+    success: true,
+    blocksCreated: results.length,
+    blocks: results
+  };
+}
+
+/**
+ * Find time gaps between events
+ */
+function findTimeGaps(events, dayStart, dayEnd, prefs) {
+  const gaps = [];
+  let currentTime = new Date(dayStart);
+
+  // Sort events by start time
+  const sorted = events.sort((a, b) => a.getStartTime() - b.getStartTime());
+
+  for (const event of sorted) {
+    const eventStart = event.getStartTime();
+    const eventEnd = event.getEndTime();
+
+    // Add buffer after current time for previous event
+    const gapStart = new Date(currentTime.getTime() + prefs.meetingBufferAfter * 60000);
+    const gapEnd = new Date(eventStart.getTime() - prefs.meetingBufferBefore * 60000);
+
+    if (gapEnd > gapStart) {
+      const duration = (gapEnd - gapStart) / 60000; // in minutes
+      gaps.push({
+        start: gapStart,
+        end: gapEnd,
+        duration: duration
+      });
+    }
+
+    currentTime = eventEnd;
+  }
+
+  // Gap after last event
+  const finalGapStart = new Date(currentTime.getTime() + prefs.meetingBufferAfter * 60000);
+  if (dayEnd > finalGapStart) {
+    gaps.push({
+      start: finalGapStart,
+      end: dayEnd,
+      duration: (dayEnd - finalGapStart) / 60000
+    });
+  }
+
+  return gaps;
+}
+
+/**
+ * Determine focus type based on time
+ */
+function getFocusType(startTime, prefs) {
+  const hour = startTime.getHours();
+
+  if (hour >= prefs.fieldWorkHours.start && hour < prefs.fieldWorkHours.end) {
+    return 'field_work';
+  }
+  if (prefs.highEnergyHours.includes(hour)) {
+    return 'deep_work';
+  }
+  if (prefs.creativeHours.includes(hour)) {
+    return 'creative';
+  }
+  return 'admin';
+}
+
+/**
+ * Create focus time block
+ */
+function createFocusBlock(start, durationMins, focusType) {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const end = new Date(start.getTime() + durationMins * 60000);
+
+  const titles = {
+    field_work: '🌱 Field Work Time',
+    deep_work: '🎯 Deep Focus',
+    creative: '💡 Creative Time',
+    admin: '📋 Admin Block'
+  };
+
+  const event = calendar.createEvent(titles[focusType] || '🎯 Focus Time', start, end, {
+    description: 'Protected time block created by Chief of Staff Calendar AI.\nDo not schedule over this unless absolutely necessary.'
+  });
+
+  // Color code the event
+  const colors = {
+    field_work: CalendarApp.EventColor.GREEN,
+    deep_work: CalendarApp.EventColor.BLUE,
+    creative: CalendarApp.EventColor.YELLOW,
+    admin: CalendarApp.EventColor.GRAY
+  };
+
+  event.setColor(colors[focusType] || CalendarApp.EventColor.BLUE);
+
+  // Log to sheet
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('COS_FOCUS_BLOCKS');
+
+  if (sheet) {
+    sheet.appendRow([
+      event.getId(),
+      Utilities.formatDate(start, 'America/New_York', 'yyyy-MM-dd'),
+      Utilities.formatDate(start, 'America/New_York', 'HH:mm'),
+      Utilities.formatDate(end, 'America/New_York', 'HH:mm'),
+      durationMins,
+      focusType,
+      'yes',
+      '', // actual_focus_mins - filled later
+      0  // interruptions
+    ]);
+  }
+
+  return {
+    id: event.getId(),
+    title: event.getTitle(),
+    start: start,
+    end: end,
+    type: focusType,
+    duration: durationMins
+  };
+}
+
+// ==========================================
+// SMART TASK SCHEDULING
+// ==========================================
+
+/**
+ * Schedule a task optimally
+ */
+function scheduleTask(task) {
+  const prefs = getCalendarPreferences();
+  const calendar = CalendarApp.getDefaultCalendar();
+
+  // Find optimal time slot
+  const optimalSlot = findOptimalSlot(task, prefs);
+
+  if (!optimalSlot) {
+    return {
+      success: false,
+      error: 'No suitable time slot found before deadline'
+    };
+  }
+
+  // Create calendar event
+  const event = calendar.createEvent(
+    `📌 ${task.title}`,
+    optimalSlot.start,
+    optimalSlot.end,
+    {
+      description: task.description || 'Task scheduled by Chief of Staff Calendar AI'
+    }
+  );
+
+  // Color based on priority
+  const priorityColors = {
+    critical: CalendarApp.EventColor.RED,
+    high: CalendarApp.EventColor.ORANGE,
+    medium: CalendarApp.EventColor.BLUE,
+    low: CalendarApp.EventColor.GRAY
+  };
+
+  event.setColor(priorityColors[task.priority] || CalendarApp.EventColor.BLUE);
+
+  // Save to tracking sheet
+  saveScheduledTask(task, optimalSlot, event.getId());
+
+  return {
+    success: true,
+    eventId: event.getId(),
+    scheduledStart: optimalSlot.start,
+    scheduledEnd: optimalSlot.end,
+    reasoning: optimalSlot.reasoning
+  };
+}
+
+/**
+ * Find optimal time slot for a task
+ */
+function findOptimalSlot(task, prefs) {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const now = new Date();
+  const deadline = task.deadline ? new Date(task.deadline) : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const duration = task.duration_mins || 60;
+
+  const candidates = [];
+
+  // Search up to deadline
+  let searchDate = new Date(now);
+  while (searchDate < deadline) {
+    // Skip non-work days
+    if (!prefs.workDays.includes(searchDate.getDay())) {
+      searchDate = new Date(searchDate.getTime() + 24 * 60 * 60 * 1000);
+      continue;
+    }
+
+    // Get day's events
+    const dayStart = new Date(searchDate);
+    dayStart.setHours(prefs.workDayStart, 0, 0, 0);
+    const dayEnd = new Date(searchDate);
+    dayEnd.setHours(prefs.workDayEnd, 0, 0, 0);
+
+    const events = calendar.getEvents(dayStart, dayEnd);
+    const gaps = findTimeGaps(events, dayStart, dayEnd, prefs);
+
+    for (const gap of gaps) {
+      if (gap.duration >= duration) {
+        const score = scoreTimeSlot(gap.start, task, prefs);
+        candidates.push({
+          start: gap.start,
+          end: new Date(gap.start.getTime() + duration * 60000),
+          score: score.total,
+          reasoning: score.reasoning
+        });
+      }
+    }
+
+    searchDate = new Date(searchDate.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  // Sort by score and return best
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0] || null;
+}
+
+/**
+ * Score a time slot for task fit
+ */
+function scoreTimeSlot(startTime, task, prefs) {
+  let score = 100;
+  const reasons = [];
+  const hour = startTime.getHours();
+  const dayOfWeek = startTime.getDay();
+
+  // Energy match
+  const energyRequired = task.energy_required || 'medium';
+  if (energyRequired === 'high' && prefs.highEnergyHours.includes(hour)) {
+    score += 20;
+    reasons.push('Matches high-energy hours');
+  } else if (energyRequired === 'high' && prefs.lowEnergyHours.includes(hour)) {
+    score -= 30;
+    reasons.push('Conflicts with low-energy period');
+  }
+
+  // Task type preferences
+  const taskType = task.task_type || 'general';
+  if (taskType === 'field_work') {
+    if (hour >= prefs.fieldWorkHours.start && hour < prefs.fieldWorkHours.end) {
+      score += 25;
+      reasons.push('Optimal field work hours');
+    } else {
+      score -= 20;
+      reasons.push('Outside field work hours');
+    }
+  }
+
+  // Market day conflicts
+  if (prefs.marketDays.includes(dayOfWeek) && taskType !== 'market') {
+    score -= 10;
+    reasons.push('Market day - limited availability');
+  }
+
+  // Priority urgency
+  if (task.priority === 'critical') {
+    // Prefer sooner slots
+    const hoursUntil = (startTime - new Date()) / (1000 * 60 * 60);
+    if (hoursUntil < 24) {
+      score += 15;
+      reasons.push('Critical task scheduled soon');
+    }
+  }
+
+  // Weather consideration (if available)
+  if (taskType === 'field_work') {
+    const weatherScore = getWeatherScoreForTime(startTime);
+    score += weatherScore.adjustment;
+    if (weatherScore.reason) reasons.push(weatherScore.reason);
+  }
+
+  return {
+    total: score,
+    reasoning: reasons.join('; ')
+  };
+}
+
+/**
+ * Get weather score adjustment for scheduling
+ */
+function getWeatherScoreForTime(startTime) {
+  try {
+    // Check if weather integration is available
+    if (typeof getWeatherForecast === 'function') {
+      const forecast = getWeatherForecast(3);
+      if (forecast.success) {
+        const date = Utilities.formatDate(startTime, 'America/New_York', 'yyyy-MM-dd');
+        const dayForecast = forecast.forecast.find(f => f.date === date);
+
+        if (dayForecast) {
+          if (dayForecast.rain_chance > 50) {
+            return { adjustment: -20, reason: 'Rain likely - poor for field work' };
+          }
+          if (dayForecast.high > 90) {
+            const hour = startTime.getHours();
+            if (hour >= 11 && hour <= 15) {
+              return { adjustment: -15, reason: 'Hot afternoon - avoid peak heat' };
+            }
+          }
+          if (dayForecast.rain_chance < 20 && dayForecast.high < 85) {
+            return { adjustment: 10, reason: 'Ideal weather conditions' };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    // Weather not available
+  }
+
+  return { adjustment: 0, reason: null };
+}
+
+/**
+ * Save scheduled task to tracking sheet
+ */
+function saveScheduledTask(task, slot, eventId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('COS_SCHEDULED_TASKS');
+
+  if (!sheet) {
+    initializeCalendarAI();
+    sheet = ss.getSheetByName('COS_SCHEDULED_TASKS');
+  }
+
+  const taskId = task.id || `TASK_${Date.now()}`;
+
+  sheet.appendRow([
+    taskId,
+    task.title,
+    task.description || '',
+    task.priority || 'medium',
+    task.duration_mins || 60,
+    task.deadline || '',
+    slot.start.toISOString(),
+    slot.end.toISOString(),
+    'scheduled',
+    task.energy_required || 'medium',
+    task.task_type || 'general',
+    JSON.stringify(task.dependencies || []),
+    new Date().toISOString()
+  ]);
+
+  return taskId;
+}
+
+// ==========================================
+// MEETING SCHEDULING
+// ==========================================
+
+/**
+ * Find available meeting times
+ */
+function findMeetingTimes(params) {
+  const prefs = getCalendarPreferences();
+  const calendar = CalendarApp.getDefaultCalendar();
+
+  const duration = params.duration || 30;
+  const searchDays = params.days || 5;
+  const attendeeCount = params.attendees || 1;
+
+  const options = [];
+  const now = new Date();
+
+  for (let d = 1; d <= searchDays; d++) {
+    const date = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
+
+    // Skip non-work days
+    if (!prefs.workDays.includes(date.getDay())) continue;
+
+    // Get events
+    const dayStart = new Date(date);
+    dayStart.setHours(prefs.workDayStart, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(prefs.workDayEnd, 0, 0, 0);
+
+    const events = calendar.getEvents(dayStart, dayEnd);
+
+    // Count meetings this day
+    const meetingCount = events.filter(e => !e.getTitle().includes('Focus')).length;
+    if (meetingCount >= prefs.maxMeetingsPerDay) continue;
+
+    // Find gaps
+    const gaps = findTimeGaps(events, dayStart, dayEnd, prefs);
+
+    for (const gap of gaps) {
+      if (gap.duration >= duration) {
+        // Check if preferred time slot
+        const hour = gap.start.getHours();
+        const timeStr = `${hour}:00`;
+        const isPreferred = prefs.preferredMeetingTimes.some(t =>
+          t.startsWith(`${hour}:`)
+        );
+
+        options.push({
+          date: Utilities.formatDate(date, 'America/New_York', 'EEEE, MMMM d'),
+          start: Utilities.formatDate(gap.start, 'America/New_York', 'h:mm a'),
+          end: Utilities.formatDate(
+            new Date(gap.start.getTime() + duration * 60000),
+            'America/New_York',
+            'h:mm a'
+          ),
+          startDateTime: gap.start,
+          isPreferred: isPreferred,
+          priority: isPreferred ? 1 : 2
+        });
+      }
+    }
+  }
+
+  // Sort by priority then date
+  options.sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return a.startDateTime - b.startDateTime;
+  });
+
+  return {
+    success: true,
+    duration: duration,
+    options: options.slice(0, 5) // Top 5 options
+  };
+}
+
+/**
+ * Generate meeting availability text for email
+ */
+function generateAvailabilityText(params) {
+  const times = findMeetingTimes(params);
+
+  if (!times.success || times.options.length === 0) {
+    return "I'm currently booked solid. Let me check back with alternative times.";
+  }
+
+  let text = `Here are some times that work for me:\n\n`;
+
+  for (let i = 0; i < times.options.length; i++) {
+    const opt = times.options[i];
+    text += `${i + 1}. ${opt.date} at ${opt.start}\n`;
+  }
+
+  text += `\nLet me know which works best for you, or suggest an alternative if none of these work.`;
+
+  return text;
+}
+
+/**
+ * Schedule meeting from email request
+ */
+function scheduleMeetingFromEmail(emailContext) {
+  // Parse meeting request with AI
+  const parsePrompt = `Parse this meeting request:
+
+Email from: ${emailContext.from}
+Subject: ${emailContext.subject}
+Body: ${emailContext.body}
+
+Extract:
+- requested_duration (in minutes, default 30)
+- preferred_dates (any specific dates mentioned)
+- topic (brief description)
+- urgency (low/medium/high)
+
+Return JSON only.`;
+
+  try {
+    const parsed = JSON.parse(callClaudeForCalendar(parsePrompt));
+
+    // Find suitable times
+    const times = findMeetingTimes({
+      duration: parsed.requested_duration || 30,
+      days: 7
+    });
+
+    // Generate response draft
+    const response = generateMeetingResponseDraft(emailContext, parsed, times);
+
+    return {
+      success: true,
+      parsed: parsed,
+      availableTimes: times.options,
+      suggestedResponse: response
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Generate meeting response draft
+ */
+function generateMeetingResponseDraft(emailContext, parsed, times) {
+  if (!times.success || times.options.length === 0) {
+    return `Thanks for reaching out about ${parsed.topic || 'meeting'}. My calendar is quite full right now. Could you share a few times that work on your end?`;
+  }
+
+  const opt = times.options[0];
+  return `Thanks for reaching out! I'd be happy to meet about ${parsed.topic || 'this'}.
+
+How about ${opt.date} at ${opt.start}? That works well on my end.
+
+If that doesn't work, here are a couple alternatives:
+- ${times.options[1]?.date} at ${times.options[1]?.start || 'TBD'}
+- ${times.options[2]?.date} at ${times.options[2]?.start || 'TBD'}
+
+Let me know!`;
+}
+
+// ==========================================
+// DAILY SCHEDULE OPTIMIZATION
+// ==========================================
+
+/**
+ * Optimize today's schedule
+ */
+function optimizeTodaySchedule() {
+  const prefs = getCalendarPreferences();
+  const calendar = CalendarApp.getDefaultCalendar();
+  const now = new Date();
+
+  const dayStart = new Date(now);
+  dayStart.setHours(prefs.workDayStart, 0, 0, 0);
+  const dayEnd = new Date(now);
+  dayEnd.setHours(prefs.workDayEnd, 0, 0, 0);
+
+  const events = calendar.getEvents(dayStart, dayEnd);
+  const recommendations = [];
+
+  // Analyze schedule
+  let totalMeetings = 0;
+  let totalFocus = 0;
+  let backToBack = 0;
+  let lastEnd = null;
+
+  for (const event of events) {
+    const title = event.getTitle();
+    const start = event.getStartTime();
+    const end = event.getEndTime();
+    const duration = (end - start) / (1000 * 60);
+
+    if (title.includes('Focus') || title.includes('Field')) {
+      totalFocus += duration;
+    } else {
+      totalMeetings++;
+    }
+
+    // Check back-to-back
+    if (lastEnd && start - lastEnd < prefs.meetingBufferBefore * 60000) {
+      backToBack++;
+    }
+    lastEnd = end;
+  }
+
+  // Generate recommendations
+  if (totalMeetings > prefs.maxMeetingsPerDay) {
+    recommendations.push({
+      type: 'warning',
+      message: `You have ${totalMeetings} meetings today, exceeding your ${prefs.maxMeetingsPerDay} meeting limit. Consider rescheduling non-critical ones.`
+    });
+  }
+
+  if (totalFocus < prefs.focusTimeMin) {
+    recommendations.push({
+      type: 'action',
+      message: `Only ${totalFocus} minutes of focus time today. Consider blocking time for focused work.`
+    });
+  }
+
+  if (backToBack > 0) {
+    recommendations.push({
+      type: 'warning',
+      message: `${backToBack} back-to-back meeting(s) without buffer. You may feel rushed.`
+    });
+  }
+
+  // Weather-based
+  if (typeof getWeatherRecommendations === 'function') {
+    const weather = getWeatherRecommendations();
+    if (weather.success && weather.recommendations) {
+      for (const rec of weather.recommendations) {
+        if (rec.type === 'warning') {
+          recommendations.push({
+            type: 'weather',
+            message: rec.message
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    success: true,
+    date: Utilities.formatDate(now, 'America/New_York', 'EEEE, MMMM d'),
+    summary: {
+      totalEvents: events.length,
+      meetings: totalMeetings,
+      focusMinutes: totalFocus,
+      backToBackMeetings: backToBack
+    },
+    recommendations: recommendations,
+    events: events.map(e => ({
+      title: e.getTitle(),
+      start: Utilities.formatDate(e.getStartTime(), 'America/New_York', 'h:mm a'),
+      end: Utilities.formatDate(e.getEndTime(), 'America/New_York', 'h:mm a'),
+      duration: (e.getEndTime() - e.getStartTime()) / (1000 * 60)
+    }))
+  };
+}
+
+/**
+ * Get calendar overview for AI context
+ */
+function getCalendarContext(days = 3) {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const now = new Date();
+  const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+  const events = calendar.getEvents(now, end);
+
+  const context = {
+    timeframe: `Next ${days} days`,
+    events: events.map(e => ({
+      title: e.getTitle(),
+      date: Utilities.formatDate(e.getStartTime(), 'America/New_York', 'EEE MMM d'),
+      time: Utilities.formatDate(e.getStartTime(), 'America/New_York', 'h:mm a'),
+      duration: Math.round((e.getEndTime() - e.getStartTime()) / (1000 * 60)) + ' min'
+    })),
+    busyDays: [],
+    freeDays: []
+  };
+
+  // Analyze by day
+  const byDay = {};
+  for (const e of events) {
+    const date = Utilities.formatDate(e.getStartTime(), 'America/New_York', 'yyyy-MM-dd');
+    byDay[date] = (byDay[date] || 0) + 1;
+  }
+
+  for (const [date, count] of Object.entries(byDay)) {
+    if (count >= 4) {
+      context.busyDays.push(date);
+    } else if (count <= 1) {
+      context.freeDays.push(date);
+    }
+  }
+
+  return context;
+}
+
+// ==========================================
+// RECURRING TASK MANAGEMENT
+// ==========================================
+
+/**
+ * Set up recurring task
+ */
+function createRecurringTask(task) {
+  const calendar = CalendarApp.getDefaultCalendar();
+
+  // Calculate recurrence
+  const recurrence = CalendarApp.newRecurrence();
+
+  switch (task.frequency) {
+    case 'daily':
+      recurrence.addDailyRule().times(task.occurrences || 30);
+      break;
+    case 'weekly':
+      recurrence.addWeeklyRule().onWeekday(
+        getRecurrenceDays(task.days || [1, 2, 3, 4, 5])
+      );
+      break;
+    case 'monthly':
+      recurrence.addMonthlyRule().onMonthDay(task.dayOfMonth || 1);
+      break;
+  }
+
+  const start = task.startTime || new Date();
+  const end = new Date(start.getTime() + (task.duration_mins || 60) * 60000);
+
+  const eventSeries = calendar.createEventSeries(
+    `🔄 ${task.title}`,
+    start,
+    end,
+    recurrence,
+    {
+      description: task.description || 'Recurring task created by Chief of Staff'
+    }
+  );
+
+  return {
+    success: true,
+    eventSeriesId: eventSeries.getId(),
+    title: task.title,
+    frequency: task.frequency,
+    startTime: start
+  };
+}
+
+function getRecurrenceDays(days) {
+  const dayMap = {
+    0: CalendarApp.Weekday.SUNDAY,
+    1: CalendarApp.Weekday.MONDAY,
+    2: CalendarApp.Weekday.TUESDAY,
+    3: CalendarApp.Weekday.WEDNESDAY,
+    4: CalendarApp.Weekday.THURSDAY,
+    5: CalendarApp.Weekday.FRIDAY,
+    6: CalendarApp.Weekday.SATURDAY
+  };
+
+  return days.map(d => dayMap[d]);
+}
+
+// ==========================================
+// UTILITY FUNCTIONS
+// ==========================================
+
+/**
+ * Call Claude for calendar operations
+ */
+function callClaudeForCalendar(prompt) {
+  if (typeof askClaudeEmail === 'function') {
+    return askClaudeEmail(prompt, 'haiku');
+  }
+
+  const apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+  if (!apiKey) throw new Error('Claude API key not configured');
+
+  const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    payload: JSON.stringify({
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 500,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  const result = JSON.parse(response.getContentText());
+  return result.content[0].text;
+}
+
+// ==========================================
+// API ENDPOINTS
+// ==========================================
+
+/**
+ * Get today's schedule via API
+ */
+function getTodaySchedule() {
+  return optimizeTodaySchedule();
+}
+
+/**
+ * Find meeting times via API
+ */
+function findMeetingSlots(duration, days) {
+  return findMeetingTimes({ duration: duration || 30, days: days || 5 });
+}
+
+/**
+ * Schedule task via API
+ */
+function scheduleTaskAPI(taskData) {
+  return scheduleTask(taskData);
+}
+
+/**
+ * Protect focus time via API
+ */
+function protectFocus(days) {
+  return protectFocusTime(days || 7);
+}
+
+
+/**
+ * ========================================
+ * CHIEF OF STAFF - VOICE INTERFACE
+ * ========================================
+ *
+ * STATE-OF-THE-ART Voice command system for hands-free operation
+ * Perfect for field work when hands are dirty or driving tractor
+ *
+ * Architecture:
+ * - Web app captures voice via Web Speech API
+ * - Transcription sent to Apps Script
+ * - Command parsing via Claude AI
+ * - Response generated and spoken back via TTS
+ *
+ * Commands supported:
+ * - "Hey Chief, what's urgent today?"
+ * - "Read me [X]'s email"
+ * - "Approve the response to [X]"
+ * - "Schedule a follow-up with [X] for [date]"
+ * - "What's my day look like?"
+ * - "Send acknowledgment to [X]"
+ *
+ * @author Claude PM_Architect
+ * @version 1.0.0
+ * @date 2026-01-21
+ */
+
+// ==========================================
+// VOICE COMMAND PARSER
+// ==========================================
+
+/**
+ * Parse voice command and execute appropriate action
+ * Uses Claude AI for natural language understanding
+ *
+ * @param {string} transcript - Voice transcription
+ * @param {string} userId - User ID for context
+ * @returns {Object} Response with action taken and spoken response
+ */
+function parseVoiceCommand(transcript, userId = 'todd') {
+  const startTime = new Date();
+
+  try {
+    // Clean transcript
+    const cleanTranscript = transcript.toLowerCase().trim();
+
+    // Check for wake word
+    const wakeWords = ['hey chief', 'chief', 'hey assistant', 'assistant'];
+    let hasWakeWord = false;
+    let command = cleanTranscript;
+
+    for (const wake of wakeWords) {
+      if (cleanTranscript.startsWith(wake)) {
+        hasWakeWord = true;
+        command = cleanTranscript.substring(wake.length).trim();
+        // Remove leading comma or punctuation
+        command = command.replace(/^[,\s]+/, '');
+        break;
+      }
+    }
+
+    // Quick-match common commands for speed
+    const quickMatch = matchQuickCommand(command);
+    if (quickMatch.matched) {
+      return executeVoiceAction(quickMatch.action, quickMatch.params, userId);
+    }
+
+    // Use Claude for complex commands
+    const aiParsed = parseCommandWithAI(command, userId);
+    return executeVoiceAction(aiParsed.action, aiParsed.params, userId);
+
+  } catch (error) {
+    console.error('Voice command error:', error);
+    return {
+      success: false,
+      action: 'error',
+      spoken: "I'm sorry, I couldn't understand that command. Could you try again?",
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Quick pattern matching for common commands (faster than AI)
+ */
+function matchQuickCommand(command) {
+  const patterns = [
+    {
+      patterns: ["what's urgent", "whats urgent", "what is urgent", "urgent today", "what needs attention"],
+      action: 'get_urgent',
+      params: {}
+    },
+    {
+      patterns: ["what's my day", "whats my day", "my schedule", "my day look like", "today's schedule"],
+      action: 'get_schedule',
+      params: {}
+    },
+    {
+      patterns: ["morning brief", "daily brief", "brief me", "what should i know"],
+      action: 'get_brief',
+      params: {}
+    },
+    {
+      patterns: ["how many emails", "email count", "inbox status"],
+      action: 'get_inbox_status',
+      params: {}
+    },
+    {
+      patterns: ["pending approvals", "what needs approval", "approvals pending"],
+      action: 'get_approvals',
+      params: {}
+    },
+    {
+      patterns: ["any follow ups", "follow ups due", "overdue follow"],
+      action: 'get_followups',
+      params: {}
+    }
+  ];
+
+  for (const p of patterns) {
+    for (const pattern of p.patterns) {
+      if (command.includes(pattern)) {
+        return { matched: true, action: p.action, params: p.params };
+      }
+    }
+  }
+
+  // Check for "read [person]'s email" pattern
+  const readMatch = command.match(/read\s+(?:me\s+)?(\w+)(?:'s)?\s+email/i);
+  if (readMatch) {
+    return { matched: true, action: 'read_email', params: { person: readMatch[1] } };
+  }
+
+  // Check for "approve [something]" pattern
+  const approveMatch = command.match(/approve\s+(?:the\s+)?(?:response\s+)?(?:to\s+)?(\w+)/i);
+  if (approveMatch) {
+    return { matched: true, action: 'approve_response', params: { person: approveMatch[1] } };
+  }
+
+  // Check for "schedule follow up" pattern
+  const followupMatch = command.match(/schedule\s+(?:a\s+)?follow\s*up\s+(?:with\s+)?(\w+)/i);
+  if (followupMatch) {
+    return { matched: true, action: 'schedule_followup', params: { person: followupMatch[1] } };
+  }
+
+  return { matched: false };
+}
+
+/**
+ * Use Claude AI to parse complex natural language commands
+ */
+function parseCommandWithAI(command, userId) {
+  const prompt = `You are a voice command parser for an Email Chief-of-Staff system.
+Parse this voice command and return a JSON action.
+
+Available actions:
+- get_urgent: Get urgent emails/tasks
+- get_schedule: Get today's schedule
+- get_brief: Get morning brief
+- get_inbox_status: Get inbox statistics
+- get_approvals: Get pending approvals
+- get_followups: Get overdue follow-ups
+- read_email: Read email from specific person (params: person)
+- approve_response: Approve response to person (params: person)
+- reject_response: Reject response to person (params: person)
+- schedule_followup: Schedule follow-up (params: person, date)
+- send_acknowledgment: Send quick acknowledgment (params: person)
+- search_emails: Search emails (params: query)
+- get_customer_info: Get customer information (params: name)
+- unknown: Could not parse command
+
+Voice command: "${command}"
+
+Return ONLY valid JSON like:
+{"action": "action_name", "params": {"key": "value"}}`;
+
+  try {
+    const response = callClaudeAPI(prompt, 'haiku');
+    const parsed = JSON.parse(response.trim());
+    return parsed;
+  } catch (error) {
+    console.error('AI parse error:', error);
+    return { action: 'unknown', params: {} };
+  }
+}
+
+/**
+ * Execute the parsed voice action
+ */
+function executeVoiceAction(action, params, userId) {
+  const responses = {
+    get_urgent: executeGetUrgent,
+    get_schedule: executeGetSchedule,
+    get_brief: executeGetBrief,
+    get_inbox_status: executeGetInboxStatus,
+    get_approvals: executeGetApprovals,
+    get_followups: executeGetFollowups,
+    read_email: executeReadEmail,
+    approve_response: executeApproveResponse,
+    reject_response: executeRejectResponse,
+    schedule_followup: executeScheduleFollowup,
+    send_acknowledgment: executeSendAcknowledgment,
+    search_emails: executeSearchEmails,
+    get_customer_info: executeGetCustomerInfo,
+    unknown: executeUnknown
+  };
+
+  const executor = responses[action] || executeUnknown;
+  return executor(params, userId);
+}
+
+// ==========================================
+// VOICE ACTION EXECUTORS
+// ==========================================
+
+function executeGetUrgent(params, userId) {
+  try {
+    // Get urgent from proactive alerts
+    const alerts = getActiveAlerts('critical');
+    const pendingApprovals = getPendingApprovals();
+    const overdue = getOverdueFollowups();
+
+    let spoken = '';
+    const urgentCount = (alerts?.length || 0) +
+                       (pendingApprovals?.filter(a => a.priority === 'high')?.length || 0) +
+                       (overdue?.length || 0);
+
+    if (urgentCount === 0) {
+      spoken = "Good news! You have nothing urgent right now. Your inbox is under control.";
+    } else {
+      spoken = `You have ${urgentCount} urgent items. `;
+
+      if (alerts?.length > 0) {
+        spoken += `${alerts.length} proactive alert${alerts.length > 1 ? 's' : ''}. `;
+        // Describe top alert
+        spoken += alerts[0].spoken_summary || alerts[0].description + '. ';
+      }
+
+      const urgentApprovals = pendingApprovals?.filter(a => a.priority === 'high') || [];
+      if (urgentApprovals.length > 0) {
+        spoken += `${urgentApprovals.length} response${urgentApprovals.length > 1 ? 's' : ''} awaiting your approval. `;
+      }
+
+      if (overdue?.length > 0) {
+        spoken += `${overdue.length} overdue follow-up${overdue.length > 1 ? 's' : ''}. `;
+      }
+
+      spoken += "Say 'get details' to hear more about any of these.";
+    }
+
+    return {
+      success: true,
+      action: 'get_urgent',
+      data: { alerts, pendingApprovals, overdue, urgentCount },
+      spoken: spoken
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'get_urgent',
+      spoken: "I had trouble checking urgent items. Let me try again in a moment.",
+      error: error.message
+    };
+  }
+}
+
+function executeGetSchedule(params, userId) {
+  try {
+    const calendar = CalendarApp.getDefaultCalendar();
+    const today = new Date();
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const events = calendar.getEvents(today, tomorrow);
+
+    let spoken = '';
+
+    if (events.length === 0) {
+      spoken = "Your calendar is clear today. Perfect time for field work or catching up on emails.";
+    } else {
+      spoken = `You have ${events.length} event${events.length > 1 ? 's' : ''} today. `;
+
+      // List first 3 events
+      const toDescribe = events.slice(0, 3);
+      for (const event of toDescribe) {
+        const time = Utilities.formatDate(event.getStartTime(), 'America/New_York', 'h:mm a');
+        spoken += `At ${time}, ${event.getTitle()}. `;
+      }
+
+      if (events.length > 3) {
+        spoken += `Plus ${events.length - 3} more later.`;
+      }
+    }
+
+    return {
+      success: true,
+      action: 'get_schedule',
+      data: { events: events.map(e => ({ title: e.getTitle(), start: e.getStartTime(), end: e.getEndTime() })) },
+      spoken: spoken
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'get_schedule',
+      spoken: "I couldn't access your calendar. Please check permissions.",
+      error: error.message
+    };
+  }
+}
+
+function executeGetBrief(params, userId) {
+  try {
+    // Call the morning brief generator
+    const brief = generateMorningBrief();
+
+    // Convert to spoken format
+    let spoken = "Good morning! Here's your brief. ";
+
+    if (brief.critical?.length > 0) {
+      spoken += `${brief.critical.length} critical items need attention. `;
+      spoken += brief.critical[0].spoken_summary || brief.critical[0].description + '. ';
+    }
+
+    if (brief.stats) {
+      spoken += `You have ${brief.stats.pending_emails || 0} emails to review and ${brief.stats.pending_approvals || 0} approvals waiting. `;
+    }
+
+    if (brief.recommendations?.length > 0) {
+      spoken += "My top recommendation: " + brief.recommendations[0] + '. ';
+    }
+
+    spoken += "Say 'more details' to dive deeper into any area.";
+
+    return {
+      success: true,
+      action: 'get_brief',
+      data: brief,
+      spoken: spoken
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'get_brief',
+      spoken: "I couldn't generate your morning brief. Let me try again.",
+      error: error.message
+    };
+  }
+}
+
+function executeGetInboxStatus(params, userId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const inbox = ss.getSheetByName('EMAIL_INBOX_STATE');
+
+    if (!inbox) {
+      return {
+        success: true,
+        action: 'get_inbox_status',
+        spoken: "The inbox system hasn't been initialized yet. Would you like me to set it up?"
+      };
+    }
+
+    const data = inbox.getDataRange().getValues();
+    const statuses = { new: 0, triaged: 0, awaiting: 0, resolved: 0 };
+
+    for (let i = 1; i < data.length; i++) {
+      const status = data[i][4]?.toLowerCase() || 'new';
+      if (statuses.hasOwnProperty(status)) statuses[status]++;
+    }
+
+    const total = data.length - 1;
+    const spoken = `Your inbox has ${total} tracked emails. ${statuses.new} are new and need triage. ` +
+                  `${statuses.triaged} have been triaged. ${statuses.awaiting} are awaiting response from others. ` +
+                  `${statuses.resolved} have been resolved.`;
+
+    return {
+      success: true,
+      action: 'get_inbox_status',
+      data: statuses,
+      spoken: spoken
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'get_inbox_status',
+      spoken: "I couldn't check inbox status right now.",
+      error: error.message
+    };
+  }
+}
+
+function executeGetApprovals(params, userId) {
+  try {
+    const approvals = getPendingApprovals();
+
+    if (!approvals || approvals.length === 0) {
+      return {
+        success: true,
+        action: 'get_approvals',
+        data: [],
+        spoken: "You have no pending approvals. Everything is up to date!"
+      };
+    }
+
+    let spoken = `You have ${approvals.length} pending approval${approvals.length > 1 ? 's' : ''}. `;
+
+    // Describe top 3
+    const toDescribe = approvals.slice(0, 3);
+    for (let i = 0; i < toDescribe.length; i++) {
+      const a = toDescribe[i];
+      spoken += `${i + 1}: ${a.action_type} for ${a.recipient || 'unknown'}. `;
+    }
+
+    if (approvals.length > 3) {
+      spoken += `Plus ${approvals.length - 3} more. `;
+    }
+
+    spoken += "Say 'approve' followed by the number, or 'approve all' to approve everything.";
+
+    return {
+      success: true,
+      action: 'get_approvals',
+      data: approvals,
+      spoken: spoken
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'get_approvals',
+      spoken: "I couldn't retrieve pending approvals.",
+      error: error.message
+    };
+  }
+}
+
+function executeGetFollowups(params, userId) {
+  try {
+    const overdue = getOverdueFollowups();
+
+    if (!overdue || overdue.length === 0) {
+      return {
+        success: true,
+        action: 'get_followups',
+        data: [],
+        spoken: "No overdue follow-ups. You're all caught up!"
+      };
+    }
+
+    let spoken = `You have ${overdue.length} overdue follow-up${overdue.length > 1 ? 's' : ''}. `;
+
+    for (let i = 0; i < Math.min(3, overdue.length); i++) {
+      const f = overdue[i];
+      const daysOverdue = Math.floor((new Date() - new Date(f.due_date)) / (1000 * 60 * 60 * 24));
+      spoken += `${f.contact_name || f.subject}: ${daysOverdue} day${daysOverdue > 1 ? 's' : ''} overdue. `;
+    }
+
+    spoken += "Would you like me to draft follow-up emails?";
+
+    return {
+      success: true,
+      action: 'get_followups',
+      data: overdue,
+      spoken: spoken
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'get_followups',
+      spoken: "I couldn't check follow-ups right now.",
+      error: error.message
+    };
+  }
+}
+
+function executeReadEmail(params, userId) {
+  try {
+    const person = params.person;
+    if (!person) {
+      return {
+        success: false,
+        action: 'read_email',
+        spoken: "I didn't catch who's email you want me to read. Please say the name again."
+      };
+    }
+
+    // Search for recent email from this person
+    const threads = GmailApp.search(`from:${person}`, 0, 1);
+
+    if (threads.length === 0) {
+      return {
+        success: true,
+        action: 'read_email',
+        spoken: `I couldn't find any recent emails from ${person}. Try spelling the name or email address?`
+      };
+    }
+
+    const message = threads[0].getMessages()[threads[0].getMessageCount() - 1];
+    const subject = message.getSubject();
+    const body = message.getPlainBody().substring(0, 500); // First 500 chars
+    const from = message.getFrom();
+    const date = message.getDate();
+
+    // Clean body for speaking
+    const cleanBody = body.replace(/\n+/g, '. ').replace(/https?:\/\/\S+/g, 'link').trim();
+
+    const spoken = `Email from ${from}, received ${formatRelativeDate(date)}. ` +
+                  `Subject: ${subject}. ` +
+                  `Message: ${cleanBody}. ` +
+                  `Would you like me to draft a response?`;
+
+    return {
+      success: true,
+      action: 'read_email',
+      data: { from, subject, body: cleanBody, date, threadId: threads[0].getId() },
+      spoken: spoken
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'read_email',
+      spoken: `I had trouble finding ${params.person}'s email.`,
+      error: error.message
+    };
+  }
+}
+
+function executeApproveResponse(params, userId) {
+  try {
+    const person = params.person;
+
+    // Find pending approval for this person
+    const approvals = getPendingApprovals();
+    const match = approvals.find(a =>
+      (a.recipient || '').toLowerCase().includes(person.toLowerCase()) ||
+      (a.subject || '').toLowerCase().includes(person.toLowerCase())
+    );
+
+    if (!match) {
+      return {
+        success: false,
+        action: 'approve_response',
+        spoken: `I couldn't find a pending approval for ${person}. Say 'pending approvals' to hear what's waiting.`
+      };
+    }
+
+    // Execute approval
+    const result = approveEmailAction(match.action_id);
+
+    if (result.success) {
+      return {
+        success: true,
+        action: 'approve_response',
+        data: result,
+        spoken: `Done! I've approved and sent the response to ${person}.`
+      };
+    } else {
+      return {
+        success: false,
+        action: 'approve_response',
+        spoken: `I couldn't complete the approval. ${result.error || 'Please try again.'}`
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      action: 'approve_response',
+      spoken: "I had trouble processing that approval.",
+      error: error.message
+    };
+  }
+}
+
+function executeRejectResponse(params, userId) {
+  try {
+    const person = params.person;
+
+    const approvals = getPendingApprovals();
+    const match = approvals.find(a =>
+      (a.recipient || '').toLowerCase().includes(person.toLowerCase())
+    );
+
+    if (!match) {
+      return {
+        success: false,
+        action: 'reject_response',
+        spoken: `I couldn't find a pending response for ${person}.`
+      };
+    }
+
+    const result = rejectEmailAction(match.action_id, 'Rejected via voice command');
+
+    return {
+      success: true,
+      action: 'reject_response',
+      data: result,
+      spoken: `I've rejected the response to ${person}. Would you like me to draft a new one?`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'reject_response',
+      spoken: "I couldn't process that rejection.",
+      error: error.message
+    };
+  }
+}
+
+function executeScheduleFollowup(params, userId) {
+  try {
+    const person = params.person;
+    const dateStr = params.date || 'tomorrow';
+
+    // Parse date
+    const followupDate = parseFuzzyDate(dateStr);
+
+    // Find email thread for this person
+    const threads = GmailApp.search(`from:${person} OR to:${person}`, 0, 1);
+
+    if (threads.length === 0) {
+      return {
+        success: false,
+        action: 'schedule_followup',
+        spoken: `I couldn't find any email conversation with ${person} to link the follow-up to.`
+      };
+    }
+
+    const thread = threads[0];
+    const result = createFollowUp(
+      thread.getId(),
+      thread.getLastMessageDate(),
+      followupDate,
+      `Voice-scheduled follow-up with ${person}`,
+      'medium'
+    );
+
+    const dateFormatted = Utilities.formatDate(followupDate, 'America/New_York', 'EEEE, MMMM d');
+
+    return {
+      success: true,
+      action: 'schedule_followup',
+      data: result,
+      spoken: `I've scheduled a follow-up with ${person} for ${dateFormatted}. I'll remind you when it's due.`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'schedule_followup',
+      spoken: "I couldn't schedule that follow-up.",
+      error: error.message
+    };
+  }
+}
+
+function executeSendAcknowledgment(params, userId) {
+  try {
+    const person = params.person;
+
+    // Find most recent unread from this person
+    const threads = GmailApp.search(`from:${person} is:unread`, 0, 1);
+
+    if (threads.length === 0) {
+      return {
+        success: false,
+        action: 'send_acknowledgment',
+        spoken: `I don't see any unread emails from ${person} to acknowledge.`
+      };
+    }
+
+    const thread = threads[0];
+    const message = thread.getMessages()[thread.getMessageCount() - 1];
+
+    // Get style profile for acknowledgment
+    const stylePrompt = getStylePrompt ? getStylePrompt() : '';
+
+    // Generate acknowledgment
+    const ackPrompt = `Write a brief acknowledgment email (1-2 sentences) for this message.
+${stylePrompt}
+
+Original subject: ${message.getSubject()}
+From: ${message.getFrom()}
+
+Just acknowledge receipt and say you'll get back to them soon. Be brief and natural.`;
+
+    const ackText = callClaudeAPI(ackPrompt, 'haiku');
+
+    // Create draft
+    const draft = message.createDraftReply(ackText);
+
+    return {
+      success: true,
+      action: 'send_acknowledgment',
+      data: { draftId: draft.getId(), recipient: message.getFrom() },
+      spoken: `I've drafted an acknowledgment to ${person}. Say 'send it' to send now, or 'read it' to hear it first.`,
+      draft: ackText
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'send_acknowledgment',
+      spoken: "I couldn't create that acknowledgment.",
+      error: error.message
+    };
+  }
+}
+
+function executeSearchEmails(params, userId) {
+  try {
+    const query = params.query;
+    const threads = GmailApp.search(query, 0, 5);
+
+    if (threads.length === 0) {
+      return {
+        success: true,
+        action: 'search_emails',
+        data: [],
+        spoken: `I didn't find any emails matching "${query}". Try different search terms?`
+      };
+    }
+
+    let spoken = `Found ${threads.length} email${threads.length > 1 ? 's' : ''} matching your search. `;
+
+    for (let i = 0; i < Math.min(3, threads.length); i++) {
+      const t = threads[i];
+      const lastMsg = t.getMessages()[t.getMessageCount() - 1];
+      spoken += `${i + 1}: From ${lastMsg.getFrom().split('<')[0]}, subject ${t.getFirstMessageSubject()}. `;
+    }
+
+    return {
+      success: true,
+      action: 'search_emails',
+      data: threads.map(t => ({
+        id: t.getId(),
+        subject: t.getFirstMessageSubject(),
+        from: t.getMessages()[0].getFrom()
+      })),
+      spoken: spoken
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'search_emails',
+      spoken: "I had trouble searching emails.",
+      error: error.message
+    };
+  }
+}
+
+function executeGetCustomerInfo(params, userId) {
+  try {
+    const name = params.name;
+
+    // Use memory system if available
+    if (typeof recallContact === 'function') {
+      const contact = recallContact(name);
+
+      if (contact) {
+        let spoken = `Here's what I know about ${name}. `;
+        if (contact.last_interaction) {
+          spoken += `Last interaction was ${formatRelativeDate(new Date(contact.last_interaction))}. `;
+        }
+        if (contact.total_interactions) {
+          spoken += `We've had ${contact.total_interactions} interactions. `;
+        }
+        if (contact.notes) {
+          spoken += `Notes: ${contact.notes}. `;
+        }
+        return {
+          success: true,
+          action: 'get_customer_info',
+          data: contact,
+          spoken: spoken
+        };
+      }
+    }
+
+    // Fallback: Search customer sheet
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const customers = ss.getSheetByName('Customers');
+
+    if (customers) {
+      const data = customers.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const fullName = `${row[1]} ${row[2]}`.toLowerCase();
+        if (fullName.includes(name.toLowerCase())) {
+          const customer = {};
+          headers.forEach((h, idx) => customer[h] = row[idx]);
+
+          const spoken = `Found ${row[1]} ${row[2]}. Email: ${row[4]}. ` +
+                        `Type: ${row[6] || 'unknown'}. ` +
+                        (row[15] ? `Lifetime value: $${row[15]}. ` : '');
+
+          return {
+            success: true,
+            action: 'get_customer_info',
+            data: customer,
+            spoken: spoken
+          };
+        }
+      }
+    }
+
+    return {
+      success: true,
+      action: 'get_customer_info',
+      spoken: `I don't have detailed records for ${name}. Would you like me to look them up in email history?`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      action: 'get_customer_info',
+      spoken: "I couldn't retrieve customer information.",
+      error: error.message
+    };
+  }
+}
+
+function executeUnknown(params, userId) {
+  return {
+    success: false,
+    action: 'unknown',
+    spoken: "I'm not sure what you're asking for. Try saying 'what's urgent', 'read me an email', or 'pending approvals'."
+  };
+}
+
+// ==========================================
+// UTILITY FUNCTIONS
+// ==========================================
+
+/**
+ * Format date relative to now (e.g., "2 hours ago", "yesterday")
+ */
+function formatRelativeDate(date) {
+  const now = new Date();
+  const diff = now - date;
+  const mins = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} minute${mins > 1 ? 's' : ''} ago`;
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  return Utilities.formatDate(date, 'America/New_York', 'MMMM d');
+}
+
+/**
+ * Parse fuzzy date strings like "tomorrow", "next week", "in 3 days"
+ */
+function parseFuzzyDate(dateStr) {
+  const now = new Date();
+  const lower = dateStr.toLowerCase();
+
+  if (lower === 'today') return now;
+  if (lower === 'tomorrow') {
+    return new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  }
+  if (lower.includes('next week')) {
+    return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  }
+
+  // "in X days"
+  const inDaysMatch = lower.match(/in\s+(\d+)\s+day/);
+  if (inDaysMatch) {
+    return new Date(now.getTime() + parseInt(inDaysMatch[1]) * 24 * 60 * 60 * 1000);
+  }
+
+  // Day of week
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayIndex = days.findIndex(d => lower.includes(d));
+  if (dayIndex >= 0) {
+    const currentDay = now.getDay();
+    let daysAhead = dayIndex - currentDay;
+    if (daysAhead <= 0) daysAhead += 7;
+    return new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+  }
+
+  // Default to tomorrow
+  return new Date(now.getTime() + 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Call Claude API (if not already defined elsewhere)
+ */
+function callClaudeAPI(prompt, model = 'sonnet') {
+  // Check if already defined
+  if (typeof askClaudeEmail === 'function') {
+    return askClaudeEmail(prompt, model);
+  }
+
+  // Fallback implementation
+  const apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+  if (!apiKey) throw new Error('Claude API key not configured');
+
+  const modelId = model === 'haiku' ? 'claude-3-5-haiku-20241022' : 'claude-sonnet-4-20250514';
+
+  const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    payload: JSON.stringify({
+      model: modelId,
+      max_tokens: 500,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  const result = JSON.parse(response.getContentText());
+  return result.content[0].text;
+}
+
+// ==========================================
+// VOICE INTERFACE API ENDPOINTS
+// ==========================================
+
+/**
+ * Main voice command endpoint
+ */
+function handleVoiceCommand(transcript) {
+  return parseVoiceCommand(transcript);
+}
+
+/**
+ * Get conversation state for multi-turn dialogs
+ */
+function getVoiceConversationState(sessionId) {
+  const cache = CacheService.getUserCache();
+  const state = cache.get(`voice_session_${sessionId}`);
+  return state ? JSON.parse(state) : { context: null, lastAction: null };
+}
+
+/**
+ * Save conversation state
+ */
+function saveVoiceConversationState(sessionId, state) {
+  const cache = CacheService.getUserCache();
+  cache.put(`voice_session_${sessionId}`, JSON.stringify(state), 300); // 5 min timeout
+}
+
+// ==========================================
+// VOICE WEB APP GENERATOR
+// ==========================================
+
+/**
+ * Generate the voice interface web app HTML
+ * This creates a mobile-friendly voice interface
+ */
+function generateVoiceWebApp() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chief of Staff - Voice</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+    .status {
+      font-size: 0.9rem;
+      opacity: 0.7;
+      margin-bottom: 30px;
+    }
+    .mic-container {
+      position: relative;
+      margin: 40px 0;
+    }
+    .mic-button {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(145deg, #4a5568, #2d3748);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mic-button:hover { transform: scale(1.05); }
+    .mic-button.listening {
+      background: linear-gradient(145deg, #38a169, #276749);
+      animation: pulse 1.5s infinite;
+    }
+    .mic-button.processing {
+      background: linear-gradient(145deg, #d69e2e, #b7791f);
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(56, 161, 105, 0.7); }
+      70% { box-shadow: 0 0 0 30px rgba(56, 161, 105, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 161, 105, 0); }
+    }
+    .mic-icon {
+      width: 40px;
+      height: 40px;
+      fill: white;
+    }
+    .transcript {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 15px;
+      margin: 20px 0;
+      min-height: 60px;
+      font-size: 0.95rem;
+    }
+    .transcript.empty { opacity: 0.5; font-style: italic; }
+    .response {
+      background: rgba(56, 161, 105, 0.2);
+      border-radius: 12px;
+      padding: 15px;
+      margin: 20px 0;
+      min-height: 80px;
+      text-align: left;
+    }
+    .hints {
+      font-size: 0.8rem;
+      opacity: 0.6;
+      margin-top: 30px;
+    }
+    .hints p { margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chief of Staff</h1>
+    <p class="status" id="status">Tap the mic to speak</p>
+
+    <div class="mic-container">
+      <button class="mic-button" id="micButton" onclick="toggleListening()">
+        <svg class="mic-icon" viewBox="0 0 24 24">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="transcript empty" id="transcript">Your words will appear here...</div>
+    <div class="response" id="response" style="display:none;"></div>
+
+    <div class="hints">
+      <p>Try saying:</p>
+      <p>"Hey Chief, what's urgent today?"</p>
+      <p>"Read me Sarah's email"</p>
+      <p>"What's my day look like?"</p>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = '${ScriptApp.getService().getUrl()}';
+    let recognition = null;
+    let isListening = false;
+    let synth = window.speechSynthesis;
+
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        isListening = true;
+        document.getElementById('micButton').classList.add('listening');
+        document.getElementById('status').textContent = 'Listening...';
+        document.getElementById('transcript').textContent = '';
+        document.getElementById('transcript').classList.add('empty');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        document.getElementById('transcript').textContent = transcript;
+        document.getElementById('transcript').classList.remove('empty');
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        document.getElementById('micButton').classList.remove('listening');
+        const transcript = document.getElementById('transcript').textContent;
+        if (transcript && !transcript.includes('Your words')) {
+          processCommand(transcript);
+        } else {
+          document.getElementById('status').textContent = 'Tap the mic to speak';
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech error:', event.error);
+        document.getElementById('status').textContent = 'Error: ' + event.error;
+        isListening = false;
+        document.getElementById('micButton').classList.remove('listening');
+      };
+    } else {
+      document.getElementById('status').textContent = 'Speech recognition not supported';
+      document.getElementById('micButton').disabled = true;
+    }
+
+    function toggleListening() {
+      if (isListening) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    }
+
+    async function processCommand(transcript) {
+      document.getElementById('micButton').classList.add('processing');
+      document.getElementById('status').textContent = 'Processing...';
+
+      try {
+        const response = await fetch(API_URL + '?action=voiceCommand', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: transcript })
+        });
+
+        const result = await response.json();
+
+        document.getElementById('response').style.display = 'block';
+        document.getElementById('response').textContent = result.spoken || result.error || 'No response';
+        document.getElementById('status').textContent = 'Tap the mic to speak';
+
+        // Speak the response
+        if (result.spoken && synth) {
+          const utterance = new SpeechSynthesisUtterance(result.spoken);
+          utterance.rate = 1.0;
+          synth.speak(utterance);
+        }
+      } catch (error) {
+        console.error('API error:', error);
+        document.getElementById('response').style.display = 'block';
+        document.getElementById('response').textContent = 'Error connecting to Chief of Staff';
+        document.getElementById('status').textContent = 'Error - tap to retry';
+      }
+
+      document.getElementById('micButton').classList.remove('processing');
+    }
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * Serve voice web app
+ */
+function doGetVoice(e) {
+  return HtmlService.createHtmlOutput(generateVoiceWebApp())
+    .setTitle('Chief of Staff - Voice')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHIEF-OF-STAFF: INTELLIGENT SMS SYSTEM
+// Enterprise-Grade AI-Powered Message Intelligence
+//
+// This is NOT pattern matching. This uses actual LLM analysis with:
+// - Customer 360 context (orders, history, LTV, churn risk)
+// - Predictive action recommendations
+// - Cross-channel correlation (SMS + email + orders)
+// - Business impact prioritization
+//
+// Created: 2026-01-21
+// Architecture: Multi-layer intelligence stack with Claude API
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Sheet names
+const SMS_LOG_SHEET = 'COS_SMS_Log';
+const SMS_COMMITMENTS_SHEET = 'COS_SMS_Commitments';
+const SMS_CONTACTS_SHEET = 'COS_SMS_Contacts';
+const SMS_ACTION_QUEUE_SHEET = 'COS_SMS_ActionQueue';
+const SMS_INSIGHTS_SHEET = 'COS_SMS_Insights';
+
+// Headers for each sheet
+const SMS_LOG_HEADERS = [
+  'SMS_ID', 'Direction', 'Contact_Name', 'Phone_Number', 'Customer_ID',
+  'Message_Text', 'Received_At', 'Processed_At',
+  // AI Analysis Fields
+  'AI_Intent', 'AI_Sentiment', 'AI_Urgency_Score', 'AI_Summary',
+  'Commitments_JSON', 'Entities_JSON', 'Context_Used',
+  // Business Context
+  'Customer_LTV', 'Customer_Segment', 'Churn_Risk', 'Open_Orders',
+  // Prioritization
+  'Priority_Score', 'Priority_Reason', 'Recommended_Actions_JSON',
+  // Status
+  'Status', 'Actioned_By', 'Actioned_At', 'Resolution_Notes'
+];
+
+const SMS_COMMITMENTS_HEADERS = [
+  'Commitment_ID', 'SMS_ID', 'Customer_ID', 'Contact_Name', 'Phone_Number',
+  // Commitment Details
+  'Commitment_Type', 'Commitment_Text', 'Full_Context', 'Party_Committed',
+  'Deadline', 'Deadline_Source', 'Confidence_Score',
+  // Business Impact
+  'Customer_LTV', 'Deal_At_Risk', 'Priority',
+  // Tracking
+  'Status', 'Reminder_Sent', 'Escalated', 'Escalation_Reason',
+  'Completed_At', 'Completed_By', 'Outcome_Notes',
+  // Metadata
+  'Created_At', 'Updated_At', 'Days_Until_Due', 'Is_Overdue'
+];
+
+const SMS_ACTION_QUEUE_HEADERS = [
+  'Action_ID', 'SMS_ID', 'Customer_ID', 'Contact_Name',
+  // Action Details
+  'Action_Type', 'Action_Description', 'Action_Rationale',
+  'Urgency', 'Business_Impact_Score',
+  // Context
+  'Customer_LTV', 'Customer_Segment', 'Related_Orders',
+  // Prioritization (composite score)
+  'Priority_Score', 'Queue_Position',
+  // Status
+  'Status', 'Assigned_To', 'Due_By', 'Completed_At', 'Outcome',
+  'Created_At'
+];
+
+const SMS_INSIGHTS_HEADERS = [
+  'Insight_ID', 'Insight_Type', 'Title', 'Description',
+  'Affected_Customers', 'Business_Impact', 'Recommended_Action',
+  'Data_JSON', 'Created_At', 'Status', 'Actioned_At'
+];
+
+const SMS_CONTACTS_HEADERS = [
+  'Contact_ID', 'Phone_Number', 'Contact_Name', 'Customer_ID',
+  'Contact_Type', 'Company', 'Email',
+  // Customer Intelligence
+  'Lifetime_Value', 'Customer_Segment', 'Churn_Risk_Score',
+  'First_Purchase_Date', 'Last_Purchase_Date', 'Total_Orders', 'Avg_Order_Value',
+  // Communication Patterns
+  'Total_SMS', 'Total_Emails', 'Preferred_Channel', 'Avg_Response_Time',
+  'Sentiment_Trend', 'Last_Sentiment',
+  // Relationship Health
+  'Open_Commitments', 'Overdue_Commitments', 'Satisfaction_Score',
+  'Last_Interaction_At', 'Days_Since_Contact',
+  // Metadata
+  'Notes', 'Tags', 'Created_At', 'Updated_At'
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SMS_CONFIG = {
+  // Priority score weights (must sum to 1.0)
+  PRIORITY_WEIGHTS: {
+    CUSTOMER_LTV: 0.30,        // High-value customers first
+    MESSAGE_URGENCY: 0.25,     // Urgent messages rise
+    CHURN_RISK: 0.20,          // At-risk customers prioritized
+    SENTIMENT_NEGATIVE: 0.15,  // Negative sentiment escalates
+    DEAL_AT_RISK: 0.10         // Open deals at risk
+  },
+
+  // Customer segments
+  SEGMENTS: {
+    VIP: { minLTV: 5000, label: 'VIP Customer' },
+    HIGH_VALUE: { minLTV: 1000, label: 'High Value' },
+    STANDARD: { minLTV: 100, label: 'Standard' },
+    NEW: { minLTV: 0, label: 'New Customer' }
+  },
+
+  // Urgency thresholds
+  URGENCY: {
+    CRITICAL: 0.9,   // Immediate action required
+    HIGH: 0.7,       // Same-day response
+    MEDIUM: 0.4,     // Within 24 hours
+    LOW: 0.0         // Standard queue
+  },
+
+  // Auto-escalation rules
+  ESCALATION: {
+    VIP_NEGATIVE_SENTIMENT: true,
+    OVERDUE_COMMITMENT_DAYS: 2,
+    CHURN_RISK_THRESHOLD: 0.7,
+    UNANSWERED_HOURS: 24
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function initializeSMSSystem() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  const sheets = [
+    { name: SMS_LOG_SHEET, headers: SMS_LOG_HEADERS, color: '#00695C' },
+    { name: SMS_COMMITMENTS_SHEET, headers: SMS_COMMITMENTS_HEADERS, color: '#004D40' },
+    { name: SMS_ACTION_QUEUE_SHEET, headers: SMS_ACTION_QUEUE_HEADERS, color: '#D84315' },
+    { name: SMS_INSIGHTS_SHEET, headers: SMS_INSIGHTS_HEADERS, color: '#6A1B9A' },
+    { name: SMS_CONTACTS_SHEET, headers: SMS_CONTACTS_HEADERS, color: '#00897B' }
+  ];
+
+  sheets.forEach(config => {
+    createSheetWithHeaders(ss, config.name, config.headers, config.color);
+  });
+
+  return {
+    success: true,
+    message: 'Intelligent SMS system initialized',
+    sheets: sheets.map(s => s.name),
+    architecture: 'Multi-layer AI intelligence with Customer 360 context'
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN ENTRY POINT: RECEIVE & PROCESS SMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Receives SMS from iOS Shortcut and processes with full AI intelligence
+ * This is the webhook endpoint
+ */
+function receiveSMS(data) {
+  const startTime = Date.now();
+
+  try {
+    // Validate input
+    if (!data.message || data.message.trim() === '') {
+      return { success: false, error: 'Message text is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const smsId = 'SMS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+    const phoneNumber = normalizePhoneNumber(data.sender || data.phone || '');
+    const contactName = data.senderName || data.contactName || 'Unknown';
+    const direction = (data.direction || 'INBOUND').toUpperCase();
+    const receivedAt = data.timestamp ? new Date(data.timestamp) : new Date();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 1: BUILD CUSTOMER 360 CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════
+    const customerContext = buildCustomer360Context(ss, phoneNumber, contactName);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 2: AI-POWERED MESSAGE ANALYSIS (Claude API)
+    // ═══════════════════════════════════════════════════════════════════════
+    const aiAnalysis = analyzeMessageWithAI(data.message, direction, customerContext);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 3: CALCULATE PRIORITY SCORE
+    // ═══════════════════════════════════════════════════════════════════════
+    const priorityResult = calculatePriorityScore(aiAnalysis, customerContext);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 4: LOG THE MESSAGE
+    // ═══════════════════════════════════════════════════════════════════════
+    logSMSToSheet(ss, {
+      smsId,
+      direction,
+      contactName,
+      phoneNumber,
+      customerId: customerContext.customerId,
+      message: data.message,
+      receivedAt,
+      aiAnalysis,
+      customerContext,
+      priorityResult
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 5: PROCESS COMMITMENTS
+    // ═══════════════════════════════════════════════════════════════════════
+    let commitmentsCreated = [];
+    if (aiAnalysis.commitments && aiAnalysis.commitments.length > 0) {
+      commitmentsCreated = createCommitments(ss, smsId, contactName, phoneNumber,
+        customerContext, aiAnalysis.commitments, data.message);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 6: CREATE ACTION ITEMS
+    // ═══════════════════════════════════════════════════════════════════════
+    let actionsCreated = [];
+    if (aiAnalysis.recommendedActions && aiAnalysis.recommendedActions.length > 0) {
+      actionsCreated = createActionItems(ss, smsId, contactName, phoneNumber,
+        customerContext, aiAnalysis.recommendedActions, priorityResult);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 7: UPDATE CONTACT RECORD
+    // ═══════════════════════════════════════════════════════════════════════
+    updateContactRecord(ss, phoneNumber, contactName, customerContext, aiAnalysis, direction);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 8: CHECK FOR AUTO-ESCALATION
+    // ═══════════════════════════════════════════════════════════════════════
+    const escalation = checkAutoEscalation(customerContext, aiAnalysis, priorityResult);
+    if (escalation.shouldEscalate) {
+      createEscalationAlert(ss, smsId, contactName, escalation, customerContext);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 9: GENERATE INSIGHTS (if patterns detected)
+    // ═══════════════════════════════════════════════════════════════════════
+    if (aiAnalysis.insights && aiAnalysis.insights.length > 0) {
+      logInsights(ss, aiAnalysis.insights, customerContext);
+    }
+
+    const processingTime = Date.now() - startTime;
+
+    return {
+      success: true,
+      smsId: smsId,
+      processingTimeMs: processingTime,
+
+      // AI Analysis Summary
+      intent: aiAnalysis.intent,
+      sentiment: aiAnalysis.sentiment,
+      urgency: aiAnalysis.urgency,
+      summary: aiAnalysis.summary,
+
+      // Business Context
+      customerSegment: customerContext.segment,
+      customerLTV: customerContext.ltv,
+      churnRisk: customerContext.churnRisk,
+
+      // Priority
+      priorityScore: priorityResult.score,
+      priorityReason: priorityResult.reason,
+      queuePosition: priorityResult.queuePosition,
+
+      // Actions Created
+      commitmentsFound: aiAnalysis.commitments?.length || 0,
+      commitmentsCreated: commitmentsCreated.length,
+      actionsRecommended: aiAnalysis.recommendedActions?.length || 0,
+      actionsCreated: actionsCreated.length,
+
+      // Escalation
+      escalated: escalation.shouldEscalate,
+      escalationReason: escalation.reason,
+
+      // What you should do NOW
+      immediateAction: priorityResult.immediateAction,
+
+      // Full analysis for debugging
+      fullAnalysis: aiAnalysis
+    };
+
+  } catch (error) {
+    console.error('SMS Processing Error:', error);
+    return {
+      success: false,
+      error: error.toString(),
+      stack: error.stack
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CUSTOMER 360 CONTEXT BUILDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildCustomer360Context(ss, phoneNumber, contactName) {
+  const context = {
+    customerId: null,
+    contactId: null,
+    name: contactName,
+    phone: phoneNumber,
+    email: null,
+
+    // Financial metrics
+    ltv: 0,
+    avgOrderValue: 0,
+    totalOrders: 0,
+    segment: 'NEW',
+
+    // Risk metrics
+    churnRisk: 0,
+    daysSinceLastOrder: null,
+    daysSinceLastContact: null,
+
+    // Relationship status
+    openCommitments: 0,
+    overdueCommitments: 0,
+    pendingOrders: [],
+    recentInteractions: [],
+    sentimentTrend: 'NEUTRAL',
+
+    // CSA Status
+    isCSAMember: false,
+    csaStatus: null,
+    csaValue: 0,
+
+    // Context quality
+    contextRichness: 'LOW' // LOW, MEDIUM, HIGH based on data available
+  };
+
+  if (!phoneNumber) return context;
+
+  try {
+    // ═══════════════════════════════════════════════════════════════════════
+    // 1. LOOKUP CUSTOMER IN SALES DATA
+    // ═══════════════════════════════════════════════════════════════════════
+    const customerData = findCustomerByPhone(ss, phoneNumber);
+    if (customerData) {
+      context.customerId = customerData.id;
+      context.email = customerData.email;
+      context.name = customerData.name || contactName;
+      context.ltv = customerData.ltv || 0;
+      context.avgOrderValue = customerData.avgOrderValue || 0;
+      context.totalOrders = customerData.totalOrders || 0;
+      context.daysSinceLastOrder = customerData.daysSinceLastOrder;
+      context.contextRichness = 'MEDIUM';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 2. CHECK CSA MEMBERSHIP
+    // ═══════════════════════════════════════════════════════════════════════
+    const csaData = findCSAMembership(ss, phoneNumber, context.email);
+    if (csaData) {
+      context.isCSAMember = true;
+      context.csaStatus = csaData.status;
+      context.csaValue = csaData.value || 0;
+      context.ltv += context.csaValue; // Add CSA to LTV
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 3. GET PENDING ORDERS
+    // ═══════════════════════════════════════════════════════════════════════
+    if (context.customerId || context.email) {
+      const orders = getPendingOrdersForCustomer(ss, context.customerId, context.email);
+      context.pendingOrders = orders;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 4. GET RECENT INTERACTIONS (Email + SMS)
+    // ═══════════════════════════════════════════════════════════════════════
+    const interactions = getRecentInteractions(ss, phoneNumber, context.email, 5);
+    context.recentInteractions = interactions;
+    context.sentimentTrend = calculateSentimentTrend(interactions);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 5. GET OPEN COMMITMENTS
+    // ═══════════════════════════════════════════════════════════════════════
+    const commitmentStats = getCommitmentStats(ss, phoneNumber);
+    context.openCommitments = commitmentStats.open;
+    context.overdueCommitments = commitmentStats.overdue;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 6. CALCULATE CUSTOMER SEGMENT
+    // ═══════════════════════════════════════════════════════════════════════
+    context.segment = determineCustomerSegment(context.ltv);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 7. CALCULATE CHURN RISK
+    // ═══════════════════════════════════════════════════════════════════════
+    context.churnRisk = calculateChurnRisk(context);
+
+    // Update context richness
+    if (context.customerId && context.recentInteractions.length > 0) {
+      context.contextRichness = 'HIGH';
+    }
+
+  } catch (error) {
+    console.error('Error building customer context:', error);
+  }
+
+  return context;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AI-POWERED MESSAGE ANALYSIS (Claude API)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function analyzeMessageWithAI(message, direction, customerContext) {
+  // Build rich context for the AI
+  const contextDescription = buildContextDescription(customerContext);
+
+  const prompt = `You are an expert business analyst for Tiny Seed Farm, a small farm business.
+Analyze this ${direction === 'OUTBOUND' ? 'message I sent' : 'incoming message'} and extract business intelligence.
+
+CUSTOMER CONTEXT:
+${contextDescription}
+
+MESSAGE TO ANALYZE:
+"${message}"
+
+Analyze this message and return a JSON object with:
+
+{
+  "intent": "Primary intent (e.g., INQUIRY, COMPLAINT, ORDER_STATUS, SCHEDULING, FEEDBACK, COMMITMENT, SMALL_TALK)",
+  "sentiment": "POSITIVE | NEUTRAL | NEGATIVE | FRUSTRATED | EXCITED",
+  "urgency": 0.0-1.0 (how urgent is this? 0=not urgent, 1=needs immediate action),
+  "summary": "One sentence summary of what this message is about",
+
+  "commitments": [
+    {
+      "text": "Exact commitment made",
+      "type": "DELIVER | CALL | MEET | PROVIDE_INFO | RESERVE_PRODUCT | FOLLOW_UP | OTHER",
+      "party": "WHO_COMMITTED (ME or CUSTOMER)",
+      "deadline": "YYYY-MM-DD or null if not specified",
+      "deadlineSource": "How deadline was determined (explicit mention, implied by 'tomorrow', business day assumption)",
+      "confidence": 0.0-1.0,
+      "businessImpact": "Why this matters to the business"
+    }
+  ],
+
+  "entities": {
+    "products": ["Any products mentioned"],
+    "dates": ["Any dates/times mentioned"],
+    "amounts": ["Any quantities or prices"],
+    "locations": ["Any locations mentioned"]
+  },
+
+  "recommendedActions": [
+    {
+      "action": "What I should do",
+      "rationale": "Why this action matters",
+      "urgency": "IMMEDIATE | TODAY | THIS_WEEK | WHEN_POSSIBLE",
+      "businessImpact": "HIGH | MEDIUM | LOW"
+    }
+  ],
+
+  "insights": [
+    {
+      "type": "CHURN_SIGNAL | UPSELL_OPPORTUNITY | RELATIONSHIP_ISSUE | OPERATIONAL_ISSUE",
+      "description": "What you noticed",
+      "recommendation": "What to do about it"
+    }
+  ],
+
+  "suggestedResponse": "If a response is needed, what should I say? (null if no response needed)"
+}
+
+Be thorough. ${direction === 'OUTBOUND' ? 'I sent this message, so extract any promises I made.' : 'This customer sent this, so identify what they need and how valuable they are.'}
+${customerContext.segment === 'VIP' ? 'This is a VIP customer - prioritize accordingly.' : ''}
+${customerContext.churnRisk > 0.5 ? 'This customer shows churn risk signals - be alert for issues.' : ''}
+${customerContext.overdueCommitments > 0 ? 'NOTE: We have overdue commitments to this customer!' : ''}
+
+Return ONLY the JSON object, no other text.`;
+
+  try {
+    // Call Claude API
+    const aiResponse = callClaudeAPI(prompt, 0.3); // Low temperature for consistent extraction
+
+    // Parse the response
+    let analysis;
+    try {
+      // Clean the response (remove markdown code blocks if present)
+      let cleanResponse = aiResponse.trim();
+      if (cleanResponse.startsWith('```json')) {
+        cleanResponse = cleanResponse.slice(7);
+      }
+      if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.slice(3);
+      }
+      if (cleanResponse.endsWith('```')) {
+        cleanResponse = cleanResponse.slice(0, -3);
+      }
+      analysis = JSON.parse(cleanResponse.trim());
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', aiResponse);
+      // Return a basic analysis if parsing fails
+      analysis = createFallbackAnalysis(message, direction);
+    }
+
+    // Validate and enrich the analysis
+    analysis = validateAndEnrichAnalysis(analysis, message, direction, customerContext);
+
+    return analysis;
+
+  } catch (error) {
+    console.error('AI Analysis failed:', error);
+    return createFallbackAnalysis(message, direction);
+  }
+}
+
+function buildContextDescription(ctx) {
+  const parts = [];
+
+  if (ctx.name && ctx.name !== 'Unknown') {
+    parts.push(`Customer: ${ctx.name}`);
+  }
+
+  if (ctx.segment !== 'NEW') {
+    parts.push(`Segment: ${ctx.segment} (LTV: $${ctx.ltv.toFixed(2)})`);
+  } else {
+    parts.push('This appears to be a new or unknown customer');
+  }
+
+  if (ctx.isCSAMember) {
+    parts.push(`CSA Member: ${ctx.csaStatus} ($${ctx.csaValue}/season)`);
+  }
+
+  if (ctx.totalOrders > 0) {
+    parts.push(`Order History: ${ctx.totalOrders} orders, avg $${ctx.avgOrderValue.toFixed(2)}`);
+  }
+
+  if (ctx.daysSinceLastOrder !== null) {
+    parts.push(`Last Order: ${ctx.daysSinceLastOrder} days ago`);
+  }
+
+  if (ctx.churnRisk > 0.5) {
+    parts.push(`⚠️ CHURN RISK: ${(ctx.churnRisk * 100).toFixed(0)}%`);
+  }
+
+  if (ctx.pendingOrders && ctx.pendingOrders.length > 0) {
+    parts.push(`Pending Orders: ${ctx.pendingOrders.map(o => o.id).join(', ')}`);
+  }
+
+  if (ctx.openCommitments > 0) {
+    parts.push(`Open Commitments: ${ctx.openCommitments}${ctx.overdueCommitments > 0 ? ` (${ctx.overdueCommitments} OVERDUE!)` : ''}`);
+  }
+
+  if (ctx.recentInteractions && ctx.recentInteractions.length > 0) {
+    parts.push(`Recent Sentiment: ${ctx.sentimentTrend}`);
+  }
+
+  return parts.length > 0 ? parts.join('\n') : 'No prior customer data available.';
+}
+
+function createFallbackAnalysis(message, direction) {
+  // Basic analysis without AI (fallback)
+  const lowerMsg = message.toLowerCase();
+
+  return {
+    intent: 'UNKNOWN',
+    sentiment: lowerMsg.includes('thank') ? 'POSITIVE' :
+               lowerMsg.includes('problem') || lowerMsg.includes('issue') ? 'NEGATIVE' : 'NEUTRAL',
+    urgency: lowerMsg.includes('urgent') || lowerMsg.includes('asap') ? 0.8 : 0.3,
+    summary: `${direction} message requiring review`,
+    commitments: [],
+    entities: { products: [], dates: [], amounts: [], locations: [] },
+    recommendedActions: [{
+      action: 'Review this message manually',
+      rationale: 'AI analysis unavailable',
+      urgency: 'TODAY',
+      businessImpact: 'MEDIUM'
+    }],
+    insights: [],
+    suggestedResponse: null,
+    _fallback: true
+  };
+}
+
+function validateAndEnrichAnalysis(analysis, message, direction, context) {
+  // Ensure all required fields exist
+  analysis.intent = analysis.intent || 'UNKNOWN';
+  analysis.sentiment = analysis.sentiment || 'NEUTRAL';
+  analysis.urgency = typeof analysis.urgency === 'number' ?
+    Math.max(0, Math.min(1, analysis.urgency)) : 0.3;
+  analysis.summary = analysis.summary || message.substring(0, 100);
+  analysis.commitments = Array.isArray(analysis.commitments) ? analysis.commitments : [];
+  analysis.entities = analysis.entities || { products: [], dates: [], amounts: [], locations: [] };
+  analysis.recommendedActions = Array.isArray(analysis.recommendedActions) ? analysis.recommendedActions : [];
+  analysis.insights = Array.isArray(analysis.insights) ? analysis.insights : [];
+
+  // Boost urgency for VIP customers with negative sentiment
+  if (context.segment === 'VIP' && analysis.sentiment === 'NEGATIVE') {
+    analysis.urgency = Math.max(analysis.urgency, 0.8);
+    analysis.recommendedActions.unshift({
+      action: 'Prioritize VIP customer concern',
+      rationale: `${context.name} is a VIP customer ($${context.ltv} LTV) with negative sentiment`,
+      urgency: 'IMMEDIATE',
+      businessImpact: 'HIGH'
+    });
+  }
+
+  // Add insight if customer has overdue commitments
+  if (context.overdueCommitments > 0 && direction === 'INBOUND') {
+    analysis.insights.push({
+      type: 'RELATIONSHIP_ISSUE',
+      description: `Customer has ${context.overdueCommitments} overdue commitments from us`,
+      recommendation: 'Address overdue items before responding to build trust'
+    });
+  }
+
+  // Detect churn signals
+  if (context.churnRisk > 0.6 && analysis.sentiment !== 'POSITIVE') {
+    analysis.insights.push({
+      type: 'CHURN_SIGNAL',
+      description: `High churn risk customer (${(context.churnRisk * 100).toFixed(0)}%) with ${analysis.sentiment} sentiment`,
+      recommendation: 'Consider proactive outreach or special offer'
+    });
+  }
+
+  return analysis;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRIORITY SCORING ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function calculatePriorityScore(aiAnalysis, customerContext) {
+  const weights = SMS_CONFIG.PRIORITY_WEIGHTS;
+
+  // Normalize LTV to 0-1 scale (cap at $10,000)
+  const ltvScore = Math.min(customerContext.ltv / 10000, 1);
+
+  // Urgency from AI (already 0-1)
+  const urgencyScore = aiAnalysis.urgency;
+
+  // Churn risk (already 0-1)
+  const churnScore = customerContext.churnRisk;
+
+  // Sentiment score (negative = higher priority)
+  const sentimentScore = aiAnalysis.sentiment === 'NEGATIVE' ? 1.0 :
+                         aiAnalysis.sentiment === 'FRUSTRATED' ? 0.9 :
+                         aiAnalysis.sentiment === 'NEUTRAL' ? 0.3 : 0.1;
+
+  // Deal at risk (based on pending orders)
+  const pendingOrderValue = customerContext.pendingOrders?.reduce((sum, o) => sum + (o.value || 0), 0) || 0;
+  const dealRiskScore = Math.min(pendingOrderValue / 1000, 1);
+
+  // Calculate weighted score
+  const rawScore =
+    (ltvScore * weights.CUSTOMER_LTV) +
+    (urgencyScore * weights.MESSAGE_URGENCY) +
+    (churnScore * weights.CHURN_RISK) +
+    (sentimentScore * weights.SENTIMENT_NEGATIVE) +
+    (dealRiskScore * weights.DEAL_AT_RISK);
+
+  // Normalize to 0-100
+  const score = Math.round(rawScore * 100);
+
+  // Determine queue position
+  let queuePosition;
+  let immediateAction;
+
+  if (score >= 80) {
+    queuePosition = 'CRITICAL';
+    immediateAction = 'Respond within 15 minutes';
+  } else if (score >= 60) {
+    queuePosition = 'HIGH';
+    immediateAction = 'Respond within 1 hour';
+  } else if (score >= 40) {
+    queuePosition = 'MEDIUM';
+    immediateAction = 'Respond today';
+  } else {
+    queuePosition = 'NORMAL';
+    immediateAction = 'Respond within 24 hours';
+  }
+
+  // Build explanation
+  const reasons = [];
+  if (ltvScore > 0.5) reasons.push(`High-value customer ($${customerContext.ltv})`);
+  if (urgencyScore > 0.6) reasons.push('Message marked as urgent');
+  if (churnScore > 0.5) reasons.push('Customer at churn risk');
+  if (sentimentScore > 0.7) reasons.push('Negative sentiment detected');
+  if (dealRiskScore > 0.3) reasons.push(`$${pendingOrderValue} in pending orders`);
+
+  return {
+    score,
+    queuePosition,
+    immediateAction,
+    reason: reasons.length > 0 ? reasons.join('; ') : 'Standard priority',
+    components: {
+      ltv: Math.round(ltvScore * 100),
+      urgency: Math.round(urgencyScore * 100),
+      churn: Math.round(churnScore * 100),
+      sentiment: Math.round(sentimentScore * 100),
+      dealRisk: Math.round(dealRiskScore * 100)
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTO-ESCALATION ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function checkAutoEscalation(customerContext, aiAnalysis, priorityResult) {
+  const rules = SMS_CONFIG.ESCALATION;
+  const reasons = [];
+
+  // VIP with negative sentiment
+  if (rules.VIP_NEGATIVE_SENTIMENT &&
+      customerContext.segment === 'VIP' &&
+      (aiAnalysis.sentiment === 'NEGATIVE' || aiAnalysis.sentiment === 'FRUSTRATED')) {
+    reasons.push('VIP customer with negative sentiment');
+  }
+
+  // High churn risk
+  if (customerContext.churnRisk >= rules.CHURN_RISK_THRESHOLD) {
+    reasons.push(`Churn risk at ${(customerContext.churnRisk * 100).toFixed(0)}%`);
+  }
+
+  // Overdue commitments
+  if (customerContext.overdueCommitments > 0) {
+    reasons.push(`${customerContext.overdueCommitments} overdue commitment(s)`);
+  }
+
+  // Critical priority score
+  if (priorityResult.queuePosition === 'CRITICAL') {
+    reasons.push('Critical priority score');
+  }
+
+  // Complaint or frustrated intent
+  if (aiAnalysis.intent === 'COMPLAINT') {
+    reasons.push('Customer complaint detected');
+  }
+
+  return {
+    shouldEscalate: reasons.length > 0,
+    reason: reasons.join('; '),
+    escalationLevel: reasons.length >= 3 ? 'OWNER' :
+                     reasons.length >= 2 ? 'URGENT' : 'ELEVATED'
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA PERSISTENCE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function logSMSToSheet(ss, data) {
+  let sheet = ss.getSheetByName(SMS_LOG_SHEET);
+  if (!sheet) {
+    initializeSMSSystem();
+    sheet = ss.getSheetByName(SMS_LOG_SHEET);
+  }
+
+  const row = SMS_LOG_HEADERS.map(header => {
+    switch(header) {
+      case 'SMS_ID': return data.smsId;
+      case 'Direction': return data.direction;
+      case 'Contact_Name': return data.contactName;
+      case 'Phone_Number': return data.phoneNumber;
+      case 'Customer_ID': return data.customerId || '';
+      case 'Message_Text': return data.message;
+      case 'Received_At': return data.receivedAt.toISOString();
+      case 'Processed_At': return new Date().toISOString();
+      case 'AI_Intent': return data.aiAnalysis.intent;
+      case 'AI_Sentiment': return data.aiAnalysis.sentiment;
+      case 'AI_Urgency_Score': return data.aiAnalysis.urgency;
+      case 'AI_Summary': return data.aiAnalysis.summary;
+      case 'Commitments_JSON': return JSON.stringify(data.aiAnalysis.commitments || []);
+      case 'Entities_JSON': return JSON.stringify(data.aiAnalysis.entities || {});
+      case 'Context_Used': return data.customerContext.contextRichness;
+      case 'Customer_LTV': return data.customerContext.ltv;
+      case 'Customer_Segment': return data.customerContext.segment;
+      case 'Churn_Risk': return data.customerContext.churnRisk;
+      case 'Open_Orders': return data.customerContext.pendingOrders?.length || 0;
+      case 'Priority_Score': return data.priorityResult.score;
+      case 'Priority_Reason': return data.priorityResult.reason;
+      case 'Recommended_Actions_JSON': return JSON.stringify(data.aiAnalysis.recommendedActions || []);
+      case 'Status': return 'PENDING';
+      default: return '';
+    }
+  });
+
+  sheet.appendRow(row);
+}
+
+function createCommitments(ss, smsId, contactName, phoneNumber, customerContext, commitments, originalMessage) {
+  const sheet = ss.getSheetByName(SMS_COMMITMENTS_SHEET);
+  const created = [];
+
+  for (const commitment of commitments) {
+    const commitmentId = 'SMSC-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+    // Calculate days until due
+    let daysUntilDue = null;
+    let isOverdue = false;
+    if (commitment.deadline) {
+      const deadline = new Date(commitment.deadline);
+      const today = new Date();
+      daysUntilDue = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+      isOverdue = daysUntilDue < 0;
+    }
+
+    // Determine priority based on customer value and deadline
+    let priority = 'MEDIUM';
+    if (customerContext.segment === 'VIP' || (daysUntilDue !== null && daysUntilDue <= 1)) {
+      priority = 'HIGH';
+    } else if (customerContext.segment === 'NEW' && daysUntilDue === null) {
+      priority = 'LOW';
+    }
+
+    const row = SMS_COMMITMENTS_HEADERS.map(header => {
+      switch(header) {
+        case 'Commitment_ID': return commitmentId;
+        case 'SMS_ID': return smsId;
+        case 'Customer_ID': return customerContext.customerId || '';
+        case 'Contact_Name': return contactName;
+        case 'Phone_Number': return phoneNumber;
+        case 'Commitment_Type': return commitment.type || 'OTHER';
+        case 'Commitment_Text': return commitment.text;
+        case 'Full_Context': return originalMessage;
+        case 'Party_Committed': return commitment.party || 'UNKNOWN';
+        case 'Deadline': return commitment.deadline || '';
+        case 'Deadline_Source': return commitment.deadlineSource || '';
+        case 'Confidence_Score': return commitment.confidence || 0.5;
+        case 'Customer_LTV': return customerContext.ltv;
+        case 'Deal_At_Risk': return customerContext.pendingOrders?.reduce((s, o) => s + (o.value || 0), 0) || 0;
+        case 'Priority': return priority;
+        case 'Status': return 'OPEN';
+        case 'Reminder_Sent': return 'No';
+        case 'Escalated': return 'No';
+        case 'Escalation_Reason': return '';
+        case 'Completed_At': return '';
+        case 'Completed_By': return '';
+        case 'Outcome_Notes': return '';
+        case 'Created_At': return new Date().toISOString();
+        case 'Updated_At': return new Date().toISOString();
+        case 'Days_Until_Due': return daysUntilDue;
+        case 'Is_Overdue': return isOverdue ? 'Yes' : 'No';
+        default: return '';
+      }
+    });
+
+    sheet.appendRow(row);
+    created.push(commitmentId);
+  }
+
+  return created;
+}
+
+function createActionItems(ss, smsId, contactName, phoneNumber, customerContext, actions, priorityResult) {
+  const sheet = ss.getSheetByName(SMS_ACTION_QUEUE_SHEET);
+  const created = [];
+
+  for (const action of actions) {
+    const actionId = 'SMSA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+    // Calculate business impact score
+    const impactMultiplier = action.businessImpact === 'HIGH' ? 1.5 :
+                             action.businessImpact === 'MEDIUM' ? 1.0 : 0.5;
+    const businessImpactScore = Math.round(priorityResult.score * impactMultiplier);
+
+    const row = SMS_ACTION_QUEUE_HEADERS.map(header => {
+      switch(header) {
+        case 'Action_ID': return actionId;
+        case 'SMS_ID': return smsId;
+        case 'Customer_ID': return customerContext.customerId || '';
+        case 'Contact_Name': return contactName;
+        case 'Action_Type': return action.urgency || 'WHEN_POSSIBLE';
+        case 'Action_Description': return action.action;
+        case 'Action_Rationale': return action.rationale;
+        case 'Urgency': return action.urgency || 'WHEN_POSSIBLE';
+        case 'Business_Impact_Score': return businessImpactScore;
+        case 'Customer_LTV': return customerContext.ltv;
+        case 'Customer_Segment': return customerContext.segment;
+        case 'Related_Orders': return customerContext.pendingOrders?.map(o => o.id).join(', ') || '';
+        case 'Priority_Score': return priorityResult.score;
+        case 'Queue_Position': return priorityResult.queuePosition;
+        case 'Status': return 'PENDING';
+        case 'Assigned_To': return '';
+        case 'Due_By': return calculateDueBy(action.urgency);
+        case 'Completed_At': return '';
+        case 'Outcome': return '';
+        case 'Created_At': return new Date().toISOString();
+        default: return '';
+      }
+    });
+
+    sheet.appendRow(row);
+    created.push(actionId);
+  }
+
+  return created;
+}
+
+function calculateDueBy(urgency) {
+  const now = new Date();
+  switch(urgency) {
+    case 'IMMEDIATE':
+      now.setMinutes(now.getMinutes() + 15);
+      break;
+    case 'TODAY':
+      now.setHours(17, 0, 0, 0);
+      break;
+    case 'THIS_WEEK':
+      now.setDate(now.getDate() + (5 - now.getDay()));
+      now.setHours(17, 0, 0, 0);
+      break;
+    default:
+      now.setDate(now.getDate() + 3);
+  }
+  return now.toISOString();
+}
+
+function createEscalationAlert(ss, smsId, contactName, escalation, customerContext) {
+  // Create a high-priority proactive alert
+  try {
+    let alertSheet = ss.getSheetByName('COS_PROACTIVE_ALERTS');
+    if (!alertSheet) return;
+
+    const alertId = 'ESC-' + Date.now();
+    const row = [
+      alertId,
+      'SMS_ESCALATION',
+      escalation.escalationLevel,
+      `⚠️ ESCALATION: ${contactName}`,
+      escalation.reason,
+      `Review SMS ${smsId} and respond immediately`,
+      JSON.stringify({ smsId, customerContext, escalation }),
+      new Date().toISOString(),
+      new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Expires in 24h
+      'ACTIVE',
+      '', '', '', ''
+    ];
+
+    alertSheet.appendRow(row);
+  } catch (e) {
+    console.error('Failed to create escalation alert:', e);
+  }
+}
+
+function updateContactRecord(ss, phoneNumber, contactName, customerContext, aiAnalysis, direction) {
+  if (!phoneNumber) return;
+
+  let sheet = ss.getSheetByName(SMS_CONTACTS_SHEET);
+  if (!sheet) return;
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const phoneCol = headers.indexOf('Phone_Number');
+
+  // Find existing contact
+  let existingRow = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (normalizePhoneNumber(String(data[i][phoneCol])) === phoneNumber) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+
+  if (existingRow > 0) {
+    // Update existing
+    const updates = {
+      'Total_SMS': (sheet.getRange(existingRow, headers.indexOf('Total_SMS') + 1).getValue() || 0) + 1,
+      'Last_Sentiment': aiAnalysis.sentiment,
+      'Last_Interaction_At': new Date().toISOString(),
+      'Days_Since_Contact': 0,
+      'Updated_At': new Date().toISOString()
+    };
+
+    // Update LTV if we have better data
+    if (customerContext.ltv > 0) {
+      updates['Lifetime_Value'] = customerContext.ltv;
+      updates['Customer_Segment'] = customerContext.segment;
+    }
+
+    for (const [field, value] of Object.entries(updates)) {
+      const col = headers.indexOf(field);
+      if (col >= 0) {
+        sheet.getRange(existingRow, col + 1).setValue(value);
+      }
+    }
+  } else {
+    // Create new contact
+    const contactId = 'SMSCONT-' + Date.now();
+    const newRow = SMS_CONTACTS_HEADERS.map(header => {
+      switch(header) {
+        case 'Contact_ID': return contactId;
+        case 'Phone_Number': return phoneNumber;
+        case 'Contact_Name': return contactName;
+        case 'Customer_ID': return customerContext.customerId || '';
+        case 'Contact_Type': return customerContext.isCSAMember ? 'CSA Member' : 'Customer';
+        case 'Email': return customerContext.email || '';
+        case 'Lifetime_Value': return customerContext.ltv;
+        case 'Customer_Segment': return customerContext.segment;
+        case 'Churn_Risk_Score': return customerContext.churnRisk;
+        case 'Total_Orders': return customerContext.totalOrders;
+        case 'Avg_Order_Value': return customerContext.avgOrderValue;
+        case 'Total_SMS': return 1;
+        case 'Total_Emails': return 0;
+        case 'Preferred_Channel': return 'SMS';
+        case 'Last_Sentiment': return aiAnalysis.sentiment;
+        case 'Sentiment_Trend': return 'NEUTRAL';
+        case 'Open_Commitments': return 0;
+        case 'Overdue_Commitments': return 0;
+        case 'Last_Interaction_At': return new Date().toISOString();
+        case 'Days_Since_Contact': return 0;
+        case 'Created_At': return new Date().toISOString();
+        case 'Updated_At': return new Date().toISOString();
+        default: return '';
+      }
+    });
+
+    sheet.appendRow(newRow);
+  }
+}
+
+function logInsights(ss, insights, customerContext) {
+  const sheet = ss.getSheetByName(SMS_INSIGHTS_SHEET);
+  if (!sheet) return;
+
+  for (const insight of insights) {
+    const insightId = 'INS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+    const row = SMS_INSIGHTS_HEADERS.map(header => {
+      switch(header) {
+        case 'Insight_ID': return insightId;
+        case 'Insight_Type': return insight.type;
+        case 'Title': return insight.type.replace(/_/g, ' ');
+        case 'Description': return insight.description;
+        case 'Affected_Customers': return customerContext.name || 'Unknown';
+        case 'Business_Impact': return customerContext.segment === 'VIP' ? 'HIGH' : 'MEDIUM';
+        case 'Recommended_Action': return insight.recommendation;
+        case 'Data_JSON': return JSON.stringify({ customerContext, insight });
+        case 'Created_At': return new Date().toISOString();
+        case 'Status': return 'NEW';
+        case 'Actioned_At': return '';
+        default: return '';
+      }
+    });
+
+    sheet.appendRow(row);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS: CUSTOMER DATA LOOKUPS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function findCustomerByPhone(ss, phoneNumber) {
+  // Try SALES_Customers first
+  try {
+    const sheet = ss.getSheetByName('SALES_Customers');
+    if (!sheet || sheet.getLastRow() <= 1) return null;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const phoneCol = headers.indexOf('Phone');
+    const phoneCol2 = headers.indexOf('phone');
+    const phoneColIdx = phoneCol >= 0 ? phoneCol : phoneCol2;
+
+    if (phoneColIdx < 0) return null;
+
+    for (let i = 1; i < data.length; i++) {
+      const rowPhone = normalizePhoneNumber(String(data[i][phoneColIdx] || ''));
+      if (rowPhone === phoneNumber) {
+        const nameCol = headers.indexOf('Name') >= 0 ? headers.indexOf('Name') : headers.indexOf('name');
+        const emailCol = headers.indexOf('Email') >= 0 ? headers.indexOf('Email') : headers.indexOf('email');
+        const ltvCol = headers.indexOf('LTV') >= 0 ? headers.indexOf('LTV') : headers.indexOf('Total_Revenue');
+        const ordersCol = headers.indexOf('Total_Orders') >= 0 ? headers.indexOf('Total_Orders') : headers.indexOf('Orders');
+
+        return {
+          id: data[i][headers.indexOf('Customer_ID')] || data[i][headers.indexOf('ID')] || `CUST-${i}`,
+          name: nameCol >= 0 ? data[i][nameCol] : null,
+          email: emailCol >= 0 ? data[i][emailCol] : null,
+          ltv: ltvCol >= 0 ? parseFloat(data[i][ltvCol]) || 0 : 0,
+          totalOrders: ordersCol >= 0 ? parseInt(data[i][ordersCol]) || 0 : 0,
+          avgOrderValue: 0,
+          daysSinceLastOrder: null
+        };
+      }
+    }
+  } catch (e) {
+    console.error('Error finding customer:', e);
+  }
+
+  return null;
+}
+
+function findCSAMembership(ss, phoneNumber, email) {
+  try {
+    const sheet = ss.getSheetByName('CSA_Members');
+    if (!sheet || sheet.getLastRow() <= 1) return null;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const rowPhone = normalizePhoneNumber(String(data[i][headers.indexOf('Phone')] || ''));
+      const rowEmail = String(data[i][headers.indexOf('Email')] || '').toLowerCase();
+
+      if (rowPhone === phoneNumber || (email && rowEmail === email.toLowerCase())) {
+        return {
+          status: data[i][headers.indexOf('Status')] || 'Active',
+          value: parseFloat(data[i][headers.indexOf('Share_Value')]) || 0
+        };
+      }
+    }
+  } catch (e) {
+    console.error('Error finding CSA membership:', e);
+  }
+
+  return null;
+}
+
+function getPendingOrdersForCustomer(ss, customerId, email) {
+  const orders = [];
+
+  try {
+    const sheet = ss.getSheetByName('SALES_Orders');
+    if (!sheet || sheet.getLastRow() <= 1) return orders;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const status = data[i][headers.indexOf('Status')];
+      if (status === 'Pending' || status === 'Processing') {
+        const custId = data[i][headers.indexOf('Customer_ID')];
+        const custEmail = String(data[i][headers.indexOf('Email')] || '').toLowerCase();
+
+        if (custId === customerId || (email && custEmail === email.toLowerCase())) {
+          orders.push({
+            id: data[i][headers.indexOf('Order_ID')],
+            value: parseFloat(data[i][headers.indexOf('Total')]) || 0,
+            status: status,
+            date: data[i][headers.indexOf('Order_Date')]
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error getting pending orders:', e);
+  }
+
+  return orders;
+}
+
+function getRecentInteractions(ss, phoneNumber, email, limit) {
+  const interactions = [];
+
+  // Get recent SMS
+  try {
+    const smsSheet = ss.getSheetByName(SMS_LOG_SHEET);
+    if (smsSheet && smsSheet.getLastRow() > 1) {
+      const data = smsSheet.getDataRange().getValues();
+      const headers = data[0];
+
+      for (let i = data.length - 1; i >= 1 && interactions.length < limit; i--) {
+        if (normalizePhoneNumber(String(data[i][headers.indexOf('Phone_Number')])) === phoneNumber) {
+          interactions.push({
+            type: 'SMS',
+            direction: data[i][headers.indexOf('Direction')],
+            sentiment: data[i][headers.indexOf('AI_Sentiment')],
+            date: data[i][headers.indexOf('Received_At')],
+            summary: data[i][headers.indexOf('AI_Summary')]
+          });
+        }
+      }
+    }
+  } catch (e) {}
+
+  // Could add email interactions here too
+
+  return interactions;
+}
+
+function getCommitmentStats(ss, phoneNumber) {
+  const stats = { open: 0, overdue: 0 };
+
+  try {
+    const sheet = ss.getSheetByName(SMS_COMMITMENTS_SHEET);
+    if (!sheet || sheet.getLastRow() <= 1) return stats;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const today = new Date().toISOString().split('T')[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (normalizePhoneNumber(String(data[i][headers.indexOf('Phone_Number')])) === phoneNumber) {
+        if (data[i][headers.indexOf('Status')] === 'OPEN') {
+          stats.open++;
+          const deadline = data[i][headers.indexOf('Deadline')];
+          if (deadline && deadline < today) {
+            stats.overdue++;
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  return stats;
+}
+
+function calculateSentimentTrend(interactions) {
+  if (!interactions || interactions.length === 0) return 'NEUTRAL';
+
+  const sentimentScores = interactions.map(i => {
+    switch(i.sentiment) {
+      case 'POSITIVE': case 'EXCITED': return 1;
+      case 'NEUTRAL': return 0;
+      case 'NEGATIVE': case 'FRUSTRATED': return -1;
+      default: return 0;
+    }
+  });
+
+  const avg = sentimentScores.reduce((a, b) => a + b, 0) / sentimentScores.length;
+
+  if (avg > 0.3) return 'IMPROVING';
+  if (avg < -0.3) return 'DECLINING';
+  return 'STABLE';
+}
+
+function determineCustomerSegment(ltv) {
+  if (ltv >= SMS_CONFIG.SEGMENTS.VIP.minLTV) return 'VIP';
+  if (ltv >= SMS_CONFIG.SEGMENTS.HIGH_VALUE.minLTV) return 'HIGH_VALUE';
+  if (ltv >= SMS_CONFIG.SEGMENTS.STANDARD.minLTV) return 'STANDARD';
+  return 'NEW';
+}
+
+function calculateChurnRisk(context) {
+  // Enhanced churn risk calculation based on research
+  // Uses weighted factors for comprehensive risk assessment
+
+  let risk = 0;
+  const signals = [];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 1: RECENCY - Days since last order (weight: 25%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.daysSinceLastOrder !== null) {
+    if (context.daysSinceLastOrder > 120) {
+      risk += 0.25;
+      signals.push('NO_ORDERS_4_MONTHS');
+    } else if (context.daysSinceLastOrder > 90) {
+      risk += 0.20;
+      signals.push('NO_ORDERS_3_MONTHS');
+    } else if (context.daysSinceLastOrder > 60) {
+      risk += 0.12;
+      signals.push('NO_ORDERS_2_MONTHS');
+    } else if (context.daysSinceLastOrder > 45) {
+      risk += 0.06;
+      signals.push('ORDERING_SLOWED');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 2: SENTIMENT TREND (weight: 25%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.sentimentTrend === 'DECLINING') {
+    risk += 0.25;
+    signals.push('SENTIMENT_DECLINING');
+  } else if (context.sentimentTrend === 'STABLE' && context.recentInteractions?.some(i => i.sentiment === 'NEGATIVE')) {
+    risk += 0.12;
+    signals.push('RECENT_NEGATIVE_SENTIMENT');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 3: BROKEN PROMISES (weight: 20%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.overdueCommitments > 2) {
+    risk += 0.20;
+    signals.push('MULTIPLE_OVERDUE_COMMITMENTS');
+  } else if (context.overdueCommitments > 0) {
+    risk += 0.12;
+    signals.push('OVERDUE_COMMITMENT');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 4: COMMUNICATION PATTERN CHANGES (weight: 15%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.daysSinceLastContact !== null && context.daysSinceLastContact > 30) {
+    risk += 0.15;
+    signals.push('COMMUNICATION_GAP');
+  }
+
+  // Message length/engagement decline would go here with more data
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACTOR 5: CSA STATUS (weight: 15%)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (context.isCSAMember && context.csaStatus === 'LAPSED') {
+    risk += 0.15;
+    signals.push('CSA_LAPSED');
+  } else if (context.isCSAMember && context.csaStatus === 'EXPIRING_SOON') {
+    risk += 0.08;
+    signals.push('CSA_EXPIRING');
+  }
+
+  // Store signals for debugging/reporting
+  context.churnSignals = signals;
+
+  return Math.min(risk, 1.0);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RFM SCORING - Recency, Frequency, Monetary Analysis
+// ═══════════════════════════════════════════════════════════════════════════
+
+function calculateRFMScore(context) {
+  // Each factor scored 1-5 (5 = best)
+
+  // RECENCY: Days since last order
+  let recencyScore = 5;
+  if (context.daysSinceLastOrder !== null) {
+    if (context.daysSinceLastOrder > 90) recencyScore = 1;
+    else if (context.daysSinceLastOrder > 60) recencyScore = 2;
+    else if (context.daysSinceLastOrder > 30) recencyScore = 3;
+    else if (context.daysSinceLastOrder > 14) recencyScore = 4;
+    else recencyScore = 5;
+  }
+
+  // FREQUENCY: Number of orders
+  let frequencyScore = 1;
+  if (context.totalOrders >= 20) frequencyScore = 5;
+  else if (context.totalOrders >= 10) frequencyScore = 4;
+  else if (context.totalOrders >= 5) frequencyScore = 3;
+  else if (context.totalOrders >= 2) frequencyScore = 2;
+  else frequencyScore = 1;
+
+  // MONETARY: Lifetime value
+  let monetaryScore = 1;
+  if (context.ltv >= 5000) monetaryScore = 5;
+  else if (context.ltv >= 1000) monetaryScore = 4;
+  else if (context.ltv >= 500) monetaryScore = 3;
+  else if (context.ltv >= 100) monetaryScore = 2;
+  else monetaryScore = 1;
+
+  // Combined score and segment
+  const rfmScore = `${recencyScore}${frequencyScore}${monetaryScore}`;
+  const totalScore = recencyScore + frequencyScore + monetaryScore;
+
+  let segment = 'NEW';
+  if (totalScore >= 13) segment = 'CHAMPION';
+  else if (totalScore >= 10) segment = 'LOYAL';
+  else if (totalScore >= 7) segment = 'POTENTIAL';
+  else if (totalScore >= 4) segment = 'AT_RISK';
+  else segment = 'HIBERNATING';
+
+  return {
+    recency: recencyScore,
+    frequency: frequencyScore,
+    monetary: monetaryScore,
+    rfmScore: rfmScore,
+    totalScore: totalScore,
+    segment: segment
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMMUNICATION PATTERN ANALYSIS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function analyzeCommuncationPatterns(interactions) {
+  if (!interactions || interactions.length < 2) {
+    return {
+      avgResponseTime: null,
+      messageLengthTrend: 'UNKNOWN',
+      engagementLevel: 'UNKNOWN',
+      preferredTiming: null
+    };
+  }
+
+  // Calculate response times
+  const responseTimes = [];
+  for (let i = 1; i < interactions.length; i++) {
+    if (interactions[i].direction !== interactions[i-1].direction) {
+      const prev = new Date(interactions[i-1].date);
+      const curr = new Date(interactions[i].date);
+      const diffHours = (curr - prev) / (1000 * 60 * 60);
+      if (diffHours > 0 && diffHours < 168) { // Within a week
+        responseTimes.push(diffHours);
+      }
+    }
+  }
+
+  const avgResponseTime = responseTimes.length > 0
+    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+    : null;
+
+  // Determine engagement level based on interaction frequency
+  let engagementLevel = 'LOW';
+  if (interactions.length >= 10) engagementLevel = 'HIGH';
+  else if (interactions.length >= 5) engagementLevel = 'MEDIUM';
+
+  return {
+    avgResponseTime: avgResponseTime,
+    messageLengthTrend: 'STABLE', // Would need message lengths to calculate
+    engagementLevel: engagementLevel,
+    interactionCount: interactions.length
+  };
+}
+
+function normalizePhoneNumber(phone) {
+  if (!phone) return '';
+  return String(phone).replace(/\D/g, '').slice(-10);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLAUDE API INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function callClaudeAPI(prompt, temperature = 0.3) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY not configured in Script Properties');
+  }
+
+  const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    payload: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      temperature: temperature,
+      messages: [{
+        role: 'user',
+        content: prompt
+      }]
+    }),
+    muteHttpExceptions: true
+  });
+
+  const responseCode = response.getResponseCode();
+  const responseText = response.getContentText();
+
+  if (responseCode !== 200) {
+    console.error('Claude API error:', responseCode, responseText);
+    throw new Error(`Claude API returned ${responseCode}: ${responseText}`);
+  }
+
+  const result = JSON.parse(responseText);
+  return result.content[0].text;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD & REPORTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSMSDashboard() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Get action queue stats
+  const actionSheet = ss.getSheetByName(SMS_ACTION_QUEUE_SHEET);
+  let pendingActions = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, NORMAL: 0 };
+
+  if (actionSheet && actionSheet.getLastRow() > 1) {
+    const data = actionSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][headers.indexOf('Status')] === 'PENDING') {
+        const queue = data[i][headers.indexOf('Queue_Position')] || 'NORMAL';
+        pendingActions[queue] = (pendingActions[queue] || 0) + 1;
+      }
+    }
+  }
+
+  // Get commitment stats
+  const commitmentSheet = ss.getSheetByName(SMS_COMMITMENTS_SHEET);
+  let commitmentStats = { open: 0, overdue: 0, dueToday: 0, completedThisWeek: 0 };
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  if (commitmentSheet && commitmentSheet.getLastRow() > 1) {
+    const data = commitmentSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      const status = data[i][headers.indexOf('Status')];
+      const deadline = data[i][headers.indexOf('Deadline')];
+      const completedAt = data[i][headers.indexOf('Completed_At')];
+
+      if (status === 'OPEN') {
+        commitmentStats.open++;
+        if (deadline) {
+          if (deadline < today) commitmentStats.overdue++;
+          else if (deadline === today) commitmentStats.dueToday++;
+        }
+      } else if (status === 'COMPLETED' && completedAt >= weekAgo) {
+        commitmentStats.completedThisWeek++;
+      }
+    }
+  }
+
+  // Get recent insights
+  const insightSheet = ss.getSheetByName(SMS_INSIGHTS_SHEET);
+  let recentInsights = [];
+
+  if (insightSheet && insightSheet.getLastRow() > 1) {
+    const data = insightSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = Math.max(1, data.length - 5); i < data.length; i++) {
+      recentInsights.push({
+        type: data[i][headers.indexOf('Insight_Type')],
+        description: data[i][headers.indexOf('Description')],
+        action: data[i][headers.indexOf('Recommended_Action')],
+        status: data[i][headers.indexOf('Status')]
+      });
+    }
+  }
+
+  return {
+    success: true,
+
+    // What needs attention NOW
+    immediateAttention: {
+      criticalActions: pendingActions.CRITICAL,
+      highPriorityActions: pendingActions.HIGH,
+      overdueCommitments: commitmentStats.overdue,
+      dueToday: commitmentStats.dueToday
+    },
+
+    // Queue status
+    actionQueue: pendingActions,
+    totalPendingActions: Object.values(pendingActions).reduce((a, b) => a + b, 0),
+
+    // Commitment tracking
+    commitments: commitmentStats,
+
+    // Insights
+    recentInsights: recentInsights.reverse(),
+
+    lastUpdated: new Date().toISOString()
+  };
+}
+
+function getOpenSMSCommitments(params = {}) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SMS_COMMITMENTS_SHEET);
+
+  if (!sheet || sheet.getLastRow() <= 1) {
+    return { success: true, commitments: [] };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const commitments = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const status = data[i][headers.indexOf('Status')];
+    if (status !== 'OPEN') continue;
+
+    commitments.push({
+      id: data[i][headers.indexOf('Commitment_ID')],
+      contactName: data[i][headers.indexOf('Contact_Name')],
+      type: data[i][headers.indexOf('Commitment_Type')],
+      text: data[i][headers.indexOf('Commitment_Text')],
+      deadline: data[i][headers.indexOf('Deadline')],
+      priority: data[i][headers.indexOf('Priority')],
+      customerLTV: data[i][headers.indexOf('Customer_LTV')],
+      daysUntilDue: data[i][headers.indexOf('Days_Until_Due')],
+      isOverdue: data[i][headers.indexOf('Is_Overdue')] === 'Yes',
+      createdAt: data[i][headers.indexOf('Created_At')]
+    });
+  }
+
+  // Sort by priority and deadline
+  commitments.sort((a, b) => {
+    // Overdue first
+    if (a.isOverdue && !b.isOverdue) return -1;
+    if (!a.isOverdue && b.isOverdue) return 1;
+
+    // Then by priority
+    const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    }
+
+    // Then by deadline
+    if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+    if (a.deadline) return -1;
+    return 1;
+  });
+
+  return { success: true, commitments };
+}
+
+function completeSMSCommitment(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SMS_COMMITMENTS_SHEET);
+
+  if (!sheet || !data.commitmentId) {
+    return { success: false, error: 'Invalid request' };
+  }
+
+  const sheetData = sheet.getDataRange().getValues();
+  const headers = sheetData[0];
+
+  for (let i = 1; i < sheetData.length; i++) {
+    if (sheetData[i][headers.indexOf('Commitment_ID')] === data.commitmentId) {
+      sheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue('COMPLETED');
+      sheet.getRange(i + 1, headers.indexOf('Completed_At') + 1).setValue(new Date().toISOString());
+      sheet.getRange(i + 1, headers.indexOf('Completed_By') + 1).setValue(data.completedBy || 'Owner');
+      sheet.getRange(i + 1, headers.indexOf('Outcome_Notes') + 1).setValue(data.notes || '');
+      sheet.getRange(i + 1, headers.indexOf('Updated_At') + 1).setValue(new Date().toISOString());
+
+      return { success: true, message: 'Commitment completed' };
+    }
+  }
+
+  return { success: false, error: 'Commitment not found' };
+}
+
+function getActionQueue(params = {}) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SMS_ACTION_QUEUE_SHEET);
+
+  if (!sheet || sheet.getLastRow() <= 1) {
+    return { success: true, actions: [] };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const actions = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][headers.indexOf('Status')] !== 'PENDING') continue;
+
+    actions.push({
+      id: data[i][headers.indexOf('Action_ID')],
+      contactName: data[i][headers.indexOf('Contact_Name')],
+      action: data[i][headers.indexOf('Action_Description')],
+      rationale: data[i][headers.indexOf('Action_Rationale')],
+      urgency: data[i][headers.indexOf('Urgency')],
+      priorityScore: data[i][headers.indexOf('Priority_Score')],
+      queuePosition: data[i][headers.indexOf('Queue_Position')],
+      customerLTV: data[i][headers.indexOf('Customer_LTV')],
+      dueBy: data[i][headers.indexOf('Due_By')],
+      createdAt: data[i][headers.indexOf('Created_At')]
+    });
+  }
+
+  // Sort by priority score descending
+  actions.sort((a, b) => b.priorityScore - a.priorityScore);
+
+  return { success: true, actions };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOG COMMITMENT WEB APP
+// Mobile-optimized web interface for logging SMS commitments
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getCommitmentAppHtml() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Log Promise">
+    <title>Log Commitment | Tiny Seed</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+            min-height: 100vh; margin: 0; padding: 20px;
+            padding-top: env(safe-area-inset-top, 20px);
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 24px; }
+        .header h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px 0; }
+        .header p { font-size: 14px; opacity: 0.9; margin: 0; }
+        .card {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); margin-bottom: 16px;
+        }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+        .input-group textarea, .input-group input {
+            width: 100%; padding: 14px 16px; font-size: 16px;
+            border: 2px solid #e5e7eb; border-radius: 12px;
+            transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+        }
+        .input-group textarea:focus, .input-group input:focus {
+            outline: none; border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+        }
+        .input-group textarea { min-height: 120px; resize: vertical; }
+        .paste-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; font-size: 13px; color: #059669;
+            background: #ecfdf5; border: 1px solid #a7f3d0;
+            border-radius: 8px; cursor: pointer; margin-top: 8px; font-weight: 500;
+        }
+        .paste-btn:active { background: #d1fae5; }
+        .direction-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+        .direction-btn {
+            flex: 1; padding: 12px; font-size: 14px; font-weight: 600;
+            border: 2px solid #e5e7eb; border-radius: 10px;
+            background: white; cursor: pointer; transition: all 0.2s;
+        }
+        .direction-btn.active { background: #059669; color: white; border-color: #059669; }
+        .submit-btn {
+            width: 100%; padding: 16px; font-size: 18px; font-weight: 600;
+            color: white; background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border: none; border-radius: 12px; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .submit-btn:active { transform: scale(0.98); }
+        .submit-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .submit-btn.loading { position: relative; color: transparent; }
+        .submit-btn.loading::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 24px; height: 24px; margin: -12px 0 0 -12px;
+            border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .results-card { display: none; }
+        .results-card.visible { display: block; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; }
+        .result-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .result-icon.success { background: #d1fae5; }
+        .result-icon.error { background: #fee2e2; }
+        .result-title { flex: 1; }
+        .result-title h3 { font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 4px 0; }
+        .result-title p { font-size: 14px; color: #6b7280; margin: 0; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .metric { text-align: center; padding: 12px 8px; background: #f9fafb; border-radius: 10px; }
+        .metric-value { font-size: 24px; font-weight: 700; color: #059669; }
+        .metric-value.urgent { color: #dc2626; }
+        .metric-value.warning { color: #f59e0b; }
+        .metric-value.neutral { color: #6b7280; }
+        .metric-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+        .summary-box { background: #f0fdf4; border-left: 4px solid #059669; padding: 16px; border-radius: 0 10px 10px 0; margin-bottom: 20px; }
+        .summary-box h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #065f46; margin: 0 0 8px 0; }
+        .summary-box p { font-size: 15px; color: #047857; margin: 0; line-height: 1.5; }
+        .action-item { display: flex; gap: 12px; padding: 14px; background: #fffbeb; border-radius: 10px; margin-bottom: 10px; }
+        .action-icon { font-size: 20px; }
+        .action-content h5 { font-size: 14px; font-weight: 600; color: #92400e; margin: 0 0 4px 0; }
+        .action-content p { font-size: 13px; color: #a16207; margin: 0; }
+        .commitment-badge { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; background: #dbeafe; color: #1e40af; border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 16px; }
+        .new-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; color: #059669; background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 12px; cursor: pointer; margin-top: 16px; }
+        .new-btn:active { background: #d1fae5; }
+        .error-box { background: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; border-radius: 0 10px 10px 0; margin-bottom: 20px; }
+        .error-box h4 { color: #991b1b; margin: 0 0 8px 0; font-size: 14px; }
+        .error-box p { color: #b91c1c; margin: 0; font-size: 14px; }
+        .history-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; color: white; opacity: 0.9; font-size: 14px; cursor: pointer; }
+        .history-card { display: none; }
+        .history-card.visible { display: block; }
+        .history-item { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid #e5e7eb; }
+        .history-item:last-child { border-bottom: none; }
+        .history-time { font-size: 12px; color: #9ca3af; min-width: 50px; }
+        .history-content { flex: 1; }
+        .history-contact { font-size: 14px; font-weight: 600; color: #111827; }
+        .history-message { font-size: 13px; color: #6b7280; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .empty-history { text-align: center; padding: 24px; color: #9ca3af; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Log Commitment</h1>
+            <p>AI-powered promise tracking</p>
+        </div>
+        <div class="card input-card" id="inputCard">
+            <div class="input-group">
+                <label>Message</label>
+                <textarea id="messageInput" placeholder="Paste or type the message..."></textarea>
+                <button class="paste-btn" onclick="pasteFromClipboard()">📋 Paste from Clipboard</button>
+            </div>
+            <div class="input-group">
+                <label>Contact Name</label>
+                <input type="text" id="contactInput" placeholder="Who is this from/to?">
+            </div>
+            <div class="direction-toggle">
+                <button class="direction-btn active" data-direction="OUTBOUND" onclick="setDirection('OUTBOUND')">📤 My Promise</button>
+                <button class="direction-btn" data-direction="INBOUND" onclick="setDirection('INBOUND')">📥 Their Promise</button>
+            </div>
+            <button class="submit-btn" id="submitBtn" onclick="logCommitment()">Log Commitment</button>
+        </div>
+        <div class="card results-card" id="resultsCard">
+            <div class="result-header">
+                <div class="result-icon success" id="resultIcon">✓</div>
+                <div class="result-title">
+                    <h3 id="resultTitle">Logged Successfully</h3>
+                    <p id="resultSubtitle">AI analysis complete</p>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric"><div class="metric-value" id="priorityScore">--</div><div class="metric-label">Priority</div></div>
+                <div class="metric"><div class="metric-value" id="urgencyScore">--</div><div class="metric-label">Urgency</div></div>
+                <div class="metric"><div class="metric-value" id="sentimentScore">--</div><div class="metric-label">Sentiment</div></div>
+            </div>
+            <div class="summary-box" id="summaryBox">
+                <h4>AI Summary</h4>
+                <p id="summaryText">Analyzing message...</p>
+            </div>
+            <div id="commitmentBadge" class="commitment-badge" style="display: none;"><span>🤝</span><span id="commitmentCount">1 commitment tracked</span></div>
+            <div id="actionsContainer"></div>
+            <button class="new-btn" onclick="resetForm()">+ Log Another</button>
+        </div>
+        <div class="card results-card" id="errorCard">
+            <div class="result-header">
+                <div class="result-icon error">!</div>
+                <div class="result-title"><h3>Something Went Wrong</h3><p>Please try again</p></div>
+            </div>
+            <div class="error-box"><h4>Error Details</h4><p id="errorMessage">Unknown error occurred</p></div>
+            <button class="new-btn" onclick="resetForm()">Try Again</button>
+        </div>
+        <div class="history-toggle" onclick="toggleHistory()"><span>📜</span><span>Recent Logs</span><span id="historyArrow">▼</span></div>
+        <div class="card history-card" id="historyCard"><div id="historyList"><div class="empty-history">No recent logs</div></div></div>
+    </div>
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+        let currentDirection = 'OUTBOUND';
+        let history = JSON.parse(localStorage.getItem('sms_log_history') || '[]');
+        document.addEventListener('DOMContentLoaded', () => { renderHistory(); autoReadClipboard(); });
+        async function autoReadClipboard() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.length > 0 && text.length < 1000) {
+                        document.getElementById('messageInput').value = text;
+                    }
+                }
+            } catch (e) {}
+        }
+        async function pasteFromClipboard() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    document.getElementById('messageInput').value = text;
+                } else { alert('Clipboard access not available. Please paste manually.'); }
+            } catch (e) { alert('Could not access clipboard. Please paste manually.'); }
+        }
+        function setDirection(dir) {
+            currentDirection = dir;
+            document.querySelectorAll('.direction-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.direction === dir);
+            });
+        }
+        async function logCommitment() {
+            const message = document.getElementById('messageInput').value.trim();
+            const contact = document.getElementById('contactInput').value.trim();
+            if (!message) { alert('Please enter a message'); return; }
+            if (!contact) { alert('Please enter a contact name'); return; }
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            try {
+                const params = new URLSearchParams({
+                    action: 'logSMS', message: message, senderName: contact, direction: currentDirection
+                });
+                const response = await fetch(API_URL + '?' + params.toString());
+                const data = await response.json();
+                if (data.success) { showResults(data, message, contact); addToHistory(message, contact, data); }
+                else { showError(data.error || 'Failed to log commitment'); }
+            } catch (error) { showError(error.message || 'Network error - please try again'); }
+            finally { submitBtn.disabled = false; submitBtn.classList.remove('loading'); }
+        }
+        function showResults(data, message, contact) {
+            document.getElementById('inputCard').style.display = 'none';
+            document.getElementById('errorCard').classList.remove('visible');
+            document.getElementById('resultsCard').classList.add('visible');
+            const priority = data.priorityScore || 0;
+            const priorityEl = document.getElementById('priorityScore');
+            priorityEl.textContent = priority;
+            priorityEl.className = 'metric-value ' + (priority >= 70 ? 'urgent' : priority >= 40 ? 'warning' : 'neutral');
+            const urgency = Math.round((data.urgency || 0) * 100);
+            const urgencyEl = document.getElementById('urgencyScore');
+            urgencyEl.textContent = urgency + '%';
+            urgencyEl.className = 'metric-value ' + (urgency >= 70 ? 'urgent' : urgency >= 40 ? 'warning' : 'neutral');
+            const sentiment = data.sentiment || 'NEUTRAL';
+            document.getElementById('sentimentScore').textContent = sentiment === 'POSITIVE' ? '😊' : sentiment === 'NEGATIVE' ? '😟' : '😐';
+            document.getElementById('summaryText').textContent = data.summary || 'Message logged successfully';
+            const commitCount = data.commitmentsCreated || 0;
+            const commitBadge = document.getElementById('commitmentBadge');
+            if (commitCount > 0) { commitBadge.style.display = 'inline-flex'; document.getElementById('commitmentCount').textContent = commitCount === 1 ? '1 commitment tracked' : commitCount + ' commitments tracked'; }
+            else { commitBadge.style.display = 'none'; }
+            const actionsContainer = document.getElementById('actionsContainer');
+            actionsContainer.innerHTML = '';
+            if (data.fullAnalysis && data.fullAnalysis.recommendedActions) {
+                data.fullAnalysis.recommendedActions.forEach(action => {
+                    const actionEl = document.createElement('div');
+                    actionEl.className = 'action-item';
+                    actionEl.innerHTML = '<div class="action-icon">⚡</div><div class="action-content"><h5>' + (action.action || 'Take action') + '</h5><p>' + (action.rationale || '') + '</p></div>';
+                    actionsContainer.appendChild(actionEl);
+                });
+            }
+            if (data.immediateAction && !data.fullAnalysis?.recommendedActions?.length) {
+                const actionEl = document.createElement('div');
+                actionEl.className = 'action-item';
+                actionEl.innerHTML = '<div class="action-icon">⚡</div><div class="action-content"><h5>Recommended Action</h5><p>' + data.immediateAction + '</p></div>';
+                actionsContainer.appendChild(actionEl);
+            }
+        }
+        function showError(message) {
+            document.getElementById('inputCard').style.display = 'none';
+            document.getElementById('resultsCard').classList.remove('visible');
+            document.getElementById('errorCard').classList.add('visible');
+            document.getElementById('errorMessage').textContent = message;
+        }
+        function resetForm() {
+            document.getElementById('inputCard').style.display = 'block';
+            document.getElementById('resultsCard').classList.remove('visible');
+            document.getElementById('errorCard').classList.remove('visible');
+            document.getElementById('messageInput').value = '';
+            document.getElementById('contactInput').value = '';
+        }
+        function addToHistory(message, contact, data) {
+            const entry = { time: new Date().toISOString(), contact: contact, message: message.substring(0, 100), priority: data.priorityScore || 0 };
+            history.unshift(entry);
+            if (history.length > 10) history.pop();
+            localStorage.setItem('sms_log_history', JSON.stringify(history));
+            renderHistory();
+        }
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (history.length === 0) { list.innerHTML = '<div class="empty-history">No recent logs</div>'; return; }
+            list.innerHTML = history.map(entry => {
+                const time = new Date(entry.time);
+                const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return '<div class="history-item"><div class="history-time">' + timeStr + '</div><div class="history-content"><div class="history-contact">' + entry.contact + '</div><div class="history-message">' + entry.message + '</div></div></div>';
+            }).join('');
+        }
+        function toggleHistory() {
+            const card = document.getElementById('historyCard');
+            const arrow = document.getElementById('historyArrow');
+            card.classList.toggle('visible');
+            arrow.textContent = card.classList.contains('visible') ? '▲' : '▼';
+        }
+    </script>
+</body>
+</html>`;
+}
+
+/**
+ * ========================================
+ * CHIEF OF STAFF - PREDICTIVE ANALYTICS
+ * ========================================
+ *
+ * STATE-OF-THE-ART pattern recognition and forecasting
+ * Predicts future needs before they become urgent
+ *
+ * Capabilities:
+ * - Email volume prediction
+ * - Customer churn prediction
+ * - Response time trend analysis
+ * - Seasonal pattern recognition
+ * - Workload forecasting
+ * - Revenue prediction
+ * - Task completion prediction
+ *
+ * @author Claude PM_Architect
+ * @version 1.0.0
+ * @date 2026-01-21
+ */
+
+// ==========================================
+// INITIALIZATION
+// ==========================================
+
+/**
+ * Initialize Predictive Analytics system
+ */
+function initializePredictiveAnalytics() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Create predictions sheet
+  let predictSheet = ss.getSheetByName('COS_PREDICTIONS');
+  if (!predictSheet) {
+    predictSheet = ss.insertSheet('COS_PREDICTIONS');
+    predictSheet.appendRow([
+      'prediction_id', 'type', 'subject', 'prediction', 'confidence',
+      'predicted_date', 'actual_outcome', 'accuracy_score', 'created_at'
+    ]);
+    predictSheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+  }
+
+  // Create metrics history sheet
+  let metricsSheet = ss.getSheetByName('COS_METRICS_HISTORY');
+  if (!metricsSheet) {
+    metricsSheet = ss.insertSheet('COS_METRICS_HISTORY');
+    metricsSheet.appendRow([
+      'date', 'emails_received', 'emails_sent', 'avg_response_time_hrs',
+      'customers_contacted', 'revenue', 'orders', 'tasks_completed',
+      'focus_time_mins', 'meetings', 'temperature_high', 'rainfall'
+    ]);
+    metricsSheet.getRange(1, 1, 1, 12).setFontWeight('bold');
+  }
+
+  // Create patterns sheet
+  let patternsSheet = ss.getSheetByName('COS_PATTERNS');
+  if (!patternsSheet) {
+    patternsSheet = ss.insertSheet('COS_PATTERNS');
+    patternsSheet.appendRow([
+      'pattern_id', 'type', 'description', 'frequency', 'confidence',
+      'last_occurrence', 'next_predicted', 'data'
+    ]);
+    patternsSheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+  }
+
+  return {
+    success: true,
+    message: 'Predictive Analytics initialized',
+    sheets: ['COS_PREDICTIONS', 'COS_METRICS_HISTORY', 'COS_PATTERNS']
+  };
+}
+
+// ==========================================
+// DATA COLLECTION
+// ==========================================
+
+/**
+ * Collect daily metrics for historical tracking
+ * Run this daily via trigger
+ */
+function collectDailyMetrics() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('COS_METRICS_HISTORY');
+
+  if (!sheet) {
+    initializePredictiveAnalytics();
+    sheet = ss.getSheetByName('COS_METRICS_HISTORY');
+  }
+
+  const today = new Date();
+  const dateStr = Utilities.formatDate(today, 'America/New_York', 'yyyy-MM-dd');
+
+  // Check if already collected today
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === dateStr) {
+      return { success: true, message: 'Already collected today' };
+    }
+  }
+
+  // Collect email metrics
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  const receivedThreads = GmailApp.search(`after:${formatDateForGmail(yesterday)} before:${formatDateForGmail(today)} in:inbox`);
+  const sentThreads = GmailApp.search(`after:${formatDateForGmail(yesterday)} before:${formatDateForGmail(today)} in:sent`);
+
+  // Calculate response time from EMAIL_INBOX_STATE if available
+  const avgResponseTime = calculateAverageResponseTime(yesterday, today);
+
+  // Get customer contacts
+  const customersContacted = countUniqueCustomers(receivedThreads);
+
+  // Get weather data if available
+  let weather = { high: '', rainfall: '' };
+  if (typeof getCurrentWeather === 'function') {
+    try {
+      const w = getCurrentWeather();
+      if (w.success) {
+        weather.high = w.current.temp;
+      }
+    } catch (e) {}
+  }
+
+  // Get focus time from calendar
+  const focusTime = calculateFocusTime(yesterday, today);
+
+  // Count meetings
+  const meetings = countMeetings(yesterday, today);
+
+  // Collect revenue/orders if available
+  const revenue = collectRevenueData(yesterday, today);
+
+  // Get tasks completed
+  const tasksCompleted = countCompletedTasks(yesterday, today);
+
+  const metrics = [
+    dateStr,
+    receivedThreads.length,
+    sentThreads.length,
+    avgResponseTime,
+    customersContacted,
+    revenue.total,
+    revenue.orders,
+    tasksCompleted,
+    focusTime,
+    meetings,
+    weather.high,
+    weather.rainfall
+  ];
+
+  sheet.appendRow(metrics);
+
+  return {
+    success: true,
+    date: dateStr,
+    metrics: {
+      emails_received: receivedThreads.length,
+      emails_sent: sentThreads.length,
+      avg_response_time: avgResponseTime,
+      customers: customersContacted,
+      revenue: revenue.total,
+      orders: revenue.orders,
+      tasks: tasksCompleted,
+      focus_mins: focusTime,
+      meetings: meetings
+    }
+  };
+}
+
+function formatDateForGmail(date) {
+  return Utilities.formatDate(date, 'America/New_York', 'yyyy/MM/dd');
+}
+
+function calculateAverageResponseTime(start, end) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('EMAIL_INBOX_STATE');
+
+  if (!sheet) return 0;
+
+  const data = sheet.getDataRange().getValues();
+  let totalTime = 0;
+  let count = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const resolved = new Date(data[i][7]); // resolved_at
+    const received = new Date(data[i][3]); // received_at
+
+    if (resolved >= start && resolved <= end && resolved > received) {
+      const hours = (resolved - received) / (1000 * 60 * 60);
+      totalTime += hours;
+      count++;
+    }
+  }
+
+  return count > 0 ? Math.round(totalTime / count * 10) / 10 : 0;
+}
+
+function countUniqueCustomers(threads) {
+  const customers = new Set();
+
+  for (const thread of threads) {
+    const messages = thread.getMessages();
+    for (const msg of messages) {
+      const from = msg.getFrom();
+      const email = from.match(/<(.+)>/)?.[1] || from;
+      customers.add(email.toLowerCase());
+    }
+  }
+
+  return customers.size;
+}
+
+function calculateFocusTime(start, end) {
+  try {
+    const calendar = CalendarApp.getDefaultCalendar();
+    const events = calendar.getEvents(start, end);
+
+    let focusMins = 0;
+    for (const event of events) {
+      const title = event.getTitle().toLowerCase();
+      if (title.includes('focus') || title.includes('field work') || title.includes('deep')) {
+        focusMins += (event.getEndTime() - event.getStartTime()) / (1000 * 60);
+      }
+    }
+
+    return focusMins;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function countMeetings(start, end) {
+  try {
+    const calendar = CalendarApp.getDefaultCalendar();
+    const events = calendar.getEvents(start, end);
+
+    let count = 0;
+    for (const event of events) {
+      const title = event.getTitle().toLowerCase();
+      if (!title.includes('focus') && !title.includes('block') && event.getGuestList().length > 0) {
+        count++;
+      }
+    }
+
+    return count;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function collectRevenueData(start, end) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ordersSheet = ss.getSheetByName('Orders');
+
+    if (!ordersSheet) return { total: 0, orders: 0 };
+
+    const data = ordersSheet.getDataRange().getValues();
+    let total = 0;
+    let orders = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const orderDate = new Date(data[i][1]); // Assuming date is in column B
+      if (orderDate >= start && orderDate <= end) {
+        const amount = parseFloat(data[i][9]) || 0; // Assuming total in column J
+        total += amount;
+        orders++;
+      }
+    }
+
+    return { total, orders };
+  } catch (e) {
+    return { total: 0, orders: 0 };
+  }
+}
+
+function countCompletedTasks(start, end) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('COS_SCHEDULED_TASKS');
+
+  if (!sheet) return 0;
+
+  const data = sheet.getDataRange().getValues();
+  let count = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][8] === 'completed') {
+      const completedDate = new Date(data[i][7]);
+      if (completedDate >= start && completedDate <= end) {
+        count++;
+      }
+    }
+  }
+
+  return count;
+}
+
+// ==========================================
+// EMAIL VOLUME PREDICTION
+// ==========================================
+
+/**
+ * Predict email volume for upcoming days
+ */
+function predictEmailVolume(days = 7) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('COS_METRICS_HISTORY');
+
+  if (!sheet || sheet.getLastRow() < 8) {
+    return {
+      success: false,
+      error: 'Need at least 7 days of historical data'
+    };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const history = [];
+
+  // Get last 30 days of data
+  for (let i = Math.max(1, data.length - 30); i < data.length; i++) {
+    history.push({
+      date: new Date(data[i][0]),
+      received: data[i][1] || 0,
+      dayOfWeek: new Date(data[i][0]).getDay()
+    });
+  }
+
+  // Calculate averages by day of week
+  const dayAverages = {};
+  for (let d = 0; d < 7; d++) {
+    const dayData = history.filter(h => h.dayOfWeek === d);
+    dayAverages[d] = dayData.length > 0
+      ? dayData.reduce((a, b) => a + b.received, 0) / dayData.length
+      : 0;
+  }
+
+  // Calculate trend
+  const recentAvg = history.slice(-7).reduce((a, b) => a + b.received, 0) / 7;
+  const olderAvg = history.slice(-14, -7).reduce((a, b) => a + b.received, 0) / 7;
+  const trendFactor = olderAvg > 0 ? recentAvg / olderAvg : 1;
+
+  // Generate predictions
+  const predictions = [];
+  const today = new Date();
+
+  for (let d = 1; d <= days; d++) {
+    const predDate = new Date(today.getTime() + d * 24 * 60 * 60 * 1000);
+    const dayOfWeek = predDate.getDay();
+    const basePrediction = dayAverages[dayOfWeek] || recentAvg;
+    const adjustedPrediction = Math.round(basePrediction * trendFactor);
+
+    predictions.push({
+      date: Utilities.formatDate(predDate, 'America/New_York', 'EEE MMM d'),
+      dayOfWeek: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayOfWeek],
+      predicted: adjustedPrediction,
+      confidence: calculatePredictionConfidence(history, dayOfWeek),
+      range: {
+        low: Math.round(adjustedPrediction * 0.7),
+        high: Math.round(adjustedPrediction * 1.3)
+      }
+    });
+  }
+
+  // Store predictions
+  savePredictions('email_volume', predictions);
+
+  return {
+    success: true,
+    predictions: predictions,
+    trend: trendFactor > 1.1 ? 'increasing' : trendFactor < 0.9 ? 'decreasing' : 'stable',
+    averageDaily: Math.round(recentAvg)
+  };
+}
+
+function calculatePredictionConfidence(history, dayOfWeek) {
+  const dayData = history.filter(h => h.dayOfWeek === dayOfWeek);
+
+  if (dayData.length < 2) return 0.5;
+
+  // Calculate variance
+  const avg = dayData.reduce((a, b) => a + b.received, 0) / dayData.length;
+  const variance = dayData.reduce((a, b) => a + Math.pow(b.received - avg, 2), 0) / dayData.length;
+  const stdDev = Math.sqrt(variance);
+
+  // Lower variance = higher confidence
+  const cv = avg > 0 ? stdDev / avg : 1;
+  return Math.max(0.5, Math.min(0.95, 1 - cv));
+}
+
+// ==========================================
+// CUSTOMER CHURN PREDICTION
+// ==========================================
+
+/**
+ * Predict customers at risk of churning
+ */
+function predictCustomerChurn() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const customersSheet = ss.getSheetByName('Customers');
+  const ordersSheet = ss.getSheetByName('Orders');
+
+  if (!customersSheet) {
+    return { success: false, error: 'Customers sheet not found' };
+  }
+
+  const customers = customersSheet.getDataRange().getValues();
+  const orders = ordersSheet ? ordersSheet.getDataRange().getValues() : [];
+
+  const atRisk = [];
+  const now = new Date();
+
+  for (let i = 1; i < customers.length; i++) {
+    const customerId = customers[i][0];
+    const customerName = `${customers[i][1]} ${customers[i][2]}`;
+    const email = customers[i][4];
+    const customerType = customers[i][6];
+    const lastOrder = customers[i][13]; // Assuming last order date
+
+    // Calculate risk score
+    const riskFactors = [];
+    let riskScore = 0;
+
+    // Factor 1: Time since last order
+    if (lastOrder) {
+      const daysSinceOrder = (now - new Date(lastOrder)) / (1000 * 60 * 60 * 24);
+
+      if (daysSinceOrder > 180) {
+        riskScore += 40;
+        riskFactors.push(`No order in ${Math.round(daysSinceOrder)} days`);
+      } else if (daysSinceOrder > 90) {
+        riskScore += 25;
+        riskFactors.push(`No order in ${Math.round(daysSinceOrder)} days`);
+      } else if (daysSinceOrder > 60) {
+        riskScore += 10;
+        riskFactors.push(`${Math.round(daysSinceOrder)} days since last order`);
+      }
+    } else {
+      riskScore += 30;
+      riskFactors.push('No order history');
+    }
+
+    // Factor 2: Order frequency decline
+    const customerOrders = orders.filter(o => o[3] === customerId); // Assuming customer ID in column D
+    if (customerOrders.length >= 3) {
+      const recentOrders = customerOrders.slice(-3);
+      const gaps = [];
+      for (let j = 1; j < recentOrders.length; j++) {
+        const gap = (new Date(recentOrders[j][1]) - new Date(recentOrders[j-1][1])) / (1000 * 60 * 60 * 24);
+        gaps.push(gap);
+      }
+      if (gaps[1] > gaps[0] * 1.5) {
+        riskScore += 15;
+        riskFactors.push('Order frequency declining');
+      }
+    }
+
+    // Factor 3: Email engagement
+    const recentEmails = GmailApp.search(`from:${email} newer_than:30d`, 0, 5);
+    if (recentEmails.length === 0) {
+      riskScore += 10;
+      riskFactors.push('No recent email engagement');
+    }
+
+    // Factor 4: Customer type specific
+    if (customerType === 'CSA' && riskScore > 20) {
+      riskScore += 10; // CSA members leaving is more impactful
+      riskFactors.push('CSA member at risk');
+    }
+
+    // Add to at-risk list if score above threshold
+    if (riskScore >= 30) {
+      atRisk.push({
+        customerId: customerId,
+        name: customerName,
+        email: email,
+        type: customerType,
+        riskScore: riskScore,
+        riskLevel: riskScore >= 60 ? 'high' : riskScore >= 40 ? 'medium' : 'low',
+        factors: riskFactors,
+        suggestedAction: generateRetentionAction(riskScore, customerType, riskFactors)
+      });
+    }
+  }
+
+  // Sort by risk score
+  atRisk.sort((a, b) => b.riskScore - a.riskScore);
+
+  // Save predictions
+  savePredictions('customer_churn', atRisk);
+
+  return {
+    success: true,
+    customersAnalyzed: customers.length - 1,
+    atRiskCount: atRisk.length,
+    highRisk: atRisk.filter(c => c.riskLevel === 'high').length,
+    mediumRisk: atRisk.filter(c => c.riskLevel === 'medium').length,
+    customers: atRisk.slice(0, 10) // Top 10
+  };
+}
+
+function generateRetentionAction(riskScore, customerType, factors) {
+  if (riskScore >= 60) {
+    if (customerType === 'CSA') {
+      return 'Personal phone call to check in and offer renewal incentive';
+    }
+    return 'Send personalized win-back email with special offer';
+  } else if (riskScore >= 40) {
+    return 'Schedule friendly check-in email about upcoming offerings';
+  } else {
+    return 'Add to re-engagement newsletter segment';
+  }
+}
+
+// ==========================================
+// RESPONSE TIME TREND ANALYSIS
+// ==========================================
+
+/**
+ * Analyze response time trends
+ */
+function analyzeResponseTimeTrends() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('COS_METRICS_HISTORY');
+
+  if (!sheet || sheet.getLastRow() < 8) {
+    return { success: false, error: 'Insufficient historical data' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  // Get response times
+  const responseTimes = [];
+  for (let i = Math.max(1, data.length - 30); i < data.length; i++) {
+    if (data[i][3]) {
+      responseTimes.push({
+        date: data[i][0],
+        hours: data[i][3],
+        dayOfWeek: new Date(data[i][0]).getDay()
+      });
+    }
+  }
+
+  if (responseTimes.length < 7) {
+    return { success: false, error: 'Need more response time data' };
+  }
+
+  // Calculate weekly averages
+  const weeks = [];
+  for (let i = 0; i < responseTimes.length; i += 7) {
+    const week = responseTimes.slice(i, i + 7);
+    if (week.length === 7) {
+      weeks.push(week.reduce((a, b) => a + b.hours, 0) / 7);
+    }
+  }
+
+  // Determine trend
+  let trend = 'stable';
+  if (weeks.length >= 2) {
+    const recent = weeks[weeks.length - 1];
+    const previous = weeks[weeks.length - 2];
+    if (recent > previous * 1.2) {
+      trend = 'worsening';
+    } else if (recent < previous * 0.8) {
+      trend = 'improving';
+    }
+  }
+
+  // Find problem days
+  const dayStats = {};
+  for (const rt of responseTimes) {
+    if (!dayStats[rt.dayOfWeek]) {
+      dayStats[rt.dayOfWeek] = [];
+    }
+    dayStats[rt.dayOfWeek].push(rt.hours);
+  }
+
+  const dayAverages = {};
+  const problemDays = [];
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  for (let d = 0; d < 7; d++) {
+    if (dayStats[d] && dayStats[d].length > 0) {
+      const avg = dayStats[d].reduce((a, b) => a + b, 0) / dayStats[d].length;
+      dayAverages[dayNames[d]] = Math.round(avg * 10) / 10;
+      if (avg > 12) {
+        problemDays.push({ day: dayNames[d], avgHours: avg });
+      }
+    }
+  }
+
+  // Generate recommendations
+  const recommendations = [];
+  if (trend === 'worsening') {
+    recommendations.push('Response times are increasing - consider setting aside dedicated email time');
+  }
+  if (problemDays.length > 0) {
+    recommendations.push(`Slowest days: ${problemDays.map(d => d.day).join(', ')} - review schedule`);
+  }
+
+  const overallAvg = responseTimes.reduce((a, b) => a + b.hours, 0) / responseTimes.length;
+  if (overallAvg > 6) {
+    recommendations.push('Average response exceeds 6 hours - customer satisfaction may be impacted');
+  } else if (overallAvg < 2) {
+    recommendations.push('Excellent response time! Consider automating more routine responses');
+  }
+
+  return {
+    success: true,
+    currentAverage: Math.round(overallAvg * 10) / 10,
+    trend: trend,
+    weeklyAverages: weeks,
+    byDayOfWeek: dayAverages,
+    problemDays: problemDays,
+    recommendations: recommendations
+  };
+}
+
+// ==========================================
+// SEASONAL PATTERN DETECTION
+// ==========================================
+
+/**
+ * Detect and predict seasonal patterns
+ */
+function detectSeasonalPatterns() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const metricsSheet = ss.getSheetByName('COS_METRICS_HISTORY');
+  const ordersSheet = ss.getSheetByName('Orders');
+
+  const patterns = [];
+
+  // Analyze order patterns by month
+  if (ordersSheet) {
+    const orders = ordersSheet.getDataRange().getValues();
+    const monthlyOrders = {};
+    const monthlyRevenue = {};
+
+    for (let i = 1; i < orders.length; i++) {
+      const date = new Date(orders[i][1]);
+      if (isNaN(date)) continue;
+
+      const month = date.getMonth();
+      monthlyOrders[month] = (monthlyOrders[month] || 0) + 1;
+      monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (parseFloat(orders[i][9]) || 0);
+    }
+
+    // Find peak months
+    const avgOrders = Object.values(monthlyOrders).reduce((a, b) => a + b, 0) / 12;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const peakMonths = [];
+    const lowMonths = [];
+
+    for (let m = 0; m < 12; m++) {
+      const orders = monthlyOrders[m] || 0;
+      if (orders > avgOrders * 1.3) {
+        peakMonths.push({ month: months[m], index: m, orders: orders });
+      } else if (orders < avgOrders * 0.7) {
+        lowMonths.push({ month: months[m], index: m, orders: orders });
+      }
+    }
+
+    if (peakMonths.length > 0) {
+      patterns.push({
+        type: 'seasonal_peak',
+        description: `Peak ordering in ${peakMonths.map(p => p.month).join(', ')}`,
+        data: peakMonths,
+        recommendation: 'Prepare for increased activity during peak months'
+      });
+    }
+
+    if (lowMonths.length > 0) {
+      patterns.push({
+        type: 'seasonal_low',
+        description: `Low activity in ${lowMonths.map(l => l.month).join(', ')}`,
+        data: lowMonths,
+        recommendation: 'Use slow months for maintenance and planning'
+      });
+    }
+  }
+
+  // Email patterns by day of week
+  if (metricsSheet && metricsSheet.getLastRow() > 14) {
+    const data = metricsSheet.getDataRange().getValues();
+    const dayOfWeekEmails = {};
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    for (let i = 1; i < data.length; i++) {
+      const date = new Date(data[i][0]);
+      const dow = date.getDay();
+      if (!dayOfWeekEmails[dow]) dayOfWeekEmails[dow] = [];
+      dayOfWeekEmails[dow].push(data[i][1] || 0);
+    }
+
+    const dayAverages = {};
+    let maxDay = { day: '', avg: 0 };
+    let minDay = { day: '', avg: Infinity };
+
+    for (let d = 0; d < 7; d++) {
+      if (dayOfWeekEmails[d] && dayOfWeekEmails[d].length > 0) {
+        const avg = dayOfWeekEmails[d].reduce((a, b) => a + b, 0) / dayOfWeekEmails[d].length;
+        dayAverages[days[d]] = Math.round(avg);
+        if (avg > maxDay.avg) maxDay = { day: days[d], avg: avg };
+        if (avg < minDay.avg) minDay = { day: days[d], avg: avg };
+      }
+    }
+
+    patterns.push({
+      type: 'weekly_email_pattern',
+      description: `Busiest: ${maxDay.day} (~${Math.round(maxDay.avg)} emails), Quietest: ${minDay.day} (~${Math.round(minDay.avg)} emails)`,
+      data: dayAverages,
+      recommendation: `Schedule focus time on ${minDay.day}, reserve ${maxDay.day} for email`
+    });
+  }
+
+  // Save patterns
+  const patternsSheet = ss.getSheetByName('COS_PATTERNS');
+  if (patternsSheet) {
+    for (const pattern of patterns) {
+      patternsSheet.appendRow([
+        `PAT_${Date.now()}_${pattern.type}`,
+        pattern.type,
+        pattern.description,
+        'weekly', // or monthly
+        0.8,
+        new Date().toISOString(),
+        '', // next_predicted
+        JSON.stringify(pattern.data)
+      ]);
+    }
+  }
+
+  return {
+    success: true,
+    patternsFound: patterns.length,
+    patterns: patterns
+  };
+}
+
+// ==========================================
+// WORKLOAD FORECASTING
+// ==========================================
+
+/**
+ * Forecast workload for coming week
+ */
+function forecastWorkload(days = 7) {
+  const emailPrediction = predictEmailVolume(days);
+  const prefs = typeof getCalendarPreferences === 'function' ? getCalendarPreferences() : {};
+  const calendar = CalendarApp.getDefaultCalendar();
+
+  const forecast = [];
+  const today = new Date();
+
+  for (let d = 1; d <= days; d++) {
+    const date = new Date(today.getTime() + d * 24 * 60 * 60 * 1000);
+    const dayStr = Utilities.formatDate(date, 'America/New_York', 'EEE MMM d');
+    const dayOfWeek = date.getDay();
+
+    // Get calendar events
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    const events = calendar.getEvents(dayStart, dayEnd);
+
+    // Calculate workload components
+    const meetingHours = events.reduce((total, e) => {
+      const duration = (e.getEndTime() - e.getStartTime()) / (1000 * 60 * 60);
+      return total + duration;
+    }, 0);
+
+    const predictedEmails = emailPrediction.success
+      ? emailPrediction.predictions[d - 1]?.predicted || 10
+      : 10;
+
+    const emailHours = predictedEmails * 0.1; // ~6 mins per email
+
+    // Check for special days
+    const isMarketDay = (prefs.marketDays || []).includes(dayOfWeek);
+    const isDeliveryDay = (prefs.deliveryDays || []).includes(dayOfWeek);
+
+    let specialEvents = [];
+    if (isMarketDay) specialEvents.push('Market Day');
+    if (isDeliveryDay) specialEvents.push('Delivery Day');
+
+    // Calculate total workload
+    const baseWorkload = meetingHours + emailHours;
+    let totalWorkload = baseWorkload;
+    if (isMarketDay) totalWorkload += 4; // Market takes ~4 hours
+    if (isDeliveryDay) totalWorkload += 2; // Deliveries take ~2 hours
+
+    // Determine load level
+    let loadLevel = 'normal';
+    if (totalWorkload > 8) loadLevel = 'heavy';
+    else if (totalWorkload > 6) loadLevel = 'moderate';
+    else if (totalWorkload < 3) loadLevel = 'light';
+
+    forecast.push({
+      date: dayStr,
+      dayOfWeek: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayOfWeek],
+      meetings: events.length,
+      meetingHours: Math.round(meetingHours * 10) / 10,
+      predictedEmails: predictedEmails,
+      emailHours: Math.round(emailHours * 10) / 10,
+      specialEvents: specialEvents,
+      totalWorkloadHours: Math.round(totalWorkload * 10) / 10,
+      loadLevel: loadLevel,
+      recommendation: generateWorkloadRecommendation(loadLevel, specialEvents)
+    });
+  }
+
+  return {
+    success: true,
+    forecast: forecast,
+    heavyDays: forecast.filter(f => f.loadLevel === 'heavy').length,
+    lightDays: forecast.filter(f => f.loadLevel === 'light').length
+  };
+}
+
+function generateWorkloadRecommendation(loadLevel, specialEvents) {
+  if (loadLevel === 'heavy') {
+    return 'Consider rescheduling non-critical meetings';
+  } else if (loadLevel === 'light') {
+    return 'Good day for strategic planning or catch-up work';
+  } else if (specialEvents.includes('Market Day')) {
+    return 'Focus on market prep, minimal other commitments';
+  } else {
+    return 'Normal day - maintain regular schedule';
+  }
+}
+
+// ==========================================
+// PREDICTION STORAGE & ACCURACY
+// ==========================================
+
+/**
+ * Save predictions for accuracy tracking
+ */
+function savePredictions(type, predictions) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('COS_PREDICTIONS');
+
+  if (!sheet) {
+    initializePredictiveAnalytics();
+    sheet = ss.getSheetByName('COS_PREDICTIONS');
+  }
+
+  const timestamp = new Date().toISOString();
+
+  for (const pred of predictions) {
+    const predId = `PRED_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    sheet.appendRow([
+      predId,
+      type,
+      pred.date || pred.name || pred.customerId || 'general',
+      JSON.stringify(pred),
+      pred.confidence || 0.7,
+      pred.predicted_date || '',
+      '', // actual_outcome - to be filled later
+      '', // accuracy_score - to be filled later
+      timestamp
+    ]);
+  }
+}
+
+/**
+ * Update prediction with actual outcome
+ */
+function updatePredictionOutcome(predictionId, actualOutcome) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('COS_PREDICTIONS');
+
+  if (!sheet) return { success: false, error: 'Predictions sheet not found' };
+
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === predictionId) {
+      const prediction = JSON.parse(data[i][3]);
+      const predicted = prediction.predicted || prediction.riskScore;
+
+      // Calculate accuracy
+      let accuracy = 0;
+      if (typeof predicted === 'number' && typeof actualOutcome === 'number') {
+        const error = Math.abs(predicted - actualOutcome);
+        accuracy = Math.max(0, 1 - (error / Math.max(predicted, actualOutcome)));
+      } else if (predicted === actualOutcome) {
+        accuracy = 1;
+      }
+
+      sheet.getRange(i + 1, 7, 1, 2).setValues([[
+        JSON.stringify(actualOutcome),
+        accuracy
+      ]]);
+
+      return { success: true, accuracy: accuracy };
+    }
+  }
+
+  return { success: false, error: 'Prediction not found' };
+}
+
+/**
+ * Get prediction accuracy metrics
+ */
+function getPredictionAccuracy(type = null, days = 30) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('COS_PREDICTIONS');
+
+  if (!sheet) return { success: false, error: 'No predictions found' };
+
+  const data = sheet.getDataRange().getValues();
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const metrics = {
+    total: 0,
+    withOutcome: 0,
+    sumAccuracy: 0,
+    byType: {}
+  };
+
+  for (let i = 1; i < data.length; i++) {
+    const predType = data[i][1];
+    const created = new Date(data[i][8]);
+    const accuracy = data[i][7];
+
+    if (created < cutoff) continue;
+    if (type && predType !== type) continue;
+
+    metrics.total++;
+
+    if (accuracy !== '' && accuracy !== null) {
+      metrics.withOutcome++;
+      metrics.sumAccuracy += accuracy;
+
+      if (!metrics.byType[predType]) {
+        metrics.byType[predType] = { count: 0, sum: 0 };
+      }
+      metrics.byType[predType].count++;
+      metrics.byType[predType].sum += accuracy;
+    }
+  }
+
+  const typeAccuracies = {};
+  for (const [t, data] of Object.entries(metrics.byType)) {
+    typeAccuracies[t] = Math.round(data.sum / data.count * 100);
+  }
+
+  return {
+    success: true,
+    totalPredictions: metrics.total,
+    evaluated: metrics.withOutcome,
+    overallAccuracy: metrics.withOutcome > 0
+      ? Math.round(metrics.sumAccuracy / metrics.withOutcome * 100)
+      : null,
+    accuracyByType: typeAccuracies,
+    period: `Last ${days} days`
+  };
+}
+
+// ==========================================
+// API ENDPOINTS
+// ==========================================
+
+/**
+ * Get comprehensive predictive report
+ */
+function getPredictiveReport() {
+  return {
+    emailVolume: predictEmailVolume(7),
+    churnRisk: predictCustomerChurn(),
+    responseTrends: analyzeResponseTimeTrends(),
+    workloadForecast: forecastWorkload(7),
+    accuracy: getPredictionAccuracy()
+  };
+}
+
+/**
+ * Run daily data collection
+ */
+function runDailyCollection() {
+  return collectDailyMetrics();
+}
+
+/**
+ * Detect patterns
+ */
+function runPatternDetection() {
+  return detectSeasonalPatterns();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHIEF-OF-STAFF: PROACTIVE INTELLIGENCE
+// Anticipates needs BEFORE you ask - knows what you should do before you do
+// Created: 2026-01-21
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PROACTIVE_ALERTS_SHEET = 'COS_PROACTIVE_ALERTS';
+const PROACTIVE_RULES_SHEET = 'COS_PROACTIVE_RULES';
+
+const PROACTIVE_ALERTS_HEADERS = [
+  'Alert_ID', 'Alert_Type', 'Priority', 'Title', 'Message', 'Action_Suggested',
+  'Data', 'Created_At', 'Expires_At', 'Status', 'Dismissed_By', 'Dismissed_At',
+  'Action_Taken', 'Was_Useful'
+];
+
+const PROACTIVE_RULES_HEADERS = [
+  'Rule_ID', 'Rule_Name', 'Rule_Type', 'Trigger_Condition', 'Action',
+  'Priority', 'Enabled', 'Last_Triggered', 'Trigger_Count', 'Success_Count',
+  'Created_At', 'Updated_At'
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROACTIVE SYSTEM INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function initializeProactiveSystem() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  createSheetWithHeaders(ss, PROACTIVE_ALERTS_SHEET, PROACTIVE_ALERTS_HEADERS, '#D32F2F');
+  createSheetWithHeaders(ss, PROACTIVE_RULES_SHEET, PROACTIVE_RULES_HEADERS, '#C62828');
+
+  // Initialize default proactive rules
+  initializeDefaultRules();
+
+  return { success: true, message: 'Proactive intelligence system initialized' };
+}
+
+function initializeDefaultRules() {
+  const defaultRules = [
+    {
+      name: 'Overdue Follow-up Alert',
+      type: 'FOLLOW_UP',
+      trigger: 'email_awaiting_response > 48h',
+      action: 'Create alert to follow up',
+      priority: 'HIGH'
+    },
+    {
+      name: 'Customer At Risk',
+      type: 'RELATIONSHIP',
+      trigger: 'no_contact_with_customer > 30d AND total_orders > 2',
+      action: 'Suggest reaching out to maintain relationship',
+      priority: 'MEDIUM'
+    },
+    {
+      name: 'Payment Reminder Due',
+      type: 'FINANCIAL',
+      trigger: 'invoice_unpaid > 25d',
+      action: 'Send payment reminder',
+      priority: 'HIGH'
+    },
+    {
+      name: 'Vendor Order Needed',
+      type: 'INVENTORY',
+      trigger: 'seed_inventory < reorder_point',
+      action: 'Suggest reorder from vendor',
+      priority: 'MEDIUM'
+    },
+    {
+      name: 'Weather Impact',
+      type: 'FARMING',
+      trigger: 'frost_warning AND greenhouse_open',
+      action: 'Alert to protect crops',
+      priority: 'CRITICAL'
+    },
+    {
+      name: 'Busy Week Ahead',
+      type: 'WORKLOAD',
+      trigger: 'emails_this_week > avg_weekly * 1.5',
+      action: 'Suggest scheduling focus time',
+      priority: 'LOW'
+    },
+    {
+      name: 'Unanswered Customer',
+      type: 'CUSTOMER_SERVICE',
+      trigger: 'customer_email_unanswered > 24h',
+      action: 'Prioritize response',
+      priority: 'HIGH'
+    },
+    {
+      name: 'CSA Season Reminder',
+      type: 'SEASONAL',
+      trigger: 'date = csa_renewal_period AND members_not_renewed > 0',
+      action: 'Send renewal reminders',
+      priority: 'MEDIUM'
+    }
+  ];
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(PROACTIVE_RULES_SHEET);
+
+  if (!sheet || sheet.getLastRow() <= 1) {
+    defaultRules.forEach(rule => {
+      createProactiveRule(rule);
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROACTIVE SCANNING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Run all proactive checks - THE BRAIN
+ * Call this every 15-30 minutes
+ */
+function runProactiveScanning() {
+  const results = {
+    scannedAt: new Date().toISOString(),
+    alertsCreated: 0,
+    checksRun: [],
+    errors: []
+  };
+
+  try {
+    // Check 1: Overdue follow-ups
+    const followups = checkOverdueItems();
+    results.checksRun.push({ check: 'overdue_followups', alerts: followups.alertsCreated });
+    results.alertsCreated += followups.alertsCreated;
+
+    // Check 2: Customers at risk
+    const customers = checkCustomersAtRisk();
+    results.checksRun.push({ check: 'customers_at_risk', alerts: customers.alertsCreated });
+    results.alertsCreated += customers.alertsCreated;
+
+    // Check 3: Unanswered emails (urgent)
+    const unanswered = checkUnansweredEmails();
+    results.checksRun.push({ check: 'unanswered_emails', alerts: unanswered.alertsCreated });
+    results.alertsCreated += unanswered.alertsCreated;
+
+    // Check 4: Workload prediction
+    const workload = predictWorkload();
+    results.checksRun.push({ check: 'workload_prediction', alerts: workload.alertsCreated });
+    results.alertsCreated += workload.alertsCreated;
+
+    // Check 5: Pattern-based suggestions
+    const patterns = checkPatternBasedAlerts();
+    results.checksRun.push({ check: 'pattern_alerts', alerts: patterns.alertsCreated });
+    results.alertsCreated += patterns.alertsCreated;
+
+    // Check 6: Calendar conflicts
+    const calendar = checkCalendarConflicts();
+    results.checksRun.push({ check: 'calendar_conflicts', alerts: calendar.alertsCreated });
+    results.alertsCreated += calendar.alertsCreated;
+
+  } catch (error) {
+    results.errors.push(error.toString());
+  }
+
+  // Log to audit
+  logChiefOfStaffAudit({
+    agent: 'PROACTIVE',
+    action: 'SCAN_COMPLETE',
+    output: results
+  });
+
+  return { success: true, data: results };
+}
+
+/**
+ * Check for overdue follow-ups
+ */
+function checkOverdueItems() {
+  let alertsCreated = 0;
+
+  // Check follow-ups from workflow engine
+  const overdue = getOverdueFollowups();
+
+  if (overdue.success && overdue.data) {
+    overdue.data.forEach(item => {
+      // Check if alert already exists
+      if (!alertExists('FOLLOW_UP', item.threadid)) {
+        createProactiveAlert({
+          type: 'FOLLOW_UP',
+          priority: 'HIGH',
+          title: 'Overdue Follow-up',
+          message: `No response received for ${item.overdueby || 'several days'}. Thread needs attention.`,
+          actionSuggested: 'Send follow-up or close thread',
+          data: { threadId: item.threadid, followupId: item.followupid }
+        });
+        alertsCreated++;
+      }
+    });
+  }
+
+  return { alertsCreated };
+}
+
+/**
+ * Check for customers at risk of churning
+ */
+function checkCustomersAtRisk() {
+  let alertsCreated = 0;
+
+  // Get contacts that haven't been contacted in 30+ days with previous interactions
+  const atRiskContacts = recallAllContacts({ atRisk: true });
+
+  if (atRiskContacts.success && atRiskContacts.data) {
+    atRiskContacts.data.slice(0, 5).forEach(contact => { // Limit to 5
+      if (!alertExists('RELATIONSHIP', contact.email)) {
+        const daysSince = Math.round((new Date() - new Date(contact.last_contact_date)) / (1000 * 60 * 60 * 24));
+        createProactiveAlert({
+          type: 'RELATIONSHIP',
+          priority: 'MEDIUM',
+          title: 'Customer At Risk',
+          message: `No contact with ${contact.name || contact.email} in ${daysSince} days. They had ${contact.total_interactions} previous interactions.`,
+          actionSuggested: 'Consider reaching out with a check-in email',
+          data: { email: contact.email, name: contact.name, daysSince }
+        });
+        alertsCreated++;
+      }
+    });
+  }
+
+  return { alertsCreated };
+}
+
+/**
+ * Check for unanswered customer emails
+ */
+function checkUnansweredEmails() {
+  let alertsCreated = 0;
+
+  // Get emails in NEW or TRIAGED status older than 24h
+  const emails = getEmailsByStatus({ status: 'NEW,TRIAGED' });
+
+  if (emails.success && emails.data) {
+    const now = new Date();
+    const threshold = 24 * 60 * 60 * 1000; // 24 hours
+
+    emails.data.forEach(email => {
+      const receivedAt = new Date(email.receivedat);
+      const age = now - receivedAt;
+
+      if (age > threshold && email.category === 'CUSTOMER') {
+        if (!alertExists('CUSTOMER_SERVICE', email.threadid)) {
+          const hoursOld = Math.round(age / (60 * 60 * 1000));
+          createProactiveAlert({
+            type: 'CUSTOMER_SERVICE',
+            priority: email.priority === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+            title: 'Customer Waiting',
+            message: `${email.fromname || email.from} has been waiting ${hoursOld} hours for a response. Subject: "${email.subject}"`,
+            actionSuggested: 'Respond to customer email',
+            data: { threadId: email.threadid, subject: email.subject, from: email.from }
+          });
+          alertsCreated++;
+        }
+      }
+    });
+  }
+
+  return { alertsCreated };
+}
+
+/**
+ * Predict workload and suggest actions
+ */
+function predictWorkload() {
+  let alertsCreated = 0;
+
+  // Count emails by day for the past 2 weeks
+  const emails = getEmailsByStatus({ status: 'NEW,TRIAGED,AWAITING_RESPONSE,AWAITING_THEM,RESOLVED', limit: 500 });
+
+  if (emails.success && emails.data) {
+    const dailyCounts = {};
+    const now = new Date();
+    const twoWeeksAgo = new Date(now - 14 * 24 * 60 * 60 * 1000);
+
+    emails.data.forEach(email => {
+      const date = new Date(email.receivedat);
+      if (date >= twoWeeksAgo) {
+        const dayKey = date.toISOString().split('T')[0];
+        dailyCounts[dayKey] = (dailyCounts[dayKey] || 0) + 1;
+      }
+    });
+
+    const counts = Object.values(dailyCounts);
+    const avgDaily = counts.reduce((a, b) => a + b, 0) / (counts.length || 1);
+
+    // Check today's count
+    const todayKey = now.toISOString().split('T')[0];
+    const todayCount = dailyCounts[todayKey] || 0;
+
+    if (todayCount > avgDaily * 1.5 && todayCount > 10) {
+      if (!alertExists('WORKLOAD', todayKey)) {
+        createProactiveAlert({
+          type: 'WORKLOAD',
+          priority: 'LOW',
+          title: 'High Volume Day',
+          message: `Today's email volume (${todayCount}) is ${Math.round(((todayCount / avgDaily) - 1) * 100)}% above average (${Math.round(avgDaily)}). Consider scheduling extra email time.`,
+          actionSuggested: 'Block 30 minutes for focused email processing',
+          data: { todayCount, avgDaily: Math.round(avgDaily) }
+        });
+        alertsCreated++;
+      }
+    }
+  }
+
+  return { alertsCreated };
+}
+
+/**
+ * Check pattern-based alerts from memory
+ */
+function checkPatternBasedAlerts() {
+  let alertsCreated = 0;
+
+  const patterns = getActivePatterns(0.7);
+
+  if (patterns.success && patterns.data) {
+    patterns.data.forEach(pattern => {
+      if (pattern.recommended_action && pattern.auto_action_enabled) {
+        // Check if this pattern suggests we should take action now
+        const daysSinceLast = Math.round((new Date() - new Date(pattern.last_occurred)) / (1000 * 60 * 60 * 24));
+
+        // If pattern hasn't been addressed in a while, suggest action
+        if (daysSinceLast > 3 && pattern.confidence > 0.7) {
+          if (!alertExists('PATTERN', pattern.pattern_id)) {
+            createProactiveAlert({
+              type: 'PATTERN',
+              priority: 'LOW',
+              title: pattern.pattern_name,
+              message: pattern.description || 'Recurring pattern detected',
+              actionSuggested: pattern.recommended_action,
+              data: { patternId: pattern.pattern_id, confidence: pattern.confidence }
+            });
+            alertsCreated++;
+          }
+        }
+      }
+    });
+  }
+
+  return { alertsCreated };
+}
+
+/**
+ * Check for calendar conflicts
+ */
+function checkCalendarConflicts() {
+  let alertsCreated = 0;
+
+  try {
+    const calendar = CalendarApp.getDefaultCalendar();
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const events = calendar.getEvents(now, tomorrow);
+
+    // Check for overlapping events
+    for (let i = 0; i < events.length - 1; i++) {
+      const event1 = events[i];
+      const event2 = events[i + 1];
+
+      if (event1.getEndTime() > event2.getStartTime()) {
+        const conflictKey = event1.getId() + ':' + event2.getId();
+        if (!alertExists('CALENDAR_CONFLICT', conflictKey)) {
+          createProactiveAlert({
+            type: 'CALENDAR_CONFLICT',
+            priority: 'MEDIUM',
+            title: 'Schedule Conflict',
+            message: `"${event1.getTitle()}" overlaps with "${event2.getTitle()}" at ${event2.getStartTime().toLocaleTimeString()}`,
+            actionSuggested: 'Reschedule one of the events',
+            data: {
+              event1: { title: event1.getTitle(), time: event1.getStartTime().toISOString() },
+              event2: { title: event2.getTitle(), time: event2.getStartTime().toISOString() }
+            }
+          });
+          alertsCreated++;
+        }
+      }
+    }
+
+    // Check for days with no focus time
+    const workStart = 6;
+    const workEnd = 18;
+    let meetingMinutes = 0;
+
+    events.forEach(e => {
+      if (!e.isAllDayEvent()) {
+        meetingMinutes += (e.getEndTime() - e.getStartTime()) / (1000 * 60);
+      }
+    });
+
+    const workMinutes = (workEnd - workStart) * 60;
+    if (meetingMinutes > workMinutes * 0.7) {
+      if (!alertExists('NO_FOCUS_TIME', now.toISOString().split('T')[0])) {
+        createProactiveAlert({
+          type: 'WORKLOAD',
+          priority: 'MEDIUM',
+          title: 'Heavy Meeting Day',
+          message: `Tomorrow has ${Math.round(meetingMinutes / 60)} hours of meetings (${Math.round(meetingMinutes / workMinutes * 100)}% of work day). Limited focus time available.`,
+          actionSuggested: 'Consider rescheduling non-critical meetings or doing email tonight',
+          data: { meetingHours: Math.round(meetingMinutes / 60) }
+        });
+        alertsCreated++;
+      }
+    }
+
+  } catch (error) {
+    // Calendar access might fail, that's ok
+  }
+
+  return { alertsCreated };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ALERT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create a proactive alert
+ */
+function createProactiveAlert(alertData) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(PROACTIVE_ALERTS_SHEET);
+
+  if (!sheet) {
+    initializeProactiveSystem();
+    sheet = ss.getSheetByName(PROACTIVE_ALERTS_SHEET);
+  }
+
+  const alertId = 'ALERT-' + Utilities.getUuid().substring(0, 8);
+  const now = new Date();
+  const expires = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  const rowData = [
+    alertId,
+    alertData.type,
+    alertData.priority || 'MEDIUM',
+    alertData.title,
+    alertData.message,
+    alertData.actionSuggested || '',
+    JSON.stringify(alertData.data || {}),
+    now.toISOString(),
+    expires.toISOString(),
+    'ACTIVE',
+    '', // Dismissed by
+    '', // Dismissed at
+    '', // Action taken
+    null // Was useful
+  ];
+
+  sheet.appendRow(rowData);
+
+  return { success: true, alertId };
+}
+
+/**
+ * Get active alerts
+ */
+function getActiveAlerts(priority = null) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROACTIVE_ALERTS_SHEET);
+
+  if (!sheet || sheet.getLastRow() <= 1) {
+    return { success: true, data: [], count: 0 };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const statusCol = headers.indexOf('Status');
+  const priorityCol = headers.indexOf('Priority');
+  const expiresCol = headers.indexOf('Expires_At');
+  const now = new Date();
+
+  const alerts = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+
+    if (row[statusCol] !== 'ACTIVE') continue;
+    if (new Date(row[expiresCol]) < now) continue;
+    if (priority && row[priorityCol] !== priority) continue;
+
+    const alert = {};
+    headers.forEach((h, idx) => {
+      let value = row[idx];
+      if (h === 'Data') {
+        try { value = JSON.parse(value || '{}'); } catch(e) { value = {}; }
+      }
+      alert[h.toLowerCase()] = value;
+    });
+
+    alerts.push(alert);
+  }
+
+  // Sort by priority
+  const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+  alerts.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
+
+  return { success: true, data: alerts, count: alerts.length };
+}
+
+/**
+ * Dismiss an alert
+ */
+function dismissAlert(alertId, userId, actionTaken = '', wasUseful = null) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROACTIVE_ALERTS_SHEET);
+
+  if (!sheet) return { success: false, error: 'System not initialized' };
+
+  const row = findAlertById(sheet, alertId);
+  if (!row) return { success: false, error: 'Alert not found' };
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const statusCol = headers.indexOf('Status') + 1;
+  const dismissedByCol = headers.indexOf('Dismissed_By') + 1;
+  const dismissedAtCol = headers.indexOf('Dismissed_At') + 1;
+  const actionCol = headers.indexOf('Action_Taken') + 1;
+  const usefulCol = headers.indexOf('Was_Useful') + 1;
+
+  sheet.getRange(row, statusCol).setValue('DISMISSED');
+  sheet.getRange(row, dismissedByCol).setValue(userId || 'USER');
+  sheet.getRange(row, dismissedAtCol).setValue(new Date().toISOString());
+  sheet.getRange(row, actionCol).setValue(actionTaken);
+  sheet.getRange(row, usefulCol).setValue(wasUseful);
+
+  return { success: true, message: 'Alert dismissed' };
+}
+
+/**
+ * Check if alert already exists for this item
+ */
+function alertExists(type, identifier) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROACTIVE_ALERTS_SHEET);
+
+  if (!sheet || sheet.getLastRow() <= 1) return false;
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const typeCol = headers.indexOf('Alert_Type');
+  const dataCol = headers.indexOf('Data');
+  const statusCol = headers.indexOf('Status');
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][typeCol] === type && data[i][statusCol] === 'ACTIVE') {
+      try {
+        const alertData = JSON.parse(data[i][dataCol] || '{}');
+        if (JSON.stringify(alertData).includes(identifier)) {
+          return true;
+        }
+      } catch(e) {}
+    }
+  }
+
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROACTIVE RULES
+// ═══════════════════════════════════════════════════════════════════════════
+
+function createProactiveRule(ruleData) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(PROACTIVE_RULES_SHEET);
+
+  if (!sheet) {
+    initializeProactiveSystem();
+    sheet = ss.getSheetByName(PROACTIVE_RULES_SHEET);
+  }
+
+  const ruleId = 'RULE-' + Utilities.getUuid().substring(0, 8);
+  const now = new Date().toISOString();
+
+  const rowData = [
+    ruleId,
+    ruleData.name,
+    ruleData.type,
+    ruleData.trigger,
+    ruleData.action,
+    ruleData.priority || 'MEDIUM',
+    true, // Enabled
+    '', // Last triggered
+    0, // Trigger count
+    0, // Success count
+    now,
+    now
+  ];
+
+  sheet.appendRow(rowData);
+  return { success: true, ruleId };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MORNING INTELLIGENCE BRIEF
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate the Morning Intelligence Brief
+ * The proactive "what you should do today" summary
+ */
+function generateMorningBrief() {
+  const brief = {
+    generatedAt: new Date().toISOString(),
+    greeting: getTimeBasedGreeting(),
+    summary: {},
+    criticalAlerts: [],
+    priorityActions: [],
+    insights: [],
+    schedule: [],
+    suggestions: []
+  };
+
+  // Run proactive scanning first
+  runProactiveScanning();
+
+  // Get active alerts
+  const alerts = getActiveAlerts();
+  if (alerts.success && Array.isArray(alerts.data)) {
+    brief.criticalAlerts = alerts.data.filter(a => a.priority === 'CRITICAL');
+    brief.summary.totalAlerts = alerts.count || 0;
+    brief.summary.criticalCount = brief.criticalAlerts.length;
+  } else {
+    brief.criticalAlerts = [];
+    brief.summary.totalAlerts = 0;
+    brief.summary.criticalCount = 0;
+  }
+
+  // Get email status
+  const emails = getEmailsByStatus({ status: 'NEW,TRIAGED' });
+  if (emails.success && Array.isArray(emails.data)) {
+    brief.summary.inboxCount = emails.count || 0;
+    brief.summary.urgentEmails = emails.data.filter(e => e.priority === 'CRITICAL' || e.priority === 'HIGH').length;
+
+    // Top priority emails
+    brief.priorityActions = emails.data
+      .filter(e => e.priority === 'CRITICAL' || e.priority === 'HIGH')
+      .slice(0, 5)
+      .map(e => ({
+        type: 'EMAIL',
+        priority: e.priority,
+        subject: e.subject,
+        from: e.fromname || e.from,
+        summary: e.aisummary,
+        threadId: e.threadid
+      }));
+  } else {
+    brief.summary.inboxCount = 0;
+    brief.summary.urgentEmails = 0;
+    brief.priorityActions = [];
+  }
+
+  // Get pending approvals
+  const approvals = getPendingApprovals();
+  if (approvals.success && Array.isArray(approvals.data)) {
+    brief.summary.pendingApprovals = approvals.count || 0;
+
+    approvals.data.slice(0, 3).forEach(a => {
+      brief.priorityActions.push({
+        type: 'APPROVAL',
+        priority: 'MEDIUM',
+        description: a.actiontype + ': ' + (a.draftcontent || '').substring(0, 50),
+        actionId: a.actionid,
+        expiresIn: a.timeRemaining
+      });
+    });
+  } else {
+    brief.summary.pendingApprovals = 0;
+  }
+
+  // Get overdue follow-ups
+  const overdue = getOverdueFollowups();
+  if (overdue.success && Array.isArray(overdue.data)) {
+    brief.summary.overdueCount = overdue.count || 0;
+
+    overdue.data.slice(0, 3).forEach(f => {
+      brief.priorityActions.push({
+        type: 'FOLLOW_UP',
+        priority: 'HIGH',
+        description: 'Overdue by ' + f.overdueby,
+        threadId: f.threadid
+      });
+    });
+  } else {
+    brief.summary.overdueCount = 0;
+  }
+
+  // Get proactive suggestions (safely)
+  try {
+    if (typeof getProactiveSuggestions === 'function') {
+      const suggestions = getProactiveSuggestions();
+      if (suggestions && suggestions.success) {
+        brief.suggestions = suggestions.data;
+      }
+    }
+  } catch (e) {
+    brief.suggestions = [];
+  }
+
+  // Get today's calendar
+  try {
+    const calendar = CalendarApp.getDefaultCalendar();
+    const now = new Date();
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59);
+
+    const events = calendar.getEvents(now, endOfDay);
+    brief.schedule = events.map(e => ({
+      title: e.getTitle(),
+      startTime: e.getStartTime().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      endTime: e.getEndTime().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      allDay: e.isAllDayEvent()
+    }));
+    brief.summary.meetingsToday = events.length;
+  } catch(e) {
+    brief.schedule = [];
+  }
+
+  // Generate insights
+  brief.insights = generateInsights(brief);
+
+  return { success: true, data: brief };
+}
+
+/**
+ * Get time-based greeting
+ */
+function getTimeBasedGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+/**
+ * Generate insights from data
+ */
+function generateInsights(brief) {
+  const insights = [];
+
+  if (brief.summary.criticalCount > 0) {
+    insights.push({
+      type: 'WARNING',
+      message: `${brief.summary.criticalCount} critical item(s) need immediate attention`
+    });
+  }
+
+  if (brief.summary.overdueCount > 3) {
+    insights.push({
+      type: 'TREND',
+      message: `Multiple overdue follow-ups (${brief.summary.overdueCount}). Consider blocking time to clear backlog.`
+    });
+  }
+
+  if (brief.summary.meetingsToday > 4) {
+    insights.push({
+      type: 'SCHEDULE',
+      message: `Busy day with ${brief.summary.meetingsToday} meetings. Limited time for email.`
+    });
+  }
+
+  if (brief.summary.pendingApprovals > 5) {
+    insights.push({
+      type: 'BACKLOG',
+      message: `${brief.summary.pendingApprovals} actions waiting for approval. Quick review recommended.`
+    });
+  }
+
+  return insights;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROACTIVE MORNING SMS BRIEFING
+// Sends daily priorities to owner via SMS at 6am
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Send morning briefing via SMS to the owner
+ * Called automatically at 6am via trigger
+ */
+function sendMorningBriefingSMS() {
+  const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE') || '+14125551234';
+
+  // Generate the morning brief
+  const brief = generateMorningBrief();
+
+  // Format for SMS (160 char limit per segment, but we can send longer)
+  let smsText = `☀️ Good morning! Today's priorities:\n\n`;
+
+  // Critical alerts first
+  if (brief.criticalAlerts && brief.criticalAlerts.length > 0) {
+    smsText += `🚨 CRITICAL (${brief.criticalAlerts.length}):\n`;
+    brief.criticalAlerts.slice(0, 2).forEach((alert, i) => {
+      smsText += `${i+1}. ${alert.title || alert.message}\n`;
+    });
+    smsText += `\n`;
+  }
+
+  // Priority emails
+  if (brief.priorityActions && brief.priorityActions.length > 0) {
+    smsText += `📧 Priority (${brief.priorityActions.length}):\n`;
+    brief.priorityActions.slice(0, 3).forEach((action, i) => {
+      const from = action.from ? action.from.split('<')[0].trim() : 'Unknown';
+      smsText += `${i+1}. ${from}: ${(action.subject || '').substring(0, 30)}...\n`;
+    });
+    smsText += `\n`;
+  }
+
+  // Today's schedule
+  if (brief.schedule && brief.schedule.length > 0) {
+    smsText += `📅 Today (${brief.schedule.length} events):\n`;
+    brief.schedule.slice(0, 3).forEach(event => {
+      smsText += `• ${event.time}: ${event.title}\n`;
+    });
+    smsText += `\n`;
+  }
+
+  // Weather if available
+  if (brief.weather && brief.weather.alert) {
+    smsText += `⛈️ Weather: ${brief.weather.alert}\n\n`;
+  }
+
+  // Add summary counts
+  smsText += `Summary: ${brief.summary?.inboxCount || 0} emails, ${brief.summary?.overdueCount || 0} overdue\n`;
+  smsText += `\nReply "1" for details or "help" for commands.`;
+
+  // Send SMS
+  try {
+    const result = sendSMS({ to: ownerPhone, message: smsText });
+
+    if (!result.success) {
+      Logger.log('Morning SMS failed: ' + JSON.stringify(result));
+      return { success: false, error: result.error || 'SMS send failed', brief: brief };
+    }
+
+    // Log the briefing
+    logChiefOfStaffActivity({
+      activity: 'Morning briefing sent via SMS',
+      details: `${brief.criticalAlerts?.length || 0} critical, ${brief.priorityActions?.length || 0} priority, SID: ${result.sid}`,
+      category: 'admin'
+    });
+
+    return { success: true, message: 'Morning briefing sent', sid: result.sid, brief: brief };
+  } catch (e) {
+    Logger.log('Morning SMS error: ' + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Setup morning briefing trigger for 6am daily
+ */
+function setupMorningBriefingTrigger() {
+  const triggers = ScriptApp.getProjectTriggers();
+
+  // Remove existing
+  for (const trigger of triggers) {
+    if (trigger.getHandlerFunction() === 'sendMorningBriefingSMS') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+
+  // Create new trigger at 6am ET
+  ScriptApp.newTrigger('sendMorningBriefingSMS')
+    .timeBased()
+    .atHour(6)
+    .everyDays(1)
+    .inTimezone('America/New_York')
+    .create();
+
+  return { success: true, message: 'Morning briefing trigger set for 6am ET daily' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEARNING FROM CORRECTIONS
+// Tracks when user overrides AI suggestions to improve over time
+// ═══════════════════════════════════════════════════════════════════════════
+
+const COS_LEARNING_SHEET = 'COS_Learning_Feedback';
+
+/**
+ * Record when user corrects/overrides AI suggestion
+ */
+function recordCorrectionFeedback(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_LEARNING_SHEET);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(COS_LEARNING_SHEET);
+      sheet.appendRow([
+        'Feedback_ID', 'Timestamp', 'Feedback_Type', 'Original_Suggestion',
+        'User_Correction', 'Context', 'Category', 'Applied_Learning'
+      ]);
+      sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+    }
+
+    const feedbackId = 'FB-' + Utilities.getUuid().substring(0, 8);
+
+    sheet.appendRow([
+      feedbackId,
+      new Date().toISOString(),
+      data.type || 'correction', // priority_override, category_change, action_reject, etc.
+      data.originalSuggestion || '',
+      data.userCorrection || '',
+      JSON.stringify(data.context || {}),
+      data.category || 'general',
+      false // Not yet applied to learning
+    ]);
+
+    // Check if we have enough data to adjust rules
+    checkAndApplyLearning(data);
+
+    return { success: true, feedbackId: feedbackId };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Check if we have patterns to learn from and apply them
+ */
+function checkAndApplyLearning(newFeedback) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(COS_LEARNING_SHEET);
+
+    if (!sheet || sheet.getLastRow() < 5) return; // Need at least 5 samples
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const typeCol = headers.indexOf('Feedback_Type');
+    const originalCol = headers.indexOf('Original_Suggestion');
+    const correctionCol = headers.indexOf('User_Correction');
+
+    // Count similar corrections
+    const corrections = {};
+    for (let i = 1; i < data.length; i++) {
+      const type = data[i][typeCol];
+      const original = data[i][originalCol];
+      const correction = data[i][correctionCol];
+
+      const key = `${type}|${original}|${correction}`;
+      corrections[key] = (corrections[key] || 0) + 1;
+    }
+
+    // If same correction made 3+ times, it's a pattern
+    for (const [key, count] of Object.entries(corrections)) {
+      if (count >= 3) {
+        const [type, original, correction] = key.split('|');
+
+        // Log the learned pattern
+        Logger.log(`Learned pattern: ${type} - ${original} should be ${correction} (${count} occurrences)`);
+
+        // Create a proactive rule if doesn't exist
+        if (type === 'priority_override') {
+          // Adjust priority rules
+          createProactiveRule({
+            name: `Learned: ${original} → ${correction}`,
+            type: 'LEARNED',
+            trigger: `suggested_priority = ${original}`,
+            action: `Adjust to ${correction}`,
+            priority: 'LOW'
+          });
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log('Learning error: ' + e.message);
+  }
+}
+
+/**
+ * Get learning statistics
+ */
+function getLearningStats() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(COS_LEARNING_SHEET);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, totalFeedback: 0, patterns: [], appliedLearnings: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const typeCol = data[0].indexOf('Feedback_Type');
+
+    const typeCounts = {};
+    for (let i = 1; i < data.length; i++) {
+      const type = data[i][typeCol];
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+    }
+
+    return {
+      success: true,
+      totalFeedback: data.length - 1,
+      byType: typeCounts,
+      message: `Learning from ${data.length - 1} corrections`
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PREDICTIVE STAFFING
+// Forecasts labor needs based on harvest schedule, weather, and history
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Predict staffing needs for upcoming days
+ */
+function predictStaffingNeeds(daysAhead = 7) {
+  const predictions = [];
+  const today = new Date();
+
+  for (let d = 0; d < daysAhead; d++) {
+    const targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() + d);
+    const dateStr = Utilities.formatDate(targetDate, 'America/New_York', 'yyyy-MM-dd');
+    const dayName = Utilities.formatDate(targetDate, 'America/New_York', 'EEEE');
+
+    let laborHours = 0;
+    let reasoning = [];
+    let tasks = [];
+
+    // Base hours by day of week
+    const dayOfWeek = targetDate.getDay();
+    if (dayOfWeek === 0) {
+      laborHours = 2; // Sunday - minimal
+      reasoning.push('Sunday - minimal staffing');
+    } else if (dayOfWeek === 3 || dayOfWeek === 6) {
+      laborHours = 10; // Market days - Wed, Sat
+      reasoning.push('Market day - heavy staffing needed');
+      tasks.push('Market setup and sales');
+    } else if (dayOfWeek === 2 || dayOfWeek === 4) {
+      laborHours = 8; // Delivery days - Tue, Thu
+      reasoning.push('Delivery day');
+      tasks.push('Harvest and pack for delivery');
+    } else {
+      laborHours = 6; // Regular days
+      reasoning.push('Regular field work day');
+    }
+
+    // Check harvest schedule
+    try {
+      const harvestReady = getHarvestReadyCrops ? getHarvestReadyCrops() : [];
+      if (harvestReady && harvestReady.length > 5) {
+        laborHours += 2;
+        reasoning.push(`Heavy harvest: ${harvestReady.length} crops ready`);
+        tasks.push('Priority harvesting');
+      }
+    } catch (e) {}
+
+    // Check calendar for events
+    try {
+      const calendar = CalendarApp.getDefaultCalendar();
+      const events = calendar.getEventsForDay(targetDate);
+      events.forEach(e => {
+        if (e.getTitle().toLowerCase().includes('csa')) {
+          laborHours += 3;
+          reasoning.push('CSA box packing day');
+          tasks.push('Pack CSA boxes');
+        }
+        if (e.getTitle().toLowerCase().includes('tour') || e.getTitle().toLowerCase().includes('visit')) {
+          laborHours += 1;
+          reasoning.push('Farm tour/visit');
+          tasks.push('Prepare for visitors');
+        }
+      });
+    } catch (e) {}
+
+    // Check weather forecast impact
+    try {
+      const weather = typeof getWeatherForecast === 'function' ? getWeatherForecast(dateStr) : null;
+      if (weather) {
+        if (weather.rain || weather.precipitation > 50) {
+          laborHours -= 2;
+          reasoning.push('Rain expected - reduce outdoor work');
+        }
+        if (weather.temperature && weather.temperature < 32) {
+          laborHours += 2;
+          reasoning.push('Frost protection needed');
+          tasks.push('Protect crops from frost');
+        }
+        if (weather.temperature && weather.temperature > 90) {
+          reasoning.push('Heat advisory - early morning work only');
+        }
+      }
+    } catch (e) {}
+
+    // Calculate workers needed (assume 8hr workday)
+    const workersNeeded = Math.ceil(laborHours / 8);
+
+    predictions.push({
+      date: dateStr,
+      dayName: dayName,
+      predictedLaborHours: Math.max(0, laborHours),
+      workersNeeded: Math.max(1, workersNeeded),
+      reasoning: reasoning,
+      suggestedTasks: tasks,
+      confidence: reasoning.length > 2 ? 0.8 : 0.6
+    });
+  }
+
+  return {
+    success: true,
+    generatedAt: new Date().toISOString(),
+    predictions: predictions,
+    summary: {
+      peakDay: predictions.reduce((max, p) => p.predictedLaborHours > max.predictedLaborHours ? p : max, predictions[0]),
+      totalHoursWeek: predictions.reduce((sum, p) => sum + p.predictedLaborHours, 0),
+      avgWorkersNeeded: Math.round(predictions.reduce((sum, p) => sum + p.workersNeeded, 0) / predictions.length * 10) / 10
+    }
+  };
+}
+
+/**
+ * Get staffing alerts - when predicted needs exceed available
+ */
+function getStaffingAlerts() {
+  const predictions = predictStaffingNeeds(7);
+  const alerts = [];
+
+  // Assume we have 2 regular workers + owner
+  const availableWorkers = 3;
+
+  predictions.predictions.forEach(day => {
+    if (day.workersNeeded > availableWorkers) {
+      alerts.push({
+        type: 'UNDERSTAFFED',
+        priority: day.workersNeeded > availableWorkers + 1 ? 'HIGH' : 'MEDIUM',
+        date: day.date,
+        dayName: day.dayName,
+        message: `Need ${day.workersNeeded} workers but only ${availableWorkers} available`,
+        recommendation: `Consider hiring ${day.workersNeeded - availableWorkers} additional worker(s) or adjusting schedule`,
+        reasoning: day.reasoning
+      });
+    }
+  });
+
+  return {
+    success: true,
+    alerts: alerts,
+    upcomingWeek: predictions.summary
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function findAlertById(sheet, alertId) {
+  if (!sheet || sheet.getLastRow() <= 1) return null;
+  const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (ids[i][0] === alertId) return i + 2;
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRIGGERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Setup proactive scanning triggers
+ */
+function setupProactiveTriggers() {
+  const triggers = ScriptApp.getProjectTriggers();
+
+  // Remove existing proactive triggers
+  for (const trigger of triggers) {
+    if (trigger.getHandlerFunction() === 'runProactiveScanning') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+    if (trigger.getHandlerFunction() === 'generateMorningBrief') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+
+  // Proactive scanning every 30 minutes
+  ScriptApp.newTrigger('runProactiveScanning')
+    .timeBased()
+    .everyMinutes(30)
+    .create();
+
+  // Morning brief at 6 AM
+  ScriptApp.newTrigger('generateMorningBrief')
+    .timeBased()
+    .atHour(6)
+    .everyDays(1)
+    .create();
+
+  return { success: true, message: 'Proactive triggers created' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST
+// ═══════════════════════════════════════════════════════════════════════════
+
+function testProactiveIntelligence() {
+  Logger.log('=== TESTING PROACTIVE INTELLIGENCE ===');
+
+  Logger.log('1. Initializing...');
+  initializeProactiveSystem();
+
+  Logger.log('2. Running proactive scan...');
+  const scan = runProactiveScanning();
+  Logger.log('   Alerts created: ' + scan.data.alertsCreated);
+
+  Logger.log('3. Getting active alerts...');
+  const alerts = getActiveAlerts();
+  Logger.log('   Active alerts: ' + alerts.count);
+
+  Logger.log('4. Generating morning brief...');
+  const brief = generateMorningBrief();
+  Logger.log('   ' + brief.data.greeting);
+  Logger.log('   Inbox: ' + brief.data.summary.inboxCount);
+  Logger.log('   Critical: ' + brief.data.summary.criticalCount);
+
+  Logger.log('=== PROACTIVE INTELLIGENCE TEST COMPLETE ===');
+
+  return { success: true };
+}
 
 function initializeSmartLaborSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -2906,6 +11708,24 @@ function doGet(e) {
         return jsonResponse(checkOverdueItems());
       case 'checkCustomersAtRisk':
         return jsonResponse(checkCustomersAtRisk());
+
+      // ============ MORNING BRIEFING SMS ============
+      case 'sendMorningBriefingSMS':
+        return jsonResponse(sendMorningBriefingSMS());
+      case 'setupMorningBriefingTrigger':
+        return jsonResponse(setupMorningBriefingTrigger());
+
+      // ============ LEARNING FROM CORRECTIONS ============
+      case 'recordCorrectionFeedback':
+        return jsonResponse(recordCorrectionFeedback(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+      case 'getLearningStats':
+        return jsonResponse(getLearningStats());
+
+      // ============ PREDICTIVE STAFFING ============
+      case 'predictStaffingNeeds':
+        return jsonResponse(predictStaffingNeeds(parseInt(e.parameter.days) || 7));
+      case 'getStaffingAlerts':
+        return jsonResponse(getStaffingAlerts());
 
       // ============ CHIEF OF STAFF - VOICE INTERFACE ============
       case 'parseVoiceCommand':

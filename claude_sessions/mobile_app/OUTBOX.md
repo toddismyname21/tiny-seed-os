@@ -2,8 +2,8 @@
 ## To: PM_Architect, All Claudes
 
 **Created:** 2026-01-22
-**Last Updated:** 2026-01-22
-**Status:** ACTIVE - First Session Complete
+**Last Updated:** 2026-01-23
+**Status:** ACTIVE - Two Sessions Complete
 
 ---
 
@@ -106,6 +106,37 @@
 - neighbor.html - No manifest (landing page, not field app)
 
 These are intentionally without manifests as they're customer-facing marketing pages, not installable PWAs for employees.
+
+---
+
+### Session 2: 2026-01-23 - API Configuration Audit
+
+**Objective:** Verify all mobile files use api-config.js (not hardcoded URLs)
+
+#### Files Audited
+
+| File | Status | Notes |
+|------|--------|-------|
+| employee.html | ✅ Good | Uses fallback pattern |
+| driver.html | ✅ Good | Uses fallback pattern |
+| csa.html | ✅ Good | Uses fallback pattern |
+| customer.html | ✅ Good | Uses TINY_SEED_API.MAIN_API |
+| neighbor.html | ✅ Good | Uses TINY_SEED_API.MAIN_API |
+| login.html | ✅ Good | Uses fallback pattern |
+| inventory_capture.html | ✅ Good | Uses fallback pattern |
+| farmers-market.html | ✅ Good | Uses TINY_SEED_API.MAIN_API |
+| market-sales.html | ✅ Good | Uses TINY_SEED_API.MAIN_API |
+| delivery-zone-checker.html | 🔧 Fixed | Was hardcoded → added api-config.js |
+
+#### Fix Applied
+- `delivery-zone-checker.html`: Added `<script src="api-config.js"></script>` and updated API_BASE to use fallback pattern
+
+#### Results
+- API Config Compliance: 100%
+- Overall Mobile Score: ~95%
+
+#### Audit Report Created
+`claude_sessions/mobile_app/AUDIT_REPORT_2026-01-23.md`
 
 ---
 

@@ -1,11 +1,90 @@
 # OUTBOX: Inventory Claude
 ## To: PM_Architect
 
-**Updated:** 2026-01-22 @ FULL REPORT TO PM
+**Updated:** 2026-01-23 @ PHASE 1 AUDIT COMPLETE
 
 ---
 
-# REPORT TO PM: Grant Research & 501(c)(3) Analysis
+# PHASE 1 AUDIT: Inventory Files
+
+## AUDIT SUMMARY
+
+| File | Status | Issues Found | Fixed |
+|------|--------|--------------|-------|
+| `seed_inventory_PRODUCTION.html` | **FIXED** | 2 issues | 2/2 |
+| `inventory_capture.html` | **OK** | 0 issues | N/A |
+
+---
+
+## ISSUES FOUND & FIXED
+
+### seed_inventory_PRODUCTION.html
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Hardcoded API URL (line 786) | HIGH | **FIXED** - Now uses api-config.js |
+| Demo data fallback (lines 813-868) | MEDIUM | **FIXED** - Removed, shows error instead |
+| Missing api-config.js include | HIGH | **FIXED** - Added script include |
+| Unused `init_old` function | LOW | **FIXED** - Removed |
+
+### inventory_capture.html
+
+| Check | Status |
+|-------|--------|
+| Uses api-config.js | ✅ OK (line 1122) |
+| Proper fallback pattern | ✅ OK |
+| No demo data | ✅ OK |
+
+---
+
+## API ENDPOINT VERIFICATION
+
+All required endpoints exist in `MERGED TOTAL.js`:
+
+| Endpoint | Route Line | Function Line | Status |
+|----------|------------|---------------|--------|
+| `getSeedInventory` | 1551 | 6453 | ✅ EXISTS |
+| `getSeedByQR` | 2577 | 6524 | ✅ EXISTS |
+| `getSeedUsageHistory` | 2579 | 6696 | ✅ EXISTS |
+| `analyzeSeedPacket` | 3268 | 14728 | ✅ EXISTS |
+| `getFarmInventory` | 1792 | 12878 | ✅ EXISTS |
+| `getFarmInventoryStats` | 1796 | 12974 | ✅ EXISTS |
+
+---
+
+## CHANGES MADE
+
+**File:** `seed_inventory_PRODUCTION.html`
+
+1. Added `<script src="web_app/api-config.js"></script>` before main script
+2. Changed API_URL to use TINY_SEED_API with fallback
+3. Removed `useDemoData()` function completely
+4. Added `showLoadError()` function for proper error display
+5. Removed unused `init_old()` function
+
+---
+
+## FUNCTIONAL TESTING NEEDED
+
+These features should be manually tested:
+- [ ] Seed inventory loads from API
+- [ ] Lot tracking works (QR codes)
+- [ ] Quantity updates save to backend
+- [ ] Search/filter works
+- [ ] Labels print correctly
+- [ ] AI packet scanner works
+
+---
+
+## NEXT STEPS
+
+1. **Push to GitHub** - Changes ready
+2. **Manual testing** - Owner should test inventory pages
+3. **Backend Claude** - May need to verify data in Google Sheets
+
+---
+
+# PREVIOUS: Grant Research & 501(c)(3) Analysis
 
 ## EXECUTIVE SUMMARY
 

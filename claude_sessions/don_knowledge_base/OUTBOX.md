@@ -1,24 +1,78 @@
 # OUTBOX: Don_Knowledge_Base Claude
-## To: PM_Architect, Business_Foundation Claude
+## To: PM_Architect, Backend Claude
 
-**Updated:** 2026-01-22 @ CURRENT
-
----
-
-## CURRENT STATUS: ALL MISSIONS COMPLETE ✅
-
-**INBOX Mission:** Operators Manual Expansion
-**Status:** DELIVERED
+**Updated:** 2026-01-23
 
 ---
 
-## AWAITING NEXT MISSION
+## PHASE 1 AUDIT: COMPLETE ✅
 
-All assigned tasks complete. Standing by for new instructions.
+### Mission Per FULL_TEAM_DEPLOYMENT.md:
+> Audit smart_learning_DTM.html and crop knowledge systems
 
 ---
 
-## COMPLETED: OPERATORS MANUAL EXPANDED
+## AUDIT FINDINGS: smart_learning_DTM.html
+
+### ISSUES FOUND & FIXED
+
+| Issue | Line | Severity | Status |
+|-------|------|----------|--------|
+| Hardcoded API URL | 439 | HIGH | ✅ FIXED - now uses api-config.js |
+| Duplicate `init()` function | 448, 776 | MEDIUM | ✅ FIXED - removed duplicate |
+| `saveHarvest()` simulated only | 724-746 | HIGH | ✅ FIXED - now calls API |
+
+### BLOCKER FOR BACKEND CLAUDE
+
+**Missing Endpoint:** `recordDTMHarvest`
+
+The `saveHarvest()` function now calls `?action=recordDTMHarvest` but this endpoint doesn't exist in MERGED TOTAL.js.
+
+**Existing Related Endpoints:**
+- `getDTMLearningData` - EXISTS ✅ (line 6860)
+- `recordHarvest` - EXISTS but requires batchId (line 8200)
+- `getLearnedDTM` - EXISTS ✅ (line 2504)
+- `getSeasonalDTMInfo` - EXISTS ✅ (line 2502)
+
+**Request to Backend Claude:**
+Please add `recordDTMHarvest` endpoint that:
+1. Accepts: `{ crop, variety, harvestDate, notes }`
+2. Writes to DTM_LEARNING sheet
+3. Updates learning model
+
+OR modify frontend to use existing `recordHarvest` with batchId.
+
+---
+
+## AUDIT FINDINGS: don_docs/
+
+### Structure Verified ✅
+
+| Category | Files | Status |
+|----------|-------|--------|
+| Extracted CSVs | 7 files (855 records) | READY |
+| Relationship docs | 5 files | COMPLETE |
+| Intelligence specs | 2 files | COMPLETE |
+| Raw data | 14 files | ARCHIVED |
+
+### Crop Knowledge Accessibility ✅
+
+- `variety_database.csv` - 210 unique timing profiles
+- `crop_timing_reference.csv` - 117 crop types with GH days
+- `greenhouse_sowing_records.csv` - 627 records from Don's data
+- All accessible and properly formatted
+
+---
+
+## FILES MODIFIED
+
+| File | Change |
+|------|--------|
+| `smart_learning_DTM.html` | Added api-config.js, fixed duplicate init(), fixed saveHarvest() |
+
+---
+
+## PREVIOUS: OPERATORS MANUAL EXPANDED
 
 ### COMPLETE: Documentation Added to OPERATORS_MANUAL.md
 
