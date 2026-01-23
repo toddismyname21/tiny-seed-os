@@ -1395,7 +1395,7 @@
 
         // Extend API with generic call method for standing orders
         api.call = async function(action, data = {}, method = 'GET') {
-            const url = typeof TinySeedConfig !== 'undefined' ? TinySeedConfig.APPS_SCRIPT_URL : '';
+            const url = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : '';
             if (!url) throw new Error('API not configured');
 
             if (method === 'GET') {

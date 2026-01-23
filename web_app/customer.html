@@ -16,9 +16,9 @@
 
         :root {
             /* Brand Colors - Farm Green Theme */
-            --primary: #2d5a27;
-            --primary-dark: #1e3d1a;
-            --primary-light: #4a7c43;
+            --primary: #22c55e;
+            --primary-dark: #16a34a;
+            --primary-light: #4ade80;
 
             /* Status Colors */
             --success: #2a9d8f;
@@ -1784,7 +1784,7 @@
 
             try {
                 // First, look up customer by email to auto-detect type
-                const lookupResponse = await fetch(`${CONFIG.API_URL}?action=lookupCustomerByEmail&email=${encodeURIComponent(email)}`);
+                const lookupResponse = await fetch(`${TINY_SEED_API.MAIN_API}?action=lookupCustomerByEmail&email=${encodeURIComponent(email)}`);
                 const lookupData = await lookupResponse.json();
 
                 if (lookupData.success && lookupData.customer) {
@@ -1800,7 +1800,7 @@
                     }
 
                     // Send magic link via API
-                    const response = await fetch(`${CONFIG.API_URL}?action=sendMagicLink&email=${encodeURIComponent(email)}`);
+                    const response = await fetch(`${TINY_SEED_API.MAIN_API}?action=sendMagicLink&email=${encodeURIComponent(email)}`);
                     const data = await response.json();
 
                     if (data.success) {
