@@ -4394,33 +4394,42 @@
 
             try {
                 const response = await fetch(`${API_URL}?action=getMorningBrief`);
-                const data = await response.json();
+                const rawData = await response.json();
 
-                // API returns data.data, map to brief format
-                if (!data.success || !data.data) {
+                // FIXED 2026-01-23: Handle new API format (data at top level, not in data.data)
+                // Backend returns: { success, date, sections: {tasks, harvests, orders}, tips }
+                const data = rawData.data ? rawData : { success: rawData.success, data: rawData };
+                if (!data.success) {
                     briefSection.innerHTML = '<div class="brief-loading">Could not load Morning Brief</div>';
                     return;
                 }
 
-                const apiData = data.data;
+                // Support both old format (data.data) and new format (data at top level)
+                const apiData = data.data || data;
 
-                // Update time
+                // Update time - new format uses 'date', old format may differ
                 document.getElementById('briefTime').textContent = apiData.date || new Date().toLocaleDateString();
 
-                // Update weather from API format
-                const weather = apiData.weather_summary;
-                if (weather) {
+                // Update weather from API format (new format: sections.weather)
+                const weather = apiData.weather_summary || apiData.sections?.weather;
+                if (weather && weather.high) {
                     document.getElementById('briefTemp').textContent = weather.high + '°F';
-                    document.getElementById('briefCondition').textContent = weather.precip_chance > 50 ? 'Rainy' : 'Clear';
+                    document.getElementById('briefCondition').textContent = (weather.precip_chance || 0) > 50 ? 'Rainy' : 'Clear';
                     document.getElementById('briefHigh').textContent = weather.high;
-                    document.getElementById('briefLow').textContent = weather.low;
-                    document.getElementById('briefRain').textContent = weather.precip_chance + '%';
+                    document.getElementById('briefLow').textContent = weather.low || '--';
+                    document.getElementById('briefRain').textContent = (weather.precip_chance || 0) + '%';
+                } else {
+                    document.getElementById('briefTemp').textContent = '--';
+                    document.getElementById('briefCondition').textContent = 'N/A';
                 }
 
-                // Render alerts from API format
+                // Render alerts from API format (new format: tips array)
                 const alertsContainer = document.getElementById('briefAlerts');
-                if (apiData.alerts && apiData.alerts.length > 0) {
-                    alertsContainer.innerHTML = apiData.alerts.map(alert => `
+                const alerts = apiData.alerts || [];
+                const tips = apiData.tips || [];
+
+                if (alerts.length > 0) {
+                    alertsContainer.innerHTML = alerts.map(alert => `
                         <div class="alert-card ${alert.severity === 'critical' ? 'critical' : alert.severity === 'warning' ? 'high' : 'medium'}">
                             <span class="alert-icon">${alert.type === 'COLD' ? '🥶' : alert.type === 'HEAT' ? '🔥' : '⚠️'}</span>
                             <div class="alert-content">
@@ -4429,70 +4438,108 @@
                             </div>
                         </div>
                     `).join('');
+                } else if (tips.length > 0) {
+                    // Use tips as alerts in the new format
+                    alertsContainer.innerHTML = tips.map(tip => `
+                        <div class="alert-card medium" style="background: rgba(42, 157, 143, 0.1); border-color: var(--success);">
+                            <div class="alert-content">
+                                <p>${tip}</p>
+                            </div>
+                        </div>
+                    `).join('');
                 } else {
                     alertsContainer.innerHTML = '<div style="color: #22c55e; padding: 12px;">✓ No critical alerts today</div>';
                 }
 
-                // Render priorities from API format (must_do_today, should_do_today)
+                // Render priorities from API format
+                // New format: sections.tasks.items, old format: must_do_today/should_do_today
                 const prioritiesContainer = document.getElementById('briefPriorities');
-                const allTasks = [
-                    ...(apiData.must_do_today || []).map(t => ({...t, urgency: 'MUST DO'})),
-                    ...(apiData.should_do_today || []).map(t => ({...t, urgency: 'SHOULD DO'}))
-                ];
+                const taskSection = apiData.sections?.tasks || {};
+                const taskItems = taskSection.items || [];
+                const overdueCount = taskSection.overdue || 0;
+
+                // Support both formats
+                const allTasks = taskItems.length > 0 ? taskItems :
+                    [
+                        ...(apiData.must_do_today || []).map(t => ({...t, urgency: 'MUST DO'})),
+                        ...(apiData.should_do_today || []).map(t => ({...t, urgency: 'SHOULD DO'}))
+                    ];
 
                 if (allTasks.length > 0) {
                     const topTasks = allTasks.slice(0, 5);
                     prioritiesContainer.innerHTML = topTasks.map(task => `
-                        <div class="priority-item ${task.urgency === 'MUST DO' ? 'overdue' : ''}">
+                        <div class="priority-item ${task.urgency === 'MUST DO' || task.overdue ? 'overdue' : ''}">
                             <div>
-                                <div class="task-name">${task.task || task.name || 'Task'}</div>
-                                <div class="task-meta">${task.crop || ''} ${task.category ? '- ' + task.category : ''}</div>
+                                <div class="task-name">${task.task || task.name || task.crop || 'Task'}</div>
+                                <div class="task-meta">${task.crop || ''} ${task.category ? '- ' + task.category : ''} ${task.type || ''}</div>
                             </div>
-                            <div class="task-meta">${task.urgency}</div>
+                            <div class="task-meta">${task.urgency || task.type || ''}</div>
                         </div>
                     `).join('');
                 } else {
                     prioritiesContainer.innerHTML = '<div style="color: #888; padding: 12px;">No tasks scheduled for today</div>';
                 }
 
-                // Render harvest ready
+                // Render harvest ready (new format: sections.harvests)
                 const harvestSection = document.getElementById('briefHarvestSection');
                 const harvestContainer = document.getElementById('briefHarvest');
-                if (apiData.harvest_ready && apiData.harvest_ready > 0) {
+                const harvestData = apiData.sections?.harvests || {};
+                const harvestCount = harvestData.count || apiData.harvest_ready || 0;
+
+                if (harvestCount > 0) {
                     harvestSection.style.display = 'block';
-                    harvestContainer.innerHTML = `<div class="harvest-item"><span class="crop-name">${apiData.harvest_ready} crops ready</span></div>`;
+                    if (harvestData.items && harvestData.items.length > 0) {
+                        harvestContainer.innerHTML = harvestData.items.slice(0, 3).map(h =>
+                            `<div class="harvest-item"><span class="crop-name">${h.crop || h.name || 'Crop'}</span> <span style="color: ${h.status === 'OVERDUE' ? '#ef4444' : '#22c55e'}">${h.status || ''}</span></div>`
+                        ).join('');
+                    } else {
+                        harvestContainer.innerHTML = `<div class="harvest-item"><span class="crop-name">${harvestCount} crops ready</span></div>`;
+                    }
                 } else {
                     harvestSection.style.display = 'none';
                 }
 
-                // Render recommendations / disease risk
+                // Render recommendations / orders section (new format: sections.orders)
                 const recsContainer = document.getElementById('briefRecommendations');
-                const riskColor = apiData.disease_risk === 'HIGH' ? '#ef4444' : apiData.disease_risk === 'MEDIUM' ? '#f59e0b' : '#22c55e';
-                recsContainer.innerHTML = `
-                    <div class="recommendation-item">
-                        <div class="rec-title">🦠 Disease Risk: <span style="color: ${riskColor}">${apiData.disease_risk || 'LOW'}</span></div>
-                        <div class="rec-reason">Based on current weather and humidity conditions</div>
-                    </div>
-                `;
+                const ordersData = apiData.sections?.orders || {};
+                const ordersCount = ordersData.count || 0;
+
+                if (ordersCount > 0) {
+                    recsContainer.innerHTML = `
+                        <div class="recommendation-item">
+                            <div class="rec-title">📦 ${ordersCount} Pending Order${ordersCount !== 1 ? 's' : ''}</div>
+                            <div class="rec-reason">${ordersData.message || 'Need processing'}</div>
+                        </div>
+                    `;
+                } else {
+                    const riskColor = apiData.disease_risk === 'HIGH' ? '#ef4444' : apiData.disease_risk === 'MEDIUM' ? '#f59e0b' : '#22c55e';
+                    recsContainer.innerHTML = `
+                        <div class="recommendation-item">
+                            <div class="rec-title">🦠 Disease Risk: <span style="color: ${riskColor}">${apiData.disease_risk || 'LOW'}</span></div>
+                            <div class="rec-reason">Based on current weather and humidity conditions</div>
+                        </div>
+                    `;
+                }
 
                 // Add stats footer
+                const totalTasks = taskSection.count || allTasks.length;
                 const statsHtml = `
                     <div class="brief-stats">
                         <div class="stat-item">
-                            <div class="stat-value">${allTasks.length}</div>
+                            <div class="stat-value">${totalTasks}</div>
                             <div class="stat-label">Tasks</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value" style="color: ${(apiData.must_do_today?.length || 0) > 0 ? '#ef4444' : '#22c55e'}">${apiData.must_do_today?.length || 0}</div>
-                            <div class="stat-label">Urgent</div>
+                            <div class="stat-value" style="color: ${overdueCount > 0 ? '#ef4444' : '#22c55e'}">${overdueCount || apiData.must_do_today?.length || 0}</div>
+                            <div class="stat-label">Overdue</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value" style="color: #22c55e">${apiData.harvest_ready || 0}</div>
+                            <div class="stat-value" style="color: #22c55e">${harvestCount}</div>
                             <div class="stat-label">Harvest Ready</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value">${apiData.estimated_labor_hours || 0}h</div>
-                            <div class="stat-label">Est. Time</div>
+                            <div class="stat-value">${ordersCount}</div>
+                            <div class="stat-label">Orders</div>
                         </div>
                     </div>
                 `;

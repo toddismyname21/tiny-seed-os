@@ -268,17 +268,18 @@
             border-color: var(--primary);
         }
 
-        /* Unassigned Plantings Right Sidebar - Inspired by Tend.ag */
+        /* Unassigned Plantings Right Sidebar - Gantt-Style Timeline */
         .unassigned-panel {
             position: fixed;
             top: 80px;
             right: 0;
-            width: 320px;
+            width: 520px;
             height: calc(100vh - 80px);
             background: var(--bg-card);
             border-left: 1px solid var(--border);
             padding: 0;
             overflow-y: auto;
+            overflow-x: hidden;
             z-index: 100;
             transform: translateX(100%);
             transition: transform 0.3s ease;
@@ -313,7 +314,7 @@
         }
 
         .unassigned-toggle.open {
-            right: 320px;
+            right: 520px;
         }
 
         .unassigned-toggle .badge {
@@ -408,7 +409,7 @@
 
         .crop-group-items {
             display: none;
-            padding: 8px;
+            padding: 4px 8px 8px;
             background: rgba(0,0,0,0.2);
         }
 
@@ -416,19 +417,38 @@
             display: block;
         }
 
+        /* Mini Timeline Header */
+        .unassigned-timeline-header {
+            display: flex;
+            padding: 0 8px;
+            margin-bottom: 4px;
+            margin-left: 100px;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        .unassigned-timeline-header span {
+            flex: 1;
+            text-align: center;
+            border-left: 1px solid var(--border);
+            padding: 2px 0;
+        }
+
+        /* Gantt-style planting item */
         .unassigned-item {
-            background: var(--bg-light);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 12px;
-            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            background: transparent;
+            border: none;
+            padding: 4px 0;
+            margin-bottom: 2px;
             cursor: grab;
             transition: all 0.2s;
+            min-height: 28px;
         }
 
         .unassigned-item:hover {
-            border-color: var(--primary);
-            transform: translateX(-3px);
+            background: rgba(255,255,255,0.03);
         }
 
         .unassigned-item:active {
@@ -437,7 +457,72 @@
 
         .unassigned-item.dragging {
             opacity: 0.5;
-            transform: scale(0.95);
+        }
+
+        .unassigned-item-label {
+            width: 100px;
+            flex-shrink: 0;
+            font-size: 0.75rem;
+            padding-right: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .unassigned-item-label .variety-name {
+            font-weight: 500;
+        }
+
+        .unassigned-item-label .item-meta {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        .unassigned-item-timeline {
+            flex: 1;
+            position: relative;
+            height: 24px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 3px;
+        }
+
+        .unassigned-item-bar {
+            position: absolute;
+            height: 20px;
+            top: 2px;
+            border-radius: 4px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: white;
+            font-weight: 500;
+            min-width: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .unassigned-item-bar:hover {
+            transform: scale(1.02);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+            z-index: 5;
+        }
+
+        .unassigned-item-bar.urgent {
+            animation: pulse-urgent 2s infinite;
+        }
+
+        @keyframes pulse-urgent {
+            0%, 100% { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+            50% { box-shadow: 0 2px 12px rgba(233, 196, 106, 0.6); }
+        }
+
+        .unassigned-item-bar .bar-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 4px;
         }
 
         .unassigned-item-header {
@@ -1760,6 +1845,393 @@
                 font-size: 14pt;
             }
         }
+
+        /* ============================================= */
+        /* PLANNING ASSISTANT - AI CHAT INTERFACE */
+        /* ============================================= */
+        .planning-assistant {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .assistant-toggle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(45, 90, 39, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .assistant-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(45, 90, 39, 0.5);
+        }
+
+        .assistant-toggle.has-suggestions {
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 4px 20px rgba(45, 90, 39, 0.4); }
+            50% { box-shadow: 0 4px 30px rgba(244, 162, 97, 0.6); }
+        }
+
+        .assistant-toggle .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+        }
+
+        .assistant-toggle .notification-badge:empty,
+        .assistant-toggle .notification-badge[data-count="0"] {
+            display: none;
+        }
+
+        .assistant-panel {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            width: 420px;
+            height: 600px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            transform-origin: bottom right;
+            animation: slideUp 0.3s ease;
+        }
+
+        .assistant-panel.open {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .assistant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .assistant-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+        }
+
+        .assistant-title i {
+            font-size: 1.25rem;
+        }
+
+        .assistant-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .assistant-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .assistant-suggestions {
+            padding: 0.75rem;
+            background: rgba(244, 162, 97, 0.1);
+            border-bottom: 1px solid var(--border);
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .assistant-suggestions:empty {
+            display: none;
+        }
+
+        .suggestion-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .suggestion-card:hover {
+            border-color: var(--primary);
+            background: rgba(45, 90, 39, 0.1);
+        }
+
+        .suggestion-card .suggestion-icon {
+            margin-right: 8px;
+        }
+
+        .suggestion-card .suggestion-text {
+            font-size: 0.85rem;
+        }
+
+        .suggestion-card .suggestion-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .assistant-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.assistant .message-actions {
+            margin-top: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .message-action-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .message-action-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .message-action-btn.primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .message-action-btn.danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .message-action-btn.danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .message .preview-box {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .message .preview-box .preview-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .message .preview-box .preview-row:last-child {
+            border-bottom: none;
+        }
+
+        .message .preview-box .changed {
+            color: var(--secondary);
+        }
+
+        .message.typing .dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .message.typing .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .message.typing .dot:nth-child(2) { animation-delay: 0.2s; }
+        .message.typing .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+
+        .assistant-input-area {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+
+        .assistant-input-area input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-light);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .assistant-input-area input:focus {
+            border-color: var(--primary);
+        }
+
+        .assistant-input-area input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .assistant-input-area button {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .assistant-input-area button:hover {
+            background: var(--primary-light);
+            transform: scale(1.05);
+        }
+
+        .assistant-input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Quick action chips in input */
+        .quick-actions {
+            display: flex;
+            gap: 6px;
+            padding: 0 1rem 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-chip {
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(45, 90, 39, 0.15);
+            border: 1px solid rgba(45, 90, 39, 0.3);
+            color: var(--primary-light);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action-chip:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            .assistant-panel {
+                width: calc(100vw - 20px);
+                height: calc(100vh - 100px);
+                right: 10px;
+                bottom: 80px;
+                border-radius: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2678,7 +3150,7 @@
                     field: field,
                     bedNum: bedNum,
                     isUnassigned: isUnassigned || false,
-                    bedFeet: parseInt(p.Feet_Used || p.feet_used || p.BedFeet || p.bedFeet || 50),
+                    bedFeet: parseInt(p.Bed_Feet || p.Feet_Used || p.feet_used || p.BedFeet || p.bedFeet || 0),
                     status: computeStatus(fieldStartDate, lastHarvest),
                     dtm: daysFieldToHarvest > 0 ? daysFieldToHarvest : 60,
                     trays: parseInt(p.Trays_Needed || p.trays_needed || 0),
@@ -3168,6 +3640,9 @@
 
             // Initialize drag and resize
             initializeInteractions();
+
+            // Setup drop zones for unassigned plantings (after gantt is rendered)
+            setTimeout(() => setupGanttDropZones(), 100);
         }
 
         // Synchronized scrolling for sticky headers
@@ -4452,6 +4927,11 @@
             toggle.classList.toggle('open');
         }
 
+        // Year timeline constants for sidebar
+        const SIDEBAR_YEAR_START = new Date('2026-01-01');
+        const SIDEBAR_YEAR_END = new Date('2026-12-31');
+        const SIDEBAR_TIMELINE_WIDTH = 380; // Width in pixels for timeline portion
+
         function populateUnassignedPanel() {
             // Filter plantings that are unassigned
             unassignedPlantings = plantings.filter(p =>
@@ -4472,7 +4952,7 @@
                 byCrop[crop].push(p);
             });
 
-            // Build HTML - organized by crop
+            // Build HTML - organized by crop with mini timeline
             const content = document.getElementById('unassignedContent');
             if (count === 0) {
                 content.innerHTML = `
@@ -4483,6 +4963,14 @@
                 `;
                 return;
             }
+
+            // Build month header for timeline
+            const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+            const monthHeader = `
+                <div class="unassigned-timeline-header">
+                    ${months.map(m => `<span>${m}</span>`).join('')}
+                </div>
+            `;
 
             let html = '';
             Object.keys(byCrop).sort().forEach(crop => {
@@ -4499,6 +4987,13 @@
 
                 if (filteredItems.length === 0) return;
 
+                // Sort items by fieldStartDate
+                filteredItems.sort((a, b) => {
+                    const dateA = a.fieldStartDate ? new Date(a.fieldStartDate) : new Date('2026-12-31');
+                    const dateB = b.fieldStartDate ? new Date(b.fieldStartDate) : new Date('2026-12-31');
+                    return dateA - dateB;
+                });
+
                 html += `
                     <div class="crop-group" data-crop="${crop}">
                         <div class="crop-group-header" onclick="toggleCropGroup(this.parentElement)">
@@ -4509,7 +5004,8 @@
                             <span class="crop-group-count">${filteredItems.length}</span>
                         </div>
                         <div class="crop-group-items">
-                            ${filteredItems.map(p => buildUnassignedItem(p)).join('')}
+                            ${monthHeader}
+                            ${filteredItems.map(p => buildUnassignedItem(p, cropColor)).join('')}
                         </div>
                     </div>
                 `;
@@ -4521,43 +5017,68 @@
             setupUnassignedDrag();
         }
 
-        function buildUnassignedItem(p) {
+        function buildUnassignedItem(p, cropColor) {
             // Check for missing critical info
             const warnings = [];
-            if (!p.bedFeet && p.bedFeet !== 0) warnings.push('Missing bed feet');
-            if (!p.dtm && p.dtm !== 0) warnings.push('Missing DTM');
-            if (!p.fieldStartDate) warnings.push('Missing dates');
+            if (!p.bedFeet && p.bedFeet !== 0) warnings.push('No feet');
+            if (!p.fieldStartDate) warnings.push('No dates');
 
             // Calculate days until action needed
             let daysUntil = null;
+            let isUrgent = false;
             if (p.fieldStartDate) {
                 const startDate = new Date(p.fieldStartDate);
                 const today = new Date();
                 today.setHours(0,0,0,0);
                 daysUntil = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+                isUrgent = daysUntil !== null && daysUntil <= 10 && daysUntil >= 0;
             }
 
-            const warningHtml = warnings.length > 0 ? `
-                <div class="unassigned-item-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    ${warnings.join(', ')}
-                </div>
-            ` : '';
+            // Calculate bar position on timeline (0-100% of year)
+            let barLeft = 0;
+            let barWidth = 10; // Default width
+            if (p.fieldStartDate) {
+                const startDate = new Date(p.fieldStartDate);
+                const yearStart = SIDEBAR_YEAR_START;
+                const yearEnd = SIDEBAR_YEAR_END;
+                const totalDays = (yearEnd - yearStart) / (1000 * 60 * 60 * 24);
+                const daysFromStart = (startDate - yearStart) / (1000 * 60 * 60 * 24);
+                barLeft = Math.max(0, Math.min(100, (daysFromStart / totalDays) * 100));
 
-            const urgentClass = daysUntil !== null && daysUntil <= 10 && daysUntil >= 0 ? 'style="border-color: var(--warning);"' : '';
+                // Calculate duration (field to harvest)
+                if (p.harvestDate) {
+                    const endDate = new Date(p.harvestDate);
+                    const durationDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+                    barWidth = Math.max(2, (durationDays / totalDays) * 100);
+                } else {
+                    // Default to DTM days
+                    barWidth = Math.max(2, ((p.dtm || 60) / totalDays) * 100);
+                }
+            }
+
+            // Format date for display
+            const dateLabel = p.fieldStartDate ?
+                new Date(p.fieldStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+
+            const urgentClass = isUrgent ? 'urgent' : '';
+            const warningIcon = warnings.length > 0 ? `<i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-left: 4px;" title="${warnings.join(', ')}"></i>` : '';
 
             return `
-                <div class="unassigned-item" draggable="true" data-planting-id="${p.id}" ${urgentClass}>
-                    <div class="unassigned-item-header">
-                        <div class="unassigned-item-variety">${p.variety || 'No variety'}</div>
-                        <div class="unassigned-item-id">${p.id || ''}</div>
+                <div class="unassigned-item" draggable="true"
+                     data-planting-id="${p.id}"
+                     data-field-start="${p.fieldStartDate || ''}"
+                     data-harvest-date="${p.harvestDate || ''}">
+                    <div class="unassigned-item-label">
+                        <div class="variety-name">${p.variety || 'No variety'}${warningIcon}</div>
+                        <div class="item-meta">${p.bedFeet ? p.bedFeet + ' ft' : ''} ${daysUntil !== null ? (daysUntil <= 0 ? '⚠️ NOW' : daysUntil + 'd') : ''}</div>
                     </div>
-                    <div class="unassigned-item-details">
-                        ${p.bedFeet ? `<span><i class="fas fa-ruler"></i> ${p.bedFeet} ft</span>` : ''}
-                        ${p.plantingMethod ? `<span><i class="fas fa-seedling"></i> ${p.plantingMethod}</span>` : ''}
-                        ${daysUntil !== null ? `<span><i class="fas fa-clock"></i> ${daysUntil <= 0 ? 'OVERDUE' : daysUntil + ' days'}</span>` : ''}
+                    <div class="unassigned-item-timeline">
+                        <div class="unassigned-item-bar ${urgentClass}"
+                             style="left: ${barLeft}%; width: ${barWidth}%; background: ${cropColor || '#2d5a27'};"
+                             title="${p.variety} - ${dateLabel}${p.bedFeet ? ' | ' + p.bedFeet + ' ft' : ''}">
+                            <span class="bar-label">${dateLabel}</span>
+                        </div>
                     </div>
-                    ${warningHtml}
                 </div>
             `;
         }
@@ -4575,13 +5096,19 @@
             const items = document.querySelectorAll('.unassigned-item');
             items.forEach(item => {
                 item.addEventListener('dragstart', (e) => {
+                    // Store planting ID and planned dates for drop handler
+                    const plantingData = JSON.stringify({
+                        id: item.dataset.plantingId,
+                        fieldStart: item.dataset.fieldStart,
+                        harvestDate: item.dataset.harvestDate
+                    });
+                    e.dataTransfer.setData('application/json', plantingData);
                     e.dataTransfer.setData('text/plain', item.dataset.plantingId);
                     item.classList.add('dragging');
-                    // Highlight potential drop zones (beds)
-                    document.querySelectorAll('.gantt-label').forEach(label => {
-                        if (label.classList.contains('empty-bed')) {
-                            label.classList.add('drop-zone-highlight');
-                        }
+
+                    // Highlight potential drop zones (all gantt rows)
+                    document.querySelectorAll('.gantt-row').forEach(row => {
+                        row.classList.add('drop-zone-highlight');
                     });
                 });
 
@@ -4590,6 +5117,78 @@
                     document.querySelectorAll('.drop-zone-highlight').forEach(el => {
                         el.classList.remove('drop-zone-highlight');
                     });
+                });
+            });
+
+            // Setup drop zones on gantt rows
+            setupGanttDropZones();
+        }
+
+        function setupGanttDropZones() {
+            document.querySelectorAll('.gantt-row').forEach(row => {
+                row.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    row.classList.add('drop-target');
+                });
+
+                row.addEventListener('dragleave', () => {
+                    row.classList.remove('drop-target');
+                });
+
+                row.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    row.classList.remove('drop-target');
+
+                    // Get planting data from drag
+                    let plantingId, fieldStart, harvestDate;
+                    try {
+                        const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                        plantingId = data.id;
+                        fieldStart = data.fieldStart;
+                        harvestDate = data.harvestDate;
+                    } catch {
+                        plantingId = e.dataTransfer.getData('text/plain');
+                    }
+
+                    if (!plantingId) return;
+
+                    // Get target bed info
+                    const targetField = row.dataset.field;
+                    const targetBed = row.dataset.bed;
+
+                    if (!targetField || !targetBed) {
+                        showToast('Cannot assign to this row', 'error');
+                        return;
+                    }
+
+                    // Find the planting
+                    const planting = plantings.find(p => p.id === plantingId);
+                    if (!planting) {
+                        showToast('Planting not found', 'error');
+                        return;
+                    }
+
+                    // Use the PLANNED start date (not drop position)
+                    const plannedStart = fieldStart || planting.fieldStartDate;
+
+                    if (!plannedStart) {
+                        showToast('No planned date - set dates first', 'warning');
+                        return;
+                    }
+
+                    // Update planting with new bed assignment (keeping planned date)
+                    updatePlantingDates(plantingId, new Date(plannedStart), null, targetField, targetBed);
+
+                    // Update local planting data
+                    planting.field = targetField;
+                    planting.bed = targetBed;
+                    planting.isUnassigned = false;
+
+                    showToast(`Assigned to ${targetBed} at planned date`, 'success');
+
+                    // Refresh displays
+                    populateUnassignedPanel();
+                    renderGantt();
                 });
             });
         }
@@ -4863,8 +5462,697 @@
             if (e.key === 'Escape') {
                 closeAddPlantingModal();
                 closeEditModal();
+                closePlanningAssistant();
             }
         });
+
+        // ========================================
+        // PLANNING ASSISTANT - AI CHAT INTERFACE
+        // ========================================
+        let assistantOpen = false;
+        let assistantMessages = [];
+        let assistantSuggestions = [];
+        let isAssistantProcessing = false;
+
+        // Toggle the planning assistant panel
+        function togglePlanningAssistant() {
+            assistantOpen = !assistantOpen;
+            const panel = document.getElementById('assistantPanel');
+            const toggle = document.getElementById('assistantToggle');
+
+            if (assistantOpen) {
+                panel.classList.add('open');
+                toggle.style.display = 'none';
+                document.getElementById('assistantInput').focus();
+                // Load suggestions when opened
+                loadAssistantSuggestions();
+            } else {
+                panel.classList.remove('open');
+                toggle.style.display = 'flex';
+            }
+        }
+
+        function closePlanningAssistant() {
+            if (assistantOpen) {
+                assistantOpen = false;
+                document.getElementById('assistantPanel').classList.remove('open');
+                document.getElementById('assistantToggle').style.display = 'flex';
+            }
+        }
+
+        // Load proactive suggestions based on current data
+        async function loadAssistantSuggestions() {
+            const suggestionsContainer = document.getElementById('assistantSuggestions');
+
+            // Generate suggestions from current planning data
+            const suggestions = [];
+
+            // Check for unassigned plantings
+            const unassignedCount = unassignedPlantings.length;
+            if (unassignedCount > 0) {
+                suggestions.push({
+                    icon: '⚠️',
+                    text: `${unassignedCount} plantings need bed assignment`,
+                    action: `Assign ${unassignedCount} unassigned plantings`,
+                    type: 'warning'
+                });
+            }
+
+            // Check for urgent plantings (within 10 days)
+            const urgentPlantings = unassignedPlantings.filter(p => {
+                if (!p.fieldStartDate) return false;
+                const startDate = new Date(p.fieldStartDate);
+                const today = new Date();
+                const daysUntil = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+                return daysUntil <= 10 && daysUntil >= 0;
+            });
+
+            if (urgentPlantings.length > 0) {
+                suggestions.push({
+                    icon: '🚨',
+                    text: `${urgentPlantings.length} plantings urgent - transplant within 10 days`,
+                    action: `Show urgent plantings`,
+                    type: 'critical'
+                });
+            }
+
+            // Check for available beds this month
+            const availableBeds = getAvailableBedsThisMonth();
+            if (availableBeds.length > 0) {
+                suggestions.push({
+                    icon: '🌱',
+                    text: `${availableBeds.length} beds available this month`,
+                    action: `Show available beds`,
+                    type: 'info'
+                });
+            }
+
+            assistantSuggestions = suggestions;
+            renderSuggestions();
+        }
+
+        function getAvailableBedsThisMonth() {
+            // Get beds that are free this month based on current plantings
+            const now = new Date();
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+            // Get occupied beds for this month
+            const occupiedBeds = new Set();
+            plantings.forEach(p => {
+                if (p.isUnassigned) return;
+                const start = new Date(p.fieldStartDate);
+                const end = new Date(p.harvestDate);
+                if (start <= monthEnd && end >= monthStart) {
+                    occupiedBeds.add(p.bed);
+                }
+            });
+
+            // Return beds not occupied (simplified - would need full bed list)
+            return [...allBeds].filter(bed => !occupiedBeds.has(bed)).slice(0, 10);
+        }
+
+        function renderSuggestions() {
+            const container = document.getElementById('assistantSuggestions');
+            if (assistantSuggestions.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = assistantSuggestions.map((s, i) => `
+                <div class="suggestion-card" onclick="handleSuggestion(${i})">
+                    <span class="suggestion-icon">${s.icon}</span>
+                    <span class="suggestion-text">${s.text}</span>
+                    <div class="suggestion-meta">Click to: ${s.action}</div>
+                </div>
+            `).join('');
+
+            // Update badge count
+            updateAssistantBadge(assistantSuggestions.length);
+        }
+
+        function updateAssistantBadge(count) {
+            const badge = document.getElementById('assistantBadge');
+            const toggle = document.getElementById('assistantToggle');
+
+            badge.textContent = count;
+            badge.setAttribute('data-count', count);
+
+            if (count > 0) {
+                toggle.classList.add('has-suggestions');
+            } else {
+                toggle.classList.remove('has-suggestions');
+            }
+        }
+
+        function handleSuggestion(index) {
+            const suggestion = assistantSuggestions[index];
+            // Add as user message and process
+            addAssistantMessage('user', suggestion.action);
+            processAssistantMessage(suggestion.action);
+        }
+
+        // Send a message to the assistant
+        function sendAssistantMessage() {
+            const input = document.getElementById('assistantInput');
+            const message = input.value.trim();
+
+            if (!message || isAssistantProcessing) return;
+
+            // Add user message
+            addAssistantMessage('user', message);
+            input.value = '';
+
+            // Process the message
+            processAssistantMessage(message);
+        }
+
+        function addAssistantMessage(role, content, actions = null) {
+            const messagesContainer = document.getElementById('assistantMessages');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            let html = content;
+
+            if (actions && actions.length > 0) {
+                html += '<div class="message-actions">';
+                actions.forEach(action => {
+                    const btnClass = action.primary ? 'primary' : action.danger ? 'danger' : '';
+                    html += `<button class="message-action-btn ${btnClass}" onclick="${action.onclick}">${action.label}</button>`;
+                });
+                html += '</div>';
+            }
+
+            messageDiv.innerHTML = html;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            assistantMessages.push({ role, content, actions });
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('assistantMessages');
+            const typing = document.createElement('div');
+            typing.className = 'message assistant typing';
+            typing.id = 'typingIndicator';
+            typing.innerHTML = '<div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+            messagesContainer.appendChild(typing);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typing = document.getElementById('typingIndicator');
+            if (typing) typing.remove();
+        }
+
+        // Process user message and generate response
+        async function processAssistantMessage(message) {
+            isAssistantProcessing = true;
+            showTypingIndicator();
+
+            try {
+                // Parse intent from message
+                const intent = parseAssistantIntent(message);
+
+                // Handle based on intent
+                let response;
+                switch (intent.type) {
+                    case 'query_unassigned':
+                        response = handleQueryUnassigned();
+                        break;
+                    case 'query_available_beds':
+                        response = handleQueryAvailableBeds(intent);
+                        break;
+                    case 'query_urgent':
+                        response = handleQueryUrgent();
+                        break;
+                    case 'move_planting':
+                        response = handleMovePlanting(intent);
+                        break;
+                    case 'help':
+                        response = handleHelp();
+                        break;
+                    default:
+                        response = handleGenericQuery(message);
+                }
+
+                hideTypingIndicator();
+                addAssistantMessage('assistant', response.message, response.actions);
+
+            } catch (error) {
+                hideTypingIndicator();
+                addAssistantMessage('assistant', `Sorry, I encountered an error: ${error.message}. Please try again.`);
+            }
+
+            isAssistantProcessing = false;
+        }
+
+        // Simple intent parsing (will be enhanced with Claude API)
+        function parseAssistantIntent(message) {
+            const lowerMsg = message.toLowerCase();
+
+            // Query unassigned
+            if (lowerMsg.includes('unassigned') || lowerMsg.includes('need bed') || lowerMsg.includes('not assigned')) {
+                return { type: 'query_unassigned' };
+            }
+
+            // Query available beds
+            if (lowerMsg.includes('available') && (lowerMsg.includes('bed') || lowerMsg.includes('field'))) {
+                // Try to extract month
+                const months = ['january', 'february', 'march', 'april', 'may', 'june',
+                               'july', 'august', 'september', 'october', 'november', 'december'];
+                let month = null;
+                months.forEach((m, i) => {
+                    if (lowerMsg.includes(m)) month = i;
+                });
+                return { type: 'query_available_beds', month };
+            }
+
+            // Query urgent
+            if (lowerMsg.includes('urgent') || lowerMsg.includes('overdue') || lowerMsg.includes('soon')) {
+                return { type: 'query_urgent' };
+            }
+
+            // Move planting
+            if (lowerMsg.includes('move') || lowerMsg.includes('assign') || lowerMsg.includes('put')) {
+                // Try to extract crop and field
+                const cropMatch = Object.keys(cropColors).find(c => lowerMsg.includes(c.toLowerCase()));
+                const fieldMatch = DEFAULT_FIELDS.find(f => lowerMsg.includes(f.toLowerCase()));
+                return { type: 'move_planting', crop: cropMatch, field: fieldMatch };
+            }
+
+            // Help
+            if (lowerMsg.includes('help') || lowerMsg === '?') {
+                return { type: 'help' };
+            }
+
+            return { type: 'unknown' };
+        }
+
+        // Intent handlers
+        function handleQueryUnassigned() {
+            const count = unassignedPlantings.length;
+            if (count === 0) {
+                return {
+                    message: '✅ All plantings are assigned to beds! Great work.',
+                    actions: []
+                };
+            }
+
+            // Group by crop
+            const byCrop = {};
+            unassignedPlantings.forEach(p => {
+                const crop = p.crop || 'Unknown';
+                if (!byCrop[crop]) byCrop[crop] = [];
+                byCrop[crop].push(p);
+            });
+
+            const cropSummary = Object.entries(byCrop)
+                .map(([crop, items]) => `• ${crop}: ${items.length}`)
+                .join('<br>');
+
+            return {
+                message: `📋 **${count} unassigned plantings:**<br><br>${cropSummary}<br><br>Would you like me to suggest beds for these?`,
+                actions: [
+                    { label: '🎯 Auto-assign all', onclick: 'autoAssignPlantings()', primary: true },
+                    { label: 'Show sidebar', onclick: 'toggleUnassignedPanel()' }
+                ]
+            };
+        }
+
+        function handleQueryAvailableBeds(intent) {
+            const month = intent.month !== null ? intent.month : new Date().getMonth();
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+
+            // Calculate available beds for the month
+            const availableByField = {};
+            DEFAULT_FIELDS.forEach(field => {
+                const bedCount = FIELD_CONFIG[field] || 10;
+                // Count how many are occupied
+                let occupiedCount = 0;
+                plantings.forEach(p => {
+                    if (p.field === field && !p.isUnassigned) {
+                        const start = new Date(p.fieldStartDate);
+                        const end = new Date(p.harvestDate);
+                        const monthStart = new Date(2026, month, 1);
+                        const monthEnd = new Date(2026, month + 1, 0);
+                        if (start <= monthEnd && end >= monthStart) {
+                            occupiedCount++;
+                        }
+                    }
+                });
+                const available = Math.max(0, bedCount - occupiedCount);
+                if (available > 0) {
+                    availableByField[field] = available;
+                }
+            });
+
+            const fieldSummary = Object.entries(availableByField)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8)
+                .map(([field, count]) => `• ${field}: ${count} beds`)
+                .join('<br>');
+
+            const totalAvailable = Object.values(availableByField).reduce((a, b) => a + b, 0);
+
+            return {
+                message: `🌱 **Available beds in ${monthNames[month]}:** ${totalAvailable} total<br><br>${fieldSummary || 'All beds occupied'}`,
+                actions: [
+                    { label: 'View calendar', onclick: 'setZoom("month")' }
+                ]
+            };
+        }
+
+        function handleQueryUrgent() {
+            const urgent = unassignedPlantings.filter(p => {
+                if (!p.fieldStartDate) return false;
+                const startDate = new Date(p.fieldStartDate);
+                const today = new Date();
+                const daysUntil = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+                return daysUntil <= 10 && daysUntil >= 0;
+            });
+
+            if (urgent.length === 0) {
+                return {
+                    message: '✅ No urgent unassigned plantings! Everything due within 10 days has a bed.',
+                    actions: []
+                };
+            }
+
+            const urgentList = urgent.slice(0, 5).map(p => {
+                const daysUntil = Math.ceil((new Date(p.fieldStartDate) - new Date()) / (1000 * 60 * 60 * 24));
+                return `• ${p.crop} ${p.variety || ''}: ${daysUntil} days`;
+            }).join('<br>');
+
+            return {
+                message: `🚨 **${urgent.length} urgent plantings** (need assignment within 10 days):<br><br>${urgentList}${urgent.length > 5 ? '<br>...' : ''}<br><br>These need beds ASAP!`,
+                actions: [
+                    { label: '🎯 Auto-assign urgent', onclick: 'autoAssignUrgent()', primary: true },
+                    { label: 'Show in sidebar', onclick: 'toggleUnassignedPanel()' }
+                ]
+            };
+        }
+
+        function handleMovePlanting(intent) {
+            if (!intent.crop && !intent.field) {
+                return {
+                    message: `I can help you move plantings! Please specify:<br><br>• **Crop:** Which crop to move (e.g., Tomato, Lettuce)<br>• **Field:** Where to move it (e.g., JS6, F3L)<br><br>Example: "Move Tomato plantings to JS6"`,
+                    actions: []
+                };
+            }
+
+            if (intent.crop && !intent.field) {
+                // Find where this crop could go
+                const cropPlantings = unassignedPlantings.filter(p =>
+                    p.crop?.toLowerCase() === intent.crop.toLowerCase()
+                );
+
+                if (cropPlantings.length === 0) {
+                    return {
+                        message: `No unassigned ${intent.crop} plantings found. All ${intent.crop} plantings are already assigned.`,
+                        actions: []
+                    };
+                }
+
+                return {
+                    message: `Found **${cropPlantings.length} unassigned ${intent.crop}** plantings. Which field would you like to move them to?<br><br>Available fields: ${DEFAULT_FIELDS.slice(0, 8).join(', ')}...`,
+                    actions: DEFAULT_FIELDS.slice(0, 4).map(f => ({
+                        label: f,
+                        onclick: `executeMoveCommand('${intent.crop}', '${f}')`
+                    }))
+                };
+            }
+
+            if (intent.crop && intent.field) {
+                // Preview the move
+                const cropPlantings = unassignedPlantings.filter(p =>
+                    p.crop?.toLowerCase() === intent.crop.toLowerCase()
+                );
+
+                if (cropPlantings.length === 0) {
+                    return {
+                        message: `No unassigned ${intent.crop} plantings to move.`,
+                        actions: []
+                    };
+                }
+
+                return {
+                    message: `📋 **Preview: Move ${cropPlantings.length} ${intent.crop} to ${intent.field}**<br><br>` +
+                        `<div class="preview-box">` +
+                        cropPlantings.slice(0, 3).map(p => `<div class="preview-row"><span>${p.variety || 'Standard'}</span><span class="changed">→ ${intent.field}</span></div>`).join('') +
+                        (cropPlantings.length > 3 ? `<div class="preview-row"><span>...and ${cropPlantings.length - 3} more</span></div>` : '') +
+                        `</div>`,
+                    actions: [
+                        { label: '✅ Confirm Move', onclick: `executeMoveCommand('${intent.crop}', '${intent.field}')`, primary: true },
+                        { label: 'Cancel', onclick: 'addAssistantMessage("assistant", "Move cancelled.")', danger: true }
+                    ]
+                };
+            }
+
+            return {
+                message: `Please specify which crop to move to ${intent.field}.`,
+                actions: []
+            };
+        }
+
+        function handleHelp() {
+            return {
+                message: `🌱 **Planning Assistant Help**<br><br>I can help you with:<br><br>` +
+                    `**Queries:**<br>` +
+                    `• "Show unassigned plantings"<br>` +
+                    `• "What beds are available in May?"<br>` +
+                    `• "Show urgent plantings"<br><br>` +
+                    `**Actions:**<br>` +
+                    `• "Move Tomato to JS6"<br>` +
+                    `• "Assign Lettuce to F3L"<br><br>` +
+                    `**Tips:**<br>` +
+                    `• Click suggestions at the top for quick actions<br>` +
+                    `• Use the sidebar to drag plantings to beds`,
+                actions: [
+                    { label: 'Show unassigned', onclick: "processAssistantMessage('show unassigned')" },
+                    { label: 'Available beds', onclick: "processAssistantMessage('available beds this month')" }
+                ]
+            };
+        }
+
+        function handleGenericQuery(message) {
+            return {
+                message: `I'm not sure how to help with that yet. Try asking about:<br><br>` +
+                    `• Unassigned plantings<br>` +
+                    `• Available beds<br>` +
+                    `• Moving crops to fields<br><br>` +
+                    `Or type **help** for more options.`,
+                actions: [
+                    { label: 'Help', onclick: "processAssistantMessage('help')" }
+                ]
+            };
+        }
+
+        // Execute move command
+        async function executeMoveCommand(crop, field) {
+            const toMove = unassignedPlantings.filter(p =>
+                p.crop?.toLowerCase() === crop.toLowerCase()
+            );
+
+            if (toMove.length === 0) {
+                addAssistantMessage('assistant', `No ${crop} plantings to move.`);
+                return;
+            }
+
+            showTypingIndicator();
+
+            // Assign to available beds in the field
+            let assignedCount = 0;
+            const availableBedNumbers = Array.from({length: FIELD_CONFIG[field] || 10}, (_, i) => i + 1);
+
+            for (const planting of toMove) {
+                if (availableBedNumbers.length === 0) break;
+
+                const bedNum = availableBedNumbers.shift();
+                const bedId = `Field ${field}-${String(bedNum).padStart(2, '0')}`;
+
+                // Update local data
+                planting.field = field;
+                planting.bed = bedId;
+                planting.isUnassigned = false;
+
+                // Queue update for backend
+                pendingUpdates.set(planting.id, {
+                    Target_Bed_ID: bedId
+                });
+
+                assignedCount++;
+            }
+
+            hideTypingIndicator();
+
+            // Refresh displays
+            populateUnassignedPanel();
+            renderGantt();
+
+            addAssistantMessage('assistant',
+                `✅ **Moved ${assignedCount} ${crop} plantings to ${field}!**<br><br>` +
+                `Changes are pending. Click "Submit Changes" to save to Google Sheets.`,
+                [{ label: 'Submit Changes', onclick: 'saveToGoogleSheets()', primary: true }]
+            );
+        }
+
+        // Auto-assign all unassigned plantings
+        async function autoAssignPlantings() {
+            addAssistantMessage('assistant', '🔄 Auto-assigning plantings to available beds...');
+            showTypingIndicator();
+
+            // Group by crop and assign to fields
+            let assignedCount = 0;
+            const byCrop = {};
+            unassignedPlantings.forEach(p => {
+                const crop = p.crop || 'Unknown';
+                if (!byCrop[crop]) byCrop[crop] = [];
+                byCrop[crop].push(p);
+            });
+
+            // Simple assignment: spread across fields
+            const fieldIndex = {};
+            DEFAULT_FIELDS.forEach(f => fieldIndex[f] = 1);
+
+            Object.entries(byCrop).forEach(([crop, items]) => {
+                // Pick a field for this crop (round-robin)
+                const fieldKeys = Object.keys(fieldIndex);
+                const fieldForCrop = fieldKeys[assignedCount % fieldKeys.length];
+
+                items.forEach(p => {
+                    const bedNum = fieldIndex[fieldForCrop]++;
+                    if (bedNum <= (FIELD_CONFIG[fieldForCrop] || 10)) {
+                        const bedId = `Field ${fieldForCrop}-${String(bedNum).padStart(2, '0')}`;
+                        p.field = fieldForCrop;
+                        p.bed = bedId;
+                        p.isUnassigned = false;
+                        pendingUpdates.set(p.id, { Target_Bed_ID: bedId });
+                        assignedCount++;
+                    }
+                });
+            });
+
+            hideTypingIndicator();
+            populateUnassignedPanel();
+            renderGantt();
+
+            addAssistantMessage('assistant',
+                `✅ **Auto-assigned ${assignedCount} plantings!**<br><br>` +
+                `Click "Submit Changes" to save to Google Sheets.`,
+                [{ label: 'Submit Changes', onclick: 'saveToGoogleSheets()', primary: true }]
+            );
+        }
+
+        // Auto-assign only urgent plantings
+        async function autoAssignUrgent() {
+            const urgent = unassignedPlantings.filter(p => {
+                if (!p.fieldStartDate) return false;
+                const daysUntil = Math.ceil((new Date(p.fieldStartDate) - new Date()) / (1000 * 60 * 60 * 24));
+                return daysUntil <= 10 && daysUntil >= 0;
+            });
+
+            if (urgent.length === 0) {
+                addAssistantMessage('assistant', 'No urgent plantings to assign!');
+                return;
+            }
+
+            showTypingIndicator();
+
+            let assignedCount = 0;
+            const fieldIndex = {};
+            DEFAULT_FIELDS.forEach(f => fieldIndex[f] = 1);
+
+            urgent.forEach((p, i) => {
+                const field = DEFAULT_FIELDS[i % DEFAULT_FIELDS.length];
+                const bedNum = fieldIndex[field]++;
+                const bedId = `Field ${field}-${String(bedNum).padStart(2, '0')}`;
+
+                p.field = field;
+                p.bed = bedId;
+                p.isUnassigned = false;
+                pendingUpdates.set(p.id, { Target_Bed_ID: bedId });
+                assignedCount++;
+            });
+
+            hideTypingIndicator();
+            populateUnassignedPanel();
+            renderGantt();
+
+            addAssistantMessage('assistant',
+                `✅ **Assigned ${assignedCount} urgent plantings!**<br><br>` +
+                `These are the plantings that need to go in the ground within 10 days.`,
+                [{ label: 'Submit Changes', onclick: 'saveToGoogleSheets()', primary: true }]
+            );
+        }
+
+        // Initialize assistant on load
+        function initPlanningAssistant() {
+            // Add welcome message
+            setTimeout(() => {
+                addAssistantMessage('assistant',
+                    `👋 Hi! I'm your Planning Assistant. I can help you:<br><br>` +
+                    `• Find and assign unassigned plantings<br>` +
+                    `• Check bed availability<br>` +
+                    `• Move crops between fields<br><br>` +
+                    `Try typing "show unassigned" or click a suggestion above!`
+                );
+
+                // Load initial suggestions
+                loadAssistantSuggestions();
+            }, 500);
+        }
+
+        // Add to initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Existing init code runs via loadPlantings...
+            // Initialize assistant after a delay
+            setTimeout(initPlanningAssistant, 2000);
+        });
     </script>
+
+    <!-- Planning Assistant Chat Widget -->
+    <div class="planning-assistant">
+        <button class="assistant-toggle" id="assistantToggle" onclick="togglePlanningAssistant()">
+            <i class="fas fa-robot"></i>
+            <span class="notification-badge" id="assistantBadge" data-count="0">0</span>
+        </button>
+
+        <div class="assistant-panel" id="assistantPanel">
+            <div class="assistant-header">
+                <div class="assistant-title">
+                    <i class="fas fa-seedling"></i>
+                    Planning Assistant
+                </div>
+                <button class="assistant-close" onclick="togglePlanningAssistant()">×</button>
+            </div>
+
+            <div class="assistant-suggestions" id="assistantSuggestions">
+                <!-- Proactive suggestions appear here -->
+            </div>
+
+            <div class="assistant-messages" id="assistantMessages">
+                <!-- Conversation history -->
+            </div>
+
+            <div class="quick-actions">
+                <span class="quick-action-chip" onclick="processAssistantMessage('show unassigned')">Unassigned</span>
+                <span class="quick-action-chip" onclick="processAssistantMessage('available beds')">Available beds</span>
+                <span class="quick-action-chip" onclick="processAssistantMessage('urgent')">Urgent</span>
+                <span class="quick-action-chip" onclick="processAssistantMessage('help')">Help</span>
+            </div>
+
+            <div class="assistant-input-area">
+                <input type="text" id="assistantInput"
+                       placeholder="Try: 'Move Tomato plantings to JS6'"
+                       onkeypress="if(event.key==='Enter') sendAssistantMessage()">
+                <button onclick="sendAssistantMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
