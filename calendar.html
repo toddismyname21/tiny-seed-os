@@ -2485,14 +2485,20 @@
         }
 
         function extractFieldAndBed(targetBed) {
-            if (!targetBed) return { field: 'Unknown', bedNum: '01' };
+            if (!targetBed) return { field: 'Unassigned', bedNum: '00', isUnassigned: true };
+
+            // FIXED 2026-01-23: Handle "Unassigned" explicitly instead of creating fake "UNA" field
+            if (targetBed.toLowerCase() === 'unassigned' || targetBed.toLowerCase() === 'tbd' || targetBed === '') {
+                return { field: 'Unassigned', bedNum: '00', isUnassigned: true };
+            }
 
             // Handle "Field F3L-01" format
             const fieldMatch = targetBed.match(/Field\s+([A-Z0-9]+)-?(\d*)/i);
             if (fieldMatch) {
                 return {
                     field: fieldMatch[1].toUpperCase(),
-                    bedNum: fieldMatch[2] || '01'
+                    bedNum: fieldMatch[2] || '01',
+                    isUnassigned: false
                 };
             }
 
@@ -2501,12 +2507,13 @@
             if (simpleMatch) {
                 return {
                     field: simpleMatch[1].toUpperCase(),
-                    bedNum: simpleMatch[2]
+                    bedNum: simpleMatch[2],
+                    isUnassigned: false
                 };
             }
 
-            // Fallback
-            return { field: targetBed.substring(0, 3).toUpperCase(), bedNum: '01' };
+            // Fallback - mark as unassigned to avoid creating fake fields
+            return { field: 'Unassigned', bedNum: '00', isUnassigned: true };
         }
 
         function formatDateString(date) {
@@ -2539,9 +2546,12 @@
 
         function extractFieldsAndCrops() {
             // Extract unique fields from plantings AND include all default fields
+            // FIXED 2026-01-23: Filter out "Unassigned" from regular field list
             const fieldSet = new Set(plantings.map(p => p.field));
             DEFAULT_FIELDS.forEach(f => fieldSet.add(f));
-            fields = Array.from(fieldSet).filter(f => f).sort();
+            fields = Array.from(fieldSet)
+                .filter(f => f && f !== 'Unassigned' && f !== 'Unknown' && f !== 'UNA')
+                .sort();
 
             // Generate all beds for all fields (using per-field bed count)
             allBeds = [];
