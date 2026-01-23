@@ -5690,6 +5690,18 @@
                     case 'move_planting':
                         response = handleMovePlanting(intent);
                         break;
+                    case 'when_to_plant':
+                        response = handleWhenToPlant(intent);
+                        break;
+                    case 'check_conflicts':
+                        response = handleCheckConflicts();
+                        break;
+                    case 'check_gaps':
+                        response = handleCheckGaps();
+                        break;
+                    case 'summary':
+                        response = handleSummary();
+                        break;
                     case 'help':
                         response = handleHelp();
                         break;
@@ -5708,9 +5720,45 @@
             isAssistantProcessing = false;
         }
 
-        // Simple intent parsing (will be enhanced with Claude API)
+        // Enhanced intent parsing with more query types
         function parseAssistantIntent(message) {
             const lowerMsg = message.toLowerCase();
+            const months = ['january', 'february', 'march', 'april', 'may', 'june',
+                           'july', 'august', 'september', 'october', 'november', 'december'];
+
+            // Extract common entities
+            function extractCrop() {
+                // Check plantings for crop names
+                const cropNames = [...new Set(plantings.map(p => p.crop).filter(Boolean))];
+                return cropNames.find(c => lowerMsg.includes(c.toLowerCase()));
+            }
+
+            function extractMonth() {
+                let month = null;
+                months.forEach((m, i) => {
+                    if (lowerMsg.includes(m)) month = i;
+                });
+                return month;
+            }
+
+            // "When should I plant X for Y harvest?"
+            if (lowerMsg.includes('when') && (lowerMsg.includes('plant') || lowerMsg.includes('sow'))) {
+                return {
+                    type: 'when_to_plant',
+                    crop: extractCrop(),
+                    harvestMonth: extractMonth()
+                };
+            }
+
+            // "Check for conflicts" / "Any conflicts?"
+            if (lowerMsg.includes('conflict') || (lowerMsg.includes('double') && lowerMsg.includes('book'))) {
+                return { type: 'check_conflicts' };
+            }
+
+            // "Check for gaps" / "Harvest gaps?"
+            if (lowerMsg.includes('gap') || (lowerMsg.includes('missing') && lowerMsg.includes('harvest'))) {
+                return { type: 'check_gaps' };
+            }
 
             // Query unassigned
             if (lowerMsg.includes('unassigned') || lowerMsg.includes('need bed') || lowerMsg.includes('not assigned')) {
@@ -5719,14 +5767,7 @@
 
             // Query available beds
             if (lowerMsg.includes('available') && (lowerMsg.includes('bed') || lowerMsg.includes('field'))) {
-                // Try to extract month
-                const months = ['january', 'february', 'march', 'april', 'may', 'june',
-                               'july', 'august', 'september', 'october', 'november', 'december'];
-                let month = null;
-                months.forEach((m, i) => {
-                    if (lowerMsg.includes(m)) month = i;
-                });
-                return { type: 'query_available_beds', month };
+                return { type: 'query_available_beds', month: extractMonth() };
             }
 
             // Query urgent
@@ -5736,10 +5777,14 @@
 
             // Move planting
             if (lowerMsg.includes('move') || lowerMsg.includes('assign') || lowerMsg.includes('put')) {
-                // Try to extract crop and field
-                const cropMatch = Object.keys(cropColors).find(c => lowerMsg.includes(c.toLowerCase()));
+                const cropMatch = extractCrop();
                 const fieldMatch = DEFAULT_FIELDS.find(f => lowerMsg.includes(f.toLowerCase()));
                 return { type: 'move_planting', crop: cropMatch, field: fieldMatch };
+            }
+
+            // Summary / Overview
+            if (lowerMsg.includes('summary') || lowerMsg.includes('overview') || lowerMsg.includes('status')) {
+                return { type: 'summary' };
             }
 
             // Help
@@ -5919,21 +5964,66 @@
 
         function handleHelp() {
             return {
-                message: `🌱 **Planning Assistant Help**<br><br>I can help you with:<br><br>` +
+                message: `🌱 **Planning Assistant Help**<br><br>` +
                     `**Queries:**<br>` +
                     `• "Show unassigned plantings"<br>` +
                     `• "What beds are available in May?"<br>` +
-                    `• "Show urgent plantings"<br><br>` +
+                    `• "Show urgent plantings"<br>` +
+                    `• "Give me a summary"<br><br>` +
+                    `**Smart Planning:**<br>` +
+                    `• "When should I plant Lettuce for June harvest?"<br>` +
+                    `• "Check for bed conflicts"<br>` +
+                    `• "Check for harvest gaps"<br><br>` +
                     `**Actions:**<br>` +
                     `• "Move Tomato to JS6"<br>` +
                     `• "Assign Lettuce to F3L"<br><br>` +
                     `**Tips:**<br>` +
-                    `• Click suggestions at the top for quick actions<br>` +
+                    `• Click suggestions at the top for proactive alerts<br>` +
                     `• Use the sidebar to drag plantings to beds`,
                 actions: [
-                    { label: 'Show unassigned', onclick: "processAssistantMessage('show unassigned')" },
-                    { label: 'Available beds', onclick: "processAssistantMessage('available beds this month')" }
+                    { label: 'Summary', onclick: "processAssistantMessage('summary')" },
+                    { label: 'Check conflicts', onclick: "processAssistantMessage('check conflicts')" }
                 ]
+            };
+        }
+
+        // Summary of current planning state
+        function handleSummary() {
+            const totalPlantings = plantings.length;
+            const assigned = plantings.filter(p => !p.isUnassigned).length;
+            const unassigned = unassignedPlantings.length;
+
+            // Get stats
+            const conflicts = detectBedConflicts();
+            const gaps = detectHarvestGaps();
+            const urgentCount = unassignedPlantings.filter(p => {
+                if (!p.fieldStartDate) return false;
+                const daysUntil = Math.ceil((new Date(p.fieldStartDate) - new Date()) / (1000*60*60*24));
+                return daysUntil <= 10 && daysUntil >= 0;
+            }).length;
+
+            // Get unique crops
+            const cropCount = new Set(plantings.map(p => p.crop)).size;
+
+            // Get unique fields
+            const fieldCount = new Set(plantings.filter(p => p.field && p.field !== 'Unassigned').map(p => p.field)).size;
+
+            return {
+                message: `📊 **Planning Summary**<br><br>` +
+                    `<div class="preview-box">` +
+                    `<div class="preview-row"><span>Total Plantings</span><span>${totalPlantings}</span></div>` +
+                    `<div class="preview-row"><span>Assigned</span><span style="color: #22c55e">${assigned}</span></div>` +
+                    `<div class="preview-row"><span>Unassigned</span><span style="color: ${unassigned > 0 ? '#f59e0b' : '#22c55e'}">${unassigned}</span></div>` +
+                    `<div class="preview-row"><span>Urgent (≤10 days)</span><span style="color: ${urgentCount > 0 ? '#ef4444' : '#22c55e'}">${urgentCount}</span></div>` +
+                    `<div class="preview-row"><span>Bed Conflicts</span><span style="color: ${conflicts.length > 0 ? '#ef4444' : '#22c55e'}">${conflicts.length}</span></div>` +
+                    `<div class="preview-row"><span>Harvest Gaps</span><span style="color: ${gaps.length > 3 ? '#f59e0b' : '#22c55e'}">${gaps.length} weeks</span></div>` +
+                    `<div class="preview-row"><span>Crops</span><span>${cropCount}</span></div>` +
+                    `<div class="preview-row"><span>Fields in Use</span><span>${fieldCount}</span></div>` +
+                    `</div>`,
+                actions: unassigned > 0 || conflicts.length > 0 ? [
+                    unassigned > 0 ? { label: '🎯 Auto-assign', onclick: 'autoAssignPlantings()', primary: true } : null,
+                    conflicts.length > 0 ? { label: '⚠️ View conflicts', onclick: "processAssistantMessage('check conflicts')" } : null
+                ].filter(Boolean) : []
             };
         }
 
@@ -6088,6 +6178,327 @@
             );
         }
 
+        // ========================================
+        // SPRINT 2: PROACTIVE INTELLIGENCE
+        // ========================================
+
+        // Detect bed conflicts (double-booked beds)
+        function detectBedConflicts() {
+            const conflicts = [];
+            const bedTimelines = {};
+
+            plantings.forEach(p => {
+                if (p.isUnassigned || !p.bed) return;
+                const key = p.bed;
+                if (!bedTimelines[key]) bedTimelines[key] = [];
+                bedTimelines[key].push({
+                    start: new Date(p.fieldStartDate || p.seedDate),
+                    end: new Date(p.harvestDate),
+                    planting: p
+                });
+            });
+
+            // Check overlaps
+            Object.entries(bedTimelines).forEach(([bed, intervals]) => {
+                intervals.sort((a, b) => a.start - b.start);
+                for (let i = 0; i < intervals.length - 1; i++) {
+                    if (intervals[i].end > intervals[i+1].start) {
+                        conflicts.push({
+                            type: 'bed_conflict',
+                            priority: 1,
+                            bed: bed,
+                            planting1: intervals[i].planting,
+                            planting2: intervals[i+1].planting,
+                            overlapDays: Math.ceil((intervals[i].end - intervals[i+1].start) / (1000*60*60*24))
+                        });
+                    }
+                }
+            });
+
+            return conflicts;
+        }
+
+        // Detect harvest gaps (weeks with no harvests)
+        function detectHarvestGaps() {
+            const gaps = [];
+            const harvestByWeek = {};
+
+            // Build harvest timeline
+            plantings.forEach(p => {
+                if (!p.harvestDate) return;
+                const harvestStart = new Date(p.harvestDate);
+                const weekNum = getWeekOfYear(harvestStart);
+                if (!harvestByWeek[weekNum]) harvestByWeek[weekNum] = [];
+                harvestByWeek[weekNum].push(p);
+            });
+
+            // Check for gaps in growing season (weeks 15-45 roughly April-November)
+            for (let week = 15; week <= 42; week++) {
+                if (!harvestByWeek[week] || harvestByWeek[week].length === 0) {
+                    gaps.push({
+                        type: 'harvest_gap',
+                        priority: 2,
+                        week: week,
+                        date: weekToDate(week)
+                    });
+                }
+            }
+
+            return gaps;
+        }
+
+        function getWeekOfYear(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            const yearStart = new Date(d.getFullYear(), 0, 1);
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function weekToDate(weekNum) {
+            const d = new Date(2026, 0, 1);
+            d.setDate(d.getDate() + (weekNum - 1) * 7);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // Check planting windows (plantings approaching deadline)
+        function checkPlantingWindows() {
+            const alerts = [];
+            const today = new Date();
+
+            plantings.forEach(p => {
+                if (!p.fieldStartDate || !p.isUnassigned) return;
+
+                const startDate = new Date(p.fieldStartDate);
+                const daysUntil = Math.ceil((startDate - today) / (1000*60*60*24));
+
+                if (daysUntil <= 5 && daysUntil >= 0) {
+                    alerts.push({
+                        type: 'window_closing',
+                        priority: 1,
+                        planting: p,
+                        daysUntil: daysUntil
+                    });
+                } else if (daysUntil < 0 && daysUntil >= -7) {
+                    alerts.push({
+                        type: 'window_missed',
+                        priority: 0,
+                        planting: p,
+                        daysPast: Math.abs(daysUntil)
+                    });
+                }
+            });
+
+            return alerts;
+        }
+
+        // Calculate when to plant for target harvest
+        function calculatePlantingDate(crop, targetHarvestDate) {
+            // Find crop profile for DTM
+            const profile = cropProfiles.find(p => p.Crop?.toLowerCase() === crop.toLowerCase());
+            const dtm = profile?.DTM || 60;
+            const nurseryDays = profile?.Nursery_Days || 21;
+            const isTransplant = profile?.Method === 'Transplant';
+
+            const harvestDate = new Date(targetHarvestDate);
+            const fieldDate = new Date(harvestDate);
+            fieldDate.setDate(fieldDate.getDate() - dtm);
+
+            let sowDate = fieldDate;
+            if (isTransplant) {
+                sowDate = new Date(fieldDate);
+                sowDate.setDate(sowDate.getDate() - nurseryDays);
+            }
+
+            return {
+                crop: crop,
+                harvestDate: harvestDate,
+                fieldDate: fieldDate,
+                sowDate: sowDate,
+                dtm: dtm,
+                nurseryDays: isTransplant ? nurseryDays : 0,
+                method: isTransplant ? 'Transplant' : 'Direct Seed'
+            };
+        }
+
+        // Handle "when to plant" queries
+        function handleWhenToPlant(intent) {
+            const crop = intent.crop || 'Lettuce';
+            const harvestMonth = intent.harvestMonth;
+
+            // Default to 3 months from now if not specified
+            let targetDate = new Date();
+            if (harvestMonth !== null && harvestMonth !== undefined) {
+                targetDate = new Date(2026, harvestMonth, 15);
+            } else {
+                targetDate.setMonth(targetDate.getMonth() + 3);
+            }
+
+            const result = calculatePlantingDate(crop, targetDate);
+
+            const formatDate = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            return {
+                message: `🌱 **${crop} for ${formatDate(result.harvestDate)} harvest:**<br><br>` +
+                    `<div class="preview-box">` +
+                    `<div class="preview-row"><span>Method</span><span>${result.method}</span></div>` +
+                    (result.nurseryDays > 0 ? `<div class="preview-row"><span>GH Sow Date</span><span class="changed">${formatDate(result.sowDate)}</span></div>` : '') +
+                    `<div class="preview-row"><span>Field Date</span><span class="changed">${formatDate(result.fieldDate)}</span></div>` +
+                    `<div class="preview-row"><span>Days to Maturity</span><span>${result.dtm} days</span></div>` +
+                    `</div>`,
+                actions: [
+                    { label: '📝 Add this planting', onclick: `openAddPlantingWithData('${crop}', '${result.fieldDate.toISOString().split('T')[0]}')`, primary: true }
+                ]
+            };
+        }
+
+        // Handle conflict check query
+        function handleCheckConflicts() {
+            const conflicts = detectBedConflicts();
+
+            if (conflicts.length === 0) {
+                return {
+                    message: '✅ **No bed conflicts detected!**<br><br>All plantings have non-overlapping schedules.',
+                    actions: []
+                };
+            }
+
+            const conflictList = conflicts.slice(0, 5).map(c =>
+                `• **${c.bed}**: ${c.planting1.crop} overlaps ${c.planting2.crop} by ${c.overlapDays} days`
+            ).join('<br>');
+
+            return {
+                message: `⚠️ **${conflicts.length} bed conflict${conflicts.length > 1 ? 's' : ''} found:**<br><br>${conflictList}`,
+                actions: [
+                    { label: 'Show first conflict', onclick: `highlightConflict('${conflicts[0].bed}')` }
+                ]
+            };
+        }
+
+        // Handle gap check query
+        function handleCheckGaps() {
+            const gaps = detectHarvestGaps();
+
+            if (gaps.length === 0) {
+                return {
+                    message: '✅ **No harvest gaps detected!**<br><br>You have harvests planned throughout the season.',
+                    actions: []
+                };
+            }
+
+            // Group consecutive gaps
+            const gapRanges = [];
+            let currentRange = null;
+
+            gaps.forEach(g => {
+                if (!currentRange || g.week !== currentRange.endWeek + 1) {
+                    if (currentRange) gapRanges.push(currentRange);
+                    currentRange = { startWeek: g.week, endWeek: g.week, startDate: g.date };
+                } else {
+                    currentRange.endWeek = g.week;
+                }
+            });
+            if (currentRange) gapRanges.push(currentRange);
+
+            const gapList = gapRanges.slice(0, 4).map(r =>
+                r.startWeek === r.endWeek ?
+                    `• Week ${r.startWeek} (${r.startDate})` :
+                    `• Weeks ${r.startWeek}-${r.endWeek} (${r.startDate})`
+            ).join('<br>');
+
+            return {
+                message: `📊 **${gaps.length} weeks with no planned harvests:**<br><br>${gapList}<br><br>Consider adding crops to fill these gaps.`,
+                actions: [
+                    { label: 'Suggest crops for gaps', onclick: "processAssistantMessage('suggest crops for gaps')" }
+                ]
+            };
+        }
+
+        // Highlight a bed on the calendar
+        function highlightConflict(bedId) {
+            const bedRow = document.querySelector(`[data-bed="${bedId}"]`);
+            if (bedRow) {
+                bedRow.style.background = 'rgba(230, 57, 70, 0.3)';
+                bedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => {
+                    bedRow.style.background = '';
+                }, 3000);
+            }
+            addAssistantMessage('assistant', `Highlighted bed ${bedId} on the calendar.`);
+        }
+
+        // Open add planting with prefilled data
+        function openAddPlantingWithData(crop, fieldDate) {
+            openAddPlantingModal(fieldDate);
+            setTimeout(() => {
+                const cropSelect = document.getElementById('addCrop');
+                if (cropSelect) {
+                    cropSelect.value = crop;
+                    onAddCropChange();
+                }
+            }, 100);
+        }
+
+        // Enhanced proactive suggestions
+        async function loadAssistantSuggestionsEnhanced() {
+            const suggestions = [];
+
+            // Check for unassigned plantings
+            const unassignedCount = unassignedPlantings.length;
+            if (unassignedCount > 0) {
+                suggestions.push({
+                    icon: '⚠️',
+                    text: `${unassignedCount} plantings need bed assignment`,
+                    action: `Assign ${unassignedCount} unassigned plantings`,
+                    type: 'warning',
+                    priority: 2
+                });
+            }
+
+            // Check for planting window alerts
+            const windowAlerts = checkPlantingWindows();
+            const closingWindows = windowAlerts.filter(a => a.type === 'window_closing');
+            if (closingWindows.length > 0) {
+                suggestions.push({
+                    icon: '🚨',
+                    text: `${closingWindows.length} planting window${closingWindows.length > 1 ? 's' : ''} closing soon!`,
+                    action: 'Show urgent plantings',
+                    type: 'critical',
+                    priority: 1
+                });
+            }
+
+            // Check for bed conflicts
+            const conflicts = detectBedConflicts();
+            if (conflicts.length > 0) {
+                suggestions.push({
+                    icon: '💥',
+                    text: `${conflicts.length} bed conflict${conflicts.length > 1 ? 's' : ''} detected`,
+                    action: 'Check for conflicts',
+                    type: 'critical',
+                    priority: 1
+                });
+            }
+
+            // Check for harvest gaps
+            const gaps = detectHarvestGaps();
+            if (gaps.length >= 3) {
+                suggestions.push({
+                    icon: '📊',
+                    text: `${gaps.length} weeks with no planned harvests`,
+                    action: 'Check for harvest gaps',
+                    type: 'warning',
+                    priority: 3
+                });
+            }
+
+            // Sort by priority
+            suggestions.sort((a, b) => a.priority - b.priority);
+
+            assistantSuggestions = suggestions.slice(0, 5);
+            renderSuggestions();
+        }
+
         // Initialize assistant on load
         function initPlanningAssistant() {
             // Add welcome message
@@ -6095,13 +6506,15 @@
                 addAssistantMessage('assistant',
                     `👋 Hi! I'm your Planning Assistant. I can help you:<br><br>` +
                     `• Find and assign unassigned plantings<br>` +
-                    `• Check bed availability<br>` +
+                    `• Check bed availability and conflicts<br>` +
+                    `• Calculate planting dates for harvests<br>` +
                     `• Move crops between fields<br><br>` +
-                    `Try typing "show unassigned" or click a suggestion above!`
+                    `Try: "When should I plant Lettuce for June harvest?"<br>` +
+                    `Or: "Check for bed conflicts"`
                 );
 
-                // Load initial suggestions
-                loadAssistantSuggestions();
+                // Load enhanced suggestions
+                loadAssistantSuggestionsEnhanced();
             }, 500);
         }
 
