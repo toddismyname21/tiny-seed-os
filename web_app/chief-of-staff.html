@@ -1195,19 +1195,19 @@
         // Load Morning Brief
         async function loadMorningBrief() {
             try {
-                const response = await api.get('getUltimateMorningBrief');
-                if (response && response.data) {
-                    briefData = response.data;
-                    renderBrief(briefData);
+                // Try getDailyBrief directly since it's more reliable
+                const basicBrief = await api.get('getDailyBrief');
+                if (basicBrief && basicBrief.success) {
+                    renderBasicBrief(basicBrief);
                 } else {
-                    // Fallback to basic brief
-                    const basicBrief = await api.get('getDailyBrief');
-                    if (basicBrief.success) {
-                        renderBasicBrief(basicBrief);
-                    }
+                    // Clear loading state even on error
+                    document.getElementById('priorityActions').innerHTML =
+                        '<div class="empty-state">Unable to load priorities</div>';
                 }
             } catch (error) {
                 console.error('Brief error:', error);
+                document.getElementById('priorityActions').innerHTML =
+                    '<div class="empty-state">Unable to load priorities</div>';
                 document.getElementById('welcomeMessage').textContent =
                     "I'm ready to help. What would you like to know?";
             }
@@ -1240,10 +1240,32 @@
         }
 
         function renderBasicBrief(data) {
-            document.getElementById('criticalCount').textContent = data.critical || 0;
-            document.getElementById('highCount').textContent = data.high || 0;
-            document.getElementById('inboxCount').textContent = data.totalEmails || 0;
-            document.getElementById('approvalsCount').textContent = data.pendingApprovals || 0;
+            // Handle nested data structure from getDailyBrief
+            const briefData = data.data || data;
+            const summary = briefData.summary || briefData;
+
+            document.getElementById('criticalCount').textContent = summary.critical || summary.criticalCount || 0;
+            document.getElementById('highCount').textContent = summary.high || summary.highPriorityCount || 0;
+            document.getElementById('inboxCount').textContent = summary.totalNew || summary.totalEmails || summary.inboxCount || 0;
+            document.getElementById('approvalsCount').textContent = summary.pendingApprovals || 0;
+            document.getElementById('overdueCount').textContent = summary.overdueFollowups || summary.overdueCount || 0;
+
+            // Render priority actions from priorities array
+            const priorities = briefData.priorities || [];
+            const actionsHtml = priorities.slice(0, 5).map((action, i) => `
+                <div class="action-item" onclick="handleAction('email', '${action.threadId || ''}')">
+                    <div class="action-number">${i + 1}</div>
+                    <div class="action-text">${action.subject || action.action || 'Action needed'}</div>
+                    <div class="action-source">${action.from || 'email'}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('priorityActions').innerHTML = actionsHtml ||
+                '<div class="empty-state">No priority actions right now</div>';
+
+            // Welcome message
+            document.getElementById('welcomeMessage').textContent =
+                `You have ${summary.totalNew || 0} emails, ${summary.high || 0} high priority. ${summary.pendingApprovals > 0 ? `${summary.pendingApprovals} pending approvals.` : ''}`;
         }
 
         // Load Communications
