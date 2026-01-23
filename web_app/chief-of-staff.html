@@ -1080,7 +1080,7 @@
                     <button class="quick-btn" onclick="quickAction('urgent')">What's urgent?</button>
                     <button class="quick-btn" onclick="quickAction('brief')">Full Brief</button>
                     <button class="quick-btn" onclick="quickAction('schedule')">My Schedule</button>
-                    <button class="quick-btn" onclick="quickAction('draft')">Draft Email</button>
+                    <button class="quick-btn" onclick="clearConversation()" style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3);">🗑️ Clear Chat</button>
                 </div>
                 <div class="chat-input-wrapper">
                     <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything...">
@@ -1158,6 +1158,73 @@
         let currentTab = 'inbox';
         let currentEmailId = null;
         let briefData = null;
+
+        // Conversation history - persisted to localStorage
+        let conversationHistory = [];
+        const STORAGE_KEY = 'cos_conversation_history';
+
+        // Load conversation from localStorage on startup
+        function loadConversationHistory() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    conversationHistory = JSON.parse(saved);
+                    // Restore chat messages to UI
+                    conversationHistory.forEach(msg => {
+                        addChatMessageToUI(msg.content, msg.role === 'user');
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load conversation history:', e);
+                conversationHistory = [];
+            }
+        }
+
+        // Save conversation to localStorage
+        function saveConversationHistory() {
+            try {
+                // Keep last 50 messages to avoid localStorage limits
+                const toSave = conversationHistory.slice(-50);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+            } catch (e) {
+                console.error('Failed to save conversation history:', e);
+            }
+        }
+
+        // Clear conversation history
+        function clearConversation() {
+            conversationHistory = [];
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('chatMessages').innerHTML = '';
+            addChatMessageToUI("Conversation cleared. How can I help you?", false);
+        }
+
+        // Simple markdown to HTML converter
+        function parseMarkdown(text) {
+            if (!text) return '';
+            return text
+                // Headers
+                .replace(/^### (.*$)/gm, '<h4>$1</h4>')
+                .replace(/^## (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^# (.*$)/gm, '<h2>$1</h2>')
+                // Bold
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                // Italic
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // Bullet points
+                .replace(/^[•\-\*] (.*)$/gm, '<li>$1</li>')
+                // Numbered lists
+                .replace(/^\d+\. (.*)$/gm, '<li>$1</li>')
+                // Wrap consecutive li elements in ul
+                .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+                // Checkmarks
+                .replace(/✅/g, '<span style="color: #22c55e;">✅</span>')
+                .replace(/⚠️/g, '<span style="color: #f59e0b;">⚠️</span>')
+                .replace(/🚨/g, '<span style="color: #ef4444;">🚨</span>')
+                // Line breaks
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', init);
@@ -1728,15 +1795,33 @@
             });
 
             document.getElementById('voiceBtn').addEventListener('click', toggleVoice);
+
+            // Load conversation history from localStorage
+            loadConversationHistory();
         }
 
-        function addChatMessage(content, isUser = false) {
+        // Add message to UI only (used when restoring from localStorage)
+        function addChatMessageToUI(content, isUser = false) {
             const messages = document.getElementById('chatMessages');
             const div = document.createElement('div');
             div.className = `chat-message ${isUser ? 'user' : 'assistant'}`;
-            div.innerHTML = `<div class="chat-bubble">${content}</div>`;
+            // Parse markdown for assistant messages, plain text for user
+            const displayContent = isUser ? content : parseMarkdown(content);
+            div.innerHTML = `<div class="chat-bubble">${displayContent}</div>`;
             messages.appendChild(div);
             messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Add message to UI and save to history
+        function addChatMessage(content, isUser = false) {
+            addChatMessageToUI(content, isUser);
+
+            // Save to conversation history
+            conversationHistory.push({
+                role: isUser ? 'user' : 'assistant',
+                content: content
+            });
+            saveConversationHistory();
         }
 
         async function sendChat() {
@@ -1753,18 +1838,22 @@
             const typing = document.createElement('div');
             typing.id = typingId;
             typing.className = 'chat-message assistant';
-            typing.innerHTML = '<div class="chat-bubble">Thinking...</div>';
+            typing.innerHTML = '<div class="chat-bubble"><em>Thinking...</em></div>';
             messages.appendChild(typing);
+            messages.scrollTop = messages.scrollHeight;
 
             try {
-                // Use chatWithChiefOfStaff for full farm context awareness
-                const response = await api.get('chatWithChiefOfStaff', { message: message });
+                // Pass conversation history for context
+                const response = await api.get('chatWithChiefOfStaff', {
+                    message: message,
+                    conversationHistoryJson: JSON.stringify(conversationHistory.slice(-20))
+                });
                 document.getElementById(typingId)?.remove();
 
                 if (response.success && response.message) {
                     addChatMessage(response.message);
                 } else {
-                    addChatMessage("I couldn't process that. Try telling me what you did, or ask what's next.");
+                    addChatMessage("I couldn't process that. Try again or rephrase your request.");
                 }
             } catch (error) {
                 document.getElementById(typingId)?.remove();
@@ -1781,21 +1870,25 @@
             const typing = document.createElement('div');
             typing.id = typingId;
             typing.className = 'chat-message assistant';
-            typing.innerHTML = '<div class="chat-bubble">Thinking...</div>';
+            typing.innerHTML = '<div class="chat-bubble"><em>Thinking...</em></div>';
             messages.appendChild(typing);
+            messages.scrollTop = messages.scrollHeight;
 
             try {
-                // Use chatWithChiefOfStaff for full farm context awareness
-                const response = await api.get('chatWithChiefOfStaff', { message: action });
+                // Pass conversation history for context
+                const response = await api.get('chatWithChiefOfStaff', {
+                    message: action,
+                    conversationHistoryJson: JSON.stringify(conversationHistory.slice(-20))
+                });
                 document.getElementById(typingId)?.remove();
                 if (response.success && response.message) {
                     addChatMessage(response.message);
                 } else {
-                    addChatMessage("I'll help with that. What specific information do you need?");
+                    addChatMessage("I'll help with that. What specific details do you need?");
                 }
             } catch (error) {
                 document.getElementById(typingId)?.remove();
-                addChatMessage("I'll help with that. What specific information do you need?");
+                addChatMessage("I'll help with that. What specific details do you need?");
             }
         }
 
