@@ -7,6 +7,69 @@
 
 ---
 
+## 🚨 URGENT TASK: SYSTEM AUDIT - 2026-01-22 EVENING
+
+**From:** PM_Architect
+**Priority:** CRITICAL
+**Deadline:** IMMEDIATE
+
+### CONTEXT
+The API URL was pointing to an EXPIRED deployment. This has been FIXED:
+- **NEW API URL:** `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+- Updated in `web_app/api-config.js`
+- Site is live at: **https://app.tinyseedfarm.com**
+
+### YOUR ASSIGNMENT: FULL DESKTOP AUDIT
+
+**Goal:** Ensure ALL desktop HTML files are connected to the API and functioning.
+
+#### Step 1: Check Each File Uses api-config.js
+Verify every HTML file includes:
+```html
+<script src="api-config.js"></script>
+```
+If it has a hardcoded API URL, REMOVE IT and use `TINY_SEED_API.MAIN_API` instead.
+
+#### Step 2: Test These Critical Pages
+1. **web_app/index.html** - Does it load? Do dashboard cards show data?
+2. **web_app/sales.html** - Does it connect and show orders?
+3. **web_app/financial-dashboard.html** - Does it load financial data?
+4. **web_app/admin.html** - Does admin dashboard work?
+5. **web_app/command-center.html** - Does overview load?
+6. **Root index.html** - Does main landing work?
+
+#### Step 3: Check Root HTML Files
+Many root files may have OLD hardcoded API URLs. Check:
+- planning.html
+- calendar.html
+- greenhouse.html
+- succession.html
+- labels.html
+- seed_inventory_PRODUCTION.html
+
+If they don't use api-config.js, UPDATE THEM.
+
+#### Step 4: Document Findings
+Create: `claude_sessions/desktop_web/AUDIT_REPORT_2026-01-22.md`
+Include:
+- Each file checked
+- Status (working/broken/needs update)
+- Changes made
+- Remaining issues
+
+### API ENDPOINT TESTING
+Use browser console to test:
+```javascript
+const api = new TinySeedAPI();
+api.testConnection().then(console.log).catch(console.error);
+```
+
+### REPORT TO OUTBOX WHEN DONE
+Update your OUTBOX with audit completion status.
+
+---
+
+
 ## YOUR ROLE
 
 You are the **Desktop Web Claude** - the owner of all admin, manager, and desktop-first interfaces in Tiny Seed Farm OS.

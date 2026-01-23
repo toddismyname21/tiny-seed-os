@@ -7,6 +7,74 @@
 
 ---
 
+## 🚨 URGENT TASK: MOBILE SYSTEM AUDIT - 2026-01-22 EVENING
+
+**From:** PM_Architect
+**Priority:** CRITICAL
+**Deadline:** IMMEDIATE
+
+### CONTEXT
+The API URL was pointing to an EXPIRED deployment. This has been FIXED:
+- **NEW API URL:** `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+- Updated in `web_app/api-config.js`
+- Site is live at: **https://app.tinyseedfarm.com**
+
+### YOUR ASSIGNMENT: FULL MOBILE AUDIT
+
+**Goal:** Ensure ALL mobile HTML files are connected to the API and functioning.
+
+#### Step 1: Check Each Mobile File Uses api-config.js
+Verify every HTML file includes:
+```html
+<script src="api-config.js"></script>
+```
+If it has a hardcoded API URL, REMOVE IT and use `TINY_SEED_API.MAIN_API` instead.
+
+#### Step 2: Test These Critical Mobile Pages
+1. **employee.html** (root) - Work Order UI, time clock, tasks
+2. **mobile.html** (root) - Main mobile interface
+3. **field_app_mobile.html** (root) - Field app
+4. **web_app/driver.html** - Driver delivery app
+5. **web_app/customer.html** - Customer portal
+6. **web_app/csa.html** - CSA member portal
+
+#### Step 3: Verify New Smart Labor Features
+The new Smart Labor Intelligence was just added to employee.html:
+- Work orders load via `getMyWorkOrder` endpoint
+- Timer functions for task duration
+- Task completion with efficiency tracking
+- Check-in/check-out flow
+
+#### Step 4: Check PWA Functionality
+- Service workers registered?
+- Manifest files correct?
+- Offline mode functional?
+
+#### Step 5: Document Findings
+Create: `claude_sessions/mobile_app/AUDIT_REPORT_2026-01-22.md`
+Include:
+- Each file checked
+- Status (working/broken/needs update)
+- Changes made
+- Remaining issues
+
+### API ENDPOINT TESTING
+Use browser console to test:
+```javascript
+const api = new TinySeedAPI();
+api.testConnection().then(console.log).catch(console.error);
+
+// Test employee features
+const empApi = new EmployeeAPI();
+empApi.authenticate('1234').then(console.log);
+```
+
+### REPORT TO OUTBOX WHEN DONE
+Update your OUTBOX with audit completion status.
+
+---
+
+
 ## YOUR ROLE
 
 You are the **Mobile App Claude** - the owner of all mobile-first, field-optimized, and touch-friendly interfaces in Tiny Seed Farm OS.
