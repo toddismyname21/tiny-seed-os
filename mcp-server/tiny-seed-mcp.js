@@ -71,8 +71,8 @@ const {
   createNeighborDiscounts
 } = require('./shopify-discount');
 
-// API Configuration - Updated to v293 with MCP Direct Import endpoint
-const API_BASE = 'https://script.google.com/macros/s/AKfycbzQGqay-b2A97ThL33YSnLa4MBdu_48ReQMXV_ndtvfSzoYVhURlZy5cWbXQ2hDPx2d/exec';
+// API Configuration - CURRENT DEPLOYMENT (Updated 2026-01-22)
+const API_BASE = 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
 
 // Available tools for Claude
 const TOOLS = {

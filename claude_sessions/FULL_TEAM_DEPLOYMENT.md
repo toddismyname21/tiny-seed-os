@@ -1,12 +1,32 @@
 # FULL TEAM DEPLOYMENT - ALL 17 CLAUDES
 ## MISSION: FIX EVERYTHING, THEN MAKE IT PREMIUM
 
-**Date:** 2026-01-22
+**Date:** 2026-01-22 (Updated 2026-01-23)
 **Commander:** Owner + PM_Architect
 
 ---
 
-## THE MANTRA (READ THIS FIRST)
+## STOP! MANDATORY READING FIRST!
+
+**BEFORE DOING ANYTHING, EVERY CLAUDE MUST READ:**
+
+```
+claude_sessions/MASTER_SYSTEM_INVENTORY.md
+```
+
+This inventory documents:
+- All 40+ MCP tools (don't rebuild what exists!)
+- All 31 Apps Script modules
+- All 32+ web app files
+- All root HTML files
+- What's working vs broken
+- Configuration files
+
+**DO NOT SKIP THIS STEP. DUPLICATING EXISTING WORK IS UNACCEPTABLE.**
+
+---
+
+## THE MANTRA
 
 > "NO SHORTCUTS. ONLY MAKE THE BEST POSSIBLE. STATE OF THE ART. TOP OF THE LINE. PRODUCTION READY. INDUSTRY PREMIUM. IT MUST WORK FIRST, THEN BE SMART."
 
