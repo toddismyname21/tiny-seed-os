@@ -1053,9 +1053,10 @@
 
     <script src="api-config.js"></script>
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+        // Use centralized API config - NO MORE HARDCODED URLs
+        const API_URL = TINY_SEED_API.MAIN_API;
 
-        // Check API on load
+        // Check API and load dashboard data on load
         window.addEventListener('DOMContentLoaded', async () => {
             try {
                 const response = await fetch(`${API_URL}?action=testConnection`);
@@ -1065,6 +1066,9 @@
                     document.getElementById('apiStatusDot').classList.remove('loading', 'error');
                     document.getElementById('apiStatusText').textContent = 'API Connected';
                     document.getElementById('lastUpdated').textContent = `Connected at: ${new Date().toLocaleTimeString()}`;
+
+                    // Load live dashboard data
+                    loadDashboardData();
                 } else {
                     throw new Error('API returned error');
                 }
@@ -1073,6 +1077,52 @@
                 document.getElementById('apiStatusText').textContent = 'API Disconnected';
             }
         });
+
+        // Load live dashboard stats
+        async function loadDashboardData() {
+            try {
+                // Load coordination overview for system status
+                const coordResponse = await fetch(`${API_URL}?action=getCoordinationOverview&role=owner`);
+                const coordData = await coordResponse.json();
+
+                if (coordData.activeSessions) {
+                    console.log('Active Claude sessions:', coordData.activeSessions.length || 0);
+                }
+                if (coordData.alerts && coordData.alerts.length > 0) {
+                    console.log('Active alerts:', coordData.alerts.length);
+                }
+
+                // Update module status indicators
+                checkModuleStatus();
+            } catch (error) {
+                console.error('Dashboard data load error:', error);
+            }
+        }
+
+        // Check which modules are working
+        async function checkModuleStatus() {
+            const modules = [
+                { id: 'salesStatus', action: 'getSalesOrders', name: 'Sales' },
+                { id: 'employeeStatus', action: 'getEmployeeTasks', name: 'Employee' },
+                { id: 'planningStatus', action: 'getCropProfiles', name: 'Planning' },
+                { id: 'inventoryStatus', action: 'getSeedInventory', name: 'Inventory' }
+            ];
+
+            for (const module of modules) {
+                try {
+                    const response = await fetch(`${API_URL}?action=${module.action}`);
+                    const data = await response.json();
+
+                    if (data && !data.error) {
+                        updateStatus(module.id, 'success', 'Connected');
+                    } else {
+                        updateStatus(module.id, 'warning', data.error || 'No data');
+                    }
+                } catch (e) {
+                    updateStatus(module.id, 'error', 'Offline');
+                }
+            }
+        }
 
         async function testMainAPI() {
             const resultEl = document.getElementById('testResult');
