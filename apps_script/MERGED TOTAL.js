@@ -947,6 +947,18 @@ function gatherChiefOfStaffContext() {
       context.weather = getWeatherRecommendations();
     } else if (typeof getCurrentWeather === 'function') {
       context.weather = getCurrentWeather();
+    } else if (typeof getWeather === 'function') {
+      const weatherData = getWeather({});
+      // Transform to expected format
+      context.weather = {
+        current: {
+          temperature: weatherData.current?.temperature,
+          conditions: weatherData.current?.condition,
+          humidity: weatherData.current?.humidity
+        },
+        alerts: weatherData.alerts?.map(a => a.message) || [],
+        recommendations: weatherData.alerts?.map(a => a.action) || []
+      };
     }
   } catch (e) {
     context.weather = { error: e.message };

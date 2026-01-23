@@ -24,10 +24,10 @@ const TINY_SEED_API = {
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
     // LAST UPDATED: 2026-01-23
-    // UPDATED BY: Claude - v382 Fixed duplicate declarations
+    // UPDATED BY: Claude - v384 Fixed weather in Chief of Staff context
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbyV8spIrmDhiu1MU11y1xZeEFUjU4seCeEM4fRrT9iHEKdg1g04X36dkZEFH9tD-AYP/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbz70ygIHjQ3cjxhyifHeKLsRZhXu6S3Sn91_EpBDoW_MG9OwfkJVJhjigM1ZiRBL0WE/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {
