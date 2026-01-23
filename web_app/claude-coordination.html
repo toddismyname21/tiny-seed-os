@@ -893,7 +893,7 @@
     // API calls
     async function apiCall(action, params = {}) {
       try {
-        const response = await fetch(`${API_URL}?action=coordinationAPI`, {
+        const response = await fetch(`${TINY_SEED_API.MAIN_API}?action=coordinationAPI`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ coordinationAction: action, ...params })

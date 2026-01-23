@@ -1,0 +1,51 @@
+# .claspignore - Files to EXCLUDE from Apps Script deployment
+# These modules are already merged into "MERGED TOTAL.js"
+# Pushing them separately causes duplicate constant errors
+
+# Smart Intelligence Modules (merged)
+SmartLaborIntelligence.js
+SmartAvailability.js
+SmartFinancialSystem.js
+SmartSuccessionPlanner.js
+
+# Accounting & Business Modules (merged)
+AccountingModule.js
+BookImportModule.js
+MarketModule.js
+
+# Chief of Staff Modules (merged)
+ChiefOfStaff_Autonomy.js
+ChiefOfStaff_Calendar.js
+ChiefOfStaff_FileOrg.js
+ChiefOfStaff_Integrations.js
+ChiefOfStaff_Master.js
+ChiefOfStaff_Memory.js
+ChiefOfStaff_MultiAgent.js
+ChiefOfStaff_Predictive.js
+ChiefOfStaff_ProactiveIntel.js
+ChiefOfStaff_SMS.js
+ChiefOfStaff_StyleMimicry.js
+ChiefOfStaff_Voice.js
+
+# Other Modules (merged or empty)
+ChefCommunications.js
+# ClaudeCoordination.js - ENABLED - Required for Claude Coordination Center
+CropRotation.js
+EmailWorkflowEngine.js
+FarmIntelligence.js
+FieldManagement.js
+FoodSafetyIntelligence.js
+INTELLIGENT_ROUTING_SYSTEM.js
+MorningBriefGenerator.js
+PHIDeadlineTracker.js
+PRODUCTION_INTELLIGENCE_UPGRADE.js
+
+# Git files
+.git
+.gitignore
+
+# README and docs
+*.md
+README*
+
+# Only push: MERGED TOTAL.js and appsscript.json
