@@ -3416,6 +3416,18 @@
             };
             document.querySelector('.page-title').innerHTML = `<i class="fas fa-calendar-alt"></i> ${titles[mode] || 'Calendar'}`;
 
+            // Hide unassigned sidebar in crop/variety view (shows ALL plantings including unassigned)
+            const unassignedToggle = document.getElementById('unassignedToggle');
+            const unassignedPanel = document.getElementById('unassignedPanel');
+            if (mode === 'crop' || mode === 'variety') {
+                // In crop/variety view, hide sidebar - we show ALL plantings on chart
+                if (unassignedToggle) unassignedToggle.style.display = 'none';
+                if (unassignedPanel) unassignedPanel.classList.remove('open');
+            } else {
+                // In field/bed view, show sidebar toggle
+                if (unassignedToggle) unassignedToggle.style.display = 'flex';
+            }
+
             renderGantt();
         }
 
@@ -3520,20 +3532,46 @@
                 };
                 getGroupMeta = (plantings) => plantings.length > 0 ? `${plantings.length} plantings` : 'Empty';
             } else if (viewMode === 'crop') {
-                groups = [...new Set(filteredPlantings.map(p => p.crop))].filter(c => c).sort();
+                // CROP VIEW: Include ALL plantings (assigned + unassigned) to see full picture
+                const allPlantingsForCropView = plantings.filter(p => {
+                    const cropFilter = document.getElementById('cropFilter').value;
+                    if (cropFilter && p.crop !== cropFilter) return false;
+                    return true;
+                });
+                groups = [...new Set(allPlantingsForCropView.map(p => p.crop))].filter(c => c).sort();
                 headerIcon = 'fa-seedling';
                 headerLabel = 'Crops';
                 getGroupName = (group) => group;
-                getGroupMeta = (plantings) => `${plantings.length} plantings`;
+                getGroupMeta = (groupPlantings) => {
+                    const unassignedCount = groupPlantings.filter(p => p.isUnassigned).length;
+                    return unassignedCount > 0
+                        ? `${groupPlantings.length} plantings (${unassignedCount} unassigned)`
+                        : `${groupPlantings.length} plantings`;
+                };
+                // Override filteredPlantings for crop view
+                filteredPlantings = allPlantingsForCropView;
             } else if (viewMode === 'variety') {
-                groups = [...new Set(filteredPlantings.map(p => `${p.crop}|${p.variety || 'Unknown'}`))].filter(v => v).sort();
+                // VARIETY VIEW: Include ALL plantings (assigned + unassigned) to see full picture
+                const allPlantingsForVarietyView = plantings.filter(p => {
+                    const cropFilter = document.getElementById('cropFilter').value;
+                    if (cropFilter && p.crop !== cropFilter) return false;
+                    return true;
+                });
+                groups = [...new Set(allPlantingsForVarietyView.map(p => `${p.crop}|${p.variety || 'Unknown'}`))].filter(v => v).sort();
                 headerIcon = 'fa-leaf';
                 headerLabel = 'Varieties';
                 getGroupName = (group) => {
                     const [crop, variety] = group.split('|');
                     return `${crop} - ${variety}`;
                 };
-                getGroupMeta = (plantings) => `${plantings.length} successions`;
+                getGroupMeta = (groupPlantings) => {
+                    const unassignedCount = groupPlantings.filter(p => p.isUnassigned).length;
+                    return unassignedCount > 0
+                        ? `${groupPlantings.length} successions (${unassignedCount} unassigned)`
+                        : `${groupPlantings.length} successions`;
+                };
+                // Override filteredPlantings for variety view
+                filteredPlantings = allPlantingsForVarietyView;
             } else {
                 // Default: field view
                 groups = [...new Set(filteredPlantings.map(p => p.field))].sort();
@@ -3801,17 +3839,26 @@
                 const lockedClass = planting.isLocked ? 'locked' : '';
                 const lockIcon = planting.isLocked ? '🔒 ' : '';
 
+                // Add unassigned class for visual differentiation
+                const unassignedClass = planting.isUnassigned ? 'unassigned' : '';
+                const unassignedIcon = planting.isUnassigned ? '⚠️ ' : '';
+
                 // Get crop color - from API profiles, fallback to default colors
                 const cropColor = getCropColor(planting.crop);
                 const barStyle = cropColor
                     ? `background: linear-gradient(135deg, ${cropColor} 0%, ${lightenColor(cropColor, 20)} 100%);`
                     : '';
 
+                // Add dashed border for unassigned plantings
+                const unassignedStyle = planting.isUnassigned
+                    ? 'border: 2px dashed rgba(255,255,255,0.8); box-shadow: 0 0 8px rgba(244, 162, 97, 0.5);'
+                    : '';
+
                 // Add opacity for completed status
                 const completedStyle = planting.status === 'completed' ? 'opacity: 0.6;' : '';
 
                 html += `
-                    <div class="crop-bar ${lockedClass}"
+                    <div class="crop-bar ${lockedClass} ${unassignedClass}"
                          id="bar-${planting.id}"
                          data-id="${planting.id}"
                          data-field="${planting.field}"
@@ -3819,12 +3866,12 @@
                          data-locked="${planting.isLocked}"
                          data-start="${planting.fieldStartDate || planting.seedDate}"
                          data-end="${planting.harvestDate}"
-                         style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle} cursor: pointer;"
+                         style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle} ${unassignedStyle} cursor: pointer;"
                          ondblclick="openEditModal('${planting.id}')"
                          onmouseenter="showTooltip(event, '${planting.id}')"
                          onmouseleave="hideTooltip()">
                         <div class="resize-handle resize-handle-left" data-edge="left"></div>
-                        <span class="crop-bar-icon">${lockIcon}${icon}</span>
+                        <span class="crop-bar-icon">${unassignedIcon}${lockIcon}${icon}</span>
                         <div class="crop-bar-content">
                             <div class="crop-bar-name">${displayText}</div>
                             <div class="crop-bar-dates">${planting.variety ? planting.variety.substring(0, 15) : ''} ${planting.dtm}d</div>
