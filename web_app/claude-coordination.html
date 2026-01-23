@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Coordination Center | Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #10B981;
+      --primary-dark: #059669;
+      --danger: #EF4444;
+      --warning: #F59E0B;
+      --info: #3B82F6;
+      --text: #1F2937;
+      --text-secondary: #6B7280;
+      --bg: #F9FAFB;
+      --card-bg: #FFFFFF;
+      --border: #E5E7EB;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #065F46, #047857);
+      color: white;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .header-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.2s;
+    }
+
+    .header-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Status bar */
+    .status-bar {
+      background: var(--card-bg);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-dot.active { background: var(--primary); }
+    .status-dot.warning { background: var(--warning); }
+    .status-dot.danger { background: var(--danger); }
+    .status-dot.info { background: var(--info); }
+
+    /* Main layout */
+    .main {
+      display: grid;
+      grid-template-columns: 300px 1fr 350px;
+      gap: 1rem;
+      padding: 1rem;
+      max-width: 1800px;
+      margin: 0 auto;
+      min-height: calc(100vh - 120px);
+    }
+
+    @media (max-width: 1200px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-badge {
+      background: var(--primary);
+      color: white;
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    .card-badge.warning { background: var(--warning); }
+    .card-badge.danger { background: var(--danger); }
+
+    .card-body {
+      padding: 1rem;
+    }
+
+    /* Sessions panel */
+    .sessions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .session-item {
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .session-item:hover {
+      border-color: var(--primary);
+      background: #F0FDF4;
+    }
+
+    .session-item.active {
+      border-color: var(--primary);
+      background: #ECFDF5;
+    }
+
+    .session-item.stale {
+      border-color: var(--warning);
+      background: #FFFBEB;
+    }
+
+    .session-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+
+    .session-name {
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .session-status {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .session-status.active {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+
+    .session-status.stale {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .session-status.ended {
+      background: #F3F4F6;
+      color: #6B7280;
+    }
+
+    .session-context {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .session-time {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    /* Center panel - Activity Feed */
+    .activity-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: calc(100vh - 300px);
+      overflow-y: auto;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      background: #F9FAFB;
+      align-items: flex-start;
+    }
+
+    .activity-item.message {
+      background: #EFF6FF;
+    }
+
+    .activity-item.task {
+      background: #ECFDF5;
+    }
+
+    .activity-item.alert {
+      background: #FEF2F2;
+    }
+
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .activity-icon.message { background: var(--info); color: white; }
+    .activity-icon.task { background: var(--primary); color: white; }
+    .activity-icon.alert { background: var(--danger); color: white; }
+    .activity-icon.session { background: #8B5CF6; color: white; }
+
+    .activity-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .activity-desc {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.125rem;
+    }
+
+    .activity-time {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    /* Right panel - Tasks & Messages */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 0.75rem;
+      text-align: center;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 1rem;
+      max-height: calc(100vh - 350px);
+      overflow-y: auto;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Task items */
+    .task-item {
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 0.75rem;
+    }
+
+    .task-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .task-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .task-priority {
+      font-size: 0.7rem;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .task-priority.high {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .task-priority.medium {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .task-priority.low {
+      background: #E5E7EB;
+      color: #374151;
+    }
+
+    .task-desc {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.375rem;
+    }
+
+    .task-meta {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+
+    /* Message items */
+    .message-item {
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 0.75rem;
+    }
+
+    .message-item.unread {
+      border-left: 3px solid var(--primary);
+      background: #F0FDF4;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+
+    .message-from {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .message-time {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+
+    .message-subject {
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .message-body {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    /* Compose panel */
+    .compose-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      padding: 1rem;
+      display: none;
+      z-index: 200;
+    }
+
+    .compose-panel.active {
+      display: block;
+    }
+
+    .compose-form {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .compose-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .compose-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .compose-field {
+      flex: 1;
+    }
+
+    .compose-field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .compose-field input,
+    .compose-field select,
+    .compose-field textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+
+    .compose-field textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .compose-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: #E5E7EB;
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: #D1D5DB;
+    }
+
+    /* Alerts panel */
+    .alerts-panel {
+      position: fixed;
+      top: 80px;
+      right: 1rem;
+      width: 350px;
+      max-height: 400px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      z-index: 150;
+      display: none;
+      overflow: hidden;
+    }
+
+    .alerts-panel.active {
+      display: block;
+    }
+
+    .alert-item {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .alert-item:last-child {
+      border-bottom: none;
+    }
+
+    .alert-item.critical {
+      background: #FEF2F2;
+    }
+
+    .alert-item.urgent {
+      background: #FFFBEB;
+    }
+
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .alert-type {
+      font-size: 0.7rem;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .alert-type.critical {
+      background: #991B1B;
+      color: white;
+    }
+
+    .alert-type.urgent {
+      background: #92400E;
+      color: white;
+    }
+
+    .alert-type.info {
+      background: #1E40AF;
+      color: white;
+    }
+
+    .alert-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .alert-message {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .header h1 span {
+        display: none;
+      }
+
+      .main {
+        padding: 0.5rem;
+        gap: 0.5rem;
+      }
+
+      .status-bar {
+        padding: 0.5rem 1rem;
+        gap: 1rem;
+      }
+
+      .compose-panel {
+        padding: 0.75rem;
+      }
+
+      .compose-row {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+    }
+
+    .empty-state i {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <h1>
+      <i class="fas fa-network-wired"></i>
+      <span>Claude Coordination Center</span>
+    </h1>
+    <div class="header-actions">
+      <button class="header-btn" onclick="toggleCompose()">
+        <i class="fas fa-paper-plane"></i> Send Message
+      </button>
+      <button class="header-btn" onclick="toggleAlerts()">
+        <i class="fas fa-bell"></i>
+        <span id="alertCount" class="card-badge" style="display:none">0</span>
+      </button>
+      <button class="header-btn" onclick="refreshAll()">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-dot active"></span>
+      <span>Active Sessions: <strong id="activeSessionCount">0</strong></span>
+    </div>
+    <div class="status-item">
+      <span class="status-dot warning"></span>
+      <span>Pending Tasks: <strong id="pendingTaskCount">0</strong></span>
+    </div>
+    <div class="status-item">
+      <span class="status-dot info"></span>
+      <span>Messages Today: <strong id="messageCount">0</strong></span>
+    </div>
+    <div class="status-item">
+      <span class="status-dot danger"></span>
+      <span>Alerts: <strong id="activeAlertCount">0</strong></span>
+    </div>
+    <div class="status-item" style="margin-left:auto">
+      <i class="fas fa-clock"></i>
+      <span id="lastUpdate">--</span>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <main class="main">
+    <!-- Left Panel: Sessions -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-users"></i> Claude Sessions
+        </div>
+        <span class="card-badge" id="sessionBadge">0</span>
+      </div>
+      <div class="card-body">
+        <div id="sessionsList" class="sessions-list">
+          <div class="loading">
+            <div class="spinner"></div> Loading sessions...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Panel: Activity Feed -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-stream"></i> Activity Feed
+        </div>
+        <select id="activityFilter" onchange="filterActivity()" style="font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:4px;border:1px solid var(--border)">
+          <option value="all">All Activity</option>
+          <option value="messages">Messages</option>
+          <option value="tasks">Tasks</option>
+          <option value="sessions">Sessions</option>
+        </select>
+      </div>
+      <div class="card-body">
+        <div id="activityFeed" class="activity-feed">
+          <div class="loading">
+            <div class="spinner"></div> Loading activity...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Tasks & Messages -->
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('tasks')">
+          <i class="fas fa-tasks"></i> Tasks
+        </div>
+        <div class="tab" onclick="switchTab('messages')">
+          <i class="fas fa-envelope"></i> Messages
+        </div>
+      </div>
+      <div id="tasksTab" class="tab-content active">
+        <div id="tasksList">
+          <div class="loading">
+            <div class="spinner"></div> Loading tasks...
+          </div>
+        </div>
+      </div>
+      <div id="messagesTab" class="tab-content">
+        <div id="messagesList">
+          <div class="loading">
+            <div class="spinner"></div> Loading messages...
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Compose Panel -->
+  <div id="composePanel" class="compose-panel">
+    <div class="compose-form">
+      <div class="compose-header">
+        <h3><i class="fas fa-paper-plane"></i> Send Message</h3>
+        <button onclick="toggleCompose()" style="background:none;border:none;cursor:pointer;font-size:1.25rem">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="compose-row">
+        <div class="compose-field">
+          <label>From (Your Role)</label>
+          <select id="msgFrom">
+            <option value="pm_architect">PM_Architect</option>
+            <option value="backend">Backend_Claude</option>
+            <option value="desktop">Desktop_Claude</option>
+            <option value="mobile">Mobile_Claude</option>
+            <option value="ux_design">UX_Design_Claude</option>
+            <option value="sales">Sales_Claude</option>
+            <option value="security">Security_Claude</option>
+            <option value="social_media">Social_Media_Claude</option>
+            <option value="field_ops">Field_Ops_Claude</option>
+            <option value="inventory">Inventory_Claude</option>
+          </select>
+        </div>
+        <div class="compose-field">
+          <label>To</label>
+          <select id="msgTo">
+            <option value="all">All (Broadcast)</option>
+            <option value="pm_architect">PM_Architect</option>
+            <option value="backend">Backend_Claude</option>
+            <option value="desktop">Desktop_Claude</option>
+            <option value="mobile">Mobile_Claude</option>
+            <option value="ux_design">UX_Design_Claude</option>
+            <option value="sales">Sales_Claude</option>
+            <option value="security">Security_Claude</option>
+            <option value="social_media">Social_Media_Claude</option>
+            <option value="field_ops">Field_Ops_Claude</option>
+            <option value="inventory">Inventory_Claude</option>
+          </select>
+        </div>
+        <div class="compose-field" style="flex:0.5">
+          <label>Priority</label>
+          <select id="msgPriority">
+            <option value="normal">Normal</option>
+            <option value="urgent">Urgent</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+      </div>
+      <div class="compose-row">
+        <div class="compose-field">
+          <label>Subject</label>
+          <input type="text" id="msgSubject" placeholder="Message subject...">
+        </div>
+      </div>
+      <div class="compose-row">
+        <div class="compose-field">
+          <label>Message</label>
+          <textarea id="msgBody" placeholder="Type your message..."></textarea>
+        </div>
+      </div>
+      <div class="compose-actions">
+        <button class="btn btn-secondary" onclick="toggleCompose()">Cancel</button>
+        <button class="btn btn-primary" onclick="sendMessage()">
+          <i class="fas fa-paper-plane"></i> Send
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts Panel -->
+  <div id="alertsPanel" class="alerts-panel">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="fas fa-bell"></i> Alerts
+      </div>
+      <button onclick="toggleAlerts()" style="background:none;border:none;cursor:pointer">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div id="alertsList">
+      <div class="loading">
+        <div class="spinner"></div> Loading...
+      </div>
+    </div>
+  </div>
+
+  <script src="api-config.js"></script>
+  <script>
+    // State
+    let sessions = [];
+    let tasks = [];
+    let messages = [];
+    let activity = [];
+    let alerts = [];
+    let currentRole = 'pm_architect';
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshAll();
+      // Auto-refresh every 30 seconds
+      setInterval(refreshAll, 30000);
+    });
+
+    // API calls
+    async function apiCall(action, params = {}) {
+      try {
+        const response = await fetch(`${API_URL}?action=coordinationAPI`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coordinationAction: action, ...params })
+        });
+        return await response.json();
+      } catch (error) {
+        console.error('API Error:', error);
+        return { error: error.message };
+      }
+    }
+
+    // Refresh all data
+    async function refreshAll() {
+      await Promise.all([
+        loadSessions(),
+        loadTasks(),
+        loadMessages(),
+        loadActivity(),
+        loadAlerts()
+      ]);
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    }
+
+    // Load sessions
+    async function loadSessions() {
+      const result = await apiCall('getActiveSessions');
+      if (Array.isArray(result)) {
+        sessions = result;
+        renderSessions();
+        document.getElementById('activeSessionCount').textContent = sessions.filter(s => s.status === 'active').length;
+        document.getElementById('sessionBadge').textContent = sessions.length;
+      }
+    }
+
+    // Render sessions
+    function renderSessions() {
+      const container = document.getElementById('sessionsList');
+
+      if (sessions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <p>No active Claude sessions</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = sessions.map(session => `
+        <div class="session-item ${session.status}" onclick="selectSession('${session.sessionId}')">
+          <div class="session-header">
+            <span class="session-name">${getRoleName(session.role)}</span>
+            <span class="session-status ${session.status}">${session.status}</span>
+          </div>
+          ${session.currentTask ? `<div class="session-context"><i class="fas fa-tasks"></i> ${session.currentTask}</div>` : ''}
+          ${session.contextSummary ? `<div class="session-context">${truncate(session.contextSummary, 50)}</div>` : ''}
+          <div class="session-time">
+            <i class="fas fa-clock"></i> Last active: ${formatTime(session.lastActive)}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Load tasks
+    async function loadTasks() {
+      const result = await apiCall('getTasks', { role: currentRole });
+      if (Array.isArray(result)) {
+        tasks = result;
+        renderTasks();
+        document.getElementById('pendingTaskCount').textContent = tasks.filter(t => t.status === 'pending').length;
+      }
+    }
+
+    // Render tasks
+    function renderTasks() {
+      const container = document.getElementById('tasksList');
+
+      if (tasks.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-tasks"></i>
+            <p>No pending tasks</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = tasks.map(task => `
+        <div class="task-item">
+          <div class="task-header">
+            <span class="task-title">${task.title}</span>
+            <span class="task-priority ${getPriorityClass(task.priorityScore)}">${task.priorityScore}</span>
+          </div>
+          <div class="task-desc">${truncate(task.description, 100)}</div>
+          <div class="task-meta">
+            <span><i class="fas fa-user"></i> ${task.assignedTo || 'Unassigned'}</span>
+            <span><i class="fas fa-clock"></i> ${formatTime(task.createdAt)}</span>
+            <span><i class="fas fa-flag"></i> ${task.status}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Load messages
+    async function loadMessages() {
+      const result = await apiCall('getMessages', { role: currentRole, options: { limit: 20 } });
+      if (Array.isArray(result)) {
+        messages = result;
+        renderMessages();
+        document.getElementById('messageCount').textContent = messages.length;
+      }
+    }
+
+    // Render messages
+    function renderMessages() {
+      const container = document.getElementById('messagesList');
+
+      if (messages.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-envelope"></i>
+            <p>No messages</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = messages.map(msg => `
+        <div class="message-item ${msg.read ? '' : 'unread'}" onclick="viewMessage('${msg.id}')">
+          <div class="message-header">
+            <span class="message-from">${getRoleName(msg.from)}</span>
+            <span class="message-time">${formatTime(msg.timestamp)}</span>
+          </div>
+          <div class="message-subject">${msg.subject}</div>
+          <div class="message-body">${truncate(msg.body, 100)}</div>
+        </div>
+      `).join('');
+    }
+
+    // Load activity
+    async function loadActivity() {
+      const result = await apiCall('getActivity', { limit: 50 });
+      if (Array.isArray(result)) {
+        activity = result;
+        renderActivity();
+      }
+    }
+
+    // Render activity
+    function renderActivity() {
+      const container = document.getElementById('activityFeed');
+      const filter = document.getElementById('activityFilter').value;
+
+      let filtered = activity;
+      if (filter !== 'all') {
+        filtered = activity.filter(a => {
+          if (filter === 'messages') return a.action.includes('message');
+          if (filter === 'tasks') return a.action.includes('task');
+          if (filter === 'sessions') return a.action.includes('session');
+          return true;
+        });
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-stream"></i>
+            <p>No activity to show</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => `
+        <div class="activity-item ${getActivityType(item.action)}">
+          <div class="activity-icon ${getActivityType(item.action)}">
+            <i class="${getActivityIcon(item.action)}"></i>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">${getRoleName(item.role)} ${formatAction(item.action)}</div>
+            <div class="activity-desc">${formatActivityDetails(item.details)}</div>
+            <div class="activity-time">${formatTime(item.timestamp)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Load alerts
+    async function loadAlerts() {
+      const result = await apiCall('getAlerts', { unacknowledgedOnly: true });
+      if (Array.isArray(result)) {
+        alerts = result;
+        renderAlerts();
+        const count = alerts.length;
+        document.getElementById('activeAlertCount').textContent = count;
+        const badge = document.getElementById('alertCount');
+        if (count > 0) {
+          badge.textContent = count;
+          badge.style.display = 'inline';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }
+
+    // Render alerts
+    function renderAlerts() {
+      const container = document.getElementById('alertsList');
+
+      if (alerts.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-check-circle"></i>
+            <p>No active alerts</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = alerts.map(alert => `
+        <div class="alert-item ${alert.priority}">
+          <div class="alert-header">
+            <span class="alert-type ${alert.priority}">${alert.type}</span>
+            <span class="alert-title">${alert.title}</span>
+          </div>
+          <div class="alert-message">${alert.message}</div>
+          <button onclick="acknowledgeAlert('${alert.id}')" class="btn btn-secondary" style="margin-top:0.5rem;font-size:0.75rem;padding:0.25rem 0.5rem">
+            Acknowledge
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // Send message
+    async function sendMessage() {
+      const from = document.getElementById('msgFrom').value;
+      const to = document.getElementById('msgTo').value;
+      const subject = document.getElementById('msgSubject').value;
+      const body = document.getElementById('msgBody').value;
+      const priority = document.getElementById('msgPriority').value;
+
+      if (!subject || !body) {
+        alert('Please enter subject and message');
+        return;
+      }
+
+      const result = await apiCall('sendMessage', {
+        from, to, subject, body,
+        options: { priority }
+      });
+
+      if (result.success) {
+        toggleCompose();
+        document.getElementById('msgSubject').value = '';
+        document.getElementById('msgBody').value = '';
+        refreshAll();
+      } else {
+        alert('Failed to send message: ' + (result.error || 'Unknown error'));
+      }
+    }
+
+    // Acknowledge alert
+    async function acknowledgeAlert(alertId) {
+      await apiCall('acknowledgeAlert', { alertId });
+      loadAlerts();
+    }
+
+    // Toggle compose panel
+    function toggleCompose() {
+      document.getElementById('composePanel').classList.toggle('active');
+    }
+
+    // Toggle alerts panel
+    function toggleAlerts() {
+      document.getElementById('alertsPanel').classList.toggle('active');
+    }
+
+    // Switch tabs
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab:nth-child(${tab === 'tasks' ? 1 : 2})`).classList.add('active');
+      document.getElementById(`${tab}Tab`).classList.add('active');
+    }
+
+    // Filter activity
+    function filterActivity() {
+      renderActivity();
+    }
+
+    // Select session
+    function selectSession(sessionId) {
+      const session = sessions.find(s => s.sessionId === sessionId);
+      if (session) {
+        currentRole = session.role;
+        loadMessages();
+        loadTasks();
+      }
+    }
+
+    // View message
+    async function viewMessage(messageId) {
+      await apiCall('markRead', { messageId, role: currentRole });
+      loadMessages();
+    }
+
+    // Helper functions
+    function getRoleName(role) {
+      const names = {
+        pm_architect: 'PM_Architect',
+        backend: 'Backend_Claude',
+        desktop: 'Desktop_Claude',
+        mobile: 'Mobile_Claude',
+        ux_design: 'UX_Design_Claude',
+        sales: 'Sales_Claude',
+        security: 'Security_Claude',
+        social_media: 'Social_Media_Claude',
+        field_ops: 'Field_Ops_Claude',
+        inventory: 'Inventory_Claude'
+      };
+      return names[role] || role;
+    }
+
+    function getPriorityClass(score) {
+      if (score >= 60) return 'high';
+      if (score >= 40) return 'medium';
+      return 'low';
+    }
+
+    function getActivityType(action) {
+      if (action.includes('message')) return 'message';
+      if (action.includes('task')) return 'task';
+      if (action.includes('session')) return 'session';
+      if (action.includes('alert')) return 'alert';
+      return '';
+    }
+
+    function getActivityIcon(action) {
+      if (action.includes('message')) return 'fas fa-envelope';
+      if (action.includes('task')) return 'fas fa-tasks';
+      if (action.includes('session')) return 'fas fa-user-circle';
+      if (action.includes('alert')) return 'fas fa-exclamation-triangle';
+      return 'fas fa-circle';
+    }
+
+    function formatAction(action) {
+      const actions = {
+        send_message: 'sent a message',
+        read_message: 'read a message',
+        acknowledge_message: 'acknowledged a message',
+        session_start: 'started a session',
+        session_end: 'ended a session',
+        create_task: 'created a task',
+        claim_task: 'claimed a task',
+        update_task: 'updated a task',
+        complete_task: 'completed a task'
+      };
+      return actions[action] || action;
+    }
+
+    function formatActivityDetails(details) {
+      if (!details) return '';
+      if (details.subject) return details.subject;
+      if (details.title) return details.title;
+      if (details.to) return `To: ${getRoleName(details.to)}`;
+      return JSON.stringify(details).substring(0, 50);
+    }
+
+    function formatTime(timestamp) {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now - date;
+
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+      return date.toLocaleDateString();
+    }
+
+    function truncate(str, len) {
+      if (!str) return '';
+      return str.length > len ? str.substring(0, len) + '...' : str;
+    }
+  </script>
+</body>
+</html>

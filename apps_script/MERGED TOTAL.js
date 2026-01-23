@@ -2386,6 +2386,32 @@ function doGet(e) {
       case 'getBookImportedTasks':
         return jsonResponse(getBookImportedTasks(e.parameter));
 
+      // ============ CLAUDE COORDINATION SYSTEM (GET) ============
+      case 'getCoordinationOverview':
+        return jsonResponse(getCoordinationOverview(e.parameter.role || 'pm_architect'));
+      case 'getCoordinationMorningBrief':
+        return jsonResponse(getCoordinationMorningBrief());
+      case 'getClaudeSessions':
+        return jsonResponse(getActiveSessions());
+      case 'getClaudeMessages':
+        return jsonResponse(getClaudeMessages(e.parameter.role, {
+          unreadOnly: e.parameter.unreadOnly === 'true',
+          limit: parseInt(e.parameter.limit) || 50
+        }));
+      case 'getClaudeTasks':
+        return jsonResponse(getAvailableTasks(e.parameter.role, {
+          myTasksOnly: e.parameter.myTasksOnly === 'true'
+        }));
+      case 'getCoordinationAlerts':
+        return jsonResponse(getCoordinationAlerts(e.parameter.unacknowledgedOnly !== 'false'));
+      case 'getCoordinationActivity':
+        return jsonResponse(getRecentActivity(
+          parseInt(e.parameter.limit) || 50,
+          e.parameter.roleFilter
+        ));
+      case 'checkFileAvailability':
+        return jsonResponse(checkFileAvailability(e.parameter.filePath));
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -2974,6 +3000,12 @@ function doPost(e) {
         return jsonResponse(importBookTasks(data));
       case 'convertBookTaskToFarmTask':
         return jsonResponse(convertBookTaskToFarmTask(data));
+
+      // ============ CLAUDE COORDINATION SYSTEM ============
+      case 'coordinationAPI':
+        return jsonResponse(handleCoordinationAPI(data.coordinationAction, data));
+      case 'initializeCoordination':
+        return jsonResponse(initializeCoordinationSheets());
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
