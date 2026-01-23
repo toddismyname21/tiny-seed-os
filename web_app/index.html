@@ -532,6 +532,132 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        /* Invite Section */
+        .invite-section {
+            margin: 32px 0;
+        }
+
+        .invite-card {
+            background: linear-gradient(145deg, var(--bg-card), var(--bg-dark));
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .invite-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .invite-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary), #16a34a);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .invite-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .invite-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .invite-btn {
+            flex: 1;
+            min-width: 180px;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 56px;
+            touch-action: manipulation;
+            transition: all 0.2s;
+        }
+
+        .invite-btn.employee {
+            background: linear-gradient(135deg, var(--primary), #16a34a);
+            color: white;
+        }
+
+        .invite-btn.chef {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .invite-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .invite-btn:active {
+            transform: scale(0.98);
+        }
+
+        .invite-btn span {
+            font-size: 20px;
+        }
+
+        @media (max-width: 500px) {
+            .invite-buttons {
+                flex-direction: column;
+            }
+            .invite-btn {
+                width: 100%;
+            }
+        }
+
+        /* Invite Modal Enhancements */
+        .invite-modal .modal-content {
+            max-width: 450px;
+        }
+
+        .invite-info {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .invite-info h4 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .invite-info ul {
+            list-style: none;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .invite-info li {
+            padding: 4px 0;
+        }
+
+        .invite-info li::before {
+            content: '✓ ';
+            color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -661,6 +787,27 @@
                     <span class="feature-tag">POD</span>
                 </div>
             </a>
+        </div>
+
+        <!-- Invite Team Members Section (Admin Only) -->
+        <div class="invite-section" data-role="Admin">
+            <div class="invite-card">
+                <div class="invite-header">
+                    <div class="invite-icon">👥</div>
+                    <div>
+                        <h3>Invite Team Members</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px;">Add employees or wholesale chef accounts</p>
+                    </div>
+                </div>
+                <div class="invite-buttons">
+                    <button class="invite-btn employee" onclick="openModal('employeeModal')">
+                        <span>👷</span> Invite Employee
+                    </button>
+                    <button class="invite-btn chef" onclick="openModal('chefModal')">
+                        <span>🍳</span> Invite Chef
+                    </button>
+                </div>
+            </div>
         </div>
 
         <h2 class="section-title">All Applications</h2>

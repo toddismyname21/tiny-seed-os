@@ -27,15 +27,24 @@
 
 ### Alberta's Food Group - $5,745.50 Debt
 
+**DOCUMENTS UPDATED TODAY (Jan 22) - READY TO SEND**
+
 | Item | Status | Deadline |
 |------|--------|----------|
-| Demand email to Beau | **NOT SENT** | Jan 23, 2026 (TOMORROW) |
-| Certified mail | **NOT SENT** | Jan 23, 2026 |
-| Small Claims filing | Ready if needed | Jan 24, 2026 |
+| Demand email to Beau | **READY** - dates updated | Jan 29, 2026 |
+| Certified mail | **READY** - dates updated | Jan 29, 2026 |
+| Payment Agreement | **READY** - schedule updated | Jan 29 first payment |
+| Small Claims filing | Ready if no response | Jan 30, 2026 |
+
+**Updated Payment Schedule:**
+- Payment 1: $1,000 by Jan 29
+- Payments 2-5: $1,000/week (Feb 5, 12, 19, 26)
+- Payment 6: $745.50 by Mar 5
+- **Paid in full: March 5, 2026**
 
 **Court Info Ready:** Judge Howe, (724) 774-0840, Freedom PA
 
-**If owner misses Jan 23 deadline:** Adjust demand letter dates and re-send. Collection still viable.
+**OWNER ACTION:** Send demand email + certified mail TODAY.
 
 ---
 
@@ -164,9 +173,9 @@ All deliverables audited and enhanced. Research verified. PA legal compliance co
 
 ## OWNER ACTION REQUIRED
 
-### URGENT (Today)
-1. **Send Alberta's demand email** - Jan 23 deadline
-2. **Send certified mail** - Proves delivery for court
+### URGENT (Today - Jan 22)
+1. **Send Alberta's demand email** - Documents updated, Jan 29 deadline
+2. **Send certified mail** - Proves delivery for court (return receipt requested)
 
 ### HIGH (This Week)
 3. **Review lease proposals** - Pick approach

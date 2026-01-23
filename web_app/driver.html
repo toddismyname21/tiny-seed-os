@@ -1900,6 +1900,8 @@
             text-transform: uppercase;
         }
     </style>
+    <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
+    <script src="api-config.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -3120,7 +3122,8 @@
         // ============================================
         // REAL-TIME DELIVERY TRACKING
         // ============================================
-        const TRACKING_API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+        // Use unified API config - single source of truth
+        const TRACKING_API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
 
         async function startDeliveryTracking() {
             if (AppState.tracking.active) return;

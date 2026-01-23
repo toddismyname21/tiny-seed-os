@@ -8429,6 +8429,8 @@
             cursor: pointer;
         }
     </style>
+    <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
+    <script src="web_app/api-config.js"></script>
 </head>
 <body>
     <!-- PWA Install Prompt -->
@@ -12008,7 +12010,8 @@
         // CONFIGURATION
         // ============================================
         const CONFIG = {
-            API_URL: 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec',
+            // Use unified API config - single source of truth
+            API_URL: (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec',
             DB_NAME: 'TinySeedEmployee',
             DB_VERSION: 1,
             GEOFENCE: {
@@ -15012,7 +15015,8 @@
         // ============================================
         // FLEET MANAGEMENT (Tractor Mode)
         // ============================================
-        const FLEET_API_URL = 'https://script.google.com/macros/s/AKfycbxkBTDNjrQJJS4ioZpqd2BC1LNLPVUsmAoYAlh2I4apIuoi3MmBoEb4E54kVYNhEd0RBA/exec';
+        // Use unified API config - single source of truth
+        const FLEET_API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
 
         const FleetState = {
             tractors: [],

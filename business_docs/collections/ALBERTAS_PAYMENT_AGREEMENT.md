@@ -4,7 +4,7 @@
 
 ---
 
-**Date:** January 16, 2026
+**Date:** January 22, 2026
 
 **Creditor:**
 Tiny Seed Farm LLC
@@ -36,21 +36,21 @@ The Debtor acknowledges that this debt is valid, accurate, and undisputed.
 ## PAYMENT TERMS
 
 ### Initial Payment
-Debtor agrees to pay **$1,000.00** upon signing this agreement, due no later than **January 23, 2026**.
+Debtor agrees to pay **$1,000.00** upon signing this agreement, due no later than **January 29, 2026**.
 
 ### Weekly Payments
-Beginning **January 30, 2026**, Debtor agrees to pay **$1,000.00 per week** until the balance is paid in full.
+Beginning **February 5, 2026**, Debtor agrees to pay **$1,000.00 per week** until the balance is paid in full.
 
 ### Payment Schedule
 
 | Payment # | Due Date | Amount | Running Balance |
 |-----------|----------|--------|-----------------|
-| 1 (Initial) | January 23, 2026 | $1,000.00 | $4,745.50 |
-| 2 | January 30, 2026 | $1,000.00 | $3,745.50 |
-| 3 | February 6, 2026 | $1,000.00 | $2,745.50 |
-| 4 | February 13, 2026 | $1,000.00 | $1,745.50 |
-| 5 | February 20, 2026 | $1,000.00 | $745.50 |
-| 6 (Final) | February 27, 2026 | $745.50 | $0.00 |
+| 1 (Initial) | January 29, 2026 | $1,000.00 | $4,745.50 |
+| 2 | February 5, 2026 | $1,000.00 | $3,745.50 |
+| 3 | February 12, 2026 | $1,000.00 | $2,745.50 |
+| 4 | February 19, 2026 | $1,000.00 | $1,745.50 |
+| 5 | February 26, 2026 | $1,000.00 | $745.50 |
+| 6 (Final) | March 5, 2026 | $745.50 | $0.00 |
 
 **Total payments:** 6 payments over approximately 6 weeks
 
@@ -129,13 +129,13 @@ Date: _______________
 
 | Payment # | Due Date | Amount Due | Date Received | Amount Received | Method | Balance |
 |-----------|----------|------------|---------------|-----------------|--------|---------|
-| 1 | 1/23/26 | $1,000 | | | | |
-| 2 | 1/30/26 | $1,000 | | | | |
-| 3 | 2/6/26 | $1,000 | | | | |
-| 4 | 2/13/26 | $1,000 | | | | |
-| 5 | 2/20/26 | $1,000 | | | | |
-| 6 | 2/27/26 | $745.50 | | | | |
+| 1 | 1/29/26 | $1,000 | | | | |
+| 2 | 2/5/26 | $1,000 | | | | |
+| 3 | 2/12/26 | $1,000 | | | | |
+| 4 | 2/19/26 | $1,000 | | | | |
+| 5 | 2/26/26 | $1,000 | | | | |
+| 6 | 3/5/26 | $745.50 | | | | |
 
 ---
 
-**Document prepared:** January 16, 2026
+**Document prepared:** January 22, 2026

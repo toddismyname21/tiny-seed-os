@@ -21,15 +21,15 @@ You did not respond to my December 9th email. You did not respond to my December
 
 I have attached a formal Payment Agreement. The terms are:
 
-- **$1,000 due immediately** (by January 23, 2026)
+- **$1,000 due immediately** (by January 29, 2026)
 - **$1,000 per week** until paid in full
-- **Paid off in 6 weeks** (by February 27, 2026)
+- **Paid off in 6 weeks** (by March 5, 2026)
 
 **If I do not receive:**
 1. The signed agreement, AND
 2. The first $1,000 payment
 
-**By January 23, 2026**, I will file a claim in Beaver County Small Claims Court for the full balance plus court costs. No further notice will be given.
+**By January 29, 2026**, I will file a claim in Beaver County Small Claims Court for the full balance plus court costs. No further notice will be given.
 
 I have tried to work with you. I have been patient for over a year. I have asked politely twice. You have ignored me.
 
@@ -52,7 +52,7 @@ todd@tinyseedfarmpgh.com
 
 [Print on Letterhead]
 
-**January 16, 2026**
+**January 22, 2026**
 
 **VIA CERTIFIED MAIL - RETURN RECEIPT REQUESTED**
 
@@ -69,14 +69,14 @@ This letter constitutes a formal and final demand for payment of $5,745.50 owed 
 
 Despite previous requests dated December 9, 2025 and December 12, 2025, you have failed to respond or propose any payment arrangement. Your recent payment of $300.00 is acknowledged but leaves a substantial balance outstanding.
 
-**DEMAND:** I demand payment in full of $5,745.50, or execution of the enclosed Payment Agreement with first payment of $1,000.00, no later than **January 23, 2026**.
+**DEMAND:** I demand payment in full of $5,745.50, or execution of the enclosed Payment Agreement with first payment of $1,000.00, no later than **January 29, 2026**.
 
 The enclosed Payment Agreement provides for:
 - Initial payment of $1,000.00 upon signing
 - Weekly payments of $1,000.00
-- Full satisfaction of debt by February 27, 2026
+- Full satisfaction of debt by March 5, 2026
 
-**NOTICE:** If I do not receive either (1) payment in full, or (2) the signed Payment Agreement with first payment by January 23, 2026, I will immediately file a civil complaint in the Beaver County Magisterial District Court seeking judgment for the full amount owed plus court costs and any other relief permitted by law.
+**NOTICE:** If I do not receive either (1) payment in full, or (2) the signed Payment Agreement with first payment by January 29, 2026, I will immediately file a civil complaint in the Beaver County Magisterial District Court seeking judgment for the full amount owed plus court costs and any other relief permitted by law.
 
 I am prepared to pursue all legal remedies available to me, including but not limited to judgment liens, wage garnishment, and reporting to credit bureaus.
 
@@ -109,11 +109,11 @@ todd@tinyseedfarmpgh.com
 - [ ] Keep certified mail receipt
 - [ ] Track delivery at usps.com
 - [ ] Mark January 23 deadline on calendar
-- [ ] If no response by Jan 23: GO FILE THE CLAIM
+- [ ] If no response by Jan 29: GO FILE THE CLAIM
 
 ---
 
-## IF HE DOESN'T RESPOND BY JANUARY 23
+## IF HE DOESN'T RESPOND BY JANUARY 29
 
 ### Filing in Small Claims Court
 
@@ -143,6 +143,6 @@ A judgment lets you:
 
 ---
 
-**Document prepared:** January 16, 2026
-**Deadline to respond:** January 23, 2026
-**Action if no response:** File Small Claims Court complaint
+**Document prepared:** January 22, 2026
+**Deadline to respond:** January 29, 2026
+**Action if no response:** File Small Claims Court complaint (January 30, 2026)

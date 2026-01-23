@@ -1301,6 +1301,12 @@ function doGet(e) {
       case 'getFulfillmentLog':
         return jsonResponse(getFulfillmentLog(e.parameter));
 
+      // ============ WHOLESALE CUSTOMERS GET ============
+      case 'getWholesaleCustomers':
+        return jsonResponse(getWholesaleCustomers(e.parameter));
+      case 'getWholesaleCustomer':
+        return jsonResponse({ success: true, customer: getWholesaleCustomer(e.parameter.customerId) });
+
       case 'getCSAProducts':
         return jsonResponse(getCSAProducts(e.parameter));
       case 'getCSABoxContents':
@@ -2759,6 +2765,14 @@ function doPost(e) {
         return jsonResponse(markStandingOrderShorted(data));
       case 'bulkFulfillStandingOrders':
         return jsonResponse(bulkFulfillStandingOrders(data));
+
+      // ============ CHEF INVITATION SYSTEM ============
+      case 'inviteChef':
+        return jsonResponse(inviteChef(data));
+      case 'inviteMultipleChefs':
+        return jsonResponse(inviteMultipleChefs(data.chefs || data.chefList || data));
+      case 'verifyChefToken':
+        return jsonResponse(verifyChefToken(data.token, data.email));
 
       case 'submitCSAOrder':
         return jsonResponse(submitCSAOrder(data));
@@ -16461,6 +16475,499 @@ function testStandingOrders() {
   Logger.log('Dashboard: ' + JSON.stringify(dashResult));
 
   Logger.log('=== Standing Orders Tests Complete ===');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WHOLESALE CHEF INVITATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Invite a chef to the wholesale portal
+ * Creates account, sends email and SMS with magic link
+ */
+function inviteChef(data) {
+  try {
+    const email = (data.email || '').trim().toLowerCase();
+    const companyName = data.companyName || data.company_name || '';
+    const contactName = data.contactName || data.contact_name || '';
+    const phone = data.phone || '';
+    const address = data.address || '';
+    const city = data.city || '';
+    const state = data.state || 'PA';
+    const zip = data.zip || '';
+    const invitedBy = data.invitedBy || 'Owner';
+
+    if (!email) {
+      return { success: false, error: 'Email is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Initialize wholesale customers sheet if needed
+    let sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (!sheet) {
+      sheet = ss.insertSheet('WHOLESALE_CUSTOMERS');
+      sheet.getRange(1, 1, 1, 15).setValues([[
+        'Customer_ID', 'Company_Name', 'Contact_Name', 'Email', 'Phone',
+        'Address', 'City', 'State', 'Zip', 'Payment_Terms', 'Price_Tier',
+        'Status', 'Invite_Date', 'Last_Login', 'Notes'
+      ]]);
+      sheet.getRange(1, 1, 1, 15).setFontWeight('bold');
+    }
+
+    // Check if chef already exists
+    const data_ = sheet.getDataRange().getValues();
+    const headers = data_[0];
+    const emailCol = headers.indexOf('Email');
+
+    for (let i = 1; i < data_.length; i++) {
+      if (data_[i][emailCol] && data_[i][emailCol].toString().toLowerCase() === email) {
+        // Already exists - resend invitation
+        const customerId = data_[i][headers.indexOf('Customer_ID')];
+        const magicLink = generateChefMagicLink(email, customerId);
+
+        // Send invitation email and SMS
+        sendChefInviteEmail(email, contactName || companyName, magicLink);
+        if (phone) {
+          sendChefInviteSMS(phone, contactName || companyName, magicLink);
+        }
+
+        return {
+          success: true,
+          message: 'Invitation resent to existing chef',
+          customerId: customerId,
+          inviteUrl: magicLink,
+          emailSent: true,
+          smsSent: !!phone
+        };
+      }
+    }
+
+    // Create new customer record
+    const customerId = 'CHEF-' + Date.now().toString(36).toUpperCase();
+    const magicLink = generateChefMagicLink(email, customerId);
+
+    const newRow = [
+      customerId,
+      companyName,
+      contactName,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      zip,
+      'Net 7',  // Default payment terms
+      'Wholesale',  // Price tier
+      'Invited',  // Status
+      new Date().toISOString(),
+      '',  // Last login
+      'Invited by ' + invitedBy
+    ];
+
+    sheet.appendRow(newRow);
+
+    // Send invitation email
+    sendChefInviteEmail(email, contactName || companyName, magicLink);
+
+    // Send SMS if phone provided
+    let smsSent = false;
+    if (phone) {
+      smsSent = sendChefInviteSMS(phone, contactName || companyName, magicLink);
+    }
+
+    return {
+      success: true,
+      message: 'Chef invited successfully',
+      customerId: customerId,
+      inviteUrl: magicLink,
+      emailSent: true,
+      smsSent: smsSent
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate magic link for chef login
+ */
+function generateChefMagicLink(email, customerId) {
+  const token = Utilities.getUuid().replace(/-/g, '');
+
+  // Store token for verification
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let tokenSheet = ss.getSheetByName('AUTH_TOKENS');
+  if (!tokenSheet) {
+    tokenSheet = ss.insertSheet('AUTH_TOKENS');
+    tokenSheet.getRange(1, 1, 1, 5).setValues([['Token', 'Email', 'Customer_ID', 'Created', 'Expires']]);
+  }
+
+  const expires = new Date();
+  expires.setHours(expires.getHours() + 24);  // 24 hour expiry
+
+  tokenSheet.appendRow([token, email, customerId, new Date().toISOString(), expires.toISOString()]);
+
+  // Get portal URL - adjust this to your deployment
+  const portalUrl = 'https://toddismyname21.github.io/tiny-seed-os/web_app/wholesale.html';
+
+  return `${portalUrl}?token=${token}&email=${encodeURIComponent(email)}`;
+}
+
+/**
+ * Send chef invitation email
+ */
+function sendChefInviteEmail(email, name, magicLink) {
+  try {
+    const subject = "You're Invited - Order Fresh from Tiny Seed Farm";
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .logo { font-size: 32px; margin-bottom: 10px; }
+    h1 { color: #2d5a27; margin: 0; font-size: 24px; }
+    .features { background: #f8f9fa; border-radius: 12px; padding: 20px; margin: 20px 0; }
+    .feature { display: flex; align-items: center; margin: 12px 0; }
+    .feature-icon { font-size: 24px; margin-right: 12px; }
+    .btn { display: inline-block; background: #2d5a27; color: white !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0; }
+    .link-text { font-size: 12px; color: #666; word-break: break-all; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 13px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">🌱</div>
+      <h1>Tiny Seed Farm</h1>
+    </div>
+
+    <p>Hi ${name || 'Chef'},</p>
+
+    <p>You've been invited to order fresh, organic produce directly from Tiny Seed Farm!</p>
+
+    <div class="features">
+      <div class="feature">
+        <span class="feature-icon">🥬</span>
+        <span>See what's fresh this week - updated daily</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">📱</span>
+        <span>Order from your phone in seconds</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🚚</span>
+        <span>Reliable delivery to your kitchen</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">📋</span>
+        <span>Set up standing orders for weekly delivery</span>
+      </div>
+    </div>
+
+    <div style="text-align: center;">
+      <a href="${magicLink}" class="btn">Start Ordering →</a>
+    </div>
+
+    <p class="link-text">Or copy this link: ${magicLink}</p>
+
+    <div class="footer">
+      <p><strong>Tiny Seed Farm</strong><br>
+      Fresh, local, organic produce for Pittsburgh's finest kitchens</p>
+      <p>Questions? Reply to this email or text us at (412) 555-FARM</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const textBody = `Hi ${name || 'Chef'},
+
+You've been invited to order fresh, organic produce directly from Tiny Seed Farm!
+
+🥬 See what's fresh this week
+📱 Order from your phone in seconds
+🚚 Reliable delivery to your kitchen
+📋 Set up standing orders
+
+Start ordering here: ${magicLink}
+
+- Tiny Seed Farm`;
+
+    GmailApp.sendEmail(email, subject, textBody, {
+      htmlBody: htmlBody,
+      name: 'Tiny Seed Farm'
+    });
+
+    return true;
+  } catch (error) {
+    Logger.log('Error sending chef invite email: ' + error);
+    return false;
+  }
+}
+
+/**
+ * Send chef invitation SMS via Twilio
+ */
+function sendChefInviteSMS(phone, name, magicLink) {
+  try {
+    // Get Twilio credentials
+    const props = PropertiesService.getScriptProperties();
+    const accountSid = props.getProperty('TWILIO_ACCOUNT_SID');
+    const authToken = props.getProperty('TWILIO_AUTH_TOKEN');
+    const fromNumber = props.getProperty('TWILIO_PHONE_NUMBER');
+
+    if (!accountSid || !authToken || !fromNumber) {
+      Logger.log('Twilio not configured');
+      return false;
+    }
+
+    // Format phone number
+    let toNumber = phone.replace(/\D/g, '');
+    if (toNumber.length === 10) toNumber = '1' + toNumber;
+    if (!toNumber.startsWith('+')) toNumber = '+' + toNumber;
+
+    // Shorten URL for SMS
+    const shortMessage = `Hi ${name}! You're invited to order fresh produce from Tiny Seed Farm. Start here: ${magicLink} -Todd`;
+
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+
+    const response = UrlFetchApp.fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + Utilities.base64Encode(accountSid + ':' + authToken)
+      },
+      payload: {
+        To: toNumber,
+        From: fromNumber,
+        Body: shortMessage
+      },
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+    return result.sid ? true : false;
+
+  } catch (error) {
+    Logger.log('Error sending chef invite SMS: ' + error);
+    return false;
+  }
+}
+
+/**
+ * Invite multiple chefs at once
+ */
+function inviteMultipleChefs(chefList) {
+  const results = {
+    success: true,
+    invited: [],
+    failed: [],
+    totalInvited: 0,
+    totalFailed: 0
+  };
+
+  if (!Array.isArray(chefList) || chefList.length === 0) {
+    return { success: false, error: 'Chef list is required' };
+  }
+
+  chefList.forEach((chef, index) => {
+    try {
+      const result = inviteChef({
+        email: chef.email,
+        companyName: chef.company || chef.companyName || chef.company_name,
+        contactName: chef.name || chef.contactName || chef.contact_name,
+        phone: chef.phone,
+        address: chef.address,
+        city: chef.city,
+        state: chef.state,
+        zip: chef.zip
+      });
+
+      if (result.success) {
+        results.invited.push({
+          email: chef.email,
+          name: chef.name || chef.company,
+          customerId: result.customerId,
+          inviteUrl: result.inviteUrl
+        });
+        results.totalInvited++;
+      } else {
+        results.failed.push({
+          email: chef.email,
+          error: result.error
+        });
+        results.totalFailed++;
+      }
+    } catch (error) {
+      results.failed.push({
+        email: chef.email || 'Unknown',
+        error: error.toString()
+      });
+      results.totalFailed++;
+    }
+
+    // Small delay to avoid rate limits
+    if (index < chefList.length - 1) {
+      Utilities.sleep(500);
+    }
+  });
+
+  return results;
+}
+
+/**
+ * Verify chef magic link token
+ */
+function verifyChefToken(token, email) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const tokenSheet = ss.getSheetByName('AUTH_TOKENS');
+    if (!tokenSheet) return { success: false, error: 'Token not found' };
+
+    const data = tokenSheet.getDataRange().getValues();
+    const headers = data[0];
+    const tokenCol = headers.indexOf('Token');
+    const emailCol = headers.indexOf('Email');
+    const customerCol = headers.indexOf('Customer_ID');
+    const expiresCol = headers.indexOf('Expires');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][tokenCol] === token && data[i][emailCol].toLowerCase() === email.toLowerCase()) {
+        // Check expiry
+        const expires = new Date(data[i][expiresCol]);
+        if (new Date() > expires) {
+          return { success: false, error: 'Token expired' };
+        }
+
+        // Get customer info
+        const customerId = data[i][customerCol];
+        const customer = getWholesaleCustomer(customerId);
+
+        // Update customer status to Active if first login
+        if (customer && customer.Status === 'Invited') {
+          updateWholesaleCustomerStatus(customerId, 'Active');
+        }
+
+        // Delete used token
+        tokenSheet.deleteRow(i + 1);
+
+        return {
+          success: true,
+          customer: customer || { Customer_ID: customerId, Email: email }
+        };
+      }
+    }
+
+    return { success: false, error: 'Invalid token' };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get wholesale customer by ID
+ */
+function getWholesaleCustomer(customerId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (!sheet) return null;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Customer_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === customerId) {
+        const customer = {};
+        headers.forEach((h, j) => customer[h] = data[i][j]);
+        return customer;
+      }
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Update wholesale customer status
+ */
+function updateWholesaleCustomerStatus(customerId, status) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (!sheet) return false;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Customer_ID');
+    const statusCol = headers.indexOf('Status');
+    const lastLoginCol = headers.indexOf('Last_Login');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === customerId) {
+        sheet.getRange(i + 1, statusCol + 1).setValue(status);
+        sheet.getRange(i + 1, lastLoginCol + 1).setValue(new Date().toISOString());
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Get all wholesale customers
+ */
+function getWholesaleCustomers(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (!sheet) return { success: true, customers: [] };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, customers: [] };
+
+    const headers = data[0];
+    let customers = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    // Apply filters
+    if (params && params.status) {
+      customers = customers.filter(c => c.Status === params.status);
+    }
+
+    return { success: true, customers, count: customers.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Test chef invitation
+ */
+function testChefInvite() {
+  Logger.log('=== Testing Chef Invitation ===');
+
+  const result = inviteChef({
+    email: 'test@testrestaurant.com',
+    companyName: 'Test Restaurant',
+    contactName: 'Chef Test',
+    phone: '+14125551234'
+  });
+
+  Logger.log('Result: ' + JSON.stringify(result));
+  Logger.log('=== Test Complete ===');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

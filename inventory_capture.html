@@ -1118,6 +1118,8 @@
             animation: pulse 2s infinite;
         }
     </style>
+    <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
+    <script src="web_app/api-config.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -1489,7 +1491,8 @@
     <input type="file" id="galleryInput" accept="image/*" onchange="handlePhoto(this)">
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+        // Use unified API config - single source of truth
+        const API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
 
         let allItems = [];
         let currentPhotoBase64 = null;
