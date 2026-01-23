@@ -1735,13 +1735,14 @@
             messages.appendChild(typing);
 
             try {
-                const response = await api.get('askAIAssistant', { query: message, mode: 'all' });
+                // Use chatWithChiefOfStaff for full farm context awareness
+                const response = await api.get('chatWithChiefOfStaff', { message: message });
                 document.getElementById(typingId)?.remove();
 
-                if (response.success && response.response) {
-                    addChatMessage(response.response);
+                if (response.success && response.message) {
+                    addChatMessage(response.message);
                 } else {
-                    addChatMessage("I couldn't process that. Try asking about emails, schedule, or customers.");
+                    addChatMessage("I couldn't process that. Try telling me what you did, or ask what's next.");
                 }
             } catch (error) {
                 document.getElementById(typingId)?.remove();
@@ -1752,12 +1753,26 @@
         async function quickAction(action) {
             addChatMessage(action, true);
 
+            // Show typing indicator
+            const typingId = 'typing-' + Date.now();
+            const messages = document.getElementById('chatMessages');
+            const typing = document.createElement('div');
+            typing.id = typingId;
+            typing.className = 'chat-message assistant';
+            typing.innerHTML = '<div class="chat-bubble">Thinking...</div>';
+            messages.appendChild(typing);
+
             try {
-                const response = await api.get('askAIAssistant', { query: action, mode: 'all' });
-                if (response.success && response.response) {
-                    addChatMessage(response.response);
+                // Use chatWithChiefOfStaff for full farm context awareness
+                const response = await api.get('chatWithChiefOfStaff', { message: action });
+                document.getElementById(typingId)?.remove();
+                if (response.success && response.message) {
+                    addChatMessage(response.message);
+                } else {
+                    addChatMessage("I'll help with that. What specific information do you need?");
                 }
             } catch (error) {
+                document.getElementById(typingId)?.remove();
                 addChatMessage("I'll help with that. What specific information do you need?");
             }
         }
