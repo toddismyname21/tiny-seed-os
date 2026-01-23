@@ -454,6 +454,42 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
         properties: {},
         required: []
       }
+    },
+    {
+      name: "reply_to_email",
+      description: "Reply to an email thread. Use after Todd provides notes or a rough draft. You can either send immediately or create a draft for review.",
+      input_schema: {
+        type: "object",
+        properties: {
+          thread_id: {
+            type: "string",
+            description: "The email thread ID to reply to"
+          },
+          reply_body: {
+            type: "string",
+            description: "The polished, professional email reply body"
+          },
+          send_immediately: {
+            type: "boolean",
+            description: "If true, send immediately. If false, create as draft for Todd to review."
+          }
+        },
+        required: ["thread_id", "reply_body"]
+      }
+    },
+    {
+      name: "archive_email",
+      description: "Archive an email after it's been handled. Use when Todd is done with an email.",
+      input_schema: {
+        type: "object",
+        properties: {
+          thread_id: {
+            type: "string",
+            description: "The email thread ID to archive"
+          }
+        },
+        required: ["thread_id"]
+      }
     }
   ];
 
@@ -813,6 +849,46 @@ function executeChiefOfStaffTool(toolName, input) {
           return { success: false, error: 'Could not get inbox stats' };
         } catch (statsErr) {
           return { success: false, error: 'Could not get inbox stats: ' + statsErr.message };
+        }
+
+      case 'reply_to_email':
+        try {
+          const replyResult = draftEmailReply(
+            input.thread_id,
+            input.reply_body,
+            input.send_immediately === true
+          );
+          if (replyResult.success) {
+            const action = input.send_immediately ? 'Sent' : 'Draft saved';
+            return {
+              success: true,
+              message: `✉️ ${action}! Reply to thread ready.`
+            };
+          }
+          return { success: false, error: replyResult.error || 'Failed to send reply' };
+        } catch (replyErr) {
+          return { success: false, error: 'Could not send reply: ' + replyErr.message };
+        }
+
+      case 'archive_email':
+        try {
+          const archiveResult = archiveEmail(input.thread_id);
+          if (archiveResult.success) {
+            // Record for inbox zero stats
+            try {
+              const stats = getInboxZeroStats();
+              if (stats.success && stats.stats.currentInbox === 0) {
+                recordInboxStats(1, 0, true);
+              }
+            } catch (e) { /* ignore stats error */ }
+            return {
+              success: true,
+              message: '📦 Email archived and out of your inbox!'
+            };
+          }
+          return { success: false, error: archiveResult.error || 'Failed to archive' };
+        } catch (archiveErr) {
+          return { success: false, error: 'Could not archive email: ' + archiveErr.message };
         }
 
       default:
@@ -1423,17 +1499,38 @@ When Todd asks to "work through tasks", "knock out tasks", "go through my list",
 1. Present ONE task at a time with a SPECIFIC action: "First up: [task]. Want me to [specific action]?"
 2. Wait for Todd's response before moving to the next task
 3. After each task, immediately present the next one: "Done. Next: [task]. Should I [action]?"
-4. For emails: Offer to draft a reply or tell Todd what action is needed
+4. For emails: ALWAYS ask "Any notes or rough draft before I write the reply?" BEFORE generating
 5. For approvals: State what needs approval and ask "Approve or skip?"
 6. Keep it tight - no long explanations, just: Task → Action → Move on
 
-Example flow:
-"First up: Emma's COI errors email. She needs corrections to your Certificate of Insurance. Want me to draft a reply asking what specific corrections are needed?"
-[Todd responds]
-"Sent. Next: Marketspread wants you to select market dates. The options are East End, Carrick, Northside, and Squirrel Hill. Which markets do you want for 2026?"
-[Todd responds]
-"Got it. I'll draft that response. Next up: Jennifer Logan's organic cert verification..."
+EMAIL REPLY WORKFLOW (IMPORTANT):
+Before drafting ANY email reply, ALWAYS ask Todd:
+- "Any notes or a rough draft you want me to polish?"
+- "What's the gist of what you want to say?"
 
+This lets Todd give quick thoughts like:
+- "just say yes we can do those dates, thanks for the opportunity"
+- "tell her I need the corrected COI by Friday or I'll miss the deadline"
+- "be apologetic, we messed up the delivery and need to make it right"
+
+Then YOU turn that into a professional, well-written email.
+
+Example flow:
+"First up: Emma's COI errors email. She needs corrections to your Certificate of Insurance.
+📝 Any notes or rough draft before I write the reply?"
+[Todd says: "tell her I need it fixed asap, the market app is due monday"]
+"Got it. Here's a professional version:
+
+'Hi Emma,
+Thank you for working on this. I need the corrected COI as soon as possible - my market application is due Monday and I can't submit without it. Please let me know if you need anything from me to expedite this.
+Thanks, Todd'
+
+Send this, edit it, or adjust?"
+[Todd responds]
+"Sent. ✅ Next: Marketspread wants you to select market dates...
+📝 Any notes on which markets you prefer?"
+
+DO NOT generate email replies without first asking for notes/rough draft.
 DO NOT dump a list. Work through items ONE BY ONE like a real chief of staff would.
 
 ═══════════════════════════════════════════════════════════════════════════════
