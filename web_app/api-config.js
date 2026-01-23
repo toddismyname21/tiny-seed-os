@@ -24,10 +24,10 @@ const TINY_SEED_API = {
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
     // LAST UPDATED: 2026-01-23
-    // UPDATED BY: Claude - Full Chief of Staff v377: Voice, SMS Briefing, Learning, Predictive Staffing
+    // UPDATED BY: Claude - v382 Fixed duplicate declarations
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbxkdbFdK9JlZZHK-SXh8FGF8hQtdGTufj2TWSxiAvD2t2FZUsgeFKeEZaECmcqF8-4h/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbyV8spIrmDhiu1MU11y1xZeEFUjU4seCeEM4fRrT9iHEKdg1g04X36dkZEFH9tD-AYP/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

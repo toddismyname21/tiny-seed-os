@@ -639,7 +639,8 @@ function executeChiefOfStaffTool(toolName, input) {
 
       case 'get_morning_brief':
         try {
-          const brief = generateMorningBrief();
+          const briefResult = generateMorningBrief();
+          const brief = briefResult.data || briefResult; // Handle nested structure
           let msg = `☀️ Here's your morning briefing:\n\n`;
 
           if (brief.criticalAlerts && brief.criticalAlerts.length > 0) {
@@ -651,14 +652,15 @@ function executeChiefOfStaffTool(toolName, input) {
           }
 
           if (brief.priorityActions && brief.priorityActions.length > 0) {
-            msg += `📧 Priority emails (${brief.priorityActions.length}):\n`;
-            brief.priorityActions.slice(0, 3).forEach(a => {
-              msg += `• ${a.from}: ${a.subject}\n`;
+            msg += `📧 Priority items (${brief.priorityActions.length}):\n`;
+            brief.priorityActions.slice(0, 5).forEach(a => {
+              msg += `• ${a.from || 'Action'}: ${a.subject || a.description || ''}\n`;
             });
             msg += `\n`;
           }
 
-          msg += `📊 Summary: ${brief.summary?.inboxCount || 0} emails, ${brief.summary?.overdueCount || 0} overdue, ${brief.summary?.meetingsToday || 0} meetings`;
+          const summary = brief.summary || {};
+          msg += `📊 Summary: ${summary.inboxCount || summary.totalNew || 0} emails, ${summary.urgentEmails || summary.high || 0} urgent, ${summary.pendingApprovals || 0} pending approvals`;
 
           return { success: true, message: msg, data: brief };
         } catch (briefErr) {
