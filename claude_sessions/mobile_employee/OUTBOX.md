@@ -1,7 +1,61 @@
 # OUTBOX: Mobile_Employee Claude
 ## To: PM_Architect
 
-**Updated:** 2026-01-17 @ EVENING (BACKEND COMPLETE + DEPLOYED)
+**Updated:** 2026-01-22 @ EVENING (CRITICAL API FIX COMPLETE)
+
+---
+
+## 🚨 CRITICAL: MOBILE API AUDIT COMPLETE
+
+### URGENT FIXES APPLIED
+
+**ISSUE:** 3 mobile files had HARDCODED OLD API URLs pointing to an expired deployment.
+
+| File | Status Before | Status After |
+|------|---------------|--------------|
+| employee.html | BROKEN | **FIXED** |
+| web_app/driver.html | BROKEN | **FIXED** |
+| web_app/customer.html | Working | Working |
+| inventory_capture.html | BROKEN | **FIXED** |
+
+### CHANGES MADE
+
+1. **Added api-config.js include** to employee.html, driver.html, inventory_capture.html
+2. **Updated hardcoded API URLs** to use `TINY_SEED_API.MAIN_API` with fallback
+3. **Created detailed audit report:** `AUDIT_REPORT_2026-01-22.md`
+
+### OLD (BROKEN) URL
+```
+AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc
+```
+
+### NEW (WORKING) URL
+```
+AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp
+```
+
+### PWA STATUS
+- Service worker: EXISTS (`/sw.js`)
+- Manifests: EXISTS (`manifest.json`, `manifest-driver.json`)
+- Some PWA icons are missing (referenced but don't exist)
+
+### TESTING NEEDED
+- [ ] Test employee.html PIN login
+- [ ] Test work order loading
+- [ ] Test time clock functions
+- [ ] Test compliance form submission
+- [ ] Test driver.html route loading
+
+---
+
+## MOBILE FILES NOT FOUND
+
+| File in INBOX | Status |
+|---------------|--------|
+| mobile.html | DOES NOT EXIST |
+| field_app_mobile.html | DOES NOT EXIST |
+
+These may have been renamed or consolidated into employee.html.
 
 ---
 
