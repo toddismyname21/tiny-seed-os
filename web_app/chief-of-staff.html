@@ -1007,6 +1007,32 @@
                     </div>
                 </div>
 
+                <!-- Inbox Zero Progress -->
+                <div class="inbox-zero-card" id="inboxZeroCard" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1)); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="font-size: 16px; font-weight: 600;">🎮 Inbox Zero Challenge</div>
+                        <div id="inboxLevel" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Level 1</div>
+                    </div>
+                    <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+                        <div style="text-align: center; flex: 1;">
+                            <div id="emailsRemaining" style="font-size: 24px; font-weight: 700; color: #f59e0b;">-</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Remaining</div>
+                        </div>
+                        <div style="text-align: center; flex: 1;">
+                            <div id="currentStreak" style="font-size: 24px; font-weight: 700; color: #22c55e;">-</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Day Streak 🔥</div>
+                        </div>
+                        <div style="text-align: center; flex: 1;">
+                            <div id="totalPoints" style="font-size: 24px; font-weight: 700; color: #8b5cf6;">-</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Points</div>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); border-radius: 8px; height: 8px; overflow: hidden;">
+                        <div id="levelProgress" style="background: linear-gradient(90deg, #22c55e, #3b82f6); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+                    </div>
+                    <div id="inboxMotivation" style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--text-secondary);">Loading...</div>
+                </div>
+
                 <!-- Priority Actions -->
                 <div class="priority-actions">
                     <div class="priority-title">
@@ -1241,7 +1267,8 @@
                 loadActions(),
                 loadAutonomyStatus(),
                 loadWorkloadForecast(),
-                loadLaborIntelligence()
+                loadLaborIntelligence(),
+                loadInboxZeroStats()
             ]);
 
             setupTabListeners();
@@ -1333,6 +1360,39 @@
             // Welcome message
             document.getElementById('welcomeMessage').textContent =
                 `You have ${summary.totalNew || 0} emails, ${summary.high || 0} high priority. ${summary.pendingApprovals > 0 ? `${summary.pendingApprovals} pending approvals.` : ''}`;
+        }
+
+        // Load Inbox Zero Stats (Gamification)
+        async function loadInboxZeroStats() {
+            try {
+                const response = await api.get('getInboxZeroStats');
+                if (response.success && response.stats) {
+                    const s = response.stats;
+
+                    // Update display
+                    document.getElementById('emailsRemaining').textContent = s.currentInbox;
+                    document.getElementById('emailsRemaining').style.color = s.currentInbox === 0 ? '#22c55e' : s.currentInbox < 10 ? '#f59e0b' : '#ef4444';
+
+                    document.getElementById('currentStreak').textContent = s.currentStreak;
+                    document.getElementById('totalPoints').textContent = s.totalPoints;
+                    document.getElementById('inboxLevel').textContent = `Level ${s.level}`;
+                    document.getElementById('inboxMotivation').textContent = s.motivation;
+
+                    // Progress bar to next level
+                    const progress = ((100 - s.pointsToNextLevel) / 100) * 100;
+                    document.getElementById('levelProgress').style.width = `${progress}%`;
+
+                    // Celebration animation if inbox zero
+                    if (s.isInboxZero) {
+                        document.getElementById('inboxZeroCard').style.background =
+                            'linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(59, 130, 246, 0.3))';
+                        document.getElementById('inboxZeroCard').style.borderColor = '#22c55e';
+                    }
+                }
+            } catch (error) {
+                console.error('Inbox Zero stats error:', error);
+                document.getElementById('inboxMotivation').textContent = 'Let\'s achieve Inbox Zero!';
+            }
         }
 
         // Load Communications

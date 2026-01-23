@@ -379,6 +379,81 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
         properties: {},
         required: []
       }
+    },
+    {
+      name: "get_contact_profile",
+      description: "Get information about a contact including relationship notes, preferences, and communication history. Use when processing emails or before contacting someone.",
+      input_schema: {
+        type: "object",
+        properties: {
+          email: {
+            type: "string",
+            description: "The email address of the contact"
+          }
+        },
+        required: ["email"]
+      }
+    },
+    {
+      name: "update_contact_profile",
+      description: "Add or update notes about a contact - their relationship, preferences, communication style. Use when Todd shares information about someone.",
+      input_schema: {
+        type: "object",
+        properties: {
+          email: {
+            type: "string",
+            description: "The contact's email address"
+          },
+          name: {
+            type: "string",
+            description: "The contact's name"
+          },
+          category: {
+            type: "string",
+            description: "Category for this contact (e.g., INSURANCE, CUSTOMER, VENDOR, PERSONAL)"
+          },
+          relationship: {
+            type: "string",
+            description: "Relationship to Todd (e.g., 'Insurance agent', 'Personal friend', 'Chef - high standards')"
+          },
+          notes: {
+            type: "string",
+            description: "Important notes about this person"
+          },
+          communicationStyle: {
+            type: "string",
+            description: "How they prefer to communicate (e.g., 'formal', 'casual', 'brief and direct')"
+          }
+        },
+        required: ["email"]
+      }
+    },
+    {
+      name: "categorize_email",
+      description: "Categorize an email and learn from the choice. Use when helping Todd organize emails.",
+      input_schema: {
+        type: "object",
+        properties: {
+          thread_id: {
+            type: "string",
+            description: "The email thread ID"
+          },
+          category: {
+            type: "string",
+            description: "The category (CUSTOMER, VENDOR, INSURANCE, FINANCIAL, REGULATORY, PERSONAL, etc.)"
+          }
+        },
+        required: ["thread_id", "category"]
+      }
+    },
+    {
+      name: "get_inbox_stats",
+      description: "Get Inbox Zero progress, streak, points, and motivation. Use when Todd asks about email progress or needs encouragement.",
+      input_schema: {
+        type: "object",
+        properties: {},
+        required: []
+      }
     }
   ];
 
@@ -665,6 +740,79 @@ function executeChiefOfStaffTool(toolName, input) {
           return { success: true, message: msg, data: brief };
         } catch (briefErr) {
           return { success: false, error: 'Could not generate brief: ' + briefErr.message };
+        }
+
+      case 'get_contact_profile':
+        try {
+          const profileResult = getContactProfile(input.email);
+          if (profileResult.success && profileResult.profile) {
+            const p = profileResult.profile;
+            let msg = `📇 Contact Profile: ${p.name || p.email}\n`;
+            if (p.category) msg += `• Category: ${p.category}\n`;
+            if (p.relationship) msg += `• Relationship: ${p.relationship}\n`;
+            if (p.notes) msg += `• Notes: ${p.notes}\n`;
+            if (p.communicationStyle) msg += `• Style: ${p.communicationStyle}\n`;
+            if (p.totalEmails) msg += `• History: ${p.totalEmails} emails exchanged\n`;
+            return { success: true, message: msg, profile: p };
+          } else {
+            return { success: true, message: `No profile found for ${input.email}. Want me to create one?` };
+          }
+        } catch (profErr) {
+          return { success: false, error: 'Could not retrieve profile: ' + profErr.message };
+        }
+
+      case 'update_contact_profile':
+        try {
+          const updateResult = updateContactProfile({
+            email: input.email,
+            name: input.name,
+            category: input.category,
+            relationship: input.relationship,
+            notes: input.notes,
+            communicationStyle: input.communicationStyle
+          });
+          if (updateResult.success) {
+            let msg = `✅ Updated profile for ${input.name || input.email}`;
+            if (input.category) msg += ` - Category: ${input.category}`;
+            if (input.relationship) msg += ` - ${input.relationship}`;
+            return { success: true, message: msg };
+          }
+          return { success: false, error: updateResult.error };
+        } catch (updErr) {
+          return { success: false, error: 'Could not update profile: ' + updErr.message };
+        }
+
+      case 'categorize_email':
+        try {
+          const catResult = smartCategorizeEmail(input.thread_id, input.category);
+          return {
+            success: catResult.success,
+            message: catResult.message || `Categorized email as ${input.category}`
+          };
+        } catch (catErr) {
+          return { success: false, error: 'Could not categorize email: ' + catErr.message };
+        }
+
+      case 'get_inbox_stats':
+        try {
+          const stats = getInboxZeroStats();
+          if (stats.success) {
+            const s = stats.stats;
+            let msg = `📬 Inbox Zero Progress\n\n`;
+            msg += `${s.motivation}\n\n`;
+            msg += `• Emails remaining: ${s.currentInbox}\n`;
+            msg += `• Current streak: ${s.currentStreak} days\n`;
+            msg += `• Best streak: ${s.bestStreak} days\n`;
+            msg += `• Level: ${s.level} (${s.pointsToNextLevel} pts to next)\n`;
+            msg += `• Total points: ${s.totalPoints}\n`;
+            if (s.isInboxZero) {
+              msg += `\n🏆 You've achieved Inbox Zero!`;
+            }
+            return { success: true, message: msg, stats: s };
+          }
+          return { success: false, error: 'Could not get inbox stats' };
+        } catch (statsErr) {
+          return { success: false, error: 'Could not get inbox stats: ' + statsErr.message };
         }
 
       default:
@@ -1558,6 +1706,541 @@ const EMAIL_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 const EMAIL_STATUSES = ['NEW', 'TRIAGED', 'AWAITING_RESPONSE', 'AWAITING_THEM', 'AWAITING_REVIEW', 'RESOLVED', 'ARCHIVED'];
 const ACTION_TYPES = ['REPLY', 'FORWARD', 'CREATE_TASK', 'CREATE_EVENT', 'UPDATE_CRM', 'SEND_INVOICE'];
 const ACTION_STATUSES = ['PENDING_APPROVAL', 'APPROVED', 'EXECUTED', 'REJECTED', 'EXPIRED'];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMAIL INTELLIGENCE SYSTEM - Custom Categories, Contact Profiles, Learning
+// ═══════════════════════════════════════════════════════════════════════════
+
+const COS_CUSTOM_CATEGORIES_SHEET = 'COS_Custom_Categories';
+const COS_CONTACT_PROFILES_SHEET = 'COS_Contact_Profiles';
+const COS_CATEGORY_LEARNING_SHEET = 'COS_Category_Learning';
+const COS_INBOX_STATS_SHEET = 'COS_Inbox_Stats';
+
+const CUSTOM_CATEGORIES_HEADERS = [
+  'Category_ID', 'Category_Name', 'Description', 'Color', 'Icon',
+  'Parent_Category', 'Created_At', 'Email_Count', 'Active'
+];
+
+const CONTACT_PROFILES_HEADERS = [
+  'Contact_ID', 'Email', 'Name', 'Company', 'Category', 'Relationship',
+  'Notes', 'Communication_Style', 'Preferences', 'Last_Contact',
+  'Total_Emails', 'Avg_Response_Time', 'Tags', 'Created_At', 'Updated_At'
+];
+
+const CATEGORY_LEARNING_HEADERS = [
+  'Learning_ID', 'Timestamp', 'From_Email', 'From_Name', 'Subject_Pattern',
+  'AI_Suggested', 'User_Chose', 'Confidence_Boost', 'Applied_Count'
+];
+
+const INBOX_STATS_HEADERS = [
+  'Date', 'Emails_Processed', 'Emails_Remaining', 'Inbox_Zero_Achieved',
+  'Time_To_Zero', 'Categories_Used', 'AI_Accuracy', 'Streak_Days',
+  'Points_Earned', 'Level'
+];
+
+// Default categories (can be extended by user)
+const DEFAULT_CATEGORIES = [
+  { id: 'CUSTOMER', name: 'Customer', color: '#22c55e', icon: '👤' },
+  { id: 'VENDOR', name: 'Vendor', color: '#3b82f6', icon: '🏢' },
+  { id: 'INTERNAL', name: 'Internal', color: '#8b5cf6', icon: '🏠' },
+  { id: 'MARKETING', name: 'Marketing', color: '#f59e0b', icon: '📢' },
+  { id: 'PERSONAL', name: 'Personal', color: '#ec4899', icon: '💜' },
+  { id: 'INSURANCE', name: 'Insurance', color: '#06b6d4', icon: '🛡️' },
+  { id: 'FINANCIAL', name: 'Financial', color: '#10b981', icon: '💰' },
+  { id: 'REGULATORY', name: 'Regulatory/Compliance', color: '#ef4444', icon: '📋' },
+  { id: 'SUPPLIER', name: 'Supplier', color: '#6366f1', icon: '📦' }
+];
+
+/**
+ * Initialize Email Intelligence sheets
+ */
+function initializeEmailIntelligenceSheets() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const results = {};
+
+  // Custom Categories
+  results.categories = createSheetWithHeaders(ss, COS_CUSTOM_CATEGORIES_SHEET, CUSTOM_CATEGORIES_HEADERS, '#06b6d4');
+
+  // Seed default categories if empty
+  const catSheet = ss.getSheetByName(COS_CUSTOM_CATEGORIES_SHEET);
+  if (catSheet.getLastRow() === 1) {
+    DEFAULT_CATEGORIES.forEach(cat => {
+      catSheet.appendRow([
+        cat.id, cat.name, '', cat.color, cat.icon, '', new Date(), 0, true
+      ]);
+    });
+  }
+
+  // Contact Profiles
+  results.contacts = createSheetWithHeaders(ss, COS_CONTACT_PROFILES_SHEET, CONTACT_PROFILES_HEADERS, '#8b5cf6');
+
+  // Category Learning
+  results.learning = createSheetWithHeaders(ss, COS_CATEGORY_LEARNING_SHEET, CATEGORY_LEARNING_HEADERS, '#f59e0b');
+
+  // Inbox Stats
+  results.stats = createSheetWithHeaders(ss, COS_INBOX_STATS_SHEET, INBOX_STATS_HEADERS, '#22c55e');
+
+  return { success: true, message: 'Email Intelligence sheets initialized', results };
+}
+
+/**
+ * Get all categories (default + custom)
+ */
+function getEmailCategories() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_CUSTOM_CATEGORIES_SHEET);
+
+    if (!sheet) {
+      initializeEmailIntelligenceSheets();
+      sheet = ss.getSheetByName(COS_CUSTOM_CATEGORIES_SHEET);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, categories: DEFAULT_CATEGORIES };
+    }
+
+    const headers = data[0];
+    const categories = data.slice(1)
+      .filter(row => row[8]) // Active = true
+      .map(row => ({
+        id: row[0],
+        name: row[1],
+        description: row[2],
+        color: row[3],
+        icon: row[4],
+        parentCategory: row[5],
+        emailCount: row[7]
+      }));
+
+    return { success: true, categories };
+  } catch (e) {
+    return { success: false, error: e.message, categories: DEFAULT_CATEGORIES };
+  }
+}
+
+/**
+ * Add a new custom category
+ */
+function addCustomCategory(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_CUSTOM_CATEGORIES_SHEET);
+
+    if (!sheet) {
+      initializeEmailIntelligenceSheets();
+      sheet = ss.getSheetByName(COS_CUSTOM_CATEGORIES_SHEET);
+    }
+
+    const categoryId = (data.name || 'CUSTOM').toUpperCase().replace(/\s+/g, '_');
+
+    sheet.appendRow([
+      categoryId,
+      data.name,
+      data.description || '',
+      data.color || '#64748b',
+      data.icon || '📁',
+      data.parentCategory || '',
+      new Date(),
+      0,
+      true
+    ]);
+
+    return {
+      success: true,
+      message: `Category "${data.name}" created`,
+      category: { id: categoryId, name: data.name, color: data.color, icon: data.icon }
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get or create contact profile
+ */
+function getContactProfile(email) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_CONTACT_PROFILES_SHEET);
+
+    if (!sheet) {
+      initializeEmailIntelligenceSheets();
+      sheet = ss.getSheetByName(COS_CONTACT_PROFILES_SHEET);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] && data[i][1].toLowerCase() === email.toLowerCase()) {
+        return {
+          success: true,
+          profile: {
+            contactId: data[i][0],
+            email: data[i][1],
+            name: data[i][2],
+            company: data[i][3],
+            category: data[i][4],
+            relationship: data[i][5],
+            notes: data[i][6],
+            communicationStyle: data[i][7],
+            preferences: data[i][8],
+            lastContact: data[i][9],
+            totalEmails: data[i][10],
+            avgResponseTime: data[i][11],
+            tags: data[i][12] ? JSON.parse(data[i][12]) : []
+          }
+        };
+      }
+    }
+
+    return { success: true, profile: null };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Update or create contact profile
+ */
+function updateContactProfile(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_CONTACT_PROFILES_SHEET);
+
+    if (!sheet) {
+      initializeEmailIntelligenceSheets();
+      sheet = ss.getSheetByName(COS_CONTACT_PROFILES_SHEET);
+    }
+
+    const sheetData = sheet.getDataRange().getValues();
+    let rowIndex = -1;
+
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][1] && sheetData[i][1].toLowerCase() === data.email.toLowerCase()) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    const now = new Date();
+    const contactId = data.contactId || 'CP_' + now.getTime();
+
+    if (rowIndex > 0) {
+      // Update existing
+      sheet.getRange(rowIndex, 3).setValue(data.name || sheetData[rowIndex-1][2]);
+      sheet.getRange(rowIndex, 4).setValue(data.company || sheetData[rowIndex-1][3]);
+      sheet.getRange(rowIndex, 5).setValue(data.category || sheetData[rowIndex-1][4]);
+      sheet.getRange(rowIndex, 6).setValue(data.relationship || sheetData[rowIndex-1][5]);
+      sheet.getRange(rowIndex, 7).setValue(data.notes || sheetData[rowIndex-1][6]);
+      sheet.getRange(rowIndex, 8).setValue(data.communicationStyle || sheetData[rowIndex-1][7]);
+      sheet.getRange(rowIndex, 9).setValue(data.preferences || sheetData[rowIndex-1][8]);
+      sheet.getRange(rowIndex, 15).setValue(now);
+    } else {
+      // Create new
+      sheet.appendRow([
+        contactId,
+        data.email,
+        data.name || '',
+        data.company || '',
+        data.category || '',
+        data.relationship || '',
+        data.notes || '',
+        data.communicationStyle || '',
+        data.preferences || '',
+        now,
+        1,
+        '',
+        JSON.stringify(data.tags || []),
+        now,
+        now
+      ]);
+    }
+
+    return {
+      success: true,
+      message: rowIndex > 0 ? 'Contact updated' : 'Contact created',
+      contactId
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Learn from category correction
+ */
+function learnFromCategoryCorrection(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_CATEGORY_LEARNING_SHEET);
+
+    if (!sheet) {
+      initializeEmailIntelligenceSheets();
+      sheet = ss.getSheetByName(COS_CATEGORY_LEARNING_SHEET);
+    }
+
+    // Check if we already have a pattern for this sender
+    const sheetData = sheet.getDataRange().getValues();
+    let existingRow = -1;
+
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][2] === data.fromEmail && sheetData[i][6] === data.userChoice) {
+        existingRow = i + 1;
+        break;
+      }
+    }
+
+    if (existingRow > 0) {
+      // Increment applied count
+      const currentCount = sheetData[existingRow - 1][8] || 0;
+      sheet.getRange(existingRow, 9).setValue(currentCount + 1);
+    } else {
+      // New learning
+      sheet.appendRow([
+        'LRN_' + Date.now(),
+        new Date(),
+        data.fromEmail,
+        data.fromName || '',
+        data.subjectPattern || '',
+        data.aiSuggested || '',
+        data.userChoice,
+        0.1, // Confidence boost
+        1
+      ]);
+    }
+
+    // Also update contact profile with this category preference
+    updateContactProfile({
+      email: data.fromEmail,
+      name: data.fromName,
+      category: data.userChoice
+    });
+
+    return {
+      success: true,
+      message: `Learned: Emails from ${data.fromName || data.fromEmail} → ${data.userChoice}`
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get AI category suggestion using learned patterns
+ */
+function getLearnedCategorySuggestion(email) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // First check contact profile
+    const profile = getContactProfile(email.from);
+    if (profile.success && profile.profile && profile.profile.category) {
+      return {
+        success: true,
+        category: profile.profile.category,
+        confidence: 0.95,
+        source: 'contact_profile',
+        contactNotes: profile.profile.notes
+      };
+    }
+
+    // Then check learning patterns
+    const sheet = ss.getSheetByName(COS_CATEGORY_LEARNING_SHEET);
+    if (!sheet) return { success: true, category: null };
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][2] && email.from.toLowerCase().includes(data[i][2].toLowerCase())) {
+        const appliedCount = data[i][8] || 1;
+        return {
+          success: true,
+          category: data[i][6],
+          confidence: Math.min(0.95, 0.7 + (appliedCount * 0.05)),
+          source: 'learned_pattern'
+        };
+      }
+    }
+
+    return { success: true, category: null };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get Inbox Zero stats and gamification data
+ */
+function getInboxZeroStats() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_INBOX_STATS_SHEET);
+
+    if (!sheet) {
+      initializeEmailIntelligenceSheets();
+      sheet = ss.getSheetByName(COS_INBOX_STATS_SHEET);
+    }
+
+    // Get current inbox count
+    const inboxCount = GmailApp.getInboxUnreadCount();
+    const totalInbox = GmailApp.getInboxThreads(0, 500).length;
+
+    // Get historical stats
+    const data = sheet.getDataRange().getValues();
+    let currentStreak = 0;
+    let totalPoints = 0;
+    let bestStreak = 0;
+    let inboxZeroDays = 0;
+
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (data[i][3]) { // Inbox Zero achieved
+        currentStreak++;
+        inboxZeroDays++;
+      } else if (i === data.length - 1) {
+        currentStreak = 0;
+      } else {
+        break;
+      }
+      totalPoints += data[i][8] || 0;
+      bestStreak = Math.max(bestStreak, data[i][7] || 0);
+    }
+
+    // Calculate level (100 points per level)
+    const level = Math.floor(totalPoints / 100) + 1;
+    const pointsToNextLevel = 100 - (totalPoints % 100);
+
+    // Motivational message based on progress
+    let motivation = '';
+    if (totalInbox === 0) {
+      motivation = "🎉 INBOX ZERO! You're crushing it!";
+    } else if (totalInbox <= 5) {
+      motivation = `Almost there! Just ${totalInbox} to go!`;
+    } else if (totalInbox <= 20) {
+      motivation = `Good progress! ${totalInbox} remaining.`;
+    } else {
+      motivation = `Let's tackle this! ${totalInbox} emails waiting.`;
+    }
+
+    return {
+      success: true,
+      stats: {
+        currentInbox: totalInbox,
+        unreadCount: inboxCount,
+        currentStreak,
+        bestStreak,
+        totalPoints,
+        level,
+        pointsToNextLevel,
+        inboxZeroDays,
+        motivation,
+        isInboxZero: totalInbox === 0
+      }
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Record daily inbox stats
+ */
+function recordInboxStats(processed, remaining, achievedZero) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_INBOX_STATS_SHEET);
+
+    if (!sheet) {
+      initializeEmailIntelligenceSheets();
+      sheet = ss.getSheetByName(COS_INBOX_STATS_SHEET);
+    }
+
+    // Calculate points
+    let points = processed * 2; // 2 points per email processed
+    if (achievedZero) points += 50; // Bonus for inbox zero
+
+    // Get current streak
+    const data = sheet.getDataRange().getValues();
+    let streak = 0;
+    if (data.length > 1 && achievedZero) {
+      const lastRow = data[data.length - 1];
+      streak = (lastRow[3] ? lastRow[7] : 0) + 1;
+    }
+
+    // Calculate level
+    let totalPoints = points;
+    for (let i = 1; i < data.length; i++) {
+      totalPoints += data[i][8] || 0;
+    }
+    const level = Math.floor(totalPoints / 100) + 1;
+
+    sheet.appendRow([
+      new Date(),
+      processed,
+      remaining,
+      achievedZero,
+      '', // Time to zero
+      '', // Categories used
+      '', // AI accuracy
+      streak,
+      points,
+      level
+    ]);
+
+    return {
+      success: true,
+      message: achievedZero ? '🎉 INBOX ZERO! +50 bonus points!' : `Processed ${processed} emails`,
+      pointsEarned: points,
+      streak,
+      level
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Smart categorize email with learning
+ */
+function smartCategorizeEmail(threadId, userCategory) {
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    const message = thread.getMessages()[0];
+    const from = message.getFrom();
+    const fromEmail = from.match(/<(.+)>/) ? from.match(/<(.+)>/)[1] : from;
+    const fromName = from.replace(/<.+>/, '').trim();
+
+    // Learn from this categorization
+    learnFromCategoryCorrection({
+      fromEmail,
+      fromName,
+      subjectPattern: message.getSubject().substring(0, 50),
+      userChoice: userCategory
+    });
+
+    // Update the email's category in EMAIL_INBOX_STATE
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+
+    if (sheet) {
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === threadId) {
+          sheet.getRange(i + 1, 5).setValue(userCategory);
+          break;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Categorized as ${userCategory} and learned pattern for future emails from ${fromName}`
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SHEET INITIALIZATION
@@ -10235,6 +10918,44 @@ function doGet(e) {
         return jsonResponse(generateAIDraftReply(e.parameter.threadId));
       case 'getDailyBrief':
         return jsonResponse(getDailyBrief());
+
+      // ============ EMAIL INTELLIGENCE SYSTEM ============
+      case 'getEmailCategories':
+        return jsonResponse(getEmailCategories());
+      case 'addCustomCategory':
+        return jsonResponse(addCustomCategory({
+          name: e.parameter.name,
+          description: e.parameter.description,
+          color: e.parameter.color,
+          icon: e.parameter.icon
+        }));
+      case 'getContactProfile':
+        return jsonResponse(getContactProfile(e.parameter.email));
+      case 'updateContactProfile':
+        return jsonResponse(updateContactProfile({
+          email: e.parameter.email,
+          name: e.parameter.name,
+          company: e.parameter.company,
+          category: e.parameter.category,
+          relationship: e.parameter.relationship,
+          notes: e.parameter.notes,
+          communicationStyle: e.parameter.communicationStyle,
+          preferences: e.parameter.preferences,
+          tags: e.parameter.tags ? JSON.parse(e.parameter.tags) : []
+        }));
+      case 'smartCategorizeEmail':
+        return jsonResponse(smartCategorizeEmail(e.parameter.threadId, e.parameter.category));
+      case 'getInboxZeroStats':
+        return jsonResponse(getInboxZeroStats());
+      case 'recordInboxStats':
+        return jsonResponse(recordInboxStats(
+          parseInt(e.parameter.processed) || 0,
+          parseInt(e.parameter.remaining) || 0,
+          e.parameter.achievedZero === 'true'
+        ));
+      case 'initializeEmailIntelligence':
+        return jsonResponse(initializeEmailIntelligenceSheets());
+
       case 'getChiefOfStaffAuditLog':
         return jsonResponse(getChiefOfStaffAuditLog(e.parameter));
       case 'setupChiefOfStaffTriggers':
