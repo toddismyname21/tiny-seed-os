@@ -4,1284 +4,262 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Claude Coordination Center | Tiny Seed Farm</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <style>
     :root {
       --primary: #10B981;
       --primary-dark: #059669;
+      --primary-light: #D1FAE5;
       --danger: #EF4444;
+      --danger-light: #FEE2E2;
       --warning: #F59E0B;
+      --warning-light: #FEF3C7;
       --info: #3B82F6;
+      --info-light: #DBEAFE;
+      --purple: #8B5CF6;
+      --purple-light: #EDE9FE;
       --text: #1F2937;
       --text-secondary: #6B7280;
-      --bg: #F9FAFB;
+      --text-light: #9CA3AF;
+      --bg: #F3F4F6;
       --card-bg: #FFFFFF;
       --border: #E5E7EB;
-      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
       --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
     }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    /* Header */
-    .header {
-      background: linear-gradient(135deg, #065F46, #047857);
-      color: white;
-      padding: 1rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: var(--shadow-lg);
-    }
-
-    .header h1 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    .header-btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.875rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: background 0.2s;
-    }
-
-    .header-btn:hover {
-      background: rgba(255,255,255,0.3);
-    }
-
-    /* Status bar */
-    .status-bar {
-      background: var(--card-bg);
-      padding: 0.75rem 1.5rem;
-      display: flex;
-      gap: 1.5rem;
-      border-bottom: 1px solid var(--border);
-      overflow-x: auto;
-    }
-
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-      white-space: nowrap;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .status-dot.active { background: var(--primary); }
-    .status-dot.warning { background: var(--warning); }
-    .status-dot.danger { background: var(--danger); }
-    .status-dot.info { background: var(--info); }
-
-    /* Main layout */
-    .main {
-      display: grid;
-      grid-template-columns: 300px 1fr 350px;
-      gap: 1rem;
-      padding: 1rem;
-      max-width: 1800px;
-      margin: 0 auto;
-      min-height: calc(100vh - 120px);
-    }
-
-    @media (max-width: 1200px) {
-      .main {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Cards */
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .card-header {
-      padding: 1rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .card-title {
-      font-size: 0.875rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .card-badge {
-      background: var(--primary);
-      color: white;
-      font-size: 0.75rem;
-      padding: 0.125rem 0.5rem;
-      border-radius: 999px;
-      font-weight: 500;
-    }
-
-    .card-badge.warning { background: var(--warning); }
-    .card-badge.danger { background: var(--danger); }
-
-    .card-body {
-      padding: 1rem;
-    }
-
-    /* Sessions panel */
-    .sessions-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .session-item {
-      padding: 0.75rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .session-item:hover {
-      border-color: var(--primary);
-      background: #F0FDF4;
-    }
-
-    .session-item.active {
-      border-color: var(--primary);
-      background: #ECFDF5;
-    }
-
-    .session-item.stale {
-      border-color: var(--warning);
-      background: #FFFBEB;
-    }
-
-    .session-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.25rem;
-    }
-
-    .session-name {
-      font-weight: 600;
-      font-size: 0.875rem;
-    }
-
-    .session-status {
-      font-size: 0.75rem;
-      padding: 0.125rem 0.375rem;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-
-    .session-status.active {
-      background: #D1FAE5;
-      color: #065F46;
-    }
-
-    .session-status.stale {
-      background: #FEF3C7;
-      color: #92400E;
-    }
-
-    .session-status.ended {
-      background: #F3F4F6;
-      color: #6B7280;
-    }
-
-    .session-context {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      margin-top: 0.25rem;
-    }
-
-    .session-time {
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-      margin-top: 0.25rem;
-    }
-
-    /* Center panel - Activity Feed */
-    .activity-feed {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      max-height: calc(100vh - 300px);
-      overflow-y: auto;
-    }
-
-    .activity-item {
-      display: flex;
-      gap: 0.75rem;
-      padding: 0.75rem;
-      border-radius: 8px;
-      background: #F9FAFB;
-      align-items: flex-start;
-    }
-
-    .activity-item.message {
-      background: #EFF6FF;
-    }
-
-    .activity-item.task {
-      background: #ECFDF5;
-    }
-
-    .activity-item.alert {
-      background: #FEF2F2;
-    }
-
-    .activity-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%); color: white; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-lg); }
+    .header-left { display: flex; align-items: center; gap: 1rem; }
+    .logo { width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+    .header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
+    .header h1 span { font-weight: 400; opacity: 0.8; }
+    .header-center { display: flex; align-items: center; gap: 2rem; }
+    .refresh-timer { display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.1); padding: 0.5rem 1rem; border-radius: 999px; font-size: 0.875rem; }
+    .refresh-timer .countdown { font-weight: 600; min-width: 24px; text-align: center; }
+    .refresh-timer .progress-ring { width: 20px; height: 20px; }
+    .refresh-timer .progress-ring circle { fill: none; stroke-width: 2; }
+    .refresh-timer .progress-ring .bg { stroke: rgba(255,255,255,0.2); }
+    .refresh-timer .progress-ring .progress { stroke: var(--primary); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 1s linear; }
+    .system-health { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+    .health-indicator { width: 10px; height: 10px; border-radius: 50%; animation: pulse 2s infinite; }
+    .health-indicator.healthy { background: #22C55E; box-shadow: 0 0 10px #22C55E; }
+    .health-indicator.warning { background: #F59E0B; box-shadow: 0 0 10px #F59E0B; }
+    .health-indicator.critical { background: #EF4444; box-shadow: 0 0 10px #EF4444; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .header-actions { display: flex; gap: 0.5rem; }
+    .header-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 0.625rem 1rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+    .header-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-1px); }
+    .header-btn.primary { background: var(--primary); border-color: var(--primary); }
+    .header-btn.primary:hover { background: var(--primary-dark); }
+    .alert-badge { background: var(--danger); color: white; font-size: 0.7rem; padding: 0.125rem 0.375rem; border-radius: 999px; font-weight: 600; min-width: 18px; text-align: center; }
+    .stats-bar { background: var(--card-bg); padding: 1rem 2rem; display: flex; gap: 1.5rem; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .stat-card { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg); border-radius: var(--radius-sm); min-width: 160px; }
+    .stat-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .stat-icon.sessions { background: var(--purple-light); color: var(--purple); }
+    .stat-icon.tasks { background: var(--warning-light); color: var(--warning); }
+    .stat-icon.messages { background: var(--info-light); color: var(--info); }
+    .stat-icon.alerts { background: var(--danger-light); color: var(--danger); }
+    .stat-content { display: flex; flex-direction: column; }
+    .stat-value { font-size: 1.25rem; font-weight: 700; }
+    .stat-label { font-size: 0.75rem; color: var(--text-secondary); }
+    .main { display: grid; grid-template-columns: 320px 1fr 380px; gap: 1.5rem; padding: 1.5rem 2rem; max-width: 1920px; margin: 0 auto; min-height: calc(100vh - 160px); }
+    @media (max-width: 1400px) { .main { grid-template-columns: 280px 1fr 340px; gap: 1rem; padding: 1rem; } }
+    @media (max-width: 1100px) { .main { grid-template-columns: 1fr; } }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+    .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(to bottom, #FAFAFA, var(--card-bg)); }
+    .card-title { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; color: var(--text); }
+    .card-title i { color: var(--text-secondary); }
+    .card-badge { background: var(--primary); color: white; font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 999px; font-weight: 600; }
+    .card-body { padding: 1rem; flex: 1; overflow-y: auto; }
+    .sessions-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .session-item { padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; position: relative; }
+    .session-item:hover { border-color: var(--primary); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .session-item.selected { border-color: var(--primary); background: var(--primary-light); }
+    .session-health { position: absolute; top: 1rem; right: 1rem; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: var(--shadow); }
+    .session-health.active { background: #22C55E; }
+    .session-health.stale { background: #F59E0B; }
+    .session-health.ended { background: #9CA3AF; }
+    .session-role { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; padding-right: 1.5rem; }
+    .session-context { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .session-meta { display: flex; align-items: center; gap: 1rem; font-size: 0.75rem; color: var(--text-light); }
+    .session-meta i { margin-right: 0.25rem; }
+    .session-status-badge { font-size: 0.7rem; padding: 0.125rem 0.5rem; border-radius: 999px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .session-status-badge.active { background: #D1FAE5; color: #065F46; }
+    .session-status-badge.stale { background: #FEF3C7; color: #92400E; }
+    .session-status-badge.ended { background: #F3F4F6; color: #6B7280; }
+    .activity-feed { display: flex; flex-direction: column; gap: 0.5rem; max-height: calc(100vh - 320px); overflow-y: auto; }
+    .activity-item { display: flex; gap: 0.75rem; padding: 0.875rem; border-radius: var(--radius-sm); background: #FAFAFA; align-items: flex-start; transition: all 0.2s; }
+    .activity-item:hover { background: #F3F4F6; }
+    .activity-item.message { background: #EFF6FF; }
+    .activity-item.task { background: #ECFDF5; }
+    .activity-item.alert { background: #FEF2F2; }
+    .activity-item.session { background: #F5F3FF; }
+    .activity-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.875rem; }
     .activity-icon.message { background: var(--info); color: white; }
     .activity-icon.task { background: var(--primary); color: white; }
     .activity-icon.alert { background: var(--danger); color: white; }
-    .activity-icon.session { background: #8B5CF6; color: white; }
-
-    .activity-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .activity-title {
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .activity-desc {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      margin-top: 0.125rem;
-    }
-
-    .activity-time {
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-      margin-top: 0.25rem;
-    }
-
-    /* Right panel - Tasks & Messages */
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .tab {
-      flex: 1;
-      padding: 0.75rem;
-      text-align: center;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s;
-    }
-
-    .tab.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-    }
-
-    .tab-content {
-      display: none;
-      padding: 1rem;
-      max-height: calc(100vh - 350px);
-      overflow-y: auto;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Task items */
-    .task-item {
-      padding: 0.75rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      margin-bottom: 0.75rem;
-    }
-
-    .task-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .task-title {
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .task-priority {
-      font-size: 0.7rem;
-      padding: 0.125rem 0.375rem;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-
-    .task-priority.high {
-      background: #FEE2E2;
-      color: #991B1B;
-    }
-
-    .task-priority.medium {
-      background: #FEF3C7;
-      color: #92400E;
-    }
-
-    .task-priority.low {
-      background: #E5E7EB;
-      color: #374151;
-    }
-
-    .task-desc {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      margin-top: 0.375rem;
-    }
-
-    .task-meta {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 0.5rem;
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-    }
-
-    /* Message items */
-    .message-item {
-      padding: 0.75rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      margin-bottom: 0.75rem;
-    }
-
-    .message-item.unread {
-      border-left: 3px solid var(--primary);
-      background: #F0FDF4;
-    }
-
-    .message-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.25rem;
-    }
-
-    .message-from {
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-
-    .message-time {
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-    }
-
-    .message-subject {
-      font-size: 0.8rem;
-      font-weight: 500;
-      margin-bottom: 0.25rem;
-    }
-
-    .message-body {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-    }
-
-    /* Compose panel */
-    .compose-panel {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--card-bg);
-      border-top: 1px solid var(--border);
-      padding: 1rem;
-      display: none;
-      z-index: 200;
-    }
-
-    .compose-panel.active {
-      display: block;
-    }
-
-    .compose-form {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .compose-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-
-    .compose-row {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .compose-field {
-      flex: 1;
-    }
-
-    .compose-field label {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 500;
-      margin-bottom: 0.25rem;
-    }
-
-    .compose-field input,
-    .compose-field select,
-    .compose-field textarea {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.875rem;
-    }
-
-    .compose-field textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-
-    .compose-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.75rem;
-    }
-
-    .btn {
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: var(--primary-dark);
-    }
-
-    .btn-secondary {
-      background: #E5E7EB;
-      color: var(--text);
-    }
-
-    .btn-secondary:hover {
-      background: #D1D5DB;
-    }
-
-    /* Alerts panel */
-    .alerts-panel {
-      position: fixed;
-      top: 80px;
-      right: 1rem;
-      width: 350px;
-      max-height: 400px;
-      background: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: var(--shadow-lg);
-      z-index: 150;
-      display: none;
-      overflow: hidden;
-    }
-
-    .alerts-panel.active {
-      display: block;
-    }
-
-    .alert-item {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .alert-item:last-child {
-      border-bottom: none;
-    }
-
-    .alert-item.critical {
-      background: #FEF2F2;
-    }
-
-    .alert-item.urgent {
-      background: #FFFBEB;
-    }
-
-    .alert-header {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .alert-type {
-      font-size: 0.7rem;
-      padding: 0.125rem 0.375rem;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-
-    .alert-type.critical {
-      background: #991B1B;
-      color: white;
-    }
-
-    .alert-type.urgent {
-      background: #92400E;
-      color: white;
-    }
-
-    .alert-type.info {
-      background: #1E40AF;
-      color: white;
-    }
-
-    .alert-title {
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .alert-message {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-    }
-
-    /* Loading */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      color: var(--text-secondary);
-    }
-
-    .spinner {
-      width: 24px;
-      height: 24px;
-      border: 2px solid var(--border);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-right: 0.5rem;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Mobile optimizations */
-    @media (max-width: 768px) {
-      .header h1 span {
-        display: none;
-      }
-
-      .main {
-        padding: 0.5rem;
-        gap: 0.5rem;
-      }
-
-      .status-bar {
-        padding: 0.5rem 1rem;
-        gap: 1rem;
-      }
-
-      .compose-panel {
-        padding: 0.75rem;
-      }
-
-      .compose-row {
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-    }
-
-    /* Empty state */
-    .empty-state {
-      text-align: center;
-      padding: 2rem;
-      color: var(--text-secondary);
-    }
-
-    .empty-state i {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-      opacity: 0.5;
-    }
+    .activity-icon.session { background: var(--purple); color: white; }
+    .activity-content { flex: 1; min-width: 0; }
+    .activity-title { font-size: 0.875rem; font-weight: 500; margin-bottom: 0.125rem; }
+    .activity-desc { font-size: 0.8rem; color: var(--text-secondary); }
+    .activity-time { font-size: 0.7rem; color: var(--text-light); margin-top: 0.25rem; }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); background: linear-gradient(to bottom, #FAFAFA, var(--card-bg)); }
+    .tab { flex: 1; padding: 1rem; text-align: center; font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    .tab:hover { color: var(--text); background: #F9FAFB; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--card-bg); }
+    .tab-content { display: none; padding: 1rem; max-height: calc(100vh - 400px); overflow-y: auto; }
+    .tab-content.active { display: block; }
+    .task-item { padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 0.75rem; transition: all 0.2s; }
+    .task-item:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+    .task-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .task-title { font-size: 0.9rem; font-weight: 600; line-height: 1.3; }
+    .task-priority { font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+    .task-priority.high { background: #FEE2E2; color: #991B1B; }
+    .task-priority.medium { background: #FEF3C7; color: #92400E; }
+    .task-priority.low { background: #E5E7EB; color: #374151; }
+    .task-desc { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4; }
+    .task-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.75rem; color: var(--text-light); }
+    .task-meta span { display: flex; align-items: center; gap: 0.25rem; }
+    .message-item { padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 0.75rem; transition: all 0.2s; cursor: pointer; }
+    .message-item:hover { border-color: var(--info); box-shadow: var(--shadow); }
+    .message-item.unread { border-left: 3px solid var(--primary); background: #F0FDF4; }
+    .message-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.375rem; }
+    .message-from { font-size: 0.875rem; font-weight: 600; }
+    .message-time { font-size: 0.7rem; color: var(--text-light); }
+    .message-subject { font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem; }
+    .message-body { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 300; padding: 2rem; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow-lg); width: 100%; max-width: 600px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+    .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(to bottom, #FAFAFA, var(--card-bg)); }
+    .modal-header h2 { font-size: 1.125rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+    .modal-close { background: none; border: none; font-size: 1.25rem; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; border-radius: 4px; transition: all 0.2s; }
+    .modal-close:hover { background: var(--bg); color: var(--text); }
+    .modal-body { padding: 1.5rem; overflow-y: auto; }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 0.375rem; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem; font-family: inherit; transition: all 0.2s; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+    .form-group textarea { min-height: 100px; resize: vertical; }
+    .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; background: #FAFAFA; }
+    .btn { padding: 0.625rem 1.25rem; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #E5E7EB; }
+    .alerts-panel { position: fixed; top: 80px; right: 2rem; width: 380px; max-height: 500px; background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow-lg); z-index: 200; display: none; overflow: hidden; }
+    .alerts-panel.active { display: block; }
+    .alert-item { padding: 1rem; border-bottom: 1px solid var(--border); transition: all 0.2s; }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-item.critical { background: #FEF2F2; }
+    .alert-item.urgent { background: #FFFBEB; }
+    .alert-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem; }
+    .alert-type { font-size: 0.65rem; padding: 0.125rem 0.375rem; border-radius: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .alert-type.critical { background: #991B1B; color: white; }
+    .alert-type.urgent { background: #92400E; color: white; }
+    .alert-type.info { background: #1E40AF; color: white; }
+    .alert-title { font-size: 0.9rem; font-weight: 600; }
+    .alert-message { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
+    .empty-state { text-align: center; padding: 3rem 1.5rem; color: var(--text-secondary); }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.3; }
+    .empty-state p { font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .empty-state small { font-size: 0.8rem; opacity: 0.7; }
+    .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: var(--text-secondary); }
+    .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.75rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: white; padding: 0.875rem 1.5rem; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 500; box-shadow: var(--shadow-lg); z-index: 400; opacity: 0; transition: all 0.3s ease; }
+    .toast.active { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { background: var(--primary); }
+    .toast.error { background: var(--danger); }
+    @media (max-width: 768px) { .header { padding: 1rem; } .header h1 { font-size: 1.25rem; } .header-center { display: none; } .stats-bar { padding: 1rem; gap: 0.75rem; } .stat-card { min-width: 140px; padding: 0.5rem 0.75rem; } .main { padding: 1rem; } .modal { margin: 1rem; max-height: calc(100vh - 2rem); } .alerts-panel { right: 1rem; left: 1rem; width: auto; } }
   </style>
 </head>
 <body>
-  <!-- Header -->
   <header class="header">
-    <h1>
-      <i class="fas fa-network-wired"></i>
-      <span>Claude Coordination Center</span>
-    </h1>
+    <div class="header-left">
+      <div class="logo"><i class="fas fa-network-wired"></i></div>
+      <h1>Claude Coordination <span>Center</span></h1>
+    </div>
+    <div class="header-center">
+      <div class="refresh-timer">
+        <svg class="progress-ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="8"/><circle class="progress" id="timerProgress" cx="10" cy="10" r="8" stroke-dasharray="50.26" stroke-dashoffset="0"/></svg>
+        <span>Refresh in <span class="countdown" id="countdown">30</span>s</span>
+      </div>
+      <div class="system-health">
+        <div class="health-indicator" id="healthIndicator"></div>
+        <span id="healthText">System Healthy</span>
+      </div>
+    </div>
     <div class="header-actions">
-      <button class="header-btn" onclick="toggleCompose()">
-        <i class="fas fa-paper-plane"></i> Send Message
-      </button>
-      <button class="header-btn" onclick="toggleAlerts()">
-        <i class="fas fa-bell"></i>
-        <span id="alertCount" class="card-badge" style="display:none">0</span>
-      </button>
-      <button class="header-btn" onclick="refreshAll()">
-        <i class="fas fa-sync-alt"></i>
-      </button>
+      <button class="header-btn" onclick="openMessageModal()"><i class="fas fa-paper-plane"></i> Message</button>
+      <button class="header-btn" onclick="openTaskModal()"><i class="fas fa-plus"></i> Task</button>
+      <button class="header-btn" onclick="toggleAlerts()"><i class="fas fa-bell"></i><span class="alert-badge" id="alertCount" style="display:none">0</span></button>
+      <button class="header-btn primary" onclick="refreshAll()"><i class="fas fa-sync-alt"></i></button>
     </div>
   </header>
-
-  <!-- Status Bar -->
-  <div class="status-bar">
-    <div class="status-item">
-      <span class="status-dot active"></span>
-      <span>Active Sessions: <strong id="activeSessionCount">0</strong></span>
-    </div>
-    <div class="status-item">
-      <span class="status-dot warning"></span>
-      <span>Pending Tasks: <strong id="pendingTaskCount">0</strong></span>
-    </div>
-    <div class="status-item">
-      <span class="status-dot info"></span>
-      <span>Messages Today: <strong id="messageCount">0</strong></span>
-    </div>
-    <div class="status-item">
-      <span class="status-dot danger"></span>
-      <span>Alerts: <strong id="activeAlertCount">0</strong></span>
-    </div>
-    <div class="status-item" style="margin-left:auto">
-      <i class="fas fa-clock"></i>
-      <span id="lastUpdate">--</span>
-    </div>
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-icon sessions"><i class="fas fa-users"></i></div><div class="stat-content"><div class="stat-value" id="activeSessionCount">0</div><div class="stat-label">Active Sessions</div></div></div>
+    <div class="stat-card"><div class="stat-icon tasks"><i class="fas fa-tasks"></i></div><div class="stat-content"><div class="stat-value" id="pendingTaskCount">0</div><div class="stat-label">Pending Tasks</div></div></div>
+    <div class="stat-card"><div class="stat-icon messages"><i class="fas fa-envelope"></i></div><div class="stat-content"><div class="stat-value" id="messageCount">0</div><div class="stat-label">Messages</div></div></div>
+    <div class="stat-card"><div class="stat-icon alerts"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-content"><div class="stat-value" id="activeAlertCount">0</div><div class="stat-label">Active Alerts</div></div></div>
   </div>
-
-  <!-- Main Layout -->
   <main class="main">
-    <!-- Left Panel: Sessions -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <i class="fas fa-users"></i> Claude Sessions
-        </div>
-        <span class="card-badge" id="sessionBadge">0</span>
-      </div>
-      <div class="card-body">
-        <div id="sessionsList" class="sessions-list">
-          <div class="loading">
-            <div class="spinner"></div> Loading sessions...
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Center Panel: Activity Feed -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <i class="fas fa-stream"></i> Activity Feed
-        </div>
-        <select id="activityFilter" onchange="filterActivity()" style="font-size:0.75rem;padding:0.25rem 0.5rem;border-radius:4px;border:1px solid var(--border)">
-          <option value="all">All Activity</option>
-          <option value="messages">Messages</option>
-          <option value="tasks">Tasks</option>
-          <option value="sessions">Sessions</option>
-        </select>
-      </div>
-      <div class="card-body">
-        <div id="activityFeed" class="activity-feed">
-          <div class="loading">
-            <div class="spinner"></div> Loading activity...
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Panel: Tasks & Messages -->
-    <div class="card">
-      <div class="tabs">
-        <div class="tab active" onclick="switchTab('tasks')">
-          <i class="fas fa-tasks"></i> Tasks
-        </div>
-        <div class="tab" onclick="switchTab('messages')">
-          <i class="fas fa-envelope"></i> Messages
-        </div>
-      </div>
-      <div id="tasksTab" class="tab-content active">
-        <div id="tasksList">
-          <div class="loading">
-            <div class="spinner"></div> Loading tasks...
-          </div>
-        </div>
-      </div>
-      <div id="messagesTab" class="tab-content">
-        <div id="messagesList">
-          <div class="loading">
-            <div class="spinner"></div> Loading messages...
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-users"></i> Claude Sessions</div><span class="card-badge" id="sessionBadge">0</span></div><div class="card-body"><div id="sessionsList" class="sessions-list"><div class="loading"><div class="spinner"></div> Loading...</div></div></div></div>
+    <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-stream"></i> Activity Feed</div><select id="activityFilter" onchange="renderActivity()" style="font-size:0.8rem;padding:0.375rem 0.75rem;border-radius:6px;border:1px solid var(--border);cursor:pointer"><option value="all">All Activity</option><option value="messages">Messages</option><option value="tasks">Tasks</option><option value="sessions">Sessions</option></select></div><div class="card-body"><div id="activityFeed" class="activity-feed"><div class="loading"><div class="spinner"></div> Loading...</div></div></div></div>
+    <div class="card"><div class="tabs"><div class="tab active" onclick="switchTab('tasks')"><i class="fas fa-tasks"></i> Tasks</div><div class="tab" onclick="switchTab('messages')"><i class="fas fa-envelope"></i> Messages</div></div><div id="tasksTab" class="tab-content active"><div id="tasksList"><div class="loading"><div class="spinner"></div> Loading...</div></div></div><div id="messagesTab" class="tab-content"><div id="messagesList"><div class="loading"><div class="spinner"></div> Loading...</div></div></div></div>
   </main>
-
-  <!-- Compose Panel -->
-  <div id="composePanel" class="compose-panel">
-    <div class="compose-form">
-      <div class="compose-header">
-        <h3><i class="fas fa-paper-plane"></i> Send Message</h3>
-        <button onclick="toggleCompose()" style="background:none;border:none;cursor:pointer;font-size:1.25rem">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="compose-row">
-        <div class="compose-field">
-          <label>From (Your Role)</label>
-          <select id="msgFrom">
-            <option value="pm_architect">PM_Architect</option>
-            <option value="backend">Backend_Claude</option>
-            <option value="desktop">Desktop_Claude</option>
-            <option value="mobile">Mobile_Claude</option>
-            <option value="ux_design">UX_Design_Claude</option>
-            <option value="sales">Sales_Claude</option>
-            <option value="security">Security_Claude</option>
-            <option value="social_media">Social_Media_Claude</option>
-            <option value="field_ops">Field_Ops_Claude</option>
-            <option value="inventory">Inventory_Claude</option>
-          </select>
-        </div>
-        <div class="compose-field">
-          <label>To</label>
-          <select id="msgTo">
-            <option value="all">All (Broadcast)</option>
-            <option value="pm_architect">PM_Architect</option>
-            <option value="backend">Backend_Claude</option>
-            <option value="desktop">Desktop_Claude</option>
-            <option value="mobile">Mobile_Claude</option>
-            <option value="ux_design">UX_Design_Claude</option>
-            <option value="sales">Sales_Claude</option>
-            <option value="security">Security_Claude</option>
-            <option value="social_media">Social_Media_Claude</option>
-            <option value="field_ops">Field_Ops_Claude</option>
-            <option value="inventory">Inventory_Claude</option>
-          </select>
-        </div>
-        <div class="compose-field" style="flex:0.5">
-          <label>Priority</label>
-          <select id="msgPriority">
-            <option value="normal">Normal</option>
-            <option value="urgent">Urgent</option>
-            <option value="critical">Critical</option>
-          </select>
-        </div>
-      </div>
-      <div class="compose-row">
-        <div class="compose-field">
-          <label>Subject</label>
-          <input type="text" id="msgSubject" placeholder="Message subject...">
-        </div>
-      </div>
-      <div class="compose-row">
-        <div class="compose-field">
-          <label>Message</label>
-          <textarea id="msgBody" placeholder="Type your message..."></textarea>
-        </div>
-      </div>
-      <div class="compose-actions">
-        <button class="btn btn-secondary" onclick="toggleCompose()">Cancel</button>
-        <button class="btn btn-primary" onclick="sendMessage()">
-          <i class="fas fa-paper-plane"></i> Send
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Alerts Panel -->
-  <div id="alertsPanel" class="alerts-panel">
-    <div class="card-header">
-      <div class="card-title">
-        <i class="fas fa-bell"></i> Alerts
-      </div>
-      <button onclick="toggleAlerts()" style="background:none;border:none;cursor:pointer">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div id="alertsList">
-      <div class="loading">
-        <div class="spinner"></div> Loading...
-      </div>
-    </div>
-  </div>
-
+  <div class="modal-overlay" id="messageModal"><div class="modal"><div class="modal-header"><h2><i class="fas fa-paper-plane"></i> Send Message</h2><button class="modal-close" onclick="closeMessageModal()"><i class="fas fa-times"></i></button></div><div class="modal-body"><div class="form-row"><div class="form-group"><label>From</label><select id="msgFrom"><option value="owner">Owner (You)</option><option value="pm_architect">PM_Architect</option><option value="coordination">Coordination_Claude</option></select></div><div class="form-group"><label>To</label><select id="msgTo"><option value="all">All (Broadcast)</option><option value="pm_architect">PM_Architect</option><option value="backend">Backend_Claude</option><option value="desktop">Desktop_Claude</option><option value="mobile">Mobile_Claude</option><option value="ux_design">UX_Design_Claude</option><option value="coordination">Coordination_Claude</option></select></div></div><div class="form-group"><label>Priority</label><select id="msgPriority"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="critical">Critical (SMS Alert)</option></select></div><div class="form-group"><label>Subject</label><input type="text" id="msgSubject" placeholder="Message subject..."></div><div class="form-group"><label>Message</label><textarea id="msgBody" placeholder="Type your message..."></textarea></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeMessageModal()">Cancel</button><button class="btn btn-primary" onclick="sendMessage()"><i class="fas fa-paper-plane"></i> Send</button></div></div></div>
+  <div class="modal-overlay" id="taskModal"><div class="modal"><div class="modal-header"><h2><i class="fas fa-plus-circle"></i> Create Task</h2><button class="modal-close" onclick="closeTaskModal()"><i class="fas fa-times"></i></button></div><div class="modal-body"><div class="form-group"><label>Task Title</label><input type="text" id="taskTitle" placeholder="What needs to be done?"></div><div class="form-group"><label>Description</label><textarea id="taskDesc" placeholder="Detailed description..."></textarea></div><div class="form-row"><div class="form-group"><label>Assign To</label><select id="taskAssign"><option value="">Unassigned</option><option value="pm_architect">PM_Architect</option><option value="backend">Backend_Claude</option><option value="desktop">Desktop_Claude</option><option value="mobile">Mobile_Claude</option><option value="coordination">Coordination_Claude</option></select></div><div class="form-group"><label>Urgency</label><select id="taskUrgency"><option value="3">Normal</option><option value="1">Low</option><option value="4">High</option><option value="5">Critical</option></select></div><div class="form-group"><label>Impact</label><select id="taskImpact"><option value="3">Medium</option><option value="1">Low</option><option value="4">High</option><option value="5">Critical</option></select></div></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeTaskModal()">Cancel</button><button class="btn btn-primary" onclick="createTask()"><i class="fas fa-plus"></i> Create</button></div></div></div>
+  <div id="alertsPanel" class="alerts-panel"><div class="card-header"><div class="card-title"><i class="fas fa-bell"></i> Alerts</div><button class="modal-close" onclick="toggleAlerts()"><i class="fas fa-times"></i></button></div><div id="alertsList" style="max-height:400px;overflow-y:auto"><div class="loading"><div class="spinner"></div> Loading...</div></div></div>
+  <div class="toast" id="toast"></div>
   <script src="api-config.js"></script>
   <script>
-    // State
-    let sessions = [];
-    let tasks = [];
-    let messages = [];
-    let activity = [];
-    let alerts = [];
-    let currentRole = 'pm_architect';
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-      refreshAll();
-      // Auto-refresh every 30 seconds
-      setInterval(refreshAll, 30000);
-    });
-
-    // API calls - using GET to avoid CORS preflight issues
-    async function apiCall(action, params = {}) {
-      try {
-        const url = new URL(TINY_SEED_API.MAIN_API);
-        url.searchParams.set('action', action);
-        // Add params to URL
-        Object.entries(params).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            url.searchParams.set(key, typeof value === 'object' ? JSON.stringify(value) : value);
-          }
-        });
-        const response = await fetch(url.toString());
-        return await response.json();
-      } catch (error) {
-        console.error('API Error:', error);
-        return { error: error.message };
-      }
-    }
-
-    // Refresh all data
-    async function refreshAll() {
-      await Promise.all([
-        loadSessions(),
-        loadTasks(),
-        loadMessages(),
-        loadActivity(),
-        loadAlerts()
-      ]);
-      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-    }
-
-    // Load sessions
-    async function loadSessions() {
-      const result = await apiCall('getClaudeSessions');
-      if (Array.isArray(result)) {
-        sessions = result;
-        renderSessions();
-        document.getElementById('activeSessionCount').textContent = sessions.filter(s => s.status === 'active').length;
-        document.getElementById('sessionBadge').textContent = sessions.length;
-      }
-    }
-
-    // Render sessions
-    function renderSessions() {
-      const container = document.getElementById('sessionsList');
-
-      if (sessions.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <i class="fas fa-users"></i>
-            <p>No active Claude sessions</p>
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = sessions.map(session => `
-        <div class="session-item ${session.status}" onclick="selectSession('${session.sessionId}')">
-          <div class="session-header">
-            <span class="session-name">${getRoleName(session.role)}</span>
-            <span class="session-status ${session.status}">${session.status}</span>
-          </div>
-          ${session.currentTask ? `<div class="session-context"><i class="fas fa-tasks"></i> ${session.currentTask}</div>` : ''}
-          ${session.contextSummary ? `<div class="session-context">${truncate(session.contextSummary, 50)}</div>` : ''}
-          <div class="session-time">
-            <i class="fas fa-clock"></i> Last active: ${formatTime(session.lastActive)}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Load tasks
-    async function loadTasks() {
-      const result = await apiCall('getClaudeTasks', { role: currentRole });
-      if (Array.isArray(result)) {
-        tasks = result;
-        renderTasks();
-        document.getElementById('pendingTaskCount').textContent = tasks.filter(t => t.status === 'pending').length;
-      }
-    }
-
-    // Render tasks
-    function renderTasks() {
-      const container = document.getElementById('tasksList');
-
-      if (tasks.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <i class="fas fa-tasks"></i>
-            <p>No pending tasks</p>
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = tasks.map(task => `
-        <div class="task-item">
-          <div class="task-header">
-            <span class="task-title">${task.title}</span>
-            <span class="task-priority ${getPriorityClass(task.priorityScore)}">${task.priorityScore}</span>
-          </div>
-          <div class="task-desc">${truncate(task.description, 100)}</div>
-          <div class="task-meta">
-            <span><i class="fas fa-user"></i> ${task.assignedTo || 'Unassigned'}</span>
-            <span><i class="fas fa-clock"></i> ${formatTime(task.createdAt)}</span>
-            <span><i class="fas fa-flag"></i> ${task.status}</span>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Load messages
-    async function loadMessages() {
-      const result = await apiCall('getClaudeMessages', { role: currentRole, limit: 20 });
-      if (Array.isArray(result)) {
-        messages = result;
-        renderMessages();
-        document.getElementById('messageCount').textContent = messages.length;
-      }
-    }
-
-    // Render messages
-    function renderMessages() {
-      const container = document.getElementById('messagesList');
-
-      if (messages.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <i class="fas fa-envelope"></i>
-            <p>No messages</p>
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = messages.map(msg => `
-        <div class="message-item ${msg.read ? '' : 'unread'}" onclick="viewMessage('${msg.id}')">
-          <div class="message-header">
-            <span class="message-from">${getRoleName(msg.from)}</span>
-            <span class="message-time">${formatTime(msg.timestamp)}</span>
-          </div>
-          <div class="message-subject">${msg.subject}</div>
-          <div class="message-body">${truncate(msg.body, 100)}</div>
-        </div>
-      `).join('');
-    }
-
-    // Load activity
-    async function loadActivity() {
-      const result = await apiCall('getCoordinationActivity', { limit: 50 });
-      if (Array.isArray(result)) {
-        activity = result;
-        renderActivity();
-      }
-    }
-
-    // Render activity
-    function renderActivity() {
-      const container = document.getElementById('activityFeed');
-      const filter = document.getElementById('activityFilter').value;
-
-      let filtered = activity;
-      if (filter !== 'all') {
-        filtered = activity.filter(a => {
-          if (filter === 'messages') return a.action.includes('message');
-          if (filter === 'tasks') return a.action.includes('task');
-          if (filter === 'sessions') return a.action.includes('session');
-          return true;
-        });
-      }
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <i class="fas fa-stream"></i>
-            <p>No activity to show</p>
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = filtered.map(item => `
-        <div class="activity-item ${getActivityType(item.action)}">
-          <div class="activity-icon ${getActivityType(item.action)}">
-            <i class="${getActivityIcon(item.action)}"></i>
-          </div>
-          <div class="activity-content">
-            <div class="activity-title">${getRoleName(item.role)} ${formatAction(item.action)}</div>
-            <div class="activity-desc">${formatActivityDetails(item.details)}</div>
-            <div class="activity-time">${formatTime(item.timestamp)}</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Load alerts
-    async function loadAlerts() {
-      const result = await apiCall('getCoordinationAlerts', { unacknowledgedOnly: true });
-      if (Array.isArray(result)) {
-        alerts = result;
-        renderAlerts();
-        const count = alerts.length;
-        document.getElementById('activeAlertCount').textContent = count;
-        const badge = document.getElementById('alertCount');
-        if (count > 0) {
-          badge.textContent = count;
-          badge.style.display = 'inline';
-        } else {
-          badge.style.display = 'none';
-        }
-      }
-    }
-
-    // Render alerts
-    function renderAlerts() {
-      const container = document.getElementById('alertsList');
-
-      if (alerts.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <i class="fas fa-check-circle"></i>
-            <p>No active alerts</p>
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = alerts.map(alert => `
-        <div class="alert-item ${alert.priority}">
-          <div class="alert-header">
-            <span class="alert-type ${alert.priority}">${alert.type}</span>
-            <span class="alert-title">${alert.title}</span>
-          </div>
-          <div class="alert-message">${alert.message}</div>
-          <button onclick="acknowledgeAlert('${alert.id}')" class="btn btn-secondary" style="margin-top:0.5rem;font-size:0.75rem;padding:0.25rem 0.5rem">
-            Acknowledge
-          </button>
-        </div>
-      `).join('');
-    }
-
-    // Send message
-    async function sendMessage() {
-      const from = document.getElementById('msgFrom').value;
-      const to = document.getElementById('msgTo').value;
-      const subject = document.getElementById('msgSubject').value;
-      const body = document.getElementById('msgBody').value;
-      const priority = document.getElementById('msgPriority').value;
-
-      if (!subject || !body) {
-        alert('Please enter subject and message');
-        return;
-      }
-
-      const result = await apiCall('sendClaudeMessage', {
-        from, to, subject, body,
-        options: { priority }
-      });
-
-      if (result.success) {
-        toggleCompose();
-        document.getElementById('msgSubject').value = '';
-        document.getElementById('msgBody').value = '';
-        refreshAll();
-      } else {
-        alert('Failed to send message: ' + (result.error || 'Unknown error'));
-      }
-    }
-
-    // Acknowledge alert
-    async function acknowledgeAlert(alertId) {
-      await apiCall('acknowledgeCoordinationAlert', { alertId });
-      loadAlerts();
-    }
-
-    // Toggle compose panel
-    function toggleCompose() {
-      document.getElementById('composePanel').classList.toggle('active');
-    }
-
-    // Toggle alerts panel
-    function toggleAlerts() {
-      document.getElementById('alertsPanel').classList.toggle('active');
-    }
-
-    // Switch tabs
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.tab:nth-child(${tab === 'tasks' ? 1 : 2})`).classList.add('active');
-      document.getElementById(`${tab}Tab`).classList.add('active');
-    }
-
-    // Filter activity
-    function filterActivity() {
-      renderActivity();
-    }
-
-    // Select session
-    function selectSession(sessionId) {
-      const session = sessions.find(s => s.sessionId === sessionId);
-      if (session) {
-        currentRole = session.role;
-        loadMessages();
-        loadTasks();
-      }
-    }
-
-    // View message
-    async function viewMessage(messageId) {
-      await apiCall('markClaudeMessageRead', { messageId, role: currentRole });
-      loadMessages();
-    }
-
-    // Helper functions
-    function getRoleName(role) {
-      const names = {
-        pm_architect: 'PM_Architect',
-        backend: 'Backend_Claude',
-        desktop: 'Desktop_Claude',
-        mobile: 'Mobile_Claude',
-        ux_design: 'UX_Design_Claude',
-        sales: 'Sales_Claude',
-        security: 'Security_Claude',
-        social_media: 'Social_Media_Claude',
-        field_ops: 'Field_Ops_Claude',
-        inventory: 'Inventory_Claude'
-      };
-      return names[role] || role;
-    }
-
-    function getPriorityClass(score) {
-      if (score >= 60) return 'high';
-      if (score >= 40) return 'medium';
-      return 'low';
-    }
-
-    function getActivityType(action) {
-      if (action.includes('message')) return 'message';
-      if (action.includes('task')) return 'task';
-      if (action.includes('session')) return 'session';
-      if (action.includes('alert')) return 'alert';
-      return '';
-    }
-
-    function getActivityIcon(action) {
-      if (action.includes('message')) return 'fas fa-envelope';
-      if (action.includes('task')) return 'fas fa-tasks';
-      if (action.includes('session')) return 'fas fa-user-circle';
-      if (action.includes('alert')) return 'fas fa-exclamation-triangle';
-      return 'fas fa-circle';
-    }
-
-    function formatAction(action) {
-      const actions = {
-        send_message: 'sent a message',
-        read_message: 'read a message',
-        acknowledge_message: 'acknowledged a message',
-        session_start: 'started a session',
-        session_end: 'ended a session',
-        create_task: 'created a task',
-        claim_task: 'claimed a task',
-        update_task: 'updated a task',
-        complete_task: 'completed a task'
-      };
-      return actions[action] || action;
-    }
-
-    function formatActivityDetails(details) {
-      if (!details) return '';
-      if (details.subject) return details.subject;
-      if (details.title) return details.title;
-      if (details.to) return `To: ${getRoleName(details.to)}`;
-      return JSON.stringify(details).substring(0, 50);
-    }
-
-    function formatTime(timestamp) {
-      if (!timestamp) return '';
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diff = now - date;
-
-      if (diff < 60000) return 'Just now';
-      if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-      return date.toLocaleDateString();
-    }
-
-    function truncate(str, len) {
-      if (!str) return '';
-      return str.length > len ? str.substring(0, len) + '...' : str;
-    }
+    let sessions=[],tasks=[],messages=[],activity=[],alerts=[],countdown=30,countdownInterval;
+    document.addEventListener('DOMContentLoaded',()=>{refreshAll();startAutoRefresh();});
+    function startAutoRefresh(){countdown=30;updateCountdown();countdownInterval=setInterval(()=>{countdown--;updateCountdown();if(countdown<=0){countdown=30;refreshAll();}},1000);}
+    function updateCountdown(){document.getElementById('countdown').textContent=countdown;const p=document.getElementById('timerProgress');p.style.strokeDashoffset=50.26*(1-countdown/30);}
+    async function apiGet(action,params={}){try{const q=new URLSearchParams({action,...params});const r=await fetch(`${TINY_SEED_API.MAIN_API}?${q}`);return await r.json();}catch(e){console.error('API Error:',e);return{error:e.message};}}
+    async function apiPost(coordinationAction,params={}){try{const r=await fetch(`${TINY_SEED_API.MAIN_API}?action=coordinationAPI`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coordinationAction,...params})});return await r.json();}catch(e){console.error('API Error:',e);return{error:e.message};}}
+    async function refreshAll(){countdown=30;await Promise.all([loadSessions(),loadTasks(),loadMessages(),loadActivity(),loadAlerts()]);updateSystemHealth();}
+    function updateSystemHealth(){const i=document.getElementById('healthIndicator'),t=document.getElementById('healthText');const a=sessions.filter(s=>s.status==='active').length,st=sessions.filter(s=>s.status==='stale').length,c=alerts.filter(a=>a.priority==='critical').length;if(c>0){i.className='health-indicator critical';t.textContent=c+' Critical';}else if(st>0){i.className='health-indicator warning';t.textContent=st+' Stale';}else{i.className='health-indicator healthy';t.textContent=a>0?a+' Active':'System Ready';}}
+    async function loadSessions(){const r=await apiGet('getClaudeSessions');sessions=r.sessions||r||[];renderSessions();document.getElementById('activeSessionCount').textContent=sessions.filter(s=>s.status==='active').length;document.getElementById('sessionBadge').textContent=sessions.length;}
+    function renderSessions(){const c=document.getElementById('sessionsList');if(!sessions.length){c.innerHTML='<div class="empty-state"><i class="fas fa-users"></i><p>No Active Sessions</p><small>Sessions appear when Claude is active</small></div>';return;}c.innerHTML=sessions.map(s=>`<div class="session-item" onclick="selectSession('${s.sessionId}')"><div class="session-health ${s.status}"></div><div class="session-role">${getRoleName(s.role)}</div>${s.contextSummary?`<div class="session-context">${s.contextSummary}</div>`:''}<div class="session-meta"><span class="session-status-badge ${s.status}">${s.status}</span><span><i class="fas fa-clock"></i>${formatTime(s.lastActive)}</span></div></div>`).join('');}
+    async function loadTasks(){const r=await apiGet('getClaudeTasks',{role:'pm_architect'});tasks=Array.isArray(r)?r:[];renderTasks();document.getElementById('pendingTaskCount').textContent=tasks.filter(t=>t.status==='pending').length;}
+    function renderTasks(){const c=document.getElementById('tasksList');if(!tasks.length){c.innerHTML='<div class="empty-state"><i class="fas fa-tasks"></i><p>No Tasks</p><small>Create a task using + button</small></div>';return;}c.innerHTML=tasks.map(t=>`<div class="task-item"><div class="task-header"><span class="task-title">${t.title}</span><span class="task-priority ${getPriorityClass(t.priorityScore)}">${t.priorityScore}</span></div><div class="task-desc">${truncate(t.description,120)}</div><div class="task-meta"><span><i class="fas fa-user"></i> ${t.assignedTo||'Unassigned'}</span><span><i class="fas fa-clock"></i> ${formatTime(t.createdAt)}</span><span><i class="fas fa-flag"></i> ${t.status}</span></div></div>`).join('');}
+    async function loadMessages(){const r=await apiGet('getClaudeMessages',{role:'pm_architect',limit:20});messages=Array.isArray(r)?r:[];renderMessages();document.getElementById('messageCount').textContent=messages.length;}
+    function renderMessages(){const c=document.getElementById('messagesList');if(!messages.length){c.innerHTML='<div class="empty-state"><i class="fas fa-envelope"></i><p>No Messages</p><small>Messages appear here</small></div>';return;}c.innerHTML=messages.map(m=>`<div class="message-item ${m.read?'':'unread'}" onclick="viewMessage('${m.id}')"><div class="message-header"><span class="message-from">${getRoleName(m.from)}</span><span class="message-time">${formatTime(m.timestamp)}</span></div><div class="message-subject">${m.subject}</div><div class="message-body">${truncate(m.body,100)}</div></div>`).join('');}
+    async function loadActivity(){const r=await apiGet('getCoordinationActivity',{limit:50});activity=Array.isArray(r)?r:[];renderActivity();}
+    function renderActivity(){const c=document.getElementById('activityFeed'),f=document.getElementById('activityFilter').value;let filtered=activity;if(f!=='all')filtered=activity.filter(a=>{if(f==='messages')return a.action.includes('message');if(f==='tasks')return a.action.includes('task');if(f==='sessions')return a.action.includes('session');return true;});if(!filtered.length){c.innerHTML='<div class="empty-state"><i class="fas fa-stream"></i><p>No Activity</p><small>Activity appears here</small></div>';return;}c.innerHTML=filtered.map(i=>`<div class="activity-item ${getActivityType(i.action)}"><div class="activity-icon ${getActivityType(i.action)}"><i class="${getActivityIcon(i.action)}"></i></div><div class="activity-content"><div class="activity-title">${getRoleName(i.role)} ${formatAction(i.action)}</div><div class="activity-desc">${formatActivityDetails(i.details)}</div><div class="activity-time">${formatTime(i.timestamp)}</div></div></div>`).join('');}
+    async function loadAlerts(){const r=await apiGet('getCoordinationAlerts');alerts=Array.isArray(r)?r:[];renderAlerts();const cnt=alerts.length;document.getElementById('activeAlertCount').textContent=cnt;const b=document.getElementById('alertCount');if(cnt>0){b.textContent=cnt;b.style.display='inline';}else b.style.display='none';}
+    function renderAlerts(){const c=document.getElementById('alertsList');if(!alerts.length){c.innerHTML='<div class="empty-state"><i class="fas fa-check-circle"></i><p>No Active Alerts</p></div>';return;}c.innerHTML=alerts.map(a=>`<div class="alert-item ${a.priority}"><div class="alert-header"><span class="alert-type ${a.priority}">${a.type||a.priority}</span><span class="alert-title">${a.title}</span></div><div class="alert-message">${a.message}</div><button onclick="acknowledgeAlert('${a.id}')" class="btn btn-secondary" style="font-size:0.75rem;padding:0.375rem 0.75rem"><i class="fas fa-check"></i> Acknowledge</button></div>`).join('');}
+    async function sendMessage(){const from=document.getElementById('msgFrom').value,to=document.getElementById('msgTo').value,subject=document.getElementById('msgSubject').value,body=document.getElementById('msgBody').value,priority=document.getElementById('msgPriority').value;if(!subject||!body){showToast('Please enter subject and message','error');return;}const r=await apiPost('sendMessage',{from,to,subject,body,options:{priority}});if(r.success){closeMessageModal();document.getElementById('msgSubject').value='';document.getElementById('msgBody').value='';showToast('Message sent!','success');refreshAll();}else showToast('Failed: '+(r.error||'Unknown'),'error');}
+    async function createTask(){const title=document.getElementById('taskTitle').value,description=document.getElementById('taskDesc').value,assignTo=document.getElementById('taskAssign').value,urgency=parseInt(document.getElementById('taskUrgency').value),impact=parseInt(document.getElementById('taskImpact').value);if(!title||!description){showToast('Please enter title and description','error');return;}const r=await apiPost('createTask',{createdBy:'owner',title,description,options:{assignTo,urgency,impact}});if(r.success){closeTaskModal();document.getElementById('taskTitle').value='';document.getElementById('taskDesc').value='';showToast('Task created!','success');refreshAll();}else showToast('Failed: '+(r.error||'Unknown'),'error');}
+    async function acknowledgeAlert(alertId){await apiPost('acknowledgeAlert',{alertId});loadAlerts();showToast('Alert acknowledged','success');}
+    async function viewMessage(messageId){await apiPost('markRead',{messageId,role:'pm_architect'});loadMessages();}
+    function openMessageModal(){document.getElementById('messageModal').classList.add('active');}
+    function closeMessageModal(){document.getElementById('messageModal').classList.remove('active');}
+    function openTaskModal(){document.getElementById('taskModal').classList.add('active');}
+    function closeTaskModal(){document.getElementById('taskModal').classList.remove('active');}
+    function toggleAlerts(){document.getElementById('alertsPanel').classList.toggle('active');}
+    function switchTab(tab){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));document.querySelector(`.tab:nth-child(${tab==='tasks'?1:2})`).classList.add('active');document.getElementById(`${tab}Tab`).classList.add('active');}
+    function selectSession(sessionId){document.querySelectorAll('.session-item').forEach(s=>s.classList.remove('selected'));event.currentTarget.classList.add('selected');}
+    function showToast(message,type='info'){const t=document.getElementById('toast');t.textContent=message;t.className=`toast ${type} active`;setTimeout(()=>t.classList.remove('active'),3000);}
+    function getRoleName(role){const n={owner:'Owner',pm_architect:'PM_Architect',backend:'Backend_Claude',desktop:'Desktop_Claude',mobile:'Mobile_Claude',ux_design:'UX_Design_Claude',sales:'Sales_Claude',security:'Security_Claude',social_media:'Social_Media_Claude',field_ops:'Field_Ops_Claude',inventory:'Inventory_Claude',coordination:'Coordination_Claude'};return n[role]||role;}
+    function getPriorityClass(score){if(score>=60)return'high';if(score>=40)return'medium';return'low';}
+    function getActivityType(action){if(action.includes('message'))return'message';if(action.includes('task'))return'task';if(action.includes('session'))return'session';if(action.includes('alert'))return'alert';return'session';}
+    function getActivityIcon(action){if(action.includes('message'))return'fas fa-envelope';if(action.includes('task'))return'fas fa-tasks';if(action.includes('session'))return'fas fa-user-circle';if(action.includes('alert'))return'fas fa-exclamation-triangle';return'fas fa-circle';}
+    function formatAction(action){const a={send_message:'sent a message',read_message:'read a message',session_start:'started a session',session_end:'ended a session',create_task:'created a task',claim_task:'claimed a task',complete_task:'completed a task',twilio_configured:'configured SMS'};return a[action]||action.replace(/_/g,' ');}
+    function formatActivityDetails(details){if(!details)return'';if(typeof details==='string')return details;if(details.subject)return details.subject;if(details.title)return details.title;if(details.to)return'To: '+getRoleName(details.to);if(details.sessionId)return'Session: '+details.sessionId.split('_').slice(-1)[0];return'';}
+    function formatTime(timestamp){if(!timestamp)return'';const d=new Date(timestamp),now=new Date(),diff=now-d;if(diff<60000)return'Just now';if(diff<3600000)return Math.floor(diff/60000)+'m ago';if(diff<86400000)return Math.floor(diff/3600000)+'h ago';return d.toLocaleDateString();}
+    function truncate(str,len){if(!str)return'';return str.length>len?str.substring(0,len)+'...':str;}
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMessageModal();closeTaskModal();document.getElementById('alertsPanel').classList.remove('active');}});
+    document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');}));
   </script>
 </body>
 </html>
