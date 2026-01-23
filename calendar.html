@@ -268,6 +268,224 @@
             border-color: var(--primary);
         }
 
+        /* Unassigned Plantings Right Sidebar - Inspired by Tend.ag */
+        .unassigned-panel {
+            position: fixed;
+            top: 80px;
+            right: 0;
+            width: 320px;
+            height: calc(100vh - 80px);
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            padding: 0;
+            overflow-y: auto;
+            z-index: 100;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .unassigned-panel.open {
+            transform: translateX(0);
+        }
+
+        .unassigned-toggle {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 8px;
+            border-radius: 8px 0 0 8px;
+            cursor: pointer;
+            z-index: 101;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .unassigned-toggle:hover {
+            background: var(--primary-light);
+            padding-right: 12px;
+        }
+
+        .unassigned-toggle.open {
+            right: 320px;
+        }
+
+        .unassigned-toggle .badge {
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            writing-mode: horizontal-tb;
+        }
+
+        .unassigned-header {
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        .unassigned-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .unassigned-header h3 i { color: var(--warning); }
+
+        .unassigned-count {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .unassigned-search {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .crop-group {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .crop-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.02);
+            transition: background 0.2s;
+        }
+
+        .crop-group-header:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .crop-group-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .crop-group-title .crop-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .crop-group-count {
+            background: var(--bg-light);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .crop-group-items {
+            display: none;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .crop-group.expanded .crop-group-items {
+            display: block;
+        }
+
+        .unassigned-item {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+
+        .unassigned-item:hover {
+            border-color: var(--primary);
+            transform: translateX(-3px);
+        }
+
+        .unassigned-item:active {
+            cursor: grabbing;
+        }
+
+        .unassigned-item.dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+
+        .unassigned-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+
+        .unassigned-item-variety {
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .unassigned-item-id {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .unassigned-item-details {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .unassigned-item-details span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .unassigned-item-warning {
+            color: var(--warning);
+            font-size: 0.75rem;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .drop-zone-highlight {
+            background: rgba(45, 90, 39, 0.3) !important;
+            border: 2px dashed var(--primary) !important;
+        }
+
         .checkbox-filters {
             display: flex;
             flex-direction: column;
@@ -1744,6 +1962,23 @@
         </div>
     </main>
 
+    <!-- Unassigned Plantings Panel - Right Sidebar -->
+    <button class="unassigned-toggle" id="unassignedToggle" onclick="toggleUnassignedPanel()">
+        <span class="badge" id="unassignedBadge">0</span>
+        Unassigned
+    </button>
+
+    <aside class="unassigned-panel" id="unassignedPanel">
+        <div class="unassigned-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> Unassigned Plantings</h3>
+            <div class="unassigned-count" id="unassignedPanelCount">0 plantings need bed assignment</div>
+            <input type="text" class="unassigned-search" placeholder="Search crops..." oninput="filterUnassigned(this.value)">
+        </div>
+        <div id="unassignedContent">
+            <!-- Populated by JavaScript - organized by crop -->
+        </div>
+    </aside>
+
     <!-- Edit Planting Modal -->
     <div class="edit-modal-overlay" id="editModal">
         <div class="edit-modal" style="max-width: 700px;">
@@ -2145,6 +2380,9 @@
                 case '?':
                     toggleKeyboardHelp();
                     break;
+                case 'u':
+                    toggleUnassignedPanel();
+                    break;
                 case 'arrowleft':
                     navigateTimeline(-7);
                     break;
@@ -2343,13 +2581,14 @@
 
             extractFieldsAndCrops();
             applyFilters();
+            populateUnassignedPanel(); // Populate unassigned plantings sidebar
         }
 
         function normalizeData(data) {
             return data.map((p, index) => {
                 // Extract field and bed from Target_Bed_ID (e.g., "Field F3L-01" -> field="F3L", bed="01")
                 const targetBed = p.Target_Bed_ID || p.target_bed_id || p.Bed || p.bed || '';
-                const { field, bedNum } = extractFieldAndBed(targetBed);
+                const { field, bedNum, isUnassigned } = extractFieldAndBed(targetBed);
 
                 // Determine planting method
                 const plantingMethod = p.Planting_Method || p.planting_method || 'Transplant';
@@ -2438,6 +2677,7 @@
                     bed: targetBed,
                     field: field,
                     bedNum: bedNum,
+                    isUnassigned: isUnassigned || false,
                     bedFeet: parseInt(p.Feet_Used || p.feet_used || p.BedFeet || p.bedFeet || 50),
                     status: computeStatus(fieldStartDate, lastHarvest),
                     dtm: daysFieldToHarvest > 0 ? daysFieldToHarvest : 60,
@@ -4197,6 +4437,161 @@
             showToast('Refreshing data...', 'warning');
             await loadPlantings();
             showToast('Data refreshed', 'success');
+        }
+
+        // ========================================
+        // UNASSIGNED PLANTINGS PANEL
+        // ========================================
+        let unassignedPlantings = [];
+        let unassignedFilterText = '';
+
+        function toggleUnassignedPanel() {
+            const panel = document.getElementById('unassignedPanel');
+            const toggle = document.getElementById('unassignedToggle');
+            panel.classList.toggle('open');
+            toggle.classList.toggle('open');
+        }
+
+        function populateUnassignedPanel() {
+            // Filter plantings that are unassigned
+            unassignedPlantings = plantings.filter(p =>
+                p.isUnassigned || p.field === 'Unassigned' || p.field === 'Unknown' || !p.field
+            );
+
+            // Update badge and count
+            const count = unassignedPlantings.length;
+            document.getElementById('unassignedBadge').textContent = count;
+            document.getElementById('unassignedPanelCount').textContent =
+                `${count} planting${count !== 1 ? 's' : ''} need bed assignment`;
+
+            // Group by crop
+            const byCrop = {};
+            unassignedPlantings.forEach(p => {
+                const crop = p.crop || 'Unknown';
+                if (!byCrop[crop]) byCrop[crop] = [];
+                byCrop[crop].push(p);
+            });
+
+            // Build HTML - organized by crop
+            const content = document.getElementById('unassignedContent');
+            if (count === 0) {
+                content.innerHTML = `
+                    <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                        <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); margin-bottom: 1rem;"></i>
+                        <p>All plantings are assigned!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            Object.keys(byCrop).sort().forEach(crop => {
+                const items = byCrop[crop];
+                const cropColor = getCropColor(crop);
+
+                // Check if any items should be filtered
+                const filteredItems = items.filter(p =>
+                    !unassignedFilterText ||
+                    p.crop?.toLowerCase().includes(unassignedFilterText) ||
+                    p.variety?.toLowerCase().includes(unassignedFilterText) ||
+                    p.id?.toLowerCase().includes(unassignedFilterText)
+                );
+
+                if (filteredItems.length === 0) return;
+
+                html += `
+                    <div class="crop-group" data-crop="${crop}">
+                        <div class="crop-group-header" onclick="toggleCropGroup(this.parentElement)">
+                            <div class="crop-group-title">
+                                <div class="crop-color" style="background: ${cropColor};"></div>
+                                ${crop}
+                            </div>
+                            <span class="crop-group-count">${filteredItems.length}</span>
+                        </div>
+                        <div class="crop-group-items">
+                            ${filteredItems.map(p => buildUnassignedItem(p)).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            content.innerHTML = html || '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">No matches</div>';
+
+            // Setup drag events for unassigned items
+            setupUnassignedDrag();
+        }
+
+        function buildUnassignedItem(p) {
+            // Check for missing critical info
+            const warnings = [];
+            if (!p.bedFeet && p.bedFeet !== 0) warnings.push('Missing bed feet');
+            if (!p.dtm && p.dtm !== 0) warnings.push('Missing DTM');
+            if (!p.fieldStartDate) warnings.push('Missing dates');
+
+            // Calculate days until action needed
+            let daysUntil = null;
+            if (p.fieldStartDate) {
+                const startDate = new Date(p.fieldStartDate);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                daysUntil = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+            }
+
+            const warningHtml = warnings.length > 0 ? `
+                <div class="unassigned-item-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    ${warnings.join(', ')}
+                </div>
+            ` : '';
+
+            const urgentClass = daysUntil !== null && daysUntil <= 10 && daysUntil >= 0 ? 'style="border-color: var(--warning);"' : '';
+
+            return `
+                <div class="unassigned-item" draggable="true" data-planting-id="${p.id}" ${urgentClass}>
+                    <div class="unassigned-item-header">
+                        <div class="unassigned-item-variety">${p.variety || 'No variety'}</div>
+                        <div class="unassigned-item-id">${p.id || ''}</div>
+                    </div>
+                    <div class="unassigned-item-details">
+                        ${p.bedFeet ? `<span><i class="fas fa-ruler"></i> ${p.bedFeet} ft</span>` : ''}
+                        ${p.plantingMethod ? `<span><i class="fas fa-seedling"></i> ${p.plantingMethod}</span>` : ''}
+                        ${daysUntil !== null ? `<span><i class="fas fa-clock"></i> ${daysUntil <= 0 ? 'OVERDUE' : daysUntil + ' days'}</span>` : ''}
+                    </div>
+                    ${warningHtml}
+                </div>
+            `;
+        }
+
+        function toggleCropGroup(element) {
+            element.classList.toggle('expanded');
+        }
+
+        function filterUnassigned(text) {
+            unassignedFilterText = text.toLowerCase();
+            populateUnassignedPanel();
+        }
+
+        function setupUnassignedDrag() {
+            const items = document.querySelectorAll('.unassigned-item');
+            items.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', item.dataset.plantingId);
+                    item.classList.add('dragging');
+                    // Highlight potential drop zones (beds)
+                    document.querySelectorAll('.gantt-label').forEach(label => {
+                        if (label.classList.contains('empty-bed')) {
+                            label.classList.add('drop-zone-highlight');
+                        }
+                    });
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    document.querySelectorAll('.drop-zone-highlight').forEach(el => {
+                        el.classList.remove('drop-zone-highlight');
+                    });
+                });
+            });
         }
 
         // Toast
