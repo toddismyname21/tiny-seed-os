@@ -3165,6 +3165,44 @@ function doGet(e) {
       case 'initializeCoordination':
         return jsonResponse(initializeCoordinationSheets());
 
+      // GET-based write operations for coordination (avoids CORS)
+      case 'sendClaudeMessage':
+        if (!e.parameter.from || !e.parameter.to || !e.parameter.subject) {
+          return jsonResponse({ error: 'from, to, and subject parameters required' });
+        }
+        return jsonResponse(sendClaudeMessage(
+          e.parameter.from,
+          e.parameter.to,
+          e.parameter.subject,
+          e.parameter.body || '',
+          { priority: e.parameter.priority || 'normal', type: e.parameter.type || 'direct' }
+        ));
+      case 'acknowledgeCoordinationAlert':
+        if (!e.parameter.alertId) {
+          return jsonResponse({ error: 'alertId parameter required' });
+        }
+        return jsonResponse(acknowledgeAlert(e.parameter.alertId));
+      case 'markClaudeMessageRead':
+        if (!e.parameter.messageId || !e.parameter.role) {
+          return jsonResponse({ error: 'messageId and role parameters required' });
+        }
+        return jsonResponse(markMessageRead(e.parameter.messageId, e.parameter.role));
+      case 'registerClaudeSession':
+        if (!e.parameter.role) {
+          return jsonResponse({ error: 'role parameter required' });
+        }
+        return jsonResponse(registerClaudeSession(e.parameter.role, e.parameter.context || ''));
+      case 'createClaudeTask':
+        if (!e.parameter.createdBy || !e.parameter.title) {
+          return jsonResponse({ error: 'createdBy and title parameters required' });
+        }
+        return jsonResponse(createCoordinationTask(
+          e.parameter.createdBy,
+          e.parameter.title,
+          e.parameter.description || '',
+          { assignTo: e.parameter.assignTo, urgency: parseInt(e.parameter.urgency) || 3 }
+        ));
+
       // ============ SMART LABOR INTELLIGENCE SYSTEM ============
       case 'initializeSmartLaborSheets':
         return jsonResponse(initializeSmartLaborSheets());

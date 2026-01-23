@@ -890,14 +890,18 @@
       setInterval(refreshAll, 30000);
     });
 
-    // API calls
+    // API calls - using GET to avoid CORS preflight issues
     async function apiCall(action, params = {}) {
       try {
-        const response = await fetch(`${TINY_SEED_API.MAIN_API}?action=coordinationAPI`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ coordinationAction: action, ...params })
+        const url = new URL(TINY_SEED_API.MAIN_API);
+        url.searchParams.set('action', action);
+        // Add params to URL
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            url.searchParams.set(key, typeof value === 'object' ? JSON.stringify(value) : value);
+          }
         });
+        const response = await fetch(url.toString());
         return await response.json();
       } catch (error) {
         console.error('API Error:', error);
@@ -919,7 +923,7 @@
 
     // Load sessions
     async function loadSessions() {
-      const result = await apiCall('getActiveSessions');
+      const result = await apiCall('getClaudeSessions');
       if (Array.isArray(result)) {
         sessions = result;
         renderSessions();
@@ -959,7 +963,7 @@
 
     // Load tasks
     async function loadTasks() {
-      const result = await apiCall('getTasks', { role: currentRole });
+      const result = await apiCall('getClaudeTasks', { role: currentRole });
       if (Array.isArray(result)) {
         tasks = result;
         renderTasks();
@@ -999,7 +1003,7 @@
 
     // Load messages
     async function loadMessages() {
-      const result = await apiCall('getMessages', { role: currentRole, options: { limit: 20 } });
+      const result = await apiCall('getClaudeMessages', { role: currentRole, limit: 20 });
       if (Array.isArray(result)) {
         messages = result;
         renderMessages();
@@ -1035,7 +1039,7 @@
 
     // Load activity
     async function loadActivity() {
-      const result = await apiCall('getActivity', { limit: 50 });
+      const result = await apiCall('getCoordinationActivity', { limit: 50 });
       if (Array.isArray(result)) {
         activity = result;
         renderActivity();
@@ -1083,7 +1087,7 @@
 
     // Load alerts
     async function loadAlerts() {
-      const result = await apiCall('getAlerts', { unacknowledgedOnly: true });
+      const result = await apiCall('getCoordinationAlerts', { unacknowledgedOnly: true });
       if (Array.isArray(result)) {
         alerts = result;
         renderAlerts();
@@ -1140,7 +1144,7 @@
         return;
       }
 
-      const result = await apiCall('sendMessage', {
+      const result = await apiCall('sendClaudeMessage', {
         from, to, subject, body,
         options: { priority }
       });
@@ -1157,7 +1161,7 @@
 
     // Acknowledge alert
     async function acknowledgeAlert(alertId) {
-      await apiCall('acknowledgeAlert', { alertId });
+      await apiCall('acknowledgeCoordinationAlert', { alertId });
       loadAlerts();
     }
 
@@ -1196,7 +1200,7 @@
 
     // View message
     async function viewMessage(messageId) {
-      await apiCall('markRead', { messageId, role: currentRole });
+      await apiCall('markClaudeMessageRead', { messageId, role: currentRole });
       loadMessages();
     }
 
