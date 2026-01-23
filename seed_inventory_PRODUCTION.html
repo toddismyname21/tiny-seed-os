@@ -782,8 +782,12 @@
     <!-- Include QR Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
+    <!-- API Configuration - SINGLE SOURCE OF TRUTH -->
+    <script src="web_app/api-config.js"></script>
+
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+        // Use api-config.js or fallback to current deployment
+        const API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
         
         let seedInventory = [];
         
@@ -797,79 +801,30 @@
             try {
                 const response = await fetch(`${API_URL}?action=getSeedInventory`);
                 const result = await response.json();
-                
+
                 if (result.success && result.data) {
                     seedInventory = result.data;
                 } else {
-                    console.warn('Using demo data');
-                    useDemoData();
+                    // Show error - NO DEMO DATA FALLBACK
+                    console.error('Failed to load inventory:', result.error || 'Unknown error');
+                    showLoadError(result.error || 'Failed to load seed inventory data');
                 }
             } catch (error) {
                 console.error('Error loading inventory:', error);
-                useDemoData();
+                showLoadError('Network error: Could not connect to API. Check your connection.');
             }
         }
-        
-        function useDemoData() {
-            seedInventory = [
-            {
-                id: 1,
-                crop: 'Lettuce',
-                variety: 'Salanova Formula Mix',
-                vendor: 'Johnny\'s Selected Seeds',
-                lotNumber: 'JSS-2025-L001',
-                quantity: 5,
-                seedsPerPacket: 1000,
-                germRate: 95,
-                organic: true,
-                threshold: 3,
-                used: 0
-            },
-            {
-                id: 2,
-                crop: 'Kale',
-                variety: 'Winterbor',
-                vendor: 'High Mowing Seeds',
-                lotNumber: 'HMS-2025-K002',
-                quantity: 8,
-                seedsPerPacket: 500,
-                germRate: 92,
-                organic: true,
-                threshold: 3,
-                used: 0
-            },
-            {
-                id: 3,
-                crop: 'Tomato',
-                variety: 'Cherokee Purple',
-                vendor: 'Baker Creek',
-                lotNumber: 'BC-2025-T003',
-                quantity: 2,
-                seedsPerPacket: 25,
-                germRate: 88,
-                organic: true,
-                threshold: 3,
-                used: 0
-            },
-            {
-                id: 4,
-                crop: 'Pepper',
-                variety: 'Jimmy Nardello',
-                vendor: 'Johnny\'s Selected Seeds',
-                lotNumber: 'JSS-2025-P004',
-                quantity: 1,
-                seedsPerPacket: 50,
-                germRate: 85,
-                organic: false,
-                threshold: 2,
-                used: 0
-            }
-        ];
-        }
-        
-        function init_old() {
-            renderInventory();
-            updateStats();
+
+        function showLoadError(message) {
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; color: var(--danger);">
+                    <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">Failed to Load Inventory</div>
+                    <div style="color: var(--text-secondary); margin-bottom: 20px;">${message}</div>
+                    <button class="btn btn-primary" onclick="init()">🔄 Retry</button>
+                </div>
+            `;
         }
         
         function renderInventory(filtered = null) {

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart DTM Learning System - Tiny Seed OS</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="web_app/api-config.js"></script>
     <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -436,7 +437,8 @@
     </div>
     
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+        // Use centralized API config - DO NOT HARDCODE URLs
+        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
         
         // Learning data structure
         let learningData = {
@@ -444,14 +446,6 @@
             totalDataPoints: 0,
             averageAccuracy: 0
         };
-        
-        async function init() {
-            await loadLearningData();
-            calculateStats();
-            renderTable();
-            renderChart();
-            renderPredictions();
-        }
         
         async function loadLearningData() {
             try {
@@ -721,28 +715,74 @@
             document.body.appendChild(modal);
         }
 
-        function saveHarvest(btn) {
+        async function saveHarvest(btn) {
             btn.textContent = 'Saving...';
             btn.disabled = true;
 
-            // Simulate API call
-            setTimeout(() => {
+            const modal = btn.closest('div').parentElement.querySelector('div');
+            const cropSelect = modal.querySelector('select');
+            const dateInput = modal.querySelector('input[type="date"]');
+            const notesInput = modal.querySelector('textarea');
+
+            const [crop, variety] = cropSelect.value.split(' - ');
+            const harvestDate = dateInput.value;
+            const notes = notesInput.value;
+
+            try {
+                const response = await fetch(`${API_URL}?action=recordDTMHarvest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        crop: crop,
+                        variety: variety,
+                        harvestDate: harvestDate,
+                        notes: notes
+                    })
+                });
+
+                const result = await response.json();
+
                 btn.closest('div').parentElement.remove();
 
                 // Show success and update UI
                 const status = document.getElementById('learningStatus');
-                status.textContent = 'Model Updated!';
-                status.style.color = '#10b981';
+                if (result.success) {
+                    status.textContent = 'Model Updated!';
+                    status.style.color = '#10b981';
+
+                    // Update data points
+                    const points = document.getElementById('dataPoints');
+                    points.textContent = parseInt(points.textContent) + 1;
+
+                    // Reload data to show updated values
+                    setTimeout(() => loadLearningData().then(() => {
+                        calculateStats();
+                        renderTable();
+                        renderPredictions();
+                    }), 1000);
+                } else {
+                    status.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    status.style.color = '#ef4444';
+                }
 
                 setTimeout(() => {
                     status.textContent = 'Auto-Learning Active';
                     status.style.color = '';
                 }, 3000);
 
-                // Update data points
-                const points = document.getElementById('dataPoints');
-                points.textContent = parseInt(points.textContent) + 1;
-            }, 1500);
+            } catch (error) {
+                console.error('Error saving harvest:', error);
+                btn.closest('div').parentElement.remove();
+
+                const status = document.getElementById('learningStatus');
+                status.textContent = 'Error saving - try again';
+                status.style.color = '#ef4444';
+
+                setTimeout(() => {
+                    status.textContent = 'Auto-Learning Active';
+                    status.style.color = '';
+                }, 3000);
+            }
         }
 
         function updateLastTrainingTime() {

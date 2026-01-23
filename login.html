@@ -408,7 +408,7 @@
 
             try {
                 const API_URL = window.TINY_SEED_API?.MAIN_API ||
-                    'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+                    'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
 
                 const response = await fetch(`${API_URL}?action=authenticateUser&username=${encodeURIComponent(username)}&pin=${encodeURIComponent(pin)}`);
                 const data = await response.json();

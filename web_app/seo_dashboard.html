@@ -10,9 +10,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
-            --primary-dark: #1e3d1a;
+            --primary: #22c55e;
+            --primary-light: #4ade80;
+            --primary-dark: #16a34a;
             --secondary: #f4a261;
             --accent: #e76f51;
             --success: #2a9d8f;
@@ -1123,7 +1123,7 @@
         // API CALLS
         // ============================================
         async function callAPI(action, params) {
-            const response = await fetch(`${API_BASE_URL}?action=${action}`, {
+            const response = await fetch(`${TINY_SEED_API.MAIN_API}?action=${action}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(params)

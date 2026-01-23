@@ -12,13 +12,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
+  <script src="api-config.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --primary: #2d5a27;
-      --primary-light: #4a7c43;
-      --primary-dark: #1e3d1a;
+      --primary: #22c55e;
+      --primary-light: #4ade80;
+      --primary-dark: #16a34a;
       --bg-light: #f8faf7;
       --bg-white: #ffffff;
       --text-dark: #1a1a1a;
@@ -702,8 +704,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // API Configuration
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+    // API Configuration - use unified config with fallback
+    const API_BASE = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
 
     // Route stops with coordinates
     const ROUTE_STOPS = [

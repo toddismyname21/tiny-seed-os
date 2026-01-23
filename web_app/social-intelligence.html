@@ -7,10 +7,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="api-config.js"></script>
     <style>
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
+            --primary: #22c55e;
+            --primary-light: #4ade80;
             --secondary: #f4a261;
             --accent: #e76f51;
             --success: #2a9d8f;
@@ -1696,8 +1697,8 @@ Good morning, neighbors! ☀️ Just pulled these gorgeous carrots - still cool 
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        // API Configuration
-        const API_URL = 'https://script.google.com/macros/s/AKfycbwXXgBRlSpv5ygo4joqHLsWh6AKhxRLJ_C6gzCdxOFphE6cX-NdE9f7u16JmNr57mN0/exec';
+        // API Configuration - using centralized api-config.js
+        const API_URL = TINY_SEED_API.MAIN_API;
 
         // State
         let dashboardData = null;

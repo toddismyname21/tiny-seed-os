@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
     <title>Chief of Staff | Tiny Seed Farm</title>
     <script src="api-config.js"></script>
     <style>
@@ -21,9 +24,20 @@
             --high: #f97316;
             --medium: #eab308;
             --low: #22c55e;
+            /* Mobile touch & safe area */
+            --touch-min: 48px;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -35,7 +49,9 @@
         /* Header */
         .header {
             background: var(--bg-secondary);
-            padding: 16px 24px;
+            padding: calc(16px + var(--safe-top)) 24px 16px;
+            padding-left: calc(24px + var(--safe-left));
+            padding-right: calc(24px + var(--safe-right));
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -151,7 +167,8 @@
             background: rgba(255,255,255,0.1);
             border: none;
             color: var(--text-secondary);
-            padding: 8px 12px;
+            padding: 12px 16px;
+            min-height: 44px;
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
@@ -268,7 +285,8 @@
         }
 
         .section-tab {
-            padding: 10px 20px;
+            padding: 14px 20px;
+            min-height: var(--touch-min);
             background: var(--bg-secondary);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px;
@@ -277,6 +295,8 @@
             white-space: nowrap;
             transition: all 0.2s;
             font-size: 14px;
+            display: flex;
+            align-items: center;
         }
 
         .section-tab:hover {
@@ -296,6 +316,198 @@
             border-radius: 10px;
             font-size: 12px;
             margin-left: 8px;
+        }
+
+        /* Communications Panel Styles */
+        .send-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .send-panel h3 {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-group select,
+        .form-group textarea,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .channel-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .channel-btn {
+            flex: 1;
+            padding: 12px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .channel-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .channel-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .draft-preview {
+            background: var(--bg-card);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .draft-preview h4 {
+            margin-bottom: 12px;
+            color: var(--accent-blue);
+        }
+
+        .draft-text {
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .char-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .send-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .quick-alerts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .quick-alert-btn {
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .quick-alert-btn:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .quick-alert-btn .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .quick-alert-btn .label {
+            font-size: 13px;
+        }
+
+        .message-history {
+            margin-top: 24px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .history-item .info {
+            flex: 1;
+        }
+
+        .history-item .recipient {
+            font-weight: 500;
+        }
+
+        .history-item .message {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 400px;
+        }
+
+        .history-item .meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        .history-item .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .history-item .status.sent {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
         }
 
         /* Cards Container */
@@ -380,10 +592,11 @@
 
         .comm-btn {
             flex: 1;
-            padding: 8px 12px;
+            padding: 14px 16px;
+            min-height: var(--touch-min);
             border: none;
-            border-radius: 6px;
-            font-size: 13px;
+            border-radius: 8px;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -691,6 +904,47 @@
             .chat-panel {
                 display: none;
             }
+            .header {
+                padding: calc(12px + var(--safe-top)) 16px 12px;
+            }
+            .content-area {
+                padding: 16px;
+                padding-bottom: calc(24px + var(--safe-bottom));
+            }
+            .morning-brief {
+                padding: 16px;
+                border-radius: 12px;
+            }
+            .greeting {
+                font-size: 22px;
+            }
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .metric-value {
+                font-size: 24px;
+            }
+            .section-tabs {
+                margin: 0 -16px 20px;
+                padding: 0 16px 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .metrics-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .section-tab {
+                padding: 12px 16px;
+                font-size: 13px;
+            }
+            .header-actions {
+                gap: 8px;
+            }
+            .trust-indicator {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
         }
     </style>
 </head>
@@ -797,6 +1051,9 @@
                 </button>
                 <button class="section-tab" data-section="labor">
                     👷 Labor <span class="badge" id="laborBadge">0</span>
+                </button>
+                <button class="section-tab" data-section="send">
+                    📤 Send Message
                 </button>
             </div>
 
@@ -1097,6 +1354,9 @@
                     break;
                 case 'labor':
                     renderLaborIntelligence(container);
+                    break;
+                case 'send':
+                    renderSendMessage(container);
                     break;
             }
         }
@@ -1720,6 +1980,138 @@
         document.getElementById('emailModal').addEventListener('click', e => {
             if (e.target.id === 'emailModal') closeModal();
         });
+
+        // ========== COMMUNICATIONS / SEND MESSAGE ==========
+        let teamContacts = [];
+        let currentDraft = '';
+        let selectedChannel = 'sms';
+        let messageHistory = [];
+
+        async function loadTeamContacts() {
+            try {
+                const response = await api.get('getTeamContacts');
+                if (response.success && response.team) teamContacts = response.team;
+            } catch (e) {
+                teamContacts = [
+                    { id: 'EMP-001', name: 'Maria Santos', phone: '+14125551234', email: 'maria@example.com' },
+                    { id: 'EMP-002', name: 'Jake Thompson', phone: '+14125555678', email: 'jake@example.com' }
+                ];
+            }
+        }
+
+        async function loadMessageHistory() {
+            try {
+                const response = await api.get('getCommunicationHistory', { limit: 10 });
+                if (response.success && response.messages) messageHistory = response.messages;
+            } catch (e) { console.error('History error:', e); }
+        }
+
+        function renderSendMessage(container) {
+            if (teamContacts.length === 0) loadTeamContacts();
+            container.innerHTML = `
+                <div class="send-panel">
+                    <h3>📤 Send Message</h3>
+                    <div class="form-group">
+                        <label>To:</label>
+                        <select id="recipientSelect" onchange="updateRecipient()">
+                            <option value="">Select recipient...</option>
+                            <option value="TEAM">👥 ALL TEAM</option>
+                            ${teamContacts.map(c => `<option value="${c.id}" data-phone="${c.phone}" data-email="${c.email}">${c.name}</option>`).join('')}
+                            <option value="CUSTOM">📝 Custom...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="customRecipientGroup" style="display: none;">
+                        <label>Phone/Email:</label>
+                        <input type="text" id="customRecipient" placeholder="+14125551234">
+                    </div>
+                    <div class="form-group">
+                        <label>Send via:</label>
+                        <div class="channel-btns">
+                            <button class="channel-btn active" data-channel="sms" onclick="selectChannel('sms')">📱 SMS</button>
+                            <button class="channel-btn" data-channel="email" onclick="selectChannel('email')">📧 Email</button>
+                            <button class="channel-btn" data-channel="both" onclick="selectChannel('both')">📱📧 Both</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>What do you want to say?</label>
+                        <textarea id="messageIntent" placeholder="e.g., Tell Maria we're starting harvest at 6am tomorrow"></textarea>
+                    </div>
+                    <button class="comm-btn primary" onclick="generateDraft()">✨ Generate Draft</button>
+                    <div class="draft-preview" id="draftPreview" style="display: none;">
+                        <h4>📝 Draft Preview</h4>
+                        <div class="draft-text" id="draftText"></div>
+                        <div style="display:flex;gap:12px;margin-top:12px;">
+                            <button class="comm-btn secondary" onclick="editDraft()">✏️ Edit</button>
+                            <button class="comm-btn primary" onclick="sendMessage()">✅ Send Now</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="send-panel">
+                    <h3>🚨 Quick Team Alerts</h3>
+                    <div class="quick-alerts-grid">
+                        <button class="quick-alert-btn" onclick="sendQuickAlert('lunch')"><div class="icon">🍽️</div><div class="label">Lunch</div></button>
+                        <button class="quick-alert-btn" onclick="sendQuickAlert('allHands')"><div class="icon">🤝</div><div class="label">All Hands</div></button>
+                        <button class="quick-alert-btn" onclick="sendQuickAlert('weather')"><div class="icon">⚠️</div><div class="label">Weather</div></button>
+                        <button class="quick-alert-btn" onclick="sendQuickAlert('equipment')"><div class="icon">🚜</div><div class="label">Equipment</div></button>
+                        <button class="quick-alert-btn" onclick="sendQuickAlert('endOfDay')"><div class="icon">✅</div><div class="label">End Day</div></button>
+                        <button class="quick-alert-btn" onclick="sendQuickAlert('custom')"><div class="icon">💬</div><div class="label">Custom</div></button>
+                    </div>
+                </div>
+                <div class="send-panel"><h3>📜 Recent</h3><div id="historyList">${renderMessageHistory()}</div></div>
+            `;
+            loadMessageHistory().then(() => { const h = document.getElementById('historyList'); if (h) h.innerHTML = renderMessageHistory(); });
+        }
+
+        function renderMessageHistory() {
+            if (messageHistory.length === 0) return '<div style="color:var(--text-secondary);text-align:center;padding:20px;">No recent messages</div>';
+            return messageHistory.slice(0, 5).map(m => `<div class="history-item"><div class="info"><div class="recipient">${m.type === 'sms' ? '📱' : '📧'} ${m.to}</div><div class="message">${m.message}</div></div><div class="meta">${formatTimeAgo(m.timestamp)}<br><span class="status ${m.status}">${m.status}</span></div></div>`).join('');
+        }
+
+        function updateRecipient() { document.getElementById('customRecipientGroup').style.display = document.getElementById('recipientSelect').value === 'CUSTOM' ? 'block' : 'none'; }
+        function selectChannel(ch) { selectedChannel = ch; document.querySelectorAll('.channel-btn').forEach(b => b.classList.toggle('active', b.dataset.channel === ch)); }
+
+        async function generateDraft() {
+            const sel = document.getElementById('recipientSelect'), intent = document.getElementById('messageIntent').value;
+            if (!sel.value) { alert('Select recipient'); return; }
+            if (!intent.trim()) { alert('Enter message'); return; }
+            let name = sel.value === 'TEAM' ? 'Team' : sel.options[sel.selectedIndex].text, first = name.split(' ')[0];
+            try { const r = await api.post('draftMessage', { intent, recipient: name, channel: selectedChannel }); currentDraft = r.draft || `Hi ${first}! ${intent}. -Todd`; }
+            catch (e) { currentDraft = selectedChannel === 'sms' ? `Hi ${first}! ${intent}. -Todd` : `Hi ${first},\n\n${intent}.\n\nThanks!\nTodd`; }
+            document.getElementById('draftPreview').style.display = 'block';
+            document.getElementById('draftText').textContent = currentDraft;
+        }
+
+        function editDraft() { const d = prompt('Edit:', currentDraft); if (d) { currentDraft = d; document.getElementById('draftText').textContent = d; } }
+
+        async function sendMessage() {
+            const sel = document.getElementById('recipientSelect');
+            if (!currentDraft) { alert('Generate draft first'); return; }
+            if (!confirm(`Send via ${selectedChannel.toUpperCase()}?`)) return;
+            try {
+                addChatMessage('Sending...');
+                let r;
+                if (sel.value === 'TEAM') r = await api.post('sendTeamAlert', { message: currentDraft, channels: selectedChannel === 'both' ? ['sms', 'email'] : [selectedChannel], alertType: 'custom' });
+                else {
+                    const opt = sel.options[sel.selectedIndex], to = sel.value === 'CUSTOM' ? document.getElementById('customRecipient').value : (selectedChannel === 'email' ? opt.dataset.email : opt.dataset.phone);
+                    if (selectedChannel === 'sms' || selectedChannel === 'both') r = await api.post('sendSMS', { to, message: currentDraft });
+                    if (selectedChannel === 'email' || selectedChannel === 'both') r = await api.post('sendOwnerEmail', { to, subject: 'From Tiny Seed Farm', body: currentDraft });
+                }
+                addChatMessage(r?.success || r?.sent ? 'Sent! ✅' : 'Check backend');
+                document.getElementById('messageIntent').value = ''; document.getElementById('draftPreview').style.display = 'none'; currentDraft = '';
+            } catch (e) { addChatMessage('Error: Check Twilio config'); }
+        }
+
+        async function sendQuickAlert(type) {
+            const presets = { lunch: 'Lunch ready! Meet at barn.', allHands: 'All hands needed!', weather: 'Weather alert!', equipment: 'Equipment issue.', endOfDay: 'Great work today!' };
+            let msg = type === 'custom' ? prompt('Alert:') : prompt('Edit:', presets[type]);
+            if (!msg || !confirm(`Send to ALL TEAM?\n\n"${msg}"`)) return;
+            try { addChatMessage('Sending...'); const r = await api.post('sendTeamAlert', { message: msg, channels: ['sms'], alertType: type }); addChatMessage(r?.success ? 'Sent! ✅' : 'Check Twilio'); }
+            catch (e) { addChatMessage('Twilio not configured'); }
+        }
+
+        function formatTimeAgo(ts) { if (!ts) return ''; const d = Math.floor((new Date() - new Date(ts)) / 1000); return d < 60 ? 'Now' : d < 3600 ? `${Math.floor(d/60)}m` : d < 86400 ? `${Math.floor(d/3600)}h` : new Date(ts).toLocaleDateString(); }
+
+        loadTeamContacts();
     </script>
 </body>
 </html>

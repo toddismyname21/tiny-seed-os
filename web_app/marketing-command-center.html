@@ -7,12 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="auth-guard.js" data-required-role="Manager"></script>
+    <script src="api-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
-            --primary-dark: #1e3d1a;
+            --primary: #22c55e;
+            --primary-light: #4ade80;
+            --primary-dark: #16a34a;
             --secondary: #f4a261;
             --accent: #e76f51;
             --success: #2a9d8f;
@@ -3167,10 +3168,10 @@
     <!-- JAVASCRIPT -->
     <script>
         // ═══════════════════════════════════════════════════════════════════════════
-        // API CONFIGURATION
+        // API CONFIGURATION - using centralized api-config.js
         // ═══════════════════════════════════════════════════════════════════════════
 
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+        const API_URL = TINY_SEED_API.MAIN_API;
         const APPS_SCRIPT_URL = API_URL; // Alias for social posting functions
 
         // ═══════════════════════════════════════════════════════════════════════════
