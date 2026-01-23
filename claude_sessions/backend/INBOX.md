@@ -74,6 +74,43 @@ After deployment, update:
 
 ---
 
+## 🆕 NEW FEATURE: CHIEF OF STAFF COMMUNICATIONS - 2026-01-22
+
+**From:** PM_Architect + Owner
+**Priority:** HIGH
+**Spec:** `claude_sessions/CHIEF_OF_STAFF_COMMUNICATIONS_SPEC.md`
+
+### OWNER REQUEST
+"I want to be able to tell the chief of staff to text someone or email someone, and it does it. I can give an overview of what I want to say and it calls, texts, or emails them. I want to be able to have alerts go out to the team for lunch or all hands tasks etc."
+
+### YOUR TASK: BUILD BACKEND MODULE
+
+Create `apps_script/ChiefOfStaffCommunications.js` with:
+
+1. **getTeamContacts()** - Get all employees with phone/email
+2. **draftMessage(params)** - AI-assisted message drafting
+3. **sendSMS(params)** - Send SMS via Twilio
+4. **sendOwnerEmail(params)** - Send email via Gmail
+5. **sendTeamAlert(params)** - Broadcast to all team members
+6. **getCommunicationHistory(limit)** - Get outbound message log
+
+### API ROUTES TO ADD
+
+```javascript
+case 'getTeamContacts':
+case 'draftMessage':
+case 'sendSMS':
+case 'sendOwnerEmail':
+case 'sendTeamAlert':
+case 'getCommunicationHistory':
+```
+
+### FULL SPEC
+Read: `claude_sessions/CHIEF_OF_STAFF_COMMUNICATIONS_SPEC.md`
+
+---
+
+
 
 ## NEW TASK: Employee Invitation System
 

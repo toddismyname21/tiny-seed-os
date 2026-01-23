@@ -69,6 +69,41 @@ Update your OUTBOX with audit completion status.
 
 ---
 
+## 🆕 NEW FEATURE: CHIEF OF STAFF COMMUNICATIONS UI - 2026-01-22
+
+**From:** PM_Architect + Owner
+**Priority:** HIGH (after audit)
+**Spec:** `claude_sessions/CHIEF_OF_STAFF_COMMUNICATIONS_SPEC.md`
+
+### OWNER REQUEST
+"I want to be able to tell the chief of staff to text someone or email someone, and it does it. I want team alerts for lunch, all hands tasks, etc."
+
+### YOUR TASK: BUILD FRONTEND UI
+
+Add Communications panel to `web_app/chief-of-staff.html`:
+
+1. **Recipient Selector** - Dropdown with team members + "Whole Team" option
+2. **Channel Selector** - SMS / Email / Both buttons
+3. **Message Input** - Text area for owner's intent
+4. **Draft Preview** - Show AI-drafted message before sending
+5. **Send Button** - With confirmation
+6. **Quick Alerts** - Preset buttons for Lunch, All Hands, Weather, etc.
+7. **History View** - Recent outbound messages
+
+### API ENDPOINTS (Backend Claude building these)
+- `getTeamContacts` - Load team dropdown
+- `draftMessage` - Generate message from intent
+- `sendSMS` - Send text message
+- `sendOwnerEmail` - Send email
+- `sendTeamAlert` - Broadcast to team
+- `getCommunicationHistory` - Show recent messages
+
+### UI WIREFRAME
+See full spec: `claude_sessions/CHIEF_OF_STAFF_COMMUNICATIONS_SPEC.md`
+
+---
+
+
 
 ## YOUR ROLE
 
