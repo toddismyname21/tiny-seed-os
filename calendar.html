@@ -5713,17 +5713,25 @@
             if (typing) typing.remove();
         }
 
+        // Conversation history for AI context
+        let conversationHistory = [];
+
         // Process user message and generate response
         async function processAssistantMessage(message) {
             isAssistantProcessing = true;
             showTypingIndicator();
 
+            // Add user message to history
+            conversationHistory.push({ role: 'user', content: message });
+
             try {
                 // Parse intent from message
                 const intent = parseAssistantIntent(message);
 
-                // Handle based on intent
+                // Handle locally for known planning-specific intents (faster)
                 let response;
+                let useLocalHandler = true;
+
                 switch (intent.type) {
                     case 'query_unassigned':
                         response = handleQueryUnassigned();
@@ -5753,18 +5761,108 @@
                         response = handleHelp();
                         break;
                     default:
-                        response = handleGenericQuery(message);
+                        // For unknown intents, call the Claude AI backend
+                        useLocalHandler = false;
+                        response = await callChiefOfStaffAPI(message);
                 }
 
                 hideTypingIndicator();
-                addAssistantMessage('assistant', response.message, response.actions);
+
+                if (useLocalHandler) {
+                    addAssistantMessage('assistant', response.message, response.actions);
+                    conversationHistory.push({ role: 'assistant', content: response.message });
+                } else {
+                    // AI response - format it nicely
+                    const aiMessage = response.success ? response.message : 'I had trouble processing that. Try asking about unassigned plantings, bed availability, or planting dates.';
+                    addAssistantMessage('assistant', aiMessage, response.actions || []);
+                    conversationHistory.push({ role: 'assistant', content: aiMessage });
+                }
 
             } catch (error) {
                 hideTypingIndicator();
-                addAssistantMessage('assistant', `Sorry, I encountered an error: ${error.message}. Please try again.`);
+                const errorMsg = `Sorry, I encountered an error: ${error.message}. Please try again.`;
+                addAssistantMessage('assistant', errorMsg);
+                conversationHistory.push({ role: 'assistant', content: errorMsg });
+            }
+
+            // Keep conversation history manageable (last 20 messages)
+            if (conversationHistory.length > 20) {
+                conversationHistory = conversationHistory.slice(-20);
             }
 
             isAssistantProcessing = false;
+        }
+
+        // Call the Chief of Staff AI backend
+        async function callChiefOfStaffAPI(message) {
+            try {
+                const params = new URLSearchParams({
+                    action: 'chatWithChiefOfStaff',
+                    message: message,
+                    history: JSON.stringify(conversationHistory.slice(-10))
+                });
+
+                const response = await fetch(`${API_URL}?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    return {
+                        success: true,
+                        message: formatAIResponse(data.message),
+                        actions: extractActionsFromResponse(data.message)
+                    };
+                } else {
+                    console.warn('AI API error:', data.error);
+                    return {
+                        success: false,
+                        message: data.message || 'I had trouble understanding that. Try being more specific.',
+                        actions: []
+                    };
+                }
+            } catch (error) {
+                console.error('Chief of Staff API error:', error);
+                return {
+                    success: false,
+                    message: 'I\'m having trouble connecting to the AI. Let me help you with what I know locally.',
+                    actions: [
+                        { label: 'Show summary', onclick: "processAssistantMessage('summary')" },
+                        { label: 'Help', onclick: "processAssistantMessage('help')" }
+                    ]
+                };
+            }
+        }
+
+        // Format AI response for display (handle markdown-like formatting)
+        function formatAIResponse(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')              // Italic
+                .replace(/\n/g, '<br>')                             // Line breaks
+                .replace(/• /g, '&bull; ');                         // Bullets
+        }
+
+        // Extract actionable buttons from AI response
+        function extractActionsFromResponse(text) {
+            const actions = [];
+            const lowerText = (text || '').toLowerCase();
+
+            // Detect if AI mentioned unassigned plantings
+            if (lowerText.includes('unassigned') || lowerText.includes('need bed')) {
+                actions.push({ label: 'View unassigned', onclick: "processAssistantMessage('show unassigned')" });
+            }
+
+            // Detect if AI mentioned conflicts
+            if (lowerText.includes('conflict') || lowerText.includes('overlap')) {
+                actions.push({ label: 'Check conflicts', onclick: "processAssistantMessage('check conflicts')" });
+            }
+
+            // Detect if AI mentioned available beds
+            if (lowerText.includes('available bed') || lowerText.includes('open bed')) {
+                actions.push({ label: 'Available beds', onclick: "processAssistantMessage('available beds')" });
+            }
+
+            return actions.slice(0, 3); // Max 3 actions
         }
 
         // Enhanced intent parsing with more query types
@@ -6544,6 +6642,34 @@
 
             assistantSuggestions = suggestions.slice(0, 5);
             renderSuggestions();
+
+            // Also fetch AI-powered suggestions from backend (async enhancement)
+            try {
+                const params = new URLSearchParams({ action: 'getProactiveSuggestions' });
+                const response = await fetch(`${API_URL}?${params}`);
+                const data = await response.json();
+
+                if (data && data.suggestions && Array.isArray(data.suggestions)) {
+                    // Merge AI suggestions with local ones
+                    const aiSuggestions = data.suggestions.map(s => ({
+                        icon: s.icon || '🤖',
+                        text: s.text || s.message,
+                        action: s.action || s.text,
+                        type: s.type || 'info',
+                        priority: s.priority || 5,
+                        fromAI: true
+                    }));
+
+                    // Combine and re-sort (local suggestions take priority)
+                    const combined = [...assistantSuggestions, ...aiSuggestions];
+                    combined.sort((a, b) => a.priority - b.priority);
+                    assistantSuggestions = combined.slice(0, 5);
+                    renderSuggestions();
+                }
+            } catch (err) {
+                // Silently fail - local suggestions are already displayed
+                console.log('AI suggestions not available, using local intelligence');
+            }
         }
 
         // Initialize assistant on load
