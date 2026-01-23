@@ -3139,7 +3139,7 @@
                 const { field, bedNum, isUnassigned } = extractFieldAndBed(targetBed);
 
                 // Determine planting method
-                const plantingMethod = p.Planting_Method || p.planting_method || 'Transplant';
+                const plantingMethod = p.Planting_Method || p.planting_method || p.Method || p.method || 'Transplant';
 
                 // Parse ALL dates - store raw values for editing
                 const planGHSow = parseFlexibleDate(p.Plan_GH_Sow || p.plan_gh_sow);

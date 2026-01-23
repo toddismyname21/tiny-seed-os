@@ -23,11 +23,11 @@ const TINY_SEED_API = {
     //
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
-    // LAST UPDATED: 2026-01-22
-    // UPDATED BY: Claude PM_Architect - Fixed deployment URL after v201 deployment
+    // LAST UPDATED: 2026-01-23
+    // UPDATED BY: Claude - Fixed Plan_Field_Sow column mapping in getPlanningDataInternal (v375)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbwRKEbHUvNJwUDxl4_FYYrvFXo6h5YyyDajGQpnFWMkNtKGXo8tIN9o7hY3tpFIuKEc/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

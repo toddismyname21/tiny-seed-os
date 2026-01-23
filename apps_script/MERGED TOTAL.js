@@ -2161,6 +2161,12 @@ function doGet(e) {
         return jsonResponse(sendCrewMessage(e.parameter));
       case 'getFields':
         return jsonResponse(getFields(e.parameter));
+      case 'addField':
+        return jsonResponse(addField(e.parameter));
+      case 'getSheetData':
+        return jsonResponse(getSheetData(e.parameter));
+      case 'listSheets':
+        return jsonResponse(listAllSheets());
       case 'updateEmployeeLanguage':
         return jsonResponse(updateEmployeeLanguage(e.parameter));
 
@@ -5508,50 +5514,71 @@ function getPlanningData() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName('PLANNING_2026');
-    
+
     if (!sheet) {
-      return jsonResponse({
-        success: false,
-        error: 'PLANNING_2026 sheet not found'
-      });
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
     }
-    
+
     const data = sheet.getDataRange().getValues();
-    if (data.length < 2) {
-      return jsonResponse({
-        success: true,
-        data: [],
-        message: 'No planning data found'
-      });
+    if (data.length < 1) {
+      return { success: true, data: [], message: 'No planning data found' };
     }
-    
-    const headers = data[0];
-    const rows = data.slice(1);
-    
-    const plantings = rows.map(row => {
-      const obj = {};
-      headers.forEach((header, index) => {
-        let value = row[index];
-        if (value instanceof Date) {
-          value = value.toISOString().split('T')[0];
-        }
-        obj[header] = value;
-      });
-      return obj;
-    }).filter(p => p.Crop);
-    
-    return jsonResponse({
+
+    // FIXED 2026-01-23: Sheet has NO header row - data starts at row 1
+    // FIXED 2026-01-23: Added Plan_Field_Sow and Act_Field_Sow columns for Direct Seed crops
+    // Column mapping (0-indexed):
+    // 0=Status, 1=Batch_ID, 2=Crop, 3=Variety, 4=Method, 5=Target_Bed_ID,
+    // 6=Bed_Feet, 7=Total_Plants, 8=Successions,
+    // 9=Plan_GH_Sow, 10=Act_GH_Sow,
+    // 11=Plan_Field_Sow, 12=Act_Field_Sow,  <-- For Direct Seed crops
+    // 13=Plan_Transplant, 14=Act_Transplant,
+    // 15=First_Harvest, 16=Last_Harvest,
+    // ...28=DTM
+
+    const plantings = data.map((row, rowIndex) => {
+      // Skip completely empty rows
+      if (!row[2] || String(row[2]).trim() === '') return null;
+
+      const formatDate = (val) => {
+        if (!val) return '';
+        if (val instanceof Date) return val.toISOString().split('T')[0];
+        if (typeof val === 'string' && val.includes('T')) return val.split('T')[0];
+        return String(val);
+      };
+
+      return {
+        Status: row[0] || 'Planned',
+        Batch_ID: row[1] || '',
+        Crop: row[2] || '',
+        Variety: row[3] || '',
+        Method: row[4] || '',
+        Planting_Method: row[4] || '',  // Alias for frontend compatibility
+        Target_Bed_ID: row[5] || '',
+        Bed_Feet: row[6] || 0,
+        Total_Plants: row[7] || 0,
+        Successions: row[8] || 1,
+        Plan_GH_Sow: formatDate(row[9]),
+        Act_GH_Sow: formatDate(row[10]),
+        Plan_Field_Sow: formatDate(row[11]),  // FIXED: Direct Seed date
+        Act_Field_Sow: formatDate(row[12]),   // FIXED: Actual Direct Seed date
+        Plan_Transplant: formatDate(row[13]),
+        Act_Transplant: formatDate(row[14]),  // FIXED: Was missing
+        First_Harvest: formatDate(row[15]),
+        Last_Harvest: formatDate(row[16]),
+        DTM: row[28] || row[row.length - 1] || 0,
+        rowIndex: rowIndex + 1
+      };
+    }).filter(p => p !== null);
+
+    return {
       success: true,
       data: plantings,
       count: plantings.length,
       timestamp: new Date().toISOString()
-    });
-    
+    };
+
   } catch (error) {
-    return jsonResponse({
-      success: false,
-      error: error.toString()
-    });
+    return { success: false, error: error.toString() };
   }
 }
 
@@ -11711,6 +11738,45 @@ function createCropProfile(params) {
       }
     };
   }
+// Get single crop profile by name (wrapper for getCropProfiles)
+function getCropProfile(cropName) {
+  if (!cropName) {
+    return { success: false, error: 'cropName parameter required' };
+  }
+  const allProfiles = getCropProfiles();
+  if (!allProfiles.success) return allProfiles;
+
+  const profile = allProfiles.data.find(p =>
+    p.Crop_Name === cropName ||
+    p.crop_name === cropName ||
+    (p.Crop_Name && p.Crop_Name.toLowerCase() === cropName.toLowerCase())
+  );
+
+  if (profile) {
+    return { success: true, data: profile };
+  }
+  return { success: false, error: `Crop profile not found: ${cropName}` };
+}
+
+// Morning brief wrapper
+// FIXED 2026-01-23: Call getMorningBriefFast directly, which no longer calls back to this function
+function getMorningBrief(params) {
+  try {
+    // Use the fast cached version
+    return getMorningBriefFast(params);
+  } catch (error) {
+    // Fallback to simple morning brief if anything fails
+    const now = new Date();
+    return {
+      success: true,
+      timestamp: now.toISOString(),
+      greeting: 'Good morning!',
+      message: 'Morning brief loaded',
+      tips: ['Check your tasks for today', 'Review any pending orders']
+    };
+  }
+}
+
 function getCropProfiles() {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('REF_CropProfiles');
@@ -20931,9 +20997,10 @@ function recalculateLocationCounts() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Gets all CSA products
+ * Gets all CSA products (Sales module version)
+ * Renamed to avoid duplicate with line 16448
  */
-function getCSAProducts(params) {
+function getCSAProducts_sales(params) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PRODUCTS);
@@ -26924,55 +26991,277 @@ function getFields(params) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Try to get fields from FIELD_MAP sheet or REF_Fields
-    let sheet = ss.getSheetByName('REF_Fields') || ss.getSheetByName('FIELD_MAP');
+    // FIXED 2026-01-23: Extract fields AND bed counts from REF_Beds for calendar
+    // This provides fieldConfig needed by calendar.html
+    const bedsSheet = ss.getSheetByName('REF_Beds');
+    const fieldConfig = {};
+    const fields = [];
 
-    if (sheet) {
-      const data = sheet.getDataRange().getValues();
-      const headers = data[0];
+    if (bedsSheet) {
+      const bedData = bedsSheet.getDataRange().getValues();
+      const bedHeaders = bedData[0];
+      const parentFieldCol = bedHeaders.indexOf('Parent Field');
 
-      const fields = [];
-      for (let i = 1; i < data.length; i++) {
-        if (data[i][0]) {
-          fields.push({
-            Field_ID: data[i][headers.indexOf('Field_ID')] || data[i][0],
-            Field_Name: data[i][headers.indexOf('Field_Name')] || data[i][1] || data[i][0]
-          });
+      // Count beds per field
+      for (let i = 1; i < bedData.length; i++) {
+        const row = bedData[i];
+        let fieldName = parentFieldCol >= 0 ? row[parentFieldCol] : row[1];
+        if (!fieldName) continue;
+
+        // Extract short field ID from "Field F3L" format
+        const fieldMatch = String(fieldName).match(/Field\s+([A-Z0-9a-z]+)/i);
+        const fieldId = fieldMatch ? fieldMatch[1] : String(fieldName).replace('Field ', '');
+
+        if (fieldId) {
+          fieldConfig[fieldId] = (fieldConfig[fieldId] || 0) + 1;
         }
       }
 
-      return { success: true, fields: fields };
+      // Build fields array from the config
+      Object.keys(fieldConfig).sort().forEach(fieldId => {
+        fields.push({
+          Field_ID: fieldId,
+          Field_Name: fieldId,
+          bedCount: fieldConfig[fieldId]
+        });
+      });
     }
 
-    // Fallback: extract unique fields from PLANNING_2026
-    const planSheet = ss.getSheetByName('PLANNING_2026');
-    if (planSheet) {
-      const data = planSheet.getDataRange().getValues();
+    // If we got fields from beds, return them
+    if (fields.length > 0) {
+      return {
+        success: true,
+        fields: fields,
+        fieldConfig: fieldConfig,
+        count: fields.length
+      };
+    }
+
+    // Fallback: Try REF_Fields sheet
+    const refSheet = ss.getSheetByName('REF_Fields') || ss.getSheetByName('FIELD_MAP');
+    if (refSheet) {
+      const data = refSheet.getDataRange().getValues();
       const headers = data[0];
-      const fieldCol = headers.indexOf('Field');
 
-      if (fieldCol >= 0) {
-        const uniqueFields = [...new Set(
-          data.slice(1).map(row => row[fieldCol]).filter(f => f)
-        )];
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0]) {
+          const fieldId = data[i][headers.indexOf('Field_ID')] || data[i][0];
+          fields.push({
+            Field_ID: fieldId,
+            Field_Name: data[i][headers.indexOf('Field_Name')] || fieldId
+          });
+          fieldConfig[fieldId] = 12; // Default 12 beds
+        }
+      }
 
-        return {
-          success: true,
-          fields: uniqueFields.map(f => ({ Field_ID: f, Field_Name: f }))
-        };
+      if (fields.length > 0) {
+        return { success: true, fields: fields, fieldConfig: fieldConfig, count: fields.length };
       }
     }
 
-    // Default fields
+    // Default fields with typical bed counts
+    const defaultConfig = {
+      'F3L': 12, 'F7M': 10, 'F11M': 10, 'HOL': 12, 'IL': 11, 'IOL': 8,
+      'JL': 10, 'JS1': 15, 'JS4': 10, 'JS6': 10, 'JS10': 14, 'M': 14,
+      'SO': 12, 'Z1': 17, 'Z3': 15, 'Z5': 6, 'B': 4, 'CL': 5, 'K1': 6, 'K2': 6
+    };
+
     return {
       success: true,
-      fields: [
-        { Field_ID: 'Field A', Field_Name: 'Field A' },
-        { Field_ID: 'Field B', Field_Name: 'Field B' },
-        { Field_ID: 'Field C', Field_Name: 'Field C' },
-        { Field_ID: 'Greenhouse', Field_Name: 'Greenhouse' }
-      ]
+      fields: Object.keys(defaultConfig).sort().map(f => ({
+        Field_ID: f, Field_Name: f, bedCount: defaultConfig[f]
+      })),
+      fieldConfig: defaultConfig,
+      count: Object.keys(defaultConfig).length
     };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// ADD FIELD + AUTO-GENERATE BEDS
+// ============================================
+
+function addField(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Required parameters
+    const fieldId = params.fieldId || params.name;
+    const fieldName = params.name || params.fieldId;
+    const lengthFt = parseFloat(params.length) || 0;
+    const widthFt = parseFloat(params.width) || 0;
+    const fieldType = params.type || 'Veg'; // Veg, Floral, Perennial
+
+    if (!fieldId || !lengthFt || !widthFt) {
+      return { success: false, error: 'Required: fieldId/name, length, width' };
+    }
+
+    // Calculate field properties
+    const pathWidthIn = parseFloat(params.pathWidth) || 18; // 18" default path
+    const bedWidthIn = parseFloat(params.bedWidth) || 30; // 30" default bed
+    const bedSpacingFt = (pathWidthIn + bedWidthIn) / 12; // Convert to feet
+    const calculatedBeds = Math.floor(widthFt / bedSpacingFt);
+    // Allow manual override of bed count (for potatoes at 30" rows, plastic layouts, etc.)
+    const numBeds = params.numBeds ? parseInt(params.numBeds) : calculatedBeds;
+    const acreage = (lengthFt * widthFt) / 43560;
+
+    // Add to REF_Fields
+    let fieldsSheet = ss.getSheetByName('REF_Fields');
+    if (!fieldsSheet) {
+      fieldsSheet = ss.insertSheet('REF_Fields');
+      fieldsSheet.appendRow(['Field ID', 'Field Name', 'Acreage', 'Length (Ft)', 'Width (Ft)',
+                             'Path Width (in)', 'Bed Width (in)', 'Number of Beds', 'Notes',
+                             'Veg', 'Floral', 'Perennial', 'Cover']);
+      fieldsSheet.getRange(1, 1, 1, 13).setFontWeight('bold');
+    }
+
+    // Check if field already exists
+    const existingData = fieldsSheet.getDataRange().getValues();
+    for (let i = 1; i < existingData.length; i++) {
+      if (existingData[i][0] === fieldId || existingData[i][1] === fieldName) {
+        return { success: false, error: 'Field already exists: ' + fieldId };
+      }
+    }
+
+    // Add field row
+    fieldsSheet.appendRow([
+      fieldId,
+      fieldName,
+      acreage.toFixed(2),
+      lengthFt,
+      widthFt,
+      pathWidthIn,
+      bedWidthIn,
+      numBeds,
+      params.notes || '',
+      fieldType === 'Veg' ? 'Yes' : '',
+      fieldType === 'Floral' ? 'Yes' : '',
+      fieldType === 'Perennial' ? 'Yes' : '',
+      ''
+    ]);
+
+    // Add beds to REF_Beds
+    let bedsSheet = ss.getSheetByName('REF_Beds');
+    if (!bedsSheet) {
+      bedsSheet = ss.insertSheet('REF_Beds');
+      bedsSheet.appendRow(['Bed ID', 'Parent Field', 'Index', 'Length', 'Status', 'Type']);
+      bedsSheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+    }
+
+    // Generate beds
+    const bedsAdded = [];
+    for (let i = 1; i <= numBeds; i++) {
+      const bedId = 'Field ' + fieldName + '-' + String(i).padStart(2, '0');
+      bedsSheet.appendRow([
+        bedId,
+        'Field ' + fieldName,
+        i,
+        lengthFt,
+        'Available',
+        fieldType
+      ]);
+      bedsAdded.push(bedId);
+    }
+
+    return {
+      success: true,
+      message: 'Field added with ' + numBeds + ' beds',
+      field: {
+        fieldId: fieldId,
+        fieldName: fieldName,
+        acreage: acreage.toFixed(2),
+        lengthFt: lengthFt,
+        widthFt: widthFt,
+        numBeds: numBeds,
+        type: fieldType
+      },
+      bedsCreated: bedsAdded
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// UNIVERSAL SHEET ACCESS
+// Read any sheet by name - for PM_Architect and all Claudes
+// ============================================
+
+function getSheetData(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetName = params.sheetName || params.sheet;
+
+    if (!sheetName) {
+      return { success: false, error: 'sheetName parameter required' };
+    }
+
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      // Return list of available sheets to help find the right one
+      const availableSheets = ss.getSheets().map(s => s.getName());
+      return {
+        success: false,
+        error: 'Sheet not found: ' + sheetName,
+        availableSheets: availableSheets
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0] || [];
+
+    // Convert to array of objects with headers as keys
+    const rows = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i].some(cell => cell !== '')) { // Skip empty rows
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = data[i][idx];
+        });
+        rows.push(row);
+      }
+    }
+
+    // Support limit and offset for large sheets
+    const offset = parseInt(params.offset) || 0;
+    const limit = parseInt(params.limit) || rows.length;
+    const paginatedRows = rows.slice(offset, offset + limit);
+
+    return {
+      success: true,
+      sheetName: sheetName,
+      headers: headers,
+      totalRows: rows.length,
+      offset: offset,
+      limit: limit,
+      data: paginatedRows
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function listAllSheets() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheets = ss.getSheets().map(sheet => ({
+      name: sheet.getName(),
+      rows: sheet.getLastRow(),
+      cols: sheet.getLastColumn()
+    }));
+
+    return {
+      success: true,
+      spreadsheetName: ss.getName(),
+      spreadsheetId: ss.getId(),
+      sheetCount: sheets.length,
+      sheets: sheets
+    };
+
   } catch (error) {
     return { success: false, error: error.toString() };
   }
@@ -35540,7 +35829,7 @@ function initContentQueueSheet() {
     return sheet;
 }
 
-function schedulePost(params) {
+function schedulePost_social(params) {
     try {
         const sheet = initContentQueueSheet();
         const id = 'POST_' + Date.now();
@@ -35569,7 +35858,7 @@ function schedulePost(params) {
     }
 }
 
-function getScheduledPosts(params) {
+function getScheduledPosts_social(params) {
     try {
         const sheet = initContentQueueSheet();
         const data = sheet.getDataRange().getValues();
@@ -44212,7 +44501,7 @@ function createComplianceAlert(data) {
   }
 }
 
-function acknowledgeAlert(params) {
+function acknowledgeAlert_compliance(params) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.ALERTS);
@@ -53657,9 +53946,10 @@ function getDiseaseRisk(params) {
 }
 
 /**
- * Get harvest predictions for all active plantings
+ * Get harvest predictions for all active plantings (Farm Intelligence version)
+ * Renamed to avoid duplicate with line 51217
  */
-function getHarvestPredictions(params) {
+function getHarvestPredictions_farmIntel(params) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
@@ -53766,7 +54056,13 @@ function getGDDProgress(params) {
   const predictions = getHarvestPredictions(params);
   if (!predictions.success) return predictions;
 
-  const gddData = predictions.data.map(p => ({
+  // Null check for predictions.data
+  const predictionData = predictions.data || [];
+  if (predictionData.length === 0) {
+    return { success: true, data: [], message: 'No active plantings found', timestamp: new Date().toISOString() };
+  }
+
+  const gddData = predictionData.map(p => ({
     batch_id: p.batch_id,
     crop: p.crop,
     variety: p.variety,
@@ -53849,8 +54145,8 @@ function getPredictiveTasks(params) {
     const todayStr = Utilities.formatDate(today, 'America/New_York', 'yyyy-MM-dd');
 
     // Generate harvest tasks
-    if (predictions.success) {
-      predictions.data.forEach(p => {
+    if (predictions.success && predictions.data) {
+      (predictions.data || []).forEach(p => {
         if (p.days_remaining <= 7 && p.gdd_percent >= 85) {
           tasks.push({
             type: 'Harvest',
@@ -58591,6 +58887,7 @@ function getPlanningFast(params) {
 
 /**
  * Internal planning data (plain object for API response)
+ * FIXED 2026-01-23: Detect whether sheet has header row or not
  */
 function getPlanningDataInternal(params) {
   try {
@@ -58602,29 +58899,63 @@ function getPlanningDataInternal(params) {
     }
 
     const data = sheet.getDataRange().getValues();
-    if (data.length < 2) {
+    if (data.length < 1) {
       return { success: true, data: [], message: 'No planning data found' };
     }
 
-    const headers = data[0];
-    const rows = data.slice(1);
+    // Detect if first row is headers by checking for known header names
+    const firstRow = data[0];
+    const knownHeaders = ['Status', 'Batch_ID', 'Crop', 'Variety', 'Method', 'Target_Bed_ID'];
+    const hasHeaderRow = knownHeaders.some(h =>
+      firstRow.some(cell => String(cell).toLowerCase() === h.toLowerCase())
+    );
 
-    const plantings = rows.map(row => {
+    let headers, rows;
+    if (hasHeaderRow) {
+      headers = data[0];
+      rows = data.slice(1);
+    } else {
+      // No header row - use expected column positions
+      // FIXED 2026-01-23: Correct column mapping for Direct Seed crops
+      // 0=Status, 1=Batch_ID, 2=Crop, 3=Variety, 4=Method, 5=Target_Bed_ID,
+      // 6=Bed_Feet, 7=Total_Plants, 8=Successions,
+      // 9=Plan_GH_Sow, 10=Act_GH_Sow,
+      // 11=Plan_Field_Sow, 12=Act_Field_Sow,  <-- For Direct Seed crops!
+      // 13=Plan_Transplant, 14=Act_Transplant,
+      // 15=First_Harvest, 16=Last_Harvest
+      headers = ['Status', 'Batch_ID', 'Crop', 'Variety', 'Method', 'Target_Bed_ID',
+                 'Bed_Feet', 'Total_Plants', 'Successions', 'Plan_GH_Sow', 'Act_GH_Sow',
+                 'Plan_Field_Sow', 'Act_Field_Sow', 'Plan_Transplant', 'Act_Transplant',
+                 'First_Harvest', 'Last_Harvest'];
+      rows = data; // All rows are data
+    }
+
+    const plantings = rows.map((row, rowIndex) => {
+      // Skip completely empty rows
+      const cropIndex = hasHeaderRow ? headers.indexOf('Crop') : 2;
+      if (cropIndex === -1 || !row[cropIndex] || String(row[cropIndex]).trim() === '') {
+        return null;
+      }
+
       const obj = {};
       headers.forEach((header, index) => {
-        let value = row[index];
-        if (value instanceof Date) {
-          value = value.toISOString().split('T')[0];
+        if (index < row.length) {
+          let value = row[index];
+          if (value instanceof Date) {
+            value = value.toISOString().split('T')[0];
+          }
+          obj[header] = value;
         }
-        obj[header] = value;
       });
+      obj.rowIndex = rowIndex + (hasHeaderRow ? 2 : 1); // Actual row in sheet
       return obj;
-    }).filter(p => p.Crop);
+    }).filter(p => p !== null && p.Crop);
 
     return {
       success: true,
       data: plantings,
       count: plantings.length,
+      hasHeaderRow: hasHeaderRow,
       timestamp: new Date().toISOString()
     };
 
@@ -58733,11 +59064,102 @@ function getWeatherFast(params) {
   }, SmartCache.DURATIONS.MEDIUM);
 }
 
-// Fast morning brief with heavy caching
+// Fast morning brief - FIXED 2026-01-23: Complete rewrite to fix stack overflow
 function getMorningBriefFast(params) {
-  return SmartCache.get('morning_brief', () => {
-    return getMorningBrief(params);
-  }, SmartCache.DURATIONS.MEDIUM);
+  try {
+    const now = new Date();
+    const hour = now.getHours();
+    let greeting = 'Good morning';
+    if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+    if (hour >= 17) greeting = 'Good evening';
+
+    // FIXED 2026-01-23: Get REAL data from actual functions
+    const todaysTasks = getTodaysTasks() || [];
+    const overdueTasks = getOverdueTasks() || [];
+    const harvestReady = getHarvestReadyCrops() || [];
+
+    // Get pending orders from ORDERS sheet
+    let pendingOrders = [];
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const orderSheet = ss.getSheetByName('ORDERS') || ss.getSheetByName('Orders') || ss.getSheetByName('SALES_ORDERS');
+      if (orderSheet) {
+        const data = orderSheet.getDataRange().getValues();
+        if (data.length > 1) {
+          const headers = data[0].map(h => String(h).toLowerCase());
+          const statusIdx = headers.findIndex(h => h.includes('status'));
+          const customerIdx = headers.findIndex(h => h.includes('customer') || h.includes('name'));
+          const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('delivery'));
+          const totalIdx = headers.findIndex(h => h.includes('total') || h.includes('amount'));
+
+          for (let i = 1; i < data.length && pendingOrders.length < 10; i++) {
+            const row = data[i];
+            const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+            if (status.includes('pending') || status.includes('new') || status.includes('open') || status === '') {
+              pendingOrders.push({
+                customer: customerIdx >= 0 ? row[customerIdx] : 'Unknown',
+                date: dateIdx >= 0 ? row[dateIdx] : '',
+                total: totalIdx >= 0 ? row[totalIdx] : 0
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Orders lookup failed, continue with empty array
+    }
+
+    // Build smart tips based on actual data
+    const tips = [];
+    if (overdueTasks.length > 0) {
+      tips.push('⚠️ You have ' + overdueTasks.length + ' overdue task(s) that need attention');
+    }
+    if (harvestReady.filter(h => h.status === 'TODAY').length > 0) {
+      tips.push('🌿 Crops ready to harvest TODAY');
+    }
+    if (harvestReady.filter(h => h.status === 'OVERDUE').length > 0) {
+      tips.push('🚨 Some crops are past harvest date');
+    }
+    if (pendingOrders.length > 0) {
+      tips.push('📦 ' + pendingOrders.length + ' order(s) need processing');
+    }
+    if (tips.length === 0) {
+      tips.push('✅ Looking good! Check your schedule for the day');
+    }
+
+    return {
+      success: true,
+      timestamp: now.toISOString(),
+      greeting: greeting + '!',
+      date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      sections: {
+        weather: { status: 'unavailable', message: 'Weather data not configured' },
+        tasks: {
+          count: todaysTasks.length,
+          items: todaysTasks.slice(0, 5),
+          overdue: overdueTasks.length,
+          message: todaysTasks.length > 0 ? todaysTasks.length + ' tasks for today' : 'No tasks scheduled for today'
+        },
+        harvests: {
+          count: harvestReady.length,
+          items: harvestReady.slice(0, 5),
+          message: harvestReady.length > 0 ? harvestReady.length + ' crops ready or upcoming' : 'No immediate harvests'
+        },
+        orders: {
+          count: pendingOrders.length,
+          items: pendingOrders.slice(0, 5),
+          message: pendingOrders.length > 0 ? pendingOrders.length + ' pending orders' : 'No pending orders'
+        }
+      },
+      tips: tips,
+      message: 'Morning brief ready - v369 REAL DATA'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
 }
 
 /**
@@ -58963,12 +59385,13 @@ function getContentCalendar(params) {
 }
 
 /**
- * SCHEDULE POST - Add to content calendar
+ * SCHEDULE POST - Add to content calendar (Social Brain version)
+ * Renamed to avoid duplicate with line 33452
  */
-function schedulePost(data) {
+function schedulePost_socialBrain(data) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('CONTENT_CALENDAR');
-  
+
   if (!sheet) {
     getContentCalendar({}); // Creates sheet
     sheet = ss.getSheetByName('CONTENT_CALENDAR');
@@ -58990,8 +59413,8 @@ function schedulePost(data) {
 
   sheet.appendRow(row);
 
-  return { 
-    success: true, 
+  return {
+    success: true,
     postId: postId,
     message: 'Post scheduled for ' + row[5] + ' at ' + row[6]
   };
@@ -59147,9 +59570,10 @@ function generateWeeklyContent(params) {
 }
 
 /**
- * POST TO INSTAGRAM - Using Meta Graph API
+ * POST TO INSTAGRAM - Using Meta Graph API (Social Brain version)
+ * Renamed to avoid duplicate with line 35172
  */
-function postToInstagram(params) {
+function postToInstagram_socialBrain(params) {
   const accessToken = MARKETING_CONFIG.INSTAGRAM.ACCESS_TOKEN;
   if (!accessToken) {
     return { success: false, error: 'Meta access token not configured' };
@@ -59180,7 +59604,7 @@ function postToInstagram(params) {
     });
 
     const containerResult = JSON.parse(containerResponse.getContentText());
-    
+
     if (containerResult.error) {
       return { success: false, error: containerResult.error.message };
     }
@@ -59357,16 +59781,17 @@ function processScheduledPosts() {
 }
 
 /**
- * MARKETING DASHBOARD - Analytics overview
+ * MARKETING DASHBOARD - Analytics overview (Social Brain version)
+ * Renamed to avoid duplicate with line 33839
  */
-function getMarketingAnalytics(params) {
+function getMarketingAnalytics_socialBrain(params) {
   const period = params.period || 30; // days
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - period);
 
   // Get content calendar stats
   const calendar = getContentCalendar({ startDate: startDate.toISOString().split('T')[0] });
-  
+
   const stats = {
     totalPosts: calendar.posts.length,
     byPlatform: {},
@@ -61284,5 +61709,2512 @@ function sendWholesaleMeetingBrief() {
       success: false,
       error: error.toString()
     };
+  }
+}
+
+// =============================================
+// SMART AVAILABILITY MODULE (merged 2026-01-23)
+// =============================================
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * SMART AVAILABILITY ENGINE - REAL-TIME INVENTORY + FIELD PLAN INTEGRATION
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * "I WANT IT TO BE SO SMART THAT IT KNOWS WHAT I SHOULD DO BEFORE ME."
+ *
+ * This engine connects:
+ * - PLANNING_2026: What's planted, where, when
+ * - REF_Beds: Bed status and current crops
+ * - REF_Crops / REF_CropProfiles: DTM, harvest windows, yields
+ * - HARVEST_LOG: What's been harvested (reduces availability)
+ * - WHOLESALE_STANDING_ORDERS: What's already committed
+ *
+ * Created: 2026-01-22
+ * Backend Claude - STATE OF THE ART
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+const AVAILABILITY_CONFIG = {
+  SHEETS: {
+    PLANNING: 'PLANNING_2026',
+    BEDS: 'REF_Beds',
+    CROPS: 'REF_CropProfiles',
+    HARVEST_LOG: 'HARVEST_LOG',
+    STANDING_ORDERS: 'WHOLESALE_STANDING_ORDERS',
+    CUSTOMERS: 'WHOLESALE_CUSTOMERS',
+    AVAILABILITY_CACHE: 'AVAILABILITY_CACHE'
+  },
+  // Cache durations in minutes
+  CACHE_DURATION: {
+    AVAILABILITY: 15,  // Recalculate every 15 minutes
+    FORECAST: 60       // Forecasts good for 1 hour
+  },
+  // Yield adjustment factors
+  YIELD_FACTORS: {
+    WEATHER_HOT: 0.85,    // Hot weather reduces yield
+    WEATHER_COLD: 0.90,   // Cold weather slows growth
+    EARLY_SEASON: 0.80,   // First harvest is smaller
+    PEAK_SEASON: 1.0,     // Peak production
+    LATE_SEASON: 0.75     // End of season decline
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize availability tracking sheets
+ */
+function initializeAvailabilityModule() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Create WHOLESALE_CUSTOMERS if it doesn't exist
+  createSheetIfNotExists(ss, AVAILABILITY_CONFIG.SHEETS.CUSTOMERS, [
+    'Customer_ID', 'Company_Name', 'Contact_Name', 'Email', 'Phone',
+    'Address', 'City', 'State', 'Zip',
+    'Customer_Type', 'Price_Tier', 'Payment_Terms',
+    'Preferred_Contact', 'SMS_Opted_In', 'Email_Opted_In',
+    'First_Order_Date', 'Last_Order_Date', 'Total_Orders', 'Lifetime_Value',
+    'Favorite_Products', 'Order_History_JSON',
+    'Loyalty_Tier', 'Priority_Score',
+    'Notes', 'Tags', 'Status'
+  ]);
+
+  // Create HARVEST_LOG if it doesn't exist
+  createSheetIfNotExists(ss, AVAILABILITY_CONFIG.SHEETS.HARVEST_LOG, [
+    'Harvest_ID', 'Date', 'Crop', 'Variety', 'Bed_ID',
+    'Quantity', 'Unit', 'Quality_Grade', 'Harvester',
+    'Planting_ID', 'Notes', 'Created_At'
+  ]);
+
+  // Create AVAILABILITY_CACHE for performance
+  createSheetIfNotExists(ss, AVAILABILITY_CONFIG.SHEETS.AVAILABILITY_CACHE, [
+    'Product_Key', 'Product_Name', 'Available_Now', 'Available_This_Week',
+    'Available_Next_Week', 'Forecast_4_Weeks', 'Committed_Standing_Orders',
+    'Net_Available', 'Last_Calculated', 'Data_JSON'
+  ]);
+
+  return { success: true, message: 'Availability module initialized' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// CORE AVAILABILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get real-time availability for all products
+ * Considers: planted, growing, ready, harvested, committed
+ *
+ * @returns {Object} { products: [{ product, available_now, available_this_week, available_next_week, forecast_4_weeks }] }
+ */
+function getRealtimeAvailability() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const today = new Date();
+
+    // Get all data sources
+    const plantings = getActivePlantings(ss);
+    const cropProfiles = getCropProfilesFromSS(ss);
+    const harvestLog = getRecentHarvests(ss, 30); // Last 30 days
+    const standingOrders = getActiveStandingOrders(ss);
+
+    // Build availability by product
+    const availabilityMap = {};
+
+    for (const planting of plantings) {
+      const crop = planting.Crop;
+      const variety = planting.Variety || '';
+      const productKey = variety ? `${crop} - ${variety}` : crop;
+
+      if (!availabilityMap[productKey]) {
+        availabilityMap[productKey] = {
+          product: productKey,
+          crop: crop,
+          variety: variety,
+          plantings: [],
+          available_now: 0,
+          available_this_week: 0,
+          available_next_week: 0,
+          forecast_4_weeks: 0,
+          committed: 0,
+          beds: []
+        };
+      }
+
+      // Get crop profile for DTM and yield
+      const profile = findCropProfile(cropProfiles, crop, variety);
+      const dtm = profile ? (profile.DTM || profile.Days_To_Maturity || 60) : 60;
+      const yieldPerBed = profile ? (profile.Yield_Per_Bed || profile.Yield_Lbs_Per_Ft * 100 || 10) : 10;
+
+      // Calculate harvest date from planting/transplant date
+      const plantDate = planting.Direct_Seed_Actual || planting.Transplant_Actual || planting.Direct_Seed_Date || planting.Transplant_Date;
+      if (!plantDate) continue;
+
+      const harvestDate = new Date(plantDate);
+      harvestDate.setDate(harvestDate.getDate() + dtm);
+
+      const daysUntilHarvest = Math.floor((harvestDate - today) / (1000 * 60 * 60 * 24));
+      const estimatedYield = calculateAdjustedYield(yieldPerBed, planting, today);
+
+      // Subtract what's already been harvested from this planting
+      const harvested = getHarvestedQuantity(harvestLog, planting);
+      const remainingYield = Math.max(0, estimatedYield - harvested);
+
+      // Categorize by timing
+      if (daysUntilHarvest <= 0) {
+        // Ready now (or overdue)
+        availabilityMap[productKey].available_now += remainingYield;
+      } else if (daysUntilHarvest <= 7) {
+        availabilityMap[productKey].available_this_week += remainingYield;
+      } else if (daysUntilHarvest <= 14) {
+        availabilityMap[productKey].available_next_week += remainingYield;
+      } else if (daysUntilHarvest <= 28) {
+        availabilityMap[productKey].forecast_4_weeks += remainingYield;
+      }
+
+      availabilityMap[productKey].plantings.push({
+        planting_id: planting.Planting_ID || planting.ID,
+        bed: planting.Bed_Assignment || planting.Bed,
+        harvest_date: harvestDate.toISOString().split('T')[0],
+        days_until_harvest: daysUntilHarvest,
+        estimated_yield: remainingYield,
+        status: planting.Status || 'growing'
+      });
+
+      if (planting.Bed_Assignment) {
+        availabilityMap[productKey].beds.push(planting.Bed_Assignment);
+      }
+    }
+
+    // Subtract committed standing orders
+    for (const order of standingOrders) {
+      const productKey = order.Product_Name;
+      if (availabilityMap[productKey]) {
+        availabilityMap[productKey].committed += parseFloat(order.Quantity) || 0;
+      }
+    }
+
+    // Calculate net available
+    const products = Object.values(availabilityMap).map(p => ({
+      ...p,
+      net_available_now: Math.max(0, p.available_now - p.committed),
+      total_forecast: p.available_now + p.available_this_week + p.available_next_week + p.forecast_4_weeks
+    }));
+
+    // Sort by what's ready now
+    products.sort((a, b) => b.available_now - a.available_now);
+
+    return {
+      success: true,
+      generated: new Date().toISOString(),
+      products: products,
+      count: products.length,
+      summary: {
+        products_ready_now: products.filter(p => p.available_now > 0).length,
+        total_ready_now_lbs: products.reduce((sum, p) => sum + p.available_now, 0),
+        total_committed_lbs: products.reduce((sum, p) => sum + p.committed, 0)
+      }
+    };
+  } catch (error) {
+    Logger.log('getRealtimeAvailability error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get availability forecast for a specific product
+ * Uses DTM + planting dates + weather adjustments
+ *
+ * @param {string} productId - Product name or ID
+ * @param {number} weeksAhead - Number of weeks to forecast (default 8)
+ * @returns {Object} { product, forecast: [{ week, projected_quantity, confidence }] }
+ */
+function getProductForecast(productId, weeksAhead) {
+  try {
+    weeksAhead = weeksAhead || 8;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const today = new Date();
+
+    const plantings = getActivePlantings(ss);
+    const cropProfiles = getCropProfilesFromSS(ss);
+    const harvestLog = getRecentHarvests(ss, 60);
+
+    // Find plantings for this product
+    const productPlantings = plantings.filter(p => {
+      const productKey = p.Variety ? `${p.Crop} - ${p.Variety}` : p.Crop;
+      return productKey.toLowerCase().includes(productId.toLowerCase()) ||
+             p.Crop.toLowerCase().includes(productId.toLowerCase());
+    });
+
+    if (productPlantings.length === 0) {
+      return {
+        success: true,
+        product: productId,
+        forecast: [],
+        message: 'No plantings found for this product'
+      };
+    }
+
+    // Build weekly forecast
+    const forecast = [];
+    for (let week = 0; week <= weeksAhead; week++) {
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() + (week * 7));
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+
+      let weeklyTotal = 0;
+      let confidence = 1.0;
+      const sources = [];
+
+      for (const planting of productPlantings) {
+        const profile = findCropProfile(cropProfiles, planting.Crop, planting.Variety);
+        const dtm = profile ? (profile.DTM || 60) : 60;
+        const harvestWindow = profile ? (profile.Harvest_Window || 14) : 14;
+        const yieldPerBed = profile ? (profile.Yield_Per_Bed || 10) : 10;
+
+        const plantDate = planting.Direct_Seed_Actual || planting.Transplant_Actual ||
+                         planting.Direct_Seed_Date || planting.Transplant_Date;
+        if (!plantDate) continue;
+
+        const harvestStart = new Date(plantDate);
+        harvestStart.setDate(harvestStart.getDate() + dtm);
+        const harvestEnd = new Date(harvestStart);
+        harvestEnd.setDate(harvestEnd.getDate() + harvestWindow);
+
+        // Check if this planting is harvestable during this week
+        if (harvestStart <= weekEnd && harvestEnd >= weekStart) {
+          const alreadyHarvested = getHarvestedQuantity(harvestLog, planting);
+          const adjustedYield = calculateAdjustedYield(yieldPerBed, planting, weekStart);
+          const remaining = Math.max(0, adjustedYield - alreadyHarvested);
+
+          // Distribute yield across harvest window weeks
+          const daysInWindow = Math.min((weekEnd - harvestStart) / (1000*60*60*24) + 1, 7);
+          const weeklyPortion = remaining * (daysInWindow / harvestWindow);
+
+          weeklyTotal += weeklyPortion;
+          sources.push({
+            planting_id: planting.Planting_ID || planting.ID,
+            bed: planting.Bed_Assignment,
+            contribution: weeklyPortion
+          });
+        }
+      }
+
+      // Reduce confidence for further-out forecasts
+      if (week > 2) confidence = 0.85;
+      if (week > 4) confidence = 0.70;
+      if (week > 6) confidence = 0.55;
+
+      forecast.push({
+        week: week,
+        week_of: weekStart.toISOString().split('T')[0],
+        projected_quantity: Math.round(weeklyTotal * 10) / 10,
+        confidence: confidence,
+        sources: sources.length,
+        unit: 'lbs'
+      });
+    }
+
+    return {
+      success: true,
+      product: productId,
+      generated: new Date().toISOString(),
+      forecast: forecast,
+      total_plantings: productPlantings.length
+    };
+  } catch (error) {
+    Logger.log('getProductForecast error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Check if an order can be fulfilled
+ * Considers standing orders, existing commitments
+ *
+ * @param {Array} items - [{ product, quantity, unit }]
+ * @returns {Object} { canFulfill: true/false, shortages: [], alternatives: [] }
+ */
+function canFulfillOrder(items) {
+  try {
+    if (!items || !Array.isArray(items)) {
+      items = [];
+    }
+
+    const availability = getRealtimeAvailability();
+    if (!availability.success) {
+      return { success: false, error: 'Could not get availability' };
+    }
+
+    const availabilityMap = {};
+    for (const p of availability.products) {
+      availabilityMap[p.product.toLowerCase()] = p;
+    }
+
+    const results = [];
+    const shortages = [];
+    const alternatives = [];
+    let canFulfillAll = true;
+
+    for (const item of items) {
+      const productKey = (item.product || item.productName || '').toLowerCase();
+      const requestedQty = parseFloat(item.quantity) || 0;
+
+      const available = availabilityMap[productKey];
+
+      if (!available) {
+        canFulfillAll = false;
+        shortages.push({
+          product: item.product,
+          requested: requestedQty,
+          available: 0,
+          shortage: requestedQty,
+          reason: 'Product not found in current plantings'
+        });
+
+        // Find similar products
+        const similar = findSimilarProducts(availability.products, item.product);
+        if (similar.length > 0) {
+          alternatives.push({
+            for_product: item.product,
+            alternatives: similar
+          });
+        }
+      } else if (available.net_available_now < requestedQty) {
+        canFulfillAll = false;
+        shortages.push({
+          product: item.product,
+          requested: requestedQty,
+          available: available.net_available_now,
+          shortage: requestedQty - available.net_available_now,
+          reason: available.available_now < requestedQty ?
+                  'Insufficient current harvest' :
+                  'Committed to standing orders',
+          available_this_week: available.available_this_week,
+          available_next_week: available.available_next_week
+        });
+
+        // Find alternatives
+        const similar = findSimilarProducts(availability.products, item.product)
+          .filter(p => p.net_available_now >= requestedQty);
+        if (similar.length > 0) {
+          alternatives.push({
+            for_product: item.product,
+            alternatives: similar
+          });
+        }
+      } else {
+        results.push({
+          product: item.product,
+          requested: requestedQty,
+          canFulfill: true,
+          from_beds: available.beds.slice(0, 3)
+        });
+      }
+    }
+
+    return {
+      success: true,
+      canFulfill: canFulfillAll,
+      items_checked: items.length,
+      items_fulfilled: results.length,
+      results: results,
+      shortages: shortages,
+      alternatives: alternatives,
+      recommendation: canFulfillAll ?
+        'Order can be fulfilled from current availability' :
+        shortages.length === items.length ?
+          'Cannot fulfill any items - consider alternatives' :
+          `Partial fulfillment possible (${results.length}/${items.length} items)`
+    };
+  } catch (error) {
+    Logger.log('canFulfillOrder error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Smart allocation when demand exceeds supply
+ * Priority: Standing orders > Loyalty tier > First-come
+ *
+ * @param {string} product - Product name
+ * @param {number} totalAvailable - Total quantity available
+ * @param {Array} orders - [{ customerId, customerName, quantity, priority, loyaltyTier }]
+ * @returns {Object} Allocation per order
+ */
+function allocateAvailability(product, totalAvailable, orders) {
+  try {
+    totalAvailable = parseFloat(totalAvailable) || 0;
+
+    if (!orders || orders.length === 0) {
+      return { success: true, allocations: [], remaining: totalAvailable };
+    }
+
+    // Score and sort orders by priority
+    const scoredOrders = orders.map(order => {
+      let score = 0;
+
+      // Standing orders get highest priority
+      if (order.isStandingOrder) score += 1000;
+
+      // Loyalty tier scoring
+      const tier = (order.loyaltyTier || '').toLowerCase();
+      if (tier === 'platinum') score += 100;
+      else if (tier === 'gold') score += 75;
+      else if (tier === 'silver') score += 50;
+      else score += 25; // Regular
+
+      // Custom priority boost
+      score += (order.priority || 0) * 10;
+
+      // Order history boost (more orders = higher priority)
+      score += Math.min((order.totalOrders || 0), 50);
+
+      return { ...order, allocationScore: score };
+    });
+
+    // Sort by score descending
+    scoredOrders.sort((a, b) => b.allocationScore - a.allocationScore);
+
+    // Allocate
+    let remaining = totalAvailable;
+    const allocations = [];
+
+    for (const order of scoredOrders) {
+      const requested = parseFloat(order.quantity) || 0;
+      const allocated = Math.min(requested, remaining);
+
+      allocations.push({
+        customerId: order.customerId,
+        customerName: order.customerName,
+        requested: requested,
+        allocated: allocated,
+        fulfilled: allocated >= requested,
+        shortage: Math.max(0, requested - allocated),
+        priorityScore: order.allocationScore,
+        reason: allocated < requested ?
+          `Partial allocation (${Math.round(allocated/requested*100)}%)` :
+          'Fully allocated'
+      });
+
+      remaining -= allocated;
+      if (remaining <= 0) break;
+    }
+
+    return {
+      success: true,
+      product: product,
+      totalAvailable: totalAvailable,
+      totalAllocated: totalAvailable - remaining,
+      remaining: remaining,
+      allocations: allocations,
+      fullyFulfilled: allocations.filter(a => a.fulfilled).length,
+      partiallyFulfilled: allocations.filter(a => !a.fulfilled && a.allocated > 0).length,
+      unfulfilled: allocations.filter(a => a.allocated === 0).length
+    };
+  } catch (error) {
+    Logger.log('allocateAvailability error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * What should the farmer do today?
+ * AI-driven recommendations based on inventory state
+ *
+ * @returns {Object} { recommendations: [...], urgentActions: [...], metrics: {...} }
+ */
+function getSmartRecommendations() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const today = new Date();
+    const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today.getDay()];
+
+    const availability = getRealtimeAvailability();
+    const standingOrdersDue = getStandingOrdersDue({ date: today.toISOString().split('T')[0] });
+
+    const urgentActions = [];
+    const harvestPriority = [];
+    const plantingRecommendations = [];
+    const customerAlerts = [];
+
+    // 1. URGENT: Products with standing orders due today/tomorrow
+    if (standingOrdersDue.success && standingOrdersDue.orders) {
+      for (const order of standingOrdersDue.orders) {
+        const product = availability.products.find(p =>
+          p.product.toLowerCase() === order.Product_Name.toLowerCase()
+        );
+
+        if (product) {
+          if (product.net_available_now >= order.Quantity) {
+            harvestPriority.push({
+              action: 'HARVEST',
+              priority: 'HIGH',
+              product: order.Product_Name,
+              quantity: order.Quantity,
+              unit: order.Unit || 'lbs',
+              reason: `Standing order for ${order.Customer_Name}`,
+              dueDate: order.Next_Due_Date
+            });
+          } else {
+            urgentActions.push({
+              action: 'SHORTAGE_ALERT',
+              priority: 'CRITICAL',
+              product: order.Product_Name,
+              needed: order.Quantity,
+              available: product.net_available_now,
+              shortage: order.Quantity - product.net_available_now,
+              customer: order.Customer_Name,
+              recommendation: `Contact ${order.Customer_Name} about shortage. Available: ${product.net_available_now} ${order.Unit || 'lbs'}`
+            });
+          }
+        }
+      }
+    }
+
+    // 2. Products ready to harvest but no orders (sell proactively)
+    if (availability.success) {
+      for (const product of availability.products) {
+        if (product.available_now > 10 && product.committed < product.available_now * 0.5) {
+          urgentActions.push({
+            action: 'PROMOTE',
+            priority: 'MEDIUM',
+            product: product.product,
+            available: product.available_now,
+            committed: product.committed,
+            uncommitted: product.available_now - product.committed,
+            recommendation: `${Math.round(product.available_now - product.committed)} lbs uncommitted - send availability blast to chefs`
+          });
+        }
+      }
+    }
+
+    // 3. Products with high demand but low upcoming supply
+    if (availability.success) {
+      for (const product of availability.products) {
+        if (product.committed > 0 && product.total_forecast < product.committed * 2) {
+          plantingRecommendations.push({
+            action: 'PLANT_MORE',
+            priority: 'HIGH',
+            product: product.product,
+            currentCommitted: product.committed,
+            upcomingSupply: product.total_forecast,
+            gap: (product.committed * 4) - product.total_forecast,
+            recommendation: `Demand exceeds supply - consider succession planting`
+          });
+        }
+      }
+    }
+
+    // 4. Overdue harvests
+    if (availability.success) {
+      for (const product of availability.products) {
+        const overduePlantings = product.plantings.filter(p => p.days_until_harvest < -3);
+        if (overduePlantings.length > 0) {
+          urgentActions.push({
+            action: 'OVERDUE_HARVEST',
+            priority: 'HIGH',
+            product: product.product,
+            beds: overduePlantings.map(p => p.bed).filter(Boolean),
+            daysOverdue: Math.abs(overduePlantings[0].days_until_harvest),
+            recommendation: `Harvest ASAP - quality declining`
+          });
+        }
+      }
+    }
+
+    // Sort actions by priority
+    const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    urgentActions.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    harvestPriority.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+    // Build summary recommendations
+    const recommendations = [];
+
+    if (urgentActions.filter(a => a.priority === 'CRITICAL').length > 0) {
+      recommendations.push(`🚨 ${urgentActions.filter(a => a.priority === 'CRITICAL').length} CRITICAL actions need immediate attention`);
+    }
+
+    if (harvestPriority.length > 0) {
+      recommendations.push(`🌱 Harvest ${harvestPriority.length} products today - chefs waiting`);
+    }
+
+    if (urgentActions.filter(a => a.action === 'PROMOTE').length > 0) {
+      const totalUncommitted = urgentActions
+        .filter(a => a.action === 'PROMOTE')
+        .reduce((sum, a) => sum + (a.uncommitted || 0), 0);
+      recommendations.push(`📣 ${Math.round(totalUncommitted)} lbs ready but uncommitted - send availability to chefs`);
+    }
+
+    if (plantingRecommendations.length > 0) {
+      recommendations.push(`🌿 ${plantingRecommendations.length} products need succession planting`);
+    }
+
+    return {
+      success: true,
+      generated: new Date().toISOString(),
+      dayOfWeek: dayOfWeek,
+      recommendations: recommendations,
+      urgentActions: urgentActions,
+      harvestPriority: harvestPriority,
+      plantingRecommendations: plantingRecommendations,
+      customerAlerts: customerAlerts,
+      metrics: {
+        products_tracked: availability.products?.length || 0,
+        products_ready: availability.summary?.products_ready_now || 0,
+        total_available_lbs: availability.summary?.total_ready_now_lbs || 0,
+        total_committed_lbs: availability.summary?.total_committed_lbs || 0,
+        standing_orders_due: standingOrdersDue.orders?.length || 0
+      }
+    };
+  } catch (error) {
+    Logger.log('getSmartRecommendations error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get weekly availability formatted for chefs
+ * Clean, simple format for customer-facing communication
+ */
+function getWeeklyAvailability() {
+  try {
+    const availability = getRealtimeAvailability();
+    if (!availability.success) {
+      return { success: false, error: 'Could not calculate availability' };
+    }
+
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    // Format for chefs - only show what's actually available
+    const available = availability.products
+      .filter(p => p.net_available_now > 0 || p.available_this_week > 0)
+      .map(p => ({
+        product: p.product,
+        available_now: Math.round(p.net_available_now),
+        coming_this_week: Math.round(p.available_this_week),
+        total_available: Math.round(p.net_available_now + p.available_this_week),
+        unit: 'lbs'
+      }))
+      .sort((a, b) => b.total_available - a.total_available);
+
+    // Upcoming (not ready yet but coming soon)
+    const upcoming = availability.products
+      .filter(p => p.net_available_now === 0 && p.available_this_week === 0 && p.available_next_week > 0)
+      .map(p => ({
+        product: p.product,
+        available_next_week: Math.round(p.available_next_week),
+        unit: 'lbs'
+      }));
+
+    return {
+      success: true,
+      week_of: weekStart.toISOString().split('T')[0],
+      week_ending: weekEnd.toISOString().split('T')[0],
+      generated: new Date().toISOString(),
+      available_now: available,
+      coming_soon: upcoming,
+      total_products: available.length,
+      message: `${available.length} products available this week from Tiny Seed Farm`
+    };
+  } catch (error) {
+    Logger.log('getWeeklyAvailability error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get what was freshly harvested today
+ */
+function getFreshHarvests() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const today = new Date().toISOString().split('T')[0];
+
+    const sheet = ss.getSheetByName(AVAILABILITY_CONFIG.SHEETS.HARVEST_LOG);
+    if (!sheet) return { success: true, harvests: [], message: 'No harvest log found' };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, harvests: [] };
+
+    const headers = data[0];
+    const harvests = data.slice(1)
+      .map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      })
+      .filter(h => {
+        const harvestDate = h.Date instanceof Date ?
+          h.Date.toISOString().split('T')[0] :
+          String(h.Date).split('T')[0];
+        return harvestDate === today;
+      })
+      .map(h => ({
+        crop: h.Crop,
+        variety: h.Variety,
+        quantity: h.Quantity,
+        unit: h.Unit || 'lbs',
+        quality: h.Quality_Grade,
+        bed: h.Bed_ID,
+        time: h.Created_At
+      }));
+
+    return {
+      success: true,
+      date: today,
+      harvests: harvests,
+      total_items: harvests.length,
+      total_quantity: harvests.reduce((sum, h) => sum + (parseFloat(h.quantity) || 0), 0)
+    };
+  } catch (error) {
+    Logger.log('getFreshHarvests error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get active plantings from PLANNING_2026
+ */
+function getActivePlantings(ss) {
+  const sheet = ss.getSheetByName(AVAILABILITY_CONFIG.SHEETS.PLANNING);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  const headers = data[0];
+  return data.slice(1)
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => {
+        let val = row[i];
+        if (val instanceof Date) {
+          obj[h] = val;
+        } else {
+          obj[h] = val;
+        }
+      });
+      return obj;
+    })
+    .filter(p => {
+      // Filter to active plantings (not completed/cancelled)
+      const status = (p.Status || '').toLowerCase();
+      return p.Crop && !status.includes('cancel') && !status.includes('complete');
+    });
+}
+
+/**
+ * Get crop profiles with DTM and yield data (helper function for SmartAvailability)
+ * Renamed to avoid conflict with API endpoint getCropProfiles
+ */
+function getCropProfilesFromSS(ss) {
+  const sheet = ss.getSheetByName(AVAILABILITY_CONFIG.SHEETS.CROPS) ||
+                ss.getSheetByName('REF_Crops') ||
+                ss.getSheetByName('Crops');
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  const headers = data[0];
+  return data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  });
+}
+
+/**
+ * Find crop profile by crop and variety
+ */
+function findCropProfile(profiles, crop, variety) {
+  const cropLower = (crop || '').toLowerCase();
+  const varietyLower = (variety || '').toLowerCase();
+
+  // Try exact match first
+  let match = profiles.find(p =>
+    (p.Crop || '').toLowerCase() === cropLower &&
+    (p.Variety || '').toLowerCase() === varietyLower
+  );
+
+  // Fall back to crop-only match
+  if (!match) {
+    match = profiles.find(p => (p.Crop || '').toLowerCase() === cropLower);
+  }
+
+  return match;
+}
+
+/**
+ * Get recent harvests from log
+ */
+function getRecentHarvests(ss, days) {
+  const sheet = ss.getSheetByName(AVAILABILITY_CONFIG.SHEETS.HARVEST_LOG);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  const headers = data[0];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  return data.slice(1)
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    })
+    .filter(h => {
+      const date = h.Date instanceof Date ? h.Date : new Date(h.Date);
+      return date >= cutoff;
+    });
+}
+
+/**
+ * Get quantity already harvested from a specific planting
+ */
+function getHarvestedQuantity(harvestLog, planting) {
+  const plantingId = planting.Planting_ID || planting.ID;
+  if (!plantingId) return 0;
+
+  return harvestLog
+    .filter(h => h.Planting_ID === plantingId)
+    .reduce((sum, h) => sum + (parseFloat(h.Quantity) || 0), 0);
+}
+
+/**
+ * Get active standing orders
+ */
+function getActiveStandingOrders(ss) {
+  const sheet = ss.getSheetByName(AVAILABILITY_CONFIG.SHEETS.STANDING_ORDERS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  const headers = data[0];
+  return data.slice(1)
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    })
+    .filter(o => o.Status === 'Active');
+}
+
+/**
+ * Calculate yield with seasonal adjustments
+ */
+function calculateAdjustedYield(baseYield, planting, date) {
+  let adjustment = 1.0;
+
+  // Seasonal adjustment
+  const month = date.getMonth();
+  if (month >= 5 && month <= 7) {
+    adjustment *= AVAILABILITY_CONFIG.YIELD_FACTORS.PEAK_SEASON;
+  } else if (month <= 3 || month >= 10) {
+    adjustment *= AVAILABILITY_CONFIG.YIELD_FACTORS.LATE_SEASON;
+  }
+
+  // Bed coverage adjustment
+  const bedCount = (planting.Bed_Assignment || '').split(',').length;
+  adjustment *= bedCount;
+
+  return baseYield * adjustment;
+}
+
+/**
+ * Find similar products for alternatives
+ */
+function findSimilarProducts(products, searchProduct) {
+  const searchLower = (searchProduct || '').toLowerCase();
+
+  // Extract the main crop name (before any variety indicator)
+  const mainCrop = searchLower.split(' - ')[0].split(' ')[0];
+
+  return products
+    .filter(p => {
+      const productLower = p.product.toLowerCase();
+      // Same crop type or similar name
+      return productLower.includes(mainCrop) &&
+             productLower !== searchLower &&
+             p.net_available_now > 0;
+    })
+    .slice(0, 3)
+    .map(p => ({
+      product: p.product,
+      available: p.net_available_now,
+      unit: 'lbs'
+    }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// DAILY AUTOMATION
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate daily availability - run at 6 AM
+ * Caches results for faster API responses
+ */
+function calculateDailyAvailability() {
+  try {
+    const availability = getRealtimeAvailability();
+
+    if (!availability.success) {
+      Logger.log('calculateDailyAvailability failed: ' + availability.error);
+      return;
+    }
+
+    // Cache to sheet for faster reads
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let cacheSheet = ss.getSheetByName(AVAILABILITY_CONFIG.SHEETS.AVAILABILITY_CACHE);
+
+    if (!cacheSheet) {
+      initializeAvailabilityModule();
+      cacheSheet = ss.getSheetByName(AVAILABILITY_CONFIG.SHEETS.AVAILABILITY_CACHE);
+    }
+
+    // Clear and repopulate
+    if (cacheSheet.getLastRow() > 1) {
+      cacheSheet.deleteRows(2, cacheSheet.getLastRow() - 1);
+    }
+
+    const rows = availability.products.map(p => [
+      p.product,
+      p.product,
+      p.available_now,
+      p.available_this_week,
+      p.available_next_week,
+      p.forecast_4_weeks,
+      p.committed,
+      p.net_available_now,
+      new Date().toISOString(),
+      JSON.stringify(p)
+    ]);
+
+    if (rows.length > 0) {
+      cacheSheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+    }
+
+    Logger.log('Daily availability calculated: ' + availability.products.length + ' products');
+    return { success: true, productsCalculated: availability.products.length };
+  } catch (error) {
+    Logger.log('calculateDailyAvailability error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Sync harvest logs to update availability
+ * Run every 15 minutes
+ */
+function syncHarvestToAvailability() {
+  // Trigger recalculation if recent harvests detected
+  const fresh = getFreshHarvests();
+  if (fresh.success && fresh.harvests.length > 0) {
+    calculateDailyAvailability();
+  }
+}
+
+/**
+ * Set up all availability triggers
+ */
+function setupAvailabilityTriggers() {
+  // Remove existing triggers for these functions
+  const triggersToRemove = ['calculateDailyAvailability', 'syncHarvestToAvailability'];
+  const triggers = ScriptApp.getProjectTriggers();
+
+  for (const trigger of triggers) {
+    if (triggersToRemove.includes(trigger.getHandlerFunction())) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+
+  // Daily at 6 AM - Calculate availability
+  ScriptApp.newTrigger('calculateDailyAvailability')
+    .timeBased()
+    .atHour(6)
+    .everyDays(1)
+    .create();
+
+  // Every 15 minutes - Sync harvest logs
+  ScriptApp.newTrigger('syncHarvestToAvailability')
+    .timeBased()
+    .everyMinutes(15)
+    .create();
+
+  return { success: true, message: 'Availability triggers configured' };
+}
+
+// =============================================
+// CHEF COMMUNICATIONS MODULE (merged 2026-01-23)
+// =============================================
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ * CHEF COMMUNICATIONS ENGINE - PROACTIVE CUSTOMER ENGAGEMENT
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ *
+ * Automated and personalized communication with wholesale customers (chefs)
+ *
+ * Features:
+ * - Weekly availability blasts (SMS + Email)
+ * - Standing order shortage notifications
+ * - Fresh harvest alerts for premium products
+ * - Personalized recommendations based on order history
+ *
+ * Created: 2026-01-22
+ * Backend Claude - STATE OF THE ART
+ * ═══════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+const CHEF_COMM_CONFIG = {
+  FARM_NAME: 'Tiny Seed Farm',
+  FARM_PHONE: '+14128662259',
+  FARM_EMAIL: 'orders@tinyseedfarm.com',
+  ORDER_URL: 'https://tinyseedfarm.com/wholesale',
+  SHEETS: {
+    CUSTOMERS: 'WHOLESALE_CUSTOMERS',
+    COMM_LOG: 'CHEF_COMM_LOG',
+    PREFERENCES: 'CHEF_PREFERENCES'
+  },
+  SMS_CHAR_LIMIT: 160,
+  // Product categories for recommendations
+  CATEGORIES: {
+    GREENS: ['lettuce', 'spinach', 'arugula', 'kale', 'chard', 'mesclun'],
+    HERBS: ['basil', 'cilantro', 'parsley', 'dill', 'mint', 'oregano'],
+    TOMATOES: ['tomato', 'cherry tomato', 'heirloom tomato'],
+    ROOTS: ['carrot', 'beet', 'radish', 'turnip'],
+    ALLIUMS: ['onion', 'garlic', 'leek', 'scallion']
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize chef communications sheets
+ */
+function initializeChefCommunications() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Communication log
+  createSheetIfNotExists(ss, CHEF_COMM_CONFIG.SHEETS.COMM_LOG, [
+    'Comm_ID', 'Timestamp', 'Customer_ID', 'Customer_Name',
+    'Channel', 'Type', 'Subject', 'Message_Preview',
+    'Status', 'Response', 'Error'
+  ]);
+
+  // Chef preferences
+  createSheetIfNotExists(ss, CHEF_COMM_CONFIG.SHEETS.PREFERENCES, [
+    'Customer_ID', 'Favorite_Products', 'Avoid_Products',
+    'Preferred_Channel', 'Best_Contact_Time',
+    'Weekly_Availability_OptIn', 'Fresh_Harvest_Alerts_OptIn',
+    'Order_Reminder_OptIn', 'Last_Updated'
+  ]);
+
+  return { success: true, message: 'Chef communications module initialized' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// WEEKLY AVAILABILITY BLAST
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Send weekly availability to all opted-in chefs
+ * SMS: Short list of what's fresh
+ * Email: Full availability with details
+ */
+function sendWeeklyAvailabilityBlast() {
+  try {
+    const availability = getWeeklyAvailability();
+    if (!availability.success || availability.available_now.length === 0) {
+      Logger.log('No availability to send');
+      return { success: true, message: 'No products available this week', sent: 0 };
+    }
+
+    const customers = getOptedInChefs('weekly_availability');
+    const results = {
+      sms_sent: 0,
+      email_sent: 0,
+      errors: []
+    };
+
+    for (const customer of customers) {
+      try {
+        // Send SMS if opted in and has phone
+        if (customer.SMS_Opted_In && customer.Phone) {
+          const smsResult = sendWeeklyAvailabilitySMS(customer, availability);
+          if (smsResult.success) results.sms_sent++;
+          else results.errors.push({ customer: customer.Customer_ID, channel: 'SMS', error: smsResult.error });
+        }
+
+        // Send email if opted in and has email
+        if (customer.Email_Opted_In && customer.Email) {
+          const emailResult = sendWeeklyAvailabilityEmail(customer, availability);
+          if (emailResult.success) results.email_sent++;
+          else results.errors.push({ customer: customer.Customer_ID, channel: 'Email', error: emailResult.error });
+        }
+
+        // Log communication
+        logChefCommunication(customer.Customer_ID, customer.Company_Name || customer.Contact_Name,
+          'BLAST', 'Weekly Availability', 'Weekly availability blast sent');
+
+      } catch (e) {
+        results.errors.push({ customer: customer.Customer_ID, error: e.toString() });
+      }
+    }
+
+    return {
+      success: true,
+      week_of: availability.week_of,
+      products_available: availability.total_products,
+      customers_notified: customers.length,
+      sms_sent: results.sms_sent,
+      email_sent: results.email_sent,
+      errors: results.errors
+    };
+  } catch (error) {
+    Logger.log('sendWeeklyAvailabilityBlast error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send SMS version of weekly availability
+ */
+function sendWeeklyAvailabilitySMS(customer, availability) {
+  try {
+    // Build short SMS message
+    const topProducts = availability.available_now
+      .slice(0, 5)
+      .map(p => `${p.product}: ${p.total_available}lb`)
+      .join(', ');
+
+    const message = `🌱 ${CHEF_COMM_CONFIG.FARM_NAME} Fresh This Week:\n${topProducts}\n\nFull list + order: ${CHEF_COMM_CONFIG.ORDER_URL}\nReply STOP to opt out`;
+
+    // Use existing Twilio send function
+    const result = sendSMS(customer.Phone, message);
+    return result;
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send email version of weekly availability
+ */
+function sendWeeklyAvailabilityEmail(customer, availability) {
+  try {
+    const subject = `🌱 Fresh This Week from ${CHEF_COMM_CONFIG.FARM_NAME}`;
+
+    // Build product table
+    let productTable = '<table style="border-collapse: collapse; width: 100%;">';
+    productTable += '<tr style="background: #4a7c59; color: white;"><th style="padding: 10px; text-align: left;">Product</th><th style="padding: 10px; text-align: right;">Available Now</th><th style="padding: 10px; text-align: right;">Coming This Week</th></tr>';
+
+    for (const product of availability.available_now) {
+      productTable += `<tr style="border-bottom: 1px solid #ddd;">
+        <td style="padding: 10px;">${product.product}</td>
+        <td style="padding: 10px; text-align: right;">${product.available_now} ${product.unit}</td>
+        <td style="padding: 10px; text-align: right;">${product.coming_this_week} ${product.unit}</td>
+      </tr>`;
+    }
+    productTable += '</table>';
+
+    // Coming soon section
+    let comingSoon = '';
+    if (availability.coming_soon && availability.coming_soon.length > 0) {
+      comingSoon = '<h3 style="color: #4a7c59;">Coming Next Week</h3><ul>';
+      for (const product of availability.coming_soon.slice(0, 5)) {
+        comingSoon += `<li>${product.product} - ~${product.available_next_week} ${product.unit}</li>`;
+      }
+      comingSoon += '</ul>';
+    }
+
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #4a7c59; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">🌱 ${CHEF_COMM_CONFIG.FARM_NAME}</h1>
+          <p style="margin: 5px 0;">Fresh Availability - Week of ${availability.week_of}</p>
+        </div>
+
+        <div style="padding: 20px;">
+          <p>Hi ${customer.Contact_Name || 'Chef'},</p>
+
+          <p>Here's what's fresh and ready for you this week:</p>
+
+          ${productTable}
+
+          ${comingSoon}
+
+          <div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <strong>Ready to Order?</strong><br>
+            <a href="${CHEF_COMM_CONFIG.ORDER_URL}" style="color: #4a7c59;">Place your order online</a>
+            or reply to this email with your needs.
+          </div>
+
+          <p>Questions? Just reply to this email or call us at ${CHEF_COMM_CONFIG.FARM_PHONE}</p>
+
+          <p>Fresh regards,<br>
+          <strong>Tiny Seed Farm</strong></p>
+        </div>
+
+        <div style="background: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #666;">
+          You're receiving this because you opted in to weekly availability updates.<br>
+          <a href="${CHEF_COMM_CONFIG.ORDER_URL}/preferences">Update preferences</a> |
+          <a href="${CHEF_COMM_CONFIG.ORDER_URL}/unsubscribe">Unsubscribe</a>
+        </div>
+      </div>
+    `;
+
+    GmailApp.sendEmail(customer.Email, subject, 'View in HTML', { htmlBody: body });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// SHORTAGE NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Notify chef of shortage on their standing order
+ * @param {string} customerId - Customer ID
+ * @param {string} product - Product name
+ * @param {string} reason - Why there's a shortage
+ * @param {Array} alternatives - Alternative products available
+ */
+function notifyStandingOrderShortage(customerId, product, reason, alternatives) {
+  try {
+    const customer = getChefProfile(customerId);
+    if (!customer.success) {
+      return { success: false, error: 'Customer not found' };
+    }
+
+    const chef = customer.customer;
+    const results = { sms: null, email: null };
+
+    // SMS notification
+    if (chef.SMS_Opted_In && chef.Phone) {
+      const altText = alternatives && alternatives.length > 0 ?
+        `Alternatives: ${alternatives.slice(0, 2).map(a => a.product).join(', ')}` :
+        'Contact us for alternatives';
+
+      const smsMessage = `⚠️ ${CHEF_COMM_CONFIG.FARM_NAME}: We're short on ${product} for your order. ${reason}. ${altText}. Reply or call ${CHEF_COMM_CONFIG.FARM_PHONE}`;
+
+      results.sms = sendSMS(chef.Phone, smsMessage);
+    }
+
+    // Email notification
+    if (chef.Email) {
+      const subject = `⚠️ Standing Order Update - ${product} Shortage`;
+
+      let alternativesHtml = '';
+      if (alternatives && alternatives.length > 0) {
+        alternativesHtml = '<h3>Available Alternatives</h3><ul>';
+        for (const alt of alternatives) {
+          alternativesHtml += `<li><strong>${alt.product}</strong> - ${alt.available} ${alt.unit || 'lbs'} available</li>`;
+        }
+        alternativesHtml += '</ul>';
+      }
+
+      const body = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #f0ad4e; color: white; padding: 20px; text-align: center;">
+            <h2 style="margin: 0;">⚠️ Standing Order Update</h2>
+          </div>
+
+          <div style="padding: 20px;">
+            <p>Hi ${chef.Contact_Name || 'Chef'},</p>
+
+            <p>We wanted to give you a heads up about your standing order:</p>
+
+            <div style="background: #fff3cd; border: 1px solid #f0ad4e; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <strong>Product:</strong> ${product}<br>
+              <strong>Issue:</strong> ${reason}
+            </div>
+
+            ${alternativesHtml}
+
+            <p><strong>What would you like to do?</strong></p>
+            <ul>
+              <li>Reply to this email with your preference</li>
+              <li>Call us at ${CHEF_COMM_CONFIG.FARM_PHONE}</li>
+              <li>We'll include what we have unless you tell us otherwise</li>
+            </ul>
+
+            <p>We apologize for any inconvenience and appreciate your understanding. Farm life sometimes has its surprises!</p>
+
+            <p>Best,<br>
+            <strong>Tiny Seed Farm</strong></p>
+          </div>
+        </div>
+      `;
+
+      try {
+        GmailApp.sendEmail(chef.Email, subject, 'View in HTML', { htmlBody: body });
+        results.email = { success: true };
+      } catch (e) {
+        results.email = { success: false, error: e.toString() };
+      }
+    }
+
+    // Log communication
+    logChefCommunication(customerId, chef.Company_Name || chef.Contact_Name,
+      'SHORTAGE', `${product} Shortage`, `Shortage notification: ${reason}`);
+
+    return {
+      success: true,
+      customerId: customerId,
+      product: product,
+      notifications: results
+    };
+  } catch (error) {
+    Logger.log('notifyStandingOrderShortage error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// FRESH HARVEST ALERTS
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Send "just harvested" alerts for premium products
+ * To chefs who have ordered this before
+ *
+ * @param {string} product - Product just harvested
+ * @param {number} quantity - Quantity available
+ */
+function sendFreshHarvestAlert(product, quantity) {
+  try {
+    // Find chefs who have ordered this product before and opted in to alerts
+    const interestedChefs = getChefsInterestedIn(product);
+
+    if (interestedChefs.length === 0) {
+      return { success: true, message: 'No opted-in chefs interested in this product', sent: 0 };
+    }
+
+    const results = { sms_sent: 0, email_sent: 0, errors: [] };
+
+    for (const chef of interestedChefs) {
+      try {
+        // SMS alert
+        if (chef.SMS_Opted_In && chef.Phone) {
+          const message = `🌿 JUST PICKED: ${product} - ${quantity} lbs fresh today from ${CHEF_COMM_CONFIG.FARM_NAME}! First come, first served. Reply YES to reserve or call ${CHEF_COMM_CONFIG.FARM_PHONE}`;
+
+          const smsResult = sendSMS(chef.Phone, message);
+          if (smsResult.success) results.sms_sent++;
+        }
+
+        // Email alert
+        if (chef.Email) {
+          const subject = `🌿 Just Harvested: ${product} - Fresh Today!`;
+
+          const body = `
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+              <div style="background: linear-gradient(135deg, #4a7c59, #6b9b7a); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="margin: 0; font-size: 28px;">🌿 Just Picked!</h1>
+              </div>
+
+              <div style="padding: 25px; background: white; border: 1px solid #ddd;">
+                <h2 style="color: #4a7c59; margin-top: 0;">${product}</h2>
+
+                <p style="font-size: 24px; color: #333; margin: 20px 0;">
+                  <strong>${quantity} lbs</strong> available
+                </p>
+
+                <p>Hi ${chef.Contact_Name || 'Chef'},</p>
+
+                <p>We just harvested fresh <strong>${product}</strong> and thought of you since you've ordered it before.</p>
+
+                <p>This won't last long - first come, first served!</p>
+
+                <div style="text-align: center; margin: 25px 0;">
+                  <a href="mailto:${CHEF_COMM_CONFIG.FARM_EMAIL}?subject=Reserve ${product}&body=I'd like to reserve __ lbs of ${product}"
+                     style="background: #4a7c59; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    Reserve Now →
+                  </a>
+                </div>
+
+                <p style="color: #666; font-size: 14px;">
+                  Or reply to this email or call ${CHEF_COMM_CONFIG.FARM_PHONE}
+                </p>
+              </div>
+
+              <div style="background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 10px 10px;">
+                You're receiving this because you've ordered ${product} before.<br>
+                <a href="${CHEF_COMM_CONFIG.ORDER_URL}/preferences">Update alert preferences</a>
+              </div>
+            </div>
+          `;
+
+          try {
+            GmailApp.sendEmail(chef.Email, subject, 'View in HTML', { htmlBody: body });
+            results.email_sent++;
+          } catch (e) {
+            results.errors.push({ customer: chef.Customer_ID, error: e.toString() });
+          }
+        }
+
+        // Log
+        logChefCommunication(chef.Customer_ID, chef.Company_Name || chef.Contact_Name,
+          'FRESH_ALERT', product, `Fresh harvest alert: ${quantity} lbs`);
+
+      } catch (e) {
+        results.errors.push({ customer: chef.Customer_ID, error: e.toString() });
+      }
+    }
+
+    return {
+      success: true,
+      product: product,
+      quantity: quantity,
+      chefs_notified: interestedChefs.length,
+      sms_sent: results.sms_sent,
+      email_sent: results.email_sent,
+      errors: results.errors
+    };
+  } catch (error) {
+    Logger.log('sendFreshHarvestAlert error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// PERSONALIZED RECOMMENDATIONS
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Send personalized recommendations based on order history
+ * "Based on your orders, you might like..."
+ *
+ * @param {string} customerId - Customer ID
+ */
+function sendPersonalizedRecommendations(customerId) {
+  try {
+    const profileResult = getChefProfile(customerId);
+    if (!profileResult.success) {
+      return { success: false, error: 'Customer not found' };
+    }
+
+    const chef = profileResult.customer;
+    const recommendations = generateChefRecommendations(customerId);
+
+    if (!recommendations.success || recommendations.recommendations.length === 0) {
+      return { success: true, message: 'No recommendations to send' };
+    }
+
+    const results = { sms: null, email: null };
+
+    // SMS (brief)
+    if (chef.SMS_Opted_In && chef.Phone) {
+      const topRecs = recommendations.recommendations
+        .slice(0, 3)
+        .map(r => r.product)
+        .join(', ');
+
+      const message = `💡 ${CHEF_COMM_CONFIG.FARM_NAME}: Based on your orders, try: ${topRecs}. Available now! ${CHEF_COMM_CONFIG.ORDER_URL}`;
+
+      results.sms = sendSMS(chef.Phone, message);
+    }
+
+    // Email (detailed)
+    if (chef.Email) {
+      const subject = `💡 Picked for You, ${chef.Contact_Name || 'Chef'}`;
+
+      let recsHtml = '';
+      for (const rec of recommendations.recommendations) {
+        recsHtml += `
+          <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px;">
+            <h3 style="color: #4a7c59; margin: 0 0 10px 0;">${rec.product}</h3>
+            <p style="margin: 0; color: #666;">${rec.reason}</p>
+            <p style="margin: 10px 0 0 0;"><strong>${rec.available} lbs available</strong></p>
+          </div>
+        `;
+      }
+
+      const body = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #4a7c59; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0;">💡 Picked for You</h1>
+          </div>
+
+          <div style="padding: 20px;">
+            <p>Hi ${chef.Contact_Name || 'Chef'},</p>
+
+            <p>Based on what you've loved ordering from us, we think you might enjoy these:</p>
+
+            ${recsHtml}
+
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${CHEF_COMM_CONFIG.ORDER_URL}"
+                 style="background: #4a7c59; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px;">
+                View All Availability →
+              </a>
+            </div>
+
+            <p>Happy cooking!<br>
+            <strong>Tiny Seed Farm</strong></p>
+          </div>
+        </div>
+      `;
+
+      try {
+        GmailApp.sendEmail(chef.Email, subject, 'View in HTML', { htmlBody: body });
+        results.email = { success: true };
+      } catch (e) {
+        results.email = { success: false, error: e.toString() };
+      }
+    }
+
+    logChefCommunication(customerId, chef.Company_Name || chef.Contact_Name,
+      'RECOMMENDATION', 'Personalized Recommendations', `${recommendations.recommendations.length} products recommended`);
+
+    return {
+      success: true,
+      customerId: customerId,
+      recommendations_sent: recommendations.recommendations.length,
+      notifications: results
+    };
+  } catch (error) {
+    Logger.log('sendPersonalizedRecommendations error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate personalized recommendations for a chef
+ */
+function generateChefRecommendations(customerId) {
+  try {
+    const profileResult = getChefProfile(customerId);
+    if (!profileResult.success) {
+      return { success: false, recommendations: [] };
+    }
+
+    const chef = profileResult.customer;
+    const availability = getRealtimeAvailability();
+
+    if (!availability.success) {
+      return { success: false, recommendations: [] };
+    }
+
+    const recommendations = [];
+
+    // Parse favorite products
+    const favorites = (chef.Favorite_Products || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+
+    // Parse order history to find categories they like
+    let orderHistory = [];
+    try {
+      orderHistory = JSON.parse(chef.Order_History_JSON || '[]');
+    } catch (e) {
+      orderHistory = [];
+    }
+
+    // Build category preference from order history
+    const categoryScores = {};
+    for (const order of orderHistory) {
+      const product = (order.product || '').toLowerCase();
+      for (const [category, keywords] of Object.entries(CHEF_COMM_CONFIG.CATEGORIES)) {
+        if (keywords.some(k => product.includes(k))) {
+          categoryScores[category] = (categoryScores[category] || 0) + 1;
+        }
+      }
+    }
+
+    // Find available products in their preferred categories
+    for (const product of availability.products) {
+      if (product.net_available_now <= 0) continue;
+
+      const productLower = product.product.toLowerCase();
+      let score = 0;
+      let reason = '';
+
+      // Boost if it's a favorite
+      if (favorites.some(f => productLower.includes(f))) {
+        score += 100;
+        reason = "One of your favorites";
+      }
+
+      // Boost if it's in a category they order often
+      for (const [category, keywords] of Object.entries(CHEF_COMM_CONFIG.CATEGORIES)) {
+        if (keywords.some(k => productLower.includes(k))) {
+          score += (categoryScores[category] || 0) * 10;
+          if (!reason && categoryScores[category] > 2) {
+            reason = `You often order ${category.toLowerCase()}`;
+          }
+        }
+      }
+
+      // Only recommend if there's a reason
+      if (score > 0 && reason) {
+        recommendations.push({
+          product: product.product,
+          available: product.net_available_now,
+          score: score,
+          reason: reason
+        });
+      }
+    }
+
+    // Sort by score and take top 5
+    recommendations.sort((a, b) => b.score - a.score);
+
+    return {
+      success: true,
+      customerId: customerId,
+      recommendations: recommendations.slice(0, 5)
+    };
+  } catch (error) {
+    Logger.log('generateChefRecommendations error: ' + error.toString());
+    return { success: false, error: error.toString(), recommendations: [] };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// CHEF PROFILE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get chef profile by ID
+ */
+function getChefProfile(customerId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS) ||
+                  ss.getSheetByName('WHOLESALE_CUSTOMERS') ||
+                  ss.getSheetByName('Wholesale_Customers') ||
+                  ss.getSheetByName('Customers') ||
+                  ss.getSheetByName('CUSTOMERS') ||
+                  ss.getSheetByName('Chefs') ||
+                  ss.getSheetByName('CHEFS');
+
+    if (!sheet) return { success: false, error: 'Customers sheet not found. Please create WHOLESALE_CUSTOMERS sheet.' };
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: false, error: 'No customers found' };
+
+    const headers = data[0];
+    const customerIdCol = headers.findIndex(h =>
+      h === 'Customer_ID' || h === 'CustomerID' || h === 'ID'
+    );
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][customerIdCol] === customerId) {
+        const customer = {};
+        headers.forEach((h, idx) => customer[h] = data[i][idx]);
+        return { success: true, customer: customer };
+      }
+    }
+
+    return { success: false, error: 'Customer not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get chef order history
+ */
+function getChefOrderHistory(customerId) {
+  try {
+    const profile = getChefProfile(customerId);
+    if (!profile.success) return profile;
+
+    let history = [];
+    try {
+      history = JSON.parse(profile.customer.Order_History_JSON || '[]');
+    } catch (e) {
+      history = [];
+    }
+
+    return {
+      success: true,
+      customerId: customerId,
+      customerName: profile.customer.Company_Name || profile.customer.Contact_Name,
+      orders: history,
+      totalOrders: profile.customer.Total_Orders || history.length,
+      lifetimeValue: profile.customer.Lifetime_Value || 0,
+      firstOrderDate: profile.customer.First_Order_Date,
+      lastOrderDate: profile.customer.Last_Order_Date
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update chef preferences
+ */
+function updateChefPreferences(customerId, preferences) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS);
+    if (!sheet) return { success: false, error: 'Customers sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const customerIdCol = headers.findIndex(h => h === 'Customer_ID' || h === 'CustomerID');
+    const smsOptCol = headers.findIndex(h => h === 'SMS_Opted_In');
+    const emailOptCol = headers.findIndex(h => h === 'Email_Opted_In');
+    const favoritesCol = headers.findIndex(h => h === 'Favorite_Products');
+    const notesCol = headers.findIndex(h => h === 'Notes');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][customerIdCol] === customerId) {
+        if (preferences.smsOptIn !== undefined && smsOptCol !== -1) {
+          sheet.getRange(i + 1, smsOptCol + 1).setValue(preferences.smsOptIn ? 'Yes' : 'No');
+        }
+        if (preferences.emailOptIn !== undefined && emailOptCol !== -1) {
+          sheet.getRange(i + 1, emailOptCol + 1).setValue(preferences.emailOptIn ? 'Yes' : 'No');
+        }
+        if (preferences.favoriteProducts && favoritesCol !== -1) {
+          sheet.getRange(i + 1, favoritesCol + 1).setValue(preferences.favoriteProducts);
+        }
+
+        return { success: true, message: 'Preferences updated' };
+      }
+    }
+
+    return { success: false, error: 'Customer not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get all opted-in chefs for a specific communication type
+ */
+function getOptedInChefs(commType) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS) ||
+                  ss.getSheetByName('Customers');
+
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    const headers = data[0];
+    const customers = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+
+    // Filter for wholesale customers who are opted in
+    return customers.filter(c => {
+      const isWholesale = (c.Customer_Type || '').toLowerCase() === 'wholesale' ||
+                          (c.Type || '').toLowerCase() === 'wholesale';
+      const status = (c.Status || 'Active').toLowerCase();
+      const hasContact = c.Phone || c.Email;
+
+      return isWholesale && status === 'active' && hasContact &&
+             (c.SMS_Opted_In === 'Yes' || c.SMS_Opted_In === true ||
+              c.Email_Opted_In === 'Yes' || c.Email_Opted_In === true);
+    });
+  } catch (error) {
+    Logger.log('getOptedInChefs error: ' + error.toString());
+    return [];
+  }
+}
+
+/**
+ * Get chefs who are interested in a specific product (have ordered it before)
+ */
+function getChefsInterestedIn(product) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS);
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    const headers = data[0];
+    const productLower = product.toLowerCase();
+
+    return data.slice(1)
+      .map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      })
+      .filter(c => {
+        // Check if wholesale and active
+        const isWholesale = (c.Customer_Type || '').toLowerCase() === 'wholesale';
+        if (!isWholesale) return false;
+
+        // Check if they've ordered this product
+        const favorites = (c.Favorite_Products || '').toLowerCase();
+        let orderHistory = [];
+        try {
+          orderHistory = JSON.parse(c.Order_History_JSON || '[]');
+        } catch (e) {}
+
+        const hasOrdered = favorites.includes(productLower) ||
+                          orderHistory.some(o => (o.product || '').toLowerCase().includes(productLower));
+
+        // Must have contact info and be opted in to alerts
+        const hasContactAndOptIn = (c.SMS_Opted_In === 'Yes' && c.Phone) ||
+                                   (c.Email_Opted_In === 'Yes' && c.Email);
+
+        return hasOrdered && hasContactAndOptIn;
+      });
+  } catch (error) {
+    Logger.log('getChefsInterestedIn error: ' + error.toString());
+    return [];
+  }
+}
+
+/**
+ * Log chef communication
+ */
+function logChefCommunication(customerId, customerName, channel, type, preview) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.COMM_LOG);
+
+    if (!sheet) {
+      initializeChefCommunications();
+      sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.COMM_LOG);
+    }
+
+    if (!sheet) return;
+
+    const commId = 'COMM_' + Date.now();
+    sheet.appendRow([
+      commId,
+      new Date().toISOString(),
+      customerId,
+      customerName,
+      channel,
+      type,
+      type,
+      preview.substring(0, 100),
+      'Sent',
+      '',
+      ''
+    ]);
+  } catch (error) {
+    Logger.log('logChefCommunication error: ' + error.toString());
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// TRIGGERS
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Set up chef communication triggers
+ */
+function setupChefCommunicationTriggers() {
+  // Remove existing
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const trigger of triggers) {
+    if (trigger.getHandlerFunction() === 'sendWeeklyAvailabilityBlast') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+
+  // Monday at 7 AM - Send weekly availability
+  ScriptApp.newTrigger('sendWeeklyAvailabilityBlast')
+    .timeBased()
+    .onWeekDay(ScriptApp.WeekDay.MONDAY)
+    .atHour(7)
+    .create();
+
+  return { success: true, message: 'Chef communication triggers configured' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// CHEF INVITATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate a magic link token for passwordless authentication
+ */
+function generateMagicToken() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 32; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
+/**
+ * Invite a chef to the ordering platform
+ * Creates account + sends magic link via email AND SMS
+ *
+ * @param {Object} chefData - { email, company_name, contact_name, phone, address, city, state, zip }
+ * @returns {Object} { success, customerId, inviteUrl }
+ */
+function inviteChef(chefData) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS);
+
+    if (!sheet) {
+      // Create the sheet if it doesn't exist
+      initializeAvailabilityModule();
+      sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS);
+    }
+
+    if (!sheet) {
+      return { success: false, error: 'Could not create customers sheet' };
+    }
+
+    // Check if chef already exists
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const emailCol = headers.indexOf('Email');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][emailCol] && data[i][emailCol].toLowerCase() === chefData.email.toLowerCase()) {
+        // Chef exists - just send a new magic link
+        return sendChefMagicLink(data[i][headers.indexOf('Customer_ID')]);
+      }
+    }
+
+    // Generate new customer ID and magic token
+    const customerId = 'CHEF_' + Date.now();
+    const magicToken = generateMagicToken();
+    const tokenExpires = new Date();
+    tokenExpires.setDate(tokenExpires.getDate() + 7); // Token valid for 7 days
+
+    // Create the chef record
+    const newRow = [
+      customerId,                                    // Customer_ID
+      chefData.company_name || '',                   // Company_Name
+      chefData.contact_name || '',                   // Contact_Name
+      chefData.email,                                // Email
+      chefData.phone || '',                          // Phone
+      chefData.address || '',                        // Address
+      chefData.city || '',                           // City
+      chefData.state || '',                          // State
+      chefData.zip || '',                            // Zip
+      'Wholesale',                                   // Customer_Type
+      'Standard',                                    // Price_Tier
+      'Net 30',                                      // Payment_Terms
+      chefData.phone ? 'SMS' : 'Email',             // Preferred_Contact
+      chefData.phone ? 'Yes' : 'No',                 // SMS_Opted_In
+      'Yes',                                         // Email_Opted_In
+      '',                                            // First_Order_Date
+      '',                                            // Last_Order_Date
+      0,                                             // Total_Orders
+      0,                                             // Lifetime_Value
+      '',                                            // Favorite_Products
+      '[]',                                          // Order_History_JSON
+      'Bronze',                                      // Loyalty_Tier
+      0,                                             // Priority_Score
+      'Invited via system',                          // Notes
+      'new,invited',                                 // Tags
+      'Invited'                                      // Status
+    ];
+
+    // Add magic token columns if they don't exist
+    let magicTokenCol = headers.indexOf('Magic_Token');
+    let tokenExpiresCol = headers.indexOf('Token_Expires');
+
+    if (magicTokenCol === -1) {
+      // Add Magic_Token column
+      magicTokenCol = headers.length;
+      sheet.getRange(1, magicTokenCol + 1).setValue('Magic_Token');
+    }
+
+    if (tokenExpiresCol === -1) {
+      // Add Token_Expires column
+      tokenExpiresCol = headers.length + (magicTokenCol === headers.length ? 1 : 0);
+      sheet.getRange(1, tokenExpiresCol + 1).setValue('Token_Expires');
+    }
+
+    // Append the new row
+    sheet.appendRow(newRow);
+
+    // Set the magic token and expiration
+    const lastRow = sheet.getLastRow();
+    sheet.getRange(lastRow, magicTokenCol + 1).setValue(magicToken);
+    sheet.getRange(lastRow, tokenExpiresCol + 1).setValue(tokenExpires.toISOString());
+
+    // Build the invitation URL
+    const inviteUrl = `https://toddismyname21.github.io/tiny-seed-os/web_app/chef-order.html?token=${magicToken}`;
+
+    // Send invitation email
+    const emailResult = sendChefInvitationEmail(chefData, inviteUrl);
+
+    // Send invitation SMS if phone provided
+    let smsResult = { success: false, message: 'No phone provided' };
+    if (chefData.phone) {
+      smsResult = sendChefInvitationSMS(chefData, inviteUrl);
+    }
+
+    // Log the invitation
+    logChefCommunication(customerId, chefData.company_name || chefData.contact_name,
+      'INVITE', 'Chef Invitation', `Invited to platform`);
+
+    return {
+      success: true,
+      customerId: customerId,
+      inviteUrl: inviteUrl,
+      email_sent: emailResult.success,
+      sms_sent: smsResult.success,
+      message: `Chef ${chefData.contact_name || chefData.company_name} invited successfully`
+    };
+  } catch (error) {
+    Logger.log('inviteChef error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send magic link to existing chef
+ *
+ * @param {string} customerId - Customer ID
+ * @returns {Object} { success, inviteUrl }
+ */
+function sendChefMagicLink(customerId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS);
+
+    if (!sheet) {
+      return { success: false, error: 'Customers sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const customerIdCol = headers.indexOf('Customer_ID');
+
+    // Find the customer
+    let rowIndex = -1;
+    let customer = null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][customerIdCol] === customerId) {
+        rowIndex = i;
+        customer = {};
+        headers.forEach((h, idx) => customer[h] = data[i][idx]);
+        break;
+      }
+    }
+
+    if (!customer) {
+      return { success: false, error: 'Customer not found' };
+    }
+
+    // Generate new magic token
+    const magicToken = generateMagicToken();
+    const tokenExpires = new Date();
+    tokenExpires.setDate(tokenExpires.getDate() + 7);
+
+    // Update token in sheet
+    let magicTokenCol = headers.indexOf('Magic_Token');
+    let tokenExpiresCol = headers.indexOf('Token_Expires');
+
+    if (magicTokenCol === -1) {
+      magicTokenCol = headers.length;
+      sheet.getRange(1, magicTokenCol + 1).setValue('Magic_Token');
+    }
+
+    if (tokenExpiresCol === -1) {
+      tokenExpiresCol = magicTokenCol + 1;
+      sheet.getRange(1, tokenExpiresCol + 1).setValue('Token_Expires');
+    }
+
+    sheet.getRange(rowIndex + 1, magicTokenCol + 1).setValue(magicToken);
+    sheet.getRange(rowIndex + 1, tokenExpiresCol + 1).setValue(tokenExpires.toISOString());
+
+    const inviteUrl = `https://toddismyname21.github.io/tiny-seed-os/web_app/chef-order.html?token=${magicToken}`;
+
+    // Send email
+    const chefData = {
+      email: customer.Email,
+      contact_name: customer.Contact_Name,
+      company_name: customer.Company_Name,
+      phone: customer.Phone
+    };
+
+    const emailResult = sendChefLoginEmail(chefData, inviteUrl);
+
+    // Send SMS if phone exists
+    let smsResult = { success: false };
+    if (customer.Phone) {
+      smsResult = sendChefLoginSMS(chefData, inviteUrl);
+    }
+
+    return {
+      success: true,
+      customerId: customerId,
+      inviteUrl: inviteUrl,
+      email_sent: emailResult.success,
+      sms_sent: smsResult.success
+    };
+  } catch (error) {
+    Logger.log('sendChefMagicLink error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Verify a magic link token
+ *
+ * @param {string} token - Magic token
+ * @returns {Object} { valid, customerId, customer }
+ */
+function verifyChefToken(token) {
+  try {
+    if (!token) {
+      return { valid: false, error: 'No token provided' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS);
+
+    if (!sheet) {
+      return { valid: false, error: 'Customers sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const magicTokenCol = headers.indexOf('Magic_Token');
+    const tokenExpiresCol = headers.indexOf('Token_Expires');
+
+    if (magicTokenCol === -1) {
+      return { valid: false, error: 'Magic token system not configured' };
+    }
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][magicTokenCol] === token) {
+        // Check expiration
+        const expires = data[i][tokenExpiresCol];
+        if (expires) {
+          const expiresDate = new Date(expires);
+          if (expiresDate < new Date()) {
+            return { valid: false, error: 'Token expired' };
+          }
+        }
+
+        // Build customer object
+        const customer = {};
+        headers.forEach((h, idx) => {
+          if (h !== 'Magic_Token' && h !== 'Token_Expires') {
+            customer[h] = data[i][idx];
+          }
+        });
+
+        // Update status to Active if it was Invited
+        const statusCol = headers.indexOf('Status');
+        if (statusCol !== -1 && data[i][statusCol] === 'Invited') {
+          sheet.getRange(i + 1, statusCol + 1).setValue('Active');
+        }
+
+        return {
+          valid: true,
+          customerId: customer.Customer_ID,
+          customer: customer
+        };
+      }
+    }
+
+    return { valid: false, error: 'Invalid token' };
+  } catch (error) {
+    Logger.log('verifyChefToken error: ' + error.toString());
+    return { valid: false, error: error.toString() };
+  }
+}
+
+/**
+ * Bulk invite multiple chefs
+ *
+ * @param {Array} chefList - [{ email, company_name, contact_name, phone }, ...]
+ * @returns {Object} { success, results, summary }
+ */
+function bulkInviteChefs(chefList) {
+  try {
+    if (!chefList || !Array.isArray(chefList)) {
+      return { success: false, error: 'Invalid chef list' };
+    }
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const chef of chefList) {
+      if (!chef.email) {
+        results.push({ email: chef.email, success: false, error: 'No email provided' });
+        failCount++;
+        continue;
+      }
+
+      const result = inviteChef(chef);
+      results.push({
+        email: chef.email,
+        company: chef.company_name,
+        ...result
+      });
+
+      if (result.success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+
+      // Small delay to avoid rate limiting
+      Utilities.sleep(500);
+    }
+
+    return {
+      success: true,
+      total: chefList.length,
+      succeeded: successCount,
+      failed: failCount,
+      results: results
+    };
+  } catch (error) {
+    Logger.log('bulkInviteChefs error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send chef invitation email (new chef)
+ */
+function sendChefInvitationEmail(chefData, inviteUrl) {
+  try {
+    const subject = `🌱 You're Invited - Order Fresh from Tiny Seed Farm`;
+
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafaf9;">
+        <div style="background: linear-gradient(135deg, #22c55e, #15803d); color: white; padding: 40px; text-align: center;">
+          <h1 style="margin: 0; font-size: 32px;">🌱 Tiny Seed Farm</h1>
+          <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">Fresh to Your Kitchen</p>
+        </div>
+
+        <div style="padding: 40px; background: white;">
+          <h2 style="color: #1c1917; margin-top: 0;">Hi ${chefData.contact_name || 'Chef'},</h2>
+
+          <p style="font-size: 16px; line-height: 1.6; color: #44403c;">
+            You've been invited to order fresh, organic produce directly from <strong>Tiny Seed Farm</strong>.
+          </p>
+
+          <div style="background: #f5f5f4; border-radius: 12px; padding: 25px; margin: 30px 0;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+              <span style="font-size: 24px; margin-right: 15px;">🌿</span>
+              <span style="font-size: 16px; color: #1c1917;"><strong>See what's fresh</strong> - Updated daily from our fields</span>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+              <span style="font-size: 24px; margin-right: 15px;">📱</span>
+              <span style="font-size: 16px; color: #1c1917;"><strong>Order in seconds</strong> - Mobile-friendly, reorder with one tap</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <span style="font-size: 24px; margin-right: 15px;">🚚</span>
+              <span style="font-size: 16px; color: #1c1917;"><strong>Reliable delivery</strong> - Direct to your kitchen</span>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin: 40px 0;">
+            <a href="${inviteUrl}"
+               style="background: #22c55e; color: white; padding: 18px 40px; text-decoration: none;
+                      border-radius: 8px; font-weight: bold; font-size: 18px; display: inline-block;
+                      box-shadow: 0 4px 6px rgba(34, 197, 94, 0.25);">
+              Start Ordering →
+            </a>
+          </div>
+
+          <p style="font-size: 14px; color: #78716c; text-align: center;">
+            Or copy this link: <br>
+            <code style="background: #f5f5f4; padding: 5px 10px; border-radius: 4px; word-break: break-all;">${inviteUrl}</code>
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 30px 0;">
+
+          <p style="font-size: 14px; color: #78716c; text-align: center;">
+            Questions? Reply to this email or call us at ${CHEF_COMM_CONFIG.FARM_PHONE}
+          </p>
+
+          <p style="font-size: 16px; color: #1c1917; text-align: center; margin-top: 30px;">
+            Looking forward to feeding your kitchen!<br>
+            <strong>- Todd, Tiny Seed Farm</strong>
+          </p>
+        </div>
+
+        <div style="background: #f5f5f4; padding: 20px; text-align: center; font-size: 12px; color: #78716c;">
+          Tiny Seed Farm | Pittsburgh, PA<br>
+          This link expires in 7 days
+        </div>
+      </div>
+    `;
+
+    GmailApp.sendEmail(chefData.email, subject, 'View in HTML', { htmlBody: body });
+    return { success: true };
+  } catch (error) {
+    Logger.log('sendChefInvitationEmail error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send chef invitation SMS (new chef)
+ */
+function sendChefInvitationSMS(chefData, inviteUrl) {
+  try {
+    const message = `🌱 Hi ${chefData.contact_name || 'Chef'}! You're invited to order fresh produce from Tiny Seed Farm. Start here: ${inviteUrl} -Todd`;
+
+    return sendSMS(chefData.phone, message);
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send chef login email (existing chef, new magic link)
+ */
+function sendChefLoginEmail(chefData, inviteUrl) {
+  try {
+    const subject = `🌱 Your Login Link - Tiny Seed Farm`;
+
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="margin: 0;">🌱 Tiny Seed Farm</h1>
+        </div>
+
+        <div style="padding: 30px; background: white; border: 1px solid #e7e5e4; border-top: none;">
+          <p style="font-size: 16px;">Hi ${chefData.contact_name || 'Chef'},</p>
+
+          <p style="font-size: 16px;">Here's your login link:</p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${inviteUrl}"
+               style="background: #22c55e; color: white; padding: 15px 30px; text-decoration: none;
+                      border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+              Open Ordering Portal →
+            </a>
+          </div>
+
+          <p style="font-size: 14px; color: #78716c; text-align: center;">
+            Link expires in 7 days. Need a new one? Just reply to this email.
+          </p>
+        </div>
+
+        <div style="background: #f5f5f4; padding: 15px; text-align: center; font-size: 12px; color: #78716c; border-radius: 0 0 12px 12px;">
+          Tiny Seed Farm | ${CHEF_COMM_CONFIG.FARM_PHONE}
+        </div>
+      </div>
+    `;
+
+    GmailApp.sendEmail(chefData.email, subject, 'View in HTML', { htmlBody: body });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send chef login SMS (existing chef)
+ */
+function sendChefLoginSMS(chefData, inviteUrl) {
+  try {
+    const message = `🌱 Your Tiny Seed Farm login: ${inviteUrl}`;
+    return sendSMS(chefData.phone, message);
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all wholesale customers (chefs) with status
+ */
+function getAllChefs() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS);
+
+    if (!sheet) {
+      return { success: true, chefs: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, chefs: [] };
+
+    const headers = data[0];
+    const chefs = data.slice(1)
+      .map(row => {
+        const obj = {};
+        headers.forEach((h, i) => {
+          if (h !== 'Magic_Token') { // Don't expose tokens
+            obj[h] = row[i];
+          }
+        });
+        return obj;
+      })
+      .filter(c => (c.Customer_Type || '').toLowerCase() === 'wholesale');
+
+    return {
+      success: true,
+      total: chefs.length,
+      active: chefs.filter(c => c.Status === 'Active').length,
+      invited: chefs.filter(c => c.Status === 'Invited').length,
+      chefs: chefs
+    };
+  } catch (error) {
+    Logger.log('getAllChefs error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send a system email (for reports, updates, etc.)
+ *
+ * @param {Object} params - { to, subject, body, htmlBody }
+ * @returns {Object} { success }
+ */
+function sendSystemEmail(params) {
+  try {
+    const { to, subject, body, htmlBody } = params;
+
+    if (!to || !subject) {
+      return { success: false, error: 'Missing required fields: to, subject' };
+    }
+
+    GmailApp.sendEmail(to, subject, body || 'View in HTML', {
+      htmlBody: htmlBody || body,
+      name: 'Tiny Seed Farm System'
+    });
+
+    return { success: true, message: `Email sent to ${to}` };
+  } catch (error) {
+    Logger.log('sendSystemEmail error: ' + error.toString());
+    return { success: false, error: error.toString() };
   }
 }
