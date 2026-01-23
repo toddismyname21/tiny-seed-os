@@ -608,10 +608,376 @@ function getEmailsByStatus(params = {}) {
 }
 
 /**
+ * Get combined communications (emails + SMS) for Chief of Staff dashboard
+ */
+function getCombinedCommunications(params = {}) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+    const limit = parseInt(params.limit) || 100;
+
+    const results = [];
+    const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+
+    // Get emails from EMAIL_INBOX_STATE
+    if (sheet && sheet.getLastRow() > 1) {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+
+      const threadIdCol = headers.indexOf('Thread_ID');
+      const subjectCol = headers.indexOf('Subject');
+      const fromCol = headers.indexOf('From');
+      const fromNameCol = headers.indexOf('From_Name');
+      const receivedCol = headers.indexOf('Received_At');
+      const categoryCol = headers.indexOf('Category');
+      const priorityCol = headers.indexOf('Priority');
+      const statusCol = headers.indexOf('Status');
+      const summaryCol = headers.indexOf('AI_Summary');
+      const actionCol = headers.indexOf('AI_Suggested_Action');
+
+      for (let i = 1; i < data.length && results.length < limit; i++) {
+        const row = data[i];
+        const status = row[statusCol];
+
+        // Skip resolved/archived emails
+        if (status === 'RESOLVED' || status === 'ARCHIVED') continue;
+
+        const priority = row[priorityCol] || 'MEDIUM';
+
+        // Count by priority
+        const pLower = priority.toLowerCase();
+        if (counts[pLower] !== undefined) counts[pLower]++;
+
+        results.push({
+          id: row[threadIdCol],
+          type: 'email',
+          from: row[fromNameCol] || row[fromCol],
+          subject: row[subjectCol],
+          preview: (row[summaryCol] || '').substring(0, 150),
+          timestamp: row[receivedCol],
+          category: row[categoryCol],
+          priority: priority,
+          status: status,
+          suggestedAction: row[actionCol]
+        });
+      }
+    }
+
+    // Sort by priority then date
+    const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    results.sort((a, b) => {
+      const pDiff = (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+      if (pDiff !== 0) return pDiff;
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+
+    return {
+      success: true,
+      data: results,
+      counts: counts,
+      total: results.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Reclassify an email's priority and/or category
+ */
+function reclassifyEmail(threadId, newPriority, newCategory) {
+  try {
+    if (!threadId) {
+      return { success: false, error: 'Thread ID required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+
+    if (!sheet) {
+      return { success: false, error: 'EMAIL_INBOX_STATE sheet not found' };
+    }
+
+    const row = findThreadRow(sheet, threadId);
+    if (!row) {
+      return { success: false, error: 'Thread not found' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const priorityCol = headers.indexOf('Priority') + 1;
+    const categoryCol = headers.indexOf('Category') + 1;
+    const updatedCol = headers.indexOf('Updated_At') + 1;
+
+    const updates = [];
+
+    if (newPriority && EMAIL_PRIORITIES.includes(newPriority)) {
+      sheet.getRange(row, priorityCol).setValue(newPriority);
+      updates.push({ field: 'priority', value: newPriority });
+    }
+
+    if (newCategory && EMAIL_CATEGORIES.includes(newCategory)) {
+      sheet.getRange(row, categoryCol).setValue(newCategory);
+      updates.push({ field: 'category', value: newCategory });
+    }
+
+    if (updates.length > 0) {
+      sheet.getRange(row, updatedCol).setValue(new Date().toISOString());
+
+      // Log the reclassification for AI learning
+      logChiefOfStaffAudit({
+        agent: 'USER',
+        action: 'RECLASSIFY_EMAIL',
+        threadId: threadId,
+        input: { newPriority, newCategory },
+        output: { success: true, updates },
+        humanOverride: true,
+        overrideReason: 'User reclassification'
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        threadId,
+        updates,
+        message: updates.length > 0 ? 'Classification updated' : 'No changes made'
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Resolve an email thread
  */
 function resolveEmail(threadId, notes = '') {
   return transitionEmailState(threadId, 'RESOLVED', { notes });
+}
+
+/**
+ * Get full email details including body
+ */
+function getEmailDetail(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Email thread not found' };
+    }
+
+    const messages = thread.getMessages();
+    const latestMessage = messages[messages.length - 1];
+
+    // Get classification from sheet if available
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+    let classification = {};
+
+    if (sheet) {
+      const row = findThreadRow(sheet, threadId);
+      if (row) {
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        const rowData = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+        headers.forEach((h, idx) => {
+          classification[h.toLowerCase().replace(/_/g, '')] = rowData[idx];
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        threadId: threadId,
+        subject: thread.getFirstMessageSubject(),
+        from: latestMessage.getFrom(),
+        to: latestMessage.getTo(),
+        cc: latestMessage.getCc(),
+        date: latestMessage.getDate().toISOString(),
+        body: latestMessage.getPlainBody(),
+        htmlBody: latestMessage.getBody(),
+        messageCount: messages.length,
+        isUnread: thread.isUnread(),
+        labels: thread.getLabels().map(l => l.getName()),
+        hasAttachments: latestMessage.getAttachments().length > 0,
+        attachments: latestMessage.getAttachments().map(a => ({
+          name: a.getName(),
+          size: a.getSize(),
+          type: a.getContentType()
+        })),
+        classification: classification
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Archive an email thread
+ */
+function archiveEmail(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Email thread not found' };
+    }
+
+    // Move to archive in Gmail
+    thread.moveToArchive();
+
+    // Update status in sheet
+    transitionEmailState(threadId, 'ARCHIVED', { archivedAt: new Date().toISOString() });
+
+    logChiefOfStaffAudit({
+      agent: 'USER',
+      action: 'ARCHIVE_EMAIL',
+      threadId: threadId,
+      output: { success: true }
+    });
+
+    return { success: true, message: 'Email archived' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a draft reply to an email
+ */
+function draftEmailReply(threadId, replyBody, sendImmediately = false) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+  if (!replyBody) {
+    return { success: false, error: 'Reply body required' };
+  }
+
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Email thread not found' };
+    }
+
+    const messages = thread.getMessages();
+    const lastMessage = messages[messages.length - 1];
+
+    // Add signature
+    const signature = `\n\n--\nTiny Seed Farm\nFresh, Local, Organic`;
+    const fullBody = replyBody + signature;
+
+    if (sendImmediately) {
+      // Send immediately
+      lastMessage.reply(fullBody);
+
+      // Update status
+      transitionEmailState(threadId, 'AWAITING_THEM', { repliedAt: new Date().toISOString() });
+
+      logChiefOfStaffAudit({
+        agent: 'USER',
+        action: 'SEND_REPLY',
+        threadId: threadId,
+        input: { bodyPreview: replyBody.substring(0, 100) },
+        output: { success: true }
+      });
+
+      return { success: true, message: 'Reply sent', sent: true };
+    } else {
+      // Create draft
+      const draft = lastMessage.createDraftReply(fullBody);
+
+      logChiefOfStaffAudit({
+        agent: 'USER',
+        action: 'CREATE_DRAFT',
+        threadId: threadId,
+        input: { bodyPreview: replyBody.substring(0, 100) },
+        output: { success: true, draftId: draft.getId() }
+      });
+
+      return {
+        success: true,
+        message: 'Draft created',
+        draftId: draft.getId(),
+        sent: false
+      };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate AI draft reply for an email
+ */
+function generateAIDraftReply(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    // Get email details
+    const emailResult = getEmailDetail(threadId);
+    if (!emailResult.success) {
+      return emailResult;
+    }
+
+    const email = emailResult.data;
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+
+    if (!apiKey) {
+      return { success: false, error: 'AI not configured' };
+    }
+
+    const prompt = `You are responding on behalf of Tiny Seed Farm, a small organic vegetable farm.
+Write a professional, friendly reply to this email.
+
+From: ${email.from}
+Subject: ${email.subject}
+Body:
+${email.body}
+
+Write ONLY the reply body, no subject line or signature. Be concise and helpful.`;
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const draftBody = result.content[0].text;
+
+    return {
+      success: true,
+      threadId: threadId,
+      subject: email.subject,
+      originalFrom: email.from,
+      suggestedReply: draftBody
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 /**

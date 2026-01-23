@@ -7943,6 +7943,491 @@
             font-size: 0.75rem;
             color: #888;
         }
+
+        /* ========================================
+           SMART WORK ORDER - AI Prescription UI
+           ======================================== */
+        .work-order-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px 0;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
+        }
+
+        .work-order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .work-order-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #a78bfa;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .work-order-title i {
+            font-size: 1.2rem;
+        }
+
+        .work-order-weather {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.08);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .work-order-messages {
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fbbf24;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .message-content {
+            color: #fef3c7;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .efficiency-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+
+        .efficiency-badge.low {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.25);
+        }
+
+        .efficiency-badge.low .efficiency-icon {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .efficiency-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(34, 197, 94, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #22c55e;
+            font-size: 1.1rem;
+        }
+
+        .efficiency-info {
+            flex: 1;
+        }
+
+        .efficiency-label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            margin-bottom: 2px;
+        }
+
+        .efficiency-value {
+            color: #22c55e;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .efficiency-badge.low .efficiency-value {
+            color: #ef4444;
+        }
+
+        .efficiency-trend {
+            color: #22c55e;
+            font-size: 1rem;
+        }
+
+        .efficiency-badge.low .efficiency-trend {
+            color: #ef4444;
+        }
+
+        .efficiency-trend i.fa-arrow-down {
+            color: #ef4444;
+        }
+
+        .prescribed-tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .loading-work-order {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+        }
+
+        .loading-work-order i {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .prescribed-task-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 14px;
+            border-left: 4px solid #a78bfa;
+            transition: all 0.2s ease;
+        }
+
+        .prescribed-task-item.completed {
+            opacity: 0.6;
+            border-left-color: #22c55e;
+            background: rgba(34, 197, 94, 0.08);
+        }
+
+        .prescribed-task-item.active {
+            border-left-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.15);
+        }
+
+        .prescribed-task-item.critical {
+            border-left-color: #ef4444;
+        }
+
+        .task-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .task-item-sequence {
+            background: #a78bfa;
+            color: #1a1a2e;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin-right: 10px;
+        }
+
+        .prescribed-task-item.completed .task-item-sequence {
+            background: #22c55e;
+        }
+
+        .task-item-name {
+            flex: 1;
+            color: #f8fafc;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .task-item-time {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            background: rgba(255,255,255,0.08);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .task-item-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .task-detail-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.08);
+            color: #94a3b8;
+        }
+
+        .task-detail-badge.location {
+            color: #60a5fa;
+        }
+
+        .task-detail-badge.crop {
+            color: #34d399;
+        }
+
+        .task-item-reasoning {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #fbbf24;
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+
+        .task-item-reasoning i {
+            margin-right: 6px;
+        }
+
+        .task-item-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .task-action-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .task-action-btn.start-btn {
+            background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+            color: #fff;
+        }
+
+        .task-action-btn.start-btn:active {
+            transform: scale(0.98);
+        }
+
+        .task-action-btn.done-btn {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: #fff;
+            min-height: 56px;
+            font-size: 1.1rem;
+        }
+
+        .task-action-btn.done-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Active Timer Display */
+        .active-timer-display {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+            color: #1a1a2e;
+        }
+
+        .timer-task-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .timer-clock {
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+
+        .timer-benchmark {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 15px;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .timer-btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timer-btn.pause-btn {
+            background: rgba(0,0,0,0.2);
+            color: #1a1a2e;
+        }
+
+        .timer-btn.done-btn {
+            background: #22c55e;
+            color: #fff;
+            min-width: 120px;
+        }
+
+        /* Work Order Summary */
+        .work-order-summary {
+            display: flex;
+            justify-content: space-around;
+            padding: 14px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+        }
+
+        .summary-value {
+            color: #f8fafc;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        /* Tips Section */
+        .work-order-tips {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 10px;
+            color: #fbbf24;
+            font-size: 0.85rem;
+        }
+
+        .work-order-tips i {
+            margin-top: 2px;
+        }
+
+        /* Completion Overlay */
+        .task-completion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .completion-content {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .completion-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .completion-icon.excellent {
+            color: #22c55e;
+        }
+
+        .completion-icon.good {
+            color: #60a5fa;
+        }
+
+        .completion-icon.slow {
+            color: #fbbf24;
+        }
+
+        .completion-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .completion-stats {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .completion-stat {
+            text-align: center;
+        }
+
+        .completion-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .completion-stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .completion-message {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            margin-top: 10px;
+        }
+
+        .completion-actions {
+            margin-top: 30px;
+        }
+
+        .completion-btn {
+            padding: 16px 40px;
+            background: #a78bfa;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -8155,6 +8640,94 @@
 
                     <!-- Quick Stats -->
                     <div class="brief-quick-stats" id="mobileStats"></div>
+                </div>
+
+                <!-- SMART WORK ORDER - Daily Prescription from AI -->
+                <div class="work-order-card" id="workOrderCard">
+                    <div class="work-order-header">
+                        <div class="work-order-title">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>YOUR WORK ORDER</span>
+                        </div>
+                        <div class="work-order-weather" id="workOrderWeather">
+                            <i class="fas fa-cloud-sun"></i>
+                            <span id="workOrderWeatherText">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Employee Messages from Manager -->
+                    <div class="work-order-messages" id="workOrderMessages" style="display: none;">
+                        <div class="message-header">
+                            <i class="fas fa-comment-dots"></i>
+                            <span>Message from Manager</span>
+                        </div>
+                        <div class="message-content" id="managerMessageContent"></div>
+                    </div>
+
+                    <!-- Efficiency Badge -->
+                    <div class="efficiency-badge" id="efficiencyBadge">
+                        <div class="efficiency-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="efficiency-info">
+                            <span class="efficiency-label">Your Efficiency</span>
+                            <span class="efficiency-value" id="efficiencyValue">--</span>
+                        </div>
+                        <div class="efficiency-trend" id="efficiencyTrend">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                    </div>
+
+                    <!-- Prescribed Tasks List -->
+                    <div class="prescribed-tasks" id="prescribedTasks">
+                        <div class="loading-work-order">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Loading your work order...</span>
+                        </div>
+                    </div>
+
+                    <!-- Active Timer Display -->
+                    <div class="active-timer-display" id="activeTimerDisplay" style="display: none;">
+                        <div class="timer-task-info">
+                            <i class="fas fa-tasks"></i>
+                            <span id="activeTimerTaskName">--</span>
+                        </div>
+                        <div class="timer-clock" id="activeTimerClock">00:00</div>
+                        <div class="timer-benchmark">
+                            <span>Benchmark: </span>
+                            <span id="activeTimerBenchmark">-- min</span>
+                        </div>
+                        <div class="timer-controls">
+                            <button class="timer-btn pause-btn" onclick="pauseActiveTimer()">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button class="timer-btn done-btn" onclick="completeActiveTimer()">
+                                <i class="fas fa-check"></i> DONE
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Daily Summary -->
+                    <div class="work-order-summary" id="workOrderSummary">
+                        <div class="summary-item">
+                            <span class="summary-label">Tasks</span>
+                            <span class="summary-value" id="summaryTaskCount">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Est. Time</span>
+                            <span class="summary-value" id="summaryEstTime">0h</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Completed</span>
+                            <span class="summary-value" id="summaryCompleted">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Tips from AI -->
+                    <div class="work-order-tips" id="workOrderTips">
+                        <i class="fas fa-lightbulb"></i>
+                        <span id="workOrderTipText">Loading tips...</span>
+                    </div>
                 </div>
 
                 <!-- Work Mode Selector (Permission-based) -->
@@ -12613,6 +13186,9 @@
             // Load morning brief
             loadMobileBrief();
 
+            // Load Smart Work Order (AI Prescription)
+            loadWorkOrder();
+
             // Render mode selector based on permissions
             renderModeSelector();
 
@@ -12842,6 +13418,396 @@
 
             } catch (error) {
                 console.error('Mobile brief error:', error);
+            }
+        }
+
+        // ============================================
+        // SMART WORK ORDER - AI PRESCRIPTION SYSTEM
+        // ============================================
+        const WorkOrderState = {
+            prescription: null,
+            activeTimer: null,
+            timerInterval: null,
+            checkinId: null
+        };
+
+        async function loadWorkOrder() {
+            const container = document.getElementById('prescribedTasks');
+            const employeeId = AppState.employee?.Employee_ID;
+
+            if (!employeeId) {
+                container.innerHTML = '<div class="loading-work-order">Please log in to see your work order</div>';
+                return;
+            }
+
+            try {
+                // Load work order prescription
+                const response = await fetch(`${CONFIG.API_URL}?action=getMyWorkOrder&employeeId=${employeeId}`);
+                const data = await response.json();
+
+                if (data.success && data.tasks && data.tasks.length > 0) {
+                    WorkOrderState.prescription = data;
+                    renderWorkOrder(data);
+                    loadEfficiencyTrend();
+                    loadEmployeeMessages();
+                } else {
+                    container.innerHTML = `
+                        <div class="loading-work-order">
+                            <i class="fas fa-check-circle" style="color: #22c55e;"></i>
+                            <span>No prescribed tasks today. Check the Tasks tab for assignments.</span>
+                        </div>
+                    `;
+                }
+
+                // Update weather display
+                if (data.weather) {
+                    document.getElementById('workOrderWeatherText').textContent =
+                        `${data.weather.temperature || '--'}°F ${data.weather.condition || ''}`;
+                }
+
+            } catch (error) {
+                console.error('Work order error:', error);
+                container.innerHTML = `
+                    <div class="loading-work-order">
+                        <i class="fas fa-exclamation-triangle" style="color: #fbbf24;"></i>
+                        <span>Unable to load work order. Working offline.</span>
+                    </div>
+                `;
+            }
+        }
+
+        function renderWorkOrder(data) {
+            const container = document.getElementById('prescribedTasks');
+            const tasks = data.tasks || [];
+
+            // Update summary
+            document.getElementById('summaryTaskCount').textContent = tasks.length;
+            const totalMinutes = tasks.reduce((sum, t) => sum + (t.estimatedMinutes || 30), 0);
+            document.getElementById('summaryEstTime').textContent = `${Math.round(totalMinutes / 60 * 10) / 10}h`;
+            const completedCount = tasks.filter(t => t.completed).length;
+            document.getElementById('summaryCompleted').textContent = completedCount;
+
+            // Update tips
+            if (data.summary) {
+                document.getElementById('workOrderTipText').textContent = data.summary;
+            }
+
+            // Render task cards
+            container.innerHTML = tasks.map((task, index) => {
+                const isActive = WorkOrderState.activeTimer === task.taskId;
+                const isCompleted = task.completed;
+                const isCritical = task.priorityScore > 80;
+
+                return `
+                    <div class="prescribed-task-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''} ${isCritical ? 'critical' : ''}"
+                         id="task-${task.taskId || index}">
+                        <div class="task-item-header">
+                            <span class="task-item-sequence">${isCompleted ? '✓' : task.sequence || index + 1}</span>
+                            <span class="task-item-name">${task.taskType || 'Task'} ${task.crop || ''}</span>
+                            <span class="task-item-time">${task.estimatedMinutes || 30} min</span>
+                        </div>
+
+                        <div class="task-item-details">
+                            ${task.location ? `<span class="task-detail-badge location"><i class="fas fa-map-marker-alt"></i> ${task.location}</span>` : ''}
+                            ${task.crop ? `<span class="task-detail-badge crop"><i class="fas fa-leaf"></i> ${task.crop}</span>` : ''}
+                            ${task.batchId ? `<span class="task-detail-badge"><i class="fas fa-barcode"></i> ${task.batchId}</span>` : ''}
+                        </div>
+
+                        ${task.reasoning ? `
+                            <div class="task-item-reasoning">
+                                <i class="fas fa-lightbulb"></i>
+                                ${task.reasoning}
+                            </div>
+                        ` : ''}
+
+                        ${!isCompleted ? `
+                            <div class="task-item-actions">
+                                ${!isActive ? `
+                                    <button class="task-action-btn start-btn" onclick="startTaskTimer('${task.taskId || index}', '${task.taskType}', ${task.estimatedMinutes || 30})">
+                                        <i class="fas fa-play"></i> Start Timer
+                                    </button>
+                                ` : `
+                                    <button class="task-action-btn done-btn" onclick="completeTask('${task.taskId || index}')">
+                                        <i class="fas fa-check"></i> MARK COMPLETE
+                                    </button>
+                                `}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function startTaskTimer(taskId, taskType, benchmarkMinutes) {
+            const employeeId = AppState.employee?.Employee_ID;
+            const employeeName = `${AppState.employee?.First_Name || ''} ${AppState.employee?.Last_Name || ''}`.trim();
+
+            // Check in with the backend
+            try {
+                const params = new URLSearchParams({
+                    action: 'checkInTask',
+                    data: JSON.stringify({
+                        employeeId: employeeId,
+                        employeeName: employeeName,
+                        taskId: taskId,
+                        taskType: taskType,
+                        estimatedMinutes: benchmarkMinutes
+                    })
+                });
+
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    WorkOrderState.checkinId = result.checkinId;
+                }
+            } catch (error) {
+                console.error('Check-in error:', error);
+            }
+
+            // Start local timer
+            WorkOrderState.activeTimer = taskId;
+            WorkOrderState.timerStart = Date.now();
+            WorkOrderState.timerBenchmark = benchmarkMinutes;
+
+            // Show timer display
+            const timerDisplay = document.getElementById('activeTimerDisplay');
+            timerDisplay.style.display = 'block';
+            document.getElementById('activeTimerTaskName').textContent = `${taskType}`;
+            document.getElementById('activeTimerBenchmark').textContent = `${benchmarkMinutes} min`;
+
+            // Update timer every second
+            WorkOrderState.timerInterval = setInterval(updateTimerDisplay, 1000);
+
+            // Re-render to show active state
+            if (WorkOrderState.prescription) {
+                renderWorkOrder(WorkOrderState.prescription);
+            }
+
+            // Haptic feedback
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function updateTimerDisplay() {
+            if (!WorkOrderState.timerStart) return;
+
+            const elapsed = Date.now() - WorkOrderState.timerStart;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+
+            document.getElementById('activeTimerClock').textContent =
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            // Change color if over benchmark
+            const benchmark = WorkOrderState.timerBenchmark || 30;
+            const timerEl = document.getElementById('activeTimerDisplay');
+            if (minutes >= benchmark) {
+                timerEl.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+            } else if (minutes >= benchmark * 0.8) {
+                timerEl.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            }
+        }
+
+        function pauseActiveTimer() {
+            if (WorkOrderState.timerInterval) {
+                clearInterval(WorkOrderState.timerInterval);
+                WorkOrderState.timerInterval = null;
+            } else {
+                WorkOrderState.timerInterval = setInterval(updateTimerDisplay, 1000);
+            }
+        }
+
+        async function completeActiveTimer() {
+            await completeTask(WorkOrderState.activeTimer);
+        }
+
+        async function completeTask(taskId) {
+            const employeeId = AppState.employee?.Employee_ID;
+            let actualMinutes = 0;
+
+            // Calculate actual time if timer was running
+            if (WorkOrderState.timerStart) {
+                actualMinutes = Math.round((Date.now() - WorkOrderState.timerStart) / 60000);
+            }
+
+            // Stop timer
+            if (WorkOrderState.timerInterval) {
+                clearInterval(WorkOrderState.timerInterval);
+                WorkOrderState.timerInterval = null;
+            }
+
+            // Check out with backend
+            let feedback = { level: 'good', message: 'Task completed!', emoji: '✓' };
+
+            if (WorkOrderState.checkinId) {
+                try {
+                    const params = new URLSearchParams({
+                        action: 'checkOutTask',
+                        checkinId: WorkOrderState.checkinId,
+                        notes: ''
+                    });
+
+                    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                    const result = await response.json();
+
+                    if (result.success && result.feedback) {
+                        feedback = result.feedback;
+                        actualMinutes = result.actualMinutes;
+                    }
+                } catch (error) {
+                    console.error('Check-out error:', error);
+                }
+            }
+
+            // Hide timer display
+            document.getElementById('activeTimerDisplay').style.display = 'none';
+
+            // Show completion overlay
+            const benchmarkMinutes = WorkOrderState.timerBenchmark || 30;
+            const efficiency = actualMinutes > 0 ? Math.round((benchmarkMinutes / actualMinutes) * 100) : 100;
+
+            showCompletionOverlay({
+                taskId: taskId,
+                actualMinutes: actualMinutes,
+                benchmarkMinutes: benchmarkMinutes,
+                efficiency: efficiency,
+                feedback: feedback
+            });
+
+            // Reset state
+            WorkOrderState.activeTimer = null;
+            WorkOrderState.timerStart = null;
+            WorkOrderState.timerBenchmark = null;
+            WorkOrderState.checkinId = null;
+
+            // Mark task as completed in local state
+            if (WorkOrderState.prescription && WorkOrderState.prescription.tasks) {
+                const task = WorkOrderState.prescription.tasks.find(t => t.taskId === taskId || t.sequence == taskId);
+                if (task) task.completed = true;
+                renderWorkOrder(WorkOrderState.prescription);
+            }
+
+            // Refresh efficiency
+            loadEfficiencyTrend();
+        }
+
+        function showCompletionOverlay(data) {
+            const iconClass = data.efficiency >= 100 ? 'excellent' : (data.efficiency >= 80 ? 'good' : 'slow');
+            const icon = data.efficiency >= 100 ? '⚡' : (data.efficiency >= 80 ? '✓' : '⏱️');
+
+            const overlay = document.createElement('div');
+            overlay.className = 'task-completion-overlay';
+            overlay.innerHTML = `
+                <div class="completion-content">
+                    <div class="completion-icon ${iconClass}">${icon}</div>
+                    <div class="completion-title">${data.feedback?.message || 'Task Complete!'}</div>
+
+                    <div class="completion-stats">
+                        <div class="completion-stat">
+                            <div class="completion-stat-value">${data.actualMinutes || 0} min</div>
+                            <div class="completion-stat-label">Your Time</div>
+                        </div>
+                        <div class="completion-stat">
+                            <div class="completion-stat-value">${data.benchmarkMinutes} min</div>
+                            <div class="completion-stat-label">Benchmark</div>
+                        </div>
+                        <div class="completion-stat">
+                            <div class="completion-stat-value" style="color: ${data.efficiency >= 100 ? '#22c55e' : '#fbbf24'}">${data.efficiency}%</div>
+                            <div class="completion-stat-label">Efficiency</div>
+                        </div>
+                    </div>
+
+                    <div class="completion-message">
+                        ${data.efficiency >= 110 ? 'Outstanding! You beat the benchmark.' :
+                          data.efficiency >= 100 ? 'Great work! Right on target.' :
+                          data.efficiency >= 80 ? 'Good job. Slightly over time.' :
+                          'Task complete. Consider noting any issues.'}
+                    </div>
+
+                    <div class="completion-actions">
+                        <button class="completion-btn" onclick="this.closest('.task-completion-overlay').remove()">
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            // Haptic feedback
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (overlay.parentNode) overlay.remove();
+            }, 5000);
+        }
+
+        async function loadEfficiencyTrend() {
+            const employeeId = AppState.employee?.Employee_ID;
+            if (!employeeId) return;
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getEmployeeEfficiencyTrend&employeeId=${employeeId}&days=7`);
+                const data = await response.json();
+
+                const badge = document.getElementById('efficiencyBadge');
+                const valueEl = document.getElementById('efficiencyValue');
+                const trendEl = document.getElementById('efficiencyTrend');
+
+                if (data.average) {
+                    valueEl.textContent = `${data.average}%`;
+
+                    if (data.average < 80) {
+                        badge.classList.add('low');
+                    } else {
+                        badge.classList.remove('low');
+                    }
+
+                    if (data.improving === true) {
+                        trendEl.innerHTML = '<i class="fas fa-arrow-up"></i> Improving';
+                        trendEl.style.color = '#22c55e';
+                    } else if (data.improving === false) {
+                        trendEl.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                        trendEl.style.color = '#ef4444';
+                    } else {
+                        trendEl.innerHTML = '<i class="fas fa-minus"></i> Steady';
+                        trendEl.style.color = '#94a3b8';
+                    }
+                } else {
+                    valueEl.textContent = '--';
+                    trendEl.innerHTML = '<i class="fas fa-clock"></i> Building data';
+                }
+
+            } catch (error) {
+                console.error('Efficiency trend error:', error);
+            }
+        }
+
+        async function loadEmployeeMessages() {
+            const employeeId = AppState.employee?.Employee_ID;
+            if (!employeeId) return;
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getEmployeeMessages&employeeId=${employeeId}`);
+                const data = await response.json();
+
+                const container = document.getElementById('workOrderMessages');
+                const content = document.getElementById('managerMessageContent');
+
+                if (data.messages && data.messages.length > 0) {
+                    const latestMessage = data.messages[0];
+                    content.textContent = latestMessage.message;
+                    container.style.display = 'block';
+
+                    // Mark as read
+                    fetch(`${CONFIG.API_URL}?action=markMessageRead&messageId=${latestMessage.messageId}`);
+                } else {
+                    container.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Messages error:', error);
             }
         }
 

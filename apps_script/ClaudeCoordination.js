@@ -1158,6 +1158,86 @@ function testTwilioSMS() {
   return sendTwilioSMS('Test message from Tiny Seed Farm Claude Coordination System');
 }
 
+/**
+ * Configure Twilio credentials for Claude Coordination System
+ */
+function configureCoordinationTwilio(params) {
+  const props = PropertiesService.getScriptProperties();
+  let configured = [];
+
+  if (params.accountSid) {
+    props.setProperty('TWILIO_ACCOUNT_SID', params.accountSid);
+    configured.push('TWILIO_ACCOUNT_SID');
+  }
+
+  if (params.authToken) {
+    props.setProperty('TWILIO_AUTH_TOKEN', params.authToken);
+    configured.push('TWILIO_AUTH_TOKEN');
+  }
+
+  if (params.phoneNumber) {
+    // Normalize phone number format
+    const phone = params.phoneNumber.replace(/\D/g, '');
+    const formatted = phone.length === 10 ? '+1' + phone : (phone.startsWith('1') ? '+' + phone : '+' + phone);
+    props.setProperty('TWILIO_PHONE_NUMBER', formatted);
+    configured.push('TWILIO_PHONE_NUMBER');
+  }
+
+  if (params.ownerPhone) {
+    // Normalize owner phone number format
+    const phone = params.ownerPhone.replace(/\D/g, '');
+    const formatted = phone.length === 10 ? '+1' + phone : (phone.startsWith('1') ? '+' + phone : '+' + phone);
+    props.setProperty('OWNER_PHONE_NUMBER', formatted);
+    // Also set OWNER_PHONE for compatibility with other modules
+    props.setProperty('OWNER_PHONE', formatted);
+    configured.push('OWNER_PHONE_NUMBER');
+  }
+
+  logCoordinationActivity('system', 'twilio_configured', { configured });
+
+  return {
+    success: true,
+    message: 'Twilio configuration updated',
+    configured: configured
+  };
+}
+
+/**
+ * Get Twilio configuration status (without exposing secrets)
+ */
+function getTwilioStatus() {
+  const props = PropertiesService.getScriptProperties();
+
+  const accountSid = props.getProperty('TWILIO_ACCOUNT_SID');
+  const authToken = props.getProperty('TWILIO_AUTH_TOKEN');
+  const phoneNumber = props.getProperty('TWILIO_PHONE_NUMBER');
+  const ownerPhone = props.getProperty('OWNER_PHONE_NUMBER');
+
+  return {
+    success: true,
+    configured: {
+      accountSid: !!accountSid,
+      authToken: !!authToken,
+      phoneNumber: !!phoneNumber,
+      ownerPhone: !!ownerPhone
+    },
+    maskedValues: {
+      accountSid: accountSid ? accountSid.substring(0, 8) + '...' : null,
+      phoneNumber: phoneNumber ? phoneNumber.replace(/(\+\d{1})(\d{3})(\d{3})(\d{4})/, '$1 ($2) ***-$4') : null,
+      ownerPhone: ownerPhone ? ownerPhone.replace(/(\+\d{1})(\d{3})(\d{3})(\d{4})/, '$1 ($2) ***-$4') : null
+    },
+    ready: !!(accountSid && authToken && phoneNumber && ownerPhone),
+    message: (accountSid && authToken && phoneNumber && ownerPhone)
+      ? 'Twilio fully configured and ready'
+      : 'Missing: ' + [
+          !accountSid && 'Account SID',
+          !authToken && 'Auth Token',
+          !phoneNumber && 'Phone Number',
+          !ownerPhone && 'Owner Phone'
+        ].filter(Boolean).join(', ')
+  };
+}
+
 // ==========================================
 // ACTIVITY LOGGING
 // ==========================================
@@ -1442,6 +1522,10 @@ function handleCoordinationAPI(action, params) {
       return { success: sendTwilioSMS(params.message) };
     case 'testSMS':
       return { success: testTwilioSMS() };
+    case 'configureTwilio':
+      return configureCoordinationTwilio(params);
+    case 'getTwilioStatus':
+      return getTwilioStatus();
 
     // Init
     case 'initialize':

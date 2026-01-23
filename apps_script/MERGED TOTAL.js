@@ -809,9 +809,23 @@ function doGet(e) {
       case 'getPendingApprovals':
         return jsonResponse(getPendingApprovals());
       case 'approveAction':
+      case 'completeAction':
         return jsonResponse(approveEmailAction(e.parameter.actionId, e.parameter.approvedBy));
       case 'rejectAction':
+      case 'dismissAction':
         return jsonResponse(rejectEmailAction(e.parameter.actionId, e.parameter.reason));
+      case 'getCombinedCommunications':
+        return jsonResponse(getCombinedCommunications(e.parameter));
+      case 'reclassifyEmail':
+        return jsonResponse(reclassifyEmail(e.parameter.threadId, e.parameter.newPriority, e.parameter.newCategory));
+      case 'getEmailDetail':
+        return jsonResponse(getEmailDetail(e.parameter.threadId));
+      case 'archiveEmail':
+        return jsonResponse(archiveEmail(e.parameter.threadId));
+      case 'draftEmailReply':
+        return jsonResponse(draftEmailReply(e.parameter.threadId, e.parameter.body, e.parameter.send === 'true'));
+      case 'generateAIDraftReply':
+        return jsonResponse(generateAIDraftReply(e.parameter.threadId));
       case 'getDailyBrief':
         return jsonResponse(getDailyBrief());
       case 'getChiefOfStaffAuditLog':
@@ -820,6 +834,104 @@ function doGet(e) {
         return jsonResponse(setupChiefOfStaffTriggers());
       case 'testEmailWorkflow':
         return jsonResponse(testEmailWorkflowEngine());
+
+      // ============ CHIEF-OF-STAFF MASTER SYSTEM ============
+      case 'getUltimateMorningBrief':
+        return jsonResponse(typeof generateUltimateMorningBrief === 'function' ? generateUltimateMorningBrief() : { error: 'Not available' });
+      case 'getSystemDashboard':
+        return jsonResponse(typeof getSystemDashboard === 'function' ? getSystemDashboard() : { error: 'Not available' });
+      case 'verifyChiefOfStaff':
+        return jsonResponse(typeof verifySystemComplete === 'function' ? verifySystemComplete() : { error: 'Not available' });
+
+      // ============ MEMORY SYSTEM ============
+      case 'recallContact':
+        return jsonResponse(typeof recallContact === 'function' ? recallContact(e.parameter.email) : { error: 'Not available' });
+      case 'recallAllContacts':
+        return jsonResponse(typeof recallAllContacts === 'function' ? recallAllContacts(e.parameter) : { error: 'Not available' });
+      case 'getProactiveSuggestions':
+        return jsonResponse(typeof getProactiveSuggestions === 'function' ? getProactiveSuggestions() : { error: 'Not available' });
+      case 'buildContext':
+        return jsonResponse(typeof buildCompleteContext === 'function' ? buildCompleteContext(e.parameter) : { error: 'Not available' });
+      case 'getActivePatterns':
+        return jsonResponse(typeof getActivePatterns === 'function' ? getActivePatterns(parseFloat(e.parameter.minConfidence) || 0.6) : { error: 'Not available' });
+
+      // ============ AUTONOMY SYSTEM ============
+      case 'getAutonomyStatus':
+        return jsonResponse(typeof getAutonomyStatus === 'function' ? getAutonomyStatus() : { error: 'Not available' });
+      case 'checkPermission':
+        return jsonResponse(typeof checkActionPermission === 'function' ? checkActionPermission(e.parameter.action, e.parameter) : { error: 'Not available' });
+      case 'setAutonomyLevel':
+        return jsonResponse(typeof setAutonomyLevel === 'function' ? setAutonomyLevel(e.parameter.action, e.parameter.level) : { error: 'Not available' });
+
+      // ============ PROACTIVE INTELLIGENCE ============
+      case 'getActiveAlerts':
+        return jsonResponse(typeof getActiveAlerts === 'function' ? getActiveAlerts(e.parameter.priority) : { error: 'Not available' });
+      case 'dismissAlert':
+        return jsonResponse(typeof dismissAlert === 'function' ? dismissAlert(e.parameter.alertId, 'user', e.parameter.actionTaken, e.parameter.wasUseful === 'true') : { error: 'Not available' });
+      case 'runProactiveScan':
+        return jsonResponse(typeof runProactiveScanning === 'function' ? runProactiveScanning() : { error: 'Not available' });
+
+      // ============ STYLE MIMICRY ============
+      case 'getStyleProfile':
+        return jsonResponse(typeof getStyleProfile === 'function' ? getStyleProfile() : { error: 'Not available' });
+      case 'getStylePrompt':
+        return jsonResponse(typeof getStylePrompt === 'function' ? getStylePrompt() : { error: 'Not available' });
+      case 'analyzeOwnerStyle':
+        return jsonResponse(typeof analyzeOwnerStyle === 'function' ? analyzeOwnerStyle(parseInt(e.parameter.maxEmails) || 500) : { error: 'Not available' });
+
+      // ============ CALENDAR AI ============
+      case 'getTodaySchedule':
+        return jsonResponse(typeof getTodaySchedule === 'function' ? getTodaySchedule() : { error: 'Not available' });
+      case 'findMeetingSlots':
+        return jsonResponse(typeof findMeetingTimes === 'function' ? findMeetingTimes({ duration: parseInt(e.parameter.duration) || 30, days: parseInt(e.parameter.days) || 5 }) : { error: 'Not available' });
+      case 'protectFocusTime':
+        return jsonResponse(typeof protectFocusTime === 'function' ? protectFocusTime(parseInt(e.parameter.days) || 7) : { error: 'Not available' });
+      case 'optimizeSchedule':
+        return jsonResponse(typeof optimizeTodaySchedule === 'function' ? optimizeTodaySchedule() : { error: 'Not available' });
+
+      // ============ PREDICTIVE ANALYTICS ============
+      case 'predictEmailVolume':
+        return jsonResponse(typeof predictEmailVolume === 'function' ? predictEmailVolume(parseInt(e.parameter.days) || 7) : { error: 'Not available' });
+      case 'predictCustomerChurn':
+        return jsonResponse(typeof predictCustomerChurn === 'function' ? predictCustomerChurn() : { error: 'Not available' });
+      case 'forecastWorkload':
+        return jsonResponse(typeof forecastWorkload === 'function' ? forecastWorkload(parseInt(e.parameter.days) || 7) : { error: 'Not available' });
+      case 'getPredictiveReport':
+        return jsonResponse(typeof getPredictiveReport === 'function' ? getPredictiveReport() : { error: 'Not available' });
+
+      // ============ SMS INTELLIGENCE ============
+      case 'getSMSActionQueue':
+        return jsonResponse(typeof getSMSActionQueue === 'function' ? getSMSActionQueue() : getSheetData('COS_SMS_ActionQueue'));
+      case 'getSMSCommitments':
+        return jsonResponse(typeof getSMSCommitments === 'function' ? getSMSCommitments() : getSheetData('COS_SMS_Commitments'));
+
+      // ============ FILE ORGANIZATION ============
+      case 'organizeFile':
+        return jsonResponse(typeof organizeFile === 'function' ? organizeFile(e.parameter.fileId) : { error: 'Not available' });
+      case 'searchFilesNL':
+        return jsonResponse(typeof searchFilesNaturalLanguage === 'function' ? searchFilesNaturalLanguage(e.parameter.query) : { error: 'Not available' });
+      case 'getFileStats':
+        return jsonResponse(typeof getFileOrganizationStats === 'function' ? getFileOrganizationStats() : { error: 'Not available' });
+
+      // ============ MULTI-AGENT SYSTEM ============
+      case 'getAvailableAgents':
+        return jsonResponse(typeof getAvailableAgents === 'function' ? getAvailableAgents() : { error: 'Not available' });
+      case 'getAgentMetrics':
+        return jsonResponse(typeof getAgentMetrics === 'function' ? getAgentMetrics(parseInt(e.parameter.days) || 7) : { error: 'Not available' });
+      case 'runAgentTask':
+        return jsonResponse(typeof runAgentTask === 'function' ? runAgentTask(e.parameter.agentType, e.parameter) : { error: 'Not available' });
+
+      // ============ VOICE INTERFACE ============
+      case 'voiceCommand':
+        return jsonResponse(typeof handleVoiceCommand === 'function' ? handleVoiceCommand(e.parameter.transcript) : { error: 'Not available' });
+      case 'parseVoiceCommand':
+        return jsonResponse(typeof parseVoiceCommand === 'function' ? parseVoiceCommand(e.parameter.transcript, e.parameter.userId) : { error: 'Not available' });
+
+      // ============ WEATHER & INTEGRATIONS ============
+      case 'getWeatherRecommendations':
+        return jsonResponse(typeof getWeatherRecommendations === 'function' ? getWeatherRecommendations() : { error: 'Not available' });
+      case 'getIntegrationStatus':
+        return jsonResponse(typeof getIntegrationStatus === 'function' ? getIntegrationStatus() : { error: 'Not available' });
 
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
@@ -2079,6 +2191,59 @@ function doGet(e) {
       case 'getLaborByCrop':
         return getLaborByCrop();
 
+      // ============ SMART LABOR INTELLIGENCE SYSTEM ============
+      // Prescriptive analytics - tells employees what to do before they ask
+      case 'initializeSmartLabor':
+        return jsonResponse(typeof initializeSmartLaborSheets === 'function' ? initializeSmartLaborSheets() : { error: 'SmartLaborIntelligence module not loaded' });
+
+      // Benchmark Management - Speed Standards
+      case 'getBenchmark':
+        return jsonResponse(typeof getBenchmark === 'function' ? getBenchmark(e.parameter.taskType, e.parameter.crop, e.parameter.location) : { error: 'Not available' });
+      case 'getAllBenchmarks':
+        return jsonResponse(typeof getAllBenchmarks === 'function' ? getAllBenchmarks() : { error: 'Not available' });
+      case 'setBenchmark':
+        return jsonResponse(typeof setBenchmark === 'function' ? setBenchmark(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter) : { error: 'Not available' });
+      case 'updateBenchmark':
+        return jsonResponse(typeof updateBenchmark === 'function' ? updateBenchmark(e.parameter.benchmarkId, e.parameter.updates ? JSON.parse(e.parameter.updates) : {}) : { error: 'Not available' });
+
+      // Daily Prescriptions - Work Orders
+      case 'generateDailyPrescription':
+        return jsonResponse(typeof generateDailyPrescription === 'function' ? generateDailyPrescription(e.parameter.employeeId, e.parameter.date ? new Date(e.parameter.date) : new Date()) : { error: 'Not available' });
+      case 'getMyWorkOrder':
+        return jsonResponse(typeof getMyWorkOrder === 'function' ? getMyWorkOrder(e.parameter.employeeId, e.parameter.date ? new Date(e.parameter.date) : new Date()) : { error: 'Not available' });
+      case 'getLaborMorningBrief':
+        return jsonResponse(typeof getLaborMorningBrief === 'function' ? getLaborMorningBrief(e.parameter.employeeId) : { error: 'Not available' });
+
+      // Check-In System - End Time Tracking
+      case 'checkInTask':
+        return jsonResponse(typeof checkInTask === 'function' ? checkInTask(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter) : { error: 'Not available' });
+      case 'checkOutTask':
+        return jsonResponse(typeof checkOutTask === 'function' ? checkOutTask(e.parameter.checkinId, e.parameter.notes) : { error: 'Not available' });
+      case 'getActiveCheckins':
+        return jsonResponse(typeof getActiveCheckins === 'function' ? getActiveCheckins(e.parameter.employeeId) : { error: 'Not available' });
+
+      // Labor Alerts & Communication
+      case 'getLaborAlerts':
+        return jsonResponse(typeof getLaborAlerts === 'function' ? getLaborAlerts(e.parameter) : { error: 'Not available' });
+      case 'acknowledgeLaborAlert':
+        return jsonResponse(typeof acknowledgeLaborAlert === 'function' ? acknowledgeLaborAlert(e.parameter.alertId, e.parameter.acknowledgedBy, e.parameter.actionTaken) : { error: 'Not available' });
+      case 'sendEmployeeMessage':
+        return jsonResponse(typeof sendEmployeeMessage === 'function' ? sendEmployeeMessage(e.parameter.employeeId, e.parameter.message, e.parameter.priority) : { error: 'Not available' });
+      case 'getEmployeeMessages':
+        return jsonResponse(typeof getEmployeeMessages === 'function' ? getEmployeeMessages(e.parameter.employeeId) : { error: 'Not available' });
+      case 'markMessageRead':
+        return jsonResponse(typeof markMessageRead === 'function' ? markMessageRead(e.parameter.messageId) : { error: 'Not available' });
+
+      // Efficiency & Learning
+      case 'getEmployeeEfficiencyTrend':
+        return jsonResponse(typeof getEmployeeEfficiencyTrend === 'function' ? getEmployeeEfficiencyTrend(e.parameter.employeeId, parseInt(e.parameter.days) || 30) : { error: 'Not available' });
+      case 'getBenchmarkAccuracy':
+        return jsonResponse(typeof getBenchmarkAccuracy === 'function' ? getBenchmarkAccuracy() : { error: 'Not available' });
+
+      // Labor Intelligence Dashboard
+      case 'getLaborIntelligenceDashboard':
+        return jsonResponse(typeof getLaborIntelligenceDashboard === 'function' ? getLaborIntelligenceDashboard() : { error: 'Not available' });
+
       // NOTE: getMorningBrief handled above (line ~989) and in MorningBriefGenerator.js
 
       // ============ AUTO TASK GENERATION ENGINE ============
@@ -2411,6 +2576,16 @@ function doGet(e) {
         ));
       case 'checkFileAvailability':
         return jsonResponse(checkFileAvailability(e.parameter.filePath));
+      case 'getTwilioStatus':
+        return jsonResponse(getTwilioStatus());
+      case 'setOwnerPhone':
+        // GET-based workaround for setting owner phone (POST doesn't work via curl)
+        if (e.parameter.phone) {
+          return jsonResponse(configureCoordinationTwilio({ ownerPhone: e.parameter.phone }));
+        }
+        return jsonResponse({ error: 'Phone parameter required' });
+      case 'testTwilioSMS':
+        return jsonResponse({ success: testTwilioSMS(), message: 'Test SMS sent' });
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -37528,8 +37703,13 @@ function testTwilioSMS(to) {
     return { success: false, error: 'Twilio not configured. Use configureTwilio first.' };
   }
 
+  // Default to owner phone if not provided
   if (!to) {
-    return { success: false, error: 'Phone number (to) is required' };
+    to = props.getProperty('OWNER_PHONE_NUMBER') || props.getProperty('OWNER_PHONE');
+  }
+
+  if (!to) {
+    return { success: false, error: 'Phone number (to) is required and OWNER_PHONE_NUMBER not set' };
   }
 
   // Format phone number
