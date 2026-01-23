@@ -283,6 +283,255 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Invite Section Styles */
+        .invite-section {
+            background: linear-gradient(145deg, #1e293b, #1a1a2e);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border);
+        }
+
+        .invite-section h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .invite-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .invite-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .invite-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .invite-btn.chef {
+            background: #f59e0b;
+        }
+
+        .invite-btn.chef:hover {
+            background: #d97706;
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            max-width: 480px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-info {
+            background: rgba(34, 197, 94, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-info p {
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        .form-info ul {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--text-secondary);
+        }
+
+        .form-info li {
+            margin-bottom: 4px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn-cancel {
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn-cancel:hover {
+            background: var(--border);
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-submit.chef {
+            background: #f59e0b;
+        }
+
+        .btn-submit.chef:hover {
+            background: #d97706;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 24px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 2000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .toast.show {
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-color: var(--primary);
+        }
+
+        .toast.error {
+            border-color: #ef4444;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -303,6 +552,19 @@
             </div>
             <div class="status-item">
                 <span id="lastUpdated">Last updated: Loading...</span>
+            </div>
+        </div>
+
+        <!-- Invite Team Members Section -->
+        <div class="invite-section">
+            <h3>&#x1F465; Invite Team Members</h3>
+            <div class="invite-buttons">
+                <button class="invite-btn" onclick="openModal('employeeModal')">
+                    &#x1F477; Invite Employee
+                </button>
+                <button class="invite-btn chef" onclick="openModal('chefModal')">
+                    &#x1F373; Invite Chef
+                </button>
             </div>
         </div>
 
@@ -797,6 +1059,228 @@
         function clearResults() {
             document.getElementById('testResult').textContent = 'Click a button to test API connectivity...';
         }
+
+        // ==================== INVITE FUNCTIONALITY ====================
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            // Clear form fields
+            const modal = document.getElementById(modalId);
+            const inputs = modal.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                if (input.type !== 'submit') {
+                    input.value = input.tagName === 'SELECT' ? input.options[0].value : '';
+                }
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.className = `toast show ${type}`;
+            toast.innerHTML = `
+                <span>${type === 'success' ? '&#x2705;' : '&#x274C;'}</span>
+                <span>${message}</span>
+            `;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        async function sendEmployeeInvite() {
+            const name = document.getElementById('empName').value.trim();
+            const email = document.getElementById('empEmail').value.trim();
+            const phone = document.getElementById('empPhone').value.trim();
+            const role = document.getElementById('empRole').value;
+
+            if (!name || !email) {
+                showToast('Name and email are required', 'error');
+                return;
+            }
+
+            const submitBtn = document.querySelector('#employeeModal .btn-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'inviteEmployee',
+                        name: name,
+                        email: email,
+                        phone: phone,
+                        role: role
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Invite sent to ${name}!`, 'success');
+                    closeModal('employeeModal');
+                } else {
+                    showToast(data.error || 'Failed to send invite', 'error');
+                }
+            } catch (error) {
+                showToast('Network error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Invite';
+            }
+        }
+
+        async function sendChefInvite() {
+            const restaurant = document.getElementById('chefRestaurant').value.trim();
+            const contactName = document.getElementById('chefContactName').value.trim();
+            const email = document.getElementById('chefEmail').value.trim();
+            const phone = document.getElementById('chefPhone').value.trim();
+
+            if (!restaurant || !email) {
+                showToast('Restaurant name and email are required', 'error');
+                return;
+            }
+
+            const submitBtn = document.querySelector('#chefModal .btn-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'inviteChef',
+                        company_name: restaurant,
+                        contact_name: contactName,
+                        email: email,
+                        phone: phone
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Invite sent to ${restaurant}!`, 'success');
+                    closeModal('chefModal');
+                } else {
+                    showToast(data.error || 'Failed to send invite', 'error');
+                }
+            } catch (error) {
+                showToast('Network error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Invite';
+            }
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
     </script>
+
+    <!-- Employee Invite Modal -->
+    <div id="employeeModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>&#x1F477; Invite New Employee</h3>
+                <button class="modal-close" onclick="closeModal('employeeModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="empName">Name *</label>
+                    <input type="text" id="empName" placeholder="John Smith">
+                </div>
+                <div class="form-group">
+                    <label for="empEmail">Email *</label>
+                    <input type="email" id="empEmail" placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="empPhone">Phone</label>
+                    <input type="tel" id="empPhone" placeholder="(412) 555-0123">
+                </div>
+                <div class="form-group">
+                    <label for="empRole">Role</label>
+                    <select id="empRole">
+                        <option value="Field Worker">Field Worker</option>
+                        <option value="Driver">Driver</option>
+                        <option value="Market Staff">Market Staff</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-info">
+                    <p>They'll receive:</p>
+                    <ul>
+                        <li>&#x2713; Email with login link</li>
+                        <li>&#x2713; Desktop shortcut instructions</li>
+                        <li>&#x2713; Mobile app install guide</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal('employeeModal')">Cancel</button>
+                <button class="btn-submit" onclick="sendEmployeeInvite()">Send Invite</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chef Invite Modal -->
+    <div id="chefModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>&#x1F373; Invite New Chef</h3>
+                <button class="modal-close" onclick="closeModal('chefModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="chefRestaurant">Restaurant Name *</label>
+                    <input type="text" id="chefRestaurant" placeholder="The Golden Fork">
+                </div>
+                <div class="form-group">
+                    <label for="chefContactName">Contact Name</label>
+                    <input type="text" id="chefContactName" placeholder="Chef Maria">
+                </div>
+                <div class="form-group">
+                    <label for="chefEmail">Email *</label>
+                    <input type="email" id="chefEmail" placeholder="chef@restaurant.com">
+                </div>
+                <div class="form-group">
+                    <label for="chefPhone">Phone</label>
+                    <input type="tel" id="chefPhone" placeholder="(412) 555-0123">
+                </div>
+                <div class="form-info" style="background: rgba(245, 158, 11, 0.1);">
+                    <p style="color: #f59e0b;">They'll receive:</p>
+                    <ul>
+                        <li>&#x2713; Email invitation to order portal</li>
+                        <li>&#x2713; SMS with quick link</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal('chefModal')">Cancel</button>
+                <button class="btn-submit chef" onclick="sendChefInvite()">Send Invite</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 </body>
 </html>
