@@ -14595,9 +14595,12 @@ function jsonResponse(data) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const USERS_SHEET_NAME = 'USERS';
+// UPDATED 2026-01-24: Added Phone, Status, Emergency Contact fields for registration flow
 const USERS_HEADERS = [
-  'User_ID', 'Username', 'PIN', 'Full_Name', 'Email',
-  'Role', 'Is_Active', 'Last_Login', 'Created_At'
+  'User_ID', 'Username', 'PIN', 'Full_Name', 'Email', 'Phone',
+  'Role', 'Status', 'Is_Active', 'Last_Login', 'Created_At',
+  'Emergency_Contact_Name', 'Emergency_Contact_Phone', 'Emergency_Contact_Relation',
+  'Registration_Completed', 'Magic_Token', 'Token_Expires'
 ];
 
 // Valid roles and their access levels
@@ -15219,32 +15222,84 @@ function createUsersSheet(ss) {
     'todd',              // Username
     '7714',              // PIN
     'Todd',              // Full_Name
-    '',                  // Email
+    'todd@tinyseedfarmpgh.com', // Email
+    '',                  // Phone
     'Admin',             // Role
+    'Active',            // Status
     true,                // Is_Active
     '',                  // Last_Login
-    new Date().toISOString() // Created_At
+    new Date().toISOString(), // Created_At
+    '',                  // Emergency_Contact_Name
+    '',                  // Emergency_Contact_Phone
+    '',                  // Emergency_Contact_Relation
+    '',                  // Registration_Completed
+    '',                  // Magic_Token
+    ''                   // Token_Expires
   ];
 
   sheet.getRange(2, 1, 1, adminRow.length).setValues([adminRow]);
 
-  // Protect PIN column
+  // Hide sensitive columns (PIN, Magic_Token, Token_Expires)
   const pinCol = USERS_HEADERS.indexOf('PIN') + 1;
+  const tokenCol = USERS_HEADERS.indexOf('Magic_Token') + 1;
+  const expiresCol = USERS_HEADERS.indexOf('Token_Expires') + 1;
   sheet.hideColumns(pinCol);
+  sheet.hideColumns(tokenCol);
+  sheet.hideColumns(expiresCol);
 
   // Set column widths
   sheet.setColumnWidth(1, 100);  // User_ID
   sheet.setColumnWidth(2, 120);  // Username
-  sheet.setColumnWidth(3, 80);   // PIN
+  sheet.setColumnWidth(3, 80);   // PIN (hidden)
   sheet.setColumnWidth(4, 150);  // Full_Name
   sheet.setColumnWidth(5, 200);  // Email
-  sheet.setColumnWidth(6, 100);  // Role
-  sheet.setColumnWidth(7, 80);   // Is_Active
-  sheet.setColumnWidth(8, 180);  // Last_Login
-  sheet.setColumnWidth(9, 180);  // Created_At
+  sheet.setColumnWidth(6, 120);  // Phone
+  sheet.setColumnWidth(7, 100);  // Role
+  sheet.setColumnWidth(8, 120);  // Status
+  sheet.setColumnWidth(9, 80);   // Is_Active
+  sheet.setColumnWidth(10, 150); // Last_Login
+  sheet.setColumnWidth(11, 150); // Created_At
+  sheet.setColumnWidth(12, 150); // Emergency_Contact_Name
+  sheet.setColumnWidth(13, 120); // Emergency_Contact_Phone
+  sheet.setColumnWidth(14, 100); // Emergency_Contact_Relation
+  sheet.setColumnWidth(15, 150); // Registration_Completed
 
   // Freeze header row
   sheet.setFrozenRows(1);
+
+  // Add data validation for Status column
+  const statusCol = USERS_HEADERS.indexOf('Status') + 1;
+  const statusValidation = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['Invited', 'Pending Approval', 'Active', 'Inactive'], true)
+    .setAllowInvalid(false)
+    .build();
+  sheet.getRange(2, statusCol, 100, 1).setDataValidation(statusValidation);
+
+  // Add data validation for Role column
+  const roleCol = USERS_HEADERS.indexOf('Role') + 1;
+  const roleValidation = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['Field Worker', 'Packhouse', 'Driver', 'Market Staff', 'Manager', 'Admin'], true)
+    .setAllowInvalid(false)
+    .build();
+  sheet.getRange(2, roleCol, 100, 1).setDataValidation(roleValidation);
+
+  // Conditional formatting for Status
+  const pendingRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenTextEqualTo('Pending Approval')
+    .setBackground('#fef3c7')  // Yellow
+    .setRanges([sheet.getRange(2, statusCol, 500, 1)])
+    .build();
+  const activeRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenTextEqualTo('Active')
+    .setBackground('#d1fae5')  // Green
+    .setRanges([sheet.getRange(2, statusCol, 500, 1)])
+    .build();
+  const invitedRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenTextEqualTo('Invited')
+    .setBackground('#dbeafe')  // Blue
+    .setRanges([sheet.getRange(2, statusCol, 500, 1)])
+    .build();
+  sheet.setConditionalFormatRules([pendingRule, activeRule, invitedRule]);
 
   return sheet;
 }
@@ -15466,48 +15521,30 @@ function inviteEmployee(data) {
     // Generate username from full name if not provided
     const username = data.username || (data.fullName || '').toLowerCase().replace(/\s+/g, '.').replace(/[^a-z.]/g, '');
 
-    // Create the employee record
+    // UPDATED 2026-01-24: Create employee record with all new columns
+    // Headers: User_ID, Username, PIN, Full_Name, Email, Phone, Role, Status, Is_Active, Last_Login, Created_At,
+    //          Emergency_Contact_Name, Emergency_Contact_Phone, Emergency_Contact_Relation, Registration_Completed, Magic_Token, Token_Expires
     const newRow = [
-      userId,
-      username,
-      '0000', // Default PIN (will use magic link instead)
-      data.fullName || '',
-      data.email || '',
-      data.role || 'Employee',
-      true, // Is_Active
-      '', // Last_Login
-      new Date().toISOString() // Created_At
+      userId,                      // User_ID
+      username,                    // Username
+      '0000',                      // PIN (default, will use magic link)
+      data.fullName || '',         // Full_Name
+      data.email || '',            // Email
+      data.phone || '',            // Phone
+      '',                          // Role (owner assigns after registration)
+      'Invited',                   // Status
+      false,                       // Is_Active (activated after approval)
+      '',                          // Last_Login
+      new Date().toISOString(),    // Created_At
+      '',                          // Emergency_Contact_Name
+      '',                          // Emergency_Contact_Phone
+      '',                          // Emergency_Contact_Relation
+      '',                          // Registration_Completed
+      magicToken,                  // Magic_Token
+      tokenExpires.toISOString()   // Token_Expires
     ];
 
     sheet.appendRow(newRow);
-
-    // Add magic token columns if they don't exist
-    let magicTokenCol = headers.indexOf('Magic_Token');
-    let tokenExpiresCol = headers.indexOf('Token_Expires');
-    let phoneCol = headers.indexOf('Phone');
-
-    if (phoneCol === -1) {
-      phoneCol = headers.length;
-      sheet.getRange(1, phoneCol + 1).setValue('Phone');
-    }
-
-    if (magicTokenCol === -1) {
-      magicTokenCol = phoneCol + 1;
-      sheet.getRange(1, magicTokenCol + 1).setValue('Magic_Token');
-    }
-
-    if (tokenExpiresCol === -1) {
-      tokenExpiresCol = magicTokenCol + 1;
-      sheet.getRange(1, tokenExpiresCol + 1).setValue('Token_Expires');
-    }
-
-    // Set the magic token, expiration, and phone
-    const newRowNum = sheet.getLastRow();
-    if (data.phone) {
-      sheet.getRange(newRowNum, phoneCol + 1).setValue(data.phone);
-    }
-    sheet.getRange(newRowNum, magicTokenCol + 1).setValue(magicToken);
-    sheet.getRange(newRowNum, tokenExpiresCol + 1).setValue(tokenExpires.toISOString());
 
     // Build the invitation URL
     const inviteUrl = `${EMPLOYEE_APP_URL}?token=${magicToken}`;
