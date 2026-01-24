@@ -40,6 +40,38 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - PM_Architect (Morning Brief & Invite Buttons Fixes)
+
+### Files Modified
+- `index.html` - Updated hardcoded API_URL to match canonical source in api-config.js
+- `apps_script/MERGED TOTAL.js`:
+  - Fixed `inviteEmployee()` to use `openById(SPREADSHEET_ID)` instead of `getActiveSpreadsheet()`
+  - Fixed `inviteChef()` to use `openById(SPREADSHEET_ID)` instead of `getActiveSpreadsheet()`
+  - Renamed duplicate `inviteChef()` at line ~75177 to `inviteChef_ChefComms()` to avoid conflict
+  - Removed duplicate `case 'inviteChef':` statements (kept first one at line ~14070)
+  - Added null checks to `getPredictiveTasks()` for `diseaseRisk.data.late_blight`
+  - Added null check to `getChefProfile()` for `CHEF_COMM_CONFIG.SHEETS`
+
+### Functions Modified
+- `inviteEmployee()` - Web app context fix (openById instead of getActiveSpreadsheet)
+- `inviteChef()` - Web app context fix (openById instead of getActiveSpreadsheet)
+- `getPredictiveTasks()` - Null checks for disease risk data
+- `getChefProfile()` - Null check for CHEF_COMM_CONFIG
+
+### Reason
+Morning Brief and invite buttons were broken on the main dashboard due to:
+1. index.html using wrong API URL (different from api-config.js canonical source)
+2. `inviteEmployee()` and `inviteChef()` using `getActiveSpreadsheet()` which returns null in web app context
+3. Duplicate function and case statement conflicts
+4. Missing null checks causing potential crashes
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created (removed existing duplicates)
+
+---
+
 ## 2026-01-24 - Field_Operations_Claude (Employee Scheduling Calendar)
 
 ### Files Created

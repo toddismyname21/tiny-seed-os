@@ -14100,13 +14100,10 @@ function doPost(e) {
       case 'bulkFulfillStandingOrders':
         return jsonResponse(bulkFulfillStandingOrders(data));
 
-      // ============ CHEF INVITATION SYSTEM ============
-      case 'inviteChef':
-        return jsonResponse(inviteChef(data));
+      // NOTE: inviteChef case removed (duplicate - already handled at line ~14070)
       case 'inviteMultipleChefs':
         return jsonResponse(inviteMultipleChefs(data.chefs || data.chefList || data));
-      case 'verifyChefToken':
-        return jsonResponse(verifyChefToken(data.token, data.email));
+      // NOTE: verifyChefToken handled with inviteMultipleChefs to avoid duplicate keys
 
       case 'submitCSAOrder':
         return jsonResponse(submitCSAOrder(data));
@@ -14259,14 +14256,10 @@ function doPost(e) {
         return jsonResponse(bulkInviteEmployees(data.employees || data));
 
       // ============ CHEF INVITATION SYSTEM (POST) ============
-      case 'inviteChef':
-        return jsonResponse(inviteChef(data));
+      // NOTE: inviteChef case removed (duplicate - already handled at line ~14070)
       case 'sendChefMagicLink':
         return jsonResponse(sendChefMagicLink(data.customerId));
-      case 'bulkInviteChefs':
-        return jsonResponse(bulkInviteChefs(data.chefs || data));
-      case 'verifyChefToken':
-        return jsonResponse(verifyChefToken(data.token));
+      // NOTE: bulkInviteChefs already handled at line ~14072
 
       // ============ FINANCIAL MODULE - ROUND-UPS ============
       case 'saveRoundUp':
@@ -15431,7 +15424,8 @@ function generateEmployeeMagicToken() {
  */
 function inviteEmployee(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // FIXED 2026-01-24: Use openById() for web app context instead of getActiveSpreadsheet()
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
@@ -28248,7 +28242,8 @@ function inviteChef(data) {
       return { success: false, error: 'Email is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // FIXED 2026-01-24: Use openById() for web app context instead of getActiveSpreadsheet()
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Initialize wholesale customers sheet if needed
     let sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
@@ -65634,16 +65629,18 @@ function getPredictiveTasks(params) {
     }
 
     // Generate disease scouting/spray tasks
-    if (diseaseRisk.success && diseaseRisk.data.late_blight.risk_level !== 'LOW') {
+    // FIXED 2026-01-24: Added null checks for diseaseRisk.data and late_blight
+    const lateBlight = diseaseRisk.success && diseaseRisk.data && diseaseRisk.data.late_blight ? diseaseRisk.data.late_blight : null;
+    if (lateBlight && lateBlight.risk_level !== 'LOW') {
       tasks.push({
-        type: diseaseRisk.data.late_blight.risk_level === 'HIGH' ? 'Spray' : 'Scout',
+        type: lateBlight.risk_level === 'HIGH' ? 'Spray' : 'Scout',
         crop: 'Tomato',
         variety: 'All',
         location: 'All tomato blocks',
         due_date: todayStr,
-        reason: `Late blight DSV ${diseaseRisk.data.late_blight.total_dsv} - ${diseaseRisk.data.late_blight.action}`,
-        est_time_min: diseaseRisk.data.late_blight.risk_level === 'HIGH' ? 120 : 30,
-        priority: diseaseRisk.data.late_blight.risk_level === 'HIGH' ? 95 : 75
+        reason: `Late blight DSV ${lateBlight.total_dsv || 0} - ${lateBlight.action || 'Monitor conditions'}`,
+        est_time_min: lateBlight.risk_level === 'HIGH' ? 120 : 30,
+        priority: lateBlight.risk_level === 'HIGH' ? 95 : 75
       });
     }
 
@@ -74904,7 +74901,9 @@ function generateChefRecommendations(customerId) {
 function getChefProfile(customerId) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS) ||
+    // FIXED 2026-01-24: Added null check for CHEF_COMM_CONFIG before accessing SHEETS property
+    const chefCommSheet = (typeof CHEF_COMM_CONFIG !== 'undefined' && CHEF_COMM_CONFIG.SHEETS) ? CHEF_COMM_CONFIG.SHEETS.CUSTOMERS : null;
+    const sheet = (chefCommSheet ? ss.getSheetByName(chefCommSheet) : null) ||
                   ss.getSheetByName('WHOLESALE_CUSTOMERS') ||
                   ss.getSheetByName('Wholesale_Customers') ||
                   ss.getSheetByName('Customers') ||
@@ -75173,13 +75172,14 @@ function generateMagicToken() {
 }
 
 /**
- * Invite a chef to the ordering platform
+ * DEPRECATED 2026-01-24: Renamed to avoid duplicate with inviteChef() at line ~28235
+ * Invite a chef to the ordering platform (Chef Communications Module version)
  * Creates account + sends magic link via email AND SMS
  *
  * @param {Object} chefData - { email, company_name, contact_name, phone, address, city, state, zip }
  * @returns {Object} { success, customerId, inviteUrl }
  */
-function inviteChef(chefData) {
+function inviteChef_ChefComms(chefData) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(CHEF_COMM_CONFIG.SHEETS.CUSTOMERS);

@@ -1,0 +1,27 @@
+{
+  "name": "tiny-seed-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for Claude Code remote control - Tiny Seed Farm OS",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "node bot.js --verbose"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.64.0",
+    "node-fetch": "^2.7.0",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "farm",
+    "claude",
+    "automation"
+  ],
+  "author": "Tiny Seed Farm",
+  "license": "MIT"
+}
