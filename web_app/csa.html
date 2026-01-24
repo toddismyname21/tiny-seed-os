@@ -2824,7 +2824,7 @@
         };
 
         const API_URL = window.TINY_SEED_API?.MAIN_API ||
-            'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
+            'https://script.google.com/macros/s/AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb/exec';
 
         // ═══════════════════════════════════════════════════════════════════════════
         // INITIALIZATION
@@ -3496,29 +3496,27 @@
         async function loadSocialPosts() {
             const container = document.getElementById('socialThumbs');
 
-            // Try to fetch from API, fallback to sample data
             try {
                 const response = await fetch(`${API_URL}?action=getRecentSocialPosts`);
                 const result = await response.json();
 
                 if (result.success && result.posts?.length > 0) {
                     renderSocialThumbs(result.posts);
-                    return;
+                } else {
+                    // No posts available - hide the section gracefully
+                    const socialStrip = document.querySelector('.social-strip');
+                    if (socialStrip) {
+                        socialStrip.style.display = 'none';
+                    }
                 }
-            } catch (e) {
-                console.log('Loading sample social posts');
+            } catch (error) {
+                console.error('Failed to load social posts:', error);
+                // Hide the social section on error
+                const socialStrip = document.querySelector('.social-strip');
+                if (socialStrip) {
+                    socialStrip.style.display = 'none';
+                }
             }
-
-            // Sample posts for demo - clean farm imagery
-            const samplePosts = [
-                { image: 'https://images.unsplash.com/photo-1592921870789-04563d55041c?w=200&h=200&fit=crop', platform: 'instagram' },
-                { image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=200&h=200&fit=crop', platform: 'instagram' },
-                { image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=200&h=200&fit=crop', platform: 'instagram' },
-                { image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=200&h=200&fit=crop', platform: 'instagram' },
-                { image: 'https://images.unsplash.com/photo-1518977676601-b53f82abe?w=200&h=200&fit=crop', platform: 'instagram' }
-            ];
-
-            renderSocialThumbs(samplePosts);
         }
 
         function renderSocialThumbs(posts) {
@@ -3597,29 +3595,37 @@
                     renderBoxItems(result.items);
                     document.getElementById('boxWeek').textContent = `Week of ${formatWeekDate(result.weekDate)}`;
                 } else {
-                    loadSampleBoxData();
+                    showEmptyBoxState();
                 }
             } catch (error) {
-                console.log('Loading sample box data');
-                loadSampleBoxData();
+                console.error('Failed to load box contents:', error);
+                showBoxError();
             }
         }
 
-        function loadSampleBoxData() {
-            const sampleItems = [
-                { Product_Name: 'Mixed Salad Greens', Quantity: 1, Unit: 'lb', Is_Swappable: true, emoji: '🥬' },
-                { Product_Name: 'Cherry Tomatoes', Quantity: 1, Unit: 'pint', Is_Swappable: true, emoji: '🍅' },
-                { Product_Name: 'Fresh Basil', Quantity: 1, Unit: 'bunch', Is_Swappable: true, emoji: '🌿' },
-                { Product_Name: 'Rainbow Carrots', Quantity: 1, Unit: 'bunch', Is_Swappable: true, emoji: '🥕' },
-                { Product_Name: 'Zucchini', Quantity: 2, Unit: 'each', Is_Swappable: true, emoji: '🥒' }
-            ];
-            renderBoxItems(sampleItems);
+        function showEmptyBoxState() {
+            const container = document.getElementById('boxItems');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📦</div>
+                    <div class="empty-state-title">No Box Contents Yet</div>
+                    <div class="empty-state-text">Your box contents will be available closer to your pickup date.</div>
+                </div>
+            `;
+        }
 
-            // Sample upcoming boxes
-            renderUpcomingBoxes([
-                { date: 'Jan 28', week: 'Week 10', items: 'Kale, Beets, Radishes, Herbs...', status: 'upcoming' },
-                { date: 'Feb 4', week: 'Week 11', items: 'TBD based on harvest', status: 'planned' }
-            ]);
+        function showBoxError() {
+            const container = document.getElementById('boxItems');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <div class="empty-state-title">Unable to Load Box Contents</div>
+                    <div class="empty-state-text">Please check your connection and try again.</div>
+                    <button class="btn btn-primary btn-sm" onclick="loadBoxContents()" style="margin-top: 16px;">
+                        <i class="fas fa-refresh"></i> Retry
+                    </button>
+                </div>
+            `;
         }
 
         function renderBoxItems(items) {
@@ -3765,18 +3771,12 @@
                     throw new Error(result.error);
                 }
             } catch (error) {
-                // Demo mode - simulate success
-                if (AppState.membership) {
-                    AppState.membership.Swap_Credits = Math.max(0, (AppState.membership.Swap_Credits || 3) - 1);
-                }
-                updateUI();
-                saveSession();
-                showToast('Swap confirmed! 🔄', 'success');
-                closeSwapModal();
+                console.error('Failed to confirm swap:', error);
+                showToast('Failed to process swap. Please try again.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-exchange-alt"></i> Confirm Swap (Uses 1 Credit)';
             }
-
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-exchange-alt"></i> Confirm Swap (Uses 1 Credit)';
+        }
         }
 
         function openCustomizeModal() {
@@ -4006,6 +4006,16 @@
         // ═══════════════════════════════════════════════════════════════════════════
 
         async function loadOrders() {
+            const container = document.getElementById('ordersList');
+
+            // Show loading state
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <div class="loading-spinner"></div>
+                    <div style="margin-top: 12px; color: var(--text-secondary);">Loading pickup history...</div>
+                </div>
+            `;
+
             try {
                 const response = await fetch(`${API_URL}?action=getCSAPickupHistory&customerId=${AppState.customer?.Customer_ID}`);
                 const result = await response.json();
@@ -4014,20 +4024,37 @@
                     AppState.orders = result.orders || [];
                     renderOrders();
                 } else {
-                    loadSampleOrders();
+                    showEmptyOrders();
                 }
             } catch (error) {
-                loadSampleOrders();
+                console.error('Failed to load pickup history:', error);
+                showOrdersError();
             }
         }
 
-        function loadSampleOrders() {
-            AppState.orders = [
-                { Order_ID: 'BOX-2026-W08', date: '2026-01-14', Status: 'Picked Up', items: 'Mixed Greens, Tomatoes, Basil, Carrots, Zucchini' },
-                { Order_ID: 'BOX-2026-W07', date: '2026-01-07', Status: 'Picked Up', items: 'Kale, Beets, Radishes, Herbs, Squash' },
-                { Order_ID: 'BOX-2026-W06', date: '2025-12-31', Status: 'Skipped', items: 'Vacation Hold' }
-            ];
-            renderOrders();
+        function showEmptyOrders() {
+            const container = document.getElementById('ordersList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📦</div>
+                    <div class="empty-state-title">No Pickup History Yet</div>
+                    <div class="empty-state-text">Your pickup history will appear here once you start receiving boxes.</div>
+                </div>
+            `;
+        }
+
+        function showOrdersError() {
+            const container = document.getElementById('ordersList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <div class="empty-state-title">Unable to Load Pickup History</div>
+                    <div class="empty-state-text">Please check your connection and try again.</div>
+                    <button class="btn btn-primary btn-sm" onclick="loadOrders()" style="margin-top: 16px;">
+                        <i class="fas fa-refresh"></i> Retry
+                    </button>
+                </div>
+            `;
         }
 
         function renderOrders() {

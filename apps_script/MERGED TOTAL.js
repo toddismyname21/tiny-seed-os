@@ -12535,6 +12535,12 @@ function doGet(e) {
         return jsonResponse(getCSAOnboardingStatus(e.parameter.memberId));
       case 'getCSAChurnAlerts':
         return jsonResponse(getCSAChurnAlerts());
+      case 'getProactiveCSAAlerts':
+        return jsonResponse(getProactiveCSAAlerts());
+      case 'getOnboardingTasks':
+        return jsonResponse(getOnboardingTasks());
+      case 'getCSARetentionDashboardEnhanced':
+        return jsonResponse(getCSARetentionDashboardEnhanced());
 
       case 'getVacationHolds':
         return jsonResponse(getVacationHolds(e.parameter));
@@ -29943,8 +29949,8 @@ function importShopifyCSAMembers(csvData) {
           existingCustomers[email] = customerId;
         }
 
-        // Parse share type from item name
-        const shareInfo = parseShopifyShareType(itemName);
+        // Parse share type from item name (using ENHANCED parser with full product catalog)
+        const shareInfo = parseShopifyShareTypeEnhanced(itemName);
 
         // Parse pickup location
         const pickupInfo = parsePickupLocation(stopLocation);
@@ -30447,8 +30453,8 @@ function handleShopifyWebhook(payload) {
       }
 
       try {
-        // Parse share type from item name
-        const shareInfo = parseShopifyShareType(itemName);
+        // Parse share type from item name (using ENHANCED parser with full product catalog)
+        const shareInfo = parseShopifyShareTypeEnhanced(itemName);
 
         // Check for duplicate (same email + same share type)
         if (csaMemberExists(customerEmail, shareInfo.type)) {
@@ -70615,13 +70621,61 @@ function calculateMemberHealthScoreSmart(memberId) {
 
     if (!memberData) return { success: false, error: 'Member not found' };
 
-    // Calculate component scores (simplified for initial implementation)
-    const pickupScore = 85;
-    const engagementScore = 70;
-    const customizationScore = 60;
-    const supportScore = 100;
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CALCULATE REAL HEALTH SCORE COMPONENTS (NO DEMO DATA)
+    // ═══════════════════════════════════════════════════════════════════════════
 
-    // Tenure score
+    // PICKUP SCORE (30%): Based on actual pickup attendance
+    const pickupHistory = getCSAPickupHistory({ memberId: memberId });
+    let pickupScore = 100;
+    if (pickupHistory.success && pickupHistory.pickups && pickupHistory.pickups.length > 0) {
+      const attended = pickupHistory.pickups.filter(p => p.Attended === true).length;
+      const total = pickupHistory.pickups.length;
+      const attendanceRate = total > 0 ? attended / total : 1;
+      const missedCount = total - attended;
+
+      if (missedCount === 0) pickupScore = 100;
+      else if (missedCount === 1) pickupScore = 80;
+      else if (missedCount === 2) pickupScore = 60;
+      else if (missedCount >= 3) pickupScore = 20;
+
+      pickupScore = Math.max(20, Math.round(attendanceRate * 100));
+    }
+
+    // ENGAGEMENT SCORE (25%): Based on portal login activity
+    const lastLogin = memberData.Last_Portal_Login || memberData.Created_Date;
+    const daysSinceLogin = lastLogin ? Math.floor((new Date() - new Date(lastLogin)) / (1000 * 60 * 60 * 24)) : 999;
+    let engagementScore = 0;
+    if (daysSinceLogin < 7) engagementScore = 100;
+    else if (daysSinceLogin <= 14) engagementScore = 80;
+    else if (daysSinceLogin <= 21) engagementScore = 60;
+    else if (daysSinceLogin <= 30) engagementScore = 40;
+    else engagementScore = 0;
+
+    // CUSTOMIZATION SCORE (20%): Based on box customization frequency
+    const totalWeeks = parseInt(memberData.Total_Weeks || 18);
+    const weeksRemaining = parseInt(memberData.Weeks_Remaining || totalWeeks);
+    const weeksElapsed = totalWeeks - weeksRemaining;
+    const customizationCount = parseInt(memberData.Customization_Count || 0);
+    let customizationScore = 10;
+    if (weeksElapsed >= 4) {
+      const customizationRate = weeksElapsed > 0 ? customizationCount / weeksElapsed : 0;
+      if (customizationRate >= 0.75) customizationScore = 100;
+      else if (customizationRate >= 0.50) customizationScore = 80;
+      else if (customizationRate >= 0.25) customizationScore = 60;
+      else if (customizationCount > 0) customizationScore = 40;
+    } else if (customizationCount > 0) {
+      customizationScore = 70;
+    }
+
+    // SUPPORT SCORE (15%): Based on complaints/issues
+    const hasUnresolvedIssue = memberData.Unresolved_Issue === true || memberData.Support_Status === 'Unresolved';
+    const hasResolvedIssue = memberData.Support_Status === 'Resolved';
+    let supportScore = 100;
+    if (hasUnresolvedIssue) supportScore = 0;
+    else if (hasResolvedIssue) supportScore = 60;
+
+    // TENURE SCORE (10%): Based on membership duration
     const signupDate = new Date(memberData.Created_Date || new Date());
     const monthsTenure = (new Date() - signupDate) / (1000 * 60 * 60 * 24 * 30);
     const tenureScore = monthsTenure < 12 ? 50 + Math.min(monthsTenure * 2, 20) :
