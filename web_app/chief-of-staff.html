@@ -1067,26 +1067,30 @@
             color: var(--text-primary);
         }
 
-        /* Action card quick buttons row */
+        /* Action card quick buttons row - PROMINENT */
         .action-quick-btns {
             display: flex;
             gap: 8px;
-            margin-top: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
             flex-wrap: wrap;
         }
         .action-quick-btns button {
-            padding: 6px 10px;
-            font-size: 11px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 4px;
-            color: var(--text-secondary);
+            padding: 8px 14px;
+            font-size: 13px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 6px;
+            color: var(--accent-blue);
             cursor: pointer;
             transition: all 0.2s;
+            font-weight: 500;
         }
         .action-quick-btns button:hover {
-            background: rgba(255,255,255,0.1);
-            color: var(--text-primary);
+            background: rgba(59, 130, 246, 0.3);
+            color: white;
+            transform: translateY(-1px);
         }
 
         /* Fade out animation for removed cards */
