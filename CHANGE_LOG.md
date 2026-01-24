@@ -40,6 +40,96 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - Field_Operations_Claude (Employee Scheduling Calendar)
+
+### Files Created
+- `web_app/schedule.html` - Full employee scheduling calendar UI with weekly view, weather integration, and smart scheduling
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Employee Scheduling Module with 6 new API endpoints
+- `claude_sessions/field_operations/OUTBOX.md` - Documented research, audit, and build results
+
+### Functions Added
+- `initScheduleSheet()` in `MERGED TOTAL.js` - Creates SCHEDULES sheet if not exists
+- `getSchedules(startDate, endDate)` in `MERGED TOTAL.js` - Get shifts for date range
+- `createSchedule(data)` in `MERGED TOTAL.js` - Create new shift
+- `updateSchedule(data)` in `MERGED TOTAL.js` - Update existing shift
+- `deleteSchedule(scheduleId)` in `MERGED TOTAL.js` - Delete shift
+- `generateSmartSchedule(params)` in `MERGED TOTAL.js` - AI-powered bulk scheduling
+
+### API Endpoints Added
+- GET/POST: `getEmployees`, `getSchedules`, `createSchedule`, `updateSchedule`, `deleteSchedule`, `generateSmartSchedule`
+
+### Reason
+Owner directive: Build employee scheduling calendar for tomorrow morning. Researched best practices (Deputy, When I Work, 7shifts), audited existing SmartLaborIntelligence code, built calendar that integrates with existing EMPLOYEES/USERS data and weather forecast.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing scheduling calendar
+- [x] Searched for similar functions - Found SmartLaborIntelligence (REUSED, not duplicated)
+- [x] No duplicates created - Built on top of existing getAllActiveEmployees() and getWeatherForecast()
+
+---
+
+## 2026-01-24 - Inventory_Traceability_Claude (CSA Portal Audit)
+
+### Files Modified
+- `web_app/csa.html` - Fixed stale fallback API URL (line 2826-2827)
+
+### Reason
+CSA Member Portal Audit per owner directive. Owner inviting CSA customers soon - portal must be FLAWLESS.
+
+### Audit Completed
+1. Researched best CSA platforms (Local Line, Farmigo, CSAware)
+2. Verified all 13 CSA API endpoints exist in backend
+3. Tested complete member journey (10 steps)
+4. Fixed stale fallback API URL
+5. Compared to industry standards
+
+### Verdict
+**CSA Member Portal is READY for customer invites.** Professional, feature-complete, matches industry standards.
+
+### Duplicate Check
+- [x] Checked MASTER_SYSTEM_INVENTORY.md
+- [x] No duplicates created
+- [x] Only fixed existing code
+
+---
+
+## 2026-01-24 - PM_Architect (Phone PM)
+
+### Files Created
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/README.md` - Instructions for registering computer Claudes
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/BACKEND_CLAUDE.md` - Backend Claude registration
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/UX_DESIGN_CLAUDE.md` - UX Design Claude registration
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/FIELD_OPS_CLAUDE.md` - Field Ops Claude registration
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/FINANCIAL_CLAUDE.md` - Financial Claude registration
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/SALES_CRM_CLAUDE.md` - Sales/CRM Claude registration
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/INVENTORY_CLAUDE.md` - Inventory Claude registration
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/GRANTS_CLAUDE.md` - Grants Claude registration
+- `claude_sessions/COMPUTER_CLAUDE_REGISTRATION/EMAIL_COS_CLAUDE.md` - Email Chief of Staff Claude registration
+- `telegram_bot/claude-trigger.js` - Script to trigger Claude sessions by writing to their INBOXes
+
+### Files Modified
+- `claude_sessions/pm_architect/SYSTEM_MANIFEST.md` - Added PHONE_PM_INSTRUCTIONS.md to Key Documentation Files table
+- `telegram_bot/bot.js` - Added /trigger, /triggerall, /claudes commands for remote Claude control
+- `telegram_bot/README.md` - Added documentation for new Claude control commands
+
+### Reason
+1. Created registration instructions folder so owner can send instructions to each computer Claude session
+2. Added Telegram bot commands to trigger Claudes remotely - owner can now send /trigger backend from phone to wake a Claude
+
+### New Telegram Commands
+- `/trigger [name]` - Trigger specific Claude (backend, ux, field, etc.)
+- `/triggerall` - Trigger ALL Claude sessions
+- `/claudes` - List available session names
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar documentation
+- [x] No duplicates created
+
+---
+
 ## 2026-01-23 - Coordination_Claude
 
 ### Files Created
