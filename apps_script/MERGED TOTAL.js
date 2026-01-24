@@ -92,9 +92,246 @@ const CLAUDE_CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TELEGRAM WEBHOOK - REAL-TIME MESSAGING VIA WEBHOOK
+// This is the MOST ADVANCED method - instant responses, no polling
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TELEGRAM_CONFIG = {
+  BOT_TOKEN: '8363820090:AAHh7XNhuR_XltP7YaSuq-O_-yUczDjAPXM',
+  OWNER_CHAT_ID: '8256286434'
+};
+
+/**
+ * Handle incoming Telegram webhook (POST requests)
+ * This is called instantly when user sends a message to the bot
+ */
+function handleTelegramWebhook(update) {
+  try {
+    if (!update || !update.message) {
+      return { success: false, error: 'Invalid update' };
+    }
+
+    const message = update.message;
+    const chatId = message.chat.id.toString();
+    const text = message.text || '';
+
+    // Security: Only respond to owner
+    if (chatId !== TELEGRAM_CONFIG.OWNER_CHAT_ID) {
+      sendTelegramMessage(chatId, 'Unauthorized. This bot only responds to the farm owner.');
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Handle commands
+    if (text.startsWith('/')) {
+      return handleTelegramCommand(chatId, text);
+    }
+
+    // Generate response using Chief of Staff AI
+    const response = chatWithChiefOfStaff(text, '[]');
+
+    if (response.success && response.message) {
+      sendTelegramMessage(chatId, response.message);
+
+      // Log to coordination system
+      sendClaudeMessage({
+        from: 'OWNER',
+        to: 'CLAUDE_CODE',
+        subject: 'Telegram Message',
+        body: text,
+        type: 'direct',
+        priority: 'normal'
+      });
+      sendClaudeMessage({
+        from: 'CLAUDE_CODE',
+        to: 'OWNER',
+        subject: 'Telegram Response',
+        body: response.message,
+        type: 'response',
+        priority: 'normal'
+      });
+
+      return { success: true, responded: true };
+    } else {
+      sendTelegramMessage(chatId, 'Sorry, I could not process that. Please try again.');
+      return { success: false, error: 'AI response failed' };
+    }
+  } catch (error) {
+    Logger.log('handleTelegramWebhook error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Handle Telegram commands
+ */
+function handleTelegramCommand(chatId, command) {
+  const cmd = command.toLowerCase().split(' ')[0];
+
+  switch (cmd) {
+    case '/start':
+      sendTelegramMessage(chatId, '🌱 Tiny Seed Farm AI Assistant\n\nI can help you with:\n• Farm status and updates\n• Task management\n• Weather and planning\n• Email summaries\n• Anything else!\n\nJust type your question or use /help for commands.');
+      break;
+    case '/help':
+      sendTelegramMessage(chatId, '📋 Commands:\n/status - Farm status\n/tasks - Today\'s tasks\n/weather - Weather forecast\n/brief - Morning brief\n/sales - Sales summary\n\nOr just type any question!');
+      break;
+    case '/status':
+      const status = chatWithChiefOfStaff('Give me a quick farm status update', '[]');
+      sendTelegramMessage(chatId, status.message || 'Could not get status');
+      break;
+    case '/tasks':
+      const tasks = chatWithChiefOfStaff('What tasks need my attention today?', '[]');
+      sendTelegramMessage(chatId, tasks.message || 'Could not get tasks');
+      break;
+    case '/weather':
+      const weather = chatWithChiefOfStaff('What is the weather forecast?', '[]');
+      sendTelegramMessage(chatId, weather.message || 'Could not get weather');
+      break;
+    case '/brief':
+      const brief = chatWithChiefOfStaff('Give me my morning brief', '[]');
+      sendTelegramMessage(chatId, brief.message || 'Could not get brief');
+      break;
+    case '/sales':
+      const sales = chatWithChiefOfStaff('Summarize recent sales', '[]');
+      sendTelegramMessage(chatId, sales.message || 'Could not get sales');
+      break;
+    default:
+      sendTelegramMessage(chatId, 'Unknown command. Type /help for available commands.');
+  }
+  return { success: true };
+}
+
+/**
+ * Send a message to Telegram
+ */
+function sendTelegramMessage(chatId, text) {
+  const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage`;
+
+  const payload = {
+    chat_id: chatId,
+    text: text,
+    parse_mode: 'Markdown'
+  };
+
+  try {
+    UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    return true;
+  } catch (error) {
+    // Try without markdown if it fails
+    try {
+      payload.parse_mode = undefined;
+      UrlFetchApp.fetch(url, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+      return true;
+    } catch (e) {
+      Logger.log('sendTelegramMessage error: ' + e.toString());
+      return false;
+    }
+  }
+}
+
+/**
+ * Set up the Telegram webhook - RUN THIS ONCE
+ * After running, the bot will respond instantly to messages
+ */
+function setupTelegramWebhook() {
+  const webAppUrl = ScriptApp.getService().getUrl();
+  const webhookUrl = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webAppUrl)}`;
+
+  const response = UrlFetchApp.fetch(webhookUrl);
+  const result = JSON.parse(response.getContentText());
+
+  Logger.log('Webhook setup result: ' + JSON.stringify(result));
+  return result;
+}
+
+/**
+ * Get current webhook info
+ */
+function getTelegramWebhookInfo() {
+  const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/getWebhookInfo`;
+  const response = UrlFetchApp.fetch(url);
+  return JSON.parse(response.getContentText());
+}
+
+/**
+ * Send a proactive message to owner (for notifications)
+ */
+function notifyOwnerViaTelegram(message) {
+  return sendTelegramMessage(TELEGRAM_CONFIG.OWNER_CHAT_ID, message);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CHIEF OF STAFF - INTELLIGENT CONVERSATIONAL AI
 // State-of-the-art proactive assistant with full system context
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * FAST Chat - For Telegram and quick responses (5-10 seconds)
+ * Uses minimal context for speed while still being smart
+ */
+function chatWithChiefOfStaffFast(userMessage) {
+  const apiKey = CLAUDE_CONFIG.API_KEY;
+  if (!apiKey) {
+    return { success: false, message: 'API key not configured' };
+  }
+
+  // Minimal context - just time and basic info
+  const now = new Date();
+  const hour = now.getHours();
+  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+
+  const systemPrompt = `You are the Chief of Staff AI for Tiny Seed Farm, a small organic farm in Rochester, PA.
+
+Current time: ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })}
+Day: ${dayOfWeek} ${timeOfDay}
+
+You help the owner (Todd) with quick questions and farm management. Be concise but helpful.
+If asked about specific data (exact weather, specific orders, etc.), say you can get details if needed.
+For quick questions, give your best answer based on general farm knowledge.
+
+Keep responses SHORT - this is for mobile/Telegram. 2-3 sentences max unless they ask for details.`;
+
+  try {
+    const payload = {
+      model: 'claude-3-haiku-20240307',  // FAST model for quick responses
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }]
+    };
+
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const responseText = response.getContentText();
+    const data = JSON.parse(responseText);
+    if (data.content && data.content[0]) {
+      return { success: true, message: data.content[0].text };
+    }
+    // Return actual error from API
+    return { success: false, message: data.error ? data.error.message : 'No response from AI', raw: responseText.substring(0, 500) };
+  } catch (e) {
+    Logger.log('chatWithChiefOfStaffFast error: ' + e.toString());
+    return { success: false, message: 'Error: ' + e.message };
+  }
+}
 
 /**
  * Chat with Chief of Staff - THE INTELLIGENT CONVERSATION ENDPOINT
@@ -11670,6 +11907,14 @@ function doGet(e) {
       case 'createReminder':
         return jsonResponse(createReminder(e.parameter));
 
+      // Brain Dump Processing
+      case 'processBrainDump':
+        return jsonResponse(processBrainDump(e.parameter.text));
+      case 'saveBrainDumpTasks':
+        return jsonResponse(saveBrainDumpTasks(JSON.parse(e.parameter.tasks)));
+      case 'logActivity':
+        return jsonResponse(logActivity(e.parameter));
+
       case 'getCombinedCommunications':
         return jsonResponse(getCombinedCommunications(e.parameter));
       case 'reclassifyEmail':
@@ -12743,6 +12988,10 @@ function doGet(e) {
         return jsonResponse(refreshPlaidBalances(e.parameter));
       case 'getPlaidTransactions':
         return jsonResponse(getPlaidTransactions(e.parameter));
+      case 'getPlaidInvestmentHoldings':
+        return jsonResponse(getPlaidInvestmentHoldings(e.parameter));
+      case 'getPlaidInvestmentTransactions':
+        return jsonResponse(getPlaidInvestmentTransactions(e.parameter));
       case 'exchangePlaidPublicToken':
         // Handle via GET to avoid CORS preflight issues from browser
         const exchangeData = {
@@ -13200,6 +13449,8 @@ function doGet(e) {
         return jsonResponse(setupAllTriggers());
       case 'chatWithChiefOfStaff':
         return jsonResponse(chatWithChiefOfStaff(e.parameter.message, e.parameter.conversationHistory));
+      case 'chatFast':
+        return jsonResponse(chatWithChiefOfStaffFast(e.parameter.message));
 
       // ============ CHIEF OF STAFF - MEMORY SYSTEM ============
       case 'rememberContact':
@@ -13427,6 +13678,20 @@ function doGet(e) {
       case 'sendMorningTaskAssignments':
         return jsonResponse(sendMorningTaskAssignments());
 
+      // ============ EMPLOYEE SCHEDULING MODULE ============
+      case 'getEmployees':
+        return jsonResponse(getAllActiveEmployees());
+      case 'getSchedules':
+        return jsonResponse(getSchedules(e.parameter.startDate, e.parameter.endDate));
+      case 'createSchedule':
+        return jsonResponse(createSchedule(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+      case 'updateSchedule':
+        return jsonResponse(updateSchedule(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+      case 'deleteSchedule':
+        return jsonResponse(deleteSchedule(e.parameter.scheduleId));
+      case 'generateSmartSchedule':
+        return jsonResponse(generateSmartSchedule(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+
       // ============ FARMERS MARKET MODULE ============
       case 'initMarketModule':
         return jsonResponse(initMarketModule());
@@ -13556,6 +13821,15 @@ function doGet(e) {
           e.parameter.permissionId,
           e.parameter.approved === 'true'
         ));
+      case 'createPermissionRequest':
+        return jsonResponse(createPermissionRequest(
+          e.parameter.type || 'ACTION',
+          e.parameter.title || 'Permission Request',
+          e.parameter.description || '',
+          e.parameter.requestedBy || 'CLAUDE_CODE'
+        ));
+      case 'checkPermissionStatus':
+        return jsonResponse(checkPermissionStatus(e.parameter.permissionId));
       case 'getCoordinationTasks':
         return jsonResponse(getAvailableTasks(e.parameter.role || 'OWNER', {}));
       case 'acknowledgeCoordinationAlert':
@@ -13649,8 +13923,17 @@ function doGet(e) {
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+
+    // ============ TELEGRAM WEBHOOK - REAL-TIME ============
+    // Telegram sends updates with 'update_id' and 'message' fields
+    if (data.update_id && data.message) {
+      const result = handleTelegramWebhook(data);
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     const action = data.action;
-    
+
     switch(action) {
       // ============ CRITICAL POST ENDPOINTS ============
       case 'saveSuccessionPlan':
@@ -13684,6 +13967,16 @@ function doPost(e) {
         return jsonResponse(approveRegistration(data));
       case 'rejectRegistration':
         return jsonResponse(rejectRegistration(data));
+
+      // ============ EMPLOYEE SCHEDULING ============
+      case 'createSchedule':
+        return jsonResponse(createSchedule(data.schedule || data));
+      case 'updateSchedule':
+        return jsonResponse(updateSchedule(data.schedule || data));
+      case 'deleteSchedule':
+        return jsonResponse(deleteSchedule(data.scheduleId));
+      case 'generateSmartSchedule':
+        return jsonResponse(generateSmartSchedule(data));
 
       // ============ AI VISION ANALYSIS ============
       case 'analyzeSeedPacket':
@@ -18755,6 +19048,194 @@ function createReminder(params) {
     };
   } catch (error) {
     Logger.log('createReminder error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BRAIN DUMP - Convert unstructured thoughts to organized tasks
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Process a brain dump - use Claude to extract tasks from unstructured text
+ */
+function processBrainDump(text) {
+  try {
+    if (!text || text.trim().length === 0) {
+      return { success: false, error: 'No text provided' };
+    }
+
+    const apiKey = CLAUDE_CONFIG.API_KEY;
+    if (!apiKey) {
+      // Fallback: simple parsing without AI
+      return processBrainDumpSimple(text);
+    }
+
+    const prompt = `You are a task extraction assistant for a small farm business. Extract actionable tasks from this brain dump.
+
+For each task, identify:
+1. The task text (clear, actionable)
+2. Type: TASK, CALL, INVOICE, REMINDER, ORDER, or CHECK
+3. Priority: HIGH, MEDIUM, or LOW
+4. Due date hint if mentioned (today, tomorrow, friday, etc.)
+
+BRAIN DUMP:
+${text}
+
+Respond with ONLY valid JSON array, no explanation:
+[{"text": "...", "type": "TASK", "priority": "MEDIUM", "dueDateHint": null}]`;
+
+    const payload = {
+      model: CLAUDE_CONFIG.MODEL,
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }]
+    };
+
+    const options = {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, options);
+    const data = JSON.parse(response.getContentText());
+
+    if (data.content && data.content[0] && data.content[0].text) {
+      const responseText = data.content[0].text.trim();
+      // Extract JSON from response
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const tasks = JSON.parse(jsonMatch[0]);
+        return { success: true, tasks: tasks };
+      }
+    }
+
+    // Fallback to simple parsing
+    return processBrainDumpSimple(text);
+  } catch (error) {
+    Logger.log('processBrainDump error: ' + error.toString());
+    return processBrainDumpSimple(text);
+  }
+}
+
+/**
+ * Simple brain dump parsing without AI
+ */
+function processBrainDumpSimple(text) {
+  const lines = text.split(/[\n\r]+/).filter(line => line.trim());
+  const tasks = [];
+
+  const callKeywords = ['call', 'phone', 'contact', 'reach out'];
+  const invoiceKeywords = ['invoice', 'bill', 'charge', 'payment'];
+  const orderKeywords = ['order', 'buy', 'purchase', 'get more'];
+  const checkKeywords = ['check', 'verify', 'look at', 'review'];
+  const reminderKeywords = ['remember', 'dont forget', "don't forget", 'remind'];
+
+  for (const line of lines) {
+    let taskText = line.replace(/^[-*•]\s*/, '').trim();
+    if (!taskText || taskText.length < 3) continue;
+
+    let type = 'TASK';
+    const lower = taskText.toLowerCase();
+
+    if (callKeywords.some(k => lower.includes(k))) type = 'CALL';
+    else if (invoiceKeywords.some(k => lower.includes(k))) type = 'INVOICE';
+    else if (orderKeywords.some(k => lower.includes(k))) type = 'ORDER';
+    else if (checkKeywords.some(k => lower.includes(k))) type = 'CHECK';
+    else if (reminderKeywords.some(k => lower.includes(k))) type = 'REMINDER';
+
+    tasks.push({
+      text: taskText,
+      type: type,
+      priority: 'MEDIUM',
+      dueDateHint: null
+    });
+  }
+
+  return { success: true, tasks: tasks };
+}
+
+/**
+ * Save extracted tasks from brain dump to appropriate sheets
+ */
+function saveBrainDumpTasks(tasks) {
+  try {
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+      return { success: false, error: 'No tasks provided' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let taskSheet = ss.getSheetByName('TASKS');
+
+    if (!taskSheet) {
+      taskSheet = ss.insertSheet('TASKS');
+      taskSheet.getRange(1, 1, 1, 9).setValues([['ID', 'Title', 'Description', 'DueDate', 'Priority', 'Status', 'CreatedAt', 'SourceActionId', 'CompletedAt']]);
+      taskSheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+      taskSheet.setFrozenRows(1);
+    }
+
+    const now = new Date().toISOString();
+    let savedCount = 0;
+
+    for (const task of tasks) {
+      const taskId = 'TASK-' + Date.now() + '-' + savedCount;
+      taskSheet.appendRow([
+        taskId,
+        task.text,
+        'Type: ' + (task.type || 'TASK'),
+        task.dueDateHint || '',
+        task.priority || 'MEDIUM',
+        'PENDING',
+        now,
+        'BRAIN_DUMP',
+        ''
+      ]);
+      savedCount++;
+    }
+
+    return {
+      success: true,
+      savedCount: savedCount,
+      message: `${savedCount} tasks saved to task list`
+    };
+  } catch (error) {
+    Logger.log('saveBrainDumpTasks error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log an activity (for completion tracking)
+ */
+function logActivity(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let logSheet = ss.getSheetByName('ACTIVITY_LOG');
+
+    if (!logSheet) {
+      logSheet = ss.insertSheet('ACTIVITY_LOG');
+      logSheet.getRange(1, 1, 1, 6).setValues([['Timestamp', 'Type', 'ItemType', 'ItemId', 'Notes', 'CompletedBy']]);
+      logSheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+      logSheet.setFrozenRows(1);
+    }
+
+    logSheet.appendRow([
+      new Date().toISOString(),
+      params.type || 'ACTIVITY',
+      params.itemType || '',
+      params.itemId || '',
+      params.notes || '',
+      'Owner'
+    ]);
+
+    return { success: true, message: 'Activity logged' };
+  } catch (error) {
+    Logger.log('logActivity error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -36760,6 +37241,275 @@ function getAllActiveEmployees() {
   }
 }
 
+// ============================================================================
+// EMPLOYEE SCHEDULING MODULE
+// ============================================================================
+
+const SCHEDULE_SHEET_NAME = 'SCHEDULES';
+const SCHEDULE_HEADERS = ['Schedule_ID', 'Employee_ID', 'Date', 'Start_Time', 'End_Time', 'Shift_Type', 'Notes', 'Created_At', 'Updated_At'];
+
+/**
+ * Initialize SCHEDULES sheet if it doesn't exist
+ */
+function initScheduleSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SCHEDULE_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SCHEDULE_SHEET_NAME);
+    sheet.appendRow(SCHEDULE_HEADERS);
+    sheet.getRange(1, 1, 1, SCHEDULE_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+/**
+ * Get schedules for a date range
+ */
+function getSchedules(startDate, endDate) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SCHEDULE_SHEET_NAME);
+
+    if (!sheet) {
+      // Return empty if no schedules sheet yet
+      return { success: true, schedules: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, schedules: [] };
+    }
+
+    const headers = data[0];
+    const schedules = [];
+
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = data[i][j]);
+
+      const scheduleDate = new Date(row.Date);
+
+      // Filter by date range if provided
+      if (start && scheduleDate < start) continue;
+      if (end && scheduleDate > end) continue;
+
+      schedules.push({
+        id: row.Schedule_ID,
+        employeeId: row.Employee_ID,
+        date: formatDateString(row.Date),
+        startTime: row.Start_Time,
+        endTime: row.End_Time,
+        type: row.Shift_Type || 'field',
+        notes: row.Notes || ''
+      });
+    }
+
+    return { success: true, schedules: schedules };
+  } catch (error) {
+    return { success: false, error: error.toString(), schedules: [] };
+  }
+}
+
+/**
+ * Create a new schedule entry
+ */
+function createSchedule(data) {
+  try {
+    const sheet = initScheduleSheet();
+    const now = new Date().toISOString();
+
+    const scheduleId = data.id || 'SCH_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+    const row = [
+      scheduleId,
+      data.employeeId,
+      data.date,
+      data.startTime,
+      data.endTime,
+      data.type || 'field',
+      data.notes || '',
+      now,
+      now
+    ];
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      scheduleId: scheduleId,
+      message: 'Schedule created successfully'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update an existing schedule
+ */
+function updateSchedule(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SCHEDULE_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'SCHEDULES sheet not found' };
+    }
+
+    const allData = sheet.getDataRange().getValues();
+    const headers = allData[0];
+    const idCol = headers.indexOf('Schedule_ID');
+
+    for (let i = 1; i < allData.length; i++) {
+      if (allData[i][idCol] === data.id) {
+        // Update the row
+        const row = i + 1;
+        sheet.getRange(row, headers.indexOf('Employee_ID') + 1).setValue(data.employeeId);
+        sheet.getRange(row, headers.indexOf('Date') + 1).setValue(data.date);
+        sheet.getRange(row, headers.indexOf('Start_Time') + 1).setValue(data.startTime);
+        sheet.getRange(row, headers.indexOf('End_Time') + 1).setValue(data.endTime);
+        sheet.getRange(row, headers.indexOf('Shift_Type') + 1).setValue(data.type || 'field');
+        sheet.getRange(row, headers.indexOf('Notes') + 1).setValue(data.notes || '');
+        sheet.getRange(row, headers.indexOf('Updated_At') + 1).setValue(new Date().toISOString());
+
+        return { success: true, message: 'Schedule updated successfully' };
+      }
+    }
+
+    return { success: false, error: 'Schedule not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Delete a schedule entry
+ */
+function deleteSchedule(scheduleId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SCHEDULE_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'SCHEDULES sheet not found' };
+    }
+
+    const allData = sheet.getDataRange().getValues();
+    const headers = allData[0];
+    const idCol = headers.indexOf('Schedule_ID');
+
+    for (let i = 1; i < allData.length; i++) {
+      if (allData[i][idCol] === scheduleId) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Schedule deleted successfully' };
+      }
+    }
+
+    return { success: false, error: 'Schedule not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate smart schedule based on tasks and weather
+ */
+function generateSmartSchedule(params) {
+  try {
+    const weekStart = params.weekStart || new Date().toISOString().split('T')[0];
+    const priority = params.priority || 'balanced';
+    const useWeather = params.useWeather !== false;
+
+    // Get active employees
+    const employeeResult = getAllActiveEmployees();
+    if (!employeeResult.success || employeeResult.employees.length === 0) {
+      return { success: false, error: 'No active employees found' };
+    }
+
+    const employees = employeeResult.employees;
+    const schedules = [];
+
+    // Get pending tasks from WORK_PRESCRIPTIONS or TASK_ASSIGNMENTS
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const taskSheet = ss.getSheetByName('TASK_ASSIGNMENTS') || ss.getSheetByName('TASKS');
+
+    // Generate basic schedules for the week
+    // This is a simplified version - can be enhanced with ML optimization
+    const daysToSchedule = params.range === 'today' ? 1 :
+                           params.range === 'tomorrow' ? 1 :
+                           params.range === 'next_week' ? 7 : 7;
+
+    const startDate = new Date(weekStart);
+
+    for (let d = 0; d < daysToSchedule; d++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + d);
+      const dateStr = date.toISOString().split('T')[0];
+
+      // Skip weekends if priority is efficiency
+      if (priority === 'efficiency' && (date.getDay() === 0 || date.getDay() === 6)) {
+        continue;
+      }
+
+      // Assign employees to shifts based on role
+      employees.forEach((emp, idx) => {
+        // Simple rotation - can be enhanced
+        const shiftType = emp.role && emp.role.toLowerCase().includes('driver') ? 'delivery' :
+                         emp.role && emp.role.toLowerCase().includes('flower') ? 'greenhouse' :
+                         emp.role && emp.role.toLowerCase().includes('market') ? 'market' :
+                         'field';
+
+        schedules.push({
+          id: 'SCH_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+          employeeId: emp.id,
+          date: dateStr,
+          startTime: '07:00',
+          endTime: '15:00',
+          type: shiftType,
+          notes: 'Auto-generated shift'
+        });
+      });
+    }
+
+    // Save generated schedules
+    const sheet = initScheduleSheet();
+    const now = new Date().toISOString();
+
+    schedules.forEach(s => {
+      sheet.appendRow([
+        s.id, s.employeeId, s.date, s.startTime, s.endTime, s.type, s.notes, now, now
+      ]);
+    });
+
+    return {
+      success: true,
+      schedules: schedules,
+      message: `Generated ${schedules.length} shifts`
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Helper function to format date string
+ */
+function formatDateString(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toISOString().split('T')[0];
+}
+
+// ============================================================================
+// END EMPLOYEE SCHEDULING MODULE
+// ============================================================================
+
 /**
  * Get employee's current assignments
  */
@@ -42950,7 +43700,7 @@ const PLAID_CONFIG = {
     },
     ENV: 'production',
     BASE_URL: 'https://production.plaid.com',
-    PRODUCTS: ['transactions'],
+    PRODUCTS: ['transactions', 'investments'],
     COUNTRY_CODES: ['US'],
     LANGUAGE: 'en'
 };
@@ -43452,6 +44202,218 @@ function savePlaidTransaction(txn) {
                 description: txn.name
             });
         }
+    }
+}
+
+/**
+ * Get Plaid investment holdings (portfolio positions)
+ * Requires 'investments' product in PLAID_CONFIG.PRODUCTS
+ */
+function getPlaidInvestmentHoldings(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const itemsSheet = ss.getSheetByName('PLAID_ITEMS');
+
+        if (!itemsSheet) {
+            return { success: false, error: 'No connected accounts found' };
+        }
+
+        const items = itemsSheet.getDataRange().getValues();
+        const allHoldings = [];
+        const allAccounts = [];
+        const allSecurities = [];
+
+        for (let i = 1; i < items.length; i++) {
+            if (items[i][3] !== 'Active') continue;
+
+            const accessToken = items[i][1];
+            const institutionName = items[i][2] || 'Unknown';
+
+            const payload = {
+                client_id: PLAID_CONFIG.CLIENT_ID,
+                secret: PLAID_CONFIG.SECRET,
+                access_token: accessToken
+            };
+
+            const options = {
+                method: 'post',
+                contentType: 'application/json',
+                payload: JSON.stringify(payload),
+                muteHttpExceptions: true
+            };
+
+            const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/investments/holdings/get', options);
+            const result = JSON.parse(response.getContentText());
+
+            if (result.holdings) {
+                // Map securities for quick lookup
+                const securityMap = {};
+                if (result.securities) {
+                    result.securities.forEach(sec => {
+                        securityMap[sec.security_id] = sec;
+                        allSecurities.push({
+                            security_id: sec.security_id,
+                            name: sec.name,
+                            ticker: sec.ticker_symbol,
+                            type: sec.type,
+                            close_price: sec.close_price,
+                            close_price_as_of: sec.close_price_as_of
+                        });
+                    });
+                }
+
+                // Process accounts
+                if (result.accounts) {
+                    result.accounts.forEach(acc => {
+                        if (acc.type === 'investment' || acc.type === 'brokerage') {
+                            allAccounts.push({
+                                account_id: acc.account_id,
+                                name: acc.name,
+                                official_name: acc.official_name,
+                                type: acc.type,
+                                subtype: acc.subtype,
+                                balance: acc.balances?.current || 0,
+                                institution: institutionName
+                            });
+                        }
+                    });
+                }
+
+                // Process holdings
+                result.holdings.forEach(holding => {
+                    const security = securityMap[holding.security_id] || {};
+                    allHoldings.push({
+                        account_id: holding.account_id,
+                        security_id: holding.security_id,
+                        ticker: security.ticker_symbol || 'N/A',
+                        name: security.name || 'Unknown Security',
+                        type: security.type || 'unknown',
+                        quantity: holding.quantity,
+                        cost_basis: holding.cost_basis,
+                        current_price: security.close_price || 0,
+                        current_value: holding.institution_value || (holding.quantity * (security.close_price || 0)),
+                        gain_loss: holding.institution_value ?
+                            (holding.institution_value - (holding.cost_basis || 0)) : 0,
+                        institution: institutionName
+                    });
+                });
+            }
+        }
+
+        // Calculate totals
+        const totalValue = allHoldings.reduce((sum, h) => sum + (h.current_value || 0), 0);
+        const totalCostBasis = allHoldings.reduce((sum, h) => sum + (h.cost_basis || 0), 0);
+        const totalGainLoss = totalValue - totalCostBasis;
+
+        return {
+            success: true,
+            holdings: allHoldings,
+            accounts: allAccounts,
+            securities: allSecurities,
+            summary: {
+                total_value: totalValue,
+                total_cost_basis: totalCostBasis,
+                total_gain_loss: totalGainLoss,
+                gain_loss_percent: totalCostBasis > 0 ? ((totalGainLoss / totalCostBasis) * 100).toFixed(2) : 0,
+                holdings_count: allHoldings.length,
+                accounts_count: allAccounts.length
+            }
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get Plaid investment transactions (buys, sells, dividends, etc.)
+ */
+function getPlaidInvestmentTransactions(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const itemsSheet = ss.getSheetByName('PLAID_ITEMS');
+
+        if (!itemsSheet) {
+            return { success: false, error: 'No connected accounts found' };
+        }
+
+        const items = itemsSheet.getDataRange().getValues();
+        const allTransactions = [];
+
+        // Default to last 30 days
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - (params.days || 30));
+
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+
+        for (let i = 1; i < items.length; i++) {
+            if (items[i][3] !== 'Active') continue;
+
+            const accessToken = items[i][1];
+            const institutionName = items[i][2] || 'Unknown';
+
+            const payload = {
+                client_id: PLAID_CONFIG.CLIENT_ID,
+                secret: PLAID_CONFIG.SECRET,
+                access_token: accessToken,
+                start_date: startDateStr,
+                end_date: endDateStr
+            };
+
+            const options = {
+                method: 'post',
+                contentType: 'application/json',
+                payload: JSON.stringify(payload),
+                muteHttpExceptions: true
+            };
+
+            const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/investments/transactions/get', options);
+            const result = JSON.parse(response.getContentText());
+
+            if (result.investment_transactions) {
+                // Map securities
+                const securityMap = {};
+                if (result.securities) {
+                    result.securities.forEach(sec => {
+                        securityMap[sec.security_id] = sec;
+                    });
+                }
+
+                result.investment_transactions.forEach(txn => {
+                    const security = securityMap[txn.security_id] || {};
+                    allTransactions.push({
+                        transaction_id: txn.investment_transaction_id,
+                        account_id: txn.account_id,
+                        date: txn.date,
+                        type: txn.type, // buy, sell, dividend, etc.
+                        subtype: txn.subtype,
+                        ticker: security.ticker_symbol || 'N/A',
+                        name: txn.name || security.name,
+                        quantity: txn.quantity,
+                        price: txn.price,
+                        amount: txn.amount,
+                        fees: txn.fees,
+                        institution: institutionName
+                    });
+                });
+            }
+        }
+
+        // Sort by date descending
+        allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        return {
+            success: true,
+            transactions: allTransactions,
+            count: allTransactions.length,
+            date_range: {
+                start: startDateStr,
+                end: endDateStr
+            }
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
     }
 }
 

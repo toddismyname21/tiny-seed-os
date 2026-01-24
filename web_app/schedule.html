@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2d5a27">
+    <title>Employee Scheduling | Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .week-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 15px;
+            border-radius: 8px;
+        }
+
+        .week-nav button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .week-nav button:hover { background: rgba(255,255,255,0.1); }
+
+        .week-label { font-weight: 600; min-width: 200px; text-align: center; }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: #000;
+        }
+
+        .btn-primary:hover { background: #e09255; }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .btn-ghost:hover { background: rgba(255,255,255,0.2); }
+
+        /* Weather Bar */
+        .weather-bar {
+            background: var(--bg-card);
+            padding: 15px 20px;
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .weather-day {
+            flex: 0 0 auto;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .weather-day.today {
+            background: rgba(74,124,67,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--primary-light);
+        }
+
+        .weather-date { font-size: 0.85rem; color: var(--text-secondary); }
+        .weather-icon { font-size: 1.5rem; margin: 5px 0; }
+        .weather-temp { font-weight: 600; }
+        .weather-rain { font-size: 0.75rem; color: var(--info); }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: var(--bg-elevated);
+            padding: 15px 20px;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .stat-icon.hours { background: rgba(59,130,246,0.2); color: var(--info); }
+        .stat-icon.staff { background: rgba(34,197,94,0.2); color: var(--success); }
+        .stat-icon.tasks { background: rgba(245,158,11,0.2); color: var(--warning); }
+        .stat-icon.weather { background: rgba(239,68,68,0.2); color: var(--danger); }
+
+        .stat-value { font-size: 1.3rem; font-weight: 700; }
+        .stat-label { font-size: 0.8rem; color: var(--text-secondary); }
+
+        /* Calendar Grid */
+        .calendar-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 150px repeat(7, minmax(120px, 1fr));
+            gap: 1px;
+            background: var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            min-width: 1000px;
+        }
+
+        .calendar-header {
+            background: var(--bg-elevated);
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .calendar-header.employee-col { text-align: left; padding-left: 15px; }
+
+        .calendar-header .day-name { font-size: 0.85rem; color: var(--text-secondary); }
+        .calendar-header .day-date { font-size: 1.1rem; margin-top: 3px; }
+
+        .employee-row {
+            display: contents;
+        }
+
+        .employee-name {
+            background: var(--bg-card);
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            border-right: 1px solid var(--border);
+        }
+
+        .employee-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .employee-info { flex: 1; }
+        .employee-info .name { font-weight: 600; }
+        .employee-info .role { font-size: 0.75rem; color: var(--text-secondary); }
+
+        .shift-cell {
+            background: var(--bg-card);
+            padding: 8px;
+            min-height: 80px;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .shift-cell:hover { background: var(--bg-elevated); }
+
+        .shift-cell.today {
+            background: rgba(74,124,67,0.1);
+        }
+
+        .shift-block {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .shift-block:hover { transform: scale(1.02); }
+
+        .shift-block.field { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        .shift-block.greenhouse { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .shift-block.delivery { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .shift-block.packhouse { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .shift-block.market { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
+
+        .shift-time { font-weight: 600; }
+        .shift-type { font-size: 0.75rem; opacity: 0.9; }
+
+        .add-shift-btn {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shift-cell:hover .add-shift-btn { opacity: 1; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal { transform: translateY(0); }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 { font-size: 1.2rem; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-body { padding: 20px; }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .shift-type-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .shift-type-option {
+            padding: 15px 10px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .shift-type-option:hover { border-color: var(--primary-light); }
+        .shift-type-option.selected { border-color: var(--primary); background: rgba(74,124,67,0.2); }
+
+        .shift-type-option i { font-size: 1.5rem; margin-bottom: 5px; display: block; }
+        .shift-type-option span { font-size: 0.85rem; }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+
+        /* Quick Add Panel */
+        .quick-add-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            z-index: 100;
+        }
+
+        .quick-add-panel.active { transform: translateY(0); }
+
+        .quick-add-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .quick-shifts {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-shift-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            color: white;
+        }
+
+        .quick-shift-btn.field { background: #22c55e; }
+        .quick-shift-btn.greenhouse { background: #3b82f6; }
+        .quick-shift-btn.delivery { background: #f59e0b; }
+        .quick-shift-btn.packhouse { background: #8b5cf6; }
+        .quick-shift-btn.market { background: #ec4899; }
+
+        /* Legend */
+        .legend {
+            padding: 15px 20px;
+            background: var(--bg-card);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            border-top: 1px solid var(--border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            color: var(--text-secondary);
+        }
+
+        .loading i { animation: spin 1s linear infinite; margin-right: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: stretch; }
+            .header-controls { justify-content: center; }
+            .stats-bar { justify-content: center; }
+            .calendar-grid { grid-template-columns: 100px repeat(7, minmax(80px, 1fr)); }
+            .employee-avatar { display: none; }
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: var(--bg-elevated);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <h1><i class="fas fa-calendar-alt"></i> Employee Scheduling</h1>
+        <div class="header-controls">
+            <div class="week-nav">
+                <button onclick="changeWeek(-1)" title="Previous Week">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="week-label" id="weekLabel">Loading...</span>
+                <button onclick="changeWeek(1)" title="Next Week">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <button onclick="goToToday()" class="btn-ghost" style="margin-left: 10px;">
+                    Today
+                </button>
+            </div>
+            <button class="btn btn-ghost" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn btn-primary" onclick="openBulkScheduleModal()">
+                <i class="fas fa-magic"></i> Smart Schedule
+            </button>
+        </div>
+    </header>
+
+    <!-- Weather Bar -->
+    <div class="weather-bar" id="weatherBar">
+        <div class="loading"><i class="fas fa-spinner"></i> Loading weather...</div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-item">
+            <div class="stat-icon hours"><i class="fas fa-clock"></i></div>
+            <div>
+                <div class="stat-value" id="totalHours">--</div>
+                <div class="stat-label">Total Hours</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon staff"><i class="fas fa-users"></i></div>
+            <div>
+                <div class="stat-value" id="staffScheduled">--</div>
+                <div class="stat-label">Staff Scheduled</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon tasks"><i class="fas fa-tasks"></i></div>
+            <div>
+                <div class="stat-value" id="shiftsThisWeek">--</div>
+                <div class="stat-label">Shifts This Week</div>
+            </div>
+        </div>
+        <div class="stat-item" id="weatherAlert" style="display: none;">
+            <div class="stat-icon weather"><i class="fas fa-exclamation-triangle"></i></div>
+            <div>
+                <div class="stat-value">Weather Alert</div>
+                <div class="stat-label" id="weatherAlertText">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Container -->
+    <div class="calendar-container">
+        <div class="calendar-grid" id="calendarGrid">
+            <div class="loading" style="grid-column: span 8;">
+                <i class="fas fa-spinner"></i> Loading schedule...
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #22c55e;"></div>
+            <span>Field Work</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3b82f6;"></div>
+            <span>Greenhouse</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f59e0b;"></div>
+            <span>Delivery</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #8b5cf6;"></div>
+            <span>Packhouse</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ec4899;"></div>
+            <span>Market</span>
+        </div>
+    </div>
+
+    <!-- Add/Edit Shift Modal -->
+    <div class="modal-overlay" id="shiftModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Shift</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="shiftId">
+                <input type="hidden" id="shiftEmployee">
+                <input type="hidden" id="shiftDate">
+
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="employeeSelect">
+                        <option value="">Select employee...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Shift Type</label>
+                    <div class="shift-type-selector" id="shiftTypeSelector">
+                        <div class="shift-type-option" data-type="field">
+                            <i class="fas fa-seedling" style="color: #22c55e;"></i>
+                            <span>Field</span>
+                        </div>
+                        <div class="shift-type-option" data-type="greenhouse">
+                            <i class="fas fa-leaf" style="color: #3b82f6;"></i>
+                            <span>Greenhouse</span>
+                        </div>
+                        <div class="shift-type-option" data-type="delivery">
+                            <i class="fas fa-truck" style="color: #f59e0b;"></i>
+                            <span>Delivery</span>
+                        </div>
+                        <div class="shift-type-option" data-type="packhouse">
+                            <i class="fas fa-box" style="color: #8b5cf6;"></i>
+                            <span>Packhouse</span>
+                        </div>
+                        <div class="shift-type-option" data-type="market">
+                            <i class="fas fa-store" style="color: #ec4899;"></i>
+                            <span>Market</span>
+                        </div>
+                        <div class="shift-type-option" data-type="other">
+                            <i class="fas fa-ellipsis-h" style="color: #94a3b8;"></i>
+                            <span>Other</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Time</label>
+                        <input type="time" id="startTime" value="07:00">
+                    </div>
+                    <div class="form-group">
+                        <label>End Time</label>
+                        <input type="time" id="endTime" value="15:00">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="shiftNotes" rows="2" placeholder="Special instructions, tasks, etc."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-danger" id="deleteShiftBtn" onclick="deleteShift()" style="display: none;">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <button class="btn btn-success" onclick="saveShift()">
+                    <i class="fas fa-save"></i> Save Shift
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Schedule Modal -->
+    <div class="modal-overlay" id="smartScheduleModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-magic"></i> Smart Schedule Generator</h2>
+                <button class="modal-close" onclick="closeSmartModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Generate an optimized schedule based on tasks, weather, and employee availability.
+                </p>
+
+                <div class="form-group">
+                    <label>Schedule For</label>
+                    <select id="smartScheduleRange">
+                        <option value="today">Today Only</option>
+                        <option value="tomorrow">Tomorrow</option>
+                        <option value="week" selected>This Week</option>
+                        <option value="next_week">Next Week</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Priority Focus</label>
+                    <select id="smartPriority">
+                        <option value="balanced">Balanced</option>
+                        <option value="harvest">Prioritize Harvests</option>
+                        <option value="planting">Prioritize Planting</option>
+                        <option value="efficiency">Maximize Efficiency</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Consider Weather?</label>
+                    <select id="smartWeather">
+                        <option value="yes" selected>Yes - Adjust for forecasts</option>
+                        <option value="no">No - Ignore weather</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeSmartModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="generateSmartSchedule()">
+                    <i class="fas fa-wand-magic-sparkles"></i> Generate Schedule
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====================================
+        // STATE
+        // ====================================
+        let currentWeekStart = getWeekStart(new Date());
+        let employees = [];
+        let schedules = [];
+        let selectedShiftType = 'field';
+
+        const API_URL = TINY_SEED_API.MAIN_API;
+
+        // ====================================
+        // INITIALIZATION
+        // ====================================
+        document.addEventListener('DOMContentLoaded', () => {
+            initShiftTypeSelector();
+            refreshData();
+        });
+
+        function initShiftTypeSelector() {
+            document.querySelectorAll('.shift-type-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    document.querySelectorAll('.shift-type-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    selectedShiftType = opt.dataset.type;
+                });
+            });
+            // Select first by default
+            document.querySelector('.shift-type-option').classList.add('selected');
+        }
+
+        // ====================================
+        // DATE UTILITIES
+        // ====================================
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+            return new Date(d.setDate(diff));
+        }
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDateShort(date) {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function getDayName(date) {
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        }
+
+        function isToday(date) {
+            const today = new Date();
+            return date.toDateString() === today.toDateString();
+        }
+
+        function getWeekDays() {
+            const days = [];
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(currentWeekStart);
+                day.setDate(day.getDate() + i);
+                days.push(day);
+            }
+            return days;
+        }
+
+        function changeWeek(delta) {
+            currentWeekStart.setDate(currentWeekStart.getDate() + (delta * 7));
+            refreshData();
+        }
+
+        function goToToday() {
+            currentWeekStart = getWeekStart(new Date());
+            refreshData();
+        }
+
+        function updateWeekLabel() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            const label = `${formatDateShort(currentWeekStart)} - ${formatDateShort(weekEnd)}`;
+            document.getElementById('weekLabel').textContent = label;
+        }
+
+        // ====================================
+        // DATA LOADING
+        // ====================================
+        async function refreshData() {
+            updateWeekLabel();
+            await Promise.all([
+                loadEmployees(),
+                loadSchedules(),
+                loadWeather()
+            ]);
+            renderCalendar();
+            updateStats();
+        }
+
+        async function loadEmployees() {
+            try {
+                const response = await fetch(`${API_URL}?action=getEmployees`);
+                const data = await response.json();
+                if (data.success && data.employees) {
+                    employees = data.employees.filter(e => e.active !== false);
+                } else {
+                    // Fallback: Generate demo data
+                    employees = [
+                        { id: '1', name: 'Todd Wilson', role: 'Owner', active: true },
+                        { id: '2', name: 'Loren', role: 'Flower Manager', active: true },
+                        { id: '3', name: 'Mike', role: 'Field Crew', active: true },
+                        { id: '4', name: 'Sarah', role: 'Field Crew', active: true },
+                        { id: '5', name: 'Alex', role: 'Driver', active: true }
+                    ];
+                }
+                populateEmployeeSelect();
+            } catch (err) {
+                console.error('Error loading employees:', err);
+                showToast('Could not load employees', 'error');
+            }
+        }
+
+        async function loadSchedules() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+
+            try {
+                const response = await fetch(`${API_URL}?action=getSchedules&startDate=${formatDate(currentWeekStart)}&endDate=${formatDate(weekEnd)}`);
+                const data = await response.json();
+                if (data.success && data.schedules) {
+                    schedules = data.schedules;
+                } else {
+                    // Initialize empty if no schedules endpoint yet
+                    schedules = [];
+                }
+            } catch (err) {
+                console.error('Error loading schedules:', err);
+                schedules = [];
+            }
+        }
+
+        async function loadWeather() {
+            try {
+                const response = await fetch(`${API_URL}?action=getWeatherForecast`);
+                const data = await response.json();
+                if (data.success && data.forecast) {
+                    renderWeather(data.forecast);
+                } else {
+                    renderWeatherFallback();
+                }
+            } catch (err) {
+                console.error('Error loading weather:', err);
+                renderWeatherFallback();
+            }
+        }
+
+        // ====================================
+        // RENDERING
+        // ====================================
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const days = getWeekDays();
+
+            // Build header
+            let html = '<div class="calendar-header employee-col">Employee</div>';
+            days.forEach(day => {
+                const todayClass = isToday(day) ? ' today' : '';
+                html += `
+                    <div class="calendar-header${todayClass}">
+                        <div class="day-name">${getDayName(day)}</div>
+                        <div class="day-date">${day.getDate()}</div>
+                    </div>
+                `;
+            });
+
+            // Build employee rows
+            employees.forEach(emp => {
+                html += `<div class="employee-row">`;
+                html += `
+                    <div class="employee-name">
+                        <div class="employee-avatar">${getInitials(emp.name)}</div>
+                        <div class="employee-info">
+                            <div class="name">${emp.name}</div>
+                            <div class="role">${emp.role || 'Staff'}</div>
+                        </div>
+                    </div>
+                `;
+
+                days.forEach(day => {
+                    const dateStr = formatDate(day);
+                    const daySchedules = getSchedulesForEmployeeDay(emp.id, dateStr);
+                    const todayClass = isToday(day) ? ' today' : '';
+
+                    html += `
+                        <div class="shift-cell${todayClass}"
+                             onclick="openShiftModal('${emp.id}', '${dateStr}')"
+                             data-employee="${emp.id}"
+                             data-date="${dateStr}">
+                    `;
+
+                    daySchedules.forEach(shift => {
+                        html += `
+                            <div class="shift-block ${shift.type}"
+                                 onclick="event.stopPropagation(); editShift('${shift.id}')">
+                                <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}</div>
+                                <div class="shift-type">${capitalizeFirst(shift.type)}</div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            <button class="add-shift-btn" onclick="event.stopPropagation(); openShiftModal('${emp.id}', '${dateStr}')">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function getSchedulesForEmployeeDay(employeeId, dateStr) {
+            return schedules.filter(s =>
+                s.employeeId === employeeId && s.date === dateStr
+            );
+        }
+
+        function renderWeather(forecast) {
+            const bar = document.getElementById('weatherBar');
+            const days = getWeekDays();
+
+            let html = '';
+            days.forEach((day, i) => {
+                const dayForecast = forecast[i] || { temp: '--', icon: 'cloud', rain: 0 };
+                const todayClass = isToday(day) ? ' today' : '';
+                const icon = getWeatherIcon(dayForecast.condition || 'cloudy');
+
+                html += `
+                    <div class="weather-day${todayClass}">
+                        <div class="weather-date">${getDayName(day)}</div>
+                        <div class="weather-icon">${icon}</div>
+                        <div class="weather-temp">${dayForecast.high || dayForecast.temp || '--'}°</div>
+                        ${dayForecast.rain > 0 ? `<div class="weather-rain"><i class="fas fa-droplet"></i> ${dayForecast.rain}%</div>` : ''}
+                    </div>
+                `;
+            });
+
+            bar.innerHTML = html;
+
+            // Check for weather alerts
+            const rainyDays = forecast.filter(f => f.rain > 60);
+            if (rainyDays.length > 0) {
+                document.getElementById('weatherAlert').style.display = 'flex';
+                document.getElementById('weatherAlertText').textContent = `${rainyDays.length} day(s) with rain >60%`;
+            }
+        }
+
+        function renderWeatherFallback() {
+            const bar = document.getElementById('weatherBar');
+            const days = getWeekDays();
+
+            let html = '';
+            days.forEach(day => {
+                const todayClass = isToday(day) ? ' today' : '';
+                html += `
+                    <div class="weather-day${todayClass}">
+                        <div class="weather-date">${getDayName(day)}</div>
+                        <div class="weather-icon">☀️</div>
+                        <div class="weather-temp">--°</div>
+                    </div>
+                `;
+            });
+            bar.innerHTML = html;
+        }
+
+        function getWeatherIcon(condition) {
+            const icons = {
+                'sunny': '☀️', 'clear': '☀️',
+                'partly_cloudy': '⛅', 'partly cloudy': '⛅',
+                'cloudy': '☁️', 'overcast': '☁️',
+                'rain': '🌧️', 'showers': '🌧️',
+                'thunderstorm': '⛈️', 'storm': '⛈️',
+                'snow': '❄️', 'sleet': '🌨️',
+                'fog': '🌫️', 'mist': '🌫️',
+                'windy': '💨'
+            };
+            return icons[condition.toLowerCase()] || '☁️';
+        }
+
+        function updateStats() {
+            const totalHours = schedules.reduce((sum, s) => {
+                const hours = calculateHours(s.startTime, s.endTime);
+                return sum + hours;
+            }, 0);
+
+            const uniqueStaff = new Set(schedules.map(s => s.employeeId)).size;
+
+            document.getElementById('totalHours').textContent = totalHours.toFixed(1);
+            document.getElementById('staffScheduled').textContent = uniqueStaff;
+            document.getElementById('shiftsThisWeek').textContent = schedules.length;
+        }
+
+        function calculateHours(start, end) {
+            const [sh, sm] = start.split(':').map(Number);
+            const [eh, em] = end.split(':').map(Number);
+            return (eh + em/60) - (sh + sm/60);
+        }
+
+        // ====================================
+        // MODAL HANDLERS
+        // ====================================
+        function openShiftModal(employeeId, date) {
+            document.getElementById('shiftId').value = '';
+            document.getElementById('shiftEmployee').value = employeeId;
+            document.getElementById('shiftDate').value = date;
+            document.getElementById('employeeSelect').value = employeeId;
+            document.getElementById('startTime').value = '07:00';
+            document.getElementById('endTime').value = '15:00';
+            document.getElementById('shiftNotes').value = '';
+            document.getElementById('modalTitle').textContent = 'Add Shift';
+            document.getElementById('deleteShiftBtn').style.display = 'none';
+
+            // Reset shift type selection
+            document.querySelectorAll('.shift-type-option').forEach(o => o.classList.remove('selected'));
+            document.querySelector('.shift-type-option[data-type="field"]').classList.add('selected');
+            selectedShiftType = 'field';
+
+            document.getElementById('shiftModal').classList.add('active');
+        }
+
+        function editShift(shiftId) {
+            const shift = schedules.find(s => s.id === shiftId);
+            if (!shift) return;
+
+            document.getElementById('shiftId').value = shiftId;
+            document.getElementById('shiftEmployee').value = shift.employeeId;
+            document.getElementById('shiftDate').value = shift.date;
+            document.getElementById('employeeSelect').value = shift.employeeId;
+            document.getElementById('startTime').value = shift.startTime;
+            document.getElementById('endTime').value = shift.endTime;
+            document.getElementById('shiftNotes').value = shift.notes || '';
+            document.getElementById('modalTitle').textContent = 'Edit Shift';
+            document.getElementById('deleteShiftBtn').style.display = 'block';
+
+            // Set shift type
+            document.querySelectorAll('.shift-type-option').forEach(o => o.classList.remove('selected'));
+            const typeOption = document.querySelector(`.shift-type-option[data-type="${shift.type}"]`);
+            if (typeOption) {
+                typeOption.classList.add('selected');
+                selectedShiftType = shift.type;
+            }
+
+            document.getElementById('shiftModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('shiftModal').classList.remove('active');
+        }
+
+        function openBulkScheduleModal() {
+            document.getElementById('smartScheduleModal').classList.add('active');
+        }
+
+        function closeSmartModal() {
+            document.getElementById('smartScheduleModal').classList.remove('active');
+        }
+
+        // ====================================
+        // SAVE/DELETE
+        // ====================================
+        async function saveShift() {
+            const shiftId = document.getElementById('shiftId').value;
+            const employeeId = document.getElementById('employeeSelect').value;
+            const date = document.getElementById('shiftDate').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const notes = document.getElementById('shiftNotes').value;
+
+            if (!employeeId) {
+                showToast('Please select an employee', 'error');
+                return;
+            }
+
+            const shiftData = {
+                id: shiftId || generateId(),
+                employeeId,
+                date,
+                startTime,
+                endTime,
+                type: selectedShiftType,
+                notes
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: shiftId ? 'updateSchedule' : 'createSchedule',
+                        schedule: shiftData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Shift saved successfully', 'success');
+                    closeModal();
+
+                    // Update local state
+                    if (shiftId) {
+                        const idx = schedules.findIndex(s => s.id === shiftId);
+                        if (idx >= 0) schedules[idx] = shiftData;
+                    } else {
+                        schedules.push(shiftData);
+                    }
+                    renderCalendar();
+                    updateStats();
+                } else {
+                    // Fallback: Update locally anyway for demo
+                    if (shiftId) {
+                        const idx = schedules.findIndex(s => s.id === shiftId);
+                        if (idx >= 0) schedules[idx] = shiftData;
+                    } else {
+                        schedules.push(shiftData);
+                    }
+                    showToast('Shift saved (local only - API pending)', 'warning');
+                    closeModal();
+                    renderCalendar();
+                    updateStats();
+                }
+            } catch (err) {
+                // Fallback: Save locally
+                if (shiftId) {
+                    const idx = schedules.findIndex(s => s.id === shiftId);
+                    if (idx >= 0) schedules[idx] = shiftData;
+                } else {
+                    schedules.push(shiftData);
+                }
+                showToast('Shift saved (offline mode)', 'warning');
+                closeModal();
+                renderCalendar();
+                updateStats();
+            }
+        }
+
+        async function deleteShift() {
+            const shiftId = document.getElementById('shiftId').value;
+            if (!shiftId) return;
+
+            if (!confirm('Delete this shift?')) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'deleteSchedule',
+                        scheduleId: shiftId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Shift deleted', 'success');
+                } else {
+                    showToast('Shift deleted (local only)', 'warning');
+                }
+            } catch (err) {
+                showToast('Shift deleted (offline mode)', 'warning');
+            }
+
+            // Remove from local state
+            schedules = schedules.filter(s => s.id !== shiftId);
+            closeModal();
+            renderCalendar();
+            updateStats();
+        }
+
+        async function generateSmartSchedule() {
+            const range = document.getElementById('smartScheduleRange').value;
+            const priority = document.getElementById('smartPriority').value;
+            const useWeather = document.getElementById('smartWeather').value;
+
+            showToast('Generating smart schedule...', 'warning');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generateSmartSchedule',
+                        range,
+                        priority,
+                        useWeather: useWeather === 'yes',
+                        weekStart: formatDate(currentWeekStart)
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.schedules) {
+                    schedules = [...schedules, ...result.schedules];
+                    showToast(`Generated ${result.schedules.length} shifts!`, 'success');
+                    closeSmartModal();
+                    renderCalendar();
+                    updateStats();
+                } else {
+                    showToast('Smart scheduling coming soon! Add shifts manually for now.', 'warning');
+                    closeSmartModal();
+                }
+            } catch (err) {
+                showToast('Smart scheduling coming soon! Add shifts manually for now.', 'warning');
+                closeSmartModal();
+            }
+        }
+
+        // ====================================
+        // UTILITIES
+        // ====================================
+        function populateEmployeeSelect() {
+            const select = document.getElementById('employeeSelect');
+            select.innerHTML = '<option value="">Select employee...</option>';
+            employees.forEach(emp => {
+                select.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
+            });
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        }
+
+        function formatTime(time) {
+            const [h, m] = time.split(':');
+            const hour = parseInt(h);
+            const ampm = hour >= 12 ? 'pm' : 'am';
+            const hour12 = hour % 12 || 12;
+            return `${hour12}:${m}${ampm}`;
+        }
+
+        function capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function generateId() {
+            return 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+    </script>
+</body>
+</html>
