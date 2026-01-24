@@ -3745,6 +3745,39 @@ function archiveEmail(threadId) {
 }
 
 /**
+ * Delete an email thread (move to trash)
+ */
+function deleteEmail(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Email thread not found' };
+    }
+
+    // Move to trash in Gmail
+    thread.moveToTrash();
+
+    // Update status in sheet
+    transitionEmailState(threadId, 'DELETED', { deletedAt: new Date().toISOString() });
+
+    logChiefOfStaffAudit({
+      agent: 'USER',
+      action: 'DELETE_EMAIL',
+      threadId: threadId,
+      output: { success: true }
+    });
+
+    return { success: true, message: 'Email deleted' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Create a draft reply to an email
  */
 function draftEmailReply(threadId, replyBody, sendImmediately = false) {
@@ -11645,6 +11678,8 @@ function doGet(e) {
         return jsonResponse(getEmailDetail(e.parameter.threadId));
       case 'archiveEmail':
         return jsonResponse(archiveEmail(e.parameter.threadId));
+      case 'deleteEmail':
+        return jsonResponse(deleteEmail(e.parameter.threadId));
       case 'draftEmailReply':
         return jsonResponse(draftEmailReply(e.parameter.threadId, e.parameter.body, e.parameter.send === 'true'));
       case 'generateAIDraftReply':

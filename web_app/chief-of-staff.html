@@ -1874,6 +1874,7 @@
                     <div class="comm-actions">
                         <button class="comm-btn primary" onclick="event.stopPropagation(); generateReplyFor('${msg.id}')">✍️ Reply</button>
                         <button class="comm-btn secondary" onclick="event.stopPropagation(); archiveEmailDirect('${msg.id}')">📦 Archive</button>
+                        <button class="comm-btn secondary" style="color: var(--accent-red);" onclick="event.stopPropagation(); deleteEmailDirect('${msg.id}')">🗑️ Delete</button>
                     </div>
                     <div class="action-quick-btns">
                         <button onclick="event.stopPropagation(); openQuickCreate('task', '${msg.id}', '${safeSubject}', '${safePreview}', '${safeFrom}')">📋 Create Task</button>
@@ -2505,6 +2506,25 @@
                 }
             } catch (error) {
                 alert('Error archiving');
+            }
+        }
+
+        async function deleteEmailDirect(threadId) {
+            if (!confirm('Delete this email? This cannot be undone.')) return;
+
+            try {
+                const response = await api.get('deleteEmail', { threadId });
+                if (response.success) {
+                    showToast('Email deleted', 'success');
+                    communications = communications.filter(c => c.id !== threadId);
+                    document.getElementById('inboxBadge').textContent = communications.length;
+                    saveToCache();
+                    renderCurrentTab();
+                } else {
+                    showToast('Failed to delete', 'error');
+                }
+            } catch (error) {
+                showToast('Error deleting email', 'error');
             }
         }
 
