@@ -13531,16 +13531,33 @@ function doGet(e) {
 
       // GET-based write operations for coordination (avoids CORS)
       case 'sendClaudeMessage':
-        if (!e.parameter.from || !e.parameter.to || !e.parameter.subject) {
-          return jsonResponse({ error: 'from, to, and subject parameters required' });
+        // Handle both parameter naming conventions
+        const fromRole = e.parameter.from || e.parameter.fromRole;
+        const toRole = e.parameter.to || e.parameter.toRole;
+        const msgSubject = e.parameter.subject;
+        if (!fromRole || !toRole || !msgSubject) {
+          return jsonResponse({ error: 'from/fromRole, to/toRole, and subject parameters required' });
         }
         return jsonResponse(sendClaudeMessage(
-          e.parameter.from,
-          e.parameter.to,
-          e.parameter.subject,
+          fromRole,
+          toRole,
+          msgSubject,
           e.parameter.body || '',
           { priority: e.parameter.priority || 'normal', type: e.parameter.type || 'direct' }
         ));
+
+      // Claude Command Center endpoints
+      case 'getClaudeStatus':
+        return jsonResponse(getClaudeStatus());
+      case 'getPendingPermissions':
+        return jsonResponse(getPendingPermissions());
+      case 'respondToPermission':
+        return jsonResponse(respondToPermission(
+          e.parameter.permissionId,
+          e.parameter.approved === 'true'
+        ));
+      case 'getCoordinationTasks':
+        return jsonResponse(getAvailableTasks(e.parameter.role || 'OWNER', {}));
       case 'acknowledgeCoordinationAlert':
         if (!e.parameter.alertId) {
           return jsonResponse({ error: 'alertId parameter required' });

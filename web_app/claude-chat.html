@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <title>Claude Command Center | Tiny Seed Farm</title>
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+            --claude-orange: #da7756;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            padding: calc(12px + var(--safe-top)) 16px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline { background: var(--accent-red); animation: none; }
+        .status-dot.working { background: var(--accent-yellow); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            flex-shrink: 0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--claude-orange);
+            border-bottom-color: var(--claude-orange);
+        }
+
+        .tab .badge {
+            background: var(--accent-red);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Chat Area */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            background: var(--accent-blue);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.claude {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border-left: 3px solid var(--claude-orange);
+        }
+
+        .message.system {
+            background: rgba(234, 179, 8, 0.1);
+            color: var(--accent-yellow);
+            align-self: center;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+
+        .message-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .message.user .message-meta { color: rgba(255,255,255,0.7); }
+
+        /* Chat Input */
+        .chat-input-area {
+            padding: 12px 16px calc(12px + var(--safe-bottom));
+            background: var(--bg-secondary);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: var(--claude-orange);
+        }
+
+        .send-btn {
+            background: var(--claude-orange);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover { transform: scale(1.05); }
+        .send-btn:active { transform: scale(0.95); }
+
+        /* Permissions Tab */
+        .permissions-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .permission-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--accent-yellow);
+        }
+
+        .permission-card.approved { border-left-color: var(--accent-green); opacity: 0.6; }
+        .permission-card.denied { border-left-color: var(--accent-red); opacity: 0.6; }
+
+        .permission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .permission-type {
+            font-size: 12px;
+            color: var(--accent-yellow);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .permission-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .permission-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .permission-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .permission-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .permission-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .permission-btn.approve {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .permission-btn.deny {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Tasks Tab */
+        .tasks-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .task-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .task-status {
+            display: inline-block;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .task-status.pending { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+        .task-status.in-progress { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .task-status.completed { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+
+        .task-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .task-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .task-progress {
+            margin-top: 12px;
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .task-progress-fill {
+            height: 100%;
+            background: var(--accent-blue);
+            transition: width 0.3s;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            overflow-x: auto;
+            flex-shrink: 0;
+            background: var(--bg-secondary);
+        }
+
+        .quick-action {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: var(--text-primary);
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action:hover {
+            background: var(--claude-orange);
+            border-color: var(--claude-orange);
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--bg-card);
+            border-top-color: var(--claude-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: toastIn 0.3s ease;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <span style="font-size: 24px;">🤖</span>
+            <div>
+                <h1>Claude Command Center</h1>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Checking connection...</span>
+                </div>
+            </div>
+        </div>
+        <a href="index.html" style="color: var(--text-secondary); text-decoration: none; font-size: 24px;">🏠</a>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="chat">💬 Chat</div>
+        <div class="tab" data-tab="permissions">🔐 Permissions <span class="badge" id="permBadge" style="display:none;">0</span></div>
+        <div class="tab" data-tab="tasks">📋 Tasks</div>
+    </div>
+
+    <div class="content">
+        <!-- Chat Tab -->
+        <div class="tab-content active" id="chatTab">
+            <div class="quick-actions">
+                <div class="quick-action" onclick="sendQuickMessage('What are you working on?')">Status update?</div>
+                <div class="quick-action" onclick="sendQuickMessage('What tasks need my attention?')">My tasks</div>
+                <div class="quick-action" onclick="sendQuickMessage('Show me today\'s priorities')">Priorities</div>
+                <div class="quick-action" onclick="sendQuickMessage('Continue with the website build')">Continue build</div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message system">
+                    Welcome to Claude Command Center. Send messages to coordinate work remotely.
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Send a message to Claude..." onkeypress="if(event.key==='Enter')sendMessage()">
+                <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+
+        <!-- Permissions Tab -->
+        <div class="tab-content" id="permissionsTab">
+            <div class="permissions-list" id="permissionsList">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+
+        <!-- Tasks Tab -->
+        <div class="tab-content" id="tasksTab">
+            <div class="tasks-list" id="tasksList">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const api = new TinySeedAPI();
+        let currentTab = 'chat';
+        let messages = [];
+        let permissions = [];
+        let tasks = [];
+        let pollInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTabs();
+            loadMessages();
+            loadPermissions();
+            loadTasks();
+            checkClaudeStatus();
+
+            // Poll for updates every 10 seconds
+            pollInterval = setInterval(() => {
+                loadMessages();
+                loadPermissions();
+                checkClaudeStatus();
+            }, 10000);
+        });
+
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+                    currentTab = tab.dataset.tab;
+                });
+            });
+        }
+
+        async function checkClaudeStatus() {
+            try {
+                const response = await api.get('getClaudeStatus');
+                const dot = document.getElementById('statusDot');
+                const text = document.getElementById('statusText');
+
+                if (response.success && response.status === 'active') {
+                    dot.className = 'status-dot';
+                    text.textContent = response.currentTask || 'Ready';
+                } else if (response.success && response.status === 'working') {
+                    dot.className = 'status-dot working';
+                    text.textContent = response.currentTask || 'Working...';
+                } else {
+                    dot.className = 'status-dot offline';
+                    text.textContent = 'Offline';
+                }
+            } catch (e) {
+                document.getElementById('statusDot').className = 'status-dot offline';
+                document.getElementById('statusText').textContent = 'Connection error';
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                const response = await api.get('getClaudeMessages', { role: 'OWNER', limit: 50 });
+                if (response.success && response.messages) {
+                    messages = response.messages;
+                    renderMessages();
+                }
+            } catch (e) {
+                console.error('Failed to load messages:', e);
+            }
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('chatMessages');
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="message system">
+                        Welcome to Claude Command Center. Send messages to coordinate work remotely.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = messages.map(msg => {
+                const isUser = msg.from === 'OWNER' || msg.from === 'USER';
+                const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="message ${isUser ? 'user' : 'claude'}">
+                        <div>${msg.body || msg.subject}</div>
+                        <div class="message-meta">${time}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+
+            // Optimistic UI - show message immediately
+            const tempMsg = {
+                from: 'OWNER',
+                body: text,
+                timestamp: new Date().toISOString()
+            };
+            messages.push(tempMsg);
+            renderMessages();
+
+            try {
+                await api.get('sendClaudeMessage', {
+                    fromRole: 'OWNER',
+                    toRole: 'CLAUDE_CODE',
+                    subject: 'User Message',
+                    body: text
+                });
+                showToast('Message sent');
+            } catch (e) {
+                showToast('Failed to send');
+            }
+        }
+
+        function sendQuickMessage(text) {
+            document.getElementById('chatInput').value = text;
+            sendMessage();
+        }
+
+        async function loadPermissions() {
+            try {
+                const response = await api.get('getPendingPermissions');
+                if (response.success) {
+                    permissions = response.permissions || [];
+                    renderPermissions();
+
+                    const badge = document.getElementById('permBadge');
+                    const pending = permissions.filter(p => p.status === 'pending').length;
+                    if (pending > 0) {
+                        badge.textContent = pending;
+                        badge.style.display = 'inline';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load permissions:', e);
+            }
+        }
+
+        function renderPermissions() {
+            const container = document.getElementById('permissionsList');
+
+            if (permissions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Permission Requests</h3>
+                        <p>Claude will ask here when it needs approval for actions</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = permissions.map(perm => {
+                const time = new Date(perm.timestamp).toLocaleString();
+                const statusClass = perm.status === 'approved' ? 'approved' : perm.status === 'denied' ? 'denied' : '';
+
+                return `
+                    <div class="permission-card ${statusClass}">
+                        <div class="permission-header">
+                            <span class="permission-type">${perm.type || 'Action'}</span>
+                            <span class="permission-time">${time}</span>
+                        </div>
+                        <div class="permission-title">${perm.title || 'Permission Request'}</div>
+                        <div class="permission-desc">${perm.description || perm.body || ''}</div>
+                        ${perm.status === 'pending' ? `
+                            <div class="permission-actions">
+                                <button class="permission-btn approve" onclick="approvePermission('${perm.id}')">✓ Approve</button>
+                                <button class="permission-btn deny" onclick="denyPermission('${perm.id}')">✗ Deny</button>
+                            </div>
+                        ` : `
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                Status: ${perm.status.toUpperCase()}
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function approvePermission(permId) {
+            try {
+                await api.get('respondToPermission', { permissionId: permId, approved: true });
+                showToast('Permission approved');
+                loadPermissions();
+            } catch (e) {
+                showToast('Error approving');
+            }
+        }
+
+        async function denyPermission(permId) {
+            try {
+                await api.get('respondToPermission', { permissionId: permId, approved: false });
+                showToast('Permission denied');
+                loadPermissions();
+            } catch (e) {
+                showToast('Error denying');
+            }
+        }
+
+        async function loadTasks() {
+            try {
+                const response = await api.get('getCoordinationTasks');
+                if (response.success) {
+                    tasks = response.tasks || [];
+                    renderTasks();
+                }
+            } catch (e) {
+                console.error('Failed to load tasks:', e);
+            }
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('tasksList');
+
+            if (tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Active Tasks</h3>
+                        <p>Tasks will appear here when Claude is working on something</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = tasks.map(task => {
+                const statusClass = task.status === 'completed' ? 'completed' :
+                                   task.status === 'in_progress' ? 'in-progress' : 'pending';
+                const progress = task.progress || 0;
+
+                return `
+                    <div class="task-card">
+                        <span class="task-status ${statusClass}">${task.status?.replace('_', ' ').toUpperCase() || 'PENDING'}</span>
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-desc">${task.description || ''}</div>
+                        ${task.status === 'in_progress' ? `
+                            <div class="task-progress">
+                                <div class="task-progress-fill" style="width: ${progress}%"></div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showToast(message) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 2000);
+        }
+    </script>
+</body>
+</html>

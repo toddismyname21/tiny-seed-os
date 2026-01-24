@@ -1449,6 +1449,196 @@ function getCoordinationMorningBrief() {
 }
 
 // ==========================================
+// CLAUDE COMMAND CENTER - Remote Control Functions
+// ==========================================
+
+/**
+ * Get overall Claude status for the command center
+ */
+function getClaudeStatus() {
+  const sessions = getActiveSessions();
+  const activeSessions = sessions.filter(s => s.status === 'active');
+
+  if (activeSessions.length === 0) {
+    return {
+      success: true,
+      status: 'offline',
+      message: 'No active Claude sessions',
+      sessions: []
+    };
+  }
+
+  // Find what Claude is currently working on
+  const currentTask = activeSessions[0]?.currentTask || 'Ready for commands';
+
+  return {
+    success: true,
+    status: activeSessions.some(s => s.currentTask) ? 'working' : 'active',
+    currentTask: currentTask,
+    sessions: activeSessions.map(s => ({
+      role: s.role,
+      status: s.status,
+      currentTask: s.currentTask,
+      lastActive: s.lastActive
+    })),
+    message: `${activeSessions.length} active session(s)`
+  };
+}
+
+/**
+ * Get pending permission requests
+ */
+function getPendingPermissions() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('CLAUDE_PERMISSIONS');
+
+  if (!sheet) {
+    // Create the permissions sheet
+    sheet = ss.insertSheet('CLAUDE_PERMISSIONS');
+    sheet.appendRow(['ID', 'Timestamp', 'Type', 'Title', 'Description', 'RequestedBy', 'Status', 'RespondedAt', 'Response']);
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const permissions = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    permissions.push({
+      id: data[i][0],
+      timestamp: data[i][1],
+      type: data[i][2],
+      title: data[i][3],
+      description: data[i][4],
+      requestedBy: data[i][5],
+      status: data[i][6] || 'pending',
+      respondedAt: data[i][7],
+      response: data[i][8]
+    });
+  }
+
+  // Sort by timestamp descending, pending first
+  permissions.sort((a, b) => {
+    if (a.status === 'pending' && b.status !== 'pending') return -1;
+    if (b.status === 'pending' && a.status !== 'pending') return 1;
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
+
+  return {
+    success: true,
+    permissions: permissions.slice(0, 50),
+    pendingCount: permissions.filter(p => p.status === 'pending').length
+  };
+}
+
+/**
+ * Create a permission request (called by Claude when it needs approval)
+ */
+function createPermissionRequest(type, title, description, requestedBy) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('CLAUDE_PERMISSIONS');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('CLAUDE_PERMISSIONS');
+    sheet.appendRow(['ID', 'Timestamp', 'Type', 'Title', 'Description', 'RequestedBy', 'Status', 'RespondedAt', 'Response']);
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  const permId = 'perm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+  sheet.appendRow([
+    permId,
+    new Date().toISOString(),
+    type || 'ACTION',
+    title,
+    description,
+    requestedBy || 'CLAUDE_CODE',
+    'pending',
+    '',
+    ''
+  ]);
+
+  // Send SMS alert for permission request
+  createCoordinationAlert(
+    requestedBy || 'CLAUDE_CODE',
+    'urgent',
+    'Permission Request: ' + title,
+    description.substring(0, 100),
+    true
+  );
+
+  return {
+    success: true,
+    permissionId: permId,
+    message: 'Permission request created'
+  };
+}
+
+/**
+ * Respond to a permission request
+ */
+function respondToPermission(permissionId, approved) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('CLAUDE_PERMISSIONS');
+
+  if (!sheet) {
+    return { success: false, error: 'Permissions sheet not found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === permissionId) {
+      sheet.getRange(i + 1, 7).setValue(approved ? 'approved' : 'denied');
+      sheet.getRange(i + 1, 8).setValue(new Date().toISOString());
+      sheet.getRange(i + 1, 9).setValue(approved ? 'Approved by owner' : 'Denied by owner');
+
+      logCoordinationActivity('OWNER', 'permission_response', {
+        permissionId: permissionId,
+        approved: approved,
+        title: data[i][3]
+      });
+
+      return {
+        success: true,
+        message: `Permission ${approved ? 'approved' : 'denied'}`
+      };
+    }
+  }
+
+  return { success: false, error: 'Permission not found' };
+}
+
+/**
+ * Check if a permission has been granted (for Claude to poll)
+ */
+function checkPermissionStatus(permissionId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('CLAUDE_PERMISSIONS');
+
+  if (!sheet) {
+    return { success: false, status: 'not_found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === permissionId) {
+      return {
+        success: true,
+        status: data[i][6] || 'pending',
+        respondedAt: data[i][7],
+        response: data[i][8]
+      };
+    }
+  }
+
+  return { success: false, status: 'not_found' };
+}
+
+// ==========================================
 // API ROUTING
 // ==========================================
 
