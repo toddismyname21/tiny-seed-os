@@ -69423,6 +69423,26 @@ function getMorningBriefFast(params) {
       // Orders lookup failed, continue with empty array
     }
 
+    // Get REAL weather data from Open-Meteo API
+    let weatherData = { status: 'unavailable', message: 'Weather data not configured' };
+    try {
+      const weather = getWeather({});
+      if (weather && weather.success && weather.current) {
+        weatherData = {
+          current: weather.current.temperature,
+          high: weather.today.high,
+          low: weather.today.low,
+          condition: weather.current.condition,
+          humidity: weather.current.humidity,
+          wind: weather.current.windSpeed,
+          precip_chance: weather.today.precipProbability,
+          alerts: weather.alerts || []
+        };
+      }
+    } catch (weatherErr) {
+      Logger.log('Morning Brief weather error: ' + weatherErr.toString());
+    }
+
     // Build smart tips based on actual data
     const tips = [];
     if (overdueTasks.length > 0) {
@@ -69437,6 +69457,15 @@ function getMorningBriefFast(params) {
     if (pendingOrders.length > 0) {
       tips.push('📦 ' + pendingOrders.length + ' order(s) need processing');
     }
+    // Add weather-based tips
+    if (weatherData.high && weatherData.low) {
+      if (weatherData.low <= 36) {
+        tips.push('🥶 Frost warning! Low of ' + weatherData.low + '°F expected');
+      }
+      if (weatherData.high >= 90) {
+        tips.push('🔥 Heat advisory! High of ' + weatherData.high + '°F expected');
+      }
+    }
     if (tips.length === 0) {
       tips.push('✅ Looking good! Check your schedule for the day');
     }
@@ -69446,8 +69475,9 @@ function getMorningBriefFast(params) {
       timestamp: now.toISOString(),
       greeting: greeting + '!',
       date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      weather_summary: weatherData,
       sections: {
-        weather: { status: 'unavailable', message: 'Weather data not configured' },
+        weather: weatherData,
         tasks: {
           count: todaysTasks.length,
           items: todaysTasks.slice(0, 5),
