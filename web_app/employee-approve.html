@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#15803d">
+    <title>Employee Approvals - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #15803d, #166534);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-badge.pending {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .stat-badge.active {
+            border-left: 4px solid #22c55e;
+        }
+
+        .stat-badge .count {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-badge .label {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .employee-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .employee-header {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .employee-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .employee-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .employee-status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .employee-status.invited {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .employee-status.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .employee-details {
+            padding: 16px;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .detail-label {
+            width: 140px;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+
+        .detail-value {
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .detail-value a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .emergency-section {
+            background: #fef2f2;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .emergency-section h4 {
+            font-size: 13px;
+            color: #dc2626;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .approval-form {
+            padding: 16px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-approve {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #16a34a;
+        }
+
+        .btn-approve:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn-reject {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-reject:hover {
+            background: #fecaca;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #22c55e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            display: none;
+        }
+
+        .toast.success {
+            background: #22c55e;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        .toast.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        .refresh-btn {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                flex-direction: column;
+            }
+
+            .form-group {
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-user-check"></i> Employee Approvals</h1>
+            <div style="display: flex; gap: 8px;">
+                <button class="refresh-btn" onclick="loadEmployees()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <a href="../index.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats-bar">
+            <div class="stat-badge pending">
+                <div>
+                    <div class="count" id="pendingCount">-</div>
+                    <div class="label">Pending Approval</div>
+                </div>
+            </div>
+            <div class="stat-badge active">
+                <div>
+                    <div class="count" id="activeCount">-</div>
+                    <div class="label">Active Employees</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingSection" class="loading">
+            <div class="spinner"></div>
+            <p>Loading employees...</p>
+        </div>
+
+        <div id="pendingSection" style="display: none;">
+            <h2 class="section-title">
+                <i class="fas fa-clock" style="color: #f59e0b;"></i>
+                Pending Approval
+            </h2>
+            <div id="pendingList"></div>
+        </div>
+
+        <div id="invitedSection" style="display: none; margin-top: 30px;">
+            <h2 class="section-title">
+                <i class="fas fa-envelope" style="color: #3b82f6;"></i>
+                Invited (Awaiting Registration)
+            </h2>
+            <div id="invitedList"></div>
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-check-circle"></i>
+            <h3>All caught up!</h3>
+            <p>No employees waiting for approval.</p>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="api-config.js"></script>
+    <script>
+        const API_URL = TINY_SEED_API.MAIN_API;
+        let employees = [];
+
+        // Role options
+        const ROLES = [
+            'Field Worker',
+            'Packhouse',
+            'Driver',
+            'Market Staff',
+            'Manager',
+            'Admin'
+        ];
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        async function loadEmployees() {
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('pendingSection').style.display = 'none';
+            document.getElementById('invitedSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getPendingEmployees`);
+                const data = await response.json();
+
+                if (data.success) {
+                    employees = data.employees || [];
+                    renderEmployees();
+                } else {
+                    showToast(data.error || 'Failed to load employees', 'error');
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                showToast('Network error loading employees', 'error');
+            } finally {
+                document.getElementById('loadingSection').style.display = 'none';
+            }
+        }
+
+        function renderEmployees() {
+            const pending = employees.filter(e => e.status === 'Pending Approval');
+            const invited = employees.filter(e => e.status === 'Invited');
+            const active = employees.filter(e => e.status === 'Active');
+
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('activeCount').textContent = active.length;
+
+            if (pending.length === 0 && invited.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            // Render pending
+            if (pending.length > 0) {
+                document.getElementById('pendingSection').style.display = 'block';
+                document.getElementById('pendingList').innerHTML = pending.map(emp => renderEmployeeCard(emp, true)).join('');
+            }
+
+            // Render invited
+            if (invited.length > 0) {
+                document.getElementById('invitedSection').style.display = 'block';
+                document.getElementById('invitedList').innerHTML = invited.map(emp => renderEmployeeCard(emp, false)).join('');
+            }
+        }
+
+        function renderEmployeeCard(emp, showApprovalForm) {
+            const statusClass = emp.status === 'Pending Approval' ? 'pending' :
+                               emp.status === 'Invited' ? 'invited' : 'active';
+
+            return `
+                <div class="employee-card" id="card-${emp.userId}">
+                    <div class="employee-header">
+                        <div class="employee-name">${emp.fullName || 'Unknown'}</div>
+                        <span class="employee-status ${statusClass}">${emp.status}</span>
+                    </div>
+                    <div class="employee-details">
+                        <div class="detail-row">
+                            <span class="detail-label"><i class="fas fa-envelope"></i> Email</span>
+                            <span class="detail-value"><a href="mailto:${emp.email}">${emp.email || '-'}</a></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label"><i class="fas fa-phone"></i> Phone</span>
+                            <span class="detail-value"><a href="tel:${emp.phone}">${emp.phone || '-'}</a></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label"><i class="fas fa-calendar"></i> Invited</span>
+                            <span class="detail-value">${formatDate(emp.createdAt)}</span>
+                        </div>
+                        ${emp.registrationCompleted ? `
+                        <div class="detail-row">
+                            <span class="detail-label"><i class="fas fa-check"></i> Registered</span>
+                            <span class="detail-value">${formatDate(emp.registrationCompleted)}</span>
+                        </div>
+                        ` : ''}
+
+                        ${emp.emergencyName ? `
+                        <div class="emergency-section">
+                            <h4><i class="fas fa-first-aid"></i> Emergency Contact</h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Name</span>
+                                <span class="detail-value">${emp.emergencyName}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Phone</span>
+                                <span class="detail-value"><a href="tel:${emp.emergencyPhone}">${emp.emergencyPhone || '-'}</a></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Relationship</span>
+                                <span class="detail-value">${emp.emergencyRelation || '-'}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    ${showApprovalForm ? `
+                    <div class="approval-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="role-${emp.userId}">Assign Role</label>
+                                <select id="role-${emp.userId}">
+                                    <option value="">Select role...</option>
+                                    ${ROLES.map(r => `<option value="${r}">${r}</option>`).join('')}
+                                </select>
+                            </div>
+                            <button class="btn btn-approve" onclick="approveEmployee('${emp.userId}')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="btn btn-reject" onclick="rejectEmployee('${emp.userId}')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="approval-form" style="text-align: center; color: #64748b;">
+                        <i class="fas fa-hourglass-half"></i> Waiting for employee to complete registration
+                    </div>
+                    `}
+                </div>
+            `;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        }
+
+        async function approveEmployee(userId) {
+            const roleSelect = document.getElementById(`role-${userId}`);
+            const role = roleSelect.value;
+
+            if (!role) {
+                showToast('Please select a role first', 'error');
+                roleSelect.focus();
+                return;
+            }
+
+            const btn = event.target.closest('.btn-approve');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving...';
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'approveEmployee',
+                    userId: userId,
+                    role: role
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`${data.employeeName || 'Employee'} approved as ${role}!`, 'success');
+                    // Remove card with animation
+                    const card = document.getElementById(`card-${userId}`);
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(100%)';
+                    card.style.transition = 'all 0.3s ease';
+                    setTimeout(() => {
+                        loadEmployees();
+                    }, 300);
+                } else {
+                    showToast(data.error || 'Failed to approve employee', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Approve';
+                }
+            } catch (error) {
+                console.error('Approve error:', error);
+                showToast('Network error', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Approve';
+            }
+        }
+
+        async function rejectEmployee(userId) {
+            if (!confirm('Are you sure you want to reject this employee? They will need to be re-invited.')) {
+                return;
+            }
+
+            const btn = event.target.closest('.btn-reject');
+            btn.disabled = true;
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'rejectEmployee',
+                    userId: userId
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Employee removed', 'success');
+                    loadEmployees();
+                } else {
+                    showToast(data.error || 'Failed to reject employee', 'error');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Reject error:', error);
+                showToast('Network error', 'error');
+                btn.disabled = false;
+            }
+        }
+
+        // Load on page load
+        loadEmployees();
+    </script>
+</body>
+</html>

@@ -12730,6 +12730,12 @@ function doGet(e) {
         return jsonResponse(inviteChef(e.parameter));
       case 'completeEmployeeRegistration':
         return jsonResponse(completeEmployeeRegistration(e.parameter));
+      case 'getPendingEmployees':
+        return jsonResponse(getPendingEmployees());
+      case 'approveEmployee':
+        return jsonResponse(approveEmployee(e.parameter));
+      case 'rejectEmployee':
+        return jsonResponse(rejectEmployee(e.parameter));
 
       case 'logTreatment':
         return jsonResponse(logTreatment(e.parameter));
@@ -15869,6 +15875,229 @@ function completeEmployeeRegistration(data) {
     };
   } catch (error) {
     Logger.log('completeEmployeeRegistration error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all pending employees (Invited + Pending Approval status)
+ * For the employee approval dashboard
+ *
+ * @returns {Object} { success, employees: [...] }
+ */
+function getPendingEmployees() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: true, employees: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Helper to get column value
+    function getCol(row, colName) {
+      const idx = headers.indexOf(colName);
+      return idx !== -1 ? row[idx] : '';
+    }
+
+    const employees = [];
+    let activeCount = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = getCol(row, 'Status') || '';
+      const userId = getCol(row, 'User_ID');
+
+      if (!userId) continue;
+
+      if (status === 'Active') {
+        activeCount++;
+        continue;
+      }
+
+      // Include Invited and Pending Approval
+      if (status === 'Invited' || status === 'Pending Approval') {
+        employees.push({
+          userId: userId,
+          username: getCol(row, 'Username'),
+          fullName: getCol(row, 'Full_Name'),
+          email: getCol(row, 'Email'),
+          phone: getCol(row, 'Phone'),
+          role: getCol(row, 'Role'),
+          status: status,
+          createdAt: getCol(row, 'Created_At'),
+          registrationCompleted: getCol(row, 'Registration_Completed'),
+          emergencyName: getCol(row, 'Emergency_Contact_Name'),
+          emergencyPhone: getCol(row, 'Emergency_Contact_Phone'),
+          emergencyRelation: getCol(row, 'Emergency_Contact_Relation')
+        });
+      }
+    }
+
+    // Sort: Pending Approval first, then by date
+    employees.sort((a, b) => {
+      if (a.status === 'Pending Approval' && b.status !== 'Pending Approval') return -1;
+      if (a.status !== 'Pending Approval' && b.status === 'Pending Approval') return 1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    return {
+      success: true,
+      employees: employees,
+      activeCount: activeCount
+    };
+  } catch (error) {
+    Logger.log('getPendingEmployees error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Approve an employee - set role, status to Active, Is_Active to true
+ *
+ * @param {Object} data - { userId, role }
+ * @returns {Object} { success, message }
+ */
+function approveEmployee(data) {
+  try {
+    if (!data.userId || !data.role) {
+      return { success: false, error: 'User ID and role are required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'Users sheet not found' };
+    }
+
+    const sheetData = sheet.getDataRange().getValues();
+    const headers = sheetData[0];
+
+    // Find user row
+    const userIdCol = headers.indexOf('User_ID');
+    let rowIndex = -1;
+
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][userIdCol] === data.userId) {
+        rowIndex = i + 1; // 1-indexed
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'Employee not found' };
+    }
+
+    // Helper to set column value
+    function setCol(colName, value) {
+      const idx = headers.indexOf(colName);
+      if (idx !== -1) {
+        sheet.getRange(rowIndex, idx + 1).setValue(value);
+      }
+    }
+
+    // Get employee name for response
+    const fullNameCol = headers.indexOf('Full_Name');
+    const employeeName = sheetData[rowIndex - 1][fullNameCol] || 'Employee';
+    const emailCol = headers.indexOf('Email');
+    const employeeEmail = sheetData[rowIndex - 1][emailCol] || '';
+
+    // Update employee
+    setCol('Role', data.role);
+    setCol('Status', 'Active');
+    setCol('Is_Active', true);
+
+    // Generate a PIN for the employee
+    const pin = String(Math.floor(1000 + Math.random() * 9000)); // 4-digit PIN
+    setCol('PIN', pin);
+
+    // Send welcome email with their PIN
+    try {
+      const subject = '✅ You\'re Approved! Welcome to Tiny Seed Farm';
+      const body = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #22c55e, #15803d); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0;">🎉 You're Approved!</h1>
+          </div>
+          <div style="background: white; padding: 25px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <p style="font-size: 16px;">Hi ${employeeName},</p>
+            <p>Great news! Your account has been approved and you're now part of the Tiny Seed Farm team as a <strong>${data.role}</strong>.</p>
+
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+              <p style="margin: 0 0 10px 0; color: #166534; font-weight: 600;">Your Login PIN</p>
+              <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 0; color: #15803d;">${pin}</p>
+            </div>
+
+            <p>Use this PIN to log into the employee app:</p>
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="https://toddismyname21.github.io/tiny-seed-os/employee.html"
+                 style="background: #22c55e; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
+                Open Employee App →
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px;">Keep your PIN private. If you forget it, ask your manager for a reset.</p>
+          </div>
+        </div>
+      `;
+
+      if (employeeEmail) {
+        GmailApp.sendEmail(employeeEmail, subject, 'View in HTML', { htmlBody: body });
+      }
+    } catch (emailError) {
+      Logger.log('Failed to send approval email: ' + emailError.toString());
+    }
+
+    return {
+      success: true,
+      message: `${employeeName} approved as ${data.role}`,
+      employeeName: employeeName,
+      pin: pin
+    };
+  } catch (error) {
+    Logger.log('approveEmployee error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Reject/remove an employee from the system
+ *
+ * @param {Object} data - { userId }
+ * @returns {Object} { success, message }
+ */
+function rejectEmployee(data) {
+  try {
+    if (!data.userId) {
+      return { success: false, error: 'User ID is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'Users sheet not found' };
+    }
+
+    const sheetData = sheet.getDataRange().getValues();
+    const headers = sheetData[0];
+    const userIdCol = headers.indexOf('User_ID');
+
+    // Find and delete user row
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][userIdCol] === data.userId) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Employee removed' };
+      }
+    }
+
+    return { success: false, error: 'Employee not found' };
+  } catch (error) {
+    Logger.log('rejectEmployee error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
