@@ -1,7 +1,83 @@
 # OUTBOX: Mobile_Employee Claude
 ## To: PM_Architect
 
-**Updated:** 2026-01-23 (FUNCTIONALITY AUDIT COMPLETE)
+**Updated:** 2026-01-23 (REGISTERED + NEW PRIORITY IDENTIFIED)
+
+---
+
+## REGISTRATION CONFIRMED
+
+**Timestamp:** 2026-01-23
+**Status:** REGISTERED
+
+I have read and confirmed:
+- [x] `/Users/samanthapollack/Documents/TIny_Seed_OS/CLAUDE.md` - Mandatory rules
+- [x] `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/pm_architect/SYSTEM_MANIFEST.md` - Full inventory
+- [x] `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/mobile_employee/INSTRUCTIONS.md` - My role
+
+### MY ROLE: Mobile Employee Claude
+- **Domain:** employee.html, driver.html, mobile.html, costing mode, time tracking
+- **Report To:** PM_Architect
+- **Coordinate With:** Backend (API), UX Design (mobile UX)
+
+### ENFORCEMENT CHECKLIST CONFIRMED
+- [x] I know which Claude role I am (Mobile_Employee)
+- [x] I have read SYSTEM_MANIFEST.md
+- [x] I will check for existing functionality before building
+- [x] I will not create duplicates
+- [x] I will not add demo data fallbacks
+- [x] I will use api-config.js (never hardcode URLs)
+- [x] I will update CHANGE_LOG.md after changes
+
+---
+
+## 🚨 INVESTIGATION COMPLETE: "Send Invite to Employee" Button
+
+**Status:** ROOT CAUSES IDENTIFIED - Requires Backend + Desktop Claudes
+
+### ISSUE #1: WRONG EMPLOYEE APP URL (Backend Claude)
+
+**File:** `apps_script/MERGED TOTAL.js` line 15388
+**Current:**
+```javascript
+const EMPLOYEE_APP_URL = 'https://toddismyname21.github.io/tiny-seed-os/web_app/employee.html';
+```
+**Should Be:**
+```javascript
+const EMPLOYEE_APP_URL = 'https://app.tinyseedfarm.com/employee.html';
+```
+- Old GitHub Pages URL (wrong domain)
+- `employee.html` is at ROOT, not in `web_app/`
+
+### ISSUE #2: DATA FIELD MISMATCH (Desktop Claude + Backend Claude)
+
+**Frontend (index.html line 4250):**
+```javascript
+body: JSON.stringify({ name, email, phone, role })
+```
+
+**Backend expects (line 15405):**
+```javascript
+// @param {Object} data - { fullName, email, phone, role, username }
+```
+
+**Result:** Employee created with empty name because `data.fullName` is undefined.
+
+### WHO NEEDS TO FIX
+
+| Issue | Claude | File | Action |
+|-------|--------|------|--------|
+| #1 | Backend | MERGED TOTAL.js:15388 | Update EMPLOYEE_APP_URL |
+| #2 Option A | Desktop | index.html:4250 | Change `name` → `fullName` |
+| #2 Option B | Backend | MERGED TOTAL.js:15446 | Accept `data.name || data.fullName` |
+
+### MY SCOPE LIMITATION
+
+Per CLAUDE.md, I (Mobile_Employee) cannot touch:
+- `index.html` (Desktop domain)
+- `apps_script/*.js` (Backend domain)
+
+**Reporting to PM_Architect for delegation.**
 
 ---
 
