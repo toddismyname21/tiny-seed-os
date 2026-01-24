@@ -11628,6 +11628,15 @@ function doGet(e) {
       case 'rejectAction':
       case 'dismissAction':
         return jsonResponse(rejectEmailAction(e.parameter.actionId, e.parameter.reason));
+
+      // Quick Create from Chief of Staff
+      case 'createTask':
+        return jsonResponse(createTask(e.parameter));
+      case 'createInvoice':
+        return jsonResponse(createInvoice(e.parameter));
+      case 'createReminder':
+        return jsonResponse(createReminder(e.parameter));
+
       case 'getCombinedCommunications':
         return jsonResponse(getCombinedCommunications(e.parameter));
       case 'reclassifyEmail':
@@ -18563,7 +18572,140 @@ function deletePlantingById(batchId) {
   }
 }
 function bulkAddPlantings(plantings) { return jsonResponse({success: false, message: 'Not implemented'}); }
-function addTask(task) { return jsonResponse({success: false, message: 'Not implemented'}); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUICK CREATE FUNCTIONS - Create Task, Invoice, Reminder from Chief of Staff
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create a new task from Chief of Staff action
+ */
+function createTask(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let taskSheet = ss.getSheetByName('TASKS');
+
+    // Create sheet if it doesn't exist
+    if (!taskSheet) {
+      taskSheet = ss.insertSheet('TASKS');
+      taskSheet.getRange(1, 1, 1, 9).setValues([['ID', 'Title', 'Description', 'DueDate', 'Priority', 'Status', 'CreatedAt', 'SourceActionId', 'CompletedAt']]);
+      taskSheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+      taskSheet.setFrozenRows(1);
+    }
+
+    const taskId = 'TASK-' + Date.now();
+    const now = new Date().toISOString();
+
+    taskSheet.appendRow([
+      taskId,
+      params.title || 'Untitled Task',
+      params.description || '',
+      params.dueDate || '',
+      params.priority || 'MEDIUM',
+      'PENDING',
+      now,
+      params.sourceActionId || '',
+      ''
+    ]);
+
+    return {
+      success: true,
+      taskId: taskId,
+      message: 'Task created successfully'
+    };
+  } catch (error) {
+    Logger.log('createTask error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// Alias for backwards compatibility
+function addTask(params) { return createTask(params); }
+
+/**
+ * Create a new invoice draft from Chief of Staff action
+ */
+function createInvoice(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let invoiceSheet = ss.getSheetByName('INVOICES');
+
+    // Create sheet if it doesn't exist
+    if (!invoiceSheet) {
+      invoiceSheet = ss.insertSheet('INVOICES');
+      invoiceSheet.getRange(1, 1, 1, 10).setValues([['InvoiceID', 'Customer', 'Description', 'Amount', 'Status', 'DueDate', 'Notes', 'CreatedAt', 'SourceActionId', 'PaidAt']]);
+      invoiceSheet.getRange(1, 1, 1, 10).setFontWeight('bold');
+      invoiceSheet.setFrozenRows(1);
+    }
+
+    const invoiceId = 'INV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-6);
+    const now = new Date();
+    const dueDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days out
+
+    invoiceSheet.appendRow([
+      invoiceId,
+      params.customer || 'Unknown Customer',
+      params.description || '',
+      params.amount || 0,
+      'DRAFT',
+      dueDate.toISOString().split('T')[0],
+      params.notes || '',
+      now.toISOString(),
+      params.sourceActionId || '',
+      ''
+    ]);
+
+    return {
+      success: true,
+      invoiceId: invoiceId,
+      message: 'Invoice draft created successfully'
+    };
+  } catch (error) {
+    Logger.log('createInvoice error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a reminder from Chief of Staff action
+ */
+function createReminder(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let reminderSheet = ss.getSheetByName('REMINDERS');
+
+    // Create sheet if it doesn't exist
+    if (!reminderSheet) {
+      reminderSheet = ss.insertSheet('REMINDERS');
+      reminderSheet.getRange(1, 1, 1, 8).setValues([['ID', 'Title', 'Notes', 'ReminderTime', 'Status', 'CreatedAt', 'SourceActionId', 'SentAt']]);
+      reminderSheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+      reminderSheet.setFrozenRows(1);
+    }
+
+    const reminderId = 'REM-' + Date.now();
+    const now = new Date().toISOString();
+
+    reminderSheet.appendRow([
+      reminderId,
+      params.title || 'Reminder',
+      params.notes || '',
+      params.reminderTime || '',
+      'PENDING',
+      now,
+      params.sourceActionId || '',
+      ''
+    ]);
+
+    return {
+      success: true,
+      reminderId: reminderId,
+      message: 'Reminder created successfully'
+    };
+  } catch (error) {
+    Logger.log('createReminder error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
 
 /**
  * Record a harvest and capture DTM learning data
