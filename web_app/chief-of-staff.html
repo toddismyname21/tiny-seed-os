@@ -979,29 +979,29 @@
                     <button class="brief-refresh" onclick="loadMorningBrief()">↻ Refresh</button>
                 </div>
 
-                <!-- Key Metrics -->
+                <!-- Key Metrics - Clickable -->
                 <div class="metrics-grid" id="metricsGrid">
-                    <div class="metric-card">
+                    <div class="metric-card" onclick="showPriorityItems('CRITICAL')" style="cursor: pointer;" title="Click to view critical items">
                         <div class="metric-value critical" id="criticalCount">-</div>
                         <div class="metric-label">Critical</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" onclick="showPriorityItems('HIGH')" style="cursor: pointer;" title="Click to view high priority items">
                         <div class="metric-value high" id="highCount">-</div>
                         <div class="metric-label">High Priority</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" onclick="switchToTab('inbox')" style="cursor: pointer;" title="Click to view inbox">
                         <div class="metric-value blue" id="inboxCount">-</div>
                         <div class="metric-label">Inbox</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" onclick="switchToTab('schedule')" style="cursor: pointer;" title="Click to view schedule">
                         <div class="metric-value blue" id="meetingsCount">-</div>
                         <div class="metric-label">Meetings</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" onclick="switchToTab('actions')" style="cursor: pointer;" title="Click to view approvals">
                         <div class="metric-value medium" id="approvalsCount">-</div>
                         <div class="metric-label">Approvals</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" onclick="showPriorityItems('OVERDUE')" style="cursor: pointer;" title="Click to view overdue items">
                         <div class="metric-value high" id="overdueCount">-</div>
                         <div class="metric-label">Overdue</div>
                     </div>
@@ -1142,7 +1142,7 @@
 
                 <div style="margin-top: 16px; padding: 12px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 8px;">
                     <div style="font-weight: 600; margin-bottom: 8px;">🏷️ Reclassify (Train AI)</div>
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
                         <select id="reclassPriority" style="padding: 8px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-primary);">
                             <option value="">Priority...</option>
                             <option value="CRITICAL">Critical</option>
@@ -1150,7 +1150,7 @@
                             <option value="MEDIUM">Medium</option>
                             <option value="LOW">Low</option>
                         </select>
-                        <select id="reclassCategory" style="padding: 8px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-primary);">
+                        <select id="reclassCategory" style="padding: 8px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-primary); min-width: 140px;">
                             <option value="">Category...</option>
                             <option value="CUSTOMER">Customer</option>
                             <option value="VENDOR">Vendor</option>
@@ -1158,7 +1158,32 @@
                             <option value="MARKETING">Marketing</option>
                             <option value="PERSONAL">Personal</option>
                         </select>
+                        <button onclick="showNewCategoryInput()" style="padding: 8px 12px; background: var(--accent-green); color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">+ New</button>
                         <button onclick="saveReclassification()" style="padding: 8px 16px; background: var(--medium); color: #000; border: none; border-radius: 4px; cursor: pointer;">Update</button>
+                    </div>
+                    <div id="newCategoryInput" style="display: none; margin-top: 12px; padding: 10px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px;">
+                        <div style="font-size: 12px; color: var(--accent-green); margin-bottom: 8px;">Create a new category (e.g., INSURANCE, GRANTS, SEEDS)</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="newCategoryName" placeholder="Category name (e.g., INSURANCE)" style="flex: 1; padding: 10px; background: var(--bg-card); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 4px; color: var(--text-primary); text-transform: uppercase;">
+                            <button onclick="addNewCategory()" style="padding: 10px 20px; background: var(--accent-green); color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Create & Use</button>
+                            <button onclick="cancelNewCategory()" style="padding: 10px 12px; background: rgba(255,255,255,0.1); color: var(--text-primary); border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Context Helper -->
+                <div style="margin-top: 16px; padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">🤖 Ask AI (Context Helper)</div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="contextQuestion" placeholder="e.g., Search for related emails, check contact history..." style="flex: 1; padding: 10px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-primary);" onkeypress="if(event.key==='Enter')askContextQuestion()">
+                        <button onclick="askContextQuestion()" style="padding: 10px 16px; background: var(--accent-blue); color: white; border: none; border-radius: 4px; cursor: pointer;">Ask</button>
+                    </div>
+                    <div id="contextResponse" style="display: none; margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 13px; max-height: 150px; overflow-y: auto;"></div>
+                    <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button onclick="askContextQuestion('Who is this sender? What relationship do we have?')" class="quick-btn" style="font-size: 11px;">Who is this?</button>
+                        <button onclick="askContextQuestion('Find related emails from this sender')" class="quick-btn" style="font-size: 11px;">Related emails</button>
+                        <button onclick="askContextQuestion('Check SMS history with this contact')" class="quick-btn" style="font-size: 11px;">SMS history</button>
+                        <button onclick="askContextQuestion('What follow-ups are pending with this contact?')" class="quick-btn" style="font-size: 11px;">Follow-ups</button>
                     </div>
                 </div>
             </div>
@@ -1167,6 +1192,32 @@
                 <button onclick="archiveEmail()" class="comm-btn secondary">📦 Archive</button>
                 <button onclick="sendReply(false)" id="saveDraftBtn" class="comm-btn secondary" style="display: none;">Save Draft</button>
                 <button onclick="sendReply(true)" id="sendReplyBtn" class="comm-btn primary" style="display: none;">Send Reply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Priority Items Modal -->
+    <div id="priorityModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 id="priorityModalTitle">Priority Items</h3>
+                <button class="modal-close" onclick="closePriorityModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px; padding: 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px;">
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        🧠 <strong>Train the AI:</strong> Tell us if these are really priorities. Your feedback helps the system learn what matters to you.
+                    </div>
+                </div>
+                <div id="priorityItemsList" style="max-height: 50vh; overflow-y: auto;">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div style="flex: 1; font-size: 12px; color: var(--text-secondary);">
+                    <span id="priorityFeedbackCount">0</span> items reviewed this session
+                </div>
+                <button onclick="closePriorityModal()" class="comm-btn secondary">Close</button>
             </div>
         </div>
     </div>
@@ -1425,9 +1476,15 @@
         async function loadActions() {
             try {
                 const response = await api.get('getPendingApprovals');
+                console.log('Pending Approvals Response:', response);
                 if (response.success) {
                     actions = response.data || [];
                     document.getElementById('actionsBadge').textContent = actions.length;
+                    // Debug: log first action structure
+                    if (actions.length > 0) {
+                        console.log('First action structure:', actions[0]);
+                        console.log('Action keys:', Object.keys(actions[0]));
+                    }
                 }
             } catch (error) {
                 console.error('Actions error:', error);
@@ -1563,19 +1620,91 @@
                 return;
             }
 
-            container.innerHTML = actions.map(action => `
+            container.innerHTML = actions.map(action => {
+                // Handle various property name formats
+                const actionType = action.actiontype || action.action_type || action.type || 'Action';
+                const actionId = action.actionid || action.action_id || action.id || '';
+                const threadId = action.threadid || action.thread_id || '';
+
+                // PRIORITY: Use the new contextual descriptions from backend
+                let description = action.contextualdescription || action.fulldescription ||
+                                  action.draftcontent || action.draft_content || 'Pending action';
+
+                // If description is an object, try to extract useful text
+                if (typeof description === 'object' && description !== null) {
+                    description = description.subject || description.message || description.content ||
+                                  description.text || JSON.stringify(description).substring(0, 100);
+                }
+
+                // Get email context if available
+                const emailSubject = action.emailsubject || action.emailSubject || '';
+                const emailFrom = action.emailfrom || action.emailFrom || '';
+                const emailDate = action.emaildate || action.emailDate || '';
+
+                // Format time
+                let timeInfo = action.timeRemaining || '';
+                const suggestedAt = action.suggestedat || action.suggested_at || '';
+                if (!timeInfo && suggestedAt) {
+                    const date = new Date(suggestedAt);
+                    if (!isNaN(date)) {
+                        const hoursAgo = Math.round((new Date() - date) / (1000 * 60 * 60));
+                        timeInfo = hoursAgo < 1 ? 'Just now' : hoursAgo < 24 ? `${hoursAgo}h ago` : `${Math.round(hoursAgo/24)}d ago`;
+                    }
+                }
+
+                return `
                 <div class="comm-card">
                     <div class="comm-header">
-                        <div class="comm-from">📋 ${action.actiontype || 'Action'}</div>
-                        <span style="font-size: 12px; color: var(--text-secondary);">${action.timeRemaining ? action.timeRemaining + ' remaining' : ''}</span>
+                        <div class="comm-from">📋 ${actionType.toUpperCase()}</div>
+                        <span style="font-size: 12px; color: var(--text-secondary);">${timeInfo}</span>
                     </div>
-                    <div class="comm-subject">${action.draftcontent || 'Pending action'}</div>
-                    <div class="comm-actions">
-                        <button class="comm-btn primary" onclick="completeAction('${action.actionid}')">✓ Approve</button>
-                        <button class="comm-btn secondary" onclick="dismissAction('${action.actionid}')">✗ Dismiss</button>
+                    ${emailSubject ? `
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">📧 ${emailSubject}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                            From: ${emailFrom} ${emailDate ? `• ${emailDate}` : ''}
+                        </div>
+                    ` : ''}
+                    <div class="comm-subject" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; font-size: 13px;">${description}</div>
+                    <div class="comm-actions" style="margin-top: 12px;">
+                        <button class="comm-btn primary" onclick="completeAction('${actionId}')">✓ Approve</button>
+                        <button class="comm-btn secondary" onclick="showDismissReason('${actionId}')">✗ Dismiss</button>
+                        ${threadId ? `<button class="comm-btn secondary" onclick="openEmail('${threadId}')">👁️ View Email</button>` : ''}
+                    </div>
+                    <div id="dismiss-reason-${actionId}" style="display: none; margin-top: 10px;">
+                        <input type="text" id="dismiss-input-${actionId}" placeholder="Why dismiss? (helps AI learn)" style="width: 100%; padding: 8px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-primary); margin-bottom: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="dismissActionWithReason('${actionId}')" class="comm-btn secondary" style="flex: 1;">Submit & Dismiss</button>
+                            <button onclick="document.getElementById('dismiss-reason-${actionId}').style.display='none'" class="quick-btn">Cancel</button>
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
+        }
+
+        function showDismissReason(actionId) {
+            document.getElementById(`dismiss-reason-${actionId}`).style.display = 'block';
+            document.getElementById(`dismiss-input-${actionId}`).focus();
+        }
+
+        async function dismissActionWithReason(actionId) {
+            const reason = document.getElementById(`dismiss-input-${actionId}`).value || 'No reason provided';
+            try {
+                // Record the feedback for learning
+                await api.get('recordPriorityFeedback', {
+                    itemId: actionId,
+                    itemType: 'action',
+                    wasCorrect: false,
+                    originalPriority: 'SUGGESTED',
+                    suggestedPriority: 'IGNORE',
+                    timestamp: new Date().toISOString()
+                });
+
+                // Dismiss the action
+                await dismissAction(actionId);
+                addChatMessage(`Action dismissed. Reason logged: "${reason}". AI will learn from this.`);
+            } catch (e) {
+                await dismissAction(actionId);
+            }
         }
 
         async function renderChurnRisks(container) {
@@ -2302,6 +2431,337 @@
         function formatTimeAgo(ts) { if (!ts) return ''; const d = Math.floor((new Date() - new Date(ts)) / 1000); return d < 60 ? 'Now' : d < 3600 ? `${Math.floor(d/60)}m` : d < 86400 ? `${Math.floor(d/3600)}h` : new Date(ts).toLocaleDateString(); }
 
         loadTeamContacts();
+
+        // ========== CUSTOM EMAIL CATEGORIES ==========
+
+        // Show the new category input form
+        function showNewCategoryInput() {
+            document.getElementById('newCategoryInput').style.display = 'block';
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('newCategoryName').focus();
+        }
+
+        // Add new category to dropdown and select it
+        async function addNewCategory() {
+            const nameInput = document.getElementById('newCategoryName');
+            const rawName = nameInput.value.trim();
+
+            if (!rawName) {
+                alert('Please enter a category name');
+                return;
+            }
+
+            // Clean the name: uppercase, replace spaces/special chars with underscores
+            const name = rawName.toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_');
+
+            const select = document.getElementById('reclassCategory');
+
+            // Check if already exists in dropdown
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === name) {
+                    select.value = name;
+                    cancelNewCategory();
+                    addChatMessage(`Category "${name}" already exists - selected it for you.`);
+                    return;
+                }
+            }
+
+            // Try to save to backend
+            try {
+                await api.get('addCustomCategory', { name: name });
+            } catch (e) {
+                console.log('Could not save to backend, adding locally');
+            }
+
+            // Add to dropdown
+            const newOpt = document.createElement('option');
+            newOpt.value = name;
+            newOpt.textContent = name + ' (custom)';
+            select.appendChild(newOpt);
+
+            // Select it
+            select.value = name;
+
+            // Hide input and clear
+            cancelNewCategory();
+
+            addChatMessage(`Category "${name}" created! Select "Update" to apply it to this email.`);
+        }
+
+        function cancelNewCategory() {
+            document.getElementById('newCategoryInput').style.display = 'none';
+            document.getElementById('newCategoryName').value = '';
+        }
+
+        // Load custom categories from backend and add to dropdown
+        async function loadCustomCategories() {
+            try {
+                const response = await api.get('getEmailCategories');
+                if (response.success && response.categories) {
+                    const select = document.getElementById('reclassCategory');
+                    const existingValues = new Set();
+
+                    // Get existing values
+                    for (let i = 0; i < select.options.length; i++) {
+                        existingValues.add(select.options[i].value);
+                    }
+
+                    // Add custom categories that aren't already in the dropdown
+                    response.categories.forEach(cat => {
+                        if (cat.isCustom && !existingValues.has(cat.name)) {
+                            const opt = document.createElement('option');
+                            opt.value = cat.name;
+                            opt.textContent = cat.name + ' (custom)';
+                            select.appendChild(opt);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.log('Could not load custom categories');
+            }
+        }
+
+        // Load custom categories when page loads
+        loadCustomCategories();
+
+        // ========== AI CONTEXT HELPER ==========
+        async function askContextQuestion(presetQuestion) {
+            const input = document.getElementById('contextQuestion');
+            const responseDiv = document.getElementById('contextResponse');
+            const question = presetQuestion || input.value.trim();
+
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+
+            // Get current email context
+            const subject = document.getElementById('modalSubject')?.textContent || '';
+            const from = document.getElementById('modalFrom')?.textContent || '';
+            const body = document.getElementById('modalBody')?.textContent?.substring(0, 500) || '';
+
+            // Show loading
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = '<em>Thinking...</em>';
+
+            try {
+                // Ask the Chief of Staff with email context
+                const contextMessage = `I'm looking at an email from: ${from}\nSubject: ${subject}\n\nMy question: ${question}`;
+
+                const response = await api.get('chatWithChiefOfStaff', {
+                    message: contextMessage,
+                    conversationHistoryJson: JSON.stringify([{
+                        role: 'system',
+                        content: `The user is viewing an email and needs context. Email context: From: ${from}, Subject: ${subject}, Preview: ${body.substring(0, 200)}`
+                    }])
+                });
+
+                if (response.success && response.message) {
+                    responseDiv.innerHTML = parseMarkdown(response.message);
+                } else {
+                    responseDiv.innerHTML = 'Could not get a response. Try rephrasing your question.';
+                }
+            } catch (error) {
+                responseDiv.innerHTML = 'Error getting response: ' + error.message;
+            }
+
+            // Clear input if it was typed (not preset)
+            if (!presetQuestion) {
+                input.value = '';
+            }
+        }
+
+        // ========== PRIORITY ITEMS MODAL & FEEDBACK LEARNING ==========
+        let priorityFeedbackCount = 0;
+        let currentPriorityFilter = null;
+
+        function switchToTab(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.section-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.section === tabName);
+            });
+            renderCurrentTab();
+        }
+
+        async function showPriorityItems(priority) {
+            currentPriorityFilter = priority;
+            document.getElementById('priorityModal').style.display = 'flex';
+            document.getElementById('priorityModalTitle').textContent =
+                priority === 'OVERDUE' ? '⏰ Overdue Items' :
+                priority === 'CRITICAL' ? '🔴 Critical Items' :
+                `🟠 ${priority} Priority Items`;
+
+            const listContainer = document.getElementById('priorityItemsList');
+            listContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                // Fetch items based on priority type
+                let items = [];
+
+                if (priority === 'OVERDUE') {
+                    // Get overdue follow-ups
+                    const response = await api.get('getOverdueFollowups');
+                    if (response.success && response.followups) {
+                        items = response.followups.map(f => ({
+                            id: f.followupId || f.id,
+                            type: 'followup',
+                            title: f.subject || 'Follow-up needed',
+                            description: f.from || f.contact || '',
+                            dueDate: f.dueDate,
+                            currentPriority: 'OVERDUE',
+                            source: 'followup'
+                        }));
+                    }
+                } else {
+                    // Get emails with this priority
+                    const response = await api.get('getCombinedCommunications', { limit: 100 });
+                    if (response.success && response.data) {
+                        items = response.data
+                            .filter(c => (c.priority || '').toUpperCase() === priority)
+                            .map(c => ({
+                                id: c.id || c.threadId,
+                                type: 'email',
+                                title: c.subject || '(No Subject)',
+                                description: c.from || '',
+                                preview: c.preview || '',
+                                currentPriority: priority,
+                                source: 'email'
+                            }));
+                    }
+                }
+
+                if (items.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No ${priority.toLowerCase()} items</h3>
+                            <p>Great job staying on top of things!</p>
+                        </div>`;
+                    return;
+                }
+
+                listContainer.innerHTML = items.map((item, idx) => `
+                    <div class="comm-card" id="priority-item-${idx}" style="margin-bottom: 12px;">
+                        <div class="comm-header">
+                            <div class="comm-from">${item.type === 'email' ? '📧' : '⏰'} ${item.description}</div>
+                            <span class="comm-priority ${priority.toLowerCase()}">${priority}</span>
+                        </div>
+                        <div class="comm-subject">${item.title}</div>
+                        ${item.preview ? `<div class="comm-preview">${item.preview}</div>` : ''}
+                        ${item.dueDate ? `<div style="font-size: 12px; color: var(--accent-red); margin-top: 4px;">Due: ${new Date(item.dueDate).toLocaleDateString()}</div>` : ''}
+
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Is this really ${priority.toLowerCase()} priority?</div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button onclick="submitPriorityFeedback('${item.id}', '${item.type}', true, '${priority}', ${idx})"
+                                    class="comm-btn primary" style="flex: 1; min-width: 100px;">
+                                    ✅ Yes, correct
+                                </button>
+                                <button onclick="showDowngradeOptions(${idx}, '${item.id}', '${item.type}', '${priority}')"
+                                    class="comm-btn secondary" style="flex: 1; min-width: 100px;">
+                                    ⬇️ Lower priority
+                                </button>
+                                <button onclick="submitPriorityFeedback('${item.id}', '${item.type}', false, '${priority}', ${idx}, 'NOT_PRIORITY')"
+                                    class="comm-btn secondary" style="flex: 1; min-width: 100px; background: rgba(239, 68, 68, 0.2);">
+                                    ❌ Not a priority
+                                </button>
+                            </div>
+                            <div id="downgrade-options-${idx}" style="display: none; margin-top: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">What should this be?</div>
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    ${priority !== 'HIGH' ? `<button onclick="submitPriorityFeedback('${item.id}', '${item.type}', false, '${priority}', ${idx}, 'HIGH')" class="quick-btn">High</button>` : ''}
+                                    ${priority !== 'MEDIUM' ? `<button onclick="submitPriorityFeedback('${item.id}', '${item.type}', false, '${priority}', ${idx}, 'MEDIUM')" class="quick-btn">Medium</button>` : ''}
+                                    ${priority !== 'LOW' ? `<button onclick="submitPriorityFeedback('${item.id}', '${item.type}', false, '${priority}', ${idx}, 'LOW')" class="quick-btn">Low</button>` : ''}
+                                    <button onclick="submitPriorityFeedback('${item.id}', '${item.type}', false, '${priority}', ${idx}, 'IGNORE')" class="quick-btn" style="background: rgba(239, 68, 68, 0.2);">Ignore/Spam</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading priority items:', error);
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error loading items</h3>
+                        <p>${error.message}</p>
+                    </div>`;
+            }
+        }
+
+        function showDowngradeOptions(idx, itemId, itemType, currentPriority) {
+            document.getElementById(`downgrade-options-${idx}`).style.display = 'block';
+        }
+
+        async function submitPriorityFeedback(itemId, itemType, isCorrect, currentPriority, idx, newPriority) {
+            const itemEl = document.getElementById(`priority-item-${idx}`);
+
+            // Show feedback submitted state
+            itemEl.style.opacity = '0.6';
+            itemEl.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 24px; margin-bottom: 8px;">${isCorrect ? '✅' : '📝'}</div>
+                    <div style="color: var(--accent-green);">Feedback recorded!</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                        ${isCorrect ? 'AI will remember this is truly ' + currentPriority.toLowerCase() :
+                          newPriority === 'NOT_PRIORITY' ? 'AI will learn this isn\'t a priority' :
+                          newPriority === 'IGNORE' ? 'AI will learn to ignore similar items' :
+                          'AI will learn this should be ' + newPriority.toLowerCase()}
+                    </div>
+                </div>
+            `;
+
+            priorityFeedbackCount++;
+            document.getElementById('priorityFeedbackCount').textContent = priorityFeedbackCount;
+
+            // Send feedback to backend for learning
+            try {
+                await api.get('recordPriorityFeedback', {
+                    itemId: itemId,
+                    itemType: itemType,
+                    wasCorrect: isCorrect,
+                    originalPriority: currentPriority,
+                    suggestedPriority: newPriority || currentPriority,
+                    timestamp: new Date().toISOString()
+                });
+
+                // If reclassifying an email, also update its classification
+                if (itemType === 'email' && !isCorrect && newPriority && newPriority !== 'NOT_PRIORITY' && newPriority !== 'IGNORE') {
+                    await api.get('reclassifyEmail', {
+                        threadId: itemId,
+                        newPriority: newPriority
+                    });
+                }
+
+                // Notify chat
+                addChatMessage(`Got it! I'll ${isCorrect ? 'remember this is important' : 'adjust how I prioritize similar items'}.`);
+
+            } catch (error) {
+                console.error('Error saving feedback:', error);
+                // Still show success to user - feedback is captured locally
+            }
+
+            // Fade out after a moment
+            setTimeout(() => {
+                itemEl.style.display = 'none';
+            }, 2000);
+        }
+
+        function closePriorityModal() {
+            document.getElementById('priorityModal').style.display = 'none';
+            currentPriorityFilter = null;
+
+            // Refresh the main view if feedback was given
+            if (priorityFeedbackCount > 0) {
+                loadMorningBrief();
+                loadCommunications();
+            }
+        }
+
+        // Close priority modal on outside click
+        document.getElementById('priorityModal').addEventListener('click', e => {
+            if (e.target.id === 'priorityModal') closePriorityModal();
+        });
+
     </script>
 </body>
 </html>

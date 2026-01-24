@@ -24,10 +24,10 @@ const TINY_SEED_API = {
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
     // LAST UPDATED: 2026-01-23
-    // UPDATED BY: Claude - v387 Email workflow: Notes before drafting, reply/archive tools
+    // UPDATED BY: Claude - v394 FIXED: Custom categories + Actions show full email context + Dismiss with reason
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbw1FG8oWBttPs5T0b-JCXVvQRoGlWsJuF0bXa_w_94DXmBKDD4v6s0Ty2l86Dtj7X-X/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbyw1MXQM9HITM9hty_F52jmMFLcnHdgFMPRnxKly0gF_BKwrE4KD4l11T3RKAYsNJnt/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

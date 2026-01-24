@@ -490,6 +490,114 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
         },
         required: ["thread_id"]
       }
+    },
+    {
+      name: "get_overdue_followups",
+      description: "Get emails that need follow-up. Use when checking what needs attention or when Todd asks about pending items.",
+      input_schema: {
+        type: "object",
+        properties: {},
+        required: []
+      }
+    },
+    {
+      name: "get_at_risk_customers",
+      description: "Get customers at risk of churning based on inactivity, order decline, or sentiment. Use when Todd asks about customer health or who needs attention.",
+      input_schema: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Max customers to return (default 10)"
+          }
+        },
+        required: []
+      }
+    },
+    {
+      name: "get_contact_history",
+      description: "Get full history and context for a contact - all emails, SMS, orders, sentiment trend, last contact. Use when Todd needs context about someone while handling an email.",
+      input_schema: {
+        type: "object",
+        properties: {
+          email: {
+            type: "string",
+            description: "Email address of the contact"
+          },
+          name: {
+            type: "string",
+            description: "Name of the contact (for searching if email unknown)"
+          }
+        },
+        required: []
+      }
+    },
+    {
+      name: "get_awaiting_response",
+      description: "Get emails where we're waiting for someone else to respond. Use when checking what's pending from others.",
+      input_schema: {
+        type: "object",
+        properties: {},
+        required: []
+      }
+    },
+    {
+      name: "create_followup",
+      description: "Create a follow-up reminder for an email. Use when Todd wants to be reminded to check back on something.",
+      input_schema: {
+        type: "object",
+        properties: {
+          thread_id: {
+            type: "string",
+            description: "Email thread ID to follow up on"
+          },
+          days: {
+            type: "number",
+            description: "Days until follow-up (default 2)"
+          },
+          reason: {
+            type: "string",
+            description: "Why following up"
+          }
+        },
+        required: ["thread_id"]
+      }
+    },
+    {
+      name: "search_emails",
+      description: "Search emails by keyword, sender, or subject. Use when Todd needs to find related emails or context.",
+      input_schema: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Search query (keyword, sender email, or subject)"
+          },
+          limit: {
+            type: "number",
+            description: "Max results (default 5)"
+          }
+        },
+        required: ["query"]
+      }
+    },
+    {
+      name: "search_sms",
+      description: "Search SMS messages. Use when Todd needs to find what was texted to/from someone.",
+      input_schema: {
+        type: "object",
+        properties: {
+          phone_or_name: {
+            type: "string",
+            description: "Phone number or contact name to search"
+          },
+          limit: {
+            type: "number",
+            description: "Max results (default 10)"
+          }
+        },
+        required: ["phone_or_name"]
+      }
     }
   ];
 
@@ -889,6 +997,146 @@ function executeChiefOfStaffTool(toolName, input) {
           return { success: false, error: archiveResult.error || 'Failed to archive' };
         } catch (archiveErr) {
           return { success: false, error: 'Could not archive email: ' + archiveErr.message };
+        }
+
+      case 'get_overdue_followups':
+        try {
+          const followups = typeof getOverdueFollowups === 'function' ? getOverdueFollowups() : [];
+          if (followups.length === 0) {
+            return { success: true, message: '✅ No overdue follow-ups! You\'re caught up.' };
+          }
+          let msg = `⏰ ${followups.length} overdue follow-ups:\n\n`;
+          followups.slice(0, 5).forEach((f, i) => {
+            const hours = Math.round(f.overdueBy || 0);
+            msg += `${i + 1}. ${f.subject || 'Email'} - ${hours}hrs overdue\n`;
+          });
+          if (followups.length > 5) msg += `\n...and ${followups.length - 5} more`;
+          return { success: true, message: msg, followups };
+        } catch (e) {
+          return { success: false, error: 'Could not get follow-ups: ' + e.message };
+        }
+
+      case 'get_at_risk_customers':
+        try {
+          const churn = typeof predictCustomerChurn === 'function' ? predictCustomerChurn() : { customers: [] };
+          const atRisk = churn.customers || [];
+          if (atRisk.length === 0) {
+            return { success: true, message: '✅ No customers at risk right now!' };
+          }
+          let msg = `⚠️ ${atRisk.length} customers need attention:\n\n`;
+          atRisk.slice(0, input.limit || 5).forEach((c, i) => {
+            msg += `${i + 1}. **${c.name || c.email}** - Risk: ${c.riskScore || 'High'}\n`;
+            if (c.reason) msg += `   Reason: ${c.reason}\n`;
+            if (c.daysSinceContact) msg += `   Last contact: ${c.daysSinceContact} days ago\n`;
+          });
+          return { success: true, message: msg, customers: atRisk };
+        } catch (e) {
+          return { success: false, error: 'Could not get at-risk customers: ' + e.message };
+        }
+
+      case 'get_contact_history':
+        try {
+          let contact = null;
+          // Try by email first
+          if (input.email) {
+            const result = typeof recallContact === 'function' ? recallContact(input.email) : getContactProfile(input.email);
+            contact = result.contact || result.profile;
+          }
+          // Try searching by name if no email
+          if (!contact && input.name) {
+            const searchResult = lookupContactByName(input.name);
+            if (searchResult && searchResult.email) {
+              const result = typeof recallContact === 'function' ? recallContact(searchResult.email) : getContactProfile(searchResult.email);
+              contact = result.contact || result.profile;
+            }
+          }
+          if (!contact) {
+            return { success: true, message: `No history found for ${input.email || input.name}. This might be a new contact.` };
+          }
+          let msg = `📇 **${contact.name || contact.email}**\n\n`;
+          if (contact.company) msg += `Company: ${contact.company}\n`;
+          if (contact.category) msg += `Category: ${contact.category}\n`;
+          if (contact.relationship) msg += `Relationship: ${contact.relationship}\n`;
+          if (contact.notes) msg += `Notes: ${contact.notes}\n`;
+          if (contact.totalInteractions || contact.total_interactions) msg += `Total interactions: ${contact.totalInteractions || contact.total_interactions}\n`;
+          if (contact.daysSinceContact || contact.days_since_last_contact) msg += `Last contact: ${contact.daysSinceContact || contact.days_since_last_contact} days ago\n`;
+          if (contact.avgSentiment) msg += `Sentiment trend: ${contact.avgSentiment > 0 ? 'Positive' : contact.avgSentiment < 0 ? 'Negative' : 'Neutral'}\n`;
+          return { success: true, message: msg, contact };
+        } catch (e) {
+          return { success: false, error: 'Could not get contact history: ' + e.message };
+        }
+
+      case 'get_awaiting_response':
+        try {
+          const awaiting = typeof getAwaitingResponse === 'function' ? getAwaitingResponse() : [];
+          if (awaiting.length === 0) {
+            return { success: true, message: '✅ Nothing pending from others right now.' };
+          }
+          let msg = `⏳ Waiting for response on ${awaiting.length} emails:\n\n`;
+          awaiting.slice(0, 5).forEach((e, i) => {
+            msg += `${i + 1}. ${e.from || 'Unknown'}: ${e.subject || 'No subject'}\n`;
+          });
+          return { success: true, message: msg, emails: awaiting };
+        } catch (e) {
+          return { success: false, error: 'Could not get awaiting emails: ' + e.message };
+        }
+
+      case 'create_followup':
+        try {
+          const followupResult = typeof createFollowUp === 'function'
+            ? createFollowUp(input.thread_id, input.days || 2, input.reason)
+            : { success: false, error: 'Follow-up system not available' };
+          if (followupResult.success) {
+            return { success: true, message: `⏰ Follow-up set for ${input.days || 2} days from now. I'll remind you!` };
+          }
+          return { success: false, error: followupResult.error };
+        } catch (e) {
+          return { success: false, error: 'Could not create follow-up: ' + e.message };
+        }
+
+      case 'search_emails':
+        try {
+          const threads = GmailApp.search(input.query, 0, input.limit || 5);
+          if (threads.length === 0) {
+            return { success: true, message: `No emails found for "${input.query}"` };
+          }
+          let msg = `📧 Found ${threads.length} emails for "${input.query}":\n\n`;
+          threads.forEach((t, i) => {
+            const firstMsg = t.getMessages()[0];
+            msg += `${i + 1}. **${firstMsg.getFrom()}**: ${t.getFirstMessageSubject()}\n`;
+            msg += `   Date: ${firstMsg.getDate().toLocaleDateString()}\n`;
+          });
+          return { success: true, message: msg };
+        } catch (e) {
+          return { success: false, error: 'Could not search emails: ' + e.message };
+        }
+
+      case 'search_sms':
+        try {
+          const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+          const smsSheet = ss.getSheetByName('COS_SMS_Log') || ss.getSheetByName(SMS_LOG_SHEET);
+          if (!smsSheet) {
+            return { success: true, message: 'No SMS history available.' };
+          }
+          const data = smsSheet.getDataRange().getValues();
+          const query = (input.phone_or_name || '').toLowerCase();
+          const matches = data.slice(1).filter(row => {
+            const phone = String(row[1] || '').toLowerCase();
+            const contact = String(row[2] || '').toLowerCase();
+            return phone.includes(query) || contact.includes(query);
+          }).slice(0, input.limit || 10);
+
+          if (matches.length === 0) {
+            return { success: true, message: `No SMS found for "${input.phone_or_name}"` };
+          }
+          let msg = `📱 Found ${matches.length} SMS for "${input.phone_or_name}":\n\n`;
+          matches.slice(0, 5).forEach((m, i) => {
+            const direction = m[3] === 'outbound' ? '→' : '←';
+            msg += `${i + 1}. ${direction} ${m[4] || 'Message'}\n`;
+          });
+          return { success: true, message: msg };
+        } catch (e) {
+          return { success: false, error: 'Could not search SMS: ' + e.message };
         }
 
       default:
@@ -1835,6 +2083,37 @@ const INBOX_STATS_HEADERS = [
   'Points_Earned', 'Level'
 ];
 
+// Priority Learning System (RLHF-inspired with seasonal awareness)
+const COS_PRIORITY_LEARNING_SHEET = 'COS_Priority_Learning';
+const PRIORITY_LEARNING_HEADERS = [
+  'Feedback_ID', 'Timestamp', 'Item_ID', 'Item_Type', 'Original_Priority',
+  'Was_Correct', 'User_Suggested_Priority', 'Sender_Email', 'Sender_Name',
+  'Subject_Keywords', 'Context', 'Decay_Weight', 'Applied_Count',
+  'Season', 'Month', 'Pattern_Type'  // NEW: Seasonal awareness
+];
+
+// Pattern types for different decay rates
+const PATTERN_TYPES = {
+  DAILY: { halfLifeDays: 30, description: 'Daily operations' },
+  WEEKLY: { halfLifeDays: 60, description: 'Weekly recurring' },
+  MONTHLY: { halfLifeDays: 120, description: 'Monthly tasks' },
+  SEASONAL: { halfLifeDays: 365, description: 'Seasonal (quarterly)' },
+  ANNUAL: { halfLifeDays: 730, description: 'Annual events (2 year memory)' }
+};
+
+// Keywords that indicate seasonal/annual patterns
+const SEASONAL_KEYWORDS = [
+  'potato', 'seed order', 'seeds', 'planting', 'harvest', 'frost', 'cover crop',
+  'soil test', 'equipment', 'insurance renewal', 'certification', 'audit',
+  'tax', 'annual', 'yearly', 'season', 'spring', 'summer', 'fall', 'winter',
+  'catalog', 'pre-order', 'booking', 'reservation'
+];
+
+const ANNUAL_KEYWORDS = [
+  'potato order', 'seed catalog', 'annual renewal', 'yearly', 'insurance',
+  'certification', 'organic audit', 'tax', '1099', 'w-2', 'annual report'
+];
+
 // Default categories (can be extended by user)
 const DEFAULT_CATEGORIES = [
   { id: 'CUSTOMER', name: 'Customer', color: '#22c55e', icon: '👤' },
@@ -2162,6 +2441,316 @@ function getLearnedCategorySuggestion(email) {
     }
 
     return { success: true, category: null };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Record priority feedback for AI learning (RLHF-inspired with seasonal awareness)
+ * This helps the AI learn what the user considers high vs low priority
+ * Seasonal items (like potato ordering) retain relevance year-over-year
+ */
+function recordPriorityFeedback(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_PRIORITY_LEARNING_SHEET);
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet(COS_PRIORITY_LEARNING_SHEET);
+      sheet.appendRow(PRIORITY_LEARNING_HEADERS);
+      sheet.getRange(1, 1, 1, PRIORITY_LEARNING_HEADERS.length)
+        .setBackground('#9333ea')
+        .setFontColor('#ffffff')
+        .setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+
+    // Extract context from the item
+    let senderEmail = '';
+    let senderName = '';
+    let subjectKeywords = '';
+    let fullSubject = '';
+    let context = {};
+
+    // Try to get email details if it's an email
+    if (data.itemType === 'email' && data.itemId) {
+      try {
+        const threads = GmailApp.search('rfc822msgid:' + data.itemId);
+        if (threads.length > 0) {
+          const msg = threads[0].getMessages()[0];
+          senderEmail = msg.getFrom();
+          senderName = senderEmail.split('<')[0].trim();
+          fullSubject = msg.getSubject().toLowerCase();
+          subjectKeywords = fullSubject
+            .replace(/re:|fwd:|fw:/gi, '')
+            .trim()
+            .split(' ')
+            .filter(w => w.length > 3)
+            .slice(0, 5)
+            .join(',');
+        }
+      } catch (e) {
+        // Can't access email, continue without details
+      }
+    }
+
+    // Detect pattern type based on keywords (seasonal awareness)
+    const patternType = detectPatternType(fullSubject + ' ' + senderEmail + ' ' + subjectKeywords);
+    const now = new Date();
+    const season = getSeason(now);
+    const month = now.getMonth() + 1; // 1-12
+
+    // Calculate decay weight (fresh feedback starts at full weight)
+    const decayWeight = 1.0;
+
+    // Record the feedback with seasonal context
+    sheet.appendRow([
+      'PFB_' + Date.now(),
+      now,
+      data.itemId || '',
+      data.itemType || 'unknown',
+      data.originalPriority || '',
+      data.wasCorrect || false,
+      data.suggestedPriority || data.originalPriority,
+      senderEmail,
+      senderName,
+      subjectKeywords,
+      JSON.stringify(context),
+      decayWeight,
+      0, // Applied count
+      season,
+      month,
+      patternType
+    ]);
+
+    // If this is a correction (not confirmation), update pattern weights
+    if (!data.wasCorrect) {
+      updatePriorityPatterns(data.originalPriority, data.suggestedPriority, senderEmail, subjectKeywords, patternType);
+    }
+
+    const patternInfo = PATTERN_TYPES[patternType];
+    return {
+      success: true,
+      message: data.wasCorrect
+        ? `Confirmed: ${data.originalPriority} is correct`
+        : `Learned: Similar items should be ${data.suggestedPriority}`,
+      patternType: patternType,
+      patternDescription: patternInfo ? patternInfo.description : 'Standard',
+      memoryDuration: patternInfo ? `${Math.round(patternInfo.halfLifeDays / 30)} months` : '2 months'
+    };
+  } catch (e) {
+    Logger.log('Error recording priority feedback: ' + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Detect if this is a seasonal/annual pattern based on keywords
+ */
+function detectPatternType(text) {
+  const lowerText = (text || '').toLowerCase();
+
+  // Check for annual patterns first (strongest signal)
+  for (const keyword of ANNUAL_KEYWORDS) {
+    if (lowerText.includes(keyword)) {
+      return 'ANNUAL';
+    }
+  }
+
+  // Check for seasonal patterns
+  for (const keyword of SEASONAL_KEYWORDS) {
+    if (lowerText.includes(keyword)) {
+      return 'SEASONAL';
+    }
+  }
+
+  // Default based on common patterns
+  if (lowerText.includes('weekly') || lowerText.includes('every week')) {
+    return 'WEEKLY';
+  }
+  if (lowerText.includes('monthly') || lowerText.includes('every month')) {
+    return 'MONTHLY';
+  }
+
+  return 'WEEKLY'; // Default for most business communications
+}
+
+/**
+ * Get the current season
+ */
+function getSeason(date) {
+  const month = date.getMonth() + 1; // 1-12
+  if (month >= 3 && month <= 5) return 'SPRING';
+  if (month >= 6 && month <= 8) return 'SUMMER';
+  if (month >= 9 && month <= 11) return 'FALL';
+  return 'WINTER';
+}
+
+/**
+ * Update priority patterns based on feedback
+ * Uses exponential decay weighting with SEASONAL AWARENESS
+ * - Daily patterns: 30 day half-life
+ * - Weekly patterns: 60 day half-life
+ * - Monthly patterns: 120 day half-life
+ * - Seasonal patterns: 365 day half-life (remembers across years)
+ * - Annual patterns: 730 day half-life (2 year memory for things like potato orders)
+ */
+function updatePriorityPatterns(originalPriority, newPriority, senderEmail, keywords, patternType) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(COS_PRIORITY_LEARNING_SHEET);
+    if (!sheet) return;
+
+    const data = sheet.getDataRange().getValues();
+    const now = new Date();
+    const currentSeason = getSeason(now);
+    const currentMonth = now.getMonth() + 1;
+
+    // Look for similar patterns and update their weights
+    for (let i = 1; i < data.length; i++) {
+      const rowTimestamp = new Date(data[i][1]);
+      const rowSender = data[i][7] || '';
+      const rowKeywords = data[i][9] || '';
+      const rowSeason = data[i][13] || '';
+      const rowMonth = data[i][14] || 0;
+      const rowPatternType = data[i][15] || 'WEEKLY';
+
+      // Check if this is a similar pattern
+      const senderMatch = senderEmail && rowSender &&
+        senderEmail.toLowerCase().includes(rowSender.toLowerCase().split('@')[0]);
+      const keywordMatch = keywords && rowKeywords &&
+        keywords.split(',').some(k => rowKeywords.includes(k));
+
+      if (senderMatch || keywordMatch) {
+        // Get the appropriate half-life for this pattern type
+        const patternConfig = PATTERN_TYPES[rowPatternType] || PATTERN_TYPES.WEEKLY;
+        let halfLifeDays = patternConfig.halfLifeDays;
+
+        // SEASONAL BOOST: If we're in the same season as when feedback was given,
+        // boost the weight significantly (seasonal patterns are more relevant)
+        let seasonalBoost = 1.0;
+        if (rowPatternType === 'SEASONAL' || rowPatternType === 'ANNUAL') {
+          if (rowSeason === currentSeason) {
+            seasonalBoost = 2.0; // Double the weight for same season
+          }
+          // Even better: same month means this is probably the exact annual event
+          if (rowMonth === currentMonth) {
+            seasonalBoost = 3.0; // Triple weight for same month (annual patterns)
+          }
+        }
+
+        // Calculate decay weight based on age and pattern type
+        const daysSince = (now - rowTimestamp) / (1000 * 60 * 60 * 24);
+        let newWeight = Math.pow(0.5, daysSince / halfLifeDays) * seasonalBoost;
+        newWeight = Math.min(newWeight, 1.0); // Cap at 1.0
+
+        sheet.getRange(i + 1, 12).setValue(newWeight); // Update decay weight column
+      }
+    }
+  } catch (e) {
+    Logger.log('Error updating priority patterns: ' + e.message);
+  }
+}
+
+/**
+ * Get learned priority suggestion for an email
+ * Returns the most likely priority based on past feedback WITH SEASONAL AWARENESS
+ * - Potato order emails in January will match feedback from last January
+ * - Annual renewal notices will be recognized year-over-year
+ */
+function getLearnedPrioritySuggestion(email) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(COS_PRIORITY_LEARNING_SHEET);
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, priority: null };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const senderEmail = (email.from || '').toLowerCase();
+    const subject = (email.subject || '').toLowerCase();
+    const now = new Date();
+    const currentSeason = getSeason(now);
+    const currentMonth = now.getMonth() + 1;
+
+    // Detect if this email looks seasonal/annual
+    const emailPatternType = detectPatternType(subject + ' ' + senderEmail);
+
+    let bestMatch = null;
+    let bestScore = 0;
+    let matchSource = '';
+
+    for (let i = 1; i < data.length; i++) {
+      const wasCorrect = data[i][5];
+      const suggestedPriority = data[i][6];
+      const rowSender = (data[i][7] || '').toLowerCase();
+      const rowKeywords = (data[i][9] || '').toLowerCase();
+      const decayWeight = data[i][11] || 1;
+      const rowSeason = data[i][13] || '';
+      const rowMonth = data[i][14] || 0;
+      const rowPatternType = data[i][15] || 'WEEKLY';
+
+      let matchScore = 0;
+
+      // Sender match (strong signal)
+      if (rowSender && senderEmail.includes(rowSender.split('@')[0])) {
+        matchScore += 2.0;
+      }
+
+      // Keyword match
+      if (rowKeywords) {
+        const keywords = rowKeywords.split(',');
+        keywords.forEach(kw => {
+          if (kw.trim() && subject.includes(kw.trim())) {
+            matchScore += 0.5;
+          }
+        });
+      }
+
+      // SEASONAL MATCHING: Boost patterns from same season/month
+      if (rowPatternType === 'SEASONAL' || rowPatternType === 'ANNUAL' ||
+          emailPatternType === 'SEASONAL' || emailPatternType === 'ANNUAL') {
+
+        // Same season bonus
+        if (rowSeason === currentSeason) {
+          matchScore *= 1.5;
+          matchSource = 'seasonal_match';
+        }
+
+        // Same month bonus (strongest for annual patterns like potato orders)
+        if (rowMonth === currentMonth) {
+          matchScore *= 2.0;
+          matchSource = 'annual_match';
+        }
+      }
+
+      // Apply decay weight (already accounts for pattern type half-life)
+      matchScore *= decayWeight;
+
+      // Boost if it was a correction (stronger learning signal)
+      if (!wasCorrect) {
+        matchScore *= 1.5;
+      }
+
+      if (matchScore > bestScore) {
+        bestScore = matchScore;
+        bestMatch = suggestedPriority;
+      }
+    }
+
+    if (bestScore > 1.0) {
+      return {
+        success: true,
+        priority: bestMatch,
+        confidence: Math.min(0.95, 0.5 + (bestScore * 0.1)),
+        source: matchSource || 'learned_pattern',
+        patternType: emailPatternType
+      };
+    }
+
+    return { success: true, priority: null };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -3009,9 +3598,21 @@ function reclassifyEmail(threadId, newPriority, newCategory) {
       updates.push({ field: 'priority', value: newPriority });
     }
 
-    if (newCategory && EMAIL_CATEGORIES.includes(newCategory)) {
-      sheet.getRange(row, categoryCol).setValue(newCategory);
-      updates.push({ field: 'category', value: newCategory });
+    // Allow ANY category - including custom ones created by the user
+    // Previously this was restricted to EMAIL_CATEGORIES which broke custom categories
+    if (newCategory && newCategory.trim()) {
+      const cleanCategory = newCategory.trim().toUpperCase();
+      sheet.getRange(row, categoryCol).setValue(cleanCategory);
+      updates.push({ field: 'category', value: cleanCategory });
+
+      // If this is a custom category, make sure it's in the custom categories sheet
+      if (!EMAIL_CATEGORIES.includes(cleanCategory)) {
+        try {
+          addCustomCategory({ name: cleanCategory });
+        } catch (e) {
+          // Already exists or couldn't add - that's fine
+        }
+      }
     }
 
     if (updates.length > 0) {
@@ -3400,6 +4001,32 @@ function getPendingApprovals() {
         action[h.toLowerCase().replace(/_/g, '')] = row[idx];
       });
       action.timeRemaining = Math.round((expiry - now) / 1000 / 60) + ' minutes';
+
+      // ENHANCEMENT: Fetch email context for better action descriptions
+      const threadId = action.threadid;
+      if (threadId) {
+        try {
+          const threads = GmailApp.search('rfc822msgid:' + threadId);
+          if (threads.length > 0) {
+            const msg = threads[0].getMessages()[0];
+            action.emailSubject = msg.getSubject();
+            action.emailFrom = msg.getFrom();
+            action.emailDate = msg.getDate().toLocaleDateString();
+            action.emailPreview = msg.getPlainBody().substring(0, 200);
+
+            // Build a better description
+            const actionType = action.actiontype || 'review';
+            const draftContent = action.draftcontent || '';
+            action.fullDescription = `${actionType.toUpperCase()}: "${action.emailSubject}" from ${action.emailFrom.split('<')[0].trim()} (${action.emailDate})`;
+            action.contextualDescription = draftContent ?
+              `${draftContent}\n\n📧 Re: ${action.emailSubject} from ${action.emailFrom.split('<')[0].trim()}` :
+              `Action needed on email: "${action.emailSubject}" from ${action.emailFrom.split('<')[0].trim()}`;
+          }
+        } catch (e) {
+          // Can't access email, use what we have
+          action.contextualDescription = action.draftcontent || 'Action requires review';
+        }
+      }
 
       results.push(action);
     }
@@ -11044,6 +11671,20 @@ function doGet(e) {
         return jsonResponse(smartCategorizeEmail(e.parameter.threadId, e.parameter.category));
       case 'getInboxZeroStats':
         return jsonResponse(getInboxZeroStats());
+      case 'recordPriorityFeedback':
+        return jsonResponse(recordPriorityFeedback({
+          itemId: e.parameter.itemId,
+          itemType: e.parameter.itemType,
+          wasCorrect: e.parameter.wasCorrect === 'true',
+          originalPriority: e.parameter.originalPriority,
+          suggestedPriority: e.parameter.suggestedPriority,
+          timestamp: e.parameter.timestamp
+        }));
+      case 'getLearnedPrioritySuggestion':
+        return jsonResponse(getLearnedPrioritySuggestion({
+          from: e.parameter.from,
+          subject: e.parameter.subject
+        }));
       case 'recordInboxStats':
         return jsonResponse(recordInboxStats(
           parseInt(e.parameter.processed) || 0,
