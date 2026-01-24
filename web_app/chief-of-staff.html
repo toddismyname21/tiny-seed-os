@@ -1523,20 +1523,34 @@
             updateDateTime();
             setInterval(updateDateTime, 60000);
 
-            // Load data in parallel
-            await Promise.all([
-                loadMorningBrief(),
-                loadCommunications(),
-                loadAlerts(),
-                loadActions(),
-                loadAutonomyStatus(),
-                loadWorkloadForecast(),
-                loadLaborIntelligence(),
-                loadInboxZeroStats()
-            ]);
-
+            // Setup listeners IMMEDIATELY - don't wait for data
             setupTabListeners();
             setupChatListeners();
+
+            // PROGRESSIVE LOADING - Show page fast, load data in background
+            // Critical data first (renders immediately when ready)
+            loadActions().then(() => {
+                if (currentTab === 'actions') renderCurrentTab();
+            });
+            loadCommunications().then(() => {
+                if (currentTab === 'inbox') renderCurrentTab();
+            });
+            loadMorningBrief(); // Updates header metrics
+
+            // Non-critical data - load in background, no blocking
+            loadAlerts().then(() => {
+                if (currentTab === 'alerts') renderCurrentTab();
+            });
+            loadInboxZeroStats();
+
+            // Lowest priority - defer these
+            setTimeout(() => {
+                loadAutonomyStatus();
+                loadWorkloadForecast();
+                loadLaborIntelligence();
+            }, 100);
+
+            // Render current tab immediately with whatever data we have
             renderCurrentTab();
         }
 
