@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Readiness Dashboard - Tiny Seed Farm</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="api-config.js"></script>
+    <script src="auth-guard.js"></script>
+    <style>
+        :root {
+            --primary: #2a9d8f;
+            --primary-light: #3fb5a6;
+            --secondary: #f4a261;
+            --success: #2a9d8f;
+            --warning: #f4a261;
+            --danger: #e76f51;
+            --info: #4361ee;
+            --teal: #2a9d8f;
+            --gold: #f4a261;
+            --purple: #9b59b6;
+            --bg: #0a0e27;
+            --bg-light: #1a1f3a;
+            --bg-lighter: #252a4a;
+            --text: #e0e6ed;
+            --text-secondary: #9ca3af;
+            --border: #2a2f4a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(42, 157, 143, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .readiness-score-banner {
+            background: var(--bg-light);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 2px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .readiness-score-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--danger) 0%, var(--warning) 50%, var(--success) 100%);
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .score-circle-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+        }
+
+        .score-circle {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .score-circle-bg {
+            fill: none;
+            stroke: var(--bg-lighter);
+            stroke-width: 20;
+        }
+
+        .score-circle-progress {
+            fill: none;
+            stroke: var(--success);
+            stroke-width: 20;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease, stroke 0.3s ease;
+        }
+
+        .score-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .score-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .score-item {
+            background: var(--bg-lighter);
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-item-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .score-item-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .score-item-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge.complete {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .status-badge.incomplete {
+            background: rgba(231, 111, 81, 0.2);
+            color: var(--danger);
+        }
+
+        .status-badge.partial {
+            background: rgba(244, 162, 97, 0.2);
+            color: var(--warning);
+        }
+
+        .card {
+            background: var(--bg-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .card-header h2 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(42, 157, 143, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(42, 157, 143, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(244, 162, 97, 0.4);
+        }
+
+        .checklist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .checklist-item {
+            background: var(--bg-lighter);
+            padding: 1.25rem;
+            border-radius: 12px;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .checklist-item:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .checklist-item.complete {
+            border-color: var(--success);
+        }
+
+        .checklist-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 0.25rem;
+        }
+
+        .checklist-item.complete .checklist-checkbox {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .checklist-content h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .checklist-content p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .document-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .document-card {
+            background: var(--bg-lighter);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .document-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+        }
+
+        .document-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .document-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .document-status {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .contact-card {
+            background: linear-gradient(135deg, var(--teal), var(--info));
+            padding: 2rem;
+            border-radius: 16px;
+            color: white;
+        }
+
+        .contact-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .contact-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.25rem;
+            border-radius: 12px;
+        }
+
+        .contact-item h4 {
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .contact-item a {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .contact-item a:hover {
+            text-decoration: underline;
+        }
+
+        .calculator-section {
+            background: var(--bg-lighter);
+            padding: 2rem;
+            border-radius: 12px;
+        }
+
+        .calculator-input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .calculator-input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .calculator-input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .calculator-input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .calculator-result {
+            background: var(--bg);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+            border: 2px solid var(--success);
+        }
+
+        .calculator-result h3 {
+            color: var(--success);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--success);
+            padding-top: 1rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading i {
+            font-size: 3rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .score-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .score-circle-container {
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-university"></i> Loan Readiness Dashboard</h1>
+        <p>Complete loan application preparation for Tiny Seed Farm LLC</p>
+    </div>
+
+    <!-- Readiness Score Banner -->
+    <div class="readiness-score-banner">
+        <div class="score-grid">
+            <div class="score-circle-container">
+                <svg class="score-circle" viewBox="0 0 200 200">
+                    <circle class="score-circle-bg" cx="100" cy="100" r="90"></circle>
+                    <circle class="score-circle-progress" cx="100" cy="100" r="90"
+                            stroke-dasharray="565.48" stroke-dashoffset="565.48"
+                            id="scoreCircle"></circle>
+                </svg>
+                <div class="score-text">
+                    <div class="score-number" id="scoreNumber">0</div>
+                    <div class="score-label">Readiness Score</div>
+                </div>
+            </div>
+
+            <div class="score-details" id="scoreDetails">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Checklist -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-clipboard-check"></i> Required Documents Checklist</h2>
+            <button class="btn btn-success" onclick="generateLoanPackage()">
+                <i class="fas fa-file-download"></i> Generate Complete Package
+            </button>
+        </div>
+        <div class="checklist-grid" id="documentChecklist">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+        </div>
+        <div class="document-grid">
+            <div class="document-card" onclick="generateBalanceSheet()">
+                <div class="document-icon">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <div class="document-title">Balance Sheet</div>
+                <div class="document-status">Assets, Liabilities, Equity</div>
+                <button class="btn btn-primary">Generate</button>
+            </div>
+
+            <div class="document-card" onclick="generateAssetSchedule()">
+                <div class="document-icon">
+                    <i class="fas fa-tractor"></i>
+                </div>
+                <div class="document-title">Asset Schedule</div>
+                <div class="document-status">Equipment & Inventory</div>
+                <button class="btn btn-primary">Generate</button>
+            </div>
+
+            <div class="document-card" onclick="generateDebtSchedule()">
+                <div class="document-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="document-title">Debt Schedule</div>
+                <div class="document-status">All Obligations</div>
+                <button class="btn btn-primary">Generate</button>
+            </div>
+
+            <div class="document-card" onclick="generateCashFlow()">
+                <div class="document-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="document-title">Cash Flow Projection</div>
+                <div class="document-status">12-Month Forecast</div>
+                <button class="btn btn-primary">Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debt Consolidation Calculator -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-calculator"></i> Debt Consolidation Calculator</h2>
+        </div>
+        <div class="calculator-section">
+            <div class="calculator-input-group">
+                <label for="totalDebt">Total Credit Card Debt</label>
+                <input type="number" id="totalDebt" placeholder="Enter total debt amount" value="30000" onchange="calculateConsolidation()">
+            </div>
+            <div class="calculator-input-group">
+                <label for="currentAPR">Average Current APR (%)</label>
+                <input type="number" id="currentAPR" placeholder="Enter average APR" value="24" onchange="calculateConsolidation()">
+            </div>
+            <div class="calculator-input-group">
+                <label for="consolidationAPR">Consolidation Loan APR (%)</label>
+                <input type="number" id="consolidationAPR" placeholder="Farm Credit typical rate" value="8" onchange="calculateConsolidation()">
+            </div>
+            <div class="calculator-input-group">
+                <label for="loanTerm">Loan Term (years)</label>
+                <input type="number" id="loanTerm" placeholder="Term in years" value="5" onchange="calculateConsolidation()">
+            </div>
+
+            <button class="btn btn-success" onclick="calculateConsolidation()" style="width: 100%; margin-top: 1rem;">
+                <i class="fas fa-calculator"></i> Calculate Savings
+            </button>
+
+            <div class="calculator-result" id="calculatorResult" style="display: none;">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Farm Credit Contact -->
+    <div class="card">
+        <div class="contact-card">
+            <h3><i class="fas fa-phone-alt"></i> Farm Credit Lenders - Ohio</h3>
+            <p style="opacity: 0.9; margin-bottom: 1rem;">
+                Farm Credit specializes in agricultural lending. They understand farm business cycles and offer competitive rates for operating loans and debt consolidation.
+            </p>
+
+            <div class="contact-grid">
+                <div class="contact-item">
+                    <h4>AgCredit</h4>
+                    <a href="tel:800-837-3678"><i class="fas fa-phone"></i> 800-837-3678</a>
+                    <a href="https://www.agcredit.net" target="_blank"><i class="fas fa-globe"></i> agcredit.net</a>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.8;">Serves Northwest & Central Ohio</p>
+                </div>
+
+                <div class="contact-item">
+                    <h4>Farm Credit Mid-America</h4>
+                    <a href="tel:800-444-3276"><i class="fas fa-phone"></i> 800-444-3276</a>
+                    <a href="https://www.e-farmcredit.com" target="_blank"><i class="fas fa-globe"></i> e-farmcredit.com</a>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.8;">Serves OH, KY, IN, TN</p>
+                </div>
+
+                <div class="contact-item">
+                    <h4>What to Say When You Call</h4>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                        "Hi, I'm a small vegetable farm owner. I'm interested in discussing an operating loan for my CSA season and possibly consolidating some business debt. Can I schedule a consultation?"
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = TINY_SEED_API.MAIN_API;
+        let readinessData = {
+            score: 0,
+            items: []
+        };
+
+        // Document checklist items based on LOAN_READINESS.md
+        const checklistItems = [
+            {
+                id: 'personal_id',
+                title: 'Government ID',
+                description: 'Driver\'s license or passport',
+                category: 'personal',
+                autoCheck: false
+            },
+            {
+                id: 'ssn',
+                title: 'Social Security Number',
+                description: 'For credit check and identification',
+                category: 'personal',
+                autoCheck: false
+            },
+            {
+                id: 'personal_tax_returns',
+                title: 'Personal Tax Returns (2 years)',
+                description: '2024 and 2025 returns',
+                category: 'personal',
+                autoCheck: false
+            },
+            {
+                id: 'business_tax_returns',
+                title: 'Business Tax Returns (2 years)',
+                description: 'Farm business returns',
+                category: 'business',
+                autoCheck: false
+            },
+            {
+                id: 'balance_sheet',
+                title: 'Balance Sheet',
+                description: 'Current assets, liabilities, equity',
+                category: 'business',
+                autoCheck: true,
+                generateAction: 'generateBalanceSheet'
+            },
+            {
+                id: 'debt_schedule',
+                title: 'Debt Schedule',
+                description: 'All outstanding debts with rates',
+                category: 'business',
+                autoCheck: true,
+                generateAction: 'generateDebtSchedule'
+            },
+            {
+                id: 'cash_flow',
+                title: 'Cash Flow Projection',
+                description: '12-month forecast',
+                category: 'business',
+                autoCheck: true,
+                generateAction: 'generateCashFlow'
+            },
+            {
+                id: 'profit_loss',
+                title: 'Year-to-Date P&L',
+                description: 'Current profit and loss statement',
+                category: 'business',
+                autoCheck: true
+            },
+            {
+                id: 'asset_schedule',
+                title: 'Asset Schedule',
+                description: 'Equipment list with values',
+                category: 'farm',
+                autoCheck: true,
+                generateAction: 'generateAssetSchedule'
+            },
+            {
+                id: 'farm_income',
+                title: 'Proof of Farm Income',
+                description: 'Sales records, contracts',
+                category: 'farm',
+                autoCheck: true
+            },
+            {
+                id: 'production_records',
+                title: 'Production Records',
+                description: 'Crop yields and history',
+                category: 'farm',
+                autoCheck: true
+            },
+            {
+                id: 'business_plan',
+                title: 'Business Plan Summary',
+                description: 'Farm operations overview',
+                category: 'business',
+                autoCheck: false
+            }
+        ];
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadReadinessStatus();
+            renderChecklist();
+            calculateReadinessScore();
+            calculateConsolidation();
+        });
+
+        async function loadReadinessStatus() {
+            // Load from localStorage what user has manually checked
+            const stored = localStorage.getItem('tsf_loan_readiness');
+            if (stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    readinessData.items = data.items || [];
+                } catch (e) {
+                    console.error('Failed to load readiness data', e);
+                }
+            }
+
+            // Auto-check items we can verify via API
+            await autoCheckDocuments();
+        }
+
+        async function autoCheckDocuments() {
+            // Check if we have Plaid data (indicates financial data available)
+            try {
+                const plaidData = localStorage.getItem('tsf_plaid_connected');
+                if (plaidData) {
+                    markItemComplete('balance_sheet');
+                    markItemComplete('profit_loss');
+                }
+            } catch (e) {
+                console.error('Error auto-checking documents', e);
+            }
+
+            // Check if assets are tracked
+            try {
+                const assets = localStorage.getItem('tsf_assets');
+                if (assets && JSON.parse(assets).length > 0) {
+                    markItemComplete('asset_schedule');
+                }
+            } catch (e) {}
+
+            // Check if debt tracking exists
+            try {
+                const debts = localStorage.getItem('tsf_debts');
+                if (debts && JSON.parse(debts).length > 0) {
+                    markItemComplete('debt_schedule');
+                }
+            } catch (e) {}
+        }
+
+        function markItemComplete(itemId) {
+            if (!readinessData.items.includes(itemId)) {
+                readinessData.items.push(itemId);
+            }
+        }
+
+        function renderChecklist() {
+            const container = document.getElementById('documentChecklist');
+            container.innerHTML = '';
+
+            checklistItems.forEach(item => {
+                const isComplete = readinessData.items.includes(item.id);
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `checklist-item ${isComplete ? 'complete' : ''}`;
+                itemDiv.onclick = () => toggleChecklistItem(item.id);
+
+                itemDiv.innerHTML = `
+                    <div class="checklist-checkbox">
+                        ${isComplete ? '<i class="fas fa-check" style="color: white;"></i>' : ''}
+                    </div>
+                    <div class="checklist-content">
+                        <h3>${item.title}</h3>
+                        <p>${item.description}</p>
+                        ${item.category ? `<span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">${item.category}</span>` : ''}
+                    </div>
+                `;
+
+                container.appendChild(itemDiv);
+            });
+        }
+
+        function toggleChecklistItem(itemId) {
+            const index = readinessData.items.indexOf(itemId);
+            if (index > -1) {
+                readinessData.items.splice(index, 1);
+            } else {
+                readinessData.items.push(itemId);
+            }
+
+            // Save to localStorage
+            localStorage.setItem('tsf_loan_readiness', JSON.stringify(readinessData));
+
+            renderChecklist();
+            calculateReadinessScore();
+        }
+
+        function calculateReadinessScore() {
+            const totalItems = checklistItems.length;
+            const completedItems = readinessData.items.length;
+            const score = Math.round((completedItems / totalItems) * 100);
+
+            readinessData.score = score;
+
+            // Update circle
+            const circle = document.getElementById('scoreCircle');
+            const circumference = 565.48;
+            const offset = circumference - (score / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+
+            // Color based on score
+            if (score >= 80) {
+                circle.style.stroke = 'var(--success)';
+            } else if (score >= 50) {
+                circle.style.stroke = 'var(--warning)';
+            } else {
+                circle.style.stroke = 'var(--danger)';
+            }
+
+            // Animate number
+            const scoreNumber = document.getElementById('scoreNumber');
+            let current = 0;
+            const increment = score / 50;
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= score) {
+                    current = score;
+                    clearInterval(timer);
+                }
+                scoreNumber.textContent = Math.round(current);
+            }, 20);
+
+            // Update score details
+            updateScoreDetails();
+        }
+
+        function updateScoreDetails() {
+            const details = document.getElementById('scoreDetails');
+            const categories = {
+                personal: { name: 'Personal Documents', icon: 'fa-user', color: 'var(--info)' },
+                business: { name: 'Business Documents', icon: 'fa-briefcase', color: 'var(--teal)' },
+                farm: { name: 'Farm-Specific', icon: 'fa-tractor', color: 'var(--success)' }
+            };
+
+            let html = '';
+            Object.keys(categories).forEach(cat => {
+                const items = checklistItems.filter(i => i.category === cat);
+                const completed = items.filter(i => readinessData.items.includes(i.id)).length;
+                const total = items.length;
+                const status = completed === total ? 'complete' : completed > 0 ? 'partial' : 'incomplete';
+
+                html += `
+                    <div class="score-item">
+                        <div class="score-item-left">
+                            <div class="score-item-icon" style="background: ${categories[cat].color};">
+                                <i class="fas ${categories[cat].icon}"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600;">${categories[cat].name}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">${completed} of ${total} complete</div>
+                            </div>
+                        </div>
+                        <div class="score-item-status">
+                            <span class="status-badge ${status}">
+                                ${status === 'complete' ? 'Complete' : status === 'partial' ? 'In Progress' : 'Not Started'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            details.innerHTML = html;
+        }
+
+        function calculateConsolidation() {
+            const totalDebt = parseFloat(document.getElementById('totalDebt').value) || 0;
+            const currentAPR = parseFloat(document.getElementById('currentAPR').value) || 0;
+            const consolidationAPR = parseFloat(document.getElementById('consolidationAPR').value) || 0;
+            const loanTerm = parseFloat(document.getElementById('loanTerm').value) || 5;
+
+            if (totalDebt <= 0) return;
+
+            // Current minimum payment (assuming paying off in 10 years at current rate)
+            const currentMonthlyRate = currentAPR / 100 / 12;
+            const currentMonths = 120; // 10 years
+            const currentPayment = totalDebt * (currentMonthlyRate * Math.pow(1 + currentMonthlyRate, currentMonths)) /
+                                  (Math.pow(1 + currentMonthlyRate, currentMonths) - 1);
+            const currentTotalPaid = currentPayment * currentMonths;
+            const currentInterest = currentTotalPaid - totalDebt;
+
+            // Consolidation loan
+            const consolidationMonthlyRate = consolidationAPR / 100 / 12;
+            const consolidationMonths = loanTerm * 12;
+            const consolidationPayment = totalDebt * (consolidationMonthlyRate * Math.pow(1 + consolidationMonthlyRate, consolidationMonths)) /
+                                        (Math.pow(1 + consolidationMonthlyRate, consolidationMonths) - 1);
+            const consolidationTotalPaid = consolidationPayment * consolidationMonths;
+            const consolidationInterest = consolidationTotalPaid - totalDebt;
+
+            // Savings
+            const interestSavings = currentInterest - consolidationInterest;
+            const monthlySavings = currentPayment - consolidationPayment;
+
+            const resultDiv = document.getElementById('calculatorResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <h3><i class="fas fa-piggy-bank"></i> Consolidation Savings Analysis</h3>
+
+                <div class="result-row">
+                    <span>Current Monthly Payment (est):</span>
+                    <span style="color: var(--danger);">$${currentPayment.toFixed(2)}</span>
+                </div>
+                <div class="result-row">
+                    <span>Consolidation Monthly Payment:</span>
+                    <span style="color: var(--success);">$${consolidationPayment.toFixed(2)}</span>
+                </div>
+                <div class="result-row">
+                    <span>Monthly Savings:</span>
+                    <span style="color: var(--success);">$${monthlySavings.toFixed(2)}</span>
+                </div>
+
+                <div style="height: 1px; background: var(--border); margin: 1rem 0;"></div>
+
+                <div class="result-row">
+                    <span>Current Total Interest (10 years):</span>
+                    <span style="color: var(--danger);">$${currentInterest.toFixed(2)}</span>
+                </div>
+                <div class="result-row">
+                    <span>Consolidation Total Interest (${loanTerm} years):</span>
+                    <span style="color: var(--warning);">$${consolidationInterest.toFixed(2)}</span>
+                </div>
+                <div class="result-row">
+                    <span><strong>TOTAL INTEREST SAVINGS:</strong></span>
+                    <span><strong>$${interestSavings.toFixed(2)}</strong></span>
+                </div>
+            `;
+        }
+
+        async function generateLoanPackage() {
+            showNotification('Generating complete loan package...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateLoanPackage`, {
+                    method: 'GET'
+                });
+
+                const result = await response.json();
+
+                if (result && result.success) {
+                    // Download the package
+                    const blob = new Blob([result.html], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Tiny_Seed_Farm_Loan_Package_${new Date().toISOString().split('T')[0]}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showNotification('Loan package downloaded successfully!', 'success');
+                } else {
+                    throw new Error(result.error || 'Failed to generate package');
+                }
+            } catch (error) {
+                console.error('Error generating loan package:', error);
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function generateBalanceSheet() {
+            showNotification('Generating balance sheet...', 'info');
+            // Open financial dashboard in new tab
+            window.open('financial-dashboard.html#assets', '_blank');
+        }
+
+        async function generateAssetSchedule() {
+            showNotification('Generating asset schedule...', 'info');
+            window.open('financial-dashboard.html#assets', '_blank');
+        }
+
+        async function generateDebtSchedule() {
+            showNotification('Generating debt schedule...', 'info');
+            window.open('financial-dashboard.html#debt', '_blank');
+        }
+
+        async function generateCashFlow() {
+            showNotification('Generating cash flow projection...', 'info');
+            window.open('financial-dashboard.html#overview', '_blank');
+        }
+
+        function showNotification(message, type = 'info') {
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.background = type === 'success' ? 'var(--success)' :
+                                           type === 'error' ? 'var(--danger)' :
+                                           type === 'warning' ? 'var(--warning)' : 'var(--info)';
+            notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' :
+                                                         type === 'error' ? 'exclamation-circle' :
+                                                         'info-circle'}"></i> ${message}`;
+            document.body.appendChild(notification);
+
+            setTimeout(() => notification.remove(), 4000);
+        }
+    </script>
+</body>
+</html>
