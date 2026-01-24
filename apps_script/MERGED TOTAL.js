@@ -15521,30 +15521,49 @@ function inviteEmployee(data) {
     // Generate username from full name if not provided
     const username = data.username || (data.fullName || '').toLowerCase().replace(/\s+/g, '.').replace(/[^a-z.]/g, '');
 
-    // UPDATED 2026-01-24: Create employee record with all new columns
-    // Headers: User_ID, Username, PIN, Full_Name, Email, Phone, Role, Status, Is_Active, Last_Login, Created_At,
-    //          Emergency_Contact_Name, Emergency_Contact_Phone, Emergency_Contact_Relation, Registration_Completed, Magic_Token, Token_Expires
-    const newRow = [
-      userId,                      // User_ID
-      username,                    // Username
-      '0000',                      // PIN (default, will use magic link)
-      data.fullName || '',         // Full_Name
-      data.email || '',            // Email
-      data.phone || '',            // Phone
-      '',                          // Role (owner assigns after registration)
-      'Invited',                   // Status
-      false,                       // Is_Active (activated after approval)
-      '',                          // Last_Login
-      new Date().toISOString(),    // Created_At
-      '',                          // Emergency_Contact_Name
-      '',                          // Emergency_Contact_Phone
-      '',                          // Emergency_Contact_Relation
-      '',                          // Registration_Completed
-      magicToken,                  // Magic_Token
-      tokenExpires.toISOString()   // Token_Expires
-    ];
+    // FIXED 2026-01-24: Match columns by header name, not position (handles existing sheets with different structure)
+    // First, ensure all required columns exist
+    const requiredCols = ['User_ID', 'Username', 'PIN', 'Full_Name', 'Email', 'Phone', 'Role', 'Status',
+                          'Is_Active', 'Last_Login', 'Created_At', 'Magic_Token', 'Token_Expires',
+                          'Emergency_Contact_Name', 'Emergency_Contact_Phone', 'Emergency_Contact_Relation', 'Registration_Completed'];
 
-    sheet.appendRow(newRow);
+    requiredCols.forEach(col => {
+      if (headers.indexOf(col) === -1) {
+        const newColIndex = headers.length + 1;
+        sheet.getRange(1, newColIndex).setValue(col);
+        headers.push(col);
+      }
+    });
+
+    // Create new row and append
+    const newRowNum = sheet.getLastRow() + 1;
+
+    // Helper function to set value by column name
+    function setCol(colName, value) {
+      const colIndex = headers.indexOf(colName);
+      if (colIndex !== -1) {
+        sheet.getRange(newRowNum, colIndex + 1).setValue(value);
+      }
+    }
+
+    // Set all values by column name
+    setCol('User_ID', userId);
+    setCol('Username', username);
+    setCol('PIN', '0000');
+    setCol('Full_Name', data.fullName || '');
+    setCol('Email', data.email || '');
+    setCol('Phone', data.phone || '');
+    setCol('Role', '');  // Owner assigns after registration
+    setCol('Status', 'Invited');
+    setCol('Is_Active', false);
+    setCol('Last_Login', '');
+    setCol('Created_At', new Date().toISOString());
+    setCol('Magic_Token', magicToken);
+    setCol('Token_Expires', tokenExpires.toISOString());
+    setCol('Emergency_Contact_Name', '');
+    setCol('Emergency_Contact_Phone', '');
+    setCol('Emergency_Contact_Relation', '');
+    setCol('Registration_Completed', '');
 
     // Build the invitation URL
     const inviteUrl = `${EMPLOYEE_APP_URL}?token=${magicToken}`;
