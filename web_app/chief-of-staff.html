@@ -1449,6 +1449,41 @@
         let currentEmailId = null;
         let briefData = null;
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DATA CACHING - Load instantly from cache, refresh from API in background
+        // ═══════════════════════════════════════════════════════════════════════════
+        const CACHE_KEY = 'cos_data_cache';
+        const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+        function loadFromCache() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    // Load cached data if not too old
+                    if (Date.now() - data.timestamp < CACHE_TTL) {
+                        actions = data.actions || [];
+                        communications = data.communications || [];
+                        alerts = data.alerts || [];
+                        document.getElementById('actionsBadge').textContent = actions.length;
+                        return true;
+                    }
+                }
+            } catch (e) { console.error('Cache load error:', e); }
+            return false;
+        }
+
+        function saveToCache() {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: Date.now(),
+                    actions: actions,
+                    communications: communications,
+                    alerts: alerts
+                }));
+            } catch (e) { console.error('Cache save error:', e); }
+        }
+
         // Conversation history - persisted to localStorage
         let conversationHistory = [];
         const STORAGE_KEY = 'cos_conversation_history';
@@ -1527,18 +1562,27 @@
             setupTabListeners();
             setupChatListeners();
 
-            // PROGRESSIVE LOADING - Show page fast, load data in background
+            // LOAD FROM CACHE FIRST - instant page render
+            const hadCache = loadFromCache();
+            if (hadCache) {
+                renderCurrentTab(); // Show cached data immediately
+            }
+
+            // PROGRESSIVE LOADING - Refresh from API in background
             // Critical data first (renders immediately when ready)
             loadActions().then(() => {
+                saveToCache();
                 if (currentTab === 'actions') renderCurrentTab();
             });
             loadCommunications().then(() => {
+                saveToCache();
                 if (currentTab === 'inbox') renderCurrentTab();
             });
             loadMorningBrief(); // Updates header metrics
 
             // Non-critical data - load in background, no blocking
             loadAlerts().then(() => {
+                saveToCache();
                 if (currentTab === 'alerts') renderCurrentTab();
             });
             loadInboxZeroStats();
@@ -1550,8 +1594,10 @@
                 loadLaborIntelligence();
             }, 100);
 
-            // Render current tab immediately with whatever data we have
-            renderCurrentTab();
+            // Render current tab (with cache or loading state)
+            if (!hadCache) {
+                renderCurrentTab();
+            }
         }
 
         function updateDateTime() {
