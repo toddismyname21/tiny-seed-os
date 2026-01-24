@@ -24,10 +24,10 @@ const TINY_SEED_API = {
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
     // LAST UPDATED: 2026-01-23
-    // UPDATED BY: Claude - v401 Fix getClaudeStatus
+    // UPDATED BY: Claude - v402 Fix ClaudeCoordination to use openById
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbzbwsi5g8hzW0EUJ6M9qEjl59fHbZ6mdy6hQ56d9NvphZ6TODOi4RjvpgB2mZ6OkIh2/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

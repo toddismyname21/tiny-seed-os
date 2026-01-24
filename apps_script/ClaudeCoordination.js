@@ -157,7 +157,7 @@ const PRIORITY_WEIGHTS = {
  * Initialize all coordination sheets
  */
 function initializeCoordinationSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // CLAUDE_MESSAGES
   let sheet = ss.getSheetByName(COORDINATION_SHEETS.MESSAGES);
@@ -251,7 +251,7 @@ function initializeCoordinationSheets() {
  * @returns {Object} Result with message ID
  */
 function sendClaudeMessage(fromRole, toRole, subject, body, options = {}) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.MESSAGES);
 
   if (!sheet) {
@@ -318,7 +318,7 @@ function sendClaudeMessage(fromRole, toRole, subject, body, options = {}) {
  * @returns {Array} Messages
  */
 function getClaudeMessages(role, options = {}) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.MESSAGES);
 
   if (!sheet) {
@@ -384,7 +384,7 @@ function getClaudeMessages(role, options = {}) {
  * Mark message as read
  */
 function markMessageRead(messageId, role) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.MESSAGES);
 
   const data = sheet.getDataRange().getValues();
@@ -404,7 +404,7 @@ function markMessageRead(messageId, role) {
  * Acknowledge a message (confirm receipt and understanding)
  */
 function acknowledgeMessage(messageId, role, response = null) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.MESSAGES);
 
   const data = sheet.getDataRange().getValues();
@@ -453,7 +453,7 @@ function acknowledgeMessage(messageId, role, response = null) {
  * @returns {Object} Session registration result
  */
 function registerClaudeSession(role, contextSummary = '') {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(COORDINATION_SHEETS.SESSIONS);
 
   if (!sheet) {
@@ -518,7 +518,7 @@ function registerClaudeSession(role, contextSummary = '') {
  * Update session heartbeat (call periodically to show session is active)
  */
 function updateSessionHeartbeat(sessionId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.SESSIONS);
 
   if (!sheet) return { success: false, error: 'Sessions sheet not found' };
@@ -541,7 +541,7 @@ function updateSessionHeartbeat(sessionId) {
  * End a Claude session
  */
 function endClaudeSession(sessionId, summary = '') {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.SESSIONS);
 
   if (!sheet) return { success: false, error: 'Sessions sheet not found' };
@@ -570,7 +570,7 @@ function endClaudeSession(sessionId, summary = '') {
  * Get active Claude sessions
  */
 function getActiveSessions() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.SESSIONS);
 
   if (!sheet) return [];
@@ -617,7 +617,7 @@ function getActiveSessions() {
  * @returns {Object} Created task
  */
 function createCoordinationTask(createdBy, title, description, options = {}) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(COORDINATION_SHEETS.TASKS);
 
   if (!sheet) {
@@ -711,7 +711,7 @@ function calculateTaskPriority(factors) {
  * Claim a task
  */
 function claimTask(taskId, role, sessionId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.TASKS);
 
   if (!sheet) return { success: false, error: 'Tasks sheet not found' };
@@ -781,7 +781,7 @@ function claimTask(taskId, role, sessionId) {
  * Update task progress
  */
 function updateTaskProgress(taskId, role, note, newStatus = null) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.TASKS);
 
   if (!sheet) return { success: false, error: 'Tasks sheet not found' };
@@ -820,7 +820,7 @@ function updateTaskProgress(taskId, role, note, newStatus = null) {
  * Get available tasks for a role
  */
 function getAvailableTasks(role, options = {}) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.TASKS);
 
   if (!sheet) return [];
@@ -872,7 +872,7 @@ function getAvailableTasks(role, options = {}) {
  * Lock a file to prevent conflicts
  */
 function lockFile(filePath, sessionId, reason) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(COORDINATION_SHEETS.FILE_LOCKS);
 
   if (!sheet) {
@@ -931,7 +931,7 @@ function lockFile(filePath, sessionId, reason) {
  * Release a file lock
  */
 function releaseFileLock(filePath, sessionId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.FILE_LOCKS);
 
   if (!sheet) return { success: false, error: 'File locks sheet not found' };
@@ -952,7 +952,7 @@ function releaseFileLock(filePath, sessionId) {
  * Release all locks held by a session
  */
 function releaseAllFileLocks(sessionId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.FILE_LOCKS);
 
   if (!sheet) return;
@@ -970,7 +970,7 @@ function releaseAllFileLocks(sessionId) {
  * Check if file is available
  */
 function checkFileAvailability(filePath) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.FILE_LOCKS);
 
   if (!sheet) return { available: true };
@@ -1003,7 +1003,7 @@ function checkFileAvailability(filePath) {
  * Create an alert for the owner
  */
 function createCoordinationAlert(sourceRole, priority, title, message, sendSms = false) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(COORDINATION_SHEETS.ALERTS);
 
   if (!sheet) {
@@ -1051,7 +1051,7 @@ function createCoordinationAlert(sourceRole, priority, title, message, sendSms =
  * Get active alerts
  */
 function getCoordinationAlerts(unacknowledgedOnly = true) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.ALERTS);
 
   if (!sheet) return [];
@@ -1084,7 +1084,7 @@ function getCoordinationAlerts(unacknowledgedOnly = true) {
  * Acknowledge an alert
  */
 function acknowledgeAlert(alertId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.ALERTS);
 
   if (!sheet) return { success: false, error: 'Alerts sheet not found' };
@@ -1246,7 +1246,7 @@ function getTwilioStatus() {
  * Log coordination activity
  */
 function logCoordinationActivity(role, action, details, taskId = null) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(COORDINATION_SHEETS.ACTIVITY);
 
   if (!sheet) {
@@ -1270,7 +1270,7 @@ function logCoordinationActivity(role, action, details, taskId = null) {
  * Get recent activity
  */
 function getRecentActivity(limit = 50, roleFilter = null) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(COORDINATION_SHEETS.ACTIVITY);
 
   if (!sheet) return [];
@@ -1490,7 +1490,7 @@ function getClaudeStatus() {
  * Get pending permission requests
  */
 function getPendingPermissions() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('CLAUDE_PERMISSIONS');
 
   if (!sheet) {
@@ -1537,7 +1537,7 @@ function getPendingPermissions() {
  * Create a permission request (called by Claude when it needs approval)
  */
 function createPermissionRequest(type, title, description, requestedBy) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('CLAUDE_PERMISSIONS');
 
   if (!sheet) {
@@ -1581,7 +1581,7 @@ function createPermissionRequest(type, title, description, requestedBy) {
  * Respond to a permission request
  */
 function respondToPermission(permissionId, approved) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('CLAUDE_PERMISSIONS');
 
   if (!sheet) {
@@ -1616,7 +1616,7 @@ function respondToPermission(permissionId, approved) {
  * Check if a permission has been granted (for Claude to poll)
  */
 function checkPermissionStatus(permissionId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('CLAUDE_PERMISSIONS');
 
   if (!sheet) {
