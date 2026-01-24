@@ -5720,10 +5720,9 @@
 
         async function loadWeather() {
             try {
-                // Using Open-Meteo free API - coordinates for typical farm location
-                // You can update these coordinates for your actual farm location
-                const lat = 38.9;  // Example: Virginia area
-                const lon = -77.0;
+                // Using Open-Meteo free API - Tiny Seed Farm coordinates
+                const lat = 40.7020;  // Tiny Seed Farm, Darlington PA
+                const lon = -80.2887;
                 const response = await fetch(
                     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=5`
                 );
