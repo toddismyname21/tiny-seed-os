@@ -4245,10 +4245,17 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
             try {
-                const response = await fetch(`${API_URL}?action=inviteEmployee`, {
+                // FIXED 2026-01-24: action must be in POST body, not URL query; use fullName not name
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, phone, role })
+                    body: JSON.stringify({
+                        action: 'inviteEmployee',
+                        fullName: name,
+                        email,
+                        phone,
+                        role
+                    })
                 });
 
                 const data = await response.json();
@@ -4296,10 +4303,17 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
             try {
-                const response = await fetch(`${API_URL}?action=inviteChef`, {
+                // FIXED 2026-01-24: action must be in POST body, not URL query
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ company_name, contact_name, email, phone })
+                    body: JSON.stringify({
+                        action: 'inviteChef',
+                        company_name,
+                        contact_name,
+                        email,
+                        phone
+                    })
                 });
 
                 const data = await response.json();

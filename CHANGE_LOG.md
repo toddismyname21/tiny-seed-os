@@ -40,6 +40,31 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - Desktop_Claude (Fix Chef & Employee Invite Fetch Errors)
+
+### Files Modified
+- `index.html`:
+  - Fixed `sendEmployeeInvite()` function to include `action` in POST body instead of URL query parameter
+  - Fixed `sendEmployeeInvite()` to use `fullName` parameter (backend expectation) instead of `name`
+  - Fixed `sendChefInvite()` function to include `action` in POST body instead of URL query parameter
+
+### Functions Modified
+- `sendEmployeeInvite()` in index.html - Fixed POST request format: moved `action` from URL query to body, changed `name` to `fullName`
+- `sendChefInvite()` in index.html - Fixed POST request format: moved `action` from URL query to body
+
+### Reason
+Both chef and employee invite buttons were showing "Failed to fetch" errors because:
+1. The frontend was sending `action` as a URL query parameter (`?action=inviteEmployee`)
+2. The backend `doPost()` function expects `action` inside the JSON body (`data.action`)
+3. The employee invite was also sending `name` when backend expected `fullName`
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-01-24 - PM_Architect (Morning Brief & Invite Buttons Fixes)
 
 ### Files Modified
