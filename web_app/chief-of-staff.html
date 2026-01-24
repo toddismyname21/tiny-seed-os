@@ -1731,6 +1731,7 @@
         let currentTab = 'inbox';
         let currentEmailId = null;
         let briefData = null;
+        let emailContextConversation = []; // Persistent conversation history for AI context helper
 
         // ═══════════════════════════════════════════════════════════════════════════
         // DATA CACHING - Load instantly from cache, refresh from API in background
@@ -2906,12 +2907,20 @@
         // Email Actions
         async function openEmail(threadId) {
             currentEmailId = threadId;
+            resetEmailContextConversation(); // Reset conversation for new email
             document.getElementById('emailModal').style.display = 'flex';
 
             document.getElementById('modalBody').textContent = 'Loading...';
             document.getElementById('aiReply').style.display = 'none';
             document.getElementById('saveDraftBtn').style.display = 'none';
             document.getElementById('sendReplyBtn').style.display = 'none';
+
+            // Clear any previous AI context responses
+            const contextResponseDiv = document.getElementById('contextResponse');
+            if (contextResponseDiv) {
+                contextResponseDiv.innerHTML = '';
+                contextResponseDiv.style.display = 'none';
+            }
 
             try {
                 const response = await api.get('getEmailDetail', { threadId });
@@ -2931,6 +2940,7 @@
         function closeModal() {
             document.getElementById('emailModal').style.display = 'none';
             currentEmailId = null;
+            resetEmailContextConversation(); // Clear conversation history when closing email
         }
 
         async function generateReply() {
@@ -3569,33 +3579,80 @@
 
             // Show loading
             responseDiv.style.display = 'block';
-            responseDiv.innerHTML = '<em>Thinking...</em>';
+
+            // Display user question in the response area
+            const userQuestionDiv = document.createElement('div');
+            userQuestionDiv.style.cssText = 'background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 10px; margin-bottom: 10px; border-radius: 4px;';
+            userQuestionDiv.innerHTML = `<strong>You:</strong> ${question}`;
+
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.innerHTML = '<em>Thinking...</em>';
+            thinkingDiv.id = 'thinking-indicator';
+
+            responseDiv.innerHTML = '';
+            responseDiv.appendChild(userQuestionDiv);
+            responseDiv.appendChild(thinkingDiv);
 
             try {
-                // Ask the Chief of Staff with email context
-                const contextMessage = `I'm looking at an email from: ${from}\nSubject: ${subject}\n\nMy question: ${question}`;
-
-                const response = await api.get('chatWithChiefOfStaff', {
-                    message: contextMessage,
-                    conversationHistoryJson: JSON.stringify([{
+                // Initialize conversation on first question or if email changed
+                if (emailContextConversation.length === 0 ||
+                    emailContextConversation[0]?.emailId !== currentEmailId) {
+                    emailContextConversation = [{
                         role: 'system',
-                        content: `The user is viewing an email and needs context. Email context: From: ${from}, Subject: ${subject}, Preview: ${body.substring(0, 200)}`
-                    }])
+                        content: `The user is viewing an email and needs context. Email context: From: ${from}, Subject: ${subject}, Preview: ${body.substring(0, 200)}`,
+                        emailId: currentEmailId // Track which email this conversation is about
+                    }];
+                }
+
+                // Add user question to history
+                emailContextConversation.push({
+                    role: 'user',
+                    content: question
+                });
+
+                // Ask the Chief of Staff with full conversation history
+                const response = await api.get('chatWithChiefOfStaff', {
+                    message: question,
+                    conversationHistoryJson: JSON.stringify(emailContextConversation.slice(0, -1)) // All history except current question
                 });
 
                 if (response.success && response.message) {
-                    responseDiv.innerHTML = parseMarkdown(response.message);
+                    // Add AI response to history
+                    emailContextConversation.push({
+                        role: 'assistant',
+                        content: response.message
+                    });
+
+                    // Remove thinking indicator
+                    document.getElementById('thinking-indicator')?.remove();
+
+                    // Display AI response
+                    const assistantDiv = document.createElement('div');
+                    assistantDiv.style.cssText = 'background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; padding: 10px; margin-top: 10px; border-radius: 4px;';
+                    assistantDiv.innerHTML = `<strong>AI:</strong> ${parseMarkdown(response.message)}`;
+                    responseDiv.appendChild(assistantDiv);
                 } else {
-                    responseDiv.innerHTML = 'Could not get a response. Try rephrasing your question.';
+                    // Remove failed question from history
+                    emailContextConversation.pop();
+                    document.getElementById('thinking-indicator').innerHTML = 'Could not get a response. Try rephrasing your question.';
                 }
             } catch (error) {
-                responseDiv.innerHTML = 'Error getting response: ' + error.message;
+                // Remove failed question from history
+                if (emailContextConversation[emailContextConversation.length - 1]?.role === 'user') {
+                    emailContextConversation.pop();
+                }
+                document.getElementById('thinking-indicator').innerHTML = 'Error getting response: ' + error.message;
             }
 
             // Clear input if it was typed (not preset)
             if (!presetQuestion) {
                 input.value = '';
             }
+        }
+
+        // Clear conversation when modal closes or email changes
+        function resetEmailContextConversation() {
+            emailContextConversation = [];
         }
 
         // ========== PRIORITY ITEMS MODAL & FEEDBACK LEARNING ==========
