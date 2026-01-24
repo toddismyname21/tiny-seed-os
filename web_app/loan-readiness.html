@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loan Readiness Dashboard - Tiny Seed Farm</title>
+    <title>Unified Loan Command Center - Tiny Seed Farm</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="api-config.js"></script>
     <script src="auth-guard.js"></script>
@@ -25,6 +25,9 @@
             --text: #e0e6ed;
             --text-secondary: #9ca3af;
             --border: #2a2f4a;
+            --horizon-blue: #1e40af;
+            --usda-green: #166534;
+            --pa-gold: #ca8a04;
         }
 
         * {
@@ -38,7 +41,7 @@
             background: var(--bg);
             color: var(--text);
             line-height: 1.6;
-            padding: 2rem;
+            padding: 1.5rem;
             min-height: 100vh;
         }
 
@@ -46,12 +49,12 @@
             background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
             padding: 2rem;
             border-radius: 16px;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             box-shadow: 0 8px 32px rgba(42, 157, 143, 0.3);
         }
 
         .header h1 {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
@@ -59,143 +62,55 @@
         }
 
         .header p {
-            font-size: 1.1rem;
+            font-size: 1rem;
             opacity: 0.9;
         }
 
-        .readiness-score-banner {
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
             background: var(--bg-light);
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            border: 2px solid var(--border);
-            position: relative;
-            overflow: hidden;
+            padding: 0.5rem;
+            border-radius: 12px;
         }
 
-        .readiness-score-banner::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--danger) 0%, var(--warning) 50%, var(--success) 100%);
-        }
-
-        .score-grid {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .score-circle-container {
-            position: relative;
-            width: 260px;
-            height: 260px;
-        }
-
-        .score-circle {
-            width: 100%;
-            height: 100%;
-            transform: rotate(-90deg);
-        }
-
-        .score-circle-bg {
-            fill: none;
-            stroke: var(--bg-lighter);
-            stroke-width: 20;
-        }
-
-        .score-circle-progress {
-            fill: none;
-            stroke: var(--success);
-            stroke-width: 20;
-            stroke-linecap: round;
-            transition: stroke-dashoffset 1s ease, stroke 0.3s ease;
-        }
-
-        .score-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-
-        .score-number {
-            font-size: 4rem;
-            font-weight: 700;
-            line-height: 1;
-        }
-
-        .score-label {
-            font-size: 1rem;
+        .nav-tab {
+            padding: 0.75rem 1.25rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
             color: var(--text-secondary);
-            margin-top: 0.5rem;
-        }
-
-        .score-details {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .score-item {
-            background: var(--bg-lighter);
-            padding: 1rem;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .score-item-left {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .score-item-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .score-item-status {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-weight: 600;
         }
 
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
+        .nav-tab:hover {
+            background: var(--bg-lighter);
+            color: var(--text);
         }
 
-        .status-badge.complete {
-            background: rgba(42, 157, 143, 0.2);
-            color: var(--success);
+        .nav-tab.active {
+            background: var(--primary);
+            color: white;
         }
 
-        .status-badge.incomplete {
-            background: rgba(231, 111, 81, 0.2);
-            color: var(--danger);
+        .tab-content {
+            display: none;
         }
 
-        .status-badge.partial {
-            background: rgba(244, 162, 97, 0.2);
-            color: var(--warning);
+        .tab-content.active {
+            display: block;
         }
 
+        /* Cards */
         .card {
             background: var(--bg-light);
             border-radius: 16px;
@@ -208,23 +123,328 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
             border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .card-header h2 {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
         }
 
+        /* Financial Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-card {
+            background: var(--bg-lighter);
+            padding: 1.25rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            position: relative;
+        }
+
+        .metric-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .metric-card.danger {
+            border-left-color: var(--danger);
+        }
+
+        .metric-card.success {
+            border-left-color: var(--success);
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .metric-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Lender Cards */
+        .lenders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .lender-card {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .lender-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+        }
+
+        .lender-header {
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .lender-header.horizon { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+        .lender-header.usda { background: linear-gradient(135deg, #166534 0%, #22c55e 100%); }
+        .lender-header.pa { background: linear-gradient(135deg, #ca8a04 0%, #fbbf24 100%); }
+        .lender-header.beginning { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
+
+        .lender-logo {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .lender-info h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .lender-info p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .lender-body {
+            padding: 1.25rem;
+        }
+
+        .readiness-bar {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .readiness-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
+        .readiness-fill.high { background: var(--success); }
+        .readiness-fill.medium { background: var(--warning); }
+        .readiness-fill.low { background: var(--danger); }
+
+        .readiness-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .readiness-score {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .missing-items {
+            background: rgba(231, 111, 81, 0.1);
+            border: 1px solid rgba(231, 111, 81, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .missing-items h4 {
+            font-size: 0.85rem;
+            color: var(--danger);
+            margin-bottom: 0.5rem;
+        }
+
+        .missing-item {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .lender-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Document Vault */
+        .vault-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .vault-category {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .vault-category-header {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .vault-category-header:hover {
+            background: rgba(42, 157, 143, 0.1);
+        }
+
+        .vault-category-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .vault-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .vault-badge.complete { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .vault-badge.partial { background: rgba(244, 162, 97, 0.2); color: var(--warning); }
+        .vault-badge.missing { background: rgba(231, 111, 81, 0.2); color: var(--danger); }
+
+        .vault-items {
+            padding: 0 1rem 1rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .vault-category.expanded .vault-items {
+            max-height: 500px;
+        }
+
+        .vault-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .vault-item-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .vault-item-status {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .vault-item-status.uploaded { background: var(--success); color: white; }
+        .vault-item-status.missing { background: var(--danger); color: white; }
+        .vault-item-status.expired { background: var(--warning); color: white; }
+
+        .vault-item-details h4 {
+            font-size: 0.9rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .vault-item-details p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Application Tracker */
+        .applications-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .applications-table th,
+        .applications-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .applications-table th {
+            background: var(--bg-lighter);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .applications-table tr:hover td {
+            background: rgba(42, 157, 143, 0.05);
+        }
+
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .status-badge.not-started { background: var(--bg-lighter); color: var(--text-secondary); }
+        .status-badge.in-progress { background: rgba(67, 97, 238, 0.2); color: var(--info); }
+        .status-badge.submitted { background: rgba(244, 162, 97, 0.2); color: var(--warning); }
+        .status-badge.approved { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .status-badge.denied { background: rgba(231, 111, 81, 0.2); color: var(--danger); }
+
+        /* Buttons */
         .btn {
-            padding: 0.75rem 1.5rem;
+            padding: 0.65rem 1.25rem;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -244,186 +464,64 @@
             box-shadow: 0 4px 12px rgba(42, 157, 143, 0.4);
         }
 
+        .btn-secondary {
+            background: var(--bg-lighter);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg);
+            border-color: var(--primary);
+        }
+
         .btn-success {
             background: var(--success);
             color: white;
         }
 
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(42, 157, 143, 0.4);
+        .btn-sm {
+            padding: 0.5rem 0.85rem;
+            font-size: 0.8rem;
         }
 
-        .btn-secondary {
-            background: var(--secondary);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(244, 162, 97, 0.4);
-        }
-
-        .checklist-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1rem;
-        }
-
-        .checklist-item {
-            background: var(--bg-lighter);
-            padding: 1.25rem;
-            border-radius: 12px;
-            display: flex;
-            gap: 1rem;
-            align-items: flex-start;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        .checklist-item:hover {
-            border-color: var(--primary);
-            transform: translateX(4px);
-        }
-
-        .checklist-item.complete {
-            border-color: var(--success);
-        }
-
-        .checklist-checkbox {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--border);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            margin-top: 0.25rem;
-        }
-
-        .checklist-item.complete .checklist-checkbox {
-            background: var(--success);
-            border-color: var(--success);
-        }
-
-        .checklist-content h3 {
+        .btn-lg {
+            padding: 1rem 2rem;
             font-size: 1.1rem;
-            margin-bottom: 0.25rem;
         }
 
-        .checklist-content p {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        .document-grid {
+        /* Calculator Section */
+        .calculator-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .calculator-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .calculator-inputs {
+            display: grid;
             gap: 1rem;
         }
 
-        .document-card {
-            background: var(--bg-lighter);
-            padding: 1.5rem;
-            border-radius: 12px;
-            text-align: center;
-            border: 2px solid var(--border);
-            transition: all 0.3s ease;
-        }
-
-        .document-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-4px);
-        }
-
-        .document-icon {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 1rem;
-            background: linear-gradient(135deg, var(--primary), var(--info));
-            border-radius: 12px;
+        .input-group {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: white;
+            flex-direction: column;
+            gap: 0.35rem;
         }
 
-        .document-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .document-status {
+        .input-group label {
             font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-        }
-
-        .contact-card {
-            background: linear-gradient(135deg, var(--teal), var(--info));
-            padding: 2rem;
-            border-radius: 16px;
-            color: white;
-        }
-
-        .contact-card h3 {
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-        }
-
-        .contact-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
-
-        .contact-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 1.25rem;
-            border-radius: 12px;
-        }
-
-        .contact-item h4 {
-            margin-bottom: 0.5rem;
-            font-size: 1.1rem;
-        }
-
-        .contact-item a {
-            color: white;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin: 0.5rem 0;
-        }
-
-        .contact-item a:hover {
-            text-decoration: underline;
-        }
-
-        .calculator-section {
-            background: var(--bg-lighter);
-            padding: 2rem;
-            border-radius: 12px;
-        }
-
-        .calculator-input-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .calculator-input-group label {
-            display: block;
-            margin-bottom: 0.5rem;
             font-weight: 600;
             color: var(--text-secondary);
         }
 
-        .calculator-input-group input {
-            width: 100%;
+        .input-group input,
+        .input-group select {
             padding: 0.75rem;
             background: var(--bg);
             border: 2px solid var(--border);
@@ -432,40 +530,128 @@
             font-size: 1rem;
         }
 
-        .calculator-input-group input:focus {
+        .input-group input:focus,
+        .input-group select:focus {
             outline: none;
             border-color: var(--primary);
         }
 
         .calculator-result {
-            background: var(--bg);
-            padding: 2rem;
+            background: var(--bg-lighter);
             border-radius: 12px;
-            margin-top: 1.5rem;
+            padding: 1.5rem;
             border: 2px solid var(--success);
         }
 
         .calculator-result h3 {
             color: var(--success);
             margin-bottom: 1rem;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .result-row {
             display: flex;
             justify-content: space-between;
-            padding: 0.75rem 0;
+            padding: 0.65rem 0;
             border-bottom: 1px solid var(--border);
         }
 
         .result-row:last-child {
             border-bottom: none;
-            font-size: 1.25rem;
             font-weight: 700;
+            font-size: 1.1rem;
             color: var(--success);
             padding-top: 1rem;
         }
 
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-light);
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 2px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary);
+            background: rgba(42, 157, 143, 0.05);
+        }
+
+        .upload-zone i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        /* Notification */
         .notification {
             position: fixed;
             top: 2rem;
@@ -475,8 +661,11 @@
             background: var(--success);
             color: white;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
+            z-index: 2000;
             animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
         @keyframes slideIn {
@@ -490,6 +679,48 @@
             }
         }
 
+        /* Contact Section */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .contact-card {
+            background: var(--bg-lighter);
+            padding: 1.25rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .contact-card h4 {
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .contact-card a {
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.35rem 0;
+        }
+
+        .contact-card a:hover {
+            text-decoration: underline;
+        }
+
+        .contact-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Loading state */
         .loading {
             text-align: center;
             padding: 3rem;
@@ -505,563 +736,1163 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Responsive */
         @media (max-width: 768px) {
-            .score-grid {
-                grid-template-columns: 1fr;
-            }
-
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.6rem;
             }
 
-            .score-circle-container {
-                margin: 0 auto;
+            .nav-tabs {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+
+            .nav-tab {
+                white-space: nowrap;
+            }
+
+            .lenders-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1><i class="fas fa-university"></i> Loan Readiness Dashboard</h1>
-        <p>Complete loan application preparation for Tiny Seed Farm LLC</p>
+        <h1><i class="fas fa-landmark"></i> Unified Loan Command Center</h1>
+        <p>Upload once. Apply everywhere. Track all loan applications in one place.</p>
     </div>
 
-    <!-- Readiness Score Banner -->
-    <div class="readiness-score-banner">
-        <div class="score-grid">
-            <div class="score-circle-container">
-                <svg class="score-circle" viewBox="0 0 200 200">
-                    <circle class="score-circle-bg" cx="100" cy="100" r="90"></circle>
-                    <circle class="score-circle-progress" cx="100" cy="100" r="90"
-                            stroke-dasharray="565.48" stroke-dashoffset="565.48"
-                            id="scoreCircle"></circle>
-                </svg>
-                <div class="score-text">
-                    <div class="score-number" id="scoreNumber">0</div>
-                    <div class="score-label">Readiness Score</div>
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="overview">
+            <i class="fas fa-chart-pie"></i> Overview
+        </button>
+        <button class="nav-tab" data-tab="vault">
+            <i class="fas fa-vault"></i> Document Vault
+        </button>
+        <button class="nav-tab" data-tab="lenders">
+            <i class="fas fa-building-columns"></i> Lender Checklists
+        </button>
+        <button class="nav-tab" data-tab="applications">
+            <i class="fas fa-clipboard-list"></i> Applications
+        </button>
+        <button class="nav-tab" data-tab="calculator">
+            <i class="fas fa-calculator"></i> Calculator
+        </button>
+        <button class="nav-tab" data-tab="contacts">
+            <i class="fas fa-address-book"></i> Contacts
+        </button>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="tab-overview" class="tab-content active">
+        <!-- Financial Metrics -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-chart-line"></i> Financial Health Dashboard</h2>
+                <button class="btn btn-secondary btn-sm" onclick="refreshFinancials()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <div class="metrics-grid" id="financialMetrics">
+                <div class="metric-card success">
+                    <div class="metric-label">Net Worth</div>
+                    <div class="metric-value" id="netWorth">$--</div>
+                    <div class="metric-subtitle">Total Assets - Total Liabilities</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Debt-to-Asset Ratio</div>
+                    <div class="metric-value" id="debtToAsset">--%</div>
+                    <div class="metric-subtitle">Target: Under 70%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Debt Service Coverage</div>
+                    <div class="metric-value" id="dscr">--x</div>
+                    <div class="metric-subtitle">Target: 1.25x or higher</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Current Ratio</div>
+                    <div class="metric-value" id="currentRatio">--x</div>
+                    <div class="metric-subtitle">Target: 1.5x or higher</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Working Capital</div>
+                    <div class="metric-value" id="workingCapital">$--</div>
+                    <div class="metric-subtitle">Current Assets - Current Liabilities</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Total Cash Available</div>
+                    <div class="metric-value" id="totalCash">$--</div>
+                    <div class="metric-subtitle">Bank + Savings Accounts</div>
                 </div>
             </div>
+        </div>
 
-            <div class="score-details" id="scoreDetails">
+        <!-- Quick Lender Overview -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-flag-checkered"></i> Lender Readiness at a Glance</h2>
+            </div>
+            <div class="lenders-grid" id="lenderOverview">
                 <!-- Populated by JavaScript -->
             </div>
         </div>
-    </div>
 
-    <!-- Document Checklist -->
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-clipboard-check"></i> Required Documents Checklist</h2>
-            <button class="btn btn-success" onclick="generateLoanPackage()">
-                <i class="fas fa-file-download"></i> Generate Complete Package
-            </button>
-        </div>
-        <div class="checklist-grid" id="documentChecklist">
-            <!-- Populated by JavaScript -->
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
-        </div>
-        <div class="document-grid">
-            <div class="document-card" onclick="generateBalanceSheet()">
-                <div class="document-icon">
-                    <i class="fas fa-balance-scale"></i>
-                </div>
-                <div class="document-title">Balance Sheet</div>
-                <div class="document-status">Assets, Liabilities, Equity</div>
-                <button class="btn btn-primary">Generate</button>
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
             </div>
-
-            <div class="document-card" onclick="generateAssetSchedule()">
-                <div class="document-icon">
-                    <i class="fas fa-tractor"></i>
-                </div>
-                <div class="document-title">Asset Schedule</div>
-                <div class="document-status">Equipment & Inventory</div>
-                <button class="btn btn-primary">Generate</button>
-            </div>
-
-            <div class="document-card" onclick="generateDebtSchedule()">
-                <div class="document-icon">
-                    <i class="fas fa-credit-card"></i>
-                </div>
-                <div class="document-title">Debt Schedule</div>
-                <div class="document-status">All Obligations</div>
-                <button class="btn btn-primary">Generate</button>
-            </div>
-
-            <div class="document-card" onclick="generateCashFlow()">
-                <div class="document-icon">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-                <div class="document-title">Cash Flow Projection</div>
-                <div class="document-status">12-Month Forecast</div>
-                <button class="btn btn-primary">Generate</button>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-lg" onclick="openUploadModal()">
+                    <i class="fas fa-upload"></i> Upload Document
+                </button>
+                <button class="btn btn-success btn-lg" onclick="generateFullPackage()">
+                    <i class="fas fa-file-export"></i> Generate Complete Package
+                </button>
+                <button class="btn btn-secondary btn-lg" onclick="startNewApplication()">
+                    <i class="fas fa-plus"></i> Start New Application
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Debt Consolidation Calculator -->
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-calculator"></i> Debt Consolidation Calculator</h2>
-        </div>
-        <div class="calculator-section">
-            <div class="calculator-input-group">
-                <label for="totalDebt">Total Credit Card Debt</label>
-                <input type="number" id="totalDebt" placeholder="Enter total debt amount" value="30000" onchange="calculateConsolidation()">
+    <!-- Document Vault Tab -->
+    <div id="tab-vault" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-vault"></i> Document Vault</h2>
+                <button class="btn btn-primary" onclick="openUploadModal()">
+                    <i class="fas fa-upload"></i> Upload Document
+                </button>
             </div>
-            <div class="calculator-input-group">
-                <label for="currentAPR">Average Current APR (%)</label>
-                <input type="number" id="currentAPR" placeholder="Enter average APR" value="24" onchange="calculateConsolidation()">
-            </div>
-            <div class="calculator-input-group">
-                <label for="consolidationAPR">Consolidation Loan APR (%)</label>
-                <input type="number" id="consolidationAPR" placeholder="Farm Credit typical rate" value="8" onchange="calculateConsolidation()">
-            </div>
-            <div class="calculator-input-group">
-                <label for="loanTerm">Loan Term (years)</label>
-                <input type="number" id="loanTerm" placeholder="Term in years" value="5" onchange="calculateConsolidation()">
-            </div>
-
-            <button class="btn btn-success" onclick="calculateConsolidation()" style="width: 100%; margin-top: 1rem;">
-                <i class="fas fa-calculator"></i> Calculate Savings
-            </button>
-
-            <div class="calculator-result" id="calculatorResult" style="display: none;">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Farm Credit Contact -->
-    <div class="card">
-        <div class="contact-card">
-            <h3><i class="fas fa-phone-alt"></i> Farm Credit Lenders - Ohio</h3>
-            <p style="opacity: 0.9; margin-bottom: 1rem;">
-                Farm Credit specializes in agricultural lending. They understand farm business cycles and offer competitive rates for operating loans and debt consolidation.
+            <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                Store all your loan documents centrally. Upload once, use for all applications.
             </p>
+            <div class="vault-categories" id="vaultCategories">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
 
+    <!-- Lender Checklists Tab -->
+    <div id="tab-lenders" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-building-columns"></i> Lender-Specific Requirements</h2>
+            </div>
+            <div class="lenders-grid" id="lenderChecklists">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications Tab -->
+    <div id="tab-applications" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-clipboard-list"></i> Application Tracker</h2>
+                <button class="btn btn-primary" onclick="startNewApplication()">
+                    <i class="fas fa-plus"></i> New Application
+                </button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="applications-table" id="applicationsTable">
+                    <thead>
+                        <tr>
+                            <th>Lender</th>
+                            <th>Loan Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Deadline</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="applicationsBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calculator Tab -->
+    <div id="tab-calculator" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-calculator"></i> Debt Consolidation Calculator</h2>
+            </div>
+            <div class="calculator-grid">
+                <div class="calculator-inputs">
+                    <div class="input-group">
+                        <label>Total Debt to Consolidate</label>
+                        <input type="number" id="calcTotalDebt" value="30000" onchange="calculateSavings()">
+                    </div>
+                    <div class="input-group">
+                        <label>Average Current APR (%)</label>
+                        <input type="number" id="calcCurrentAPR" value="24" onchange="calculateSavings()">
+                    </div>
+                    <div class="input-group">
+                        <label>Farm Credit APR (%)</label>
+                        <input type="number" id="calcNewAPR" value="8" onchange="calculateSavings()">
+                    </div>
+                    <div class="input-group">
+                        <label>Loan Term (years)</label>
+                        <select id="calcTerm" onchange="calculateSavings()">
+                            <option value="3">3 years</option>
+                            <option value="5" selected>5 years</option>
+                            <option value="7">7 years</option>
+                            <option value="10">10 years</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="calculateSavings()">
+                        <i class="fas fa-calculator"></i> Calculate Savings
+                    </button>
+                </div>
+                <div class="calculator-result" id="calcResult">
+                    <h3><i class="fas fa-piggy-bank"></i> Potential Savings</h3>
+                    <div class="result-row">
+                        <span>Current Monthly Payment (est):</span>
+                        <span id="calcCurrentPayment" style="color: var(--danger);">$--</span>
+                    </div>
+                    <div class="result-row">
+                        <span>New Monthly Payment:</span>
+                        <span id="calcNewPayment" style="color: var(--success);">$--</span>
+                    </div>
+                    <div class="result-row">
+                        <span>Monthly Savings:</span>
+                        <span id="calcMonthlySavings" style="color: var(--success);">$--</span>
+                    </div>
+                    <div class="result-row">
+                        <span>Total Interest (Current):</span>
+                        <span id="calcCurrentInterest" style="color: var(--danger);">$--</span>
+                    </div>
+                    <div class="result-row">
+                        <span>Total Interest (New):</span>
+                        <span id="calcNewInterest" style="color: var(--warning);">$--</span>
+                    </div>
+                    <div class="result-row">
+                        <span>TOTAL INTEREST SAVINGS:</span>
+                        <span id="calcTotalSavings">$--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contacts Tab -->
+    <div id="tab-contacts" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-address-book"></i> Lender Contacts</h2>
+            </div>
             <div class="contact-grid">
-                <div class="contact-item">
-                    <h4>AgCredit</h4>
-                    <a href="tel:800-837-3678"><i class="fas fa-phone"></i> 800-837-3678</a>
-                    <a href="https://www.agcredit.net" target="_blank"><i class="fas fa-globe"></i> agcredit.net</a>
-                    <p style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.8;">Serves Northwest & Central Ohio</p>
+                <div class="contact-card" style="border-left-color: var(--horizon-blue);">
+                    <h4><i class="fas fa-building"></i> Horizon Farm Credit</h4>
+                    <a href="tel:888-339-3334"><i class="fas fa-phone"></i> 888-339-3334</a>
+                    <a href="mailto:info@horizonfc.com"><i class="fas fa-envelope"></i> info@horizonfc.com</a>
+                    <a href="https://horizonfc.com" target="_blank"><i class="fas fa-globe"></i> horizonfc.com</a>
+                    <p>Private agricultural lender. FarmStarter Microloan for beginning farmers. Flexible underwriting.</p>
                 </div>
+                <div class="contact-card" style="border-left-color: var(--usda-green);">
+                    <h4><i class="fas fa-flag-usa"></i> USDA FSA</h4>
+                    <a href="https://farmers.gov/service-locator" target="_blank"><i class="fas fa-location-dot"></i> Find Local Office</a>
+                    <a href="https://farmers.gov/loans" target="_blank"><i class="fas fa-globe"></i> farmers.gov/loans</a>
+                    <a href="https://farmers.gov/debt-consolidation-tool" target="_blank"><i class="fas fa-calculator"></i> Debt Consolidation Tool</a>
+                    <p>Federal loans up to $400K operating, $600K ownership. Beginning farmer priority. No credit score requirement.</p>
+                </div>
+                <div class="contact-card" style="border-left-color: var(--pa-gold);">
+                    <h4><i class="fas fa-landmark-dome"></i> PA Next Generation Farmer</h4>
+                    <a href="https://dced.pa.gov/programs/next-generation-farmer-loan-program" target="_blank"><i class="fas fa-globe"></i> Program Info</a>
+                    <a href="https://edcfinancecorp.com/agricultural-lending/next-generation-farmer-loan-ngflp/" target="_blank"><i class="fas fa-building-columns"></i> EDC Finance Corp</a>
+                    <p>Tax-exempt loans up to $667K. 80-85% of bank rate. Must be PA resident, beginning farmer.</p>
+                </div>
+                <div class="contact-card" style="border-left-color: var(--purple);">
+                    <h4><i class="fas fa-seedling"></i> PA Agricultural Innovation Grant</h4>
+                    <a href="https://pa.gov/aginnovation" target="_blank"><i class="fas fa-globe"></i> pa.gov/aginnovation</a>
+                    <p><strong>Application Period:</strong> Feb 2 - Apr 18, 2026</p>
+                    <p>$10M available for technology, efficiency, conservation projects. Can complement loan financing.</p>
+                </div>
+            </div>
+        </div>
 
-                <div class="contact-item">
-                    <h4>Farm Credit Mid-America</h4>
-                    <a href="tel:800-444-3276"><i class="fas fa-phone"></i> 800-444-3276</a>
-                    <a href="https://www.e-farmcredit.com" target="_blank"><i class="fas fa-globe"></i> e-farmcredit.com</a>
-                    <p style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.8;">Serves OH, KY, IN, TN</p>
-                </div>
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-phone-volume"></i> What to Say When You Call</h2>
+            </div>
+            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; font-style: italic;">
+                "Hi, I'm a small vegetable farm owner in Pennsylvania. I'm a beginning farmer interested in discussing financing options for [operating expenses / land purchase / equipment]. I've been farming for [X] years and have prepared my financial documentation. Can I schedule a consultation with a loan officer?"
+            </div>
+        </div>
+    </div>
 
-                <div class="contact-item">
-                    <h4>What to Say When You Call</h4>
-                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">
-                        "Hi, I'm a small vegetable farm owner. I'm interested in discussing an operating loan for my CSA season and possibly consolidating some business debt. Can I schedule a consultation?"
-                    </p>
+    <!-- Upload Modal -->
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-upload"></i> Upload Document</h2>
+                <button class="modal-close" onclick="closeModal('uploadModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Document Category</label>
+                    <select id="uploadCategory">
+                        <option value="personal">Personal Identification</option>
+                        <option value="financial">Financial Statements</option>
+                        <option value="tax">Tax Returns</option>
+                        <option value="farm">Farm Business Documents</option>
+                        <option value="legal">Legal Documents</option>
+                    </select>
                 </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Document Type</label>
+                    <select id="uploadType">
+                        <option value="drivers_license">Driver's License</option>
+                        <option value="passport">Passport</option>
+                        <option value="ssn_card">Social Security Card</option>
+                        <option value="tax_return_2023">Tax Return 2023</option>
+                        <option value="tax_return_2024">Tax Return 2024</option>
+                        <option value="tax_return_2025">Tax Return 2025</option>
+                        <option value="balance_sheet">Balance Sheet</option>
+                        <option value="cash_flow">Cash Flow Statement</option>
+                        <option value="business_plan">Business Plan</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Expiration Date (if applicable)</label>
+                    <input type="date" id="uploadExpiration">
+                </div>
+                <div class="upload-zone" id="uploadZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag and drop file here, or click to browse</p>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary);">PDF, JPG, PNG up to 10MB</p>
+                    <input type="file" id="uploadFile" style="display: none;" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('uploadModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="uploadDocument()">
+                    <i class="fas fa-upload"></i> Upload
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Application Modal -->
+    <div class="modal-overlay" id="applicationModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus-circle"></i> Start New Application</h2>
+                <button class="modal-close" onclick="closeModal('applicationModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Lender</label>
+                    <select id="appLender">
+                        <option value="horizon">Horizon Farm Credit</option>
+                        <option value="usda_operating">USDA FSA - Operating Loan</option>
+                        <option value="usda_ownership">USDA FSA - Ownership Loan</option>
+                        <option value="usda_microloan">USDA FSA - Microloan</option>
+                        <option value="pa_nextgen">PA Next Generation Farmer</option>
+                        <option value="pa_innovation">PA Agricultural Innovation Grant</option>
+                    </select>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Loan Amount Requested</label>
+                    <input type="number" id="appAmount" placeholder="Enter amount">
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Purpose</label>
+                    <select id="appPurpose">
+                        <option value="operating">Operating Expenses</option>
+                        <option value="equipment">Equipment Purchase</option>
+                        <option value="land">Land Purchase</option>
+                        <option value="infrastructure">Infrastructure/Buildings</option>
+                        <option value="consolidation">Debt Consolidation</option>
+                    </select>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Target Deadline</label>
+                    <input type="date" id="appDeadline">
+                </div>
+                <div class="input-group">
+                    <label>Notes</label>
+                    <textarea id="appNotes" rows="3" style="width: 100%; padding: 0.75rem; background: var(--bg); border: 2px solid var(--border); border-radius: 8px; color: var(--text);"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('applicationModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createApplication()">
+                    <i class="fas fa-plus"></i> Create Application
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = TINY_SEED_API.MAIN_API;
-        let readinessData = {
-            score: 0,
-            items: []
+        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb/exec';
+
+        // Lender configurations
+        const LENDERS = {
+            horizon: {
+                name: 'Horizon Farm Credit',
+                shortName: 'Horizon',
+                icon: 'fa-building',
+                color: 'horizon',
+                maxLoan: 'Varies',
+                programs: ['Standard Ag Loans', 'Grow Ahead', 'FarmStarter Microloan'],
+                requiredDocs: [
+                    'drivers_license', 'tax_return_2023', 'tax_return_2024', 'tax_return_2025',
+                    'balance_sheet', 'business_plan', 'asset_schedule', 'bank_statements'
+                ]
+            },
+            usda_operating: {
+                name: 'USDA FSA Operating Loan',
+                shortName: 'FSA Operating',
+                icon: 'fa-flag-usa',
+                color: 'usda',
+                maxLoan: '$400,000',
+                programs: ['Direct Operating Loan'],
+                requiredDocs: [
+                    'drivers_license', 'ssn_card', 'tax_return_2023', 'tax_return_2024', 'tax_return_2025',
+                    'fsa_2001', 'fsa_2002', 'fsa_2003', 'fsa_2004', 'fsa_2005', 'fsa_2037', 'fsa_2038', 'fsa_2302',
+                    'balance_sheet', 'production_history', 'business_plan'
+                ]
+            },
+            usda_ownership: {
+                name: 'USDA FSA Ownership Loan',
+                shortName: 'FSA Ownership',
+                icon: 'fa-flag-usa',
+                color: 'usda',
+                maxLoan: '$600,000',
+                programs: ['Direct Ownership', 'Down Payment Loan'],
+                requiredDocs: [
+                    'drivers_license', 'ssn_card', 'tax_return_2023', 'tax_return_2024', 'tax_return_2025',
+                    'fsa_2001', 'fsa_2002', 'fsa_2003', 'fsa_2004', 'fsa_2005', 'fsa_2037', 'fsa_2038', 'fsa_2302',
+                    'balance_sheet', 'production_history', 'business_plan', 'purchase_agreement', 'property_appraisal'
+                ]
+            },
+            usda_microloan: {
+                name: 'USDA FSA Microloan',
+                shortName: 'FSA Microloan',
+                icon: 'fa-flag-usa',
+                color: 'usda',
+                maxLoan: '$50,000',
+                programs: ['Operating Microloan', 'Ownership Microloan'],
+                requiredDocs: [
+                    'drivers_license', 'ssn_card', 'tax_return_2024', 'tax_return_2025',
+                    'balance_sheet', 'production_history_simplified', 'business_plan_simplified'
+                ]
+            },
+            pa_nextgen: {
+                name: 'PA Next Generation Farmer',
+                shortName: 'PA Next Gen',
+                icon: 'fa-landmark-dome',
+                color: 'pa',
+                maxLoan: '$667,000',
+                programs: ['Tax-Exempt Loan'],
+                requiredDocs: [
+                    'drivers_license', 'pa_residency_proof', 'tax_return_2023', 'tax_return_2024', 'tax_return_2025',
+                    'balance_sheet', 'net_worth_statement', 'business_plan', 'cash_flow_projection',
+                    'beginning_farmer_certification'
+                ]
+            },
+            pa_innovation: {
+                name: 'PA Agricultural Innovation Grant',
+                shortName: 'PA Innovation',
+                icon: 'fa-seedling',
+                color: 'beginning',
+                maxLoan: 'Grant (varies)',
+                programs: ['Technology', 'Conservation', 'Efficiency'],
+                requiredDocs: [
+                    'project_proposal', 'cost_estimates', 'timeline', 'expected_outcomes',
+                    'business_plan', 'financial_statements'
+                ]
+            }
         };
 
-        // Document checklist items based on LOAN_READINESS.md
-        const checklistItems = [
-            {
-                id: 'personal_id',
-                title: 'Government ID',
-                description: 'Driver\'s license or passport',
-                category: 'personal',
-                autoCheck: false
+        // Document categories for vault
+        const DOC_CATEGORIES = {
+            personal: {
+                name: 'Personal Identification',
+                icon: 'fa-id-card',
+                docs: [
+                    { id: 'drivers_license', name: "Driver's License", expires: true },
+                    { id: 'passport', name: 'Passport', expires: true },
+                    { id: 'ssn_card', name: 'Social Security Card', expires: false },
+                    { id: 'birth_certificate', name: 'Birth Certificate', expires: false },
+                    { id: 'pa_residency_proof', name: 'PA Residency Proof', expires: false }
+                ]
             },
-            {
-                id: 'ssn',
-                title: 'Social Security Number',
-                description: 'For credit check and identification',
-                category: 'personal',
-                autoCheck: false
+            financial: {
+                name: 'Financial Statements',
+                icon: 'fa-chart-pie',
+                docs: [
+                    { id: 'balance_sheet', name: 'Balance Sheet (Current)', expires: true },
+                    { id: 'net_worth_statement', name: 'Net Worth Statement', expires: true },
+                    { id: 'cash_flow_projection', name: 'Cash Flow Projection', expires: true },
+                    { id: 'profit_loss', name: 'Profit & Loss Statement', expires: true },
+                    { id: 'bank_statements', name: 'Bank Statements (3-6 mo)', expires: true }
+                ]
             },
-            {
-                id: 'personal_tax_returns',
-                title: 'Personal Tax Returns (2 years)',
-                description: '2024 and 2025 returns',
-                category: 'personal',
-                autoCheck: false
+            tax: {
+                name: 'Tax Returns',
+                icon: 'fa-file-invoice-dollar',
+                docs: [
+                    { id: 'tax_return_2023', name: 'Federal Tax Return 2023', expires: false },
+                    { id: 'tax_return_2024', name: 'Federal Tax Return 2024', expires: false },
+                    { id: 'tax_return_2025', name: 'Federal Tax Return 2025', expires: false },
+                    { id: 'schedule_f_2023', name: 'Schedule F 2023', expires: false },
+                    { id: 'schedule_f_2024', name: 'Schedule F 2024', expires: false },
+                    { id: 'schedule_f_2025', name: 'Schedule F 2025', expires: false }
+                ]
             },
-            {
-                id: 'business_tax_returns',
-                title: 'Business Tax Returns (2 years)',
-                description: 'Farm business returns',
-                category: 'business',
-                autoCheck: false
+            farm: {
+                name: 'Farm Business Documents',
+                icon: 'fa-tractor',
+                docs: [
+                    { id: 'business_plan', name: 'Farm Business Plan', expires: true },
+                    { id: 'production_history', name: 'Production History (3 yr)', expires: true },
+                    { id: 'marketing_plan', name: 'Marketing Plan', expires: true },
+                    { id: 'asset_schedule', name: 'Asset Schedule', expires: true },
+                    { id: 'equipment_list', name: 'Equipment Inventory', expires: true },
+                    { id: 'beginning_farmer_certification', name: 'Beginning Farmer Certification', expires: true }
+                ]
             },
-            {
-                id: 'balance_sheet',
-                title: 'Balance Sheet',
-                description: 'Current assets, liabilities, equity',
-                category: 'business',
-                autoCheck: true,
-                generateAction: 'generateBalanceSheet'
-            },
-            {
-                id: 'debt_schedule',
-                title: 'Debt Schedule',
-                description: 'All outstanding debts with rates',
-                category: 'business',
-                autoCheck: true,
-                generateAction: 'generateDebtSchedule'
-            },
-            {
-                id: 'cash_flow',
-                title: 'Cash Flow Projection',
-                description: '12-month forecast',
-                category: 'business',
-                autoCheck: true,
-                generateAction: 'generateCashFlow'
-            },
-            {
-                id: 'profit_loss',
-                title: 'Year-to-Date P&L',
-                description: 'Current profit and loss statement',
-                category: 'business',
-                autoCheck: true
-            },
-            {
-                id: 'asset_schedule',
-                title: 'Asset Schedule',
-                description: 'Equipment list with values',
-                category: 'farm',
-                autoCheck: true,
-                generateAction: 'generateAssetSchedule'
-            },
-            {
-                id: 'farm_income',
-                title: 'Proof of Farm Income',
-                description: 'Sales records, contracts',
-                category: 'farm',
-                autoCheck: true
-            },
-            {
-                id: 'production_records',
-                title: 'Production Records',
-                description: 'Crop yields and history',
-                category: 'farm',
-                autoCheck: true
-            },
-            {
-                id: 'business_plan',
-                title: 'Business Plan Summary',
-                description: 'Farm operations overview',
-                category: 'business',
-                autoCheck: false
+            legal: {
+                name: 'Legal & Regulatory',
+                icon: 'fa-gavel',
+                docs: [
+                    { id: 'llc_articles', name: 'LLC Articles of Organization', expires: false },
+                    { id: 'ein_letter', name: 'EIN Confirmation Letter', expires: false },
+                    { id: 'insurance_liability', name: 'Liability Insurance', expires: true },
+                    { id: 'insurance_property', name: 'Property Insurance', expires: true },
+                    { id: 'organic_certification', name: 'Organic Certification', expires: true }
+                ]
             }
-        ];
+        };
 
-        // Initialize on page load
+        // State
+        let uploadedDocuments = {};
+        let applications = [];
+        let financialData = {};
+
+        // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadReadinessStatus();
-            renderChecklist();
-            calculateReadinessScore();
-            calculateConsolidation();
+            await loadAllData();
+            setupTabs();
+            setupUploadZone();
+            calculateSavings();
         });
 
-        async function loadReadinessStatus() {
-            // Load from localStorage what user has manually checked
-            const stored = localStorage.getItem('tsf_loan_readiness');
-            if (stored) {
-                try {
-                    const data = JSON.parse(stored);
-                    readinessData.items = data.items || [];
-                } catch (e) {
-                    console.error('Failed to load readiness data', e);
-                }
-            }
-
-            // Auto-check items we can verify via API
-            await autoCheckDocuments();
+        async function loadAllData() {
+            await Promise.all([
+                loadFinancials(),
+                loadDocuments(),
+                loadApplications()
+            ]);
+            renderAll();
         }
 
-        async function autoCheckDocuments() {
-            // Check if we have Plaid data (indicates financial data available)
+        function setupTabs() {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+                });
+            });
+        }
+
+        function setupUploadZone() {
+            const zone = document.getElementById('uploadZone');
+            const input = document.getElementById('uploadFile');
+
+            zone.addEventListener('click', () => input.click());
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.style.borderColor = 'var(--primary)';
+                zone.style.background = 'rgba(42, 157, 143, 0.1)';
+            });
+            zone.addEventListener('dragleave', () => {
+                zone.style.borderColor = 'var(--border)';
+                zone.style.background = 'transparent';
+            });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.style.borderColor = 'var(--border)';
+                zone.style.background = 'transparent';
+                if (e.dataTransfer.files.length) {
+                    input.files = e.dataTransfer.files;
+                    zone.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i><p>${e.dataTransfer.files[0].name}</p>`;
+                }
+            });
+            input.addEventListener('change', () => {
+                if (input.files.length) {
+                    zone.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i><p>${input.files[0].name}</p>`;
+                }
+            });
+        }
+
+        // Load Financial Data
+        async function loadFinancials() {
             try {
-                const plaidData = localStorage.getItem('tsf_plaid_connected');
-                if (plaidData) {
-                    markItemComplete('balance_sheet');
-                    markItemComplete('profit_loss');
+                const response = await fetch(`${API_URL}?action=getLoanFinancialSummary`);
+                const result = await response.json();
+                if (result.success) {
+                    financialData = result;
+                } else {
+                    // Use fallback calculation from existing endpoints
+                    await loadFinancialsFromExisting();
                 }
             } catch (e) {
-                console.error('Error auto-checking documents', e);
-            }
-
-            // Check if assets are tracked
-            try {
-                const assets = localStorage.getItem('tsf_assets');
-                if (assets && JSON.parse(assets).length > 0) {
-                    markItemComplete('asset_schedule');
-                }
-            } catch (e) {}
-
-            // Check if debt tracking exists
-            try {
-                const debts = localStorage.getItem('tsf_debts');
-                if (debts && JSON.parse(debts).length > 0) {
-                    markItemComplete('debt_schedule');
-                }
-            } catch (e) {}
-        }
-
-        function markItemComplete(itemId) {
-            if (!readinessData.items.includes(itemId)) {
-                readinessData.items.push(itemId);
+                console.error('Error loading financials:', e);
+                await loadFinancialsFromExisting();
             }
         }
 
-        function renderChecklist() {
-            const container = document.getElementById('documentChecklist');
+        async function loadFinancialsFromExisting() {
+            try {
+                const [debtsRes, accountsRes] = await Promise.all([
+                    fetch(`${API_URL}?action=getDebts`).then(r => r.json()),
+                    fetch(`${API_URL}?action=getBankAccounts`).then(r => r.json())
+                ]);
+
+                const totalAssets = accountsRes.totals?.totalBalance || 0;
+                const totalLiabilities = debtsRes.totals?.totalBalance || 0;
+                const netWorth = totalAssets - totalLiabilities;
+                const debtToAsset = totalAssets > 0 ? (totalLiabilities / totalAssets * 100) : 0;
+
+                financialData = {
+                    success: true,
+                    netWorth,
+                    totalAssets,
+                    totalLiabilities,
+                    debtToAsset,
+                    totalCash: totalAssets,
+                    workingCapital: totalAssets - (debtsRes.totals?.totalMinPayment || 0) * 12,
+                    dscr: 0,
+                    currentRatio: 0
+                };
+            } catch (e) {
+                console.error('Error loading financials from existing:', e);
+                financialData = { success: false };
+            }
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_URL}?action=getLoanDocuments`);
+                const result = await response.json();
+                if (result.success && result.documents) {
+                    uploadedDocuments = {};
+                    result.documents.forEach(doc => {
+                        uploadedDocuments[doc.documentType] = doc;
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading documents:', e);
+            }
+            // Load from localStorage as backup
+            const stored = localStorage.getItem('tsf_loan_documents');
+            if (stored) {
+                const local = JSON.parse(stored);
+                Object.keys(local).forEach(key => {
+                    if (!uploadedDocuments[key]) {
+                        uploadedDocuments[key] = local[key];
+                    }
+                });
+            }
+        }
+
+        async function loadApplications() {
+            try {
+                const response = await fetch(`${API_URL}?action=getLoanApplications`);
+                const result = await response.json();
+                if (result.success && result.applications) {
+                    applications = result.applications;
+                }
+            } catch (e) {
+                console.error('Error loading applications:', e);
+            }
+            // Load from localStorage as backup
+            const stored = localStorage.getItem('tsf_loan_applications');
+            if (stored && applications.length === 0) {
+                applications = JSON.parse(stored);
+            }
+        }
+
+        // Render Functions
+        function renderAll() {
+            renderFinancialMetrics();
+            renderLenderOverview();
+            renderVault();
+            renderLenderChecklists();
+            renderApplications();
+        }
+
+        function renderFinancialMetrics() {
+            const data = financialData;
+            document.getElementById('netWorth').textContent = formatCurrency(data.netWorth || 0);
+            document.getElementById('debtToAsset').textContent = (data.debtToAsset || 0).toFixed(1) + '%';
+            document.getElementById('dscr').textContent = (data.dscr || 0).toFixed(2) + 'x';
+            document.getElementById('currentRatio').textContent = (data.currentRatio || 0).toFixed(2) + 'x';
+            document.getElementById('workingCapital').textContent = formatCurrency(data.workingCapital || 0);
+            document.getElementById('totalCash').textContent = formatCurrency(data.totalCash || 0);
+
+            // Update card colors based on thresholds
+            const debtCard = document.getElementById('debtToAsset').closest('.metric-card');
+            if ((data.debtToAsset || 0) > 70) {
+                debtCard.classList.add('danger');
+            } else if ((data.debtToAsset || 0) > 50) {
+                debtCard.classList.add('warning');
+            }
+        }
+
+        function renderLenderOverview() {
+            const container = document.getElementById('lenderOverview');
             container.innerHTML = '';
 
-            checklistItems.forEach(item => {
-                const isComplete = readinessData.items.includes(item.id);
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `checklist-item ${isComplete ? 'complete' : ''}`;
-                itemDiv.onclick = () => toggleChecklistItem(item.id);
+            Object.keys(LENDERS).forEach(lenderId => {
+                const lender = LENDERS[lenderId];
+                const readiness = calculateLenderReadiness(lenderId);
 
-                itemDiv.innerHTML = `
-                    <div class="checklist-checkbox">
-                        ${isComplete ? '<i class="fas fa-check" style="color: white;"></i>' : ''}
+                const card = document.createElement('div');
+                card.className = 'lender-card';
+                card.innerHTML = `
+                    <div class="lender-header ${lender.color}">
+                        <div class="lender-logo">
+                            <i class="fas ${lender.icon}"></i>
+                        </div>
+                        <div class="lender-info">
+                            <h3>${lender.shortName}</h3>
+                            <p>Max: ${lender.maxLoan}</p>
+                        </div>
                     </div>
-                    <div class="checklist-content">
-                        <h3>${item.title}</h3>
-                        <p>${item.description}</p>
-                        ${item.category ? `<span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">${item.category}</span>` : ''}
+                    <div class="lender-body">
+                        <div class="readiness-stats">
+                            <span>${readiness.complete}/${readiness.total} documents</span>
+                            <span class="readiness-score">${readiness.score}%</span>
+                        </div>
+                        <div class="readiness-bar">
+                            <div class="readiness-fill ${readiness.score >= 80 ? 'high' : readiness.score >= 50 ? 'medium' : 'low'}" style="width: ${readiness.score}%"></div>
+                        </div>
+                        ${readiness.missing.length > 0 ? `
+                        <div class="missing-items">
+                            <h4><i class="fas fa-exclamation-triangle"></i> Missing (${readiness.missing.length})</h4>
+                            ${readiness.missing.slice(0, 4).map(m => `<div class="missing-item"><i class="fas fa-times-circle"></i> ${m}</div>`).join('')}
+                            ${readiness.missing.length > 4 ? `<div class="missing-item" style="color: var(--warning);">+${readiness.missing.length - 4} more...</div>` : ''}
+                        </div>
+                        ` : ''}
+                        <div class="lender-actions">
+                            <button class="btn btn-primary btn-sm" onclick="generatePackage('${lenderId}')">
+                                <i class="fas fa-file-export"></i> Generate Package
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="viewLenderDetails('${lenderId}')">
+                                <i class="fas fa-list-check"></i> Checklist
+                            </button>
+                        </div>
                     </div>
                 `;
-
-                container.appendChild(itemDiv);
+                container.appendChild(card);
             });
         }
 
-        function toggleChecklistItem(itemId) {
-            const index = readinessData.items.indexOf(itemId);
-            if (index > -1) {
-                readinessData.items.splice(index, 1);
-            } else {
-                readinessData.items.push(itemId);
-            }
+        function renderVault() {
+            const container = document.getElementById('vaultCategories');
+            container.innerHTML = '';
 
-            // Save to localStorage
-            localStorage.setItem('tsf_loan_readiness', JSON.stringify(readinessData));
+            Object.keys(DOC_CATEGORIES).forEach(catId => {
+                const category = DOC_CATEGORIES[catId];
+                const status = getCategoryStatus(category.docs);
 
-            renderChecklist();
-            calculateReadinessScore();
+                const catDiv = document.createElement('div');
+                catDiv.className = 'vault-category';
+                catDiv.innerHTML = `
+                    <div class="vault-category-header" onclick="toggleCategory(this)">
+                        <h3><i class="fas ${category.icon}"></i> ${category.name}</h3>
+                        <span class="vault-badge ${status.class}">${status.complete}/${status.total}</span>
+                    </div>
+                    <div class="vault-items">
+                        ${category.docs.map(doc => {
+                            const uploaded = uploadedDocuments[doc.id];
+                            const statusClass = uploaded ? (isExpired(uploaded.expiration) ? 'expired' : 'uploaded') : 'missing';
+                            const statusIcon = uploaded ? (isExpired(uploaded.expiration) ? 'fa-exclamation-triangle' : 'fa-check') : 'fa-times';
+                            return `
+                                <div class="vault-item">
+                                    <div class="vault-item-info">
+                                        <div class="vault-item-status ${statusClass}">
+                                            <i class="fas ${statusIcon}"></i>
+                                        </div>
+                                        <div class="vault-item-details">
+                                            <h4>${doc.name}</h4>
+                                            <p>${uploaded ? (isExpired(uploaded.expiration) ? 'Expired: ' + uploaded.expiration : 'Uploaded: ' + (uploaded.uploadedAt || 'Unknown')) : 'Not uploaded'}</p>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm ${uploaded ? 'btn-secondary' : 'btn-primary'}" onclick="uploadSpecificDoc('${doc.id}', '${doc.name}')">
+                                        <i class="fas fa-${uploaded ? 'sync-alt' : 'upload'}"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(catDiv);
+            });
         }
 
-        function calculateReadinessScore() {
-            const totalItems = checklistItems.length;
-            const completedItems = readinessData.items.length;
-            const score = Math.round((completedItems / totalItems) * 100);
+        function renderLenderChecklists() {
+            const container = document.getElementById('lenderChecklists');
+            container.innerHTML = '';
 
-            readinessData.score = score;
+            Object.keys(LENDERS).forEach(lenderId => {
+                const lender = LENDERS[lenderId];
+                const readiness = calculateLenderReadiness(lenderId);
 
-            // Update circle
-            const circle = document.getElementById('scoreCircle');
-            const circumference = 565.48;
-            const offset = circumference - (score / 100) * circumference;
-            circle.style.strokeDashoffset = offset;
+                const card = document.createElement('div');
+                card.className = 'lender-card';
+                card.innerHTML = `
+                    <div class="lender-header ${lender.color}">
+                        <div class="lender-logo">
+                            <i class="fas ${lender.icon}"></i>
+                        </div>
+                        <div class="lender-info">
+                            <h3>${lender.name}</h3>
+                            <p>Max Loan: ${lender.maxLoan}</p>
+                        </div>
+                    </div>
+                    <div class="lender-body">
+                        <div class="readiness-stats">
+                            <span>Readiness Score</span>
+                            <span class="readiness-score" style="color: ${readiness.score >= 80 ? 'var(--success)' : readiness.score >= 50 ? 'var(--warning)' : 'var(--danger)'};">${readiness.score}%</span>
+                        </div>
+                        <div class="readiness-bar">
+                            <div class="readiness-fill ${readiness.score >= 80 ? 'high' : readiness.score >= 50 ? 'medium' : 'low'}" style="width: ${readiness.score}%"></div>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            <strong>Programs:</strong> ${lender.programs.join(', ')}
+                        </p>
+                        <div style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;">
+                            ${lender.requiredDocs.map(docId => {
+                                const uploaded = uploadedDocuments[docId];
+                                const docName = getDocName(docId);
+                                return `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                        <i class="fas fa-${uploaded ? 'check-circle' : 'times-circle'}" style="color: ${uploaded ? 'var(--success)' : 'var(--danger)'}"></i>
+                                        <span style="font-size: 0.85rem;">${docName}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div class="lender-actions">
+                            <button class="btn btn-primary btn-sm" onclick="generatePackage('${lenderId}')" ${readiness.score < 50 ? 'disabled style="opacity: 0.5;"' : ''}>
+                                <i class="fas fa-file-export"></i> Generate Package
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
 
-            // Color based on score
-            if (score >= 80) {
-                circle.style.stroke = 'var(--success)';
-            } else if (score >= 50) {
-                circle.style.stroke = 'var(--warning)';
-            } else {
-                circle.style.stroke = 'var(--danger)';
+        function renderApplications() {
+            const tbody = document.getElementById('applicationsBody');
+
+            if (applications.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                            <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                            No applications yet. Click "New Application" to get started.
+                        </td>
+                    </tr>
+                `;
+                return;
             }
 
-            // Animate number
-            const scoreNumber = document.getElementById('scoreNumber');
-            let current = 0;
-            const increment = score / 50;
-            const timer = setInterval(() => {
-                current += increment;
-                if (current >= score) {
-                    current = score;
-                    clearInterval(timer);
+            tbody.innerHTML = applications.map(app => `
+                <tr>
+                    <td><strong>${LENDERS[app.lender]?.shortName || app.lender}</strong></td>
+                    <td>${app.purpose}</td>
+                    <td>${formatCurrency(app.amount)}</td>
+                    <td><span class="status-badge ${app.status.toLowerCase().replace(' ', '-')}">${app.status}</span></td>
+                    <td>${app.deadline || '--'}</td>
+                    <td>${app.lastUpdated || '--'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" onclick="editApplication('${app.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Utility Functions
+        function calculateLenderReadiness(lenderId) {
+            const lender = LENDERS[lenderId];
+            const requiredDocs = lender.requiredDocs;
+            let complete = 0;
+            const missing = [];
+
+            requiredDocs.forEach(docId => {
+                if (uploadedDocuments[docId]) {
+                    complete++;
+                } else {
+                    missing.push(getDocName(docId));
                 }
-                scoreNumber.textContent = Math.round(current);
-            }, 20);
+            });
 
-            // Update score details
-            updateScoreDetails();
+            return {
+                complete,
+                total: requiredDocs.length,
+                score: Math.round((complete / requiredDocs.length) * 100),
+                missing
+            };
         }
 
-        function updateScoreDetails() {
-            const details = document.getElementById('scoreDetails');
-            const categories = {
-                personal: { name: 'Personal Documents', icon: 'fa-user', color: 'var(--info)' },
-                business: { name: 'Business Documents', icon: 'fa-briefcase', color: 'var(--teal)' },
-                farm: { name: 'Farm-Specific', icon: 'fa-tractor', color: 'var(--success)' }
+        function getCategoryStatus(docs) {
+            let complete = 0;
+            docs.forEach(doc => {
+                if (uploadedDocuments[doc.id]) complete++;
+            });
+            const statusClass = complete === docs.length ? 'complete' : complete > 0 ? 'partial' : 'missing';
+            return { complete, total: docs.length, class: statusClass };
+        }
+
+        function getDocName(docId) {
+            for (const cat of Object.values(DOC_CATEGORIES)) {
+                const doc = cat.docs.find(d => d.id === docId);
+                if (doc) return doc.name;
+            }
+            // FSA Forms
+            const fsaForms = {
+                'fsa_2001': 'FSA-2001 Request for Direct Loan',
+                'fsa_2002': 'FSA-2002 Three-Year Financial History',
+                'fsa_2003': 'FSA-2003 Three-Year Production History',
+                'fsa_2004': 'FSA-2004 Authorization to Release',
+                'fsa_2005': 'FSA-2005 Creditor List',
+                'fsa_2037': 'FSA-2037 Balance Sheet Worksheet',
+                'fsa_2038': 'FSA-2038 Projected Income/Expense',
+                'fsa_2302': 'FSA-2302 Farm Training/Experience'
+            };
+            return fsaForms[docId] || docId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function isExpired(dateStr) {
+            if (!dateStr) return false;
+            return new Date(dateStr) < new Date();
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount || 0);
+        }
+
+        function toggleCategory(header) {
+            header.parentElement.classList.toggle('expanded');
+        }
+
+        // Modal Functions
+        function openUploadModal() {
+            document.getElementById('uploadModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function uploadSpecificDoc(docId, docName) {
+            document.getElementById('uploadType').value = docId;
+            openUploadModal();
+        }
+
+        async function uploadDocument() {
+            const category = document.getElementById('uploadCategory').value;
+            const docType = document.getElementById('uploadType').value;
+            const expiration = document.getElementById('uploadExpiration').value;
+            const fileInput = document.getElementById('uploadFile');
+
+            if (!fileInput.files.length) {
+                showNotification('Please select a file to upload', 'error');
+                return;
+            }
+
+            // For now, store locally (in production, this would upload to Google Drive)
+            uploadedDocuments[docType] = {
+                documentType: docType,
+                category: category,
+                fileName: fileInput.files[0].name,
+                expiration: expiration || null,
+                uploadedAt: new Date().toISOString().split('T')[0],
+                status: 'uploaded'
             };
 
-            let html = '';
-            Object.keys(categories).forEach(cat => {
-                const items = checklistItems.filter(i => i.category === cat);
-                const completed = items.filter(i => readinessData.items.includes(i.id)).length;
-                const total = items.length;
-                const status = completed === total ? 'complete' : completed > 0 ? 'partial' : 'incomplete';
+            // Save to localStorage
+            localStorage.setItem('tsf_loan_documents', JSON.stringify(uploadedDocuments));
 
-                html += `
-                    <div class="score-item">
-                        <div class="score-item-left">
-                            <div class="score-item-icon" style="background: ${categories[cat].color};">
-                                <i class="fas ${categories[cat].icon}"></i>
-                            </div>
-                            <div>
-                                <div style="font-weight: 600;">${categories[cat].name}</div>
-                                <div style="font-size: 0.85rem; color: var(--text-secondary);">${completed} of ${total} complete</div>
-                            </div>
-                        </div>
-                        <div class="score-item-status">
-                            <span class="status-badge ${status}">
-                                ${status === 'complete' ? 'Complete' : status === 'partial' ? 'In Progress' : 'Not Started'}
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
+            // Try to save to backend
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveLoanDocument',
+                        ...uploadedDocuments[docType]
+                    })
+                });
+            } catch (e) {
+                console.error('Error saving to backend:', e);
+            }
 
-            details.innerHTML = html;
-        }
+            closeModal('uploadModal');
+            renderAll();
+            showNotification('Document uploaded successfully!', 'success');
 
-        function calculateConsolidation() {
-            const totalDebt = parseFloat(document.getElementById('totalDebt').value) || 0;
-            const currentAPR = parseFloat(document.getElementById('currentAPR').value) || 0;
-            const consolidationAPR = parseFloat(document.getElementById('consolidationAPR').value) || 0;
-            const loanTerm = parseFloat(document.getElementById('loanTerm').value) || 5;
-
-            if (totalDebt <= 0) return;
-
-            // Current minimum payment (assuming paying off in 10 years at current rate)
-            const currentMonthlyRate = currentAPR / 100 / 12;
-            const currentMonths = 120; // 10 years
-            const currentPayment = totalDebt * (currentMonthlyRate * Math.pow(1 + currentMonthlyRate, currentMonths)) /
-                                  (Math.pow(1 + currentMonthlyRate, currentMonths) - 1);
-            const currentTotalPaid = currentPayment * currentMonths;
-            const currentInterest = currentTotalPaid - totalDebt;
-
-            // Consolidation loan
-            const consolidationMonthlyRate = consolidationAPR / 100 / 12;
-            const consolidationMonths = loanTerm * 12;
-            const consolidationPayment = totalDebt * (consolidationMonthlyRate * Math.pow(1 + consolidationMonthlyRate, consolidationMonths)) /
-                                        (Math.pow(1 + consolidationMonthlyRate, consolidationMonths) - 1);
-            const consolidationTotalPaid = consolidationPayment * consolidationMonths;
-            const consolidationInterest = consolidationTotalPaid - totalDebt;
-
-            // Savings
-            const interestSavings = currentInterest - consolidationInterest;
-            const monthlySavings = currentPayment - consolidationPayment;
-
-            const resultDiv = document.getElementById('calculatorResult');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = `
-                <h3><i class="fas fa-piggy-bank"></i> Consolidation Savings Analysis</h3>
-
-                <div class="result-row">
-                    <span>Current Monthly Payment (est):</span>
-                    <span style="color: var(--danger);">$${currentPayment.toFixed(2)}</span>
-                </div>
-                <div class="result-row">
-                    <span>Consolidation Monthly Payment:</span>
-                    <span style="color: var(--success);">$${consolidationPayment.toFixed(2)}</span>
-                </div>
-                <div class="result-row">
-                    <span>Monthly Savings:</span>
-                    <span style="color: var(--success);">$${monthlySavings.toFixed(2)}</span>
-                </div>
-
-                <div style="height: 1px; background: var(--border); margin: 1rem 0;"></div>
-
-                <div class="result-row">
-                    <span>Current Total Interest (10 years):</span>
-                    <span style="color: var(--danger);">$${currentInterest.toFixed(2)}</span>
-                </div>
-                <div class="result-row">
-                    <span>Consolidation Total Interest (${loanTerm} years):</span>
-                    <span style="color: var(--warning);">$${consolidationInterest.toFixed(2)}</span>
-                </div>
-                <div class="result-row">
-                    <span><strong>TOTAL INTEREST SAVINGS:</strong></span>
-                    <span><strong>$${interestSavings.toFixed(2)}</strong></span>
-                </div>
+            // Reset upload zone
+            document.getElementById('uploadZone').innerHTML = `
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag and drop file here, or click to browse</p>
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">PDF, JPG, PNG up to 10MB</p>
             `;
         }
 
-        async function generateLoanPackage() {
-            showNotification('Generating complete loan package...', 'info');
+        function startNewApplication() {
+            document.getElementById('applicationModal').classList.add('active');
+        }
+
+        async function createApplication() {
+            const lender = document.getElementById('appLender').value;
+            const amount = document.getElementById('appAmount').value;
+            const purpose = document.getElementById('appPurpose').value;
+            const deadline = document.getElementById('appDeadline').value;
+            const notes = document.getElementById('appNotes').value;
+
+            const application = {
+                id: 'APP_' + Date.now(),
+                lender,
+                amount: parseFloat(amount) || 0,
+                purpose,
+                deadline,
+                notes,
+                status: 'Not Started',
+                lastUpdated: new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString()
+            };
+
+            applications.push(application);
+            localStorage.setItem('tsf_loan_applications', JSON.stringify(applications));
+
+            // Try to save to backend
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveLoanApplication',
+                        ...application
+                    })
+                });
+            } catch (e) {
+                console.error('Error saving to backend:', e);
+            }
+
+            closeModal('applicationModal');
+            renderApplications();
+            showNotification('Application created!', 'success');
+        }
+
+        // Package Generation
+        async function generatePackage(lenderId) {
+            showNotification('Generating loan package...', 'info');
 
             try {
-                const response = await fetch(`${API_URL}?action=generateLoanPackage`, {
-                    method: 'GET'
-                });
-
+                const response = await fetch(`${API_URL}?action=generateLoanPackage&lender=${lenderId}`);
                 const result = await response.json();
 
-                if (result && result.success) {
-                    // Download the package
+                if (result.success && result.html) {
                     const blob = new Blob([result.html], { type: 'text/html' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Tiny_Seed_Farm_Loan_Package_${new Date().toISOString().split('T')[0]}.html`;
+                    a.download = `Loan_Package_${LENDERS[lenderId].shortName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-
-                    showNotification('Loan package downloaded successfully!', 'success');
+                    showNotification('Package downloaded!', 'success');
                 } else {
                     throw new Error(result.error || 'Failed to generate package');
                 }
-            } catch (error) {
-                console.error('Error generating loan package:', error);
-                showNotification('Error: ' + error.message, 'error');
+            } catch (e) {
+                console.error('Error generating package:', e);
+                showNotification('Error: ' + e.message, 'error');
             }
         }
 
-        async function generateBalanceSheet() {
-            showNotification('Generating balance sheet...', 'info');
-            // Open financial dashboard in new tab
-            window.open('financial-dashboard.html#assets', '_blank');
+        async function generateFullPackage() {
+            showNotification('Generating complete loan package...', 'info');
+            await generatePackage('horizon'); // Uses existing backend function
         }
 
-        async function generateAssetSchedule() {
-            showNotification('Generating asset schedule...', 'info');
-            window.open('financial-dashboard.html#assets', '_blank');
+        function viewLenderDetails(lenderId) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('[data-tab="lenders"]').classList.add('active');
+            document.getElementById('tab-lenders').classList.add('active');
         }
 
-        async function generateDebtSchedule() {
-            showNotification('Generating debt schedule...', 'info');
-            window.open('financial-dashboard.html#debt', '_blank');
+        async function refreshFinancials() {
+            showNotification('Refreshing financial data...', 'info');
+            await loadFinancials();
+            renderFinancialMetrics();
+            showNotification('Financial data updated!', 'success');
         }
 
-        async function generateCashFlow() {
-            showNotification('Generating cash flow projection...', 'info');
-            window.open('financial-dashboard.html#overview', '_blank');
+        // Calculator
+        function calculateSavings() {
+            const totalDebt = parseFloat(document.getElementById('calcTotalDebt').value) || 0;
+            const currentAPR = parseFloat(document.getElementById('calcCurrentAPR').value) || 0;
+            const newAPR = parseFloat(document.getElementById('calcNewAPR').value) || 0;
+            const term = parseInt(document.getElementById('calcTerm').value) || 5;
+
+            if (totalDebt <= 0) return;
+
+            // Current scenario (10 year payoff at current rate)
+            const currentMonthlyRate = currentAPR / 100 / 12;
+            const currentMonths = 120;
+            const currentPayment = totalDebt * (currentMonthlyRate * Math.pow(1 + currentMonthlyRate, currentMonths)) /
+                                  (Math.pow(1 + currentMonthlyRate, currentMonths) - 1);
+            const currentTotal = currentPayment * currentMonths;
+            const currentInterest = currentTotal - totalDebt;
+
+            // New scenario
+            const newMonthlyRate = newAPR / 100 / 12;
+            const newMonths = term * 12;
+            const newPayment = totalDebt * (newMonthlyRate * Math.pow(1 + newMonthlyRate, newMonths)) /
+                              (Math.pow(1 + newMonthlyRate, newMonths) - 1);
+            const newTotal = newPayment * newMonths;
+            const newInterest = newTotal - totalDebt;
+
+            const monthlySavings = currentPayment - newPayment;
+            const totalSavings = currentInterest - newInterest;
+
+            document.getElementById('calcCurrentPayment').textContent = '$' + currentPayment.toFixed(2);
+            document.getElementById('calcNewPayment').textContent = '$' + newPayment.toFixed(2);
+            document.getElementById('calcMonthlySavings').textContent = '$' + monthlySavings.toFixed(2);
+            document.getElementById('calcCurrentInterest').textContent = '$' + currentInterest.toFixed(2);
+            document.getElementById('calcNewInterest').textContent = '$' + newInterest.toFixed(2);
+            document.getElementById('calcTotalSavings').textContent = '$' + totalSavings.toFixed(2);
         }
 
+        // Notifications
         function showNotification(message, type = 'info') {
             const existing = document.querySelector('.notification');
             if (existing) existing.remove();
@@ -1075,8 +1906,12 @@
                                                          type === 'error' ? 'exclamation-circle' :
                                                          'info-circle'}"></i> ${message}`;
             document.body.appendChild(notification);
-
             setTimeout(() => notification.remove(), 4000);
+        }
+
+        // Edit application (placeholder)
+        function editApplication(appId) {
+            showNotification('Application editing coming soon!', 'info');
         }
     </script>
 </body>

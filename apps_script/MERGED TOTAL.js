@@ -13377,6 +13377,30 @@ function doGet(e) {
       case 'generateEnterpriseAnalysis':
         return jsonResponse(generateEnterpriseAnalysis(e.parameter));
 
+      // ============ LOAN READINESS DASHBOARD ============
+      case 'initLoanSheets':
+        return jsonResponse(initLoanSheets());
+      case 'getLoanDocuments':
+        return jsonResponse(getLoanDocuments(e.parameter));
+      case 'saveLoanDocument':
+        return jsonResponse(saveLoanDocument(e.parameter));
+      case 'updateLoanDocument':
+        return jsonResponse(updateLoanDocument(e.parameter));
+      case 'deleteLoanDocument':
+        return jsonResponse(deleteLoanDocument(e.parameter));
+      case 'getLoanApplications':
+        return jsonResponse(getLoanApplications(e.parameter));
+      case 'saveLoanApplication':
+        return jsonResponse(saveLoanApplication(e.parameter));
+      case 'updateLoanApplication':
+        return jsonResponse(updateLoanApplication(e.parameter));
+      case 'getLoanFinancialSummary':
+        return jsonResponse(getLoanFinancialSummary());
+      case 'getLenderReadiness':
+        return jsonResponse(getLenderReadiness(e.parameter));
+      case 'generateLenderLoanPackage':
+        return jsonResponse(generateLenderLoanPackage(e.parameter));
+
       // ============ ACCOUNTANT TASK MANAGEMENT ============
       case 'parseEmailsForTasks':
         return jsonResponse(parseEmailsForTasks());
@@ -77981,6 +78005,802 @@ function sendSystemEmail(params) {
     return { success: true, message: `Email sent to ${to}` };
   } catch (error) {
     Logger.log('sendSystemEmail error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// LOAN READINESS DASHBOARD - DOCUMENT & APPLICATION MANAGEMENT
+// =============================================================================
+
+/**
+ * Initialize loan-related sheets if they don't exist
+ */
+function initLoanSheets() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Create LOAN_DOCUMENTS sheet
+    let docsSheet = ss.getSheetByName('LOAN_DOCUMENTS');
+    if (!docsSheet) {
+      docsSheet = ss.insertSheet('LOAN_DOCUMENTS');
+      docsSheet.appendRow([
+        'Document_ID', 'Name', 'Category', 'Subcategory', 'File_URL', 'File_ID',
+        'Uploaded_At', 'Expires_At', 'Status', 'Lenders', 'Notes', 'Updated_At'
+      ]);
+      docsSheet.setFrozenRows(1);
+      docsSheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#4a7c59');
+    }
+
+    // Create LOAN_APPLICATIONS sheet
+    let appsSheet = ss.getSheetByName('LOAN_APPLICATIONS');
+    if (!appsSheet) {
+      appsSheet = ss.insertSheet('LOAN_APPLICATIONS');
+      appsSheet.appendRow([
+        'Application_ID', 'Lender', 'Program', 'Amount_Requested', 'Purpose',
+        'Status', 'Submitted_At', 'Contact_Name', 'Contact_Email', 'Contact_Phone',
+        'Next_Step', 'Next_Step_Date', 'Notes', 'Created_At', 'Updated_At'
+      ]);
+      appsSheet.setFrozenRows(1);
+      appsSheet.getRange(1, 1, 1, 15).setFontWeight('bold').setBackground('#4a7c59');
+    }
+
+    return { success: true, message: 'Loan sheets initialized' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all loan documents
+ * @param {Object} params - { category, lender, status }
+ */
+function getLoanDocuments(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('LOAN_DOCUMENTS');
+
+    if (!sheet) {
+      initLoanSheets();
+      sheet = ss.getSheetByName('LOAN_DOCUMENTS');
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, data: [], count: 0 };
+    }
+
+    const headers = data[0];
+    let documents = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+
+      const doc = { rowIndex: i + 1 };
+      headers.forEach((header, idx) => {
+        doc[header] = row[idx];
+      });
+
+      // Parse lenders array
+      if (doc.Lenders && typeof doc.Lenders === 'string') {
+        doc.Lenders = doc.Lenders.split(',').map(l => l.trim());
+      }
+
+      documents.push(doc);
+    }
+
+    // Apply filters
+    if (params) {
+      if (params.category) {
+        documents = documents.filter(d => d.Category === params.category);
+      }
+      if (params.lender) {
+        documents = documents.filter(d =>
+          d.Lenders && d.Lenders.includes(params.lender)
+        );
+      }
+      if (params.status) {
+        documents = documents.filter(d => d.Status === params.status);
+      }
+    }
+
+    return {
+      success: true,
+      data: documents,
+      count: documents.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Save a loan document record
+ * @param {Object} params - document details
+ */
+function saveLoanDocument(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('LOAN_DOCUMENTS');
+
+    if (!sheet) {
+      initLoanSheets();
+      sheet = ss.getSheetByName('LOAN_DOCUMENTS');
+    }
+
+    const docId = params.id || 'DOC_' + Date.now();
+    const now = new Date().toISOString();
+
+    // Handle lenders array
+    const lenders = Array.isArray(params.lenders)
+      ? params.lenders.join(', ')
+      : (params.lenders || '');
+
+    const newRow = [
+      docId,
+      params.name || '',
+      params.category || 'other',
+      params.subcategory || '',
+      params.fileUrl || '',
+      params.fileId || '',
+      params.uploadedAt || now,
+      params.expiresAt || '',
+      params.status || 'Current',
+      lenders,
+      params.notes || '',
+      now
+    ];
+
+    sheet.appendRow(newRow);
+
+    return {
+      success: true,
+      message: 'Document saved successfully',
+      documentId: docId
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update a loan document
+ * @param {Object} params - { documentId, ...fieldsToUpdate }
+ */
+function updateLoanDocument(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('LOAN_DOCUMENTS');
+
+    if (!sheet) {
+      return { success: false, error: 'Loan documents sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const docIdCol = headers.indexOf('Document_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][docIdCol] === params.documentId) {
+        const updatedFields = [];
+
+        Object.keys(params).forEach(key => {
+          if (key === 'documentId' || key === 'action') return;
+
+          // Map param keys to column names
+          const colMap = {
+            'name': 'Name',
+            'category': 'Category',
+            'subcategory': 'Subcategory',
+            'fileUrl': 'File_URL',
+            'fileId': 'File_ID',
+            'expiresAt': 'Expires_At',
+            'status': 'Status',
+            'lenders': 'Lenders',
+            'notes': 'Notes'
+          };
+
+          const colName = colMap[key] || key;
+          const colIndex = headers.indexOf(colName);
+
+          if (colIndex >= 0) {
+            let value = params[key];
+            // Handle lenders array
+            if (key === 'lenders' && Array.isArray(value)) {
+              value = value.join(', ');
+            }
+            sheet.getRange(i + 1, colIndex + 1).setValue(value);
+            updatedFields.push(key);
+          }
+        });
+
+        // Update timestamp
+        const updatedAtCol = headers.indexOf('Updated_At');
+        if (updatedAtCol >= 0) {
+          sheet.getRange(i + 1, updatedAtCol + 1).setValue(new Date().toISOString());
+        }
+
+        return {
+          success: true,
+          message: 'Document updated',
+          updatedFields: updatedFields
+        };
+      }
+    }
+
+    return { success: false, error: 'Document not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Delete a loan document (soft delete)
+ * @param {Object} params - { documentId }
+ */
+function deleteLoanDocument(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('LOAN_DOCUMENTS');
+
+    if (!sheet) {
+      return { success: false, error: 'Loan documents sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const docIdCol = headers.indexOf('Document_ID');
+    const statusCol = headers.indexOf('Status');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][docIdCol] === params.documentId) {
+        if (statusCol >= 0) {
+          sheet.getRange(i + 1, statusCol + 1).setValue('Deleted');
+        }
+
+        return {
+          success: true,
+          message: 'Document marked as deleted'
+        };
+      }
+    }
+
+    return { success: false, error: 'Document not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all loan applications
+ * @param {Object} params - { lender, status }
+ */
+function getLoanApplications(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('LOAN_APPLICATIONS');
+
+    if (!sheet) {
+      initLoanSheets();
+      sheet = ss.getSheetByName('LOAN_APPLICATIONS');
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, data: [], count: 0 };
+    }
+
+    const headers = data[0];
+    let applications = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+
+      const app = { rowIndex: i + 1 };
+      headers.forEach((header, idx) => {
+        app[header] = row[idx];
+      });
+
+      applications.push(app);
+    }
+
+    // Apply filters
+    if (params) {
+      if (params.lender) {
+        applications = applications.filter(a => a.Lender === params.lender);
+      }
+      if (params.status) {
+        applications = applications.filter(a => a.Status === params.status);
+      }
+    }
+
+    // Sort by updated date descending
+    applications.sort((a, b) =>
+      new Date(b.Updated_At || b.Created_At) - new Date(a.Updated_At || a.Created_At)
+    );
+
+    return {
+      success: true,
+      data: applications,
+      count: applications.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Save a loan application
+ * @param {Object} params - application details
+ */
+function saveLoanApplication(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('LOAN_APPLICATIONS');
+
+    if (!sheet) {
+      initLoanSheets();
+      sheet = ss.getSheetByName('LOAN_APPLICATIONS');
+    }
+
+    const appId = params.id || 'APP_' + Date.now();
+    const now = new Date().toISOString();
+
+    const newRow = [
+      appId,
+      params.lender || '',
+      params.program || '',
+      parseFloat(params.amount) || 0,
+      params.purpose || '',
+      params.status || 'Preparing',
+      params.submittedAt || '',
+      params.contactName || '',
+      params.contactEmail || '',
+      params.contactPhone || '',
+      params.nextStep || '',
+      params.nextStepDate || '',
+      params.notes || '',
+      now,
+      now
+    ];
+
+    sheet.appendRow(newRow);
+
+    return {
+      success: true,
+      message: 'Application saved successfully',
+      applicationId: appId
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update a loan application
+ * @param {Object} params - { applicationId, ...fieldsToUpdate }
+ */
+function updateLoanApplication(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('LOAN_APPLICATIONS');
+
+    if (!sheet) {
+      return { success: false, error: 'Loan applications sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const appIdCol = headers.indexOf('Application_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][appIdCol] === params.applicationId) {
+        const updatedFields = [];
+
+        // Map param keys to column names
+        const colMap = {
+          'lender': 'Lender',
+          'program': 'Program',
+          'amount': 'Amount_Requested',
+          'purpose': 'Purpose',
+          'status': 'Status',
+          'submittedAt': 'Submitted_At',
+          'contactName': 'Contact_Name',
+          'contactEmail': 'Contact_Email',
+          'contactPhone': 'Contact_Phone',
+          'nextStep': 'Next_Step',
+          'nextStepDate': 'Next_Step_Date',
+          'notes': 'Notes'
+        };
+
+        Object.keys(params).forEach(key => {
+          if (key === 'applicationId' || key === 'action') return;
+
+          const colName = colMap[key] || key;
+          const colIndex = headers.indexOf(colName);
+
+          if (colIndex >= 0) {
+            sheet.getRange(i + 1, colIndex + 1).setValue(params[key]);
+            updatedFields.push(key);
+          }
+        });
+
+        // Update timestamp
+        const updatedAtCol = headers.indexOf('Updated_At');
+        if (updatedAtCol >= 0) {
+          sheet.getRange(i + 1, updatedAtCol + 1).setValue(new Date().toISOString());
+        }
+
+        return {
+          success: true,
+          message: 'Application updated',
+          updatedFields: updatedFields
+        };
+      }
+    }
+
+    return { success: false, error: 'Application not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get comprehensive loan financial summary
+ * Calculates all key metrics needed for loan applications
+ */
+function getLoanFinancialSummary() {
+  try {
+    // Get all financial data
+    const debtsData = getDebts({});
+    const assetsData = getAssets ? getAssets({}) : { data: [] };
+    const accountsData = getBankAccounts ? getBankAccounts({}) : { data: [] };
+
+    // Calculate totals
+    const cashBalance = accountsData.data
+      ? accountsData.data.reduce((sum, acc) => sum + parseFloat(acc.Balance || 0), 0)
+      : 0;
+
+    const equipmentValue = assetsData.data
+      ? assetsData.data.filter(a => a.Category === 'Equipment').reduce((sum, a) => sum + parseFloat(a.Current_Value || 0), 0)
+      : 0;
+
+    const vehiclesValue = assetsData.data
+      ? assetsData.data.filter(a => a.Category === 'Vehicle').reduce((sum, a) => sum + parseFloat(a.Current_Value || 0), 0)
+      : 0;
+
+    const inventoryValue = assetsData.data
+      ? assetsData.data.filter(a => a.Category === 'Inventory').reduce((sum, a) => sum + parseFloat(a.Current_Value || 0), 0)
+      : 0;
+
+    const landValue = assetsData.data
+      ? assetsData.data.filter(a => a.Category === 'Land' || a.Category === 'Real Estate').reduce((sum, a) => sum + parseFloat(a.Current_Value || 0), 0)
+      : 0;
+
+    const totalAssets = cashBalance + equipmentValue + vehiclesValue + inventoryValue + landValue;
+    const totalLiabilities = debtsData.totals ? debtsData.totals.totalBalance : 0;
+    const netWorth = totalAssets - totalLiabilities;
+
+    // Key ratios
+    const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) : 0;
+    const currentRatio = totalLiabilities > 0 ? (cashBalance / debtsData.totals?.totalMinPayment || 1) : 999;
+
+    // Estimate annual debt service (monthly min payments * 12)
+    const annualDebtService = (debtsData.totals?.totalMinPayment || 0) * 12;
+
+    return {
+      success: true,
+      data: {
+        // Asset breakdown
+        cashBalance: cashBalance,
+        equipmentValue: equipmentValue,
+        vehiclesValue: vehiclesValue,
+        inventoryValue: inventoryValue,
+        landValue: landValue,
+        totalAssets: totalAssets,
+
+        // Liabilities
+        totalLiabilities: totalLiabilities,
+        monthlyDebtPayments: debtsData.totals?.totalMinPayment || 0,
+        annualDebtService: annualDebtService,
+        averageAPR: debtsData.totals?.averageAPR || 0,
+
+        // Key metrics
+        netWorth: netWorth,
+        debtToAssetRatio: debtToAssetRatio,
+        debtToAssetPercent: (debtToAssetRatio * 100).toFixed(1),
+        currentRatio: currentRatio.toFixed(2),
+        workingCapital: cashBalance - (debtsData.totals?.totalMinPayment || 0),
+
+        // Counts
+        debtCount: debtsData.count || 0,
+        assetCount: assetsData.data?.length || 0,
+        accountCount: accountsData.data?.length || 0
+      },
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get lender-specific requirements and readiness score
+ * @param {Object} params - { lender }
+ */
+function getLenderReadiness(params) {
+  try {
+    const lender = params.lender;
+
+    // Define requirements by lender
+    const LENDER_REQUIREMENTS = {
+      'horizon': {
+        name: 'Horizon Farm Credit',
+        documents: [
+          { name: 'Personal Financial Statement', category: 'personal', required: true },
+          { name: 'Farm Balance Sheet', category: 'financial', required: true },
+          { name: 'Last 3 Years Tax Returns', category: 'tax', required: true },
+          { name: 'Business Plan', category: 'farm', required: true },
+          { name: 'Proof of Farm Operation', category: 'farm', required: true },
+          { name: 'Cash Flow Projection', category: 'financial', required: true },
+          { name: 'Credit History Authorization', category: 'personal', required: true }
+        ]
+      },
+      'fsa_operating': {
+        name: 'USDA FSA Operating Loan',
+        documents: [
+          { name: 'FSA Form 2001 - Loan Application', category: 'legal', required: true },
+          { name: 'FSA Form 2002 - Personal Financial Statement', category: 'personal', required: true },
+          { name: 'FSA Form 2003 - Farm Operating Plan', category: 'farm', required: true },
+          { name: 'FSA Form 2004 - Balance Sheet', category: 'financial', required: true },
+          { name: 'FSA Form 2005 - Income Statement', category: 'financial', required: true },
+          { name: 'Last 3 Years Tax Returns', category: 'tax', required: true },
+          { name: 'Proof of Farm Training/Experience', category: 'farm', required: true },
+          { name: 'Photo ID', category: 'personal', required: true }
+        ]
+      },
+      'fsa_ownership': {
+        name: 'USDA FSA Farm Ownership Loan',
+        documents: [
+          { name: 'FSA Form 2001 - Loan Application', category: 'legal', required: true },
+          { name: 'FSA Form 2002 - Personal Financial Statement', category: 'personal', required: true },
+          { name: 'FSA Form 2037 - Real Estate Security', category: 'legal', required: true },
+          { name: 'FSA Form 2038 - Appraisal Request', category: 'legal', required: true },
+          { name: 'Property Survey/Deed', category: 'legal', required: true },
+          { name: 'Environmental Review', category: 'farm', required: false },
+          { name: 'Last 3 Years Tax Returns', category: 'tax', required: true }
+        ]
+      },
+      'fsa_micro': {
+        name: 'USDA FSA Microloan',
+        documents: [
+          { name: 'FSA Microloan Application', category: 'legal', required: true },
+          { name: 'Simple Farm Plan', category: 'farm', required: true },
+          { name: 'Last Year Tax Return', category: 'tax', required: true },
+          { name: 'Bank Statements (3 months)', category: 'financial', required: true },
+          { name: 'Photo ID', category: 'personal', required: true }
+        ]
+      },
+      'pa_next_gen': {
+        name: 'PA Next Generation Farmer',
+        documents: [
+          { name: 'PA Farm Application', category: 'legal', required: true },
+          { name: 'Business Plan', category: 'farm', required: true },
+          { name: 'Proof of Age (18-40)', category: 'personal', required: true },
+          { name: 'Farm Experience Documentation', category: 'farm', required: true },
+          { name: 'Financial Projections', category: 'financial', required: true },
+          { name: 'Last 2 Years Tax Returns', category: 'tax', required: true }
+        ]
+      },
+      'pa_innovation': {
+        name: 'PA Agricultural Innovation Grant',
+        documents: [
+          { name: 'Grant Application', category: 'legal', required: true },
+          { name: 'Innovation/Project Description', category: 'farm', required: true },
+          { name: 'Budget Breakdown', category: 'financial', required: true },
+          { name: 'Environmental Impact Statement', category: 'farm', required: false },
+          { name: 'Matching Funds Documentation', category: 'financial', required: true }
+        ]
+      }
+    };
+
+    const requirements = LENDER_REQUIREMENTS[lender];
+    if (!requirements) {
+      return {
+        success: false,
+        error: 'Unknown lender: ' + lender,
+        availableLenders: Object.keys(LENDER_REQUIREMENTS)
+      };
+    }
+
+    // Get uploaded documents
+    const docsResult = getLoanDocuments({});
+    const uploadedDocs = docsResult.data || [];
+
+    // Check which requirements are met
+    let metCount = 0;
+    const requirementStatus = requirements.documents.map(req => {
+      const found = uploadedDocs.find(doc =>
+        doc.Name && doc.Name.toLowerCase().includes(req.name.toLowerCase()) ||
+        doc.Category === req.category
+      );
+
+      const isMet = !!found;
+      if (isMet) metCount++;
+
+      return {
+        ...req,
+        isMet: isMet,
+        document: found || null
+      };
+    });
+
+    const totalRequired = requirements.documents.filter(r => r.required).length;
+    const metRequired = requirementStatus.filter(r => r.required && r.isMet).length;
+    const readinessScore = totalRequired > 0 ? Math.round((metRequired / totalRequired) * 100) : 0;
+
+    return {
+      success: true,
+      lender: lender,
+      lenderName: requirements.name,
+      requirements: requirementStatus,
+      summary: {
+        totalDocuments: requirements.documents.length,
+        requiredDocuments: totalRequired,
+        metRequired: metRequired,
+        metOptional: metCount - metRequired,
+        readinessScore: readinessScore,
+        isReady: readinessScore >= 100
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate a complete loan package for a specific lender
+ * Enhanced version with lender-specific formatting
+ * @param {Object} params - { lender }
+ */
+function generateLenderLoanPackage(params) {
+  try {
+    const lender = params.lender;
+
+    // Get financial summary
+    const financials = getLoanFinancialSummary();
+    if (!financials.success) {
+      return { success: false, error: 'Failed to get financial data: ' + financials.error };
+    }
+
+    // Get lender readiness
+    const readiness = getLenderReadiness({ lender: lender });
+    if (!readiness.success) {
+      return { success: false, error: 'Failed to get lender requirements: ' + readiness.error };
+    }
+
+    // Get documents
+    const docs = getLoanDocuments({ lender: lender });
+
+    const today = new Date().toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    const f = financials.data;
+
+    // Generate HTML package
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Loan Application Package - ${readiness.lenderName}</title>
+    <style>
+        body { font-family: 'Times New Roman', serif; max-width: 8.5in; margin: 0 auto; padding: 40px; line-height: 1.6; color: #333; }
+        h1 { text-align: center; border-bottom: 3px solid #2a9d8f; padding-bottom: 10px; color: #2a9d8f; }
+        h2 { color: #2a9d8f; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background-color: #f5f5f5; font-weight: bold; }
+        .total-row { font-weight: bold; background-color: #e8f5e9; border-top: 2px solid #2a9d8f; }
+        .metric { display: inline-block; margin: 10px 20px 10px 0; padding: 10px 20px; background: #f5f5f5; border-left: 4px solid #2a9d8f; }
+        .metric-label { font-size: 12px; color: #666; text-transform: uppercase; }
+        .metric-value { font-size: 20px; font-weight: bold; color: #2a9d8f; }
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .check { color: #4caf50; }
+        .missing { color: #f44336; }
+        .footer { margin-top: 60px; padding-top: 20px; border-top: 2px solid #e0e0e0; font-size: 12px; color: #666; text-align: center; }
+        @media print { body { padding: 20px; } }
+    </style>
+</head>
+<body>
+    <h1>Loan Application Package</h1>
+    <div style="text-align: center; margin-bottom: 40px;">
+        <strong>Tiny Seed Farm LLC</strong><br>
+        For: <strong>${readiness.lenderName}</strong><br>
+        Prepared: ${today}<br>
+        Readiness Score: <strong>${readiness.summary.readinessScore}%</strong>
+    </div>
+
+    <div class="section">
+        <h2>Financial Summary</h2>
+        <div class="metric">
+            <div class="metric-label">Total Assets</div>
+            <div class="metric-value">$${f.totalAssets.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Total Liabilities</div>
+            <div class="metric-value">$${f.totalLiabilities.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Net Worth</div>
+            <div class="metric-value">$${f.netWorth.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Debt-to-Asset Ratio</div>
+            <div class="metric-value">${f.debtToAssetPercent}%</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Document Checklist</h2>
+        <ul class="checklist">
+            ${readiness.requirements.map(req => `
+                <li>
+                    <span class="${req.isMet ? 'check' : 'missing'}">${req.isMet ? '[X]' : '[ ]'}</span>
+                    ${req.name} ${req.required ? '(Required)' : '(Optional)'}
+                    ${req.isMet && req.document ? ' - Uploaded' : ''}
+                </li>
+            `).join('')}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Asset Schedule</h2>
+        <table>
+            <tr><td>Cash & Bank Accounts</td><td style="text-align: right;">$${f.cashBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Equipment</td><td style="text-align: right;">$${f.equipmentValue.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Vehicles</td><td style="text-align: right;">$${f.vehiclesValue.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Inventory</td><td style="text-align: right;">$${f.inventoryValue.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Land/Real Estate</td><td style="text-align: right;">$${f.landValue.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            <tr class="total-row"><td>TOTAL ASSETS</td><td style="text-align: right;">$${f.totalAssets.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Liability Summary</h2>
+        <table>
+            <tr><td>Total Debt Balance</td><td style="text-align: right;">$${f.totalLiabilities.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Monthly Debt Payments</td><td style="text-align: right;">$${f.monthlyDebtPayments.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Annual Debt Service</td><td style="text-align: right;">$${f.annualDebtService.toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            <tr><td>Average Interest Rate</td><td style="text-align: right;">${f.averageAPR.toFixed(2)}%</td></tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>Generated by Tiny Seed Farm Financial System</p>
+        <p>Prepared for ${readiness.lenderName} loan application - ${today}</p>
+    </div>
+</body>
+</html>
+    `;
+
+    return {
+      success: true,
+      lender: lender,
+      lenderName: readiness.lenderName,
+      readinessScore: readiness.summary.readinessScore,
+      html: html,
+      financials: f,
+      documents: docs.data || [],
+      requirements: readiness.requirements
+    };
+  } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
