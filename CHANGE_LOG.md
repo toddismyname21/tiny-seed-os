@@ -40,6 +40,125 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - Email_Intelligence_Claude (EMAIL CATEGORIES PERSISTENCE + CONVERSATIONAL AI CONTEXT)
+
+### Files Modified
+- `/apps_script/MERGED TOTAL.js` - Fixed getEmailCategories() to include isCustom field
+- `/web_app/chief-of-staff.html` - Made AI context helper conversational with persistent history
+
+### Functions Modified
+1. **getEmailCategories()** in MERGED TOTAL.js
+   - Added `isCustom` field to returned categories
+   - Marks default categories as `isCustom: false`
+   - Marks user-created categories as `isCustom: true`
+   - Checks against DEFAULT_CATEGORIES array to determine custom status
+   - Fixes issue where custom categories wouldn't appear in dropdown
+
+2. **askContextQuestion()** in chief-of-staff.html
+   - Added persistent conversation history (emailContextConversation array)
+   - Displays both user questions and AI responses in chat-like format
+   - Maintains conversation context across multiple questions
+   - Resets conversation when email changes or modal closes
+   - Visual indicators for user vs AI messages
+
+### Functions Added
+1. **resetEmailContextConversation()** in chief-of-staff.html
+   - Clears conversation history when email modal closes or new email opens
+   - Called from closeModal() and openEmail()
+
+### State Added
+- `emailContextConversation` - Array storing conversation history for AI context helper
+
+### Reason
+**Issue 1 - Email Categories Not Persisting:**
+When users added custom categories via the email training interface, the categories were saved to the backend (COS_Custom_Categories sheet) but never appeared in the dropdown for future emails. This was because getEmailCategories() didn't include the `isCustom` field that the frontend checked for when loading custom categories (line 3538).
+
+**Issue 2 - AI Context Helper Not Conversational:**
+The AI context helper created a fresh conversation every time, losing context between questions. Users couldn't have back-and-forth dialogue about an email. Now it maintains conversation history, allowing multi-turn conversations with full context awareness.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Verified addCustomCategory() backend function already exists
+- [x] Verified chatWithChiefOfStaff() already supports conversation history
+- [x] No new duplicates created - enhanced existing functions
+
+### Testing Notes
+- Custom categories are now properly marked and loaded into dropdowns
+- AI context helper maintains conversation history within an email
+- Conversation resets when switching emails (proper scoping)
+- Conversation clears when closing modal (clean state)
+
+---
+
+## 2026-01-24 - Field_Operations_Claude (NATURAL LANGUAGE PLANTING INTELLIGENCE)
+
+### Files Modified
+- `/apps_script/MERGED TOTAL.js` - Added natural language planting parser and bulk planting creation
+- `/web_app/ai-assistant.html` - Enhanced AI assistant with confirmation flow for planting creation
+
+### Functions Added
+1. **parsePlantingRequest()** in MERGED TOTAL.js
+   - Parses natural language into structured planting data
+   - Handles: "add four plantings Benefine Endive one per month starting May 1st"
+   - Extracts: crop, variety, count, frequency, dates
+
+2. **parseNaturalDate()** in MERGED TOTAL.js
+   - Converts natural dates ("May 1st", "June 15") to YYYY-MM-DD format
+   - Supports month names and ordinal numbers
+
+3. **generatePlantingDates()** in MERGED TOTAL.js
+   - Generates series of dates based on frequency (weekly, biweekly, monthly, every N days)
+   - Respects start and end date boundaries
+
+4. **addPlantingsFromAI()** in MERGED TOTAL.js
+   - Creates multiple plantings from parsed AI request
+   - Auto-calculates greenhouse sowing dates (28 days before transplant by default)
+   - Uses crop profile data for accurate transplant timing
+   - Creates both greenhouse sowings and field transplants
+   - Returns detailed results with batch IDs
+
+5. **formatDateYYYYMMDD()** in MERGED TOTAL.js
+   - Utility function for date formatting
+
+### API Endpoints Added
+- `parsePlantingRequest` - Test natural language parsing
+- `addPlantingsFromAI` - Execute bulk planting creation
+
+### Functions Modified
+- **askAIAssistant()** in MERGED TOTAL.js
+  - Added planting intent detection
+  - Confirmation flow for planting creation
+  - Executes plantings on user confirmation
+  - Enhanced error handling
+
+- **buildAssistantSystemPrompt()** in MERGED TOTAL.js
+  - Updated farm mode prompt to advertise planting creation capability
+
+### Frontend Updates (ai-assistant.html)
+- Added pendingConfirmAction state management
+- Enhanced sendMessage() to handle confirmation flow
+- Added quick action button: "Try: Add plantings"
+- Updated welcome message to showcase planting creation
+
+### Reason
+Enable farm owner to create plantings via natural language commands through the AI assistant. Example: "add four plantings Benefine Endive one per month starting May 1st" automatically creates 4 plantings with greenhouse sowings calculated 28 days prior. This dramatically reduces manual data entry and makes succession planting intuitive.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (none found)
+- [x] Enhanced existing savePlantingFromWeb() rather than duplicating
+- [x] Used existing AI assistant infrastructure
+- [x] No duplicates created
+
+### Technical Details
+- Integrates with existing REF_CropProfiles for transplant timing data
+- Uses existing savePlantingFromWeb() for actual planting creation
+- Auto-generates tasks via existing generatePlantingTasks()
+- Deducts seeds from inventory via existing deductSeedsForPlanting()
+- Supports multiple frequency patterns: weekly, biweekly, monthly, custom intervals
+
+---
+
 ## 2026-01-24 - Backend_Claude (CHIEF OF STAFF PERFORMANCE UPGRADE)
 
 ### Files Modified

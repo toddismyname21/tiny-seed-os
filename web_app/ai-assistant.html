@@ -433,6 +433,7 @@
                         <li><strong>Emails</strong> - Search, summarize, draft replies, find action items</li>
                         <li><strong>System Help</strong> - Navigate Tiny Seed OS, troubleshoot issues</li>
                         <li><strong>Farm Advice</strong> - Planting schedules, pest management, best practices</li>
+                        <li><strong>Create Plantings</strong> - Just tell me what to plant! Example: "add four plantings of lettuce weekly starting May 1st"</li>
                         <li><strong>General Questions</strong> - Anything else you need help with</li>
                     </ul>
                     <p>What can I help you with today?</p>
@@ -487,11 +488,11 @@
             ],
             farm: [
                 { icon: '🌱', text: 'Planting now', query: 'What should I be planting right now in Pennsylvania?' },
+                { icon: '➕', text: 'Try: Add plantings', query: 'add four plantings of lettuce one per week starting May 1st' },
                 { icon: '🐛', text: 'Pest control', query: 'What are common pests to watch for this time of year and how to manage them organically?' },
                 { icon: '🌡️', text: 'Weather prep', query: "Based on the season, what weather should I prepare for?" },
                 { icon: '💧', text: 'Irrigation', query: 'What are best practices for irrigation this time of year?' },
-                { icon: '🥬', text: 'Crop rotation', query: 'Help me plan crop rotation for my beds' },
-                { icon: '📈', text: 'Yield tips', query: 'How can I increase yields on my organic vegetable farm?' }
+                { icon: '🥬', text: 'Crop rotation', query: 'Help me plan crop rotation for my beds' }
             ]
         };
 
@@ -535,6 +536,9 @@
             sendMessage();
         }
 
+        // Store pending confirmation action
+        let pendingConfirmAction = null;
+
         function sendMessage() {
             const input = document.getElementById('userInput');
             const query = input.value.trim();
@@ -561,22 +565,43 @@
                 enhancedQuery = `[FARM ADVISOR - Organic vegetable farm in Pennsylvania] ${query}`;
             }
 
+            // Prepare API params
+            const apiParams = { query: enhancedQuery, mode: currentMode };
+
+            // If there's a pending confirmation, include it
+            if (pendingConfirmAction) {
+                apiParams.confirmAction = pendingConfirmAction;
+            }
+
             // Call the API
-            callAPI('askAIAssistant', { query: enhancedQuery, mode: currentMode })
+            callAPI('askAIAssistant', apiParams)
                 .then(result => {
                     removeTypingIndicator(typingId);
                     sendBtn.disabled = false;
 
                     if (result.success) {
                         addMessage(result.response, 'ai');
+
+                        // Check if this requires confirmation
+                        if (result.requiresConfirmation && result.confirmAction) {
+                            pendingConfirmAction = result.confirmAction;
+                        } else if (result.actionCompleted) {
+                            // Action was completed, clear pending
+                            pendingConfirmAction = null;
+                        } else {
+                            // Normal response, clear any pending action
+                            pendingConfirmAction = null;
+                        }
                     } else {
                         addMessage('Sorry, I encountered an error: ' + (result.error || 'Unknown error'), 'ai');
+                        pendingConfirmAction = null;
                     }
                 })
                 .catch(error => {
                     removeTypingIndicator(typingId);
                     sendBtn.disabled = false;
                     addMessage('Connection error. Please try again.', 'ai');
+                    pendingConfirmAction = null;
                 });
         }
 

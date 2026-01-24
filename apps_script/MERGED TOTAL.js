@@ -2411,10 +2411,15 @@ function getEmailCategories() {
 
     const data = sheet.getDataRange().getValues();
     if (data.length <= 1) {
-      return { success: true, categories: DEFAULT_CATEGORIES };
+      // Return default categories with isCustom: false
+      return {
+        success: true,
+        categories: DEFAULT_CATEGORIES.map(cat => ({ ...cat, isCustom: false }))
+      };
     }
 
     const headers = data[0];
+    const defaultCategoryIds = DEFAULT_CATEGORIES.map(c => c.id);
     const categories = data.slice(1)
       .filter(row => row[8]) // Active = true
       .map(row => ({
@@ -2424,12 +2429,17 @@ function getEmailCategories() {
         color: row[3],
         icon: row[4],
         parentCategory: row[5],
-        emailCount: row[7]
+        emailCount: row[7],
+        isCustom: !defaultCategoryIds.includes(row[0]) // Mark if custom (not in defaults)
       }));
 
     return { success: true, categories };
   } catch (e) {
-    return { success: false, error: e.message, categories: DEFAULT_CATEGORIES };
+    return {
+      success: false,
+      error: e.message,
+      categories: DEFAULT_CATEGORIES.map(cat => ({ ...cat, isCustom: false }))
+    };
   }
 }
 
@@ -12380,6 +12390,10 @@ function doGet(e) {
         return jsonResponse(savePlantingFromWeb(e.parameter));
       case 'getWizardDataWeb':
         return jsonResponse(getWizardDataWeb());
+      case 'parsePlantingRequest':
+        return jsonResponse(parsePlantingRequest(e.parameter));
+      case 'addPlantingsFromAI':
+        return jsonResponse(addPlantingsFromAI(e.parameter));
 
       // ============ TRAY INVENTORY ENDPOINTS ============
       case 'getTrayInventory':
@@ -17418,6 +17432,325 @@ function savePlantingFromWeb(params) {
     };
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// NATURAL LANGUAGE PLANTING INTELLIGENCE - AI-POWERED PLANTING CREATION
+// Enables users to create plantings via natural language commands
+// Example: "add four plantings Benefine Endive one per month starting May 1st"
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Parse a natural language planting request into structured data
+ * Handles variations like:
+ *   - "add four plantings Benefine Endive one per month starting May 1st"
+ *   - "plant lettuce every 2 weeks from May through August"
+ *   - "add a single planting of carrots on June 1"
+ */
+function parsePlantingRequest(params) {
+  try {
+    const text = (params.text || params.query || '').toLowerCase();
+
+    if (!text) {
+      return { success: false, error: 'No text provided to parse' };
+    }
+
+    const result = {
+      crop: null,
+      variety: null,
+      count: 1,
+      frequency: 'once',
+      startDate: null,
+      endDate: null,
+      dates: [],
+      rawText: text
+    };
+
+    // Extract crop and variety
+    // Look for crop names from REF_CropProfiles
+    const cropData = getCropProfiles();
+    if (cropData.success && cropData.data) {
+      for (const profile of cropData.data) {
+        const cropName = String(profile.Crop_Name || '').toLowerCase();
+        const variety = String(profile.Variety_Default || '').toLowerCase();
+
+        if (text.includes(cropName)) {
+          result.crop = profile.Crop_Name;
+
+          // Check if variety is mentioned
+          const varietyPattern = new RegExp(`\\b${variety}\\b`, 'i');
+          if (variety && text.match(varietyPattern)) {
+            result.variety = variety;
+          }
+          break;
+        }
+      }
+    }
+
+    // Extract count: "four plantings", "4 plantings", "a single planting"
+    const countMatches = text.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten|single)\s+(plantings?|succession)/);
+    if (countMatches) {
+      const numWord = countMatches[1];
+      const numberMap = {
+        'one': 1, 'single': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+        'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+      };
+      result.count = numberMap[numWord] || parseInt(numWord) || 1;
+    }
+
+    // Extract frequency: "every week", "weekly", "every 2 weeks", "biweekly", "monthly", "one per month"
+    if (text.match(/weekly|every week|per week/)) {
+      result.frequency = 'weekly';
+    } else if (text.match(/biweekly|every (2|two) weeks|bi-weekly/)) {
+      result.frequency = 'biweekly';
+    } else if (text.match(/monthly|every month|per month|one per month/)) {
+      result.frequency = 'monthly';
+    } else if (text.match(/every (\d+) days/)) {
+      const days = parseInt(text.match(/every (\d+) days/)[1]);
+      result.frequency = `every_${days}_days`;
+    }
+
+    // Extract start date
+    const startDateMatch = text.match(/starting\s+([a-z]+\s+\d+)/i) ||
+                          text.match(/from\s+([a-z]+\s+\d+)/i) ||
+                          text.match(/on\s+([a-z]+\s+\d+)/i);
+
+    if (startDateMatch) {
+      result.startDate = parseNaturalDate(startDateMatch[1]);
+    }
+
+    // Extract end date
+    const endDateMatch = text.match(/through\s+([a-z]+)/i) || text.match(/until\s+([a-z]+)/i);
+    if (endDateMatch) {
+      result.endDate = parseNaturalDate(endDateMatch[1]);
+    }
+
+    // Generate dates array based on frequency and count
+    if (result.startDate) {
+      result.dates = generatePlantingDates({
+        startDate: result.startDate,
+        endDate: result.endDate,
+        frequency: result.frequency,
+        count: result.count
+      });
+    }
+
+    return {
+      success: true,
+      data: result,
+      summary: `Found: ${result.crop || 'unknown crop'}, ${result.count} plantings, ${result.frequency}, starting ${result.startDate || 'no date'}`
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Parse a natural date string like "May 1st", "June 15", "first of the month"
+ */
+function parseNaturalDate(dateStr) {
+  const str = dateStr.toLowerCase().trim();
+  const currentYear = new Date().getFullYear();
+
+  // Month mapping
+  const months = {
+    'jan': 0, 'january': 0,
+    'feb': 1, 'february': 1,
+    'mar': 2, 'march': 2,
+    'apr': 3, 'april': 3,
+    'may': 4,
+    'jun': 5, 'june': 5,
+    'jul': 6, 'july': 6,
+    'aug': 7, 'august': 7,
+    'sep': 8, 'sept': 8, 'september': 8,
+    'oct': 9, 'october': 9,
+    'nov': 10, 'november': 10,
+    'dec': 11, 'december': 11
+  };
+
+  // Parse "May 1", "May 1st", "May 15th"
+  const match = str.match(/([a-z]+)\s+(\d+)/);
+  if (match) {
+    const monthName = match[1];
+    const day = parseInt(match[2]);
+
+    for (const [key, monthNum] of Object.entries(months)) {
+      if (monthName.startsWith(key)) {
+        return formatDateYYYYMMDD(new Date(currentYear, monthNum, day));
+      }
+    }
+  }
+
+  // Parse just month name (default to 1st of month)
+  for (const [key, monthNum] of Object.entries(months)) {
+    if (str === key || str.startsWith(key)) {
+      return formatDateYYYYMMDD(new Date(currentYear, monthNum, 1));
+    }
+  }
+
+  // Parse "first of the month" - use current month
+  if (str.includes('first of')) {
+    const now = new Date();
+    return formatDateYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1));
+  }
+
+  return null;
+}
+
+/**
+ * Generate a series of planting dates based on frequency
+ */
+function generatePlantingDates(params) {
+  const { startDate, endDate, frequency, count } = params;
+  const dates = [];
+
+  if (!startDate) return dates;
+
+  const start = new Date(startDate);
+  let current = new Date(start);
+  const end = endDate ? new Date(endDate) : null;
+
+  for (let i = 0; i < count; i++) {
+    // Check if we've exceeded end date
+    if (end && current > end) break;
+
+    dates.push(formatDateYYYYMMDD(current));
+
+    // Calculate next date based on frequency
+    if (frequency === 'weekly') {
+      current.setDate(current.getDate() + 7);
+    } else if (frequency === 'biweekly') {
+      current.setDate(current.getDate() + 14);
+    } else if (frequency === 'monthly') {
+      current.setMonth(current.getMonth() + 1);
+    } else if (frequency.startsWith('every_') && frequency.endsWith('_days')) {
+      const days = parseInt(frequency.match(/every_(\d+)_days/)[1]);
+      current.setDate(current.getDate() + days);
+    } else {
+      // Default: just do count times without incrementing
+      break;
+    }
+  }
+
+  return dates;
+}
+
+/**
+ * Create multiple plantings from AI-parsed request
+ * Automatically calculates sowing dates based on crop data
+ */
+function addPlantingsFromAI(params) {
+  try {
+    const { crop, variety, dates, autoSowing = true, plantsNeeded = 100, bedId = 'Unassigned' } = params;
+
+    if (!crop) {
+      return { success: false, error: 'Crop name is required' };
+    }
+
+    if (!dates || dates.length === 0) {
+      return { success: false, error: 'No planting dates provided' };
+    }
+
+    // Get crop profile for transplant timing
+    const cropProfile = getCropProfile(crop);
+    let daysToTransplant = 28; // Default
+
+    if (cropProfile.success && cropProfile.data) {
+      // Try to find transplant days from crop profile
+      const profile = cropProfile.data;
+      daysToTransplant = profile.Rec_Transplant || profile.Days_To_Transplant || 28;
+    }
+
+    const results = [];
+    const errors = [];
+
+    // Create plantings for each date
+    for (const fieldDate of dates) {
+      try {
+        const fieldDateObj = new Date(fieldDate);
+        const sowDateObj = new Date(fieldDateObj);
+        sowDateObj.setDate(sowDateObj.getDate() - daysToTransplant);
+        const sowDate = formatDateYYYYMMDD(sowDateObj);
+
+        // 1. Create greenhouse sowing (if autoSowing enabled)
+        if (autoSowing) {
+          const sowResult = savePlantingFromWeb({
+            Crop: crop,
+            Variety: variety || 'Standard',
+            Planting_Method: 'Greenhouse Sowing',
+            Plan_GH_Sow: sowDate,
+            Plan_Transplant: fieldDate,
+            Plants_Needed: plantsNeeded,
+            Target_Bed_ID: 'Greenhouse',
+            Notes: `Auto-sow for ${fieldDate} field transplant`
+          });
+
+          if (!sowResult.success) {
+            errors.push(`Sowing ${sowDate}: ${sowResult.error}`);
+          }
+        }
+
+        // 2. Create field transplant planting
+        const transplantResult = savePlantingFromWeb({
+          Crop: crop,
+          Variety: variety || 'Standard',
+          Planting_Method: 'Transplant',
+          Plan_Transplant: fieldDate,
+          Plants_Needed: plantsNeeded,
+          Target_Bed_ID: bedId,
+          Notes: autoSowing ? `From ${sowDate} greenhouse sowing` : 'Added via AI'
+        });
+
+        if (transplantResult.success) {
+          results.push({
+            fieldDate: fieldDate,
+            sowDate: autoSowing ? sowDate : null,
+            batchId: transplantResult.batchId,
+            crop: crop,
+            variety: variety
+          });
+        } else {
+          errors.push(`Transplant ${fieldDate}: ${transplantResult.error}`);
+        }
+
+      } catch (dateError) {
+        errors.push(`Date ${fieldDate}: ${dateError.toString()}`);
+      }
+    }
+
+    return {
+      success: results.length > 0,
+      plantingsCreated: results.length,
+      details: results,
+      errors: errors.length > 0 ? errors : null,
+      summary: `Created ${results.length} planting(s) of ${crop} ${variety || ''} ${autoSowing ? 'with greenhouse sowings' : ''}`
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Format a Date object as YYYY-MM-DD string
+ */
+function formatDateYYYYMMDD(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// END NATURAL LANGUAGE PLANTING INTELLIGENCE
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 /**
  * Deduct seeds from inventory for a planting
@@ -69543,6 +69876,94 @@ function askAIAssistant(params) {
     return { success: false, error: 'No query provided' };
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════════════════════════
+  // PLANTING CREATION INTENT DETECTION
+  // Intercept planting creation requests and execute them directly
+  // ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+  const queryLower = query.toLowerCase();
+  const plantingKeywords = ['add planting', 'create planting', 'plant', 'add.*succession', 'schedule.*planting'];
+  const hasPlantingIntent = plantingKeywords.some(keyword => {
+    const regex = new RegExp(keyword, 'i');
+    return regex.test(query);
+  });
+
+  // If this looks like a planting creation request, parse and execute it
+  if (hasPlantingIntent && (queryLower.includes('add') || queryLower.includes('create') || queryLower.includes('schedule'))) {
+    const parseResult = parsePlantingRequest({ text: query });
+
+    if (parseResult.success && parseResult.data.crop && parseResult.data.dates.length > 0) {
+      const plantingData = parseResult.data;
+
+      // Return confirmation request to user
+      const confirmation = {
+        success: true,
+        requiresConfirmation: true,
+        intent: 'create_plantings',
+        parsedData: plantingData,
+        response: `I'll create ${plantingData.count} planting(s) of **${plantingData.crop}** ${plantingData.variety ? plantingData.variety : ''} with these dates:\n\n${plantingData.dates.map((d, i) => `${i + 1}. ${d}`).join('\n')}\n\nEach planting will include:\n- Greenhouse sowing (${plantingData.count * 28} days before transplant)\n- Field transplant on scheduled date\n- Auto-generated tasks\n\n**Reply "confirm" to proceed, or "cancel" to abort.**`,
+        confirmAction: {
+          action: 'addPlantingsFromAI',
+          params: {
+            crop: plantingData.crop,
+            variety: plantingData.variety,
+            dates: plantingData.dates,
+            autoSowing: true,
+            plantsNeeded: 100
+          }
+        }
+      };
+
+      return confirmation;
+    } else if (parseResult.success) {
+      // Parsing worked but missing key data - ask for clarification
+      return {
+        success: true,
+        response: `I understand you want to add plantings, but I need more information:\n\n${!plantingData.crop ? '- Which crop? (e.g., lettuce, tomatoes, endive)\n' : ''}${plantingData.dates.length === 0 ? '- What dates? (e.g., "starting May 1st" or "every week from June 1")\n' : ''}\n\nExample: "add four plantings of Benefine Endive one per month starting May 1st"`
+      };
+    }
+    // If parsing failed, fall through to normal AI response
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════════════════════
+  // CONFIRMATION HANDLING
+  // If user says "confirm", execute the pending action
+  // ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+  if ((queryLower === 'confirm' || queryLower === 'yes' || queryLower === 'proceed') && params.confirmAction) {
+    const action = params.confirmAction;
+
+    if (action.action === 'addPlantingsFromAI') {
+      const result = addPlantingsFromAI(action.params);
+
+      if (result.success) {
+        return {
+          success: true,
+          response: `✓ **Success!** ${result.summary}\n\n**Details:**\n${result.details.map(d => `- ${d.fieldDate}: ${d.crop} ${d.variety || ''} (Batch ${d.batchId})${d.sowDate ? `\n  Sow date: ${d.sowDate}` : ''}`).join('\n')}\n\n${result.errors ? `\n**Warnings:**\n${result.errors.join('\n')}` : ''}\n\nYour plantings have been added to the system!`,
+          actionCompleted: true,
+          result: result
+        };
+      } else {
+        return {
+          success: false,
+          response: `❌ Failed to create plantings: ${result.error}`,
+          error: result.error
+        };
+      }
+    }
+  }
+
+  if ((queryLower === 'cancel' || queryLower === 'no' || queryLower === 'abort') && params.confirmAction) {
+    return {
+      success: true,
+      response: 'Cancelled. No plantings were created.'
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════════════════════
+  // NORMAL AI ASSISTANT FLOW
+  // ═══════════════════════════════════════════════════════════════════════════════════════════════
+
   const apiKey = CLAUDE_CONFIG.API_KEY;
   if (!apiKey) {
     return { success: false, error: 'AI not configured. Please set up the Anthropic API key.' };
@@ -69674,6 +70095,14 @@ Your expertise includes:
 - Harvest timing and post-harvest handling
 - Season extension techniques
 - Cover cropping
+
+**SPECIAL CAPABILITY: Natural Language Planting Creation**
+You can create plantings directly from natural language! Examples:
+- "add four plantings Benefine Endive one per month starting May 1st"
+- "plant lettuce every 2 weeks from May through August"
+- "add a single planting of carrots on June 1"
+
+The system will parse the request, show what it will create, and ask for confirmation before proceeding.
 
 Current date: ${new Date().toLocaleDateString()}
 Current season: ${getEmailFarmSeason()}
