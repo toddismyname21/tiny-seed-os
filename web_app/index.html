@@ -1291,7 +1291,6 @@
             const name = document.getElementById('empName').value.trim();
             const email = document.getElementById('empEmail').value.trim();
             const phone = document.getElementById('empPhone').value.trim();
-            const role = document.getElementById('empRole').value;
 
             if (!name || !email) {
                 showToast('Name and email are required', 'error');
@@ -1303,13 +1302,12 @@
             submitBtn.textContent = 'Sending...';
 
             try {
-                // FIXED 2026-01-24: Use GET request (POST has CORS issues with Apps Script)
+                // FIXED 2026-01-24: Use GET request; role removed (owner assigns after registration)
                 const params = new URLSearchParams({
                     action: 'inviteEmployee',
                     fullName: name,
                     email: email,
-                    phone: phone || '',
-                    role: role
+                    phone: phone || ''
                 });
                 const response = await fetch(`${API_URL}?${params.toString()}`);
 
@@ -1408,23 +1406,8 @@
                     <label for="empPhone">Phone</label>
                     <input type="tel" id="empPhone" placeholder="(412) 555-0123">
                 </div>
-                <div class="form-group">
-                    <label for="empRole">Role</label>
-                    <select id="empRole">
-                        <option value="Field Worker">Field Worker</option>
-                        <option value="Driver">Driver</option>
-                        <option value="Market Staff">Market Staff</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Admin">Admin</option>
-                    </select>
-                </div>
                 <div class="form-info">
-                    <p>They'll receive:</p>
-                    <ul>
-                        <li>&#x2713; Email with login link</li>
-                        <li>&#x2713; Desktop shortcut instructions</li>
-                        <li>&#x2713; Mobile app install guide</li>
-                    </ul>
+                    <p>They'll receive an email to complete their profile. Once submitted, you'll be notified to review and assign their role.</p>
                 </div>
             </div>
             <div class="modal-footer">

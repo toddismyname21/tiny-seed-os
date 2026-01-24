@@ -12728,6 +12728,8 @@ function doGet(e) {
         return jsonResponse(inviteEmployee(e.parameter));
       case 'inviteChef':
         return jsonResponse(inviteChef(e.parameter));
+      case 'completeEmployeeRegistration':
+        return jsonResponse(completeEmployeeRegistration(e.parameter));
 
       case 'logTreatment':
         return jsonResponse(logTreatment(e.parameter));
@@ -15409,7 +15411,8 @@ function resetUserPin(data) {
 // EMPLOYEE INVITATION SYSTEM - MAGIC LINK AUTHENTICATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const EMPLOYEE_APP_URL = 'https://toddismyname21.github.io/tiny-seed-os/web_app/employee.html';
+// FIXED 2026-01-24: Point to registration page for new employees
+const EMPLOYEE_APP_URL = 'https://toddismyname21.github.io/tiny-seed-os/web_app/employee-register.html';
 
 /**
  * Generate a secure magic token for passwordless authentication
@@ -15630,14 +15633,15 @@ function sendEmployeeMagicLink(userId) {
 function verifyEmployeeToken(token) {
   try {
     if (!token) {
-      return { valid: false, error: 'No token provided' };
+      return { success: false, valid: false, error: 'No token provided' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // FIXED 2026-01-24: Use openById for web app context
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
-      return { valid: false, error: 'Users sheet not found' };
+      return { success: false, valid: false, error: 'Users sheet not found' };
     }
 
     const data = sheet.getDataRange().getValues();
@@ -15646,7 +15650,7 @@ function verifyEmployeeToken(token) {
     const tokenExpiresCol = headers.indexOf('Token_Expires');
 
     if (magicTokenCol === -1) {
-      return { valid: false, error: 'Magic token system not configured' };
+      return { success: false, valid: false, error: 'Magic token system not configured' };
     }
 
     for (let i = 1; i < data.length; i++) {
@@ -15656,36 +15660,160 @@ function verifyEmployeeToken(token) {
         if (expires) {
           const expiresDate = new Date(expires);
           if (expiresDate < new Date()) {
-            return { valid: false, error: 'Token expired. Please request a new login link.' };
+            return { success: false, valid: false, error: 'Token expired. Please request a new login link.' };
           }
         }
 
         // Build employee object (exclude sensitive fields)
-        const employee = {};
+        const employee = {
+          fullName: '',
+          email: '',
+          phone: '',
+          role: '',
+          status: ''
+        };
         headers.forEach((h, idx) => {
           if (h !== 'Magic_Token' && h !== 'Token_Expires' && h !== 'PIN') {
+            // Map common field names
+            if (h === 'Full_Name' || h === 'FullName') employee.fullName = data[i][idx] || '';
+            else if (h === 'Email') employee.email = data[i][idx] || '';
+            else if (h === 'Phone') employee.phone = data[i][idx] || '';
+            else if (h === 'Role') employee.role = data[i][idx] || '';
+            else if (h === 'Is_Active') employee.status = data[i][idx] ? 'Active' : 'Pending';
+            else if (h === 'Status') employee.status = data[i][idx] || 'Pending';
             employee[h] = data[i][idx];
           }
         });
 
-        // Update last login
-        const lastLoginCol = headers.indexOf('Last_Login');
-        if (lastLoginCol !== -1) {
-          sheet.getRange(i + 1, lastLoginCol + 1).setValue(new Date().toISOString());
-        }
-
         return {
+          success: true,
           valid: true,
           userId: employee.User_ID,
-          employee: employee
+          employee: employee,
+          rowIndex: i + 1  // For updates
         };
       }
     }
 
-    return { valid: false, error: 'Invalid token. Please request a new login link.' };
+    return { success: false, valid: false, error: 'Invalid token. Please request a new login link.' };
   } catch (error) {
     Logger.log('verifyEmployeeToken error: ' + error.toString());
-    return { valid: false, error: error.toString() };
+    return { success: false, valid: false, error: error.toString() };
+  }
+}
+
+/**
+ * Complete employee registration - called when new employee fills out their profile
+ * Sets status to 'Pending Approval' and notifies owner
+ *
+ * @param {Object} data - { token, fullName, phone, emergencyName, emergencyPhone, emergencyRelation }
+ * @returns {Object} { success, message }
+ */
+function completeEmployeeRegistration(data) {
+  try {
+    // Verify the token first
+    const verification = verifyEmployeeToken(data.token);
+    if (!verification.success) {
+      return { success: false, error: verification.error || 'Invalid token' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'Users sheet not found' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const rowIndex = verification.rowIndex;
+
+    // Helper to get or create column
+    function getOrCreateCol(name) {
+      let col = headers.indexOf(name);
+      if (col === -1) {
+        col = headers.length;
+        sheet.getRange(1, col + 1).setValue(name);
+        headers.push(name);
+      }
+      return col + 1; // 1-indexed for setRange
+    }
+
+    // Update employee info
+    const fullNameCol = getOrCreateCol('Full_Name');
+    const phoneCol = getOrCreateCol('Phone');
+    const emergencyNameCol = getOrCreateCol('Emergency_Contact_Name');
+    const emergencyPhoneCol = getOrCreateCol('Emergency_Contact_Phone');
+    const emergencyRelationCol = getOrCreateCol('Emergency_Contact_Relation');
+    const statusCol = getOrCreateCol('Status');
+    const registrationDateCol = getOrCreateCol('Registration_Completed');
+
+    // Set values
+    if (data.fullName) sheet.getRange(rowIndex, fullNameCol).setValue(data.fullName);
+    if (data.phone) sheet.getRange(rowIndex, phoneCol).setValue(data.phone);
+    if (data.emergencyName) sheet.getRange(rowIndex, emergencyNameCol).setValue(data.emergencyName);
+    if (data.emergencyPhone) sheet.getRange(rowIndex, emergencyPhoneCol).setValue(data.emergencyPhone);
+    if (data.emergencyRelation) sheet.getRange(rowIndex, emergencyRelationCol).setValue(data.emergencyRelation);
+
+    sheet.getRange(rowIndex, statusCol).setValue('Pending Approval');
+    sheet.getRange(rowIndex, registrationDateCol).setValue(new Date().toISOString());
+
+    // Clear the magic token (one-time use for registration)
+    const magicTokenCol = headers.indexOf('Magic_Token');
+    if (magicTokenCol !== -1) {
+      sheet.getRange(rowIndex, magicTokenCol + 1).setValue('');
+    }
+
+    // Notify owner about new registration
+    try {
+      const ownerEmail = 'todd@tinyseedfarmpgh.com';
+      const subject = '👤 New Employee Registration - Approval Needed';
+      const body = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h2 style="margin: 0;">New Employee Registration</h2>
+          </div>
+          <div style="background: white; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <p><strong>${data.fullName || verification.employee.fullName}</strong> has completed their registration and is waiting for your approval.</p>
+
+            <h3 style="margin-top: 20px; color: #374151;">Profile Information:</h3>
+            <ul style="color: #4b5563;">
+              <li><strong>Name:</strong> ${data.fullName || verification.employee.fullName}</li>
+              <li><strong>Email:</strong> ${verification.employee.email}</li>
+              <li><strong>Phone:</strong> ${data.phone || 'Not provided'}</li>
+              <li><strong>Emergency Contact:</strong> ${data.emergencyName || 'Not provided'} (${data.emergencyRelation || 'N/A'})</li>
+              <li><strong>Emergency Phone:</strong> ${data.emergencyPhone || 'Not provided'}</li>
+            </ul>
+
+            <p style="margin-top: 20px; color: #6b7280;">
+              <strong>Next Steps:</strong><br>
+              1. Review this employee's information<br>
+              2. Assign their role in the Users sheet<br>
+              3. Set their status to "Active" to enable their account
+            </p>
+
+            <div style="margin-top: 20px; text-align: center;">
+              <a href="https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=0"
+                 style="background: #22c55e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Open Users Sheet →
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+
+      GmailApp.sendEmail(ownerEmail, subject, 'View in HTML', { htmlBody: body });
+    } catch (emailError) {
+      Logger.log('Failed to send owner notification: ' + emailError.toString());
+      // Don't fail the registration if email fails
+    }
+
+    return {
+      success: true,
+      message: 'Registration completed successfully. Awaiting manager approval.'
+    };
+  } catch (error) {
+    Logger.log('completeEmployeeRegistration error: ' + error.toString());
+    return { success: false, error: error.toString() };
   }
 }
 
