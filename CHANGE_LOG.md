@@ -40,6 +40,27 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - UX_Claude (Crop Calendar Sort Fix)
+
+### Files Modified
+- `/Users/samanthapollack/Documents/TIny_Seed_OS/calendar.html` - Fixed crop view planting sort order
+
+### Functions Modified
+- Crop view sorting logic (line 3726-3737) - Changed from `plannedDate || seedDate || startDate` to `fieldStartDate || seedDate` to match actual field used in rendering
+
+### Reason
+Crop calendar plantings were not displaying in chronological order in crop view. The sort was using incorrect date fields that didn't match the `fieldStartDate` field used throughout the rest of the calendar system.
+
+### Result
+Plantings in crop view now display top-to-bottom in chronological order (earliest planting first, latest planting last).
+
+### Duplicate Check
+- [x] Checked existing sort logic
+- [x] Used correct field name matching rest of calendar
+- [x] No new functions created
+
+---
+
 ## 2026-01-24 - Intelligence_Claude (SMART SMART SMART CSA INTELLIGENCE LAYER)
 
 ### Files Created

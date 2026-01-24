@@ -3722,7 +3722,7 @@
                     return true;
                 });
 
-                // Sort by crop, then variety, then planned date for clear succession view
+                // Sort by crop, then variety, then field start date (chronological)
                 allPlantingsForView.sort((a, b) => {
                     // First by crop
                     if (a.crop !== b.crop) return (a.crop || '').localeCompare(b.crop || '');
@@ -3730,9 +3730,9 @@
                     const aVar = a.variety || 'Unknown';
                     const bVar = b.variety || 'Unknown';
                     if (aVar !== bVar) return aVar.localeCompare(bVar);
-                    // Then by planned date
-                    const aDate = a.plannedDate || a.seedDate || a.startDate;
-                    const bDate = b.plannedDate || b.seedDate || b.startDate;
+                    // Then by field start date (chronological: earliest first)
+                    const aDate = a.fieldStartDate || a.seedDate;
+                    const bDate = b.fieldStartDate || b.seedDate;
                     return new Date(aDate) - new Date(bDate);
                 });
 
