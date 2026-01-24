@@ -1303,12 +1303,13 @@
             submitBtn.textContent = 'Sending...';
 
             try {
+                // FIXED 2026-01-24: Backend expects 'fullName' not 'name'
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'inviteEmployee',
-                        name: name,
+                        fullName: name,
                         email: email,
                         phone: phone,
                         role: role
