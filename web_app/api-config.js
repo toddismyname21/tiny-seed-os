@@ -24,10 +24,10 @@ const TINY_SEED_API = {
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
     // LAST UPDATED: 2026-01-23
-    // UPDATED BY: Claude - v399 Claude Command Center with remote chat, permissions, status
+    // UPDATED BY: Claude - v401 Fix getClaudeStatus
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbzoSiuO1kP6a6bDjN-Wbf57mT4Xa0vpKN8iJxs6y963fFsjrjSq-ZGYHTAgJxh2jxM/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbzbwsi5g8hzW0EUJ6M9qEjl59fHbZ6mdy6hQ56d9NvphZ6TODOi4RjvpgB2mZ6OkIh2/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

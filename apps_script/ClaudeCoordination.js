@@ -1456,8 +1456,9 @@ function getCoordinationMorningBrief() {
  * Get overall Claude status for the command center
  */
 function getClaudeStatus() {
-  const sessions = getActiveSessions();
-  const activeSessions = sessions.filter(s => s.status === 'active');
+  const sessionsResult = getActiveSessions();
+  const sessions = Array.isArray(sessionsResult) ? sessionsResult : (sessionsResult.sessions || []);
+  const activeSessions = sessions.filter(s => s.status === 'active' || s.status === 'stale');
 
   if (activeSessions.length === 0) {
     return {
