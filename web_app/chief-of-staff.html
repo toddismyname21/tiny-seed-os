@@ -1850,16 +1850,21 @@
                 return;
             }
 
-            container.innerHTML = communications.map(msg => `
-                <div class="comm-card" onclick="openEmail('${msg.id}')">
-                    <div class="comm-header">
+            container.innerHTML = communications.map(msg => {
+                const safeSubject = (msg.subject || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeFrom = (msg.from || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safePreview = (msg.preview || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').substring(0, 100);
+
+                return `
+                <div class="comm-card">
+                    <div class="comm-header" onclick="openEmail('${msg.id}')">
                         <div class="comm-from">
                             ${msg.type === 'email' ? '📧' : '💬'} ${msg.from || 'Unknown'}
                         </div>
                         <span class="comm-priority ${(msg.priority || 'medium').toLowerCase()}">${msg.priority || 'MEDIUM'}</span>
                     </div>
-                    <div class="comm-subject">${msg.subject || '(No Subject)'}</div>
-                    <div class="comm-preview">${msg.preview || ''}</div>
+                    <div class="comm-subject" onclick="openEmail('${msg.id}')">${msg.subject || '(No Subject)'}</div>
+                    <div class="comm-preview" onclick="openEmail('${msg.id}')">${msg.preview || ''}</div>
                     ${msg.suggestedAction ? `
                         <div class="comm-suggestion">
                             <span>💡</span>
@@ -1870,8 +1875,13 @@
                         <button class="comm-btn primary" onclick="event.stopPropagation(); generateReplyFor('${msg.id}')">✍️ Reply</button>
                         <button class="comm-btn secondary" onclick="event.stopPropagation(); archiveEmailDirect('${msg.id}')">📦 Archive</button>
                     </div>
+                    <div class="action-quick-btns">
+                        <button onclick="event.stopPropagation(); openQuickCreate('task', '${msg.id}', '${safeSubject}', '${safePreview}', '${safeFrom}')">📋 Create Task</button>
+                        <button onclick="event.stopPropagation(); openQuickCreate('invoice', '${msg.id}', '${safeSubject}', '${safePreview}', '${safeFrom}')">💰 Create Invoice</button>
+                        <button onclick="event.stopPropagation(); openQuickCreate('reminder', '${msg.id}', '${safeSubject}', '${safePreview}', '${safeFrom}')">⏰ Set Reminder</button>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function renderAlerts(container) {
