@@ -1155,6 +1155,112 @@
             from { transform: translateX(100px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           UNIVERSAL DASHBOARD CARDS - Access EVERYTHING at a glance
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .universal-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s;
+        }
+
+        .dashboard-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .dashboard-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .dashboard-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dashboard-card-link {
+            font-size: 12px;
+            color: var(--accent-blue);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .dashboard-card-link:hover {
+            text-decoration: underline;
+        }
+
+        .dashboard-stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .dashboard-stat {
+            text-align: center;
+            flex: 1;
+        }
+
+        .dashboard-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .dashboard-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .dashboard-stat-value.green { color: #22c55e; }
+        .dashboard-stat-value.red { color: #ef4444; }
+        .dashboard-stat-value.yellow { color: #eab308; }
+        .dashboard-stat-value.blue { color: #3b82f6; }
+        .dashboard-stat-value.purple { color: #a855f7; }
+
+        .dashboard-list {
+            font-size: 13px;
+        }
+
+        .dashboard-list-item {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .dashboard-card.field { border-top: 3px solid #22c55e; }
+        .dashboard-card.financial { border-top: 3px solid #eab308; }
+        .dashboard-card.shopify { border-top: 3px solid #96bf48; }
+        .dashboard-card.csa { border-top: 3px solid #3b82f6; }
+        .dashboard-card.calendar { border-top: 3px solid #a855f7; }
+
+        @media (max-width: 900px) {
+            .universal-dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1265,6 +1371,123 @@
                     <div class="workload-fill normal" id="workloadFill" style="width: 50%;"></div>
                 </div>
                 <div id="workloadTip" style="font-size: 13px; color: var(--text-secondary);"></div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════════════════════
+                 UNIVERSAL DASHBOARD - Access EVERYTHING at a glance
+                 ═══════════════════════════════════════════════════════════════════════════ -->
+            <section class="universal-dashboard" id="universalDashboard">
+                <!-- Field Operations Card -->
+                <div class="dashboard-card field">
+                    <div class="dashboard-card-header">
+                        <div class="dashboard-card-title">🌱 Field Operations</div>
+                        <a href="../planning.html" class="dashboard-card-link">View Plan →</a>
+                    </div>
+                    <div class="dashboard-stats">
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value green" id="fieldPlantings">-</div>
+                            <div class="dashboard-stat-label">This Week</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value yellow" id="fieldHarvests">-</div>
+                            <div class="dashboard-stat-label">Harvests</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value red" id="fieldAlerts">-</div>
+                            <div class="dashboard-stat-label">Alerts</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-list" id="fieldList">
+                        <div class="skeleton skeleton-text"></div>
+                    </div>
+                </div>
+
+                <!-- Financial Snapshot Card -->
+                <div class="dashboard-card financial">
+                    <div class="dashboard-card-header">
+                        <div class="dashboard-card-title">💰 Financial Snapshot</div>
+                        <a href="financial-dashboard.html" class="dashboard-card-link">View Details →</a>
+                    </div>
+                    <div class="dashboard-stats">
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value green" id="cashPosition">-</div>
+                            <div class="dashboard-stat-label">Cash</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value yellow" id="upcomingBills">-</div>
+                            <div class="dashboard-stat-label">Bills Due</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value red" id="overdueBills">-</div>
+                            <div class="dashboard-stat-label">Overdue</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shopify Card -->
+                <div class="dashboard-card shopify">
+                    <div class="dashboard-card-header">
+                        <div class="dashboard-card-title">🛒 Shopify</div>
+                        <a href="https://tiny-seed-farmers-market.myshopify.com/admin" target="_blank" class="dashboard-card-link">Open Store →</a>
+                    </div>
+                    <div class="dashboard-stats">
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value green" id="shopifyRevenue">-</div>
+                            <div class="dashboard-stat-label">Today</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value blue" id="shopifyOrders">-</div>
+                            <div class="dashboard-stat-label">Orders</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value yellow" id="shopifyPending">-</div>
+                            <div class="dashboard-stat-label">To Ship</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CSA Health Card -->
+                <div class="dashboard-card csa">
+                    <div class="dashboard-card-header">
+                        <div class="dashboard-card-title">👥 CSA Health</div>
+                        <a href="csa.html" class="dashboard-card-link">View Members →</a>
+                    </div>
+                    <div class="dashboard-stats">
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value blue" id="csaMembers">-</div>
+                            <div class="dashboard-stat-label">Members</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value green" id="csaRetention">-</div>
+                            <div class="dashboard-stat-label">Retention</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value red" id="csaAtRisk">-</div>
+                            <div class="dashboard-stat-label">At Risk</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Widget -->
+                <div class="dashboard-card calendar">
+                    <div class="dashboard-card-header">
+                        <div class="dashboard-card-title">📅 Today's Schedule</div>
+                        <a href="../calendar.html" class="dashboard-card-link">Full Calendar →</a>
+                    </div>
+                    <div class="dashboard-stats">
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value purple" id="calendarToday">-</div>
+                            <div class="dashboard-stat-label">Today</div>
+                        </div>
+                        <div class="dashboard-stat">
+                            <div class="dashboard-stat-value blue" id="calendarWeek">-</div>
+                            <div class="dashboard-stat-label">This Week</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-list" id="calendarList">
+                        <div class="skeleton skeleton-text"></div>
+                    </div>
+                </div>
             </section>
 
             <!-- Section Tabs -->
@@ -1666,16 +1889,17 @@
             }
 
             // ═══════════════════════════════════════════════════════════════════════════
-            // PERFORMANCE OPTIMIZATION: BATCH API CALL
+            // PERFORMANCE OPTIMIZATION: BATCH API CALL V2 - UNIVERSAL CONTEXT
             // ═══════════════════════════════════════════════════════════════════════════
-            // Load ALL data in ONE API call instead of 6+ separate calls
+            // Load ALL data in ONE API call - includes field, financial, Shopify, CSA, calendar!
             // This reduces page load time from 6-10 seconds to under 2 seconds!
             try {
                 const startTime = Date.now();
-                const batchData = await api.get('batchChiefOfStaffData', { skipCache: hadCache ? 'false' : 'false' });
+                // Use new V2 endpoint with universal context
+                const batchData = await api.get('batchChiefOfStaffDataV2', { skipCache: hadCache ? 'false' : 'true' });
                 const loadTime = Date.now() - startTime;
 
-                console.log('✅ Batch data loaded in ' + loadTime + 'ms', batchData.fromCache ? '(from cache)' : '(fresh)');
+                console.log('✅ Universal data loaded in ' + loadTime + 'ms', batchData.fromCache ? '(from cache)' : '(fresh)');
 
                 if (batchData.success && batchData.data) {
                     // Update all data at once
@@ -1701,6 +1925,11 @@
 
                     if (batchData.data.stats && batchData.data.stats.success) {
                         updateInboxZeroStats(batchData.data.stats.stats);
+                    }
+
+                    // NEW: Update Universal Dashboard with all context
+                    if (batchData.universal) {
+                        updateUniversalDashboard(batchData.universal);
                     }
 
                     // Update badges
@@ -1889,6 +2118,106 @@
                 zeroCard.style.background = 'linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(59, 130, 246, 0.3))';
                 zeroCard.style.borderColor = '#22c55e';
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UNIVERSAL DASHBOARD - Update all cards with context data
+        // ═══════════════════════════════════════════════════════════════════════════
+        function updateUniversalDashboard(ctx) {
+            if (!ctx) return;
+
+            // Field Operations
+            const fieldPlantings = document.getElementById('fieldPlantings');
+            const fieldHarvests = document.getElementById('fieldHarvests');
+            const fieldAlerts = document.getElementById('fieldAlerts');
+            const fieldList = document.getElementById('fieldList');
+
+            if (ctx.fieldPlan) {
+                if (fieldPlantings) fieldPlantings.textContent = ctx.fieldPlan.plantingCount || 0;
+                if (fieldHarvests) fieldHarvests.textContent = ctx.fieldPlan.harvestCount || 0;
+                if (fieldAlerts) fieldAlerts.textContent = ctx.fieldPlan.fieldAlerts || 0;
+
+                if (fieldList) {
+                    const items = ctx.fieldPlan.upcomingHarvests?.slice(0, 3) || [];
+                    fieldList.innerHTML = items.length > 0 ? items.map(h => `
+                        <div class="dashboard-list-item">
+                            <span>${h.crop || 'Crop'}</span>
+                            <span style="color: ${h.isOverdue ? '#ef4444' : '#94a3b8'};">${h.isOverdue ? 'Overdue' : h.harvestDate || 'Soon'}</span>
+                        </div>
+                    `).join('') : '<div style="color: var(--text-secondary); font-size: 12px;">No harvests this week</div>';
+                }
+            }
+
+            // Financial Snapshot
+            const cashPosition = document.getElementById('cashPosition');
+            const upcomingBills = document.getElementById('upcomingBills');
+            const overdueBills = document.getElementById('overdueBills');
+
+            if (ctx.financials) {
+                if (cashPosition) cashPosition.textContent = formatCurrency(ctx.financials.cashPosition || 0);
+                if (upcomingBills) upcomingBills.textContent = ctx.financials.upcomingBills || 0;
+                if (overdueBills) overdueBills.textContent = ctx.financials.overdueBills || 0;
+            }
+
+            // Shopify
+            const shopifyRevenue = document.getElementById('shopifyRevenue');
+            const shopifyOrders = document.getElementById('shopifyOrders');
+            const shopifyPending = document.getElementById('shopifyPending');
+
+            if (ctx.shopify) {
+                if (shopifyRevenue) shopifyRevenue.textContent = formatCurrency(ctx.shopify.todayRevenue || 0);
+                if (shopifyOrders) shopifyOrders.textContent = ctx.shopify.todayOrders || 0;
+                if (shopifyPending) shopifyPending.textContent = ctx.shopify.pendingFulfillment || 0;
+            }
+
+            // CSA Health
+            const csaMembers = document.getElementById('csaMembers');
+            const csaRetention = document.getElementById('csaRetention');
+            const csaAtRisk = document.getElementById('csaAtRisk');
+
+            if (ctx.csa) {
+                if (csaMembers) csaMembers.textContent = ctx.csa.totalMembers || 0;
+                if (csaRetention) csaRetention.textContent = (ctx.csa.retentionRate || 0) + '%';
+                if (csaAtRisk) csaAtRisk.textContent = ctx.csa.atRiskCount || 0;
+            }
+
+            // Calendar
+            const calendarToday = document.getElementById('calendarToday');
+            const calendarWeek = document.getElementById('calendarWeek');
+            const calendarList = document.getElementById('calendarList');
+
+            if (ctx.calendar) {
+                if (calendarToday) calendarToday.textContent = ctx.calendar.todayCount || 0;
+                if (calendarWeek) calendarWeek.textContent = ctx.calendar.upcomingCount || 0;
+
+                if (calendarList) {
+                    const events = ctx.calendar.todayEvents?.slice(0, 3) || [];
+                    calendarList.innerHTML = events.length > 0 ? events.map(e => `
+                        <div class="dashboard-list-item">
+                            <span>${e.title || 'Event'}</span>
+                            <span style="color: var(--text-secondary);">${e.startTime || ''}</span>
+                        </div>
+                    `).join('') : '<div style="color: var(--text-secondary); font-size: 12px;">No events today</div>';
+                }
+            }
+
+            // Also update tasks metrics if available
+            if (ctx.tasks) {
+                const overdueCount = document.getElementById('overdueCount');
+                if (overdueCount) overdueCount.textContent = ctx.tasks.overdue || 0;
+            }
+
+            console.log('✅ Universal Dashboard updated');
+        }
+
+        // Format currency helper
+        function formatCurrency(amount) {
+            if (amount >= 1000000) {
+                return '$' + (amount / 1000000).toFixed(1) + 'M';
+            } else if (amount >= 1000) {
+                return '$' + (amount / 1000).toFixed(1) + 'K';
+            }
+            return '$' + (amount || 0).toFixed(0);
         }
 
         // Load Communications

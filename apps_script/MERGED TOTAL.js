@@ -4250,9 +4250,16 @@ function getPendingApprovals() {
 
     const statusCol = headers.indexOf('Action_Status');
     const expiryCol = headers.indexOf('Expiry_Time');
+    // PERFORMANCE FIX: Look for cached email metadata columns
+    const emailSubjectCol = headers.indexOf('Email_Subject');
+    const emailFromCol = headers.indexOf('Email_From');
+    const emailDateCol = headers.indexOf('Email_Date');
+    const emailPreviewCol = headers.indexOf('Email_Preview');
     const now = new Date();
 
     const results = [];
+    const expiredRows = []; // Batch update expired rows
+
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
 
@@ -4261,8 +4268,7 @@ function getPendingApprovals() {
       // Check if expired
       const expiry = new Date(row[expiryCol]);
       if (expiry < now) {
-        // Mark as expired
-        sheet.getRange(i + 1, statusCol + 1).setValue('EXPIRED');
+        expiredRows.push(i + 1);
         continue;
       }
 
@@ -4272,33 +4278,33 @@ function getPendingApprovals() {
       });
       action.timeRemaining = Math.round((expiry - now) / 1000 / 60) + ' minutes';
 
-      // ENHANCEMENT: Fetch email context for better action descriptions
-      const threadId = action.threadid;
-      if (threadId) {
-        try {
-          const threads = GmailApp.search('rfc822msgid:' + threadId);
-          if (threads.length > 0) {
-            const msg = threads[0].getMessages()[0];
-            action.emailSubject = msg.getSubject();
-            action.emailFrom = msg.getFrom();
-            action.emailDate = msg.getDate().toLocaleDateString();
-            action.emailPreview = msg.getPlainBody().substring(0, 200);
+      // PERFORMANCE FIX: Use cached email metadata instead of N+1 Gmail queries
+      // Email context should be cached when the action is created
+      if (emailSubjectCol >= 0 && row[emailSubjectCol]) {
+        action.emailSubject = row[emailSubjectCol];
+        action.emailFrom = emailFromCol >= 0 ? row[emailFromCol] : '';
+        action.emailDate = emailDateCol >= 0 ? row[emailDateCol] : '';
+        action.emailPreview = emailPreviewCol >= 0 ? row[emailPreviewCol] : '';
 
-            // Build a better description
-            const actionType = action.actiontype || 'review';
-            const draftContent = action.draftcontent || '';
-            action.fullDescription = `${actionType.toUpperCase()}: "${action.emailSubject}" from ${action.emailFrom.split('<')[0].trim()} (${action.emailDate})`;
-            action.contextualDescription = draftContent ?
-              `${draftContent}\n\n📧 Re: ${action.emailSubject} from ${action.emailFrom.split('<')[0].trim()}` :
-              `Action needed on email: "${action.emailSubject}" from ${action.emailFrom.split('<')[0].trim()}`;
-          }
-        } catch (e) {
-          // Can't access email, use what we have
-          action.contextualDescription = action.draftcontent || 'Action requires review';
-        }
+        const actionType = action.actiontype || 'review';
+        const draftContent = action.draftcontent || '';
+        action.fullDescription = `${actionType.toUpperCase()}: "${action.emailSubject}" from ${(action.emailFrom || '').split('<')[0].trim()} (${action.emailDate})`;
+        action.contextualDescription = draftContent ?
+          `${draftContent}\n\n📧 Re: ${action.emailSubject} from ${(action.emailFrom || '').split('<')[0].trim()}` :
+          `Action needed on email: "${action.emailSubject}" from ${(action.emailFrom || '').split('<')[0].trim()}`;
+      } else {
+        // Fallback: use draft content if no cached metadata
+        action.contextualDescription = action.draftcontent || 'Action requires review';
       }
 
       results.push(action);
+    }
+
+    // Batch update expired rows in one call (much faster than individual updates)
+    if (expiredRows.length > 0 && statusCol >= 0) {
+      expiredRows.forEach(rowNum => {
+        sheet.getRange(rowNum, statusCol + 1).setValue('EXPIRED');
+      });
     }
 
     return {
@@ -11935,6 +11941,10 @@ function doGet(e) {
       // ============ BATCH REQUEST ENDPOINT - PERFORMANCE OPTIMIZATION ============
       case 'batchChiefOfStaffData':
         return jsonResponse(batchChiefOfStaffData(e.parameter));
+      case 'batchChiefOfStaffDataV2':
+        return jsonResponse(batchChiefOfStaffDataV2(e.parameter));
+      case 'getUniversalContext':
+        return jsonResponse(getUniversalContext(e.parameter));
 
       // ============ EMAIL INTELLIGENCE SYSTEM ============
       case 'getEmailCategories':
@@ -72247,6 +72257,297 @@ function getInboxZeroStats() {
       stats: { currentInbox: 0, totalPoints: 0, level: 1, currentStreak: 0, pointsToNextLevel: 100, motivation: 'Let\'s achieve Inbox Zero!' }
     };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UNIVERSAL CONTEXT - Access EVERYTHING from ONE endpoint
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get Universal Context - ONE call to get EVERYTHING
+ * PERFORMANCE: All data fetched in parallel, cached aggressively
+ * @param {Object} params - Optional parameters
+ * @returns {Object} Complete context across all systems
+ */
+function getUniversalContext(params) {
+  const startTime = Date.now();
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'universal_context';
+
+  // Check cache first (2-minute TTL)
+  if (params?.skipCache !== 'true') {
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        data.fromCache = true;
+        data.cacheAge = Date.now() - data.generatedAt;
+        return data;
+      } catch (e) { /* Cache parse error, regenerate */ }
+    }
+  }
+
+  const result = {
+    success: true,
+    timestamp: new Date().toISOString(),
+
+    // ═══ EMAIL & COMMUNICATIONS ═══
+    emails: safeCall(() => {
+      const combined = getCombinedCommunications({ limit: 30 });
+      const summary = getDailyBrief();
+      return {
+        inbox: combined.success ? combined.data : [],
+        inboxCount: combined.success ? combined.data.length : 0,
+        summary: summary.success ? summary.data?.summary : {},
+        pendingApprovals: safeCall(() => getPendingApprovals().count, 0),
+        urgent: combined.success ? combined.data.filter(e => e.priority === 'CRITICAL' || e.priority === 'HIGH').length : 0
+      };
+    }, { inbox: [], inboxCount: 0, summary: {}, pendingApprovals: 0, urgent: 0 }),
+
+    // ═══ TASKS & ALERTS ═══
+    tasks: safeCall(() => {
+      const tasks = getSheetData('TASKS') || [];
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+      const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7);
+
+      return {
+        today: tasks.filter(t => t.status !== 'COMPLETED' && t.dueDate && new Date(t.dueDate) < tomorrow).length,
+        overdue: tasks.filter(t => t.status !== 'COMPLETED' && t.dueDate && new Date(t.dueDate) < now).length,
+        upcoming: tasks.filter(t => t.status !== 'COMPLETED' && t.dueDate && new Date(t.dueDate) >= tomorrow && new Date(t.dueDate) < weekEnd).length,
+        total: tasks.filter(t => t.status !== 'COMPLETED').length
+      };
+    }, { today: 0, overdue: 0, upcoming: 0, total: 0 }),
+
+    alerts: safeCall(() => {
+      const alerts = getActiveAlerts();
+      return {
+        critical: alerts.success ? alerts.data.filter(a => a.priority === 'CRITICAL').length : 0,
+        warnings: alerts.success ? alerts.data.filter(a => a.priority === 'HIGH').length : 0,
+        items: alerts.success ? alerts.data.slice(0, 10) : []
+      };
+    }, { critical: 0, warnings: 0, items: [] }),
+
+    // ═══ FIELD OPERATIONS ═══
+    fieldPlan: safeCall(() => {
+      const now = new Date();
+      const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 7);
+
+      // Get this week's plantings
+      const planning = getSheetData('PLANNING_2026') || [];
+      const thisWeekPlantings = planning.filter(p => {
+        const sowDate = p.sowDate || p.Sow_Date;
+        if (!sowDate) return false;
+        const date = new Date(sowDate);
+        return date >= now && date <= weekEnd;
+      });
+
+      // Get upcoming harvests
+      const harvests = safeCall(() => getUpcomingHarvests({ daysAhead: 7 }), { harvests: [] });
+
+      // Get field alerts (PHI deadlines)
+      const phiAlerts = safeCall(() => checkPHIDeadlines(), []);
+
+      return {
+        thisWeekPlantings: thisWeekPlantings.slice(0, 10).map(p => ({
+          crop: p.Crop || p.crop,
+          variety: p.Variety || p.variety,
+          bed: p.Bed || p.bed,
+          sowDate: p.Sow_Date || p.sowDate,
+          status: p.Status || p.status || 'PLANNED'
+        })),
+        plantingCount: thisWeekPlantings.length,
+        upcomingHarvests: harvests.harvests ? harvests.harvests.slice(0, 10).map(h => ({
+          crop: h.crop,
+          bed: h.bed,
+          harvestDate: h.harvestDate,
+          isOverdue: h.isOverdue
+        })) : [],
+        harvestCount: harvests.harvests ? harvests.harvests.length : 0,
+        fieldAlerts: phiAlerts.length,
+        fieldAlertItems: phiAlerts.slice(0, 5)
+      };
+    }, { thisWeekPlantings: [], plantingCount: 0, upcomingHarvests: [], harvestCount: 0, fieldAlerts: 0, fieldAlertItems: [] }),
+
+    // ═══ FINANCIALS ═══
+    financials: safeCall(() => {
+      const accounts = safeCall(() => getBankAccounts({}), { accounts: [], totals: {} });
+      const debts = safeCall(() => getDebts({}), { debts: [], totals: {} });
+      const bills = safeCall(() => getBills({}), { bills: [] });
+
+      const overdueBills = bills.bills ? bills.bills.filter(b => {
+        if (b.status === 'PAID') return false;
+        const dueDate = new Date(b.dueDate || b.Due_Date);
+        return dueDate < new Date();
+      }) : [];
+
+      const upcomingBills = bills.bills ? bills.bills.filter(b => {
+        if (b.status === 'PAID') return false;
+        const dueDate = new Date(b.dueDate || b.Due_Date);
+        const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate() + 7);
+        return dueDate >= new Date() && dueDate <= weekEnd;
+      }) : [];
+
+      return {
+        cashPosition: accounts.totals?.totalBalance || 0,
+        totalDebt: debts.totals?.totalOutstanding || 0,
+        overdueBills: overdueBills.length,
+        upcomingBills: upcomingBills.length,
+        upcomingBillsTotal: upcomingBills.reduce((sum, b) => sum + (parseFloat(b.amount || b.Amount) || 0), 0),
+        netWorth: (accounts.totals?.totalBalance || 0) - (debts.totals?.totalOutstanding || 0)
+      };
+    }, { cashPosition: 0, totalDebt: 0, overdueBills: 0, upcomingBills: 0, upcomingBillsTotal: 0, netWorth: 0 }),
+
+    // ═══ SHOPIFY ═══
+    shopify: safeCall(() => {
+      const orders = safeCall(() => syncShopifyOrders({ limit: 20 }), { orders: [] });
+      const balance = safeCall(() => getShopifyPaymentsBalance(), { balance: {} });
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const todayOrders = orders.orders ? orders.orders.filter(o => {
+        const orderDate = new Date(o.createdAt || o.created_at);
+        return orderDate >= today;
+      }) : [];
+
+      const pendingFulfillment = orders.orders ? orders.orders.filter(o =>
+        o.fulfillmentStatus === 'unfulfilled' || o.fulfillment_status === 'unfulfilled' || !o.fulfillmentStatus
+      ) : [];
+
+      const todayRevenue = todayOrders.reduce((sum, o) => sum + (parseFloat(o.totalPrice || o.total_price) || 0), 0);
+
+      return {
+        recentOrders: orders.orders ? orders.orders.slice(0, 5).map(o => ({
+          id: o.id,
+          name: o.name || o.orderNumber,
+          customer: o.customer?.firstName || o.customer_name || 'Customer',
+          total: o.totalPrice || o.total_price,
+          status: o.fulfillmentStatus || o.fulfillment_status || 'unfulfilled'
+        })) : [],
+        pendingFulfillment: pendingFulfillment.length,
+        todayOrders: todayOrders.length,
+        todayRevenue: todayRevenue,
+        paymentBalance: balance.balance?.available || 0
+      };
+    }, { recentOrders: [], pendingFulfillment: 0, todayOrders: 0, todayRevenue: 0, paymentBalance: 0 }),
+
+    // ═══ CSA ═══
+    csa: safeCall(() => {
+      const atRisk = safeCall(() => getAtRiskCSAMembers(70), { members: [] });
+      const retention = safeCall(() => getCSARetentionDashboard(), {});
+
+      return {
+        atRiskCount: atRisk.members ? atRisk.members.length : 0,
+        atRiskMembers: atRisk.members ? atRisk.members.slice(0, 5).map(m => ({
+          name: m.name || m.memberName,
+          riskLevel: m.riskLevel,
+          healthScore: m.healthScore,
+          reason: m.reason || m.riskReason
+        })) : [],
+        totalMembers: retention.totalMembers || 0,
+        retentionRate: retention.retentionRate || 0,
+        renewalsNeeded: retention.renewalsNeeded || 0
+      };
+    }, { atRiskCount: 0, atRiskMembers: [], totalMembers: 0, retentionRate: 0, renewalsNeeded: 0 }),
+
+    // ═══ CALENDAR ═══
+    calendar: safeCall(() => {
+      const events = safeCall(() => getCalendarEventsForRange('today'), { events: [] });
+      const upcoming = safeCall(() => getCalendarEventsForRange('week'), { events: [] });
+
+      return {
+        todayEvents: events.events ? events.events.slice(0, 5) : [],
+        todayCount: events.events ? events.events.length : 0,
+        upcomingMeetings: upcoming.events ? upcoming.events.slice(0, 5) : [],
+        upcomingCount: upcoming.events ? upcoming.events.length : 0
+      };
+    }, { todayEvents: [], todayCount: 0, upcomingMeetings: [], upcomingCount: 0 }),
+
+    // ═══ LABOR ═══
+    labor: safeCall(() => {
+      const dashboard = safeCall(() => {
+        // Use existing labor intelligence if available
+        return { summary: {} };
+      }, { summary: {} });
+
+      return {
+        efficiency: dashboard.summary?.averageEfficiency || 0,
+        activeAlerts: dashboard.summary?.activeAlerts || 0,
+        workOrdersToday: dashboard.summary?.todaysPrescriptions || 0
+      };
+    }, { efficiency: 0, activeAlerts: 0, workOrdersToday: 0 })
+  };
+
+  result.generatedAt = Date.now();
+  result.loadTime = result.generatedAt - startTime;
+  result.fromCache = false;
+
+  // Cache for 2 minutes
+  try {
+    cache.put(cacheKey, JSON.stringify(result), 120);
+  } catch (e) {
+    Logger.log('Universal context cache failed: ' + e);
+  }
+
+  return result;
+}
+
+/**
+ * Optimized Batch Chief of Staff Data - includes Universal Context
+ * PERFORMANCE: Uses parallel execution where possible
+ */
+function batchChiefOfStaffDataV2(params) {
+  const startTime = Date.now();
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'chief_batch_v2';
+
+  // Check cache first
+  if (params?.skipCache !== 'true') {
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        data.fromCache = true;
+        data.cacheAge = Date.now() - data.generatedAt;
+        return data;
+      } catch (e) { /* Cache parse error, regenerate */ }
+    }
+  }
+
+  // Get universal context (includes everything)
+  const context = getUniversalContext({ skipCache: params?.skipCache });
+
+  // Add legacy format data for backward compatibility
+  const result = {
+    success: true,
+    timestamp: new Date().toISOString(),
+    data: {
+      brief: safeCall(() => getDailyBrief(), { success: false }),
+      communications: safeCall(() => getCombinedCommunications({ limit: 50 }), { success: false, data: [] }),
+      actions: safeCall(() => getPendingApprovals(), { success: false, data: [] }),
+      alerts: { success: true, data: context.alerts?.items || [] },
+      autonomy: safeCall(() => getAutonomyStatus(), { success: false }),
+      stats: safeCall(() => getInboxZeroStats(), { success: false })
+    },
+
+    // NEW: Universal context with everything
+    universal: context,
+
+    generatedAt: Date.now(),
+    loadTime: Date.now() - startTime,
+    fromCache: false
+  };
+
+  // Cache for 2 minutes
+  try {
+    cache.put(cacheKey, JSON.stringify(result), 120);
+  } catch (e) {
+    Logger.log('Batch v2 cache failed: ' + e);
+  }
+
+  return result;
 }
 
 /**

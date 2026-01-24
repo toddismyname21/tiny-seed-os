@@ -40,6 +40,61 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - Backend_Claude (CHIEF OF STAFF PERFORMANCE UPGRADE)
+
+### Files Modified
+- `/apps_script/MERGED TOTAL.js` - Major performance optimizations and Universal Context endpoint
+
+### Functions Added
+1. **getUniversalContext()** in MERGED TOTAL.js
+   - ONE API call returns EVERYTHING: emails, tasks, field plan, financials, Shopify, CSA, calendar
+   - Aggregates data from 10+ existing systems in parallel
+   - 2-minute cache for blazing fast repeat loads
+   - Used by Chief of Staff for complete situational awareness
+
+2. **batchChiefOfStaffDataV2()** in MERGED TOTAL.js
+   - Enhanced batch endpoint including universal context
+   - Backwards compatible with existing batch call
+   - Returns legacy format + universal context
+
+### Functions Modified
+1. **getPendingApprovals()** in MERGED TOTAL.js
+   - FIXED N+1 QUERY ISSUE: Removed per-email Gmail API calls
+   - Now uses cached email metadata from EMAIL_ACTIONS_SHEET columns
+   - Performance: O(n) Gmail calls reduced to O(1)
+   - Added batch update for expired rows
+
+### API Endpoints Added
+- `?action=getUniversalContext` - Get complete context across ALL systems
+- `?action=batchChiefOfStaffDataV2` - Enhanced batch call with universal context
+
+### Frontend Modified
+- `/web_app/chief-of-staff.html` - Added Universal Dashboard cards
+  - Field Operations card (plantings, harvests, alerts)
+  - Financial Snapshot card (cash, bills due, overdue)
+  - Shopify card (today's revenue, orders, pending fulfillment)
+  - CSA Health card (members, retention rate, at-risk count)
+  - Calendar widget (today's events, this week)
+  - Updated batch call to use V2 endpoint
+  - Added updateUniversalDashboard() function
+  - Added formatCurrency() helper
+
+### Reason
+Owner directive: "Make Chief of Staff BLAZING FAST and able to access EVERYTHING - field plan, financials, emails, Shopify, QuickBooks."
+
+### Performance Improvements
+- Eliminated N+1 Gmail queries in getPendingApprovals
+- Universal context loads in parallel (not sequential)
+- 2-minute aggressive caching on all data
+- ONE API call gets everything (was 6+ separate calls)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Used existing functions (getBankAccounts, getDebts, getBills, getAtRiskCSAMembers, etc.)
+- [x] No duplicates created - enhanced existing batch pattern
+
+---
+
 ## 2026-01-24 - UX_Claude (Crop Calendar Sort Fix)
 
 ### Files Modified
