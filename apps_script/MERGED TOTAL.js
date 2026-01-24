@@ -12737,6 +12737,20 @@ function doGet(e) {
       case 'rejectEmployee':
         return jsonResponse(rejectEmployee(e.parameter));
 
+      // ============ CHEF REGISTRATION FLOW (GET) - Added 2026-01-24 ============
+      case 'verifyChefToken':
+        return jsonResponse(verifyChefToken(e.parameter.token, e.parameter.email));
+      case 'completeChefRegistration':
+        return jsonResponse(completeChefRegistration(e.parameter));
+      case 'getPendingChefs':
+        return jsonResponse(getPendingChefs());
+      case 'approveChef':
+        return jsonResponse(approveChef(e.parameter));
+      case 'rejectChef':
+        return jsonResponse(rejectChef(e.parameter));
+      case 'resendChefInvite':
+        return jsonResponse(resendChefInvite(e.parameter));
+
       case 'logTreatment':
         return jsonResponse(logTreatment(e.parameter));
       case 'logBeneficialRelease':
@@ -16098,6 +16112,507 @@ function rejectEmployee(data) {
     return { success: false, error: 'Employee not found' };
   } catch (error) {
     Logger.log('rejectEmployee error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============ CHEF REGISTRATION FLOW - Added 2026-01-24 ============
+
+/**
+ * Verify a chef's registration token
+ * @param {string} token - The magic token from the URL
+ * @param {string} email - Optional email for additional verification
+ * @returns {Object} { success, valid, chef, error }
+ */
+function verifyChefToken(token, email) {
+  try {
+    if (!token) {
+      return { success: false, valid: false, error: 'No token provided' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+
+    if (!sheet) {
+      return { success: false, valid: false, error: 'Wholesale customers sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find token column (check AUTH_TOKENS sheet first)
+    const tokenSheet = ss.getSheetByName('AUTH_TOKENS');
+    if (tokenSheet) {
+      const tokenData = tokenSheet.getDataRange().getValues();
+      const tokenHeaders = tokenData[0];
+      const tokenCol = tokenHeaders.indexOf('Token');
+      const emailCol = tokenHeaders.indexOf('Email');
+      const expiresCol = tokenHeaders.indexOf('Expires');
+      const customerIdCol = tokenHeaders.indexOf('Customer_ID');
+
+      for (let i = 1; i < tokenData.length; i++) {
+        if (tokenData[i][tokenCol] === token) {
+          // Check expiration
+          const expires = tokenData[i][expiresCol];
+          if (expires) {
+            const expiresDate = new Date(expires);
+            if (expiresDate < new Date()) {
+              return { success: false, valid: false, error: 'Token expired. Please request a new invitation.' };
+            }
+          }
+
+          const tokenEmail = tokenData[i][emailCol];
+          const customerId = tokenData[i][customerIdCol];
+
+          // Find the chef in WHOLESALE_CUSTOMERS
+          const custEmailCol = headers.indexOf('Email');
+          const custIdCol = headers.indexOf('Customer_ID');
+
+          for (let j = 1; j < data.length; j++) {
+            if ((custIdCol !== -1 && data[j][custIdCol] === customerId) ||
+                (custEmailCol !== -1 && data[j][custEmailCol] && data[j][custEmailCol].toString().toLowerCase() === tokenEmail.toLowerCase())) {
+
+              // Build chef object
+              const chef = {
+                rowNum: j + 1,
+                customerId: data[j][headers.indexOf('Customer_ID')] || '',
+                companyName: data[j][headers.indexOf('Company_Name')] || '',
+                contactName: data[j][headers.indexOf('Contact_Name')] || '',
+                email: data[j][headers.indexOf('Email')] || '',
+                phone: data[j][headers.indexOf('Phone')] || '',
+                address: data[j][headers.indexOf('Address')] || '',
+                city: data[j][headers.indexOf('City')] || '',
+                state: data[j][headers.indexOf('State')] || 'PA',
+                zip: data[j][headers.indexOf('Zip')] || '',
+                status: data[j][headers.indexOf('Status')] || 'Invited'
+              };
+
+              return {
+                success: true,
+                valid: true,
+                chef: chef
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return { success: false, valid: false, error: 'Invalid token. Please request a new invitation.' };
+  } catch (error) {
+    Logger.log('verifyChefToken error: ' + error.toString());
+    return { success: false, valid: false, error: error.toString() };
+  }
+}
+
+/**
+ * Complete chef registration - update profile info
+ * @param {Object} data - Registration data
+ * @returns {Object} { success, error }
+ */
+function completeChefRegistration(data) {
+  try {
+    // Verify the token first
+    const verification = verifyChefToken(data.token, data.email);
+    if (!verification.success) {
+      return { success: false, error: verification.error || 'Invalid token' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+
+    if (!sheet) {
+      return { success: false, error: 'Wholesale customers sheet not found' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const rowIndex = verification.chef.rowNum;
+
+    // Helper to get or create column
+    function getOrCreateCol(name) {
+      let col = headers.indexOf(name);
+      if (col === -1) {
+        col = headers.length;
+        sheet.getRange(1, col + 1).setValue(name);
+        headers.push(name);
+      }
+      return col + 1; // 1-indexed for setRange
+    }
+
+    // Update chef info
+    if (data.companyName) sheet.getRange(rowIndex, getOrCreateCol('Company_Name')).setValue(data.companyName);
+    if (data.contactName) sheet.getRange(rowIndex, getOrCreateCol('Contact_Name')).setValue(data.contactName);
+    if (data.phone) sheet.getRange(rowIndex, getOrCreateCol('Phone')).setValue(data.phone);
+    if (data.address) sheet.getRange(rowIndex, getOrCreateCol('Address')).setValue(data.address);
+    if (data.city) sheet.getRange(rowIndex, getOrCreateCol('City')).setValue(data.city);
+    if (data.state) sheet.getRange(rowIndex, getOrCreateCol('State')).setValue(data.state);
+    if (data.zip) sheet.getRange(rowIndex, getOrCreateCol('Zip')).setValue(data.zip);
+    if (data.deliveryDay) sheet.getRange(rowIndex, getOrCreateCol('Preferred_Delivery_Day')).setValue(data.deliveryDay);
+    if (data.orderSize) sheet.getRange(rowIndex, getOrCreateCol('Estimated_Order_Size')).setValue(data.orderSize);
+    if (data.notes) sheet.getRange(rowIndex, getOrCreateCol('Notes')).setValue(data.notes);
+
+    // Update status and registration date
+    sheet.getRange(rowIndex, getOrCreateCol('Status')).setValue('Pending Approval');
+    sheet.getRange(rowIndex, getOrCreateCol('Registration_Completed')).setValue(new Date().toISOString());
+
+    // Notify owner about new registration
+    try {
+      const ownerEmail = 'todd@tinyseedfarmpgh.com';
+      const subject = '🍽️ New Chef Registration - Approval Needed';
+      const body = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h2 style="margin: 0;">New Chef Registration</h2>
+          </div>
+          <div style="background: white; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <p><strong>${data.companyName || verification.chef.companyName}</strong> has completed their registration and is waiting for your approval.</p>
+
+            <h3 style="margin-top: 20px; color: #374151;">Business Information:</h3>
+            <ul style="color: #4b5563;">
+              <li><strong>Company:</strong> ${data.companyName || verification.chef.companyName}</li>
+              <li><strong>Contact:</strong> ${data.contactName || verification.chef.contactName}</li>
+              <li><strong>Email:</strong> ${data.email || verification.chef.email}</li>
+              <li><strong>Phone:</strong> ${data.phone || 'Not provided'}</li>
+              <li><strong>Address:</strong> ${data.address}, ${data.city}, ${data.state} ${data.zip}</li>
+              <li><strong>Preferred Delivery:</strong> ${data.deliveryDay || 'Not specified'}</li>
+              <li><strong>Est. Order Size:</strong> ${data.orderSize || 'Not specified'}</li>
+            </ul>
+
+            ${data.notes ? `<p style="margin-top: 16px; padding: 12px; background: #fffbeb; border-radius: 8px;"><strong>Notes:</strong> ${data.notes}</p>` : ''}
+
+            <a href="https://toddismyname21.github.io/tiny-seed-os/web_app/chef-approve.html"
+               style="display: inline-block; background: #f59e0b; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px;">
+              Review & Approve
+            </a>
+          </div>
+        </div>
+      `;
+
+      GmailApp.sendEmail(ownerEmail, subject, 'New chef registration requires approval.', { htmlBody: body });
+    } catch (emailError) {
+      Logger.log('Failed to send owner notification: ' + emailError.toString());
+    }
+
+    return { success: true, message: 'Registration submitted for approval' };
+  } catch (error) {
+    Logger.log('completeChefRegistration error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get pending chef registrations for approval
+ * @returns {Object} { success, pending, invited, activeCount }
+ */
+function getPendingChefs() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+
+    if (!sheet) {
+      return { success: true, pending: [], invited: [], activeCount: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Helper to get column value
+    function getCol(row, colName) {
+      const idx = headers.indexOf(colName);
+      return idx !== -1 ? row[idx] : '';
+    }
+
+    const pending = [];
+    const invited = [];
+    let activeCount = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = getCol(row, 'Status') || '';
+      const customerId = getCol(row, 'Customer_ID');
+
+      if (!customerId) continue;
+
+      if (status === 'Active' || status === 'active') {
+        activeCount++;
+        continue;
+      }
+
+      const chefData = {
+        rowNum: i + 1,
+        customerId: customerId,
+        companyName: getCol(row, 'Company_Name'),
+        contactName: getCol(row, 'Contact_Name'),
+        email: getCol(row, 'Email'),
+        phone: getCol(row, 'Phone'),
+        address: getCol(row, 'Address'),
+        city: getCol(row, 'City'),
+        state: getCol(row, 'State'),
+        zip: getCol(row, 'Zip'),
+        deliveryDay: getCol(row, 'Preferred_Delivery_Day'),
+        orderSize: getCol(row, 'Estimated_Order_Size'),
+        notes: getCol(row, 'Notes'),
+        invitedAt: getCol(row, 'Invite_Date'),
+        registeredAt: getCol(row, 'Registration_Completed'),
+        status: status
+      };
+
+      if (status === 'Pending Approval') {
+        pending.push(chefData);
+      } else if (status === 'Invited') {
+        invited.push(chefData);
+      }
+    }
+
+    // Sort: most recent first
+    pending.sort((a, b) => new Date(b.registeredAt || 0) - new Date(a.registeredAt || 0));
+    invited.sort((a, b) => new Date(b.invitedAt || 0) - new Date(a.invitedAt || 0));
+
+    return {
+      success: true,
+      pending: pending,
+      invited: invited,
+      activeCount: activeCount
+    };
+  } catch (error) {
+    Logger.log('getPendingChefs error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Approve a chef - set status to Active, generate discount code, send welcome email
+ * @param {Object} data - { rowNum, email, pricingTier }
+ * @returns {Object} { success, discountCode, error }
+ */
+function approveChef(data) {
+  try {
+    if (!data.rowNum && !data.email) {
+      return { success: false, error: 'Row number or email is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+
+    if (!sheet) {
+      return { success: false, error: 'Wholesale customers sheet not found' };
+    }
+
+    const sheetData = sheet.getDataRange().getValues();
+    const headers = sheetData[0];
+
+    // Helper to get/create column index (1-based)
+    function getOrCreateCol(name) {
+      let col = headers.indexOf(name);
+      if (col === -1) {
+        col = headers.length;
+        sheet.getRange(1, col + 1).setValue(name);
+        headers.push(name);
+      }
+      return col + 1;
+    }
+
+    let rowIndex = parseInt(data.rowNum);
+    let chefRow = null;
+
+    // If no rowNum, find by email
+    if (!rowIndex || isNaN(rowIndex)) {
+      const emailCol = headers.indexOf('Email');
+      for (let i = 1; i < sheetData.length; i++) {
+        if (sheetData[i][emailCol] && sheetData[i][emailCol].toString().toLowerCase() === data.email.toLowerCase()) {
+          rowIndex = i + 1;
+          chefRow = sheetData[i];
+          break;
+        }
+      }
+    } else {
+      chefRow = sheetData[rowIndex - 1];
+    }
+
+    if (!chefRow) {
+      return { success: false, error: 'Chef not found' };
+    }
+
+    // Generate 10% discount code
+    const discountCode = 'WELCOME10-' + Date.now().toString(36).toUpperCase();
+
+    // Get chef info
+    const companyName = chefRow[headers.indexOf('Company_Name')] || '';
+    const contactName = chefRow[headers.indexOf('Contact_Name')] || '';
+    const email = chefRow[headers.indexOf('Email')] || '';
+    const pricingTier = data.pricingTier || 'Standard';
+
+    // Update the row
+    sheet.getRange(rowIndex, getOrCreateCol('Status')).setValue('Active');
+    sheet.getRange(rowIndex, getOrCreateCol('Price_Tier')).setValue(pricingTier);
+    sheet.getRange(rowIndex, getOrCreateCol('Discount_Code')).setValue(discountCode);
+    sheet.getRange(rowIndex, getOrCreateCol('Discount_Used')).setValue('No');
+    sheet.getRange(rowIndex, getOrCreateCol('Approved_Date')).setValue(new Date().toISOString());
+
+    // Generate magic link for login
+    const loginToken = Utilities.getUuid().replace(/-/g, '');
+    const tokenExpires = new Date();
+    tokenExpires.setDate(tokenExpires.getDate() + 30); // 30 day login validity
+
+    // Store token
+    let tokenSheet = ss.getSheetByName('AUTH_TOKENS');
+    if (!tokenSheet) {
+      tokenSheet = ss.insertSheet('AUTH_TOKENS');
+      tokenSheet.getRange(1, 1, 1, 5).setValues([['Token', 'Email', 'Customer_ID', 'Created', 'Expires']]);
+    }
+    tokenSheet.appendRow([loginToken, email, chefRow[headers.indexOf('Customer_ID')], new Date().toISOString(), tokenExpires.toISOString()]);
+
+    const loginUrl = `https://toddismyname21.github.io/tiny-seed-os/web_app/wholesale.html?token=${loginToken}&email=${encodeURIComponent(email)}`;
+
+    // Send welcome email with discount code
+    try {
+      const subject = '✅ Welcome to Tiny Seed Farm Wholesale + Your 10% Discount!';
+      const htmlBody = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+            <h1 style="margin: 0; font-size: 24px;">🎉 You're Approved!</h1>
+            <p style="margin: 8px 0 0 0; opacity: 0.9;">Welcome to Tiny Seed Farm Wholesale</p>
+          </div>
+
+          <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
+            <p style="font-size: 16px;">Hi ${contactName || companyName || 'Chef'},</p>
+
+            <p>Great news! Your wholesale account has been approved. You can now order fresh, organic produce directly from our farm.</p>
+
+            <div style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 24px 0;">
+              <p style="margin: 0 0 8px 0; font-size: 14px;">Your Welcome Discount Code:</p>
+              <p style="margin: 0; font-size: 28px; font-weight: bold; letter-spacing: 2px;">${discountCode}</p>
+              <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">10% off your first order!</p>
+            </div>
+
+            <a href="${loginUrl}"
+               style="display: block; background: #f59e0b; color: white; padding: 16px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; text-align: center; margin: 24px 0;">
+              Access Wholesale Portal →
+            </a>
+
+            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-top: 24px;">
+              <p style="margin: 0 0 8px 0; font-weight: 600; color: #374151;">Your Account Details:</p>
+              <ul style="color: #4b5563; margin: 0; padding-left: 20px;">
+                <li>Pricing Tier: ${pricingTier}</li>
+                <li>Payment Terms: Net 7</li>
+                <li>Delivery: Fresh weekly availability</li>
+              </ul>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
+              Questions? Reply to this email or text us at (412) 555-FARM.
+            </p>
+          </div>
+
+          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+            Tiny Seed Farm | Pittsburgh, PA
+          </div>
+        </div>
+      `;
+
+      GmailApp.sendEmail(email, subject, 'Your Tiny Seed Farm wholesale account has been approved!', { htmlBody: htmlBody });
+    } catch (emailError) {
+      Logger.log('Failed to send welcome email: ' + emailError.toString());
+    }
+
+    return {
+      success: true,
+      message: 'Chef approved successfully',
+      companyName: companyName,
+      discountCode: discountCode
+    };
+  } catch (error) {
+    Logger.log('approveChef error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Reject/remove a chef from the pending list
+ * @param {Object} data - { rowNum, email }
+ * @returns {Object} { success, error }
+ */
+function rejectChef(data) {
+  try {
+    if (!data.rowNum && !data.email) {
+      return { success: false, error: 'Row number or email is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+
+    if (!sheet) {
+      return { success: false, error: 'Wholesale customers sheet not found' };
+    }
+
+    let rowIndex = parseInt(data.rowNum);
+
+    // If no rowNum, find by email
+    if (!rowIndex || isNaN(rowIndex)) {
+      const sheetData = sheet.getDataRange().getValues();
+      const headers = sheetData[0];
+      const emailCol = headers.indexOf('Email');
+
+      for (let i = 1; i < sheetData.length; i++) {
+        if (sheetData[i][emailCol] && sheetData[i][emailCol].toString().toLowerCase() === data.email.toLowerCase()) {
+          rowIndex = i + 1;
+          break;
+        }
+      }
+    }
+
+    if (!rowIndex) {
+      return { success: false, error: 'Chef not found' };
+    }
+
+    sheet.deleteRow(rowIndex);
+    return { success: true, message: 'Chef removed' };
+  } catch (error) {
+    Logger.log('rejectChef error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Resend invitation to a chef
+ * @param {Object} data - { email }
+ * @returns {Object} { success, error }
+ */
+function resendChefInvite(data) {
+  try {
+    if (!data.email) {
+      return { success: false, error: 'Email is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+
+    if (!sheet) {
+      return { success: false, error: 'Wholesale customers sheet not found' };
+    }
+
+    const sheetData = sheet.getDataRange().getValues();
+    const headers = sheetData[0];
+    const emailCol = headers.indexOf('Email');
+
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][emailCol] && sheetData[i][emailCol].toString().toLowerCase() === data.email.toLowerCase()) {
+        const customerId = sheetData[i][headers.indexOf('Customer_ID')];
+        const contactName = sheetData[i][headers.indexOf('Contact_Name')] || sheetData[i][headers.indexOf('Company_Name')];
+
+        // Generate new magic link
+        const magicLink = generateChefMagicLink(data.email, customerId);
+
+        // Send email
+        sendChefInviteEmail(data.email, contactName, magicLink);
+
+        return { success: true, message: 'Invitation resent' };
+      }
+    }
+
+    return { success: false, error: 'Chef not found' };
+  } catch (error) {
+    Logger.log('resendChefInvite error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -28771,18 +29286,19 @@ function generateChefMagicLink(email, customerId) {
 
   tokenSheet.appendRow([token, email, customerId, new Date().toISOString(), expires.toISOString()]);
 
-  // Get portal URL - adjust this to your deployment
-  const portalUrl = 'https://toddismyname21.github.io/tiny-seed-os/web_app/wholesale.html';
+  // UPDATED 2026-01-24: Point to registration page instead of wholesale portal
+  const registrationUrl = 'https://toddismyname21.github.io/tiny-seed-os/web_app/chef-register.html';
 
-  return `${portalUrl}?token=${token}&email=${encodeURIComponent(email)}`;
+  return `${registrationUrl}?token=${token}&email=${encodeURIComponent(email)}`;
 }
 
 /**
  * Send chef invitation email
+ * UPDATED 2026-01-24: Added 10% discount offer
  */
 function sendChefInviteEmail(email, name, magicLink) {
   try {
-    const subject = "You're Invited - Order Fresh from Tiny Seed Farm";
+    const subject = "You're Invited + 10% OFF Your First Order - Tiny Seed Farm Wholesale";
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -28794,10 +29310,13 @@ function sendChefInviteEmail(email, name, magicLink) {
     .header { text-align: center; margin-bottom: 30px; }
     .logo { font-size: 32px; margin-bottom: 10px; }
     h1 { color: #2d5a27; margin: 0; font-size: 24px; }
+    .discount-banner { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; }
+    .discount-banner h2 { margin: 0; font-size: 24px; }
+    .discount-banner p { margin: 8px 0 0 0; opacity: 0.9; }
     .features { background: #f8f9fa; border-radius: 12px; padding: 20px; margin: 20px 0; }
     .feature { display: flex; align-items: center; margin: 12px 0; }
     .feature-icon { font-size: 24px; margin-right: 12px; }
-    .btn { display: inline-block; background: #2d5a27; color: white !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0; }
+    .btn { display: inline-block; background: #f59e0b; color: white !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0; }
     .link-text { font-size: 12px; color: #666; word-break: break-all; }
     .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 13px; color: #666; }
   </style>
@@ -28806,12 +29325,17 @@ function sendChefInviteEmail(email, name, magicLink) {
   <div class="container">
     <div class="header">
       <div class="logo">🌱</div>
-      <h1>Tiny Seed Farm</h1>
+      <h1>Tiny Seed Farm Wholesale</h1>
+    </div>
+
+    <div class="discount-banner">
+      <h2>🎉 10% OFF Your First Order!</h2>
+      <p>Complete your profile to claim your welcome discount</p>
     </div>
 
     <p>Hi ${name || 'Chef'},</p>
 
-    <p>You've been invited to order fresh, organic produce directly from Tiny Seed Farm!</p>
+    <p>You've been invited to our wholesale program! Get fresh, organic produce delivered directly from our farm to your kitchen.</p>
 
     <div class="features">
       <div class="feature">
@@ -28827,13 +29351,13 @@ function sendChefInviteEmail(email, name, magicLink) {
         <span>Reliable delivery to your kitchen</span>
       </div>
       <div class="feature">
-        <span class="feature-icon">📋</span>
-        <span>Set up standing orders for weekly delivery</span>
+        <span class="feature-icon">💰</span>
+        <span>Wholesale pricing + 10% off your first order</span>
       </div>
     </div>
 
     <div style="text-align: center;">
-      <a href="${magicLink}" class="btn">Start Ordering →</a>
+      <a href="${magicLink}" class="btn">Complete Profile & Get 10% Off →</a>
     </div>
 
     <p class="link-text">Or copy this link: ${magicLink}</p>
@@ -28849,14 +29373,16 @@ function sendChefInviteEmail(email, name, magicLink) {
 
     const textBody = `Hi ${name || 'Chef'},
 
-You've been invited to order fresh, organic produce directly from Tiny Seed Farm!
+🎉 You've been invited to Tiny Seed Farm Wholesale + 10% OFF YOUR FIRST ORDER!
+
+Complete your profile to claim your welcome discount.
 
 🥬 See what's fresh this week
 📱 Order from your phone in seconds
 🚚 Reliable delivery to your kitchen
-📋 Set up standing orders
+💰 Wholesale pricing + 10% off first order
 
-Start ordering here: ${magicLink}
+Complete your profile here: ${magicLink}
 
 - Tiny Seed Farm`;
 

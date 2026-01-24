@@ -40,6 +40,48 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - Desktop_Claude (Chef Registration Flow with 10% Discount)
+
+### Files Created
+- `web_app/chef-register.html` - Chef registration page with 10% discount banner, business info form, delivery address, and order preferences
+- `web_app/chef-approve.html` - Chef approval dashboard for owner to review/approve pending chef registrations
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - Added doGet cases for: `verifyChefToken`, `completeChefRegistration`, `getPendingChefs`, `approveChef`, `rejectChef`, `resendChefInvite`
+  - Updated `generateChefMagicLink()` to point to chef-register.html instead of wholesale.html
+  - Updated `sendChefInviteEmail()` to include 10% discount offer messaging
+
+### Functions Added
+- `verifyChefToken(token, email)` in `MERGED TOTAL.js` - Verifies chef registration token from AUTH_TOKENS sheet
+- `completeChefRegistration(data)` in `MERGED TOTAL.js` - Updates WHOLESALE_CUSTOMERS with full chef profile, sets status to "Pending Approval"
+- `getPendingChefs()` in `MERGED TOTAL.js` - Returns pending and invited chefs for approval dashboard
+- `approveChef(data)` in `MERGED TOTAL.js` - Approves chef, generates 10% discount code, sends welcome email with login link
+- `rejectChef(data)` in `MERGED TOTAL.js` - Removes chef from system
+- `resendChefInvite(data)` in `MERGED TOTAL.js` - Resends invitation email to a chef
+
+### Functions Modified
+- `generateChefMagicLink()` in `MERGED TOTAL.js` - Changed portal URL from wholesale.html to chef-register.html
+- `sendChefInviteEmail()` in `MERGED TOTAL.js` - Added 10% discount messaging and updated button CTA
+
+### Flow
+1. Owner invites chef → chef gets email with 10% discount offer
+2. Chef clicks link → lands on chef-register.html
+3. Chef fills out business info → status becomes "Pending Approval"
+4. Owner gets notification → reviews on chef-approve.html
+5. Owner approves → chef gets welcome email with discount code and portal login link
+6. Chef orders → discount code applied to first order
+
+### Reason
+Owner requested same registration flow as employees but for chefs, with a 10% discount on their first wholesale order through the portal.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - Used existing AUTH_TOKENS and WHOLESALE_CUSTOMERS sheets
+- [x] No duplicates created - Builds on existing inviteChef flow
+
+---
+
 ## 2026-01-24 - Desktop_Claude (Fix Chef & Employee Invite Fetch Errors)
 
 ### Files Modified

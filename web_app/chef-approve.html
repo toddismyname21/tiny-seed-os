@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chef Approvals - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f3f4f6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card.pending .number { color: #f59e0b; }
+        .stat-card.active .number { color: #22c55e; }
+
+        .section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section h2 {
+            color: #1f2937;
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chef-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+
+        .chef-card:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+        }
+
+        .chef-card.invited {
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+
+        .chef-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .chef-info h3 {
+            color: #1f2937;
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .chef-info .contact {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .chef-info .email {
+            color: #f59e0b;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.invited {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .chef-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .detail-item {
+            font-size: 14px;
+        }
+
+        .detail-item .label {
+            color: #6b7280;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .detail-item .value {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .chef-notes {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #92400e;
+        }
+
+        .chef-notes .label {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .chef-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .pricing-select {
+            padding: 10px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            min-width: 180px;
+        }
+
+        .pricing-select:focus {
+            outline: none;
+            border-color: #f59e0b;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-approve {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .btn-approve:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-reject {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-reject:hover {
+            background: #fecaca;
+        }
+
+        .btn-resend {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .btn-resend:hover {
+            background: #bfdbfe;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #f59e0b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            background: #22c55e;
+            color: white;
+        }
+
+        .toast.error {
+            background: #dc2626;
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .discount-note {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .back-link:hover {
+            color: #f59e0b;
+        }
+
+        @media (max-width: 600px) {
+            .stats-row {
+                flex-direction: column;
+            }
+
+            .chef-header {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .chef-actions {
+                flex-direction: column;
+            }
+
+            .chef-actions .btn,
+            .chef-actions .pricing-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">
+            &#8592; Back to Dashboard
+        </a>
+
+        <div class="header">
+            <h1>&#127869; Chef Approvals</h1>
+            <p>Review and approve wholesale chef registrations</p>
+        </div>
+
+        <div class="discount-note">
+            <span>&#127881;</span>
+            <span>Approved chefs automatically receive a 10% discount code for their first order!</span>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card pending">
+                <div class="number" id="pendingCount">-</div>
+                <div class="label">Pending Approval</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="invitedCount">-</div>
+                <div class="label">Invited (Awaiting Registration)</div>
+            </div>
+            <div class="stat-card active">
+                <div class="number" id="activeCount">-</div>
+                <div class="label">Active Chefs</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>&#128203; Pending Approvals</h2>
+            <div id="pendingList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading pending chefs...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>&#128231; Invited (Awaiting Registration)</h2>
+            <div id="invitedList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading invited chefs...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+        const API_URL = TINY_SEED_API.MAIN_API;
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Load all chef data
+        async function loadChefs() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPendingChefs`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderChefs(data);
+                } else {
+                    showToast(data.error || 'Failed to load chefs', 'error');
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                showToast('Network error loading chefs', 'error');
+            }
+        }
+
+        // Render chef lists
+        function renderChefs(data) {
+            const pending = data.pending || [];
+            const invited = data.invited || [];
+            const activeCount = data.activeCount || 0;
+
+            // Update stats
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('invitedCount').textContent = invited.length;
+            document.getElementById('activeCount').textContent = activeCount;
+
+            // Render pending list
+            const pendingList = document.getElementById('pendingList');
+            if (pending.length === 0) {
+                pendingList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#9989;</div>
+                        <p>No pending approvals</p>
+                    </div>
+                `;
+            } else {
+                pendingList.innerHTML = pending.map(chef => renderChefCard(chef, 'pending')).join('');
+            }
+
+            // Render invited list
+            const invitedList = document.getElementById('invitedList');
+            if (invited.length === 0) {
+                invitedList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#128231;</div>
+                        <p>No pending invitations</p>
+                    </div>
+                `;
+            } else {
+                invitedList.innerHTML = invited.map(chef => renderChefCard(chef, 'invited')).join('');
+            }
+        }
+
+        // Render individual chef card
+        function renderChefCard(chef, type) {
+            const isPending = type === 'pending';
+
+            const address = [chef.address, chef.city, chef.state, chef.zip]
+                .filter(Boolean)
+                .join(', ');
+
+            return `
+                <div class="chef-card ${type}" id="chef-${chef.rowNum}">
+                    <div class="chef-header">
+                        <div class="chef-info">
+                            <h3>${chef.companyName || 'Unknown Business'}</h3>
+                            <div class="contact">${chef.contactName || 'No contact name'}</div>
+                            <div class="email">${chef.email}</div>
+                            ${chef.phone ? `<div class="contact">${chef.phone}</div>` : ''}
+                        </div>
+                        <span class="status-badge ${type}">
+                            ${isPending ? 'Pending Approval' : 'Invited'}
+                        </span>
+                    </div>
+
+                    ${isPending ? `
+                        <div class="chef-details">
+                            ${address ? `
+                                <div class="detail-item">
+                                    <div class="label">Delivery Address</div>
+                                    <div class="value">${address}</div>
+                                </div>
+                            ` : ''}
+                            ${chef.deliveryDay ? `
+                                <div class="detail-item">
+                                    <div class="label">Preferred Delivery Day</div>
+                                    <div class="value">${chef.deliveryDay}</div>
+                                </div>
+                            ` : ''}
+                            ${chef.orderSize ? `
+                                <div class="detail-item">
+                                    <div class="label">Estimated Order Size</div>
+                                    <div class="value">${chef.orderSize}</div>
+                                </div>
+                            ` : ''}
+                            <div class="detail-item">
+                                <div class="label">Registered</div>
+                                <div class="value">${chef.registeredAt || 'Unknown'}</div>
+                            </div>
+                        </div>
+
+                        ${chef.notes ? `
+                            <div class="chef-notes">
+                                <div class="label">Notes:</div>
+                                ${chef.notes}
+                            </div>
+                        ` : ''}
+                    ` : `
+                        <div class="chef-details">
+                            <div class="detail-item">
+                                <div class="label">Invited</div>
+                                <div class="value">${chef.invitedAt || 'Unknown'}</div>
+                            </div>
+                        </div>
+                    `}
+
+                    <div class="chef-actions">
+                        ${isPending ? `
+                            <select class="pricing-select" id="pricing-${chef.rowNum}">
+                                <option value="Standard">Standard Pricing</option>
+                                <option value="Premium">Premium (5% off)</option>
+                                <option value="VIP">VIP (10% off all orders)</option>
+                            </select>
+                            <button class="btn btn-approve" onclick="approveChef(${chef.rowNum}, '${chef.email}')">
+                                &#9989; Approve & Send Welcome
+                            </button>
+                            <button class="btn btn-reject" onclick="rejectChef(${chef.rowNum}, '${chef.email}')">
+                                &#10060; Reject
+                            </button>
+                        ` : `
+                            <button class="btn btn-resend" onclick="resendInvite('${chef.email}')">
+                                &#128231; Resend Invitation
+                            </button>
+                            <button class="btn btn-reject" onclick="rejectChef(${chef.rowNum}, '${chef.email}')">
+                                &#10060; Remove
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Approve chef
+        async function approveChef(rowNum, email) {
+            const pricingTier = document.getElementById(`pricing-${rowNum}`)?.value || 'Standard';
+            const card = document.getElementById(`chef-${rowNum}`);
+            const btn = card.querySelector('.btn-approve');
+
+            btn.disabled = true;
+            btn.textContent = 'Approving...';
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'approveChef',
+                    rowNum: rowNum,
+                    email: email,
+                    pricingTier: pricingTier
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`${data.companyName || 'Chef'} approved! Discount code: ${data.discountCode}`);
+                    card.style.opacity = '0.5';
+                    setTimeout(() => loadChefs(), 1000);
+                } else {
+                    showToast(data.error || 'Failed to approve', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '&#9989; Approve & Send Welcome';
+                }
+            } catch (error) {
+                console.error('Approve error:', error);
+                showToast('Network error', 'error');
+                btn.disabled = false;
+                btn.textContent = '&#9989; Approve & Send Welcome';
+            }
+        }
+
+        // Reject chef
+        async function rejectChef(rowNum, email) {
+            if (!confirm('Are you sure you want to reject/remove this chef?')) return;
+
+            const card = document.getElementById(`chef-${rowNum}`);
+            const btn = card.querySelector('.btn-reject');
+
+            btn.disabled = true;
+            btn.textContent = 'Removing...';
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'rejectChef',
+                    rowNum: rowNum,
+                    email: email
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Chef removed');
+                    card.style.opacity = '0.5';
+                    setTimeout(() => loadChefs(), 1000);
+                } else {
+                    showToast(data.error || 'Failed to remove', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '&#10060; Reject';
+                }
+            } catch (error) {
+                console.error('Reject error:', error);
+                showToast('Network error', 'error');
+                btn.disabled = false;
+                btn.textContent = '&#10060; Reject';
+            }
+        }
+
+        // Resend invitation
+        async function resendInvite(email) {
+            if (!confirm(`Resend invitation to ${email}?`)) return;
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'resendChefInvite',
+                    email: email
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Invitation resent!');
+                } else {
+                    showToast(data.error || 'Failed to resend', 'error');
+                }
+            } catch (error) {
+                console.error('Resend error:', error);
+                showToast('Network error', 'error');
+            }
+        }
+
+        // Initialize
+        loadChefs();
+    </script>
+</body>
+</html>
