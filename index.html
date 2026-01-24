@@ -4245,18 +4245,15 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
             try {
-                // FIXED 2026-01-24: action must be in POST body, not URL query; use fullName not name
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'inviteEmployee',
-                        fullName: name,
-                        email,
-                        phone,
-                        role
-                    })
+                // FIXED 2026-01-24: Use GET request (POST has CORS issues with Apps Script)
+                const params = new URLSearchParams({
+                    action: 'inviteEmployee',
+                    fullName: name,
+                    email: email,
+                    phone: phone || '',
+                    role: role
                 });
+                const response = await fetch(`${API_URL}?${params.toString()}`);
 
                 const data = await response.json();
 
@@ -4303,18 +4300,15 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
             try {
-                // FIXED 2026-01-24: action must be in POST body, not URL query
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'inviteChef',
-                        company_name,
-                        contact_name,
-                        email,
-                        phone
-                    })
+                // FIXED 2026-01-24: Use GET request (POST has CORS issues with Apps Script)
+                const params = new URLSearchParams({
+                    action: 'inviteChef',
+                    company_name: company_name,
+                    contact_name: contact_name,
+                    email: email,
+                    phone: phone || ''
                 });
+                const response = await fetch(`${API_URL}?${params.toString()}`);
 
                 const data = await response.json();
 

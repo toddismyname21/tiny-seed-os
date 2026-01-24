@@ -12722,6 +12722,13 @@ function doGet(e) {
         return jsonResponse(getWeatherAwareHarvestTasks());
       case 'saveScoutingReport':
         return jsonResponse(saveScoutingReport(e.parameter));
+
+      // ============ EMPLOYEE & CHEF INVITATION (GET) - Added 2026-01-24 ============
+      case 'inviteEmployee':
+        return jsonResponse(inviteEmployee(e.parameter));
+      case 'inviteChef':
+        return jsonResponse(inviteChef(e.parameter));
+
       case 'logTreatment':
         return jsonResponse(logTreatment(e.parameter));
       case 'logBeneficialRelease':

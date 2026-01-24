@@ -1303,18 +1303,15 @@
             submitBtn.textContent = 'Sending...';
 
             try {
-                // FIXED 2026-01-24: Backend expects 'fullName' not 'name'
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'inviteEmployee',
-                        fullName: name,
-                        email: email,
-                        phone: phone,
-                        role: role
-                    })
+                // FIXED 2026-01-24: Use GET request (POST has CORS issues with Apps Script)
+                const params = new URLSearchParams({
+                    action: 'inviteEmployee',
+                    fullName: name,
+                    email: email,
+                    phone: phone || '',
+                    role: role
                 });
+                const response = await fetch(`${API_URL}?${params.toString()}`);
 
                 const data = await response.json();
 
@@ -1348,17 +1345,15 @@
             submitBtn.textContent = 'Sending...';
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'inviteChef',
-                        company_name: restaurant,
-                        contact_name: contactName,
-                        email: email,
-                        phone: phone
-                    })
+                // FIXED 2026-01-24: Use GET request (POST has CORS issues with Apps Script)
+                const params = new URLSearchParams({
+                    action: 'inviteChef',
+                    company_name: restaurant,
+                    contact_name: contactName || '',
+                    email: email,
+                    phone: phone || ''
                 });
+                const response = await fetch(`${API_URL}?${params.toString()}`);
 
                 const data = await response.json();
 
