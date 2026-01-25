@@ -40,6 +40,27 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - PM_Architect_Claude (SHOPIFY WEBHOOK REGISTRATION)
+
+### Action Taken
+- Deleted old webhook (ID: 1499578892441) pointing to outdated deployment URL
+- Registered new webhook (ID: 1501350101145) pointing to current API deployment
+
+### Webhook Details
+- **Topic:** orders/create
+- **URL:** https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=shopifyWebhook&topic=orders/create
+- **Status:** ACTIVE
+
+### What This Enables
+- Auto-onboarding: New Shopify CSA orders automatically create CSA members
+- Welcome emails sent instantly with magic link portal access
+- No manual import required - fully automated flow
+
+### Reason
+User requested Shopify webhook registration via programmatic methods (clasp/brew/MCP)
+
+---
+
 ## 2026-01-24 - Email_Chief_of_Staff_Claude (CHIEF OF STAFF INTELLIGENCE UPGRADE)
 
 ### Files Modified
