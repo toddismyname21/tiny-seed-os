@@ -604,7 +604,7 @@
         // Notify server to invalidate session
         if (notifyServer && session?.token) {
             try {
-                const apiUrl = window.API_CONFIG?.BASE_URL || 'https://script.google.com/macros/s/AKfycbwxe2qjNkrNvYkHv7NJWBJvemu0MGBfO7NEfiF0dBo/exec';
+                const apiUrl = window.TINY_SEED_API?.MAIN_API || 'https://script.google.com/macros/s/AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb/exec';
                 await fetch(`${apiUrl}?action=logoutUser&token=${session.token}`);
             } catch (e) {
                 console.warn('Could not notify server of logout:', e);

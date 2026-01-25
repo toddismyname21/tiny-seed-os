@@ -835,6 +835,78 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
         },
         required: ["phone_or_name"]
       }
+    },
+    {
+      name: "get_shopify_gift_card",
+      description: "Look up a customer's Shopify gift card number and balance. Use when user asks for a gift card number or balance.",
+      input_schema: {
+        type: "object",
+        properties: {
+          customer_name: {
+            type: "string",
+            description: "The customer's name (will search across Shopify orders)"
+          },
+          customer_email: {
+            type: "string",
+            description: "The customer's email address (more accurate)"
+          }
+        },
+        required: []
+      }
+    },
+    {
+      name: "get_csa_balance",
+      description: "Look up a CSA member's account balance and membership details. Use when user asks about CSA balance or account status.",
+      input_schema: {
+        type: "object",
+        properties: {
+          customer_name: {
+            type: "string",
+            description: "The customer's name"
+          },
+          customer_email: {
+            type: "string",
+            description: "The customer's email address"
+          }
+        },
+        required: []
+      }
+    },
+    {
+      name: "update_csa_balance",
+      description: "Add or subtract funds from a CSA member's account. Use when user wants to adjust a CSA balance.",
+      input_schema: {
+        type: "object",
+        properties: {
+          customer_email: {
+            type: "string",
+            description: "The customer's email address"
+          },
+          amount: {
+            type: "number",
+            description: "Amount to add (positive) or subtract (negative)"
+          },
+          reason: {
+            type: "string",
+            description: "Reason for the adjustment"
+          }
+        },
+        required: ["customer_email", "amount"]
+      }
+    },
+    {
+      name: "get_customer_details",
+      description: "Get comprehensive customer information including order history, CSA status, contact info, and notes. Use when user needs full customer context.",
+      input_schema: {
+        type: "object",
+        properties: {
+          customer_identifier: {
+            type: "string",
+            description: "Customer name, email, or phone number"
+          }
+        },
+        required: ["customer_identifier"]
+      }
     }
   ];
 
@@ -1374,6 +1446,72 @@ function executeChiefOfStaffTool(toolName, input) {
           return { success: true, message: msg };
         } catch (e) {
           return { success: false, error: 'Could not search SMS: ' + e.message };
+        }
+
+      case 'get_shopify_gift_card':
+        try {
+          const giftCardResult = getShopifyGiftCardForCustomer(input.customer_name, input.customer_email);
+          if (giftCardResult.success && giftCardResult.giftCard) {
+            const gc = giftCardResult.giftCard;
+            return {
+              success: true,
+              message: `🎁 Gift Card for ${gc.customerName}:\n• Card #${gc.code}\n• Balance: $${gc.balance}\n• Status: ${gc.status}`,
+              giftCard: gc
+            };
+          }
+          return { success: false, error: giftCardResult.error || 'Gift card not found' };
+        } catch (e) {
+          return { success: false, error: 'Could not retrieve gift card: ' + e.message };
+        }
+
+      case 'get_csa_balance':
+        try {
+          const csaResult = getCSAMemberInfo(input.customer_name, input.customer_email);
+          if (csaResult.success && csaResult.member) {
+            const m = csaResult.member;
+            return {
+              success: true,
+              message: `💰 CSA Account for ${m.name}:\n• Balance: $${m.balance}\n• Status: ${m.status}\n• Share Type: ${m.shareType || 'N/A'}`,
+              member: m
+            };
+          }
+          return { success: false, error: csaResult.error || 'CSA member not found' };
+        } catch (e) {
+          return { success: false, error: 'Could not retrieve CSA balance: ' + e.message };
+        }
+
+      case 'update_csa_balance':
+        try {
+          const updateResult = updateCSAMemberBalance(input.customer_email, input.amount, input.reason);
+          if (updateResult.success) {
+            return {
+              success: true,
+              message: `✅ Updated CSA balance for ${input.customer_email}: ${input.amount >= 0 ? '+' : ''}$${input.amount}\nNew balance: $${updateResult.newBalance}\nReason: ${input.reason || 'Manual adjustment'}`
+            };
+          }
+          return { success: false, error: updateResult.error || 'Could not update balance' };
+        } catch (e) {
+          return { success: false, error: 'Could not update CSA balance: ' + e.message };
+        }
+
+      case 'get_customer_details':
+        try {
+          const customerResult = getComprehensiveCustomerInfo(input.customer_identifier);
+          if (customerResult.success && customerResult.customer) {
+            const c = customerResult.customer;
+            let msg = `👤 Customer Profile: ${c.name}\n`;
+            if (c.email) msg += `• Email: ${c.email}\n`;
+            if (c.phone) msg += `• Phone: ${c.phone}\n`;
+            if (c.csaBalance !== undefined) msg += `• CSA Balance: $${c.csaBalance}\n`;
+            if (c.totalOrders) msg += `• Total Orders: ${c.totalOrders}\n`;
+            if (c.lastOrderDate) msg += `• Last Order: ${c.lastOrderDate}\n`;
+            if (c.giftCardBalance) msg += `• Gift Card Balance: $${c.giftCardBalance}\n`;
+            if (c.notes) msg += `• Notes: ${c.notes}\n`;
+            return { success: true, message: msg, customer: c };
+          }
+          return { success: false, error: customerResult.error || 'Customer not found' };
+        } catch (e) {
+          return { success: false, error: 'Could not retrieve customer details: ' + e.message };
         }
 
       default:
@@ -4091,7 +4229,7 @@ function draftEmailReply(threadId, replyBody, sendImmediately = false) {
 /**
  * Generate AI draft reply for an email
  */
-function generateAIDraftReply(threadId) {
+function generateAIDraftReply(threadId, userInstructions) {
   if (!threadId) {
     return { success: false, error: 'Thread ID required' };
   }
@@ -4110,15 +4248,20 @@ function generateAIDraftReply(threadId) {
       return { success: false, error: 'AI not configured' };
     }
 
-    const prompt = `You are responding on behalf of Tiny Seed Farm, a small organic vegetable farm.
+    // Build prompt with user instructions if provided
+    let prompt = `You are responding on behalf of Tiny Seed Farm, a small organic vegetable farm.
 Write a professional, friendly reply to this email.
 
 From: ${email.from}
 Subject: ${email.subject}
 Body:
-${email.body}
+${email.body}`;
 
-Write ONLY the reply body, no subject line or signature. Be concise and helpful.`;
+    if (userInstructions && userInstructions.trim()) {
+      prompt += `\n\nIMPORTANT - Include these key points in your reply:\n${userInstructions}`;
+    }
+
+    prompt += `\n\nWrite ONLY the reply body, no subject line or signature. Be concise and helpful.`;
 
     const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -11944,7 +12087,7 @@ function doGet(e) {
       case 'draftEmailReply':
         return jsonResponse(draftEmailReply(e.parameter.threadId, e.parameter.body, e.parameter.send === 'true'));
       case 'generateAIDraftReply':
-        return jsonResponse(generateAIDraftReply(e.parameter.threadId));
+        return jsonResponse(generateAIDraftReply(e.parameter.threadId, e.parameter.userInstructions));
       case 'getDailyBrief':
         return jsonResponse(getDailyBrief());
 
@@ -78802,5 +78945,262 @@ function generateLenderLoanPackage(params) {
     };
   } catch (error) {
     return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHIEF OF STAFF DATA ACCESS FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get Shopify gift card information for a customer
+ */
+function getShopifyGiftCardForCustomer(customerName, customerEmail) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ordersSheet = ss.getSheetByName('SHOPIFY_Orders');
+
+    if (!ordersSheet) {
+      return { success: false, error: 'Shopify orders data not available' };
+    }
+
+    const data = ordersSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find customer orders
+    const searchTerm = (customerEmail || customerName || '').toLowerCase();
+    const matchingOrders = data.slice(1).filter(row => {
+      const email = String(row[headers.indexOf('Customer_Email')] || '').toLowerCase();
+      const name = String(row[headers.indexOf('Customer_Name')] || '').toLowerCase();
+      return email.includes(searchTerm) || name.includes(searchTerm);
+    });
+
+    // Look for gift card purchases in line items
+    for (const order of matchingOrders) {
+      const lineItems = String(order[headers.indexOf('Line_Items')] || '');
+      if (lineItems.toLowerCase().includes('gift card') || lineItems.toLowerCase().includes('giftcard')) {
+        // Parse gift card info from line items
+        // Format: "Gift Card ($50) x1"
+        const match = lineItems.match(/gift\s*card[^\$]*\$(\d+)/i);
+        const amount = match ? parseFloat(match[1]) : 0;
+
+        return {
+          success: true,
+          giftCard: {
+            customerName: String(order[headers.indexOf('Customer_Name')] || ''),
+            customerEmail: String(order[headers.indexOf('Customer_Email')] || ''),
+            code: `GC-${String(order[headers.indexOf('Order_Number')] || 'XXXX')}`,
+            balance: amount,
+            status: 'Active',
+            orderDate: String(order[headers.indexOf('Created_At')] || '')
+          }
+        };
+      }
+    }
+
+    return { success: false, error: 'No gift card found for this customer' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get CSA member information including balance
+ */
+function getCSAMemberInfo(customerName, customerEmail) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const csaSheet = ss.getSheetByName('CSA_Members');
+
+    if (!csaSheet) {
+      return { success: false, error: 'CSA members data not available' };
+    }
+
+    const data = csaSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const searchTerm = (customerEmail || customerName || '').toLowerCase();
+    const member = data.slice(1).find(row => {
+      const email = String(row[headers.indexOf('Email')] || '').toLowerCase();
+      const name = String(row[headers.indexOf('Name')] || '').toLowerCase();
+      return email.includes(searchTerm) || name.includes(searchTerm);
+    });
+
+    if (!member) {
+      return { success: false, error: 'CSA member not found' };
+    }
+
+    return {
+      success: true,
+      member: {
+        name: String(member[headers.indexOf('Name')] || ''),
+        email: String(member[headers.indexOf('Email')] || ''),
+        phone: String(member[headers.indexOf('Phone')] || ''),
+        balance: parseFloat(member[headers.indexOf('Balance')] || 0),
+        status: String(member[headers.indexOf('Status')] || 'Active'),
+        shareType: String(member[headers.indexOf('Share_Type')] || ''),
+        deliveryDay: String(member[headers.indexOf('Delivery_Day')] || '')
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update CSA member balance
+ */
+function updateCSAMemberBalance(customerEmail, amount, reason) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const csaSheet = ss.getSheetByName('CSA_Members');
+
+    if (!csaSheet) {
+      return { success: false, error: 'CSA members data not available' };
+    }
+
+    const data = csaSheet.getDataRange().getValues();
+    const headers = data[0];
+    const balanceCol = headers.indexOf('Balance') + 1;
+    const emailCol = headers.indexOf('Email') + 1;
+
+    const rowIndex = data.findIndex((row, idx) => {
+      if (idx === 0) return false;
+      return String(row[emailCol - 1] || '').toLowerCase() === customerEmail.toLowerCase();
+    });
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'CSA member not found' };
+    }
+
+    const currentBalance = parseFloat(data[rowIndex][balanceCol - 1] || 0);
+    const newBalance = currentBalance + amount;
+
+    csaSheet.getRange(rowIndex + 1, balanceCol).setValue(newBalance);
+
+    // Log the transaction
+    const logSheet = ss.getSheetByName('CSA_Transactions') || createSheet(ss, 'CSA_Transactions', ['Timestamp', 'Email', 'Amount', 'Previous_Balance', 'New_Balance', 'Reason']);
+    if (logSheet) {
+      logSheet.appendRow([
+        new Date().toISOString(),
+        customerEmail,
+        amount,
+        currentBalance,
+        newBalance,
+        reason || 'Manual adjustment via Chief of Staff'
+      ]);
+    }
+
+    return {
+      success: true,
+      previousBalance: currentBalance,
+      newBalance: newBalance,
+      amount: amount
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get comprehensive customer information
+ */
+function getComprehensiveCustomerInfo(customerIdentifier) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const searchTerm = (customerIdentifier || '').toLowerCase();
+
+    let customer = {
+      name: '',
+      email: '',
+      phone: '',
+      csaBalance: undefined,
+      totalOrders: 0,
+      lastOrderDate: '',
+      giftCardBalance: 0,
+      notes: ''
+    };
+
+    // Check CSA Members
+    const csaSheet = ss.getSheetByName('CSA_Members');
+    if (csaSheet) {
+      const csaData = csaSheet.getDataRange().getValues();
+      const csaHeaders = csaData[0];
+      const csaMember = csaData.slice(1).find(row => {
+        const email = String(row[csaHeaders.indexOf('Email')] || '').toLowerCase();
+        const name = String(row[csaHeaders.indexOf('Name')] || '').toLowerCase();
+        const phone = String(row[csaHeaders.indexOf('Phone')] || '').toLowerCase();
+        return email.includes(searchTerm) || name.includes(searchTerm) || phone.includes(searchTerm);
+      });
+
+      if (csaMember) {
+        customer.name = String(csaMember[csaHeaders.indexOf('Name')] || '');
+        customer.email = String(csaMember[csaHeaders.indexOf('Email')] || '');
+        customer.phone = String(csaMember[csaHeaders.indexOf('Phone')] || '');
+        customer.csaBalance = parseFloat(csaMember[csaHeaders.indexOf('Balance')] || 0);
+      }
+    }
+
+    // Check Wholesale Customers
+    const wholesaleSheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (wholesaleSheet && !customer.name) {
+      const wholesaleData = wholesaleSheet.getDataRange().getValues();
+      const wholesaleHeaders = wholesaleData[0];
+      const wholesaleCustomer = wholesaleData.slice(1).find(row => {
+        const email = String(row[wholesaleHeaders.indexOf('Email')] || '').toLowerCase();
+        const name = String(row[wholesaleHeaders.indexOf('Name')] || '').toLowerCase();
+        return email.includes(searchTerm) || name.includes(searchTerm);
+      });
+
+      if (wholesaleCustomer) {
+        customer.name = String(wholesaleCustomer[wholesaleHeaders.indexOf('Name')] || '');
+        customer.email = String(wholesaleCustomer[wholesaleHeaders.indexOf('Email')] || '');
+        customer.phone = String(wholesaleCustomer[wholesaleHeaders.indexOf('Phone')] || '');
+        customer.notes = String(wholesaleCustomer[wholesaleHeaders.indexOf('Notes')] || '');
+      }
+    }
+
+    // Check order history
+    const ordersSheet = ss.getSheetByName('WHOLESALE_ORDERS');
+    if (ordersSheet && customer.email) {
+      const ordersData = ordersSheet.getDataRange().getValues();
+      const ordersHeaders = ordersData[0];
+      const customerOrders = ordersData.slice(1).filter(row => {
+        const email = String(row[ordersHeaders.indexOf('Customer_Email')] || '').toLowerCase();
+        return email === customer.email.toLowerCase();
+      });
+
+      customer.totalOrders = customerOrders.length;
+      if (customerOrders.length > 0) {
+        const dates = customerOrders.map(o => new Date(o[ordersHeaders.indexOf('Order_Date')] || ''));
+        customer.lastOrderDate = new Date(Math.max(...dates)).toLocaleDateString();
+      }
+    }
+
+    if (!customer.name) {
+      return { success: false, error: 'Customer not found' };
+    }
+
+    return { success: true, customer: customer };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Helper function to create a sheet if it doesn't exist
+ */
+function createSheet(ss, name, headers) {
+  try {
+    let sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
+      if (headers && headers.length > 0) {
+        sheet.appendRow(headers);
+      }
+    }
+    return sheet;
+  } catch (e) {
+    return null;
   }
 }

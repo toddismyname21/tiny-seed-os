@@ -348,6 +348,7 @@ The Chief of Staff has extensive backend functionality that was NEVER connected 
 |------|----------|---------|
 | `CLAUDE_INTEGRATION_STANDARDS.md` | claude_sessions/ | Mandatory development rules |
 | `COORDINATION_RULES.md` | claude_sessions/ | Inter-session communication |
+| `PHONE_PM_INSTRUCTIONS.md` | claude_sessions/pm_architect/ | Phone PM role for mobile coordination |
 | `MASTER_ARCHITECTURE.md` | root | System architecture |
 | `PROJECT_STATUS.md` | root | Progress tracking |
 | `API_CONFIG.md` | root | API reference |

@@ -40,6 +40,110 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-24 - Email_Chief_of_Staff_Claude (CHIEF OF STAFF INTELLIGENCE UPGRADE)
+
+### Files Modified
+- `/web_app/chief-of-staff.html` - Added user input step before AI email drafting
+- `/apps_script/MERGED TOTAL.js` - Enhanced email draft generation and Chief of Staff data access
+
+### Functions Modified
+- `generateAIDraftReply(threadId, userInstructions)` in `MERGED TOTAL.js` - Now accepts user instructions and incorporates them into AI draft
+- `generateReply()` in `chief-of-staff.html` - Now shows user input form before generating draft
+- `executeChiefOfStaffTool(toolName, input)` in `MERGED TOTAL.js` - Added 4 new tool handlers
+
+### Functions Added
+- `generateDraftWithUserInput()` in `chief-of-staff.html` - Generates AI draft with user's key points
+- `getShopifyGiftCardForCustomer(customerName, customerEmail)` in `MERGED TOTAL.js` - Retrieves Shopify gift card info
+- `getCSAMemberInfo(customerName, customerEmail)` in `MERGED TOTAL.js` - Retrieves CSA member balance and details
+- `updateCSAMemberBalance(customerEmail, amount, reason)` in `MERGED TOTAL.js` - Updates CSA account balance
+- `getComprehensiveCustomerInfo(customerIdentifier)` in `MERGED TOTAL.js` - Retrieves complete customer profile across all systems
+- `createSheet(ss, name, headers)` in `MERGED TOTAL.js` - Helper to create sheets if they don't exist
+
+### UI Components Added
+- `#userInputSection` - User input form shown before AI draft generation
+- `#userReplyInput` - Textarea for user to specify key points for reply
+
+### Tool Definitions Added (Chief of Staff AI)
+- `get_shopify_gift_card` - Look up customer gift card number and balance
+- `get_csa_balance` - Look up CSA member account balance
+- `update_csa_balance` - Add/subtract funds from CSA account
+- `get_customer_details` - Get comprehensive customer information
+
+### Reason
+Two critical upgrades requested to make Chief of Staff a true executive assistant:
+
+**UPGRADE 1: Email Draft with User Input**
+- Problem: AI was drafting emails without asking what user wanted to say
+- Solution: Added input form that appears BEFORE AI generation, allowing user to specify key points
+- Flow: User clicks "Draft Reply" → Input form appears → User types key points → AI generates draft incorporating those points
+
+**UPGRADE 2: Universal Data Access**
+- Problem: Chief of Staff couldn't access Shopify, CSA accounts, or customer data
+- Solution: Added 4 new AI tools with backend functions to access all customer data
+- Capabilities: Pull gift cards, check CSA balances, update accounts, get full customer context
+
+The Chief of Staff can now:
+- Pull Shopify gift card numbers for customers
+- Look up CSA account balances
+- Add/subtract funds to CSA accounts
+- Access comprehensive customer data for context during email responses
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no duplicates - these are new capabilities)
+- [x] No duplicates created
+
+### Integration Notes
+- New tools integrate with existing chatWithChiefOfStaff function
+- Uses existing CSA_Members and SHOPIFY_Orders sheets
+- Logs CSA transactions to CSA_Transactions sheet
+- All functions return standardized success/error response format
+
+---
+
+## 2026-01-24 - UX_Design_Claude (LOAN READINESS DASHBOARD WIDGET)
+
+### Files Modified
+- `/index.html` - Added Loan Readiness widget to main dashboard
+
+### CSS Added
+- `.loan-readiness-widget` - Main widget container with hover effects
+- `.loan-header` - Widget header with icon and title
+- `.loan-icon` - Styled landmark icon
+- `.loan-metrics` - Metrics display grid
+- `.loan-metric` and `.loan-metric-value` - Individual metric styling
+- `.loan-action` - Call-to-action button styling
+- Responsive breakpoints for mobile (max-width: 768px)
+
+### Functions Added
+- `loadLoanReadiness()` in `index.html` - Fetches and displays loan readiness metrics from localStorage
+
+### Changes Made
+1. Added CSS styling for the loan readiness widget (95 lines of CSS)
+2. Added HTML widget structure after stats grid (31 lines of HTML)
+3. Added `loadLoanReadiness()` function to populate metrics (36 lines of JS)
+4. Updated DOMContentLoaded event listener to call `loadLoanReadiness()`
+
+### Widget Features
+- Displays readiness score (0-100%)
+- Shows number of documents ready
+- Displays days to next action or "Ready" status
+- Links directly to `/web_app/loan-readiness.html` dashboard
+- Admin-only visibility (data-role="Admin")
+- Responsive design for mobile
+- Hover effects and smooth transitions
+- Uses existing color scheme (danger color #e63946)
+
+### Reason
+User requested a widget on the main OS dashboard that provides quick access to loan readiness status and links to the full loan-readiness.html dashboard. The widget matches existing design patterns (stat-card, invite-card) and integrates seamlessly with the dashboard.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - loan-readiness.html already exists
+- [x] Searched for existing loan widgets - none found
+- [x] No duplicates created - pure addition to existing dashboard
+
+---
+
 ## 2026-01-24 - Financial_Systems_Architect (UNIFIED LOAN APPLICATION COMMAND CENTER)
 
 ### Files Modified
