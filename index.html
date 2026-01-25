@@ -2952,6 +2952,129 @@
             font-size: 0.8rem;
             color: #888;
         }
+
+        /* Loan Readiness Widget */
+        .loan-readiness-widget {
+            background: linear-gradient(135deg, rgba(230, 57, 70, 0.1) 0%, rgba(230, 57, 70, 0.05) 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(230, 57, 70, 0.3);
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .loan-readiness-widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(230, 57, 70, 0.15);
+            border-color: rgba(230, 57, 70, 0.5);
+        }
+
+        .loan-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .loan-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, rgba(230, 57, 70, 0.3), rgba(244, 162, 97, 0.3));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #e63946;
+            flex-shrink: 0;
+        }
+
+        .loan-info h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            color: var(--text-primary);
+        }
+
+        .loan-info p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .loan-metrics {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .loan-metric {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .loan-metric-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #e63946;
+            line-height: 1;
+        }
+
+        .loan-metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .loan-action {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            color: white;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .loan-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(45, 90, 39, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .loan-readiness-widget {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .loan-metrics {
+                width: 100%;
+                justify-content: space-around;
+            }
+
+            .loan-action {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3076,6 +3199,10 @@
                     <i class="fas fa-shield-alt"></i>
                     <span>Food Safety</span>
                     <span class="badge success">NEW</span>
+                </a>
+                <a class="nav-item" href="web_app/schedule.html" title="Employee Scheduling Calendar">
+                    <i class="fas fa-user-clock"></i>
+                    <span>Employee Scheduling</span>
                 </a>
             </div>
 
@@ -3362,6 +3489,37 @@
                         <div class="stat-label">Bed Utilization</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Loan Readiness Widget -->
+            <div class="loan-readiness-widget" onclick="window.location.href='web_app/loan-readiness.html'" data-role="Admin">
+                <div class="loan-header">
+                    <div class="loan-icon">
+                        <i class="fas fa-landmark"></i>
+                    </div>
+                    <div class="loan-info">
+                        <h3>Loan Readiness</h3>
+                        <p>Track your farm financing progress</p>
+                    </div>
+                </div>
+                <div class="loan-metrics">
+                    <div class="loan-metric">
+                        <div class="loan-metric-value" id="loanReadinessScore">--</div>
+                        <div class="loan-metric-label">Readiness Score</div>
+                    </div>
+                    <div class="loan-metric">
+                        <div class="loan-metric-value" id="loanDocumentsReady">--</div>
+                        <div class="loan-metric-label">Documents Ready</div>
+                    </div>
+                    <div class="loan-metric">
+                        <div class="loan-metric-value" id="loanNextDeadline">--</div>
+                        <div class="loan-metric-label">Days to Action</div>
+                    </div>
+                </div>
+                <button class="loan-action">
+                    <i class="fas fa-arrow-right"></i>
+                    View Dashboard
+                </button>
             </div>
 
             <!-- Invite Team Members Section -->
@@ -4327,6 +4485,7 @@
             initKeyboardShortcuts();
             loadRecentCrops();
             loadMorningBrief();
+            loadLoanReadiness();
         });
 
         async function checkConnection() {
@@ -4623,6 +4782,41 @@
             document.getElementById('statTasks').textContent = tasksThisWeek;
             document.getElementById('statHarvest').textContent = harvestReady;
             document.getElementById('statUtilization').textContent = utilization + '%';
+        }
+
+        // ========================================
+        // LOAN READINESS WIDGET
+        // ========================================
+        async function loadLoanReadiness() {
+            try {
+                // Get readiness data from localStorage or set defaults
+                const readinessScore = localStorage.getItem('loanReadinessScore') || '0';
+                const documentsReady = localStorage.getItem('loanDocumentsReady') || '0';
+
+                // Calculate days to next action (estimate: 7 days if not completed)
+                const isCompleted = parseInt(readinessScore) >= 80;
+                const daysToAction = isCompleted ? 'Ready' : '7';
+
+                // Update widget display
+                const scoreEl = document.getElementById('loanReadinessScore');
+                const docsEl = document.getElementById('loanDocumentsReady');
+                const deadlineEl = document.getElementById('loanNextDeadline');
+
+                if (scoreEl) scoreEl.textContent = readinessScore + '%';
+                if (docsEl) docsEl.textContent = documentsReady;
+                if (deadlineEl) deadlineEl.textContent = daysToAction;
+
+            } catch (error) {
+                console.error('Error loading loan readiness:', error);
+                // Show default values on error
+                const scoreEl = document.getElementById('loanReadinessScore');
+                const docsEl = document.getElementById('loanDocumentsReady');
+                const deadlineEl = document.getElementById('loanNextDeadline');
+
+                if (scoreEl) scoreEl.textContent = '--';
+                if (docsEl) docsEl.textContent = '--';
+                if (deadlineEl) deadlineEl.textContent = '--';
+            }
         }
 
         // ========================================
