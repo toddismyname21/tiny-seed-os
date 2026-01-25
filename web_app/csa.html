@@ -2353,8 +2353,48 @@
                 </button>
             </div>
 
+            <!-- Season Status Banner (shows when season hasn't started or ending soon) -->
+            <div class="section" id="seasonStatusSection" style="display: none;">
+                <div class="box-card" id="seasonStatusCard" style="background: linear-gradient(135deg, #166534 0%, #22c55e 100%); color: white;">
+                    <div style="text-align: center; padding: 20px;">
+                        <div id="seasonIcon" style="font-size: 64px; margin-bottom: 16px;">🌱</div>
+                        <h2 id="seasonTitle" style="margin: 0 0 8px 0; font-size: 24px;">Your Season Starts Soon!</h2>
+                        <p id="seasonSubtitle" style="margin: 0 0 20px 0; opacity: 0.9;">Summer CSA begins June 1, 2026</p>
+                        <div id="seasonCountdown" style="display: flex; justify-content: center; gap: 16px; margin-bottom: 20px;">
+                            <div style="text-align: center;">
+                                <div id="countdownDays" style="font-size: 36px; font-weight: 700;">--</div>
+                                <div style="font-size: 12px; opacity: 0.8;">DAYS</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div id="countdownWeeks" style="font-size: 36px; font-weight: 700;">--</div>
+                                <div style="font-size: 12px; opacity: 0.8;">WEEKS</div>
+                            </div>
+                        </div>
+                        <div id="seasonCalendarPreview" style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 16px; text-align: left;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">📅 Your Season</div>
+                            <div id="seasonDates" style="font-size: 14px; opacity: 0.9;">June 1 - October 3, 2026</div>
+                            <div id="seasonWeeksTotal" style="font-size: 14px; opacity: 0.9; margin-top: 4px;">18 weeks of fresh produce</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Renewal Prompt (shows in final 5 weeks) -->
+            <div class="section" id="renewalSection" style="display: none;">
+                <div class="box-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 12px;">🍂</div>
+                        <h3 id="renewalTitle" style="margin: 0 0 8px 0;">5 Weeks Left!</h3>
+                        <p style="margin: 0 0 16px 0; opacity: 0.9;">Continue the harvest with our Fall & Winter CSA</p>
+                        <button class="btn" style="background: white; color: #d97706;" onclick="showRenewalOptions()">
+                            <i class="fas fa-leaf"></i> View Fall Options
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- This Week's Box -->
-            <div class="section">
+            <div class="section" id="currentBoxSection">
                 <div class="section-header">
                     <h2 class="section-title">This Week's Box</h2>
                     <button class="section-action" onclick="viewBoxDetails()">View Details</button>
@@ -2594,7 +2634,12 @@
                 </div>
 
                 <div class="settings-card">
-                    <div class="settings-title">Pickup Info</div>
+                    <div class="settings-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        Pickup Info
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="openEditPickupModal()">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
                     <div class="settings-row">
                         <span class="settings-label">Day</span>
                         <span class="settings-value" id="accountPickupDay">--</span>
@@ -2610,7 +2655,12 @@
                 </div>
 
                 <div class="settings-card">
-                    <div class="settings-title">Contact Info</div>
+                    <div class="settings-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        Contact Info
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="openEditContactModal()">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
                     <div class="settings-row">
                         <span class="settings-label">Name</span>
                         <span class="settings-value" id="accountName">--</span>
@@ -2783,6 +2833,73 @@
                 <button class="btn btn-primary" onclick="saveNotificationSettings()" style="width: 100%;">
                     Save Preferences
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Pickup Modal -->
+    <div class="modal-overlay" id="editPickupModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Pickup Details</h2>
+                <button class="modal-close" onclick="closeEditPickupModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Pickup Day</label>
+                    <select class="form-input" id="editPickupDay">
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Saturday">Saturday</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pickup Location</label>
+                    <select class="form-input" id="editPickupLocation">
+                        <option value="Farm - Zelienople">Farm - Zelienople</option>
+                        <option value="Lawrenceville Farmers Market">Lawrenceville Farmers Market</option>
+                        <option value="Bloomfield Saturday Market">Bloomfield Saturday Market</option>
+                        <option value="East Liberty">East Liberty</option>
+                        <option value="Sewickley">Sewickley</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 16px; display: flex; gap: 12px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditPickupModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="savePickupDetails()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Contact Modal -->
+    <div class="modal-overlay" id="editContactModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Contact Info</h2>
+                <button class="modal-close" onclick="closeEditContactModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-input" id="editName" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" class="form-input" id="editPhone" placeholder="(412) 555-1234">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <input type="text" class="form-input" id="editAddress" placeholder="Street address">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">City</label>
+                    <input type="text" class="form-input" id="editCity" placeholder="City">
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 16px; display: flex; gap: 12px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditContactModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="saveContactDetails()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -3318,6 +3435,98 @@
             document.getElementById('accountPickupDay').textContent = m.Pickup_Day || '--';
             document.getElementById('accountPickupLocation').textContent = m.Pickup_Location || '--';
             document.getElementById('accountPickupTime').textContent = m.Pickup_Time || '4-7pm';
+
+            // Season Status Logic
+            updateSeasonStatus(m);
+        }
+
+        function updateSeasonStatus(membership) {
+            const now = new Date();
+            const startDate = membership.Start_Date ? new Date(membership.Start_Date) : null;
+            const endDate = membership.End_Date ? new Date(membership.End_Date) : null;
+
+            const seasonSection = document.getElementById('seasonStatusSection');
+            const boxSection = document.getElementById('currentBoxSection');
+            const renewalSection = document.getElementById('renewalSection');
+
+            if (!startDate || !endDate) {
+                // No dates set - show box section
+                seasonSection.style.display = 'none';
+                boxSection.style.display = 'block';
+                renewalSection.style.display = 'none';
+                return;
+            }
+
+            // Calculate days until start or weeks remaining
+            const daysUntilStart = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
+            const daysUntilEnd = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+            const weeksRemaining = Math.ceil(daysUntilEnd / 7);
+
+            if (daysUntilStart > 0) {
+                // SEASON HASN'T STARTED YET
+                seasonSection.style.display = 'block';
+                boxSection.style.display = 'none';
+                renewalSection.style.display = 'none';
+
+                const weeksUntil = Math.ceil(daysUntilStart / 7);
+                document.getElementById('seasonIcon').textContent = '🌱';
+                document.getElementById('seasonTitle').textContent = 'Your Season Starts Soon!';
+                document.getElementById('seasonSubtitle').textContent = `${membership.Share_Type || 'CSA'} begins ${formatDateNice(startDate)}`;
+                document.getElementById('countdownDays').textContent = daysUntilStart;
+                document.getElementById('countdownWeeks').textContent = weeksUntil;
+                document.getElementById('seasonDates').textContent = `${formatDateNice(startDate)} - ${formatDateNice(endDate)}`;
+                document.getElementById('seasonWeeksTotal').textContent = `${membership.Total_Weeks || '--'} weeks of fresh produce`;
+
+                // Update box display to show "Coming Soon"
+                document.getElementById('boxWeek').textContent = `Starts ${formatDateNice(startDate)}`;
+                document.getElementById('boxPickup').innerHTML = `<i class="fas fa-calendar"></i> ${daysUntilStart} days away`;
+
+            } else if (weeksRemaining <= 5 && weeksRemaining > 0) {
+                // FINAL 5 WEEKS - Show renewal prompt
+                seasonSection.style.display = 'none';
+                boxSection.style.display = 'block';
+
+                // Check if they already have fall/winter CSA
+                const hasFallWinter = checkHasFallWinterCSA();
+                renewalSection.style.display = hasFallWinter ? 'none' : 'block';
+
+                if (!hasFallWinter) {
+                    document.getElementById('renewalTitle').textContent = `${weeksRemaining} Week${weeksRemaining !== 1 ? 's' : ''} Left!`;
+                }
+
+            } else if (daysUntilEnd < 0) {
+                // SEASON ENDED
+                seasonSection.style.display = 'block';
+                boxSection.style.display = 'none';
+                renewalSection.style.display = 'none';
+
+                document.getElementById('seasonIcon').textContent = '🍂';
+                document.getElementById('seasonTitle').textContent = 'Season Complete!';
+                document.getElementById('seasonSubtitle').textContent = 'Thank you for being a member';
+                document.getElementById('seasonCountdown').style.display = 'none';
+
+            } else {
+                // SEASON IS ACTIVE
+                seasonSection.style.display = 'none';
+                boxSection.style.display = 'block';
+                renewalSection.style.display = 'none';
+            }
+        }
+
+        function formatDateNice(date) {
+            return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        function checkHasFallWinterCSA() {
+            // TODO: Check if member has fall/winter share
+            // For now, return false to show renewal prompt
+            return false;
+        }
+
+        function showRenewalOptions() {
+            showToast('Opening fall CSA options...', 'info');
+            // Could open Shopify page or modal with fall options
+            window.open('https://tiny-seed-farmers-market.myshopify.com/collections/csa', '_blank');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -4109,6 +4318,101 @@
         // ═══════════════════════════════════════════════════════════════════════════
         // NOTIFICATION SETTINGS
         // ═══════════════════════════════════════════════════════════════════════════
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // EDIT PROFILE MODALS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function openEditPickupModal() {
+            const m = AppState.membership || {};
+            document.getElementById('editPickupDay').value = m.Pickup_Day || 'Tuesday';
+            document.getElementById('editPickupLocation').value = m.Pickup_Location || 'Farm - Zelienople';
+            document.getElementById('editPickupModal').style.display = 'flex';
+        }
+
+        function closeEditPickupModal() {
+            document.getElementById('editPickupModal').style.display = 'none';
+        }
+
+        async function savePickupDetails() {
+            const day = document.getElementById('editPickupDay').value;
+            const location = document.getElementById('editPickupLocation').value;
+
+            try {
+                const response = await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        pickupDay: day,
+                        pickupLocation: location
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    AppState.membership.Pickup_Day = day;
+                    AppState.membership.Pickup_Location = location;
+                    updateUI();
+                    closeEditPickupModal();
+                    showToast('Pickup details updated!', 'success');
+                } else {
+                    showToast(result.error || 'Failed to update', 'error');
+                }
+            } catch (error) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        function openEditContactModal() {
+            const c = AppState.customer || {};
+            document.getElementById('editName').value = c.Contact_Name || '';
+            document.getElementById('editPhone').value = c.Phone || '';
+            document.getElementById('editAddress').value = c.Address || '';
+            document.getElementById('editCity').value = c.City || '';
+            document.getElementById('editContactModal').style.display = 'flex';
+        }
+
+        function closeEditContactModal() {
+            document.getElementById('editContactModal').style.display = 'none';
+        }
+
+        async function saveContactDetails() {
+            const name = document.getElementById('editName').value;
+            const phone = document.getElementById('editPhone').value;
+            const address = document.getElementById('editAddress').value;
+            const city = document.getElementById('editCity').value;
+
+            try {
+                const response = await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        customerId: AppState.customer?.Customer_ID,
+                        contactName: name,
+                        phone: phone,
+                        address: address,
+                        city: city
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    AppState.customer.Contact_Name = name;
+                    AppState.customer.Phone = phone;
+                    AppState.customer.Address = address;
+                    AppState.customer.City = city;
+                    updateUI();
+                    closeEditContactModal();
+                    showToast('Contact info updated!', 'success');
+                } else {
+                    showToast(result.error || 'Failed to update', 'error');
+                }
+            } catch (error) {
+                showToast('Connection error', 'error');
+            }
+        }
 
         function showNotificationSettings() {
             // Restore current settings to UI
