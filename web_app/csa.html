@@ -2874,7 +2874,10 @@
         // ═══════════════════════════════════════════════════════════════════════════
 
         async function sendMagicLink() {
+            console.log('sendMagicLink called');
             const email = document.getElementById('emailInput').value.trim();
+            console.log('Email:', email);
+
             if (!email) {
                 showToast('Please enter your email', 'error');
                 return;
@@ -2882,22 +2885,29 @@
 
             const btn = document.getElementById('sendLinkBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading-spinner"></span>';
+            btn.innerHTML = '<span class="loading-spinner"></span> Sending...';
 
             try {
-                const response = await fetch(`${API_URL}?action=sendCSAMagicLink&email=${encodeURIComponent(email)}`);
+                const url = `${API_URL}?action=sendCSAMagicLink&email=${encodeURIComponent(email)}`;
+                console.log('Fetching:', url);
+
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+
                 const result = await response.json();
+                console.log('Result:', result);
 
                 if (result.success) {
                     document.getElementById('loginForm').style.display = 'none';
                     document.getElementById('magicLinkSent').style.display = 'block';
                     document.getElementById('sentToEmail').textContent = email;
+                    showToast('Magic link sent! Check your email.', 'success');
                 } else {
                     showToast(result.error || 'Email not found in our system', 'error');
                 }
             } catch (error) {
                 console.error('Magic link error:', error);
-                showToast('Connection error. Please try again.', 'error');
+                showToast('Connection error: ' + error.message, 'error');
             }
 
             btn.disabled = false;
