@@ -14162,7 +14162,8 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    const action = data.action;
+    // Check for action in body OR URL parameters (Shopify webhooks use URL params)
+    const action = data.action || (e.parameter && e.parameter.action);
 
     switch(action) {
       // ============ CRITICAL POST ENDPOINTS ============
@@ -54278,7 +54279,9 @@ function registerCSAOrderWebhook() {
 // WEBHOOK HANDLERS (for Shopify webhooks)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function handleShopifyWebhook(e) {
+function handleShopifyWebhookFromEvent(e) {
+  // NOTE: This function expects the raw event object from doGet/doPost
+  // For doPost calls with parsed JSON, use handleShopifyWebhook(payload) instead
   try {
     const topic = e.parameter.topic || 'unknown';
     const payload = JSON.parse(e.postData.contents);
