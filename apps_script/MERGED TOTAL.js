@@ -27957,15 +27957,23 @@ function verifyCSAMagicLink(params) {
     const nameCol = customerHeaders.indexOf('Contact_Name');
     const emailCol = customerHeaders.indexOf('Email');
     const phoneCol = customerHeaders.indexOf('Phone');
+    const addressCol = customerHeaders.indexOf('Address');
+    const cityCol = customerHeaders.indexOf('City');
+    const secondaryEmailCol = customerHeaders.indexOf('Secondary_Email');
+    const secondaryPhoneCol = customerHeaders.indexOf('Secondary_Phone');
 
     let customer = null;
     for (let i = 1; i < customerData.length; i++) {
       if (customerData[i][custIdCol] === customerId) {
         customer = {
-          customerId: customerData[i][custIdCol],
-          name: customerData[i][nameCol],
-          email: customerData[i][emailCol],
-          phone: customerData[i][phoneCol]
+          Customer_ID: customerData[i][custIdCol],
+          Contact_Name: customerData[i][nameCol],
+          Email: customerData[i][emailCol],
+          Phone: customerData[i][phoneCol],
+          Address: addressCol >= 0 ? customerData[i][addressCol] : '',
+          City: cityCol >= 0 ? customerData[i][cityCol] : '',
+          Secondary_Email: secondaryEmailCol >= 0 ? customerData[i][secondaryEmailCol] : '',
+          Secondary_Phone: secondaryPhoneCol >= 0 ? customerData[i][secondaryPhoneCol] : ''
         };
         break;
       }
@@ -27987,22 +27995,23 @@ function verifyCSAMagicLink(params) {
         const status = csaData[i][getCol('Status')];
         if (status === 'Active' || status === 'Pending' || !status) {
           membership = {
-            memberId: csaData[i][getCol('Member_ID')],
-            shareType: csaData[i][getCol('Share_Type')],
-            shareSize: csaData[i][getCol('Share_Size')],
-            season: csaData[i][getCol('Season')],
-            startDate: csaData[i][getCol('Start_Date')],
-            endDate: csaData[i][getCol('End_Date')],
-            totalWeeks: csaData[i][getCol('Total_Weeks')],
-            weeksRemaining: csaData[i][getCol('Weeks_Remaining')],
-            pickupDay: csaData[i][getCol('Pickup_Day')],
-            pickupLocation: csaData[i][getCol('Pickup_Location')],
-            swapCredits: csaData[i][getCol('Swap_Credits')] || 3,
-            vacationWeeksUsed: csaData[i][getCol('Vacation_Weeks_Used')] || 0,
-            vacationWeeksMax: csaData[i][getCol('Vacation_Weeks_Max')] || 4,
-            frequency: csaData[i][getCol('Frequency')],
-            isOnboarded: csaData[i][getCol('Is_Onboarded')] || false,
-            status: status || 'Active'
+            Member_ID: csaData[i][getCol('Member_ID')],
+            Share_Type: csaData[i][getCol('Share_Type')],
+            Share_Size: csaData[i][getCol('Share_Size')],
+            Season: csaData[i][getCol('Season')],
+            Start_Date: csaData[i][getCol('Start_Date')],
+            End_Date: csaData[i][getCol('End_Date')],
+            Total_Weeks: csaData[i][getCol('Total_Weeks')],
+            Weeks_Remaining: csaData[i][getCol('Weeks_Remaining')],
+            Pickup_Day: csaData[i][getCol('Pickup_Day')],
+            Pickup_Location: csaData[i][getCol('Pickup_Location')],
+            Swap_Credits: csaData[i][getCol('Swap_Credits')] || 5,  // Updated to 5 swaps per season
+            Vacation_Weeks_Used: csaData[i][getCol('Vacation_Weeks_Used')] || 0,
+            Vacation_Weeks_Max: csaData[i][getCol('Vacation_Weeks_Max')] || 4,
+            Frequency: csaData[i][getCol('Frequency')],
+            Is_Onboarded: csaData[i][getCol('Is_Onboarded')] || false,
+            Status: status || 'Active',
+            Email: csaData[i][getCol('Email')]
           };
           break;
         }
@@ -28346,7 +28355,7 @@ function verifyCSASMSCode(params) {
             weeksRemaining: csaData[i][getCol('Weeks_Remaining')],
             pickupDay: csaData[i][getCol('Pickup_Day')],
             pickupLocation: csaData[i][getCol('Pickup_Location')],
-            swapCredits: csaData[i][getCol('Swap_Credits')] || 3,
+            swapCredits: csaData[i][getCol('Swap_Credits')] || 5,
             vacationWeeksUsed: csaData[i][getCol('Vacation_Weeks_Used')] || 0,
             vacationWeeksMax: csaData[i][getCol('Vacation_Weeks_Max')] || 4,
             frequency: csaData[i][getCol('Frequency')],
@@ -30302,7 +30311,7 @@ function addTestCSAMember(params) {
       'Pickup_Location': 'Farm Pickup',
       'Delivery_Address': '',
       'Customization_Allowed': true,
-      'Swap_Credits': 3,
+      'Swap_Credits': 5,
       'Vacation_Weeks_Used': 0,
       'Vacation_Weeks_Max': 4,
       'Status': 'Active',
@@ -30361,7 +30370,7 @@ function createCSAMember(data) {
       data.pickupLocation || '',                          // Pickup_Location
       data.deliveryAddress || '',                         // Delivery_Address
       data.customizationAllowed !== false,                // Customization_Allowed
-      data.swapCredits || 3,                              // Swap_Credits
+      data.swapCredits || 5,                              // Swap_Credits
       0,                                                  // Vacation_Weeks_Used
       data.vacationWeeksMax || 4,                         // Vacation_Weeks_Max
       'Active',                                           // Status
@@ -30486,7 +30495,7 @@ function importShopifyCSAMembers(csvData) {
           pickupInfo.location,                                    // Pickup_Location
           pickupInfo.isDelivery ? street + ', ' + city : '',      // Delivery_Address
           true,                                                   // Customization_Allowed
-          3,                                                      // Swap_Credits
+          5,                                                      // Swap_Credits
           0,                                                      // Vacation_Weeks_Used
           4,                                                      // Vacation_Weeks_Max
           'Active',                                               // Status
@@ -31936,7 +31945,7 @@ function createCSAMemberFromShopify(data) {
   if (getCol('Pickup_Location') >= 0) rowData[getCol('Pickup_Location')] = data.pickupInfo.location || '';
   if (getCol('Delivery_Address') >= 0) rowData[getCol('Delivery_Address')] = data.pickupInfo.isDelivery ? (data.street + ', ' + data.city) : '';
   if (getCol('Customization_Allowed') >= 0) rowData[getCol('Customization_Allowed')] = true;
-  if (getCol('Swap_Credits') >= 0) rowData[getCol('Swap_Credits')] = 3;
+  if (getCol('Swap_Credits') >= 0) rowData[getCol('Swap_Credits')] = 5;
   if (getCol('Vacation_Weeks_Used') >= 0) rowData[getCol('Vacation_Weeks_Used')] = 0;
   if (getCol('Vacation_Weeks_Max') >= 0) rowData[getCol('Vacation_Weeks_Max')] = 4;
   if (getCol('Status') >= 0) rowData[getCol('Status')] = 'Active';
@@ -32821,15 +32830,16 @@ function getCSAPickupHistory(params) {
 }
 
 /**
- * Update CSA member preferences (notifications, dislikes, etc.)
+ * Update CSA member preferences (notifications, dislikes, etc.) and contact details
  */
 function updateCSAMemberPreferences(data) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const memberId = data.memberId;
+    const customerId = data.customerId;
 
-    if (!memberId) {
-      return { success: false, error: 'Member ID required' };
+    if (!memberId && !customerId) {
+      return { success: false, error: 'Member ID or Customer ID required' };
     }
 
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
@@ -32842,37 +32852,108 @@ function updateCSAMemberPreferences(data) {
     const memberIdIdx = headers.indexOf('Member_ID');
     const prefsIdx = headers.indexOf('Preferences');
     const modifiedIdx = headers.indexOf('Last_Modified');
+    const customerIdIdx = headers.indexOf('Customer_ID');
 
+    let memberRow = -1;
+    let foundCustomerId = customerId;
+
+    // Find member and get Customer_ID
     for (let i = 1; i < csaData.length; i++) {
       if (csaData[i][memberIdIdx] === memberId) {
-        let prefs = {};
-        try {
-          prefs = csaData[i][prefsIdx] ? JSON.parse(csaData[i][prefsIdx]) : {};
-        } catch (e) {
-          prefs = {};
+        memberRow = i;
+        if (!foundCustomerId && customerIdIdx >= 0) {
+          foundCustomerId = csaData[i][customerIdIdx];
         }
-
-        // Merge new preferences
-        if (data.dislikes !== undefined) prefs.dislikes = data.dislikes;
-        if (data.notifications !== undefined) prefs.notifications = data.notifications;
-        if (data.communicationMethod !== undefined) prefs.communication_method = data.communicationMethod;
-        if (data.phone !== undefined) prefs.phone = data.phone;
-
-        // Update sheet
-        csaSheet.getRange(i + 1, prefsIdx + 1).setValue(JSON.stringify(prefs));
-        if (modifiedIdx >= 0) {
-          csaSheet.getRange(i + 1, modifiedIdx + 1).setValue(new Date());
-        }
-
-        return {
-          success: true,
-          message: 'Preferences updated',
-          preferences: prefs
-        };
+        break;
       }
     }
 
-    return { success: false, error: 'Member not found' };
+    if (memberRow === -1) {
+      return { success: false, error: 'Member not found' };
+    }
+
+    // Update CSA_Members preferences
+    let prefs = {};
+    try {
+      prefs = csaData[memberRow][prefsIdx] ? JSON.parse(csaData[memberRow][prefsIdx]) : {};
+    } catch (e) {
+      prefs = {};
+    }
+
+    // Merge new preferences
+    if (data.dislikes !== undefined) prefs.dislikes = data.dislikes;
+    if (data.notifications !== undefined) prefs.notifications = data.notifications;
+    if (data.communicationMethod !== undefined) prefs.communication_method = data.communicationMethod;
+    if (data.phone !== undefined) prefs.phone = data.phone;
+    if (data.secondaryEmail !== undefined) prefs.secondary_email = data.secondaryEmail;
+    if (data.secondaryPhone !== undefined) prefs.secondary_phone = data.secondaryPhone;
+
+    // Update CSA_Members sheet
+    csaSheet.getRange(memberRow + 1, prefsIdx + 1).setValue(JSON.stringify(prefs));
+    if (modifiedIdx >= 0) {
+      csaSheet.getRange(memberRow + 1, modifiedIdx + 1).setValue(new Date());
+    }
+
+    // Also update CUSTOMERS sheet with contact details
+    if (foundCustomerId && (data.contactName || data.phone || data.address || data.city ||
+        data.secondaryEmail || data.secondaryPhone)) {
+      const custSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+      if (custSheet) {
+        const custData = custSheet.getDataRange().getValues();
+        const custHeaders = custData[0];
+        const custIdIdx = custHeaders.indexOf('Customer_ID');
+        const contactNameIdx = custHeaders.indexOf('Contact_Name');
+        const phoneIdx = custHeaders.indexOf('Phone');
+        const addressIdx = custHeaders.indexOf('Address');
+        const cityIdx = custHeaders.indexOf('City');
+
+        // Find or add Secondary columns - using ensureColumnExists helper
+        let secondaryEmailIdx = custHeaders.indexOf('Secondary_Email');
+        let secondaryPhoneIdx = custHeaders.indexOf('Secondary_Phone');
+
+        // If columns don't exist, add them
+        if (secondaryEmailIdx === -1) {
+          custSheet.getRange(1, custHeaders.length + 1).setValue('Secondary_Email');
+          secondaryEmailIdx = custHeaders.length;
+        }
+        if (secondaryPhoneIdx === -1) {
+          const currentWidth = secondaryEmailIdx === custHeaders.length ? custHeaders.length + 1 : custHeaders.length;
+          custSheet.getRange(1, currentWidth + 1).setValue('Secondary_Phone');
+          secondaryPhoneIdx = currentWidth;
+        }
+
+        for (let j = 1; j < custData.length; j++) {
+          if (custData[j][custIdIdx] === foundCustomerId) {
+            // Update contact details
+            if (data.contactName && contactNameIdx >= 0) {
+              custSheet.getRange(j + 1, contactNameIdx + 1).setValue(data.contactName);
+            }
+            if (data.phone && phoneIdx >= 0) {
+              custSheet.getRange(j + 1, phoneIdx + 1).setValue(data.phone);
+            }
+            if (data.address && addressIdx >= 0) {
+              custSheet.getRange(j + 1, addressIdx + 1).setValue(data.address);
+            }
+            if (data.city && cityIdx >= 0) {
+              custSheet.getRange(j + 1, cityIdx + 1).setValue(data.city);
+            }
+            if (data.secondaryEmail !== undefined) {
+              custSheet.getRange(j + 1, secondaryEmailIdx + 1).setValue(data.secondaryEmail);
+            }
+            if (data.secondaryPhone !== undefined) {
+              custSheet.getRange(j + 1, secondaryPhoneIdx + 1).setValue(data.secondaryPhone);
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Preferences and contact details updated',
+      preferences: prefs
+    };
   } catch (error) {
     return { success: false, error: error.toString() };
   }

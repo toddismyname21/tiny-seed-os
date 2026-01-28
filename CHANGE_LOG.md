@@ -40,6 +40,32 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-27 - Backend_Claude (CSA PORTAL MULTIPLE CONTACTS + SWAP CREDITS)
+
+### Files Modified
+- `web_app/csa.html` - Added multiple email/phone support in Edit Contact Modal
+- `apps_script/MERGED TOTAL.js` - Updated backend for secondary contacts + 5 swap credits
+
+### Functions Modified
+- `updateCSAMemberPreferences()` - Now handles Secondary_Email, Secondary_Phone, and updates CUSTOMERS sheet
+- `verifyCSAMagicLink()` - Returns Secondary_Email, Secondary_Phone, and uses underscore_case property names
+
+### Changes Made
+1. Edit Contact Modal now supports:
+   - Primary email (read-only - login email)
+   - Secondary email for household members
+   - Primary and secondary phone numbers
+2. Updated all swap credit defaults from 3 to 5 per season
+3. Backend auto-creates Secondary_Email and Secondary_Phone columns in CUSTOMERS sheet if missing
+4. Verified Flex CSA gift card functionality (already built and working)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-01-24 - PM_Architect_Claude (SHOPIFY WEBHOOK REGISTRATION)
 
 ### Action Taken
