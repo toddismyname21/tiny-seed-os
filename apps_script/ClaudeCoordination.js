@@ -1456,9 +1456,60 @@ function getCoordinationMorningBrief() {
  * Get overall Claude status for the command center
  */
 function getClaudeStatus() {
-  const sessionsResult = getActiveSessions();
-  const sessions = Array.isArray(sessionsResult) ? sessionsResult : (sessionsResult.sessions || []);
-  const activeSessions = sessions.filter(s => s.status === 'active' || s.status === 'stale');
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Check for registered sessions
+  let activeSessions = [];
+  const sessionsSheet = ss.getSheetByName(COORDINATION_SHEETS.SESSIONS);
+  if (sessionsSheet) {
+    const data = sessionsSheet.getDataRange().getValues();
+    const now = new Date();
+    const staleThreshold = 30 * 60 * 1000; // 30 minutes
+
+    for (let i = 1; i < data.length; i++) {
+      if (!data[i][0]) continue; // Skip empty rows
+      const status = String(data[i][4]).trim().toLowerCase();
+      const lastActive = new Date(data[i][3]);
+      const isStale = (now - lastActive) > staleThreshold;
+
+      if (status === 'active') {
+        activeSessions.push({
+          sessionId: data[i][0],
+          role: data[i][1],
+          startedAt: data[i][2],
+          lastActive: data[i][3],
+          status: isStale ? 'stale' : 'active',
+          currentTask: data[i][5] || data[i][6] || 'Ready',
+          contextSummary: data[i][6]
+        });
+      }
+    }
+  }
+
+  // Fallback: Check for recent messages from CLAUDE_CODE (within last 5 minutes)
+  if (activeSessions.length === 0) {
+    const messagesSheet = ss.getSheetByName(COORDINATION_SHEETS.MESSAGES);
+    if (messagesSheet) {
+      const msgData = messagesSheet.getDataRange().getValues();
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+      for (let i = msgData.length - 1; i >= 1 && i >= msgData.length - 20; i--) {
+        const msgTime = new Date(msgData[i][1]);
+        const fromRole = String(msgData[i][2]);
+
+        if (fromRole.includes('CLAUDE') && msgTime > fiveMinAgo) {
+          // Recent message from Claude - consider online
+          return {
+            success: true,
+            status: 'active',
+            currentTask: 'Responding to messages',
+            sessions: [{ role: fromRole, status: 'active', lastActive: msgTime.toISOString() }],
+            message: 'Claude active (recent messages)'
+          };
+        }
+      }
+    }
+  }
 
   if (activeSessions.length === 0) {
     return {

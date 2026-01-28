@@ -1,3 +1,1 @@
-// ChefCommunications.js - MERGED INTO "MERGED TOTAL.js"
-// This file intentionally empty to prevent duplicate declarations
-// All code has been consolidated into MERGED TOTAL.js
+// This module has been merged into MERGED TOTAL.js
