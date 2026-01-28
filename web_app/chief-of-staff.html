@@ -1043,17 +1043,14 @@
 
     async function loadCommunications() {
       try {
-        // Load both email and SMS data
-        const [emailRes, smsRes] = await Promise.all([
-          fetch(`${API_BASE}?action=getEmailInboxState`).then(r => r.json()).catch(() => ({ success: false })),
-          fetch(`${API_BASE}?action=getSMSLog`).then(r => r.json()).catch(() => ({ success: false }))
-        ]);
+        // Load combined communications (email + SMS)
+        const commsRes = await fetch(`${API_BASE}?action=getCombinedCommunications`).then(r => r.json()).catch(() => ({ success: false }));
 
         communications = [];
 
-        // Process emails
-        if (emailRes.success && emailRes.emails) {
-          emailRes.emails.forEach(e => {
+        // Process emails from combined response
+        if (commsRes.success && commsRes.emails) {
+          commsRes.emails.forEach(e => {
             communications.push({
               id: e.threadId || e.messageId,
               type: 'email',
@@ -1072,9 +1069,9 @@
           });
         }
 
-        // Process SMS
-        if (smsRes.success && smsRes.messages) {
-          smsRes.messages.forEach(s => {
+        // Process SMS from combined response
+        if (commsRes.success && commsRes.messages) {
+          commsRes.messages.forEach(s => {
             communications.push({
               id: s.messageId || s.id,
               type: 'sms',

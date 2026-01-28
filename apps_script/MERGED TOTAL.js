@@ -4029,6 +4029,67 @@ function reclassifyEmail(threadId, newPriority, newCategory) {
 }
 
 /**
+ * Reclassify an SMS message priority
+ */
+function reclassifySMS(messageId, newPriority) {
+  try {
+    if (!messageId) {
+      return { success: false, error: 'Message ID required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SMS_LOG_SHEET);
+
+    if (!sheet) {
+      return { success: false, error: 'SMS log sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Message_ID');
+    const priorityCol = headers.indexOf('Priority');
+
+    if (idCol === -1 || priorityCol === -1) {
+      return { success: false, error: 'Required columns not found' };
+    }
+
+    // Find the row
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === messageId) {
+        rowIndex = i + 1; // +1 for sheet row (1-indexed)
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'SMS message not found' };
+    }
+
+    if (newPriority && ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(newPriority)) {
+      sheet.getRange(rowIndex, priorityCol + 1).setValue(newPriority);
+
+      // Log for AI learning
+      logChiefOfStaffAudit({
+        agent: 'USER',
+        action: 'RECLASSIFY_SMS',
+        messageId: messageId,
+        input: { newPriority },
+        output: { success: true },
+        humanOverride: true,
+        overrideReason: 'User reclassification'
+      });
+
+      return { success: true, data: { messageId, newPriority } };
+    }
+
+    return { success: false, error: 'Invalid priority' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Resolve an email thread
  */
 function resolveEmail(threadId, notes = '') {
@@ -12076,8 +12137,12 @@ function doGet(e) {
 
       case 'getCombinedCommunications':
         return jsonResponse(getCombinedCommunications(e.parameter));
+      case 'getActionQueue':
+        return jsonResponse(getActionQueue(e.parameter));
       case 'reclassifyEmail':
         return jsonResponse(reclassifyEmail(e.parameter.threadId, e.parameter.newPriority, e.parameter.newCategory));
+      case 'reclassifySMS':
+        return jsonResponse(reclassifySMS(e.parameter.id, e.parameter.priority));
       case 'getEmailDetail':
         return jsonResponse(getEmailDetail(e.parameter.threadId));
       case 'archiveEmail':
