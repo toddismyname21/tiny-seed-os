@@ -1048,44 +1048,23 @@
 
         communications = [];
 
-        // Process emails from combined response
-        if (commsRes.success && commsRes.emails) {
-          commsRes.emails.forEach(e => {
+        // Process combined data - backend returns { success, data: [...], counts, total }
+        if (commsRes.success && commsRes.data && Array.isArray(commsRes.data)) {
+          commsRes.data.forEach(item => {
             communications.push({
-              id: e.threadId || e.messageId,
-              type: 'email',
-              from: e.fromName || e.from,
-              subject: e.subject,
-              summary: e.aiSummary || '',
-              priority: e.priority || 'MEDIUM',
-              status: e.status,
-              category: e.category,
-              intent: e.aiSuggestedAction,
-              sentiment: e.sentiment,
-              hasCommitment: e.hasCommitment,
-              receivedAt: e.receivedAt,
-              isUnread: e.status === 'NEW'
-            });
-          });
-        }
-
-        // Process SMS from combined response
-        if (commsRes.success && commsRes.messages) {
-          commsRes.messages.forEach(s => {
-            communications.push({
-              id: s.messageId || s.id,
-              type: 'sms',
-              from: s.contactName || s.phoneNumber,
-              subject: s.message ? s.message.substring(0, 50) + '...' : '',
-              summary: s.aiSummary || s.message,
-              priority: s.priority || 'MEDIUM',
-              status: s.status,
-              category: s.category,
-              intent: s.intent,
-              sentiment: s.sentiment,
-              hasCommitment: s.hasCommitment,
-              receivedAt: s.timestamp,
-              isUnread: s.status === 'NEW'
+              id: item.id,
+              type: item.type || 'email',
+              from: item.from,
+              subject: item.subject,
+              summary: item.preview || '',
+              priority: item.priority || 'MEDIUM',
+              status: item.status,
+              category: item.category,
+              intent: item.suggestedAction,
+              sentiment: item.sentiment,
+              hasCommitment: item.hasCommitment,
+              receivedAt: item.timestamp,
+              isUnread: item.status === 'NEW'
             });
           });
         }
