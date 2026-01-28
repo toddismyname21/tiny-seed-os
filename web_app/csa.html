@@ -2884,10 +2884,38 @@
                     <label class="form-label">Name</label>
                     <input type="text" class="form-input" id="editName" placeholder="Your name">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Phone</label>
-                    <input type="tel" class="form-input" id="editPhone" placeholder="(412) 555-1234">
+
+                <div style="background: var(--bg-subtle); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
+                        <i class="fas fa-envelope" style="margin-right: 8px; color: var(--primary);"></i>Email Addresses
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label class="form-label" style="font-size: 12px; color: var(--text-secondary);">Primary Email (Login)</label>
+                        <input type="email" class="form-input" id="editPrimaryEmail" readonly style="background: var(--bg-card); opacity: 0.7; cursor: not-allowed;">
+                        <small style="color: var(--text-secondary); font-size: 11px;">Contact us to change your login email</small>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" style="font-size: 12px; color: var(--text-secondary);">Secondary Email (Optional)</label>
+                        <input type="email" class="form-input" id="editSecondaryEmail" placeholder="partner@email.com">
+                        <small style="color: var(--text-secondary); font-size: 11px;">Household member or backup</small>
+                    </div>
                 </div>
+
+                <div style="background: var(--bg-subtle); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
+                        <i class="fas fa-phone" style="margin-right: 8px; color: var(--primary);"></i>Phone Numbers
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label class="form-label" style="font-size: 12px; color: var(--text-secondary);">Primary Phone</label>
+                        <input type="tel" class="form-input" id="editPhone" placeholder="(412) 555-1234">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" style="font-size: 12px; color: var(--text-secondary);">Secondary Phone (Optional)</label>
+                        <input type="tel" class="form-input" id="editSecondaryPhone" placeholder="(412) 555-5678">
+                        <small style="color: var(--text-secondary); font-size: 11px;">Household member or backup</small>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Address</label>
                     <input type="text" class="form-input" id="editAddress" placeholder="Street address">
@@ -4366,8 +4394,12 @@
 
         function openEditContactModal() {
             const c = AppState.customer || {};
+            const m = AppState.membership || {};
             document.getElementById('editName').value = c.Contact_Name || '';
+            document.getElementById('editPrimaryEmail').value = m.Email || c.Email || '';
+            document.getElementById('editSecondaryEmail').value = c.Secondary_Email || '';
             document.getElementById('editPhone').value = c.Phone || '';
+            document.getElementById('editSecondaryPhone').value = c.Secondary_Phone || '';
             document.getElementById('editAddress').value = c.Address || '';
             document.getElementById('editCity').value = c.City || '';
             document.getElementById('editContactModal').style.display = 'flex';
@@ -4379,7 +4411,9 @@
 
         async function saveContactDetails() {
             const name = document.getElementById('editName').value;
+            const secondaryEmail = document.getElementById('editSecondaryEmail').value;
             const phone = document.getElementById('editPhone').value;
+            const secondaryPhone = document.getElementById('editSecondaryPhone').value;
             const address = document.getElementById('editAddress').value;
             const city = document.getElementById('editCity').value;
 
@@ -4391,7 +4425,9 @@
                         memberId: AppState.membership?.Member_ID,
                         customerId: AppState.customer?.Customer_ID,
                         contactName: name,
+                        secondaryEmail: secondaryEmail,
                         phone: phone,
+                        secondaryPhone: secondaryPhone,
                         address: address,
                         city: city
                     })
@@ -4400,7 +4436,9 @@
 
                 if (result.success) {
                     AppState.customer.Contact_Name = name;
+                    AppState.customer.Secondary_Email = secondaryEmail;
                     AppState.customer.Phone = phone;
+                    AppState.customer.Secondary_Phone = secondaryPhone;
                     AppState.customer.Address = address;
                     AppState.customer.City = city;
                     updateUI();
