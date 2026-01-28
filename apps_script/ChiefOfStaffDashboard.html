@@ -7,15 +7,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #0a0a0a;
-      --bg-secondary: #141414;
-      --bg-card: #1a1a1a;
-      --bg-hover: #252525;
-      --bg-input: #1f1f1f;
-      --text-primary: #ffffff;
-      --text-secondary: #a0a0a0;
-      --text-muted: #666666;
-      --border-color: #2a2a2a;
+      /* Matching Tiny Seed OS color palette */
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-hover: #334155;
+      --bg-input: #1e293b;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border-color: #334155;
       --accent-green: #22c55e;
       --accent-blue: #3b82f6;
       --accent-purple: #8b5cf6;
@@ -745,6 +746,12 @@
         <h1><span style="font-size: 24px;">🌱</span> Chief of Staff</h1>
         <div class="header-stats">
           <div class="header-stat">
+            <span id="api-status" style="display: flex; align-items: center; gap: 6px;">
+              <span id="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span>
+              <span id="status-text">Connecting...</span>
+            </span>
+          </div>
+          <div class="header-stat">
             <span>Critical:</span>
             <span class="count critical" id="critical-count">0</span>
           </div>
@@ -962,8 +969,8 @@
   </style>
 
   <script>
-    // PRODUCTION API - Connected Phase 1 (2026-01-27)
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+    // PRODUCTION API - COS Phase 2 (2026-01-28)
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxCe6CsPMQapQ6MU3pXtXKw5jDAyTnDblX5xSDH919iqs4Ny8774skd0YI73vSoLUmL/exec';
 
     let communications = [];
     let actions = [];
@@ -978,9 +985,44 @@
     // ═══════════════════════════════════════════════════════════════════════════
 
     document.addEventListener('DOMContentLoaded', () => {
-      loadAllData();
+      checkAPIConnection();
       autoResizeTextarea();
     });
+
+    async function checkAPIConnection() {
+      updateStatus('connecting', 'Connecting...');
+      try {
+        const response = await fetch(`${API_BASE}?action=getEmailCategories`);
+        const data = await response.json();
+
+        if (data.success) {
+          updateStatus('connected', 'Connected');
+          loadAllData();
+        } else {
+          updateStatus('error', 'API Error');
+          showToast('API returned error: ' + (data.error || 'Unknown'), 'error');
+        }
+      } catch (error) {
+        updateStatus('error', 'Connection Failed');
+        showToast('Cannot connect to API: ' + error.message, 'error');
+        console.error('API Connection Error:', error);
+      }
+    }
+
+    function updateStatus(status, text) {
+      const dot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+
+      statusText.textContent = text;
+
+      if (status === 'connected') {
+        dot.style.background = '#22c55e';
+      } else if (status === 'error') {
+        dot.style.background = '#ef4444';
+      } else {
+        dot.style.background = '#f59e0b';
+      }
+    }
 
     async function loadAllData() {
       await Promise.all([
@@ -991,7 +1033,7 @@
     }
 
     function refreshAll() {
-      loadAllData();
+      checkAPIConnection();
       showToast('Refreshing data...', 'success');
     }
 
