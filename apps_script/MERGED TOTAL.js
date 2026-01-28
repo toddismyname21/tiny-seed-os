@@ -13682,6 +13682,18 @@ function doGet(e) {
       case 'chatFast':
         return jsonResponse(chatWithChiefOfStaffFast(e.parameter.message));
 
+      // ============ CHIEF OF STAFF - PHASE 2 AUTONOMOUS ============
+      case 'setupCOSAutonomousTriggers':
+        return jsonResponse(setupCOSAutonomousTriggers());
+      case 'createEmailDraft':
+        return jsonResponse(createEmailDraftForApproval(e.parameter));
+      case 'processSMSEmailApproval':
+        return jsonResponse(processSMSEmailApproval(e.parameter));
+      case 'runCOSProactiveScanning':
+        return jsonResponse(runCOSProactiveScanning());
+      case 'getPendingDrafts':
+        return jsonResponse(getPendingEmailDrafts());
+
       // ============ CHIEF OF STAFF - MEMORY SYSTEM ============
       case 'rememberContact':
         return jsonResponse(rememberContact(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
@@ -79286,5 +79298,744 @@ function createSheet(ss, name, headers) {
     return sheet;
   } catch (e) {
     return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHIEF OF STAFF PHASE 2: AUTONOMOUS OPERATION
+// Added: 2026-01-27
+// Draft → Edit → Execute protocol with confidence scoring
+// ═══════════════════════════════════════════════════════════════════════════
+
+const COS_AUTONOMY_CONFIG = {
+  // Confidence thresholds for autonomous action
+  CONFIDENCE_THRESHOLDS: {
+    AUTO_SEND: 0.95,        // 95%+ = send automatically (notify after)
+    DRAFT_APPROVE: 0.75,    // 75-94% = draft, send for approval
+    HUMAN_REQUIRED: 0.0     // Below 75% = require human input
+  },
+  // Email types that should NEVER be automated
+  NEVER_AUTOMATE: [
+    'legal', 'contract', 'termination', 'complaint', 'refund_dispute',
+    'government', 'tax', 'insurance_claim', 'personnel', 'financial_commitment'
+  ],
+  // Email types safe for high-confidence automation
+  SAFE_TO_AUTOMATE: [
+    'order_confirmation', 'schedule_confirmation', 'simple_acknowledgment',
+    'availability_response', 'delivery_update', 'thank_you'
+  ]
+};
+
+// Sheet for pending email drafts awaiting approval
+const COS_EMAIL_DRAFTS_SHEET = 'COS_Email_Drafts';
+const COS_EMAIL_DRAFTS_HEADERS = [
+  'Draft_ID', 'Created_At', 'Thread_ID', 'To', 'Subject', 'Body',
+  'Confidence', 'Email_Type', 'Context', 'Status', 'Approved_By',
+  'Approved_At', 'Sent_At', 'Modifications'
+];
+
+/**
+ * MASTER: Setup all Chief of Staff autonomous triggers
+ * Run this once to enable full autonomous operation
+ */
+function setupCOSAutonomousTriggers() {
+  const triggers = ScriptApp.getProjectTriggers();
+  const cosHandlers = [
+    'sendMorningBriefingSMS',
+    'runCOSProactiveScanning',
+    'processPendingEmailDrafts',
+    'triageInbox',
+    'checkOverdueFollowupsAndNotify'
+  ];
+
+  // Remove existing COS triggers
+  for (const trigger of triggers) {
+    if (cosHandlers.includes(trigger.getHandlerFunction())) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+
+  // 1. Morning Brief at 6am ET
+  ScriptApp.newTrigger('sendMorningBriefingSMS')
+    .timeBased()
+    .atHour(6)
+    .everyDays(1)
+    .inTimezone('America/New_York')
+    .create();
+
+  // 2. Proactive Scanning every 30 minutes (6am-9pm)
+  ScriptApp.newTrigger('runCOSProactiveScanning')
+    .timeBased()
+    .everyMinutes(30)
+    .create();
+
+  // 3. Process pending drafts every 15 minutes
+  ScriptApp.newTrigger('processPendingEmailDrafts')
+    .timeBased()
+    .everyMinutes(15)
+    .create();
+
+  // 4. Inbox triage every 5 minutes
+  ScriptApp.newTrigger('triageInbox')
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+
+  // 5. Follow-up checks hourly
+  ScriptApp.newTrigger('checkOverdueFollowupsAndNotify')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  Logger.log('✅ COS Autonomous Triggers Created');
+
+  return {
+    success: true,
+    message: 'COS Autonomous Mode ACTIVATED',
+    triggers: [
+      '6am: Morning Brief SMS',
+      'Every 30min: Proactive Scanning',
+      'Every 15min: Process Email Drafts',
+      'Every 5min: Inbox Triage',
+      'Hourly: Follow-up Checks'
+    ]
+  };
+}
+
+/**
+ * DRAFT → EDIT → EXECUTE: Create email draft for approval
+ * COS drafts the email, Todd approves/edits, then COS sends
+ */
+function createEmailDraftForApproval(params) {
+  try {
+    const { threadId, to, subject, body, context, emailType } = params;
+
+    // Calculate confidence score
+    const confidence = calculateEmailConfidence(emailType, to, context);
+
+    // Check if this type should never be automated
+    if (COS_AUTONOMY_CONFIG.NEVER_AUTOMATE.includes(emailType)) {
+      // Always require human input for sensitive emails
+      return notifyOwnerForEmailInput({
+        threadId, to, subject, context,
+        message: `⚠️ Sensitive email (${emailType}) requires your input. Reply with your thoughts and I'll draft it.`
+      });
+    }
+
+    // High confidence + safe type = auto-send with notification
+    if (confidence >= COS_AUTONOMY_CONFIG.CONFIDENCE_THRESHOLDS.AUTO_SEND &&
+        COS_AUTONOMY_CONFIG.SAFE_TO_AUTOMATE.includes(emailType)) {
+      return autoSendEmailWithNotification({ to, subject, body, threadId, confidence });
+    }
+
+    // Medium confidence = draft and request approval
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(COS_EMAIL_DRAFTS_SHEET);
+    if (!sheet) {
+      sheet = ss.insertSheet(COS_EMAIL_DRAFTS_SHEET);
+      sheet.appendRow(COS_EMAIL_DRAFTS_HEADERS);
+      sheet.getRange(1, 1, 1, COS_EMAIL_DRAFTS_HEADERS.length)
+        .setBackground('#8b5cf6')
+        .setFontColor('#ffffff')
+        .setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+
+    const draftId = 'DRAFT_' + Date.now();
+    const now = new Date();
+
+    sheet.appendRow([
+      draftId,
+      now,
+      threadId || '',
+      to,
+      subject,
+      body,
+      confidence,
+      emailType || 'general',
+      JSON.stringify(context || {}),
+      'PENDING_APPROVAL',
+      '',
+      '',
+      '',
+      ''
+    ]);
+
+    // Send SMS notification for approval
+    const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+    if (ownerPhone) {
+      const smsText = `📧 Draft ready for approval:
+To: ${to}
+Re: ${subject}
+Confidence: ${Math.round(confidence * 100)}%
+
+Reply:
+"1" = Send as-is
+"2" = View full draft
+"edit [changes]" = Modify
+"no" = Reject`;
+
+      sendSMS({ to: ownerPhone, message: smsText });
+    }
+
+    return {
+      success: true,
+      draftId: draftId,
+      status: 'PENDING_APPROVAL',
+      confidence: confidence,
+      message: 'Draft created and approval request sent'
+    };
+
+  } catch (error) {
+    Logger.log('Create draft error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Calculate confidence score for email automation
+ */
+function calculateEmailConfidence(emailType, recipient, context) {
+  let confidence = 0.5; // Base confidence
+
+  // Boost for known safe types
+  if (COS_AUTONOMY_CONFIG.SAFE_TO_AUTOMATE.includes(emailType)) {
+    confidence += 0.3;
+  }
+
+  // Boost for known contacts
+  if (context && context.isKnownContact) {
+    confidence += 0.15;
+  }
+
+  // Boost if we have a template/pattern for this type
+  if (context && context.hasTemplate) {
+    confidence += 0.1;
+  }
+
+  // Reduce for unknown recipients
+  if (!context || !context.isKnownContact) {
+    confidence -= 0.1;
+  }
+
+  // Reduce for complex/long emails
+  if (context && context.emailLength > 500) {
+    confidence -= 0.1;
+  }
+
+  return Math.max(0, Math.min(1, confidence));
+}
+
+/**
+ * Auto-send email with notification to owner
+ * Used for high-confidence, safe email types
+ */
+function autoSendEmailWithNotification(params) {
+  try {
+    const { to, subject, body, threadId, confidence } = params;
+
+    // Send the email
+    let sentMessage;
+    if (threadId) {
+      // Reply to thread
+      const threads = GmailApp.search('rfc822msgid:' + threadId);
+      if (threads.length > 0) {
+        threads[0].reply(body);
+        sentMessage = threads[0].getMessages().pop();
+      }
+    } else {
+      // New email
+      GmailApp.sendEmail(to, subject, body);
+    }
+
+    // Notify owner
+    const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+    if (ownerPhone) {
+      sendSMS({
+        to: ownerPhone,
+        message: `✅ Auto-sent (${Math.round(confidence * 100)}% confidence):
+To: ${to}
+Re: ${subject}
+Reply "undo" within 5min to recall.`
+      });
+    }
+
+    // Log it
+    logChiefOfStaffActivity({
+      activity: 'Auto-sent email',
+      details: `To: ${to}, Subject: ${subject}, Confidence: ${confidence}`,
+      category: 'email_automation'
+    });
+
+    return { success: true, message: 'Email auto-sent', confidence: confidence };
+
+  } catch (error) {
+    Logger.log('Auto-send error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Process SMS reply for email approval
+ * Called when owner replies to approval SMS
+ */
+function processSMSEmailApproval(params) {
+  try {
+    const { reply, draftId } = params;
+    const replyLower = reply.toLowerCase().trim();
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(COS_EMAIL_DRAFTS_SHEET);
+    if (!sheet) return { success: false, error: 'No drafts sheet found' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const draftIdCol = headers.indexOf('Draft_ID');
+    const statusCol = headers.indexOf('Status');
+
+    // Find the draft
+    let draftRow = -1;
+    let draft = null;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][draftIdCol] === draftId && data[i][statusCol] === 'PENDING_APPROVAL') {
+        draftRow = i + 1;
+        draft = {
+          to: data[i][headers.indexOf('To')],
+          subject: data[i][headers.indexOf('Subject')],
+          body: data[i][headers.indexOf('Body')],
+          threadId: data[i][headers.indexOf('Thread_ID')]
+        };
+        break;
+      }
+    }
+
+    if (!draft) {
+      return { success: false, error: 'Draft not found or already processed' };
+    }
+
+    // Process the reply
+    if (replyLower === '1' || replyLower === 'send' || replyLower === 'yes') {
+      // Send as-is
+      const sendResult = autoSendEmailWithNotification({
+        ...draft,
+        confidence: 1.0 // Human approved = 100% confidence
+      });
+
+      sheet.getRange(draftRow, statusCol + 1).setValue('SENT');
+      sheet.getRange(draftRow, headers.indexOf('Approved_By') + 1).setValue('OWNER_SMS');
+      sheet.getRange(draftRow, headers.indexOf('Approved_At') + 1).setValue(new Date());
+      sheet.getRange(draftRow, headers.indexOf('Sent_At') + 1).setValue(new Date());
+
+      return { success: true, action: 'sent', ...sendResult };
+
+    } else if (replyLower === '2' || replyLower === 'view') {
+      // Send full draft for review
+      const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+      sendSMS({
+        to: ownerPhone,
+        message: `📧 Full draft:
+To: ${draft.to}
+Subject: ${draft.subject}
+
+${draft.body}
+
+Reply "1" to send, "edit [changes]", or "no" to reject.`
+      });
+      return { success: true, action: 'view_sent' };
+
+    } else if (replyLower.startsWith('edit ')) {
+      // Apply edits
+      const edits = reply.substring(5);
+      sheet.getRange(draftRow, headers.indexOf('Modifications') + 1).setValue(edits);
+
+      // Use Claude to apply the edits
+      const editedBody = applyEmailEditsWithClaude(draft.body, edits);
+      sheet.getRange(draftRow, headers.indexOf('Body') + 1).setValue(editedBody);
+
+      // Send for re-review
+      const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+      sendSMS({
+        to: ownerPhone,
+        message: `📝 Draft updated:
+${editedBody.substring(0, 200)}...
+
+Reply "1" to send or "no" to reject.`
+      });
+
+      return { success: true, action: 'edited' };
+
+    } else if (replyLower === 'no' || replyLower === 'reject') {
+      sheet.getRange(draftRow, statusCol + 1).setValue('REJECTED');
+      return { success: true, action: 'rejected' };
+    }
+
+    return { success: false, error: 'Unknown command' };
+
+  } catch (error) {
+    Logger.log('Process approval error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Apply edits to email body using Claude
+ */
+function applyEmailEditsWithClaude(originalBody, edits) {
+  try {
+    const prompt = `Original email:
+${originalBody}
+
+User wants these changes: ${edits}
+
+Rewrite the email with the requested changes. Keep Todd's voice - direct, friendly, professional but not stiff. Return ONLY the new email body.`;
+
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+    if (!apiKey) return originalBody;
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const result = JSON.parse(response.getContentText());
+    return result.content[0].text.trim();
+
+  } catch (error) {
+    Logger.log('Apply edits error: ' + error.message);
+    return originalBody;
+  }
+}
+
+/**
+ * PROACTIVE INTELLIGENCE: Scan for issues and alert owner
+ * Runs every 30 minutes
+ */
+function runCOSProactiveScanning() {
+  try {
+    const hour = new Date().getHours();
+    // Only run 6am-9pm
+    if (hour < 6 || hour > 21) {
+      return { success: true, message: 'Outside active hours' };
+    }
+
+    const alerts = [];
+
+    // 1. Check for critical unread emails > 2 hours old
+    const criticalEmails = checkCriticalUnreadEmails();
+    if (criticalEmails.length > 0) {
+      alerts.push({
+        type: 'critical_email',
+        priority: 'HIGH',
+        message: `🚨 ${criticalEmails.length} critical emails unread >2hrs`,
+        items: criticalEmails
+      });
+    }
+
+    // 2. Check for overdue commitments
+    const overdueCommitments = checkOverdueCommitments();
+    if (overdueCommitments.length > 0) {
+      alerts.push({
+        type: 'overdue_commitment',
+        priority: 'HIGH',
+        message: `⚠️ ${overdueCommitments.length} overdue commitments`,
+        items: overdueCommitments
+      });
+    }
+
+    // 3. Check for customers at risk (haven't ordered in 30+ days)
+    const atRiskCustomers = checkCustomersAtRiskProactive();
+    if (atRiskCustomers.length > 0) {
+      alerts.push({
+        type: 'customer_risk',
+        priority: 'MEDIUM',
+        message: `📉 ${atRiskCustomers.length} customers at churn risk`,
+        items: atRiskCustomers
+      });
+    }
+
+    // 4. Check calendar conflicts
+    const conflicts = checkCalendarConflicts();
+    if (conflicts.length > 0) {
+      alerts.push({
+        type: 'calendar_conflict',
+        priority: 'MEDIUM',
+        message: `📅 ${conflicts.length} calendar conflicts detected`,
+        items: conflicts
+      });
+    }
+
+    // If high-priority alerts, text Todd
+    const highPriorityAlerts = alerts.filter(a => a.priority === 'HIGH');
+    if (highPriorityAlerts.length > 0) {
+      const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+      if (ownerPhone) {
+        let alertText = '🚨 COS ALERT:\n\n';
+        highPriorityAlerts.forEach(alert => {
+          alertText += alert.message + '\n';
+          if (alert.items && alert.items.length > 0) {
+            alert.items.slice(0, 2).forEach(item => {
+              alertText += `  • ${item.summary || item.name || item}\n`;
+            });
+          }
+        });
+        alertText += '\nReply "handle" for me to take action.';
+
+        sendSMS({ to: ownerPhone, message: alertText });
+      }
+    }
+
+    // Log the scan
+    logChiefOfStaffActivity({
+      activity: 'Proactive scan completed',
+      details: `Found ${alerts.length} alerts (${highPriorityAlerts.length} high priority)`,
+      category: 'proactive'
+    });
+
+    return {
+      success: true,
+      alertCount: alerts.length,
+      highPriority: highPriorityAlerts.length,
+      alerts: alerts
+    };
+
+  } catch (error) {
+    Logger.log('Proactive scan error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Check for critical unread emails older than 2 hours
+ */
+function checkCriticalUnreadEmails() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(EMAIL_INBOX_STATE_SHEET);
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
+    const criticals = [];
+    for (let i = 1; i < data.length; i++) {
+      const priority = data[i][headers.indexOf('Priority')];
+      const status = data[i][headers.indexOf('Status')];
+      const receivedAt = new Date(data[i][headers.indexOf('Received_At')]);
+
+      if (priority === 'CRITICAL' && status === 'NEW' && receivedAt < twoHoursAgo) {
+        criticals.push({
+          threadId: data[i][headers.indexOf('Thread_ID')],
+          subject: data[i][headers.indexOf('Subject')],
+          from: data[i][headers.indexOf('From_Name')],
+          summary: data[i][headers.indexOf('AI_Summary')]
+        });
+      }
+    }
+
+    return criticals;
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * Check for overdue commitments
+ */
+function checkOverdueCommitments() {
+  try {
+    const result = getOpenSMSCommitments();
+    if (!result.success) return [];
+
+    return (result.commitments || []).filter(c => c.isOverdue);
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * Check for customers at churn risk (proactive version)
+ */
+function checkCustomersAtRiskProactive() {
+  try {
+    const result = checkCustomersAtRisk();
+    if (!result.success) return [];
+
+    return (result.atRisk || []).slice(0, 5);
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * Check for calendar conflicts in next 48 hours
+ */
+function checkCalendarConflicts() {
+  try {
+    const calendar = CalendarApp.getDefaultCalendar();
+    const now = new Date();
+    const end = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+
+    const events = calendar.getEvents(now, end);
+    const conflicts = [];
+
+    for (let i = 0; i < events.length - 1; i++) {
+      const e1 = events[i];
+      const e2 = events[i + 1];
+
+      // Check if events overlap
+      if (e1.getEndTime() > e2.getStartTime()) {
+        conflicts.push({
+          event1: e1.getTitle(),
+          event2: e2.getTitle(),
+          time: e1.getStartTime().toLocaleString()
+        });
+      }
+    }
+
+    return conflicts;
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * Notify owner for email input (sensitive emails)
+ */
+function notifyOwnerForEmailInput(params) {
+  const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+  if (!ownerPhone) return { success: false, error: 'No owner phone configured' };
+
+  const smsText = `${params.message}
+
+To: ${params.to}
+Re: ${params.subject}
+Context: ${params.context?.summary || 'See email thread'}
+
+Reply with your thoughts/notes and I'll draft the email.`;
+
+  sendSMS({ to: ownerPhone, message: smsText });
+
+  return {
+    success: true,
+    status: 'AWAITING_INPUT',
+    message: 'Notification sent to owner for input'
+  };
+}
+
+/**
+ * Process pending email drafts (check for expired/stale)
+ */
+/**
+ * Get all pending email drafts for dashboard display
+ */
+function getPendingEmailDrafts() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(COS_EMAIL_DRAFTS_SHEET);
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, drafts: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const drafts = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][headers.indexOf('Status')] === 'PENDING_APPROVAL') {
+        drafts.push({
+          draftId: data[i][headers.indexOf('Draft_ID')],
+          createdAt: data[i][headers.indexOf('Created_At')],
+          to: data[i][headers.indexOf('To')],
+          subject: data[i][headers.indexOf('Subject')],
+          body: data[i][headers.indexOf('Body')],
+          confidence: data[i][headers.indexOf('Confidence')],
+          emailType: data[i][headers.indexOf('Email_Type')]
+        });
+      }
+    }
+
+    return { success: true, drafts: drafts, count: drafts.length };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Process pending email drafts (check for expired/stale)
+ */
+function processPendingEmailDrafts() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(COS_EMAIL_DRAFTS_SHEET);
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, message: 'No pending drafts' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const statusCol = headers.indexOf('Status');
+    const createdCol = headers.indexOf('Created_At');
+
+    const now = new Date();
+    const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+
+    let remindersSent = 0;
+    let expired = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][statusCol] !== 'PENDING_APPROVAL') continue;
+
+      const createdAt = new Date(data[i][createdCol]);
+
+      // If pending for > 4 hours, send reminder
+      if (createdAt < fourHoursAgo) {
+        const to = data[i][headers.indexOf('To')];
+        const subject = data[i][headers.indexOf('Subject')];
+        const draftId = data[i][headers.indexOf('Draft_ID')];
+
+        // Only one reminder, then expire
+        if (!data[i][headers.indexOf('Modifications')]?.includes('REMINDED')) {
+          const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+          if (ownerPhone) {
+            sendSMS({
+              to: ownerPhone,
+              message: `⏰ Reminder: Email draft pending 4+ hours
+To: ${to}
+Re: ${subject}
+Reply "1" to send, "no" to reject, or I'll expire it in 2hrs.`
+            });
+            sheet.getRange(i + 1, headers.indexOf('Modifications') + 1).setValue('REMINDED');
+            remindersSent++;
+          }
+        } else {
+          // Already reminded, check if 6+ hours old
+          const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+          if (createdAt < sixHoursAgo) {
+            sheet.getRange(i + 1, statusCol + 1).setValue('EXPIRED');
+            expired++;
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      remindersSent: remindersSent,
+      expired: expired
+    };
+
+  } catch (error) {
+    Logger.log('Process drafts error: ' + error.message);
+    return { success: false, error: error.message };
   }
 }
