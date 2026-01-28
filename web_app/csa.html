@@ -2383,11 +2383,11 @@
             <div class="section" id="renewalSection" style="display: none;">
                 <div class="box-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
                     <div style="text-align: center; padding: 20px;">
-                        <div style="font-size: 48px; margin-bottom: 12px;">🍂</div>
+                        <div id="renewalIcon" style="font-size: 48px; margin-bottom: 12px;">🍂</div>
                         <h3 id="renewalTitle" style="margin: 0 0 8px 0;">5 Weeks Left!</h3>
-                        <p style="margin: 0 0 16px 0; opacity: 0.9;">Continue the harvest with our Fall & Winter CSA</p>
+                        <p id="renewalSubtitle" style="margin: 0 0 16px 0; opacity: 0.9;">Continue the harvest with our Fall & Winter CSA</p>
                         <button class="btn" style="background: white; color: #d97706;" onclick="showRenewalOptions()">
-                            <i class="fas fa-leaf"></i> View Fall Options
+                            <i class="fas fa-leaf"></i> <span id="renewalButtonText">View Fall Options</span>
                         </button>
                     </div>
                 </div>
@@ -3468,22 +3468,88 @@
             updateSeasonStatus(m);
         }
 
+        // Season date mappings for 2026
+        const CSA_SEASON_DATES = {
+            'Summer': {
+                start: new Date('2026-06-01'),
+                end: new Date('2026-10-15'),
+                weeks: 20,
+                icon: '🌻',
+                nextSeason: 'Fall'
+            },
+            'Fall': {
+                start: new Date('2026-10-15'),
+                end: new Date('2026-12-15'),
+                weeks: 9,
+                icon: '🍂',
+                nextSeason: 'Winter'
+            },
+            'Winter': {
+                start: new Date('2026-01-01'),
+                end: new Date('2026-03-31'),
+                weeks: 13,
+                icon: '❄️',
+                nextSeason: 'Summer'
+            },
+            'Spring': {
+                start: new Date('2026-04-01'),
+                end: new Date('2026-05-31'),
+                weeks: 9,
+                icon: '🌸',
+                nextSeason: 'Summer'
+            }
+        };
+
+        function getSeasonDates(membership) {
+            // First try explicit Start_Date and End_Date from membership
+            if (membership.Start_Date && membership.End_Date) {
+                return {
+                    startDate: new Date(membership.Start_Date),
+                    endDate: new Date(membership.End_Date),
+                    totalWeeks: membership.Total_Weeks || membership.Weeks || '--'
+                };
+            }
+
+            // Fall back to Season field mapping
+            const season = membership.Season || '';
+            const seasonKey = Object.keys(CSA_SEASON_DATES).find(
+                s => season.toLowerCase().includes(s.toLowerCase())
+            );
+
+            if (seasonKey && CSA_SEASON_DATES[seasonKey]) {
+                const seasonData = CSA_SEASON_DATES[seasonKey];
+                return {
+                    startDate: seasonData.start,
+                    endDate: seasonData.end,
+                    totalWeeks: membership.Total_Weeks || membership.Weeks || seasonData.weeks,
+                    icon: seasonData.icon,
+                    nextSeason: seasonData.nextSeason
+                };
+            }
+
+            return null;
+        }
+
         function updateSeasonStatus(membership) {
             const now = new Date();
-            const startDate = membership.Start_Date ? new Date(membership.Start_Date) : null;
-            const endDate = membership.End_Date ? new Date(membership.End_Date) : null;
-
             const seasonSection = document.getElementById('seasonStatusSection');
             const boxSection = document.getElementById('currentBoxSection');
             const renewalSection = document.getElementById('renewalSection');
 
-            if (!startDate || !endDate) {
-                // No dates set - show box section
+            // Get season dates from membership or Season field
+            const seasonInfo = getSeasonDates(membership);
+
+            if (!seasonInfo) {
+                // No dates set and no recognizable Season - show box section with current week
                 seasonSection.style.display = 'none';
                 boxSection.style.display = 'block';
                 renewalSection.style.display = 'none';
+                // Set box week to current week
+                updateBoxWeekDisplay(now);
                 return;
             }
+
+            const { startDate, endDate, totalWeeks, icon, nextSeason } = seasonInfo;
 
             // Calculate days until start or weeks remaining
             const daysUntilStart = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
@@ -3491,36 +3557,52 @@
             const weeksRemaining = Math.ceil(daysUntilEnd / 7);
 
             if (daysUntilStart > 0) {
-                // SEASON HASN'T STARTED YET
+                // SEASON HASN'T STARTED YET - Show pre-season banner
                 seasonSection.style.display = 'block';
                 boxSection.style.display = 'none';
                 renewalSection.style.display = 'none';
 
                 const weeksUntil = Math.ceil(daysUntilStart / 7);
-                document.getElementById('seasonIcon').textContent = '🌱';
+                document.getElementById('seasonIcon').textContent = icon || '🌱';
                 document.getElementById('seasonTitle').textContent = 'Your Season Starts Soon!';
-                document.getElementById('seasonSubtitle').textContent = `${membership.Share_Type || 'CSA'} begins ${formatDateNice(startDate)}`;
+
+                // Build descriptive subtitle
+                const seasonName = membership.Season || 'CSA';
+                const shareType = membership.Share_Type || '';
+                const description = shareType ? `${seasonName} ${shareType}` : seasonName;
+                document.getElementById('seasonSubtitle').textContent = `${description} begins ${formatDateNice(startDate)}`;
+
                 document.getElementById('countdownDays').textContent = daysUntilStart;
                 document.getElementById('countdownWeeks').textContent = weeksUntil;
                 document.getElementById('seasonDates').textContent = `${formatDateNice(startDate)} - ${formatDateNice(endDate)}`;
-                document.getElementById('seasonWeeksTotal').textContent = `${membership.Total_Weeks || '--'} weeks of fresh produce`;
+                document.getElementById('seasonWeeksTotal').textContent = `${totalWeeks} weeks of fresh produce`;
+                document.getElementById('seasonCountdown').style.display = 'flex';
 
-                // Update box display to show "Coming Soon"
+                // Update box display to show "Coming Soon" if box section were visible
                 document.getElementById('boxWeek').textContent = `Starts ${formatDateNice(startDate)}`;
-                document.getElementById('boxPickup').innerHTML = `<i class="fas fa-calendar"></i> ${daysUntilStart} days away`;
+                document.getElementById('boxPickup').innerHTML = `<i class="fas fa-calendar"></i> ${daysUntilStart} days until first pickup`;
 
             } else if (weeksRemaining <= 5 && weeksRemaining > 0) {
-                // FINAL 5 WEEKS - Show renewal prompt
+                // FINAL 5 WEEKS - Show countdown + renewal prompt
                 seasonSection.style.display = 'none';
                 boxSection.style.display = 'block';
 
-                // Check if they already have fall/winter CSA
-                const hasFallWinter = checkHasFallWinterCSA();
+                // Check if they already have the next season's CSA
+                const hasFallWinter = checkHasFallWinterCSA(membership, nextSeason);
                 renewalSection.style.display = hasFallWinter ? 'none' : 'block';
 
                 if (!hasFallWinter) {
                     document.getElementById('renewalTitle').textContent = `${weeksRemaining} Week${weeksRemaining !== 1 ? 's' : ''} Left!`;
+
+                    // Update renewal section with next season info
+                    const renewalIcons = { 'Fall': '🍂', 'Winter': '❄️', 'Summer': '🌻', 'Spring': '🌸' };
+                    document.getElementById('renewalIcon').textContent = renewalIcons[nextSeason] || '🌱';
+                    document.getElementById('renewalSubtitle').textContent = `Continue the harvest with our ${nextSeason} CSA`;
+                    document.getElementById('renewalButtonText').textContent = `View ${nextSeason} Options`;
                 }
+
+                // Update box week to current week date
+                updateBoxWeekDisplay(now);
 
             } else if (daysUntilEnd < 0) {
                 // SEASON ENDED
@@ -3530,30 +3612,97 @@
 
                 document.getElementById('seasonIcon').textContent = '🍂';
                 document.getElementById('seasonTitle').textContent = 'Season Complete!';
-                document.getElementById('seasonSubtitle').textContent = 'Thank you for being a member';
+                document.getElementById('seasonSubtitle').textContent = 'Thank you for being a member this season!';
                 document.getElementById('seasonCountdown').style.display = 'none';
 
+                // Show renewal info
+                document.getElementById('seasonDates').textContent = `Your ${membership.Season || 'CSA'} season has ended`;
+                document.getElementById('seasonWeeksTotal').textContent = 'Check below for upcoming seasons';
+
             } else {
-                // SEASON IS ACTIVE
+                // SEASON IS ACTIVE - Show normal box view
                 seasonSection.style.display = 'none';
                 boxSection.style.display = 'block';
                 renewalSection.style.display = 'none';
+
+                // Update box week to current week date
+                updateBoxWeekDisplay(now);
             }
+        }
+
+        function updateBoxWeekDisplay(currentDate) {
+            // Calculate the current week's pickup date (Tuesday)
+            const d = new Date(currentDate);
+            const dayOfWeek = d.getDay();
+            // Get the Tuesday of current week (Tuesday = 2)
+            const daysToTuesday = (2 - dayOfWeek + 7) % 7;
+            // If today is after Tuesday, show this week's Tuesday, otherwise show upcoming Tuesday
+            if (dayOfWeek > 2) {
+                d.setDate(d.getDate() - (dayOfWeek - 2));
+            } else {
+                d.setDate(d.getDate() + daysToTuesday);
+            }
+            const weekDateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            document.getElementById('boxWeek').textContent = `Week of ${weekDateStr}`;
         }
 
         function formatDateNice(date) {
             return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
         }
 
-        function checkHasFallWinterCSA() {
-            // TODO: Check if member has fall/winter share
-            // For now, return false to show renewal prompt
+        function checkHasFallWinterCSA(membership, nextSeason) {
+            // Check if the member's Season field indicates they already have fall/winter
+            const currentSeason = (membership?.Season || '').toLowerCase();
+
+            // If they have multiple seasons listed (e.g., "Summer + Fall" or "Year-Round")
+            if (currentSeason.includes('year') || currentSeason.includes('annual')) {
+                return true; // Year-round members don't need renewal prompt
+            }
+
+            // Check for explicit fall/winter in their current membership
+            if (currentSeason.includes('fall') && currentSeason.includes('winter')) {
+                return true;
+            }
+
+            // If next season is Fall and they already have Fall
+            if (nextSeason === 'Fall' && currentSeason.includes('fall')) {
+                return true;
+            }
+
+            // If next season is Winter and they already have Winter
+            if (nextSeason === 'Winter' && currentSeason.includes('winter')) {
+                return true;
+            }
+
+            // Check membership data for additional shares (if stored)
+            if (membership?.Additional_Shares) {
+                const additionalShares = (membership.Additional_Shares || '').toLowerCase();
+                if (nextSeason === 'Fall' && additionalShares.includes('fall')) {
+                    return true;
+                }
+                if (nextSeason === 'Winter' && additionalShares.includes('winter')) {
+                    return true;
+                }
+            }
+
             return false;
         }
 
         function showRenewalOptions() {
-            showToast('Opening fall CSA options...', 'info');
-            // Could open Shopify page or modal with fall options
+            // Determine which season to suggest based on current membership
+            const membership = AppState.membership || {};
+            const seasonInfo = getSeasonDates(membership);
+            const nextSeason = seasonInfo?.nextSeason || 'Fall';
+
+            const seasonMessages = {
+                'Fall': 'Opening Fall CSA options...',
+                'Winter': 'Opening Winter CSA options...',
+                'Summer': 'Opening Summer CSA options...',
+                'Spring': 'Opening Spring CSA options...'
+            };
+
+            showToast(seasonMessages[nextSeason] || 'Opening CSA options...', 'info');
+            // Open Shopify CSA collection
             window.open('https://tiny-seed-farmers-market.myshopify.com/collections/csa', '_blank');
         }
 

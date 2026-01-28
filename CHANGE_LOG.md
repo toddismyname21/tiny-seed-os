@@ -40,6 +40,46 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-27 - Backend_Claude (CSA PORTAL SEASON STATUS BANNER)
+
+### Files Modified
+- `web_app/csa.html` - Added intelligent Season Status Banner with countdown, season date mapping, and renewal prompts
+
+### Functions Added
+- `CSA_SEASON_DATES` constant - Season date mappings for Summer (Jun 1 - Oct 15), Fall (Oct 15 - Dec 15), Winter (Jan - Mar), Spring (Apr - May)
+- `getSeasonDates(membership)` - Gets season start/end dates from membership data or falls back to Season field mapping
+- `updateBoxWeekDisplay(currentDate)` - Updates the "Week of" display to show the current week's Tuesday date
+
+### Functions Modified
+- `updateSeasonStatus(membership)` - Complete rewrite to:
+  - Use Season field when Start_Date/End_Date not set
+  - Show "Your Season Starts Soon!" pre-season banner with countdown (days/weeks)
+  - Show actual season dates based on CSA_SEASON_DATES mapping
+  - During final 5 weeks: Show renewal prompt with correct next season (Fall/Winter/Summer)
+  - Skip renewal prompt if member already has fall/winter membership
+  - Update box week display to show actual current week date during active season
+- `checkHasFallWinterCSA(membership, nextSeason)` - Now actually checks membership data for year-round, combined seasons, and Additional_Shares field
+- `showRenewalOptions()` - Now shows correct next season name based on current membership
+
+### HTML Changes
+- Added `id="renewalIcon"` to renewal section icon for dynamic updates
+- Added `id="renewalSubtitle"` to renewal section text for dynamic updates
+- Added `id="renewalButtonText"` to renewal button for dynamic updates
+
+### Reason
+The portal was showing "Week of January 19" for ALL shares including Summer CSA members whose season doesn't start until June. This fix:
+1. Shows pre-season banner with countdown for members whose season hasn't started
+2. Displays actual start date based on Season field (Summer, Fall, Winter, Spring)
+3. Shows correct "Week of [date]" during active season
+4. Shows intelligent renewal prompts in final 5 weeks (skips if already has next season)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created - enhanced existing updateSeasonStatus function
+
+---
+
 ## 2026-01-27 - Backend_Claude (CSA PORTAL MULTIPLE CONTACTS + SWAP CREDITS)
 
 ### Files Modified
