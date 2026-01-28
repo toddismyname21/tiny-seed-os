@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "project": "Tiny Seed Farm OS",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Chief of Staff UI Overhaul",
+      "description": "Redesign the Chief of Staff dashboard. The current UI has hard-to-read text, poor contrast, and isn't intuitive. Apply Linear/Superhuman design patterns - clean typography, proper spacing, command palette. Make the major functions prominent.",
+      "role": "builder",
+      "priority": "high",
+      "status": "pending",
+      "context": [
+        "web_app/chief-of-staff.html",
+        "web_app/api-config.js"
+      ],
+      "created": "2026-01-28",
+      "updated": "2026-01-28"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Connect 12 COS Backend Modules to Frontend",
+      "description": "12 backend modules exist in apps_script/ (Voice, Memory, Autonomy, ProactiveIntel, StyleMimicry, Calendar, Predictive, SMS, FileOrg, Integrations, MultiAgent, EmailWorkflow) but the frontend only uses 3. Wire them ALL up to the Chief of Staff dashboard.",
+      "role": "builder",
+      "priority": "high",
+      "status": "pending",
+      "context": [
+        "apps_script/ChiefOfStaff_Voice.js",
+        "apps_script/ChiefOfStaff_Memory.js",
+        "apps_script/ChiefOfStaff_Autonomy.js",
+        "web_app/chief-of-staff.html"
+      ],
+      "created": "2026-01-28",
+      "updated": "2026-01-28"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Marketing System - Get It Running",
+      "description": "Social Intelligence Dashboard, Marketing Command Center, SEO Dashboard all exist but need to be production-ready. Verify APIs work, data flows, and everything is accessible from the admin panel.",
+      "role": "builder",
+      "priority": "high",
+      "status": "pending",
+      "context": [
+        "web_app/social-intelligence.html",
+        "web_app/marketing-command-center.html",
+        "web_app/seo_dashboard.html"
+      ],
+      "created": "2026-01-28",
+      "updated": "2026-01-28"
+    }
+  ],
+  "next_id": 4
+}
