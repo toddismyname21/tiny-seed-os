@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Assignment - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <script src="auth-guard.js" data-required-role="Admin,Manager"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --bg-input: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --accent-green: #22c55e;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --priority-critical: #ef4444;
+            --priority-high: #f97316;
+            --priority-medium: #eab308;
+            --priority-low: #22c55e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+        }
+
+        @media (max-width: 1000px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            .task-form-panel {
+                display: none;
+            }
+            .task-form-panel.show {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 100;
+            }
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .header-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .header-stat .count {
+            background: var(--bg-card);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: #000;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Main Panel - Task List */
+        .main-panel {
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            padding: 8px 16px;
+            font-size: 13px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .filter-chip:hover { border-color: var(--accent-green); color: var(--text-primary); }
+        .filter-chip.active {
+            background: var(--accent-green);
+            color: black;
+            border-color: var(--accent-green);
+        }
+
+        /* Task Card */
+        .task-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .task-card:hover {
+            border-color: var(--accent-green);
+            background: var(--bg-hover);
+        }
+
+        .task-card.priority-critical { border-left-color: var(--priority-critical); }
+        .task-card.priority-high { border-left-color: var(--priority-high); }
+        .task-card.priority-medium { border-left-color: var(--priority-medium); }
+        .task-card.priority-low { border-left-color: var(--priority-low); }
+
+        .task-card.completed {
+            opacity: 0.6;
+            border-left-color: var(--accent-green);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .task-title {
+            font-size: 15px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .task-priority {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .task-priority.critical { background: rgba(239, 68, 68, 0.2); color: var(--priority-critical); }
+        .task-priority.high { background: rgba(249, 115, 22, 0.2); color: var(--priority-high); }
+        .task-priority.medium { background: rgba(234, 179, 8, 0.2); color: var(--priority-medium); }
+        .task-priority.low { background: rgba(34, 197, 94, 0.2); color: var(--priority-low); }
+
+        .task-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .task-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .task-meta-item i { font-size: 12px; }
+
+        .task-assignee {
+            background: var(--bg-secondary);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            color: var(--accent-blue);
+        }
+
+        .task-assignee.unassigned { color: var(--text-muted); }
+
+        /* Task Form Panel */
+        .task-form-panel {
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .close-btn:hover { color: var(--text-primary); }
+
+        .form-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-group label.required::after {
+            content: ' *';
+            color: var(--accent-red);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .form-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .priority-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .priority-option {
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .priority-option:hover { background: var(--bg-hover); }
+
+        .priority-option.critical { border-color: rgba(239, 68, 68, 0.5); }
+        .priority-option.high { border-color: rgba(249, 115, 22, 0.5); }
+        .priority-option.medium { border-color: rgba(234, 179, 8, 0.5); }
+        .priority-option.low { border-color: rgba(34, 197, 94, 0.5); }
+
+        .priority-option.selected.critical { background: rgba(239, 68, 68, 0.2); border-color: var(--priority-critical); color: var(--priority-critical); }
+        .priority-option.selected.high { background: rgba(249, 115, 22, 0.2); border-color: var(--priority-high); color: var(--priority-high); }
+        .priority-option.selected.medium { background: rgba(234, 179, 8, 0.2); border-color: var(--priority-medium); color: var(--priority-medium); }
+        .priority-option.selected.low { background: rgba(34, 197, 94, 0.2); border-color: var(--priority-low); color: var(--priority-low); }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-group input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent-green);
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .form-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .form-footer .btn {
+            flex: 1;
+        }
+
+        /* Quick Assign Bar */
+        .quick-assign-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .quick-employee {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-employee:hover {
+            border-color: var(--accent-green);
+            background: var(--bg-hover);
+        }
+
+        .quick-employee.selected {
+            background: var(--accent-green);
+            color: black;
+            border-color: var(--accent-green);
+        }
+
+        .employee-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success { border-left: 4px solid var(--accent-green); }
+        .toast.error { border-left: 4px solid var(--accent-red); }
+
+        /* Back link */
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-link:hover { color: var(--accent-green); }
+
+        /* Mobile FAB */
+        @media (max-width: 1000px) {
+            .fab {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: var(--accent-green);
+                color: black;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 50;
+            }
+        }
+
+        @media (min-width: 1001px) {
+            .fab { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <a href="admin.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Admin
+                </a>
+                <h1><i class="fas fa-tasks"></i> Task Assignment</h1>
+            </div>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <span>Pending:</span>
+                    <span class="count" id="pending-count">0</span>
+                </div>
+                <div class="header-stat">
+                    <span>Assigned Today:</span>
+                    <span class="count" id="assigned-today">0</span>
+                </div>
+            </div>
+            <button class="btn btn-primary mobile-hide" onclick="showNewTaskForm()">
+                <i class="fas fa-plus"></i> New Task
+            </button>
+        </header>
+
+        <!-- Main Panel - Task List -->
+        <main class="main-panel">
+            <div class="section-header">
+                <h2 class="section-title">All Tasks</h2>
+                <button class="btn btn-secondary" onclick="loadTasks()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">All</button>
+                <button class="filter-chip" data-filter="pending" onclick="setFilter('pending')">Pending</button>
+                <button class="filter-chip" data-filter="assigned" onclick="setFilter('assigned')">Assigned</button>
+                <button class="filter-chip" data-filter="completed" onclick="setFilter('completed')">Completed</button>
+                <button class="filter-chip" data-filter="overdue" onclick="setFilter('overdue')">Overdue</button>
+            </div>
+
+            <!-- Quick Employee Filter -->
+            <div class="quick-assign-bar" id="employee-filter">
+                <div class="quick-employee selected" data-employee="all" onclick="filterByEmployee('all')">
+                    <i class="fas fa-users"></i> All
+                </div>
+                <!-- Employees loaded dynamically -->
+            </div>
+
+            <!-- Task List -->
+            <div id="task-list">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </main>
+
+        <!-- Task Form Panel -->
+        <aside class="task-form-panel" id="task-form-panel">
+            <div class="form-header">
+                <h2 id="form-title">New Task</h2>
+                <button class="close-btn" onclick="hideTaskForm()">&times;</button>
+            </div>
+
+            <form id="task-form" class="form-body" onsubmit="saveTask(event)">
+                <div class="form-group">
+                    <label class="required" for="task-title">Task Title</label>
+                    <input type="text" id="task-title" class="form-input" placeholder="e.g., Harvest lettuce beds" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-description">Description</label>
+                    <textarea id="task-description" class="form-textarea" placeholder="Details, instructions, or notes..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="required" for="task-employee">Assign To</label>
+                    <select id="task-employee" class="form-select" required>
+                        <option value="">Select employee...</option>
+                        <option value="ALL">Everyone (Team Task)</option>
+                        <!-- Employees loaded dynamically -->
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required" for="task-date">Due Date</label>
+                        <input type="date" id="task-date" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-time">Due Time</label>
+                        <input type="time" id="task-time" class="form-input" value="17:00">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Priority</label>
+                    <div class="priority-options">
+                        <div class="priority-option critical" data-priority="critical" onclick="setPriority('critical')">
+                            <i class="fas fa-fire"></i><br>Critical
+                        </div>
+                        <div class="priority-option high" data-priority="high" onclick="setPriority('high')">
+                            <i class="fas fa-exclamation-triangle"></i><br>High
+                        </div>
+                        <div class="priority-option medium selected" data-priority="medium" onclick="setPriority('medium')">
+                            <i class="fas fa-clock"></i><br>Medium
+                        </div>
+                        <div class="priority-option low" data-priority="low" onclick="setPriority('low')">
+                            <i class="fas fa-leaf"></i><br>Low
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-category">Category</label>
+                    <select id="task-category" class="form-select">
+                        <option value="">Select category...</option>
+                        <option value="harvest">Harvest</option>
+                        <option value="planting">Planting</option>
+                        <option value="transplant">Transplant</option>
+                        <option value="irrigation">Irrigation</option>
+                        <option value="weeding">Weeding</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="delivery">Delivery</option>
+                        <option value="packing">Packing</option>
+                        <option value="greenhouse">Greenhouse</option>
+                        <option value="admin">Administrative</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-location">Location</label>
+                    <input type="text" id="task-location" class="form-input" placeholder="e.g., Field 1, Greenhouse, Barn">
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group" onclick="toggleCheckbox('send-sms')">
+                        <input type="checkbox" id="send-sms" checked>
+                        <label for="send-sms">
+                            <i class="fas fa-sms"></i> Send SMS notification to employee
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-notes">Additional Notes</label>
+                    <textarea id="task-notes" class="form-textarea" placeholder="Any other information..."></textarea>
+                </div>
+
+                <input type="hidden" id="task-id" value="">
+            </form>
+
+            <div class="form-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideTaskForm()">Cancel</button>
+                <button type="submit" class="btn btn-primary" onclick="saveTask(event)">
+                    <i class="fas fa-paper-plane"></i> <span id="submit-btn-text">Assign Task</span>
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Mobile FAB -->
+    <button class="fab" onclick="showNewTaskForm()">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // API Configuration
+        const API_BASE = TINY_SEED_API.MAIN_API;
+
+        // State
+        let tasks = [];
+        let employees = [];
+        let currentFilter = 'all';
+        let currentEmployeeFilter = 'all';
+        let selectedPriority = 'medium';
+        let editingTaskId = null;
+
+        // =========================================================================
+        // INITIALIZATION
+        // =========================================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setDefaultDate();
+            loadEmployees();
+            loadTasks();
+        });
+
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('task-date').value = today;
+        }
+
+        // =========================================================================
+        // LOAD DATA
+        // =========================================================================
+
+        async function loadEmployees() {
+            try {
+                const response = await fetch(`${API_BASE}?action=getAllEmployees`);
+                const data = await response.json();
+
+                if (data.success && data.employees) {
+                    employees = data.employees.filter(e => e.Is_Active === true || e.Is_Active === 'TRUE');
+                    renderEmployeeOptions();
+                    renderEmployeeFilter();
+                }
+            } catch (error) {
+                console.error('Load employees error:', error);
+                showToast('Failed to load employees', 'error');
+            }
+        }
+
+        function renderEmployeeOptions() {
+            const select = document.getElementById('task-employee');
+
+            // Keep first two options
+            const options = select.querySelectorAll('option');
+            options.forEach((opt, i) => {
+                if (i > 1) opt.remove();
+            });
+
+            // Add employees
+            employees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.User_ID;
+                option.textContent = emp.Full_Name || emp.Username || emp.User_ID;
+                option.dataset.phone = emp.Phone || '';
+                select.appendChild(option);
+            });
+        }
+
+        function renderEmployeeFilter() {
+            const container = document.getElementById('employee-filter');
+
+            // Keep the "All" option
+            container.innerHTML = `
+                <div class="quick-employee selected" data-employee="all" onclick="filterByEmployee('all')">
+                    <i class="fas fa-users"></i> All
+                </div>
+            `;
+
+            // Add employees
+            employees.slice(0, 8).forEach(emp => {
+                const initials = getInitials(emp.Full_Name || emp.Username || '?');
+                const div = document.createElement('div');
+                div.className = 'quick-employee';
+                div.dataset.employee = emp.User_ID;
+                div.onclick = () => filterByEmployee(emp.User_ID);
+                div.innerHTML = `
+                    <div class="employee-avatar">${initials}</div>
+                    ${emp.Full_Name || emp.Username || emp.User_ID}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function getInitials(name) {
+            if (!name) return '?';
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        async function loadTasks() {
+            const container = document.getElementById('task-list');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                // Load from EMPLOYEE_TASKS sheet and TASK_ASSIGNMENTS
+                const [tasksRes, assignmentsRes] = await Promise.all([
+                    fetch(`${API_BASE}?action=getEmployeeTasks`).then(r => r.json()).catch(() => ({ success: false })),
+                    fetch(`${API_BASE}?action=getTaskAssignments`).then(r => r.json()).catch(() => ({ success: false }))
+                ]);
+
+                tasks = [];
+
+                // Process employee tasks
+                if (tasksRes.success && tasksRes.tasks) {
+                    tasksRes.tasks.forEach(t => {
+                        tasks.push({
+                            id: t.id || t.Task_ID,
+                            title: t.crop || t.description || 'Task',
+                            description: t.notes || t.description || '',
+                            assignedTo: t.assignedTo || t.Assigned_To || 'Unassigned',
+                            assignedToName: getEmployeeName(t.assignedTo || t.Assigned_To),
+                            dueDate: t.date || t.Due_Date,
+                            dueTime: t.dueTime || '17:00',
+                            priority: t.priority || 'medium',
+                            status: t.status || 'pending',
+                            category: t.type || 'other',
+                            location: t.field || t.bed || '',
+                            createdAt: t.createdAt
+                        });
+                    });
+                }
+
+                // Process task assignments
+                if (assignmentsRes.success && assignmentsRes.assignments) {
+                    assignmentsRes.assignments.forEach(a => {
+                        // Don't duplicate
+                        if (!tasks.find(t => t.id === a.Assignment_ID)) {
+                            tasks.push({
+                                id: a.Assignment_ID,
+                                title: a.Description || 'Assigned Task',
+                                description: a.Notes || '',
+                                assignedTo: a.Employee_ID,
+                                assignedToName: a.Employee_Name || getEmployeeName(a.Employee_ID),
+                                dueDate: a.Due_Date,
+                                dueTime: a.Due_Time || '17:00',
+                                priority: a.Priority || 'medium',
+                                status: a.Status || 'assigned',
+                                category: 'other',
+                                location: '',
+                                createdAt: a.Assigned_At
+                            });
+                        }
+                    });
+                }
+
+                // Sort by due date
+                tasks.sort((a, b) => {
+                    const dateA = new Date(a.dueDate);
+                    const dateB = new Date(b.dueDate);
+                    return dateA - dateB;
+                });
+
+                updateStats();
+                renderTasks();
+            } catch (error) {
+                console.error('Load tasks error:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <p>Unable to load tasks</p>
+                        <button class="btn btn-secondary" onclick="loadTasks()">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+        function getEmployeeName(id) {
+            if (!id || id === 'ALL' || id === 'All') return 'Everyone';
+            const emp = employees.find(e => e.User_ID === id);
+            return emp ? (emp.Full_Name || emp.Username || id) : id;
+        }
+
+        function updateStats() {
+            const pending = tasks.filter(t => t.status === 'pending' || t.status === 'assigned').length;
+            const today = new Date().toISOString().split('T')[0];
+            const assignedToday = tasks.filter(t => {
+                const created = t.createdAt ? new Date(t.createdAt).toISOString().split('T')[0] : '';
+                return created === today;
+            }).length;
+
+            document.getElementById('pending-count').textContent = pending;
+            document.getElementById('assigned-today').textContent = assignedToday;
+        }
+
+        // =========================================================================
+        // RENDER
+        // =========================================================================
+
+        function renderTasks() {
+            const container = document.getElementById('task-list');
+            let filtered = tasks;
+
+            // Apply status filter
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'overdue') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    filtered = filtered.filter(t => {
+                        const dueDate = new Date(t.dueDate);
+                        return dueDate < today && t.status !== 'completed';
+                    });
+                } else {
+                    filtered = filtered.filter(t => t.status === currentFilter);
+                }
+            }
+
+            // Apply employee filter
+            if (currentEmployeeFilter !== 'all') {
+                filtered = filtered.filter(t => t.assignedTo === currentEmployeeFilter);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-clipboard-check"></i></div>
+                        <p>No tasks found</p>
+                        <button class="btn btn-primary" onclick="showNewTaskForm()">
+                            <i class="fas fa-plus"></i> Create Task
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(task => {
+                const isOverdue = isTaskOverdue(task);
+                const priorityClass = task.priority || 'medium';
+
+                html += `
+                    <div class="task-card priority-${priorityClass} ${task.status === 'completed' ? 'completed' : ''}" onclick="editTask('${task.id}')">
+                        <div class="task-header">
+                            <div class="task-title">${escapeHtml(task.title)}</div>
+                            <span class="task-priority ${priorityClass}">${priorityClass}</span>
+                        </div>
+                        ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
+                        <div class="task-meta">
+                            <div class="task-meta-item">
+                                <i class="fas fa-user"></i>
+                                <span class="task-assignee ${!task.assignedTo || task.assignedTo === 'Unassigned' ? 'unassigned' : ''}">
+                                    ${escapeHtml(task.assignedToName || 'Unassigned')}
+                                </span>
+                            </div>
+                            <div class="task-meta-item ${isOverdue ? 'text-danger' : ''}">
+                                <i class="fas fa-calendar${isOverdue ? '-exclamation' : ''}"></i>
+                                <span>${formatDate(task.dueDate)}${task.dueTime ? ' ' + task.dueTime : ''}</span>
+                            </div>
+                            ${task.location ? `
+                                <div class="task-meta-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>${escapeHtml(task.location)}</span>
+                                </div>
+                            ` : ''}
+                            ${task.category ? `
+                                <div class="task-meta-item">
+                                    <i class="fas fa-tag"></i>
+                                    <span>${escapeHtml(task.category)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function isTaskOverdue(task) {
+            if (task.status === 'completed') return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dueDate = new Date(task.dueDate);
+            return dueDate < today;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            if (date.toDateString() === today.toDateString()) return 'Today';
+            if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // =========================================================================
+        // FILTERS
+        // =========================================================================
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-bar .filter-chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.filter === filter);
+            });
+            renderTasks();
+        }
+
+        function filterByEmployee(employeeId) {
+            currentEmployeeFilter = employeeId;
+            document.querySelectorAll('.quick-employee').forEach(e => {
+                e.classList.toggle('selected', e.dataset.employee === employeeId);
+            });
+            renderTasks();
+        }
+
+        // =========================================================================
+        // FORM HANDLING
+        // =========================================================================
+
+        function showNewTaskForm() {
+            editingTaskId = null;
+            document.getElementById('form-title').textContent = 'New Task';
+            document.getElementById('submit-btn-text').textContent = 'Assign Task';
+            document.getElementById('task-form').reset();
+            setDefaultDate();
+            setPriority('medium');
+            document.getElementById('send-sms').checked = true;
+
+            const panel = document.getElementById('task-form-panel');
+            panel.classList.add('show');
+        }
+
+        function editTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            editingTaskId = taskId;
+            document.getElementById('form-title').textContent = 'Edit Task';
+            document.getElementById('submit-btn-text').textContent = 'Update Task';
+
+            document.getElementById('task-id').value = task.id;
+            document.getElementById('task-title').value = task.title || '';
+            document.getElementById('task-description').value = task.description || '';
+            document.getElementById('task-employee').value = task.assignedTo || '';
+            document.getElementById('task-date').value = task.dueDate || '';
+            document.getElementById('task-time').value = task.dueTime || '17:00';
+            document.getElementById('task-category').value = task.category || '';
+            document.getElementById('task-location').value = task.location || '';
+            document.getElementById('task-notes').value = '';
+            document.getElementById('send-sms').checked = false; // Don't re-notify on edit
+
+            setPriority(task.priority || 'medium');
+
+            const panel = document.getElementById('task-form-panel');
+            panel.classList.add('show');
+        }
+
+        function hideTaskForm() {
+            const panel = document.getElementById('task-form-panel');
+            panel.classList.remove('show');
+            editingTaskId = null;
+        }
+
+        function setPriority(priority) {
+            selectedPriority = priority;
+            document.querySelectorAll('.priority-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.priority === priority);
+            });
+        }
+
+        function toggleCheckbox(id) {
+            const cb = document.getElementById(id);
+            cb.checked = !cb.checked;
+        }
+
+        // =========================================================================
+        // SAVE TASK
+        // =========================================================================
+
+        async function saveTask(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('task-title').value.trim();
+            const description = document.getElementById('task-description').value.trim();
+            const employeeId = document.getElementById('task-employee').value;
+            const dueDate = document.getElementById('task-date').value;
+            const dueTime = document.getElementById('task-time').value;
+            const category = document.getElementById('task-category').value;
+            const location = document.getElementById('task-location').value.trim();
+            const notes = document.getElementById('task-notes').value.trim();
+            const sendSMS = document.getElementById('send-sms').checked;
+
+            if (!title || !employeeId || !dueDate) {
+                showToast('Please fill in required fields', 'error');
+                return;
+            }
+
+            // Get employee name
+            const employee = employees.find(e => e.User_ID === employeeId);
+            const employeeName = employee ? (employee.Full_Name || employee.Username) : (employeeId === 'ALL' ? 'Everyone' : employeeId);
+
+            // Prepare task data
+            const taskData = {
+                description: title,
+                task: title,
+                employeeId: employeeId,
+                employeeName: employeeName,
+                dueDate: dueDate,
+                dueTime: dueTime,
+                priority: selectedPriority,
+                notes: `${description}${notes ? '\n\n' + notes : ''}`,
+                category: category,
+                location: location,
+                sendSMS: sendSMS
+            };
+
+            try {
+                showToast('Assigning task...', 'success');
+
+                const response = await fetch(`${API_BASE}?action=assignTaskToEmployee`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+
+                // Also try GET method as fallback (Apps Script sometimes prefers GET)
+                let data;
+                try {
+                    data = await response.json();
+                } catch {
+                    // Try GET method
+                    const params = new URLSearchParams({
+                        action: 'assignTaskToEmployee',
+                        ...taskData
+                    });
+                    const getResponse = await fetch(`${API_BASE}?${params.toString()}`);
+                    data = await getResponse.json();
+                }
+
+                if (data.success) {
+                    showToast(`Task assigned to ${employeeName}${sendSMS ? ' (SMS sent)' : ''}`, 'success');
+                    hideTaskForm();
+                    loadTasks();
+                } else {
+                    showToast(data.error || 'Failed to assign task', 'error');
+                }
+            } catch (error) {
+                console.error('Save task error:', error);
+                showToast('Failed to save task: ' + error.message, 'error');
+            }
+        }
+
+        // =========================================================================
+        // UTILITIES
+        // =========================================================================
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

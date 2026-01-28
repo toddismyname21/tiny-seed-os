@@ -1050,6 +1050,15 @@
                 <i class="fas fa-search"></i>
             </div>
             <div class="filter-group">
+                <label>Category:</label>
+                <select id="categoryFilter" onchange="updateCropFilterByCategory(); filterPlantings()">
+                    <option value="">All Categories</option>
+                    <option value="Vegetable">Vegetables</option>
+                    <option value="Floral">Florals</option>
+                    <option value="Herb">Herbs</option>
+                </select>
+            </div>
+            <div class="filter-group">
                 <label>Status:</label>
                 <select id="statusFilter" onchange="filterPlantings()">
                     <option value="">All</option>
@@ -1476,6 +1485,51 @@
                 fields.map(f => `<option value="${f}">${f}</option>`).join('');
         }
 
+        // Infer crop category from crop name for crops that don't have explicit Category data
+        function getCropCategory(cropName) {
+            if (!cropName) return 'Vegetable';
+            const crop = cropName.toLowerCase();
+
+            // Known florals
+            const florals = ['zinnia', 'sunflower', 'dahlia', 'cosmos', 'snapdragon', 'celosia', 'rudbeckia',
+                            'lisianthus', 'stock', 'larkspur', 'sweet pea', 'ranunculus', 'delphinium',
+                            'aster', 'marigold', 'statice', 'strawflower', 'gomphrena', 'amaranth',
+                            'dianthus', 'nigella', 'scabiosa', 'verbena', 'calendula', 'bachelor button',
+                            'bells of ireland', 'eucalyptus', 'dusty miller', 'ammi', 'orlaya'];
+
+            // Known herbs
+            const herbs = ['basil', 'cilantro', 'dill', 'parsley', 'oregano', 'thyme', 'sage', 'rosemary',
+                          'mint', 'chives', 'tarragon', 'lavender', 'fennel herb', 'marjoram', 'lemon balm',
+                          'chamomile', 'stevia', 'sorrel'];
+
+            if (florals.some(f => crop.includes(f))) return 'Floral';
+            if (herbs.some(h => crop.includes(h))) return 'Herb';
+            return 'Vegetable';
+        }
+
+        // Update crop filter based on selected category
+        function updateCropFilterByCategory() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const cropSelect = document.getElementById('cropFilter');
+
+            // Filter plantings by category
+            let filteredPlants = allPlantings;
+            if (categoryFilter) {
+                filteredPlants = allPlantings.filter(p => {
+                    const plantCategory = p.Category || p.category || p.Primary_Category || getCropCategory(p.Crop);
+                    return plantCategory === categoryFilter;
+                });
+            }
+
+            // Get unique crops from filtered plantings
+            const crops = [...new Set(filteredPlants.map(p => p.Crop))].filter(c => c).sort();
+            cropSelect.innerHTML = '<option value="">All Crops</option>' +
+                crops.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            // Reset crop selection
+            cropSelect.value = '';
+        }
+
         // ========================================
         // VIEW MANAGEMENT
         // ========================================
@@ -1503,6 +1557,7 @@
         // ========================================
         function filterPlantings() {
             const search = document.getElementById('searchInput').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
             const status = document.getElementById('statusFilter').value;
             const crop = document.getElementById('cropFilter').value;
             const field = document.getElementById('fieldFilter').value;
@@ -1561,6 +1616,12 @@
                 if (search) {
                     const searchStr = `${p.Batch_ID} ${p.Crop} ${p.Variety} ${p.Target_Bed_ID}`.toLowerCase();
                     if (!searchStr.includes(search)) return false;
+                }
+
+                // Category filter (Vegetable, Floral, Herb)
+                if (category) {
+                    const plantCategory = p.Category || p.category || p.Primary_Category || getCropCategory(p.Crop);
+                    if (plantCategory !== category) return false;
                 }
 
                 // Status filter

@@ -1133,7 +1133,7 @@
     </div>
 
     <script>
-        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb/exec';
+        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
         // Lender configurations
         const LENDERS = {
@@ -1725,36 +1725,60 @@
                 return;
             }
 
-            // For now, store locally (in production, this would upload to Google Drive)
-            uploadedDocuments[docType] = {
-                documentType: docType,
-                category: category,
-                fileName: fileInput.files[0].name,
-                expiration: expiration || null,
-                uploadedAt: new Date().toISOString().split('T')[0],
-                status: 'uploaded'
-            };
+            const file = fileInput.files[0];
 
-            // Save to localStorage
-            localStorage.setItem('tsf_loan_documents', JSON.stringify(uploadedDocuments));
-
-            // Try to save to backend
-            try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'saveLoanDocument',
-                        ...uploadedDocuments[docType]
-                    })
-                });
-            } catch (e) {
-                console.error('Error saving to backend:', e);
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                showNotification('File too large. Maximum size is 10MB.', 'error');
+                return;
             }
 
-            closeModal('uploadModal');
-            renderAll();
-            showNotification('Document uploaded successfully!', 'success');
+            showNotification('Uploading document...', 'info');
+
+            try {
+                // Convert file to base64
+                const base64 = await fileToBase64(file);
+
+                // Upload to Google Drive via backend
+                const params = new URLSearchParams({
+                    action: 'uploadLoanDocument',
+                    base64: base64,
+                    fileName: file.name,
+                    category: category,
+                    documentType: docType,
+                    expiration: expiration || '',
+                    mimeType: file.type
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update local state
+                    uploadedDocuments[docType] = {
+                        documentType: docType,
+                        category: category,
+                        fileName: file.name,
+                        fileUrl: result.fileUrl,
+                        fileId: result.fileId,
+                        expiration: expiration || null,
+                        uploadedAt: new Date().toISOString().split('T')[0],
+                        status: 'uploaded'
+                    };
+
+                    // Save to localStorage as backup
+                    localStorage.setItem('tsf_loan_documents', JSON.stringify(uploadedDocuments));
+
+                    closeModal('uploadModal');
+                    renderAll();
+                    showNotification('Document uploaded to Google Drive successfully!', 'success');
+                } else {
+                    throw new Error(result.error || 'Upload failed');
+                }
+            } catch (e) {
+                console.error('Error uploading document:', e);
+                showNotification('Error uploading: ' + e.message, 'error');
+            }
 
             // Reset upload zone
             document.getElementById('uploadZone').innerHTML = `
@@ -1762,6 +1786,18 @@
                 <p>Drag and drop file here, or click to browse</p>
                 <p style="font-size: 0.8rem; color: var(--text-secondary);">PDF, JPG, PNG up to 10MB</p>
             `;
+            // Clear file input
+            fileInput.value = '';
+        }
+
+        // Helper function to convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
         }
 
         function startNewApplication() {
@@ -1775,38 +1811,53 @@
             const deadline = document.getElementById('appDeadline').value;
             const notes = document.getElementById('appNotes').value;
 
-            const application = {
-                id: 'APP_' + Date.now(),
-                lender,
-                amount: parseFloat(amount) || 0,
-                purpose,
-                deadline,
-                notes,
-                status: 'Not Started',
-                lastUpdated: new Date().toISOString().split('T')[0],
-                createdAt: new Date().toISOString()
-            };
+            const appId = 'APP_' + Date.now();
+            const now = new Date().toISOString();
 
-            applications.push(application);
-            localStorage.setItem('tsf_loan_applications', JSON.stringify(applications));
+            showNotification('Creating application...', 'info');
 
-            // Try to save to backend
+            // Save to backend using GET request (Apps Script-friendly)
             try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'saveLoanApplication',
-                        ...application
-                    })
+                const params = new URLSearchParams({
+                    action: 'saveLoanApplication',
+                    id: appId,
+                    lender: lender,
+                    amount: amount || '0',
+                    purpose: purpose,
+                    deadline: deadline || '',
+                    notes: notes || '',
+                    status: 'Not Started'
                 });
-            } catch (e) {
-                console.error('Error saving to backend:', e);
-            }
 
-            closeModal('applicationModal');
-            renderApplications();
-            showNotification('Application created!', 'success');
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // Add to local state
+                    const application = {
+                        id: appId,
+                        lender,
+                        amount: parseFloat(amount) || 0,
+                        purpose,
+                        deadline,
+                        notes,
+                        status: 'Not Started',
+                        lastUpdated: now.split('T')[0],
+                        createdAt: now
+                    };
+                    applications.push(application);
+                    localStorage.setItem('tsf_loan_applications', JSON.stringify(applications));
+
+                    closeModal('applicationModal');
+                    renderApplications();
+                    showNotification('Application created!', 'success');
+                } else {
+                    throw new Error(result.error || 'Failed to create application');
+                }
+            } catch (e) {
+                console.error('Error creating application:', e);
+                showNotification('Error: ' + e.message, 'error');
+            }
         }
 
         // Package Generation
@@ -1814,7 +1865,7 @@
             showNotification('Generating loan package...', 'info');
 
             try {
-                const response = await fetch(`${API_URL}?action=generateLoanPackage&lender=${lenderId}`);
+                const response = await fetch(`${API_URL}?action=generateLenderLoanPackage&lender=${lenderId}`);
                 const result = await response.json();
 
                 if (result.success && result.html) {
@@ -1822,12 +1873,16 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Loan_Package_${LENDERS[lenderId].shortName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
+                    a.download = `Loan_Package_${LENDERS[lenderId]?.shortName?.replace(/\s+/g, '_') || lenderId}_${new Date().toISOString().split('T')[0]}.html`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                     showNotification('Package downloaded!', 'success');
+                } else if (result.success) {
+                    // Package may not have HTML yet - show readiness info
+                    const readiness = result.summary || {};
+                    showNotification(`Readiness: ${readiness.readinessScore || 0}% - ${readiness.metRequired || 0}/${readiness.requiredDocuments || 0} required docs`, 'info');
                 } else {
                     throw new Error(result.error || 'Failed to generate package');
                 }
@@ -1839,7 +1894,19 @@
 
         async function generateFullPackage() {
             showNotification('Generating complete loan package...', 'info');
-            await generatePackage('horizon'); // Uses existing backend function
+            // Generate for all lenders
+            for (const lenderId of Object.keys(LENDERS)) {
+                try {
+                    const response = await fetch(`${API_URL}?action=getLenderReadiness&lender=${lenderId}`);
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log(`${lenderId}: ${result.summary?.readinessScore}% ready`);
+                    }
+                } catch (e) {
+                    console.error(`Error checking ${lenderId}:`, e);
+                }
+            }
+            showNotification('Package readiness check complete!', 'success');
         }
 
         function viewLenderDetails(lenderId) {

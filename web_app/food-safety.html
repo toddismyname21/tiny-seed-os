@@ -1269,6 +1269,35 @@
             <div class="modal-handle"></div>
             <div class="modal-title">Log Cleaning</div>
 
+            <!-- USDA Organic Approved Sanitizer Instructions (Collapsible) -->
+            <div style="background: rgba(59, 130, 246, 0.15); border: 1px solid var(--info); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="toggleMobileSanitizerInfo()">
+                    <i class="fas fa-flask" style="color: var(--info);"></i>
+                    <span style="font-weight: 600; color: var(--info); font-size: 14px;">Organic Sanitizer Recipes</span>
+                    <i class="fas fa-chevron-down" id="mobileSanitizerChevron" style="color: var(--info); margin-left: auto; transition: transform 0.3s;"></i>
+                </div>
+                <div id="mobileSanitizerInfo" style="display: none; margin-top: 12px; font-size: 13px; color: var(--text-secondary);">
+                    <div style="background: var(--bg-elevated); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                        <strong style="color: #06b6d4;">Bleach (200 ppm) - Best for Disinfecting</strong><br>
+                        1 tsp bleach per 32 oz water<br>
+                        <span style="color: var(--success);">USDA Organic Approved</span>
+                    </div>
+                    <div style="background: var(--bg-elevated); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                        <strong style="color: var(--success);">White Vinegar - Fully Organic</strong><br>
+                        1:1 vinegar to water ratio<br>
+                        <span style="color: var(--success);">No restrictions</span>
+                    </div>
+                    <div style="background: var(--bg-elevated); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                        <strong style="color: var(--warning);">Hydrogen Peroxide 3%</strong><br>
+                        Use undiluted from bottle<br>
+                        <span style="color: var(--success);">USDA Organic Approved</span>
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.15); border-radius: 8px; padding: 10px; color: var(--danger); font-size: 12px;">
+                        <i class="fas fa-exclamation-triangle"></i> NEVER mix bleach with vinegar or ammonia!
+                    </div>
+                </div>
+            </div>
+
             <div class="modal-form-group">
                 <label class="modal-label">Area</label>
                 <select class="modal-select" id="cleaningArea">
@@ -1277,6 +1306,8 @@
                     <option value="cooler">Walk-in Cooler</option>
                     <option value="harvest-bins">Harvest Bins</option>
                     <option value="delivery-truck">Delivery Truck</option>
+                    <option value="market-tables">Market Tables</option>
+                    <option value="cutting-boards">Cutting Boards</option>
                     <option value="restroom">Restroom</option>
                 </select>
             </div>
@@ -1285,7 +1316,9 @@
                 <label class="modal-label">Method</label>
                 <select class="modal-select" id="cleaningMethod">
                     <option value="sweep-mop">Sweep & Mop</option>
-                    <option value="sanitize">Sanitize</option>
+                    <option value="sanitize-bleach">Sanitize (Bleach 200ppm)</option>
+                    <option value="sanitize-vinegar">Sanitize (Vinegar)</option>
+                    <option value="sanitize-peroxide">Sanitize (H2O2)</option>
                     <option value="deep-clean">Deep Clean</option>
                     <option value="rinse">Rinse Only</option>
                 </select>
@@ -1810,6 +1843,18 @@
 
         function openCleaningModal() {
             document.getElementById('cleaningModal').classList.add('active');
+        }
+
+        function toggleMobileSanitizerInfo() {
+            const info = document.getElementById('mobileSanitizerInfo');
+            const chevron = document.getElementById('mobileSanitizerChevron');
+            if (info.style.display === 'none') {
+                info.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                info.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
         }
 
         function openHarvestModal() {

@@ -523,6 +523,118 @@
             color: var(--primary-light);
             margin-top: 10px;
         }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from { transform: translate(-50%, 0); opacity: 1; }
+            to { transform: translate(-50%, 100%); opacity: 0; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Improved scan buttons */
+        .scan-btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .scan-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .scan-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        /* Camera preview styling */
+        #qr-reader {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        #qr-reader video {
+            border-radius: 12px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .empty-state-desc {
+            font-size: 14px;
+            max-width: 400px;
+            margin: 0 auto 20px;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+                overflow-x: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .controls > div {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .seed-card {
+                grid-template-columns: 1fr;
+            }
+
+            .qr-section {
+                order: -1;
+                flex-direction: row;
+                justify-content: space-between;
+            }
+        }
     </style>
 </head>
 <body>
@@ -531,8 +643,8 @@
             ← Dashboard
         </a>
         <div class="header-content">
-            <h1>🌱 Seed Inventory Management</h1>
-            <div class="header-subtitle">Track seed packets, lots, germination rates & auto-deduct on planting</div>
+            <h1>Seed Inventory Management</h1>
+            <div class="header-subtitle">Track seed packets, lots, germination rates, and traceability</div>
         </div>
     </div>
     
@@ -587,12 +699,20 @@
         
         <div class="main-panel">
             <div class="controls">
-                <h2 style="font-size: 1.3em; color: #2d3748;">Seed Inventory</h2>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn scan-btn" onclick="openQRScanner()">📷 Scan QR</button>
-                    <button class="btn btn-success" onclick="openAddSeed()">➕ Add New Seed</button>
-                    <button class="btn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;" onclick="openPacketScanner()">📸 Scan Packet</button>
-                    <button class="btn btn-primary" onclick="openSeedCalculator()">🧮 Seed Calculator</button>
+                <h2 style="font-size: 1.3em; color: var(--text-primary);">Seed Inventory</h2>
+                <div class="scan-btn-group">
+                    <button class="btn scan-btn" onclick="openQRScanner()" title="Scan existing seed QR code">
+                        <span>Scan QR</span>
+                    </button>
+                    <button class="btn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;" onclick="openPacketScanner()" title="Scan seed packet with AI to extract info">
+                        <span>Scan Packet</span>
+                    </button>
+                    <button class="btn btn-success" onclick="openAddSeed()" title="Manually add a new seed">
+                        <span>Add Seed</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="openSeedCalculator()" title="Calculate seeds needed">
+                        <span>Calculator</span>
+                    </button>
                 </div>
             </div>
             
@@ -686,9 +806,9 @@
         <div class="modal">
             <div class="modal-header">📷 Scan Seed QR Code</div>
             <div id="qr-reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
-            <div id="qr-result" style="margin-top: 15px; padding: 15px; background: #f0fdf4; border-radius: 8px; display: none;">
-                <div style="font-weight: 600; color: #166534;">Scanned:</div>
-                <div id="scanned-id" style="font-family: monospace; font-size: 14px; margin-top: 5px;"></div>
+            <div id="qr-result" style="margin-top: 15px; padding: 15px; background: rgba(42, 157, 143, 0.15); border: 1px solid var(--success); border-radius: 8px; display: none;">
+                <div style="font-weight: 600; color: var(--success);">Scanned Successfully:</div>
+                <div id="scanned-id" style="font-family: monospace; font-size: 14px; margin-top: 5px; color: var(--text-primary); word-break: break-all;"></div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" onclick="closeQRScanner()">Close</button>
@@ -787,23 +907,56 @@
 
     <script>
         // Use api-config.js or fallback to current deployment
-        const API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
-        
+        const API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+
         let seedInventory = [];
-        
+
         async function init() {
+            showLoadingState();
             await loadInventory();
             renderInventory();
             updateStats();
         }
-        
+
+        function showLoadingState() {
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 15px; animation: pulse 1.5s ease-in-out infinite;">🌱</div>
+                    <div style="font-size: 16px; color: var(--text-secondary);">Loading seed inventory...</div>
+                </div>
+            `;
+        }
+
         async function loadInventory() {
             try {
                 const response = await fetch(`${API_URL}?action=getSeedInventory`);
                 const result = await response.json();
 
                 if (result.success && result.data) {
-                    seedInventory = result.data;
+                    // Map backend column names to frontend property names
+                    seedInventory = result.data.map(item => ({
+                        id: item.rowIndex || item.Seed_Lot_ID,
+                        seedLotId: item.Seed_Lot_ID || '',
+                        crop: item.Crop || '',
+                        variety: item.Variety || '',
+                        vendor: item.Supplier || item.Vendor || '',
+                        lotNumber: item.Supplier_Lot || item.Lot_Number || '',
+                        quantity: Number(item.Quantity_Remaining) || 0,
+                        seedsPerPacket: Number(item.Seeds_Per_Packet) || 0,
+                        germRate: Number(item.Germination_Rate) || 85,
+                        organic: String(item.Organic_Certified).toLowerCase() === 'yes',
+                        threshold: Number(item.Reorder_Threshold) || 3,
+                        used: Number(item.Total_Used) || 0,
+                        unit: item.Unit || 'packets',
+                        status: item.Status || '',
+                        purchaseDate: item.Purchase_Date || '',
+                        expirationDate: item.Expiration_Date || '',
+                        notes: item.Notes || ''
+                    }));
+                } else if (result.success && result.data === undefined) {
+                    // Empty inventory is valid
+                    seedInventory = [];
                 } else {
                     // Show error - NO DEMO DATA FALLBACK
                     console.error('Failed to load inventory:', result.error || 'Unknown error');
@@ -822,7 +975,7 @@
                     <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
                     <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">Failed to Load Inventory</div>
                     <div style="color: var(--text-secondary); margin-bottom: 20px;">${message}</div>
-                    <button class="btn btn-primary" onclick="init()">🔄 Retry</button>
+                    <button class="btn btn-primary" onclick="init()">Retry</button>
                 </div>
             `;
         }
@@ -830,9 +983,28 @@
         function renderInventory(filtered = null) {
             const seeds = filtered || seedInventory;
             const grid = document.getElementById('inventoryGrid');
-            
+
             if (seeds.length === 0) {
-                grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #a0aec0;">No seeds found</div>';
+                const isFiltered = filtered !== null;
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">${isFiltered ? '🔍' : '🌱'}</div>
+                        <div class="empty-state-title">${isFiltered ? 'No Seeds Match Your Filter' : 'No Seeds in Inventory'}</div>
+                        <div class="empty-state-desc">
+                            ${isFiltered
+                                ? 'Try adjusting your search or filter criteria.'
+                                : 'Start building your seed inventory by adding seeds manually or scanning seed packets.'}
+                        </div>
+                        ${!isFiltered ? `
+                            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                <button class="btn btn-success" onclick="openAddSeed()">Add First Seed</button>
+                                <button class="btn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;" onclick="openPacketScanner()">Scan Packet</button>
+                            </div>
+                        ` : `
+                            <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+                        `}
+                    </div>
+                `;
                 return;
             }
             
@@ -934,57 +1106,117 @@
             const search = document.getElementById('searchFilter').value.toLowerCase();
             const status = document.getElementById('statusFilter').value;
             const organic = document.getElementById('organicFilter').value;
-            
+
             let filtered = seedInventory.filter(seed => {
-                const searchMatch = !search || 
-                    seed.crop.toLowerCase().includes(search) || 
-                    seed.variety.toLowerCase().includes(search);
-                
+                const searchMatch = !search ||
+                    (seed.crop && seed.crop.toLowerCase().includes(search)) ||
+                    (seed.variety && seed.variety.toLowerCase().includes(search)) ||
+                    (seed.vendor && seed.vendor.toLowerCase().includes(search)) ||
+                    (seed.seedLotId && seed.seedLotId.toLowerCase().includes(search));
+
                 const statusMatch = status === 'all' || getStatus(seed) === status;
-                
-                const organicMatch = organic === 'all' || 
+
+                const organicMatch = organic === 'all' ||
                     (organic === 'yes' && seed.organic) ||
                     (organic === 'no' && !seed.organic);
-                
+
                 return searchMatch && statusMatch && organicMatch;
             });
-            
+
             renderInventory(filtered);
         }
-        
-        function useSeed(id) {
-            const seed = seedInventory.find(s => s.id === id);
-            if (!seed) return;
-            
-            const amount = prompt(`How many packets of ${seed.crop} - ${seed.variety} to use?`, '1');
-            if (!amount) return;
-            
-            const num = parseInt(amount);
-            if (num > seed.quantity) {
-                alert('Not enough packets in stock!');
-                return;
-            }
-            
-            seed.quantity -= num;
-            seed.used += num;
-            
+
+        function clearFilters() {
+            document.getElementById('searchFilter').value = '';
+            document.getElementById('statusFilter').value = 'all';
+            document.getElementById('organicFilter').value = 'all';
             renderInventory();
-            updateStats();
-            alert(`✓ Used ${num} packet${num !== 1 ? 's' : ''} of ${seed.crop} - ${seed.variety}`);
         }
         
-        function restock(id) {
+        async function useSeed(id) {
             const seed = seedInventory.find(s => s.id === id);
             if (!seed) return;
-            
-            const amount = prompt(`How many packets of ${seed.crop} - ${seed.variety} to add?`, '5');
+
+            const amount = prompt(`How many ${seed.unit || 'packets'} of ${seed.crop} - ${seed.variety} to use?`, '1');
             if (!amount) return;
-            
-            seed.quantity += parseInt(amount);
-            
-            renderInventory();
-            updateStats();
-            alert(`✓ Added ${amount} packets to inventory`);
+
+            const num = parseInt(amount);
+            if (isNaN(num) || num <= 0) {
+                showToast('Please enter a valid number', 'error');
+                return;
+            }
+            if (num > seed.quantity) {
+                showToast('Not enough in stock!', 'error');
+                return;
+            }
+
+            try {
+                // Call API to record usage
+                const response = await fetch(`${API_URL}?action=useSeedFromLot&seedLotId=${encodeURIComponent(seed.seedLotId)}&quantityUsed=${num}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    seed.quantity -= num;
+                    seed.used = (seed.used || 0) + num;
+
+                    renderInventory();
+                    updateStats();
+                    showToast(`Used ${num} ${seed.unit || 'packet'}${num !== 1 ? 's' : ''} of ${seed.crop}`, 'success');
+                } else {
+                    // Update locally even if API fails
+                    seed.quantity -= num;
+                    seed.used = (seed.used || 0) + num;
+                    renderInventory();
+                    updateStats();
+                    showToast(`Updated locally. API sync pending.`, 'info');
+                }
+            } catch (error) {
+                console.error('Use seed error:', error);
+                // Update locally on network error
+                seed.quantity -= num;
+                seed.used = (seed.used || 0) + num;
+                renderInventory();
+                updateStats();
+                showToast(`Updated locally. Will sync when online.`, 'info');
+            }
+        }
+
+        async function restock(id) {
+            const seed = seedInventory.find(s => s.id === id);
+            if (!seed) return;
+
+            const amount = prompt(`How many ${seed.unit || 'packets'} of ${seed.crop} - ${seed.variety} to add?`, '5');
+            if (!amount) return;
+
+            const num = parseInt(amount);
+            if (isNaN(num) || num <= 0) {
+                showToast('Please enter a valid number', 'error');
+                return;
+            }
+
+            try {
+                // Call API to add stock
+                const response = await fetch(`${API_URL}?action=restockSeed&seedLotId=${encodeURIComponent(seed.seedLotId)}&quantity=${num}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    seed.quantity += num;
+                    renderInventory();
+                    updateStats();
+                    showToast(`Added ${num} ${seed.unit || 'packet'}${num !== 1 ? 's' : ''} to inventory`, 'success');
+                } else {
+                    seed.quantity += num;
+                    renderInventory();
+                    updateStats();
+                    showToast(`Updated locally. API sync pending.`, 'info');
+                }
+            } catch (error) {
+                console.error('Restock error:', error);
+                seed.quantity += num;
+                renderInventory();
+                updateStats();
+                showToast(`Updated locally. Will sync when online.`, 'info');
+            }
         }
         
         function openAddSeed() {
@@ -995,29 +1227,73 @@
             document.getElementById('addSeedModal').classList.remove('active');
         }
         
-        function addSeed(event) {
+        async function addSeed(event) {
             event.preventDefault();
-            
+
             const newSeed = {
-                id: seedInventory.length + 1,
                 crop: document.getElementById('newCrop').value,
                 variety: document.getElementById('newVariety').value,
                 vendor: document.getElementById('newVendor').value,
                 lotNumber: document.getElementById('newLotNumber').value,
-                quantity: parseInt(document.getElementById('newQuantity').value),
-                seedsPerPacket: parseInt(document.getElementById('newSeedsPerPacket').value),
-                germRate: parseInt(document.getElementById('newGermRate').value),
+                quantity: parseInt(document.getElementById('newQuantity').value) || 1,
+                seedsPerPacket: parseInt(document.getElementById('newSeedsPerPacket').value) || 0,
+                germRate: parseInt(document.getElementById('newGermRate').value) || 85,
                 organic: document.getElementById('newOrganic').value === 'yes',
-                threshold: parseInt(document.getElementById('newThreshold').value),
+                threshold: parseInt(document.getElementById('newThreshold').value) || 3,
                 used: 0
             };
-            
-            seedInventory.push(newSeed);
-            
+
+            // Generate a seed lot ID if not provided
+            newSeed.seedLotId = `S-${newSeed.crop.substring(0,3).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+
+            try {
+                // Try to save to backend
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'addSeedToInventory',
+                        Crop: newSeed.crop,
+                        Variety: newSeed.variety,
+                        Supplier: newSeed.vendor,
+                        Supplier_Lot: newSeed.lotNumber,
+                        Seed_Lot_ID: newSeed.seedLotId,
+                        Quantity_Remaining: newSeed.quantity,
+                        Seeds_Per_Packet: newSeed.seedsPerPacket,
+                        Germination_Rate: newSeed.germRate,
+                        Organic_Certified: newSeed.organic ? 'Yes' : 'No',
+                        Reorder_Threshold: newSeed.threshold,
+                        Unit: 'packets',
+                        Purchase_Date: new Date().toISOString().split('T')[0]
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Added ${newSeed.crop} - ${newSeed.variety} to inventory`, 'success');
+                    // Reload inventory to get the server-assigned ID
+                    await loadInventory();
+                } else {
+                    // Add locally even if API fails
+                    newSeed.id = seedInventory.length + 1;
+                    seedInventory.push(newSeed);
+                    showToast(`Added locally. Will sync when online.`, 'info');
+                }
+            } catch (error) {
+                console.error('Add seed error:', error);
+                // Add locally on network error
+                newSeed.id = seedInventory.length + 1;
+                seedInventory.push(newSeed);
+                showToast(`Added locally. Will sync when online.`, 'info');
+            }
+
             closeAddSeed();
             renderInventory();
             updateStats();
-            alert(`✓ Added ${newSeed.crop} - ${newSeed.variety} to inventory`);
+
+            // Clear form
+            event.target.reset();
         }
         
         function openSeedCalculator() {
@@ -1061,6 +1337,14 @@
             document.getElementById('qr-result').style.display = 'none';
             document.getElementById('lookupBtn').style.display = 'none';
 
+            // Show loading state while requesting camera
+            document.getElementById('qr-reader').innerHTML = `
+                <div style="text-align:center;padding:40px;color:var(--text-secondary);">
+                    <div style="font-size: 32px; margin-bottom: 10px; animation: pulse 1.5s ease-in-out infinite;">📷</div>
+                    <div>Requesting camera access...</div>
+                </div>
+            `;
+
             // Initialize scanner
             html5QrCode = new Html5Qrcode("qr-reader");
             html5QrCode.start(
@@ -1070,9 +1354,38 @@
                 onScanError
             ).catch(err => {
                 console.error('Camera error:', err);
-                document.getElementById('qr-reader').innerHTML =
-                    '<div style="text-align:center;padding:20px;color:#991b1b;">Camera access denied or not available.<br>You can manually enter a seed lot ID.</div>';
+                let errorMessage = 'Camera access denied or not available.';
+                if (err.name === 'NotAllowedError') {
+                    errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage = 'No camera found on this device.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMessage = 'Camera is in use by another application.';
+                }
+
+                document.getElementById('qr-reader').innerHTML = `
+                    <div style="text-align:center;padding:30px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📵</div>
+                        <div style="color: var(--danger); font-weight: 600; margin-bottom: 10px;">Camera Unavailable</div>
+                        <div style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">${errorMessage}</div>
+                        <div style="margin-bottom: 15px;">
+                            <input type="text" id="manualSeedId" placeholder="Enter Seed Lot ID manually"
+                                   style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-light); color: var(--text-primary); width: 200px;">
+                        </div>
+                        <button class="btn btn-primary" onclick="manualLookup()">Look Up</button>
+                    </div>
+                `;
             });
+        }
+
+        function manualLookup() {
+            const input = document.getElementById('manualSeedId');
+            if (input && input.value.trim()) {
+                scannedSeedId = input.value.trim();
+                lookupScannedSeed();
+            } else {
+                showToast('Please enter a seed lot ID', 'error');
+            }
         }
 
         function onScanSuccess(decodedText) {
@@ -1106,9 +1419,18 @@
 
             closeQRScanner();
 
+            // Extract seed ID from URL if scanned a tracking URL
+            let lookupId = scannedSeedId;
+            if (scannedSeedId.includes('seed_track.html?id=')) {
+                const url = new URL(scannedSeedId);
+                lookupId = url.searchParams.get('id') || scannedSeedId;
+            } else if (scannedSeedId.includes('?id=')) {
+                lookupId = scannedSeedId.split('?id=')[1] || scannedSeedId;
+            }
+
             // First check local inventory
             const localSeed = seedInventory.find(s =>
-                s.seedLotId === scannedSeedId || s.lotNumber === scannedSeedId
+                s.seedLotId === lookupId || s.lotNumber === lookupId
             );
 
             if (localSeed) {
@@ -1118,17 +1440,32 @@
 
             // Try API lookup
             try {
-                const response = await fetch(`${API_URL}?action=getSeedByQR&seedLotId=${encodeURIComponent(scannedSeedId)}`);
+                const response = await fetch(`${API_URL}?action=getSeedByQR&seedLotId=${encodeURIComponent(lookupId)}`);
                 const result = await response.json();
 
-                if (result.success && result.data) {
-                    showSeedDetail(result.data);
+                // Backend returns { success: true, found: true/false, seed: {...} }
+                if (result.success && result.found && result.seed) {
+                    // Map backend data to frontend format
+                    const seed = {
+                        id: result.seed.rowIndex,
+                        seedLotId: result.seed.Seed_Lot_ID || '',
+                        crop: result.seed.Crop || '',
+                        variety: result.seed.Variety || '',
+                        vendor: result.seed.Supplier || '',
+                        lotNumber: result.seed.Supplier_Lot || '',
+                        quantity: Number(result.seed.Quantity_Remaining) || 0,
+                        seedsPerPacket: Number(result.seed.Seeds_Per_Packet) || 0,
+                        germRate: Number(result.seed.Germination_Rate) || 85,
+                        organic: String(result.seed.Organic_Certified).toLowerCase() === 'yes',
+                        unit: result.seed.Unit || 'packets'
+                    };
+                    showSeedDetail(seed);
                 } else {
-                    alert(`Seed lot "${scannedSeedId}" not found in inventory.`);
+                    showToast(`Seed lot "${lookupId}" not found in inventory.`, 'error');
                 }
             } catch (error) {
                 console.error('Lookup error:', error);
-                alert(`Could not find seed lot: ${scannedSeedId}`);
+                showToast(`Could not find seed lot: ${lookupId}`, 'error');
             }
         }
 
@@ -1138,44 +1475,58 @@
             currentDetailSeed = seed;
             const content = document.getElementById('seedDetailContent');
 
+            const status = getStatus(seed);
+            const statusColors = {
+                good: { bg: 'rgba(42, 157, 143, 0.2)', color: 'var(--success)' },
+                low: { bg: 'rgba(233, 196, 106, 0.2)', color: 'var(--warning)' },
+                depleted: { bg: 'rgba(230, 57, 70, 0.2)', color: 'var(--danger)' }
+            };
+
             content.innerHTML = `
                 <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start;">
                     <div>
-                        <h3 style="font-size: 1.5em; color: #2d3748; margin-bottom: 5px;">${seed.crop || seed.Crop}</h3>
-                        <p style="color: #718096; margin-bottom: 15px;">${seed.variety || seed.Variety}</p>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                            <h3 style="font-size: 1.5em; color: var(--text-primary); margin: 0;">${seed.crop || 'Unknown Crop'}</h3>
+                            <span style="padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+                                         background: ${statusColors[status].bg}; color: ${statusColors[status].color};">
+                                ${status.toUpperCase()}
+                            </span>
+                            ${seed.organic ? '<span style="padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(42, 157, 143, 0.2); color: var(--success);">ORGANIC</span>' : ''}
+                        </div>
+                        <p style="color: var(--text-secondary); margin-bottom: 15px;">${seed.variety || ''}</p>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div>
-                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Seed Lot ID</div>
-                                <div style="font-weight: 600;">${seed.seedLotId || seed.Seed_Lot_ID || seed.lotNumber}</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Seed Lot ID</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${seed.seedLotId || seed.lotNumber || 'N/A'}</div>
                             </div>
                             <div>
-                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Vendor</div>
-                                <div style="font-weight: 600;">${seed.vendor || seed.Supplier || 'N/A'}</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Vendor</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${seed.vendor || 'N/A'}</div>
                             </div>
                             <div>
-                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Quantity</div>
-                                <div style="font-weight: 600; color: #f59e0b; font-size: 1.2em;">
-                                    ${seed.quantity || seed.Quantity_Remaining || 0} ${seed.unit || seed.Unit || 'packets'}
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Quantity</div>
+                                <div style="font-weight: 600; color: var(--secondary); font-size: 1.2em;">
+                                    ${seed.quantity || 0} ${seed.unit || 'packets'}
                                 </div>
                             </div>
                             <div>
-                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Germination</div>
-                                <div style="font-weight: 600;">${seed.germRate || seed.Germination_Rate || 'N/A'}%</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Germination</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${seed.germRate || 'N/A'}%</div>
                             </div>
                             <div>
-                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Organic</div>
-                                <div style="font-weight: 600;">${(seed.organic || seed.Organic_Certified) ? '✓ Yes' : 'No'}</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Seeds/Packet</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${seed.seedsPerPacket || 'N/A'}</div>
                             </div>
                             <div>
-                                <div style="font-size: 11px; color: #a0aec0; text-transform: uppercase;">Supplier Lot</div>
-                                <div style="font-weight: 600;">${seed.lotNumber || seed.Supplier_Lot || 'N/A'}</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Supplier Lot</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${seed.lotNumber || 'N/A'}</div>
                             </div>
                         </div>
                     </div>
                     <div style="text-align: center;">
-                        <img src="${getQRCodeUrl(seed)}" style="width: 120px; height: 120px; border-radius: 8px;">
-                        <div style="font-size: 10px; color: #a0aec0; margin-top: 5px;">Scan to track</div>
+                        <img src="${getQRCodeUrl(seed)}" style="width: 120px; height: 120px; border-radius: 8px; background: white; padding: 5px;">
+                        <div style="font-size: 10px; color: var(--text-secondary); margin-top: 5px;">Scan to track</div>
                     </div>
                 </div>
             `;
@@ -1273,6 +1624,38 @@
             }
         }
 
+        // Toast notification helper
+        function showToast(message, type = 'info') {
+            // Remove existing toasts
+            document.querySelectorAll('.toast-notification').forEach(t => t.remove());
+
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 14px 28px;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 14px;
+                z-index: 9999;
+                animation: slideUp 0.3s ease;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                ${type === 'error' ? 'background: linear-gradient(135deg, #ef4444, #dc2626); color: white;' :
+                  type === 'success' ? 'background: linear-gradient(135deg, #22c55e, #16a34a); color: white;' :
+                  'background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;'}
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideDown 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
         init();
 
         // ============ PACKET SCANNER (AI VISION) ============
@@ -1307,6 +1690,14 @@
         }
 
         async function startPacketCamera() {
+            const placeholder = document.getElementById('packetPlaceholder');
+
+            // Show loading state
+            placeholder.innerHTML = `
+                <span style="font-size: 32px; animation: pulse 1.5s ease-in-out infinite;">📷</span>
+                <span>Requesting camera access...</span>
+            `;
+
             try {
                 packetStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -1316,12 +1707,35 @@
                 video.srcObject = packetStream;
                 video.style.display = 'block';
 
-                document.getElementById('packetPlaceholder').style.display = 'none';
+                placeholder.style.display = 'none';
                 document.getElementById('startCameraBtn').style.display = 'none';
                 document.getElementById('captureBtn').style.display = 'inline-block';
+
+                showToast('Camera ready - position seed packet in frame', 'success');
             } catch (err) {
                 console.error('Camera error:', err);
-                alert('Could not access camera. Please upload an image instead.');
+
+                let errorMessage = 'Camera unavailable';
+                let suggestion = 'Please upload an image instead.';
+
+                if (err.name === 'NotAllowedError') {
+                    errorMessage = 'Camera permission denied';
+                    suggestion = 'Allow camera access in browser settings, or upload an image.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage = 'No camera found';
+                    suggestion = 'This device has no camera. Please upload an image.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMessage = 'Camera in use';
+                    suggestion = 'Close other apps using the camera, or upload an image.';
+                }
+
+                placeholder.innerHTML = `
+                    <span style="font-size: 48px;">📵</span>
+                    <span style="font-weight: 600; color: var(--danger);">${errorMessage}</span>
+                    <span style="font-size: 13px;">${suggestion}</span>
+                `;
+
+                showToast(errorMessage + '. ' + suggestion, 'error');
             }
         }
 

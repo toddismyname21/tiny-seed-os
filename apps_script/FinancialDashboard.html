@@ -2188,11 +2188,17 @@
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-trophy"></i> Team Leaderboard</h3>
-                        <select class="form-input" style="width: auto; padding: 0.5rem 1rem;">
-                            <option>This Month</option>
-                            <option>This Quarter</option>
-                            <option>This Year</option>
+                        <select class="form-input" id="leaderboardRange" style="width: auto; padding: 0.5rem 1rem;" onchange="toggleLeaderboardCustomRange()">
+                            <option value="month">This Month</option>
+                            <option value="quarter">This Quarter</option>
+                            <option value="year">This Year</option>
+                            <option value="custom">Custom Range...</option>
                         </select>
+                        <div id="leaderboardCustomRange" style="display: none; margin-top: 8px;">
+                            <input type="date" class="form-input" id="leaderboardStartDate" style="width: auto; padding: 0.5rem;">
+                            <span style="margin: 0 5px;">to</span>
+                            <input type="date" class="form-input" id="leaderboardEndDate" style="width: auto; padding: 0.5rem;">
+                        </div>
                     </div>
                     <div class="card-body" style="padding: 0;">
                         <table class="data-table">
@@ -3554,6 +3560,33 @@
                     month: 'short',
                     year: 'numeric'
                 });
+            }
+        }
+
+        // =============================================
+        // CUSTOM DATE RANGE FUNCTIONS
+        // =============================================
+        function toggleLeaderboardCustomRange() {
+            const select = document.getElementById('leaderboardRange');
+            const customContainer = document.getElementById('leaderboardCustomRange');
+
+            if (select.value === 'custom') {
+                customContainer.style.display = 'block';
+
+                // Set default dates if not already set
+                const startInput = document.getElementById('leaderboardStartDate');
+                const endInput = document.getElementById('leaderboardEndDate');
+
+                if (!startInput.value) {
+                    const today = new Date();
+                    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                    startInput.value = firstOfMonth.toISOString().split('T')[0];
+                }
+                if (!endInput.value) {
+                    endInput.value = new Date().toISOString().split('T')[0];
+                }
+            } else {
+                customContainer.style.display = 'none';
             }
         }
 

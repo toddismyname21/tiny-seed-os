@@ -2953,6 +2953,227 @@
             color: #888;
         }
 
+        /* Clickable Brief Items */
+        .priority-item.clickable,
+        .harvest-item.clickable {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .priority-item.clickable:hover,
+        .harvest-item.clickable:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(4px);
+        }
+
+        .priority-item .task-click-hint {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .priority-item.clickable:hover .task-click-hint {
+            color: var(--primary-light);
+        }
+
+        /* Task Action Modal Styles */
+        .task-action-modal .modal {
+            max-width: 480px;
+        }
+
+        .task-detail-header {
+            background: rgba(45, 90, 39, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .task-detail-header .task-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .task-detail-header .task-subtitle {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .task-detail-header .task-urgency {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .task-detail-header .task-urgency.must-do {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .task-detail-header .task-urgency.should-do {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .task-detail-header .task-urgency.normal {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .task-actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .task-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+        }
+
+        .task-action-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .task-action-btn i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .task-action-btn span {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .task-action-btn.do-now i { color: #22c55e; }
+        .task-action-btn.delegate i { color: #60a5fa; }
+        .task-action-btn.reschedule i { color: #f59e0b; }
+        .task-action-btn.complete i { color: #8b5cf6; }
+        .task-action-btn.dismiss i { color: #ef4444; }
+
+        .task-action-btn.do-now:hover { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+        .task-action-btn.delegate:hover { border-color: #60a5fa; background: rgba(96, 165, 250, 0.1); }
+        .task-action-btn.reschedule:hover { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .task-action-btn.complete:hover { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
+        .task-action-btn.dismiss:hover { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+        /* Delegate Panel */
+        .delegate-panel {
+            display: none;
+            background: rgba(96, 165, 250, 0.05);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .delegate-panel.visible {
+            display: block;
+        }
+
+        .delegate-panel h4 {
+            margin-bottom: 12px;
+            color: #60a5fa;
+        }
+
+        .employee-select {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+
+        .delegate-note {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .delegate-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        /* Reschedule Panel */
+        .reschedule-panel {
+            display: none;
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .reschedule-panel.visible {
+            display: block;
+        }
+
+        .reschedule-panel h4 {
+            margin-bottom: 12px;
+            color: #f59e0b;
+        }
+
+        .date-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .quick-dates {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .quick-date-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .quick-date-btn:hover {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
         /* Loan Readiness Widget */
         .loan-readiness-widget {
             background: linear-gradient(135deg, rgba(230, 57, 70, 0.1) 0%, rgba(230, 57, 70, 0.05) 100%);
@@ -4099,6 +4320,82 @@
         </div>
     </div>
 
+    <!-- Task Action Modal -->
+    <div class="modal-overlay task-action-modal" id="taskActionModal">
+        <div class="modal" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-tasks" style="color: var(--primary-light);"></i> Task Actions</h3>
+                <button class="modal-close" onclick="closeTaskActionModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Task Details -->
+                <div class="task-detail-header">
+                    <div class="task-title" id="taskModalTitle">Task Name</div>
+                    <div class="task-subtitle" id="taskModalSubtitle">Crop - Category</div>
+                    <span class="task-urgency normal" id="taskModalUrgency">Normal</span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="task-actions-grid">
+                    <div class="task-action-btn do-now" onclick="taskDoNow()">
+                        <i class="fas fa-play-circle"></i>
+                        <span>Do It Now</span>
+                    </div>
+                    <div class="task-action-btn delegate" onclick="taskDelegate()">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Delegate</span>
+                    </div>
+                    <div class="task-action-btn reschedule" onclick="taskReschedule()">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Reschedule</span>
+                    </div>
+                    <div class="task-action-btn complete" onclick="taskMarkComplete()">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Mark Complete</span>
+                    </div>
+                </div>
+
+                <!-- Dismiss Button (full width) -->
+                <div class="task-action-btn dismiss" onclick="taskDismiss()" style="width: 100%;">
+                    <i class="fas fa-times-circle"></i>
+                    <span>Dismiss from Brief</span>
+                </div>
+
+                <!-- Delegate Panel (hidden by default) -->
+                <div class="delegate-panel" id="delegatePanel">
+                    <h4><i class="fas fa-user-plus"></i> Assign to Employee</h4>
+                    <select class="employee-select" id="delegateEmployee">
+                        <option value="">Loading employees...</option>
+                    </select>
+                    <textarea class="delegate-note" id="delegateNote" placeholder="Add a note for the employee (optional)..."></textarea>
+                    <div class="delegate-actions">
+                        <button class="btn btn-secondary" onclick="cancelDelegate()">Cancel</button>
+                        <button class="btn btn-primary" onclick="confirmDelegate()">
+                            <i class="fas fa-paper-plane"></i> Assign Task
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reschedule Panel (hidden by default) -->
+                <div class="reschedule-panel" id="reschedulePanel">
+                    <h4><i class="fas fa-calendar-alt"></i> Reschedule Task</h4>
+                    <input type="date" class="date-input" id="rescheduleDate">
+                    <div class="quick-dates">
+                        <button class="quick-date-btn" onclick="setQuickDate('tomorrow')">Tomorrow</button>
+                        <button class="quick-date-btn" onclick="setQuickDate('nextWeek')">Next Week</button>
+                        <button class="quick-date-btn" onclick="setQuickDate('nextMonth')">Next Month</button>
+                    </div>
+                    <div class="delegate-actions" style="margin-top: 16px;">
+                        <button class="btn btn-secondary" onclick="cancelReschedule()">Cancel</button>
+                        <button class="btn btn-primary" onclick="confirmReschedule()">
+                            <i class="fas fa-calendar-check"></i> Reschedule
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal" style="max-width: 500px;">
@@ -4620,15 +4917,24 @@
                         ...(apiData.should_do_today || []).map(t => ({...t, urgency: 'SHOULD DO'}))
                     ];
 
+                // Store tasks globally for click handling
+                window.morningBriefTasks = allTasks;
+
                 if (allTasks.length > 0) {
                     const topTasks = allTasks.slice(0, 5);
-                    prioritiesContainer.innerHTML = topTasks.map(task => `
-                        <div class="priority-item ${task.urgency === 'MUST DO' || task.overdue ? 'overdue' : ''}">
+                    prioritiesContainer.innerHTML = topTasks.map((task, index) => `
+                        <div class="priority-item clickable ${task.urgency === 'MUST DO' || task.overdue ? 'overdue' : ''}"
+                             onclick="openTaskActionModal(${index})"
+                             data-task-index="${index}">
                             <div>
                                 <div class="task-name">${task.task || task.name || task.crop || 'Task'}</div>
                                 <div class="task-meta">${task.crop || ''} ${task.category ? '- ' + task.category : ''} ${task.type || ''}</div>
+                                <div class="task-click-hint">Click to take action</div>
                             </div>
-                            <div class="task-meta">${task.urgency || task.type || ''}</div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                                <div class="task-meta">${task.urgency || task.type || ''}</div>
+                                <i class="fas fa-chevron-right" style="color: #666; font-size: 0.8rem;"></i>
+                            </div>
                         </div>
                     `).join('');
                 } else {
@@ -4641,11 +4947,20 @@
                 const harvestData = apiData.sections?.harvests || {};
                 const harvestCount = harvestData.count || apiData.harvest_ready || 0;
 
+                // Store harvests globally for click handling
+                window.morningBriefHarvests = harvestData.items || [];
+
                 if (harvestCount > 0) {
                     harvestSection.style.display = 'block';
                     if (harvestData.items && harvestData.items.length > 0) {
-                        harvestContainer.innerHTML = harvestData.items.slice(0, 3).map(h =>
-                            `<div class="harvest-item"><span class="crop-name">${h.crop || h.name || 'Crop'}</span> <span style="color: ${h.status === 'OVERDUE' ? '#ef4444' : '#22c55e'}">${h.status || ''}</span></div>`
+                        harvestContainer.innerHTML = harvestData.items.slice(0, 3).map((h, index) =>
+                            `<div class="harvest-item clickable" onclick="openHarvestActionModal(${index})" style="cursor: pointer;">
+                                <span class="crop-name">${h.crop || h.name || 'Crop'}</span>
+                                <span style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="color: ${h.status === 'OVERDUE' ? '#ef4444' : '#22c55e'}">${h.status || ''}</span>
+                                    <i class="fas fa-chevron-right" style="color: #666; font-size: 0.8rem;"></i>
+                                </span>
+                            </div>`
                         ).join('');
                     } else {
                         harvestContainer.innerHTML = `<div class="harvest-item"><span class="crop-name">${harvestCount} crops ready</span></div>`;
@@ -4742,6 +5057,388 @@
                 chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
             }
         }
+
+        // ========================================
+        // TASK ACTION MODAL
+        // ========================================
+        let currentTaskIndex = null;
+        let currentTaskType = 'task'; // 'task' or 'harvest'
+        let employeesLoaded = false;
+
+        function openTaskActionModal(index) {
+            currentTaskIndex = index;
+            currentTaskType = 'task';
+            const task = window.morningBriefTasks[index];
+            if (!task) return;
+
+            // Populate modal with task details
+            document.getElementById('taskModalTitle').textContent = task.task || task.name || task.crop || 'Task';
+            document.getElementById('taskModalSubtitle').textContent =
+                `${task.crop || 'Unknown crop'} ${task.category ? '- ' + task.category : ''} ${task.type || ''}`;
+
+            // Set urgency badge
+            const urgencyEl = document.getElementById('taskModalUrgency');
+            const urgency = task.urgency || (task.overdue ? 'MUST DO' : 'Normal');
+            urgencyEl.textContent = urgency;
+            urgencyEl.className = 'task-urgency';
+            if (urgency === 'MUST DO' || task.overdue) {
+                urgencyEl.classList.add('must-do');
+            } else if (urgency === 'SHOULD DO') {
+                urgencyEl.classList.add('should-do');
+            } else {
+                urgencyEl.classList.add('normal');
+            }
+
+            // Hide sub-panels
+            document.getElementById('delegatePanel').classList.remove('visible');
+            document.getElementById('reschedulePanel').classList.remove('visible');
+
+            // Load employees if not already loaded
+            if (!employeesLoaded) {
+                loadEmployeesForDelegate();
+            }
+
+            // Set default date for reschedule
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('rescheduleDate').value = tomorrow.toISOString().split('T')[0];
+
+            // Show modal
+            document.getElementById('taskActionModal').classList.add('visible');
+        }
+
+        function openHarvestActionModal(index) {
+            currentTaskIndex = index;
+            currentTaskType = 'harvest';
+            const harvest = window.morningBriefHarvests[index];
+            if (!harvest) return;
+
+            // Populate modal with harvest details
+            document.getElementById('taskModalTitle').textContent = `Harvest: ${harvest.crop || harvest.name || 'Crop'}`;
+            document.getElementById('taskModalSubtitle').textContent =
+                `${harvest.bed || harvest.location || 'Location TBD'} - ${harvest.quantity || 'Quantity TBD'}`;
+
+            // Set urgency badge based on status
+            const urgencyEl = document.getElementById('taskModalUrgency');
+            const status = harvest.status || 'READY';
+            urgencyEl.textContent = status;
+            urgencyEl.className = 'task-urgency';
+            if (status === 'OVERDUE') {
+                urgencyEl.classList.add('must-do');
+            } else {
+                urgencyEl.classList.add('normal');
+            }
+
+            // Hide sub-panels
+            document.getElementById('delegatePanel').classList.remove('visible');
+            document.getElementById('reschedulePanel').classList.remove('visible');
+
+            // Load employees if not already loaded
+            if (!employeesLoaded) {
+                loadEmployeesForDelegate();
+            }
+
+            // Show modal
+            document.getElementById('taskActionModal').classList.add('visible');
+        }
+
+        function closeTaskActionModal() {
+            document.getElementById('taskActionModal').classList.remove('visible');
+            currentTaskIndex = null;
+        }
+
+        async function loadEmployeesForDelegate() {
+            const select = document.getElementById('delegateEmployee');
+            try {
+                const response = await fetch(`${API_URL}?action=getAllActiveEmployees`);
+                const result = await response.json();
+
+                if (result.success && result.employees && result.employees.length > 0) {
+                    select.innerHTML = '<option value="">Select an employee...</option>' +
+                        result.employees.map(emp =>
+                            `<option value="${emp.id}">${emp.name} (${emp.role || 'Staff'})</option>`
+                        ).join('');
+                    employeesLoaded = true;
+                } else {
+                    select.innerHTML = '<option value="">No employees available</option>';
+                }
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                select.innerHTML = '<option value="">Error loading employees</option>';
+            }
+        }
+
+        async function taskDoNow() {
+            if (currentTaskIndex === null) return;
+
+            const task = currentTaskType === 'task'
+                ? window.morningBriefTasks[currentTaskIndex]
+                : window.morningBriefHarvests[currentTaskIndex];
+
+            try {
+                // Update task status to in_progress
+                const params = new URLSearchParams({
+                    action: 'updateTaskStatus',
+                    data: JSON.stringify({
+                        assignmentId: task.id || task.batchId || `TASK_${Date.now()}`,
+                        status: 'in_progress'
+                    })
+                });
+
+                const response = await fetch(`${API_URL}?${params}`);
+                const result = await response.json();
+
+                showToast('Task marked as in progress - Go get it done!', 'success');
+                closeTaskActionModal();
+
+                // Refresh the morning brief
+                loadMorningBrief();
+            } catch (error) {
+                console.error('Error updating task:', error);
+                showToast('Task started - tracking may not have saved', 'info');
+                closeTaskActionModal();
+            }
+        }
+
+        function taskDelegate() {
+            // Show delegate panel
+            document.getElementById('delegatePanel').classList.add('visible');
+            document.getElementById('reschedulePanel').classList.remove('visible');
+        }
+
+        function cancelDelegate() {
+            document.getElementById('delegatePanel').classList.remove('visible');
+        }
+
+        async function confirmDelegate() {
+            if (currentTaskIndex === null) return;
+
+            const task = currentTaskType === 'task'
+                ? window.morningBriefTasks[currentTaskIndex]
+                : window.morningBriefHarvests[currentTaskIndex];
+
+            const employeeId = document.getElementById('delegateEmployee').value;
+            const note = document.getElementById('delegateNote').value;
+
+            if (!employeeId) {
+                showToast('Please select an employee', 'error');
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'assignTaskToEmployee',
+                    data: JSON.stringify({
+                        taskId: task.id || task.batchId || `TASK_${Date.now()}`,
+                        description: task.task || task.name || task.crop || 'Task',
+                        employeeId: employeeId,
+                        notes: note,
+                        dueDate: 'today',
+                        priority: task.urgency === 'MUST DO' ? 'high' : 'normal',
+                        sendSMS: true
+                    })
+                });
+
+                const response = await fetch(`${API_URL}?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Task delegated successfully! Employee notified via SMS.', 'success');
+                } else {
+                    showToast('Task assigned (SMS may not have sent)', 'info');
+                }
+
+                closeTaskActionModal();
+                loadMorningBrief();
+            } catch (error) {
+                console.error('Error delegating task:', error);
+                showToast('Error delegating task', 'error');
+            }
+        }
+
+        function taskReschedule() {
+            // Show reschedule panel
+            document.getElementById('reschedulePanel').classList.add('visible');
+            document.getElementById('delegatePanel').classList.remove('visible');
+        }
+
+        function cancelReschedule() {
+            document.getElementById('reschedulePanel').classList.remove('visible');
+        }
+
+        function setQuickDate(option) {
+            const dateInput = document.getElementById('rescheduleDate');
+            const today = new Date();
+
+            if (option === 'tomorrow') {
+                today.setDate(today.getDate() + 1);
+            } else if (option === 'nextWeek') {
+                today.setDate(today.getDate() + 7);
+            } else if (option === 'nextMonth') {
+                today.setMonth(today.getMonth() + 1);
+            }
+
+            dateInput.value = today.toISOString().split('T')[0];
+        }
+
+        async function confirmReschedule() {
+            if (currentTaskIndex === null) return;
+
+            const task = currentTaskType === 'task'
+                ? window.morningBriefTasks[currentTaskIndex]
+                : window.morningBriefHarvests[currentTaskIndex];
+
+            const newDate = document.getElementById('rescheduleDate').value;
+
+            if (!newDate) {
+                showToast('Please select a date', 'error');
+                return;
+            }
+
+            try {
+                // For planting tasks, update the planned date
+                if (task.batchId) {
+                    let updateField = '';
+                    if (task.type === 'ghSow' || task.type === 'GH Sow') updateField = 'Plan_GH_Sow';
+                    else if (task.type === 'directSeed' || task.type === 'Direct Seed') updateField = 'Plan_Field_Sow';
+                    else if (task.type === 'transplant' || task.type === 'Transplant') updateField = 'Plan_Transplant';
+                    else updateField = 'Plan_Harvest';
+
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        batchId: task.batchId,
+                        [updateField]: newDate
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showToast(`Task rescheduled to ${newDate}`, 'success');
+                    } else {
+                        showToast('Reschedule may not have saved', 'warning');
+                    }
+                } else {
+                    showToast(`Task rescheduled to ${newDate}`, 'success');
+                }
+
+                closeTaskActionModal();
+                loadMorningBrief();
+            } catch (error) {
+                console.error('Error rescheduling task:', error);
+                showToast('Error rescheduling task', 'error');
+            }
+        }
+
+        async function taskMarkComplete() {
+            if (currentTaskIndex === null) return;
+
+            const task = currentTaskType === 'task'
+                ? window.morningBriefTasks[currentTaskIndex]
+                : window.morningBriefHarvests[currentTaskIndex];
+
+            try {
+                const today = new Date().toISOString().split('T')[0];
+
+                // For planting tasks, update the actual date
+                if (task.batchId) {
+                    let updateField = '';
+                    if (task.type === 'ghSow' || task.type === 'GH Sow') updateField = 'Act_GH_Sow';
+                    else if (task.type === 'directSeed' || task.type === 'Direct Seed') updateField = 'Act_Field_Sow';
+                    else if (task.type === 'transplant' || task.type === 'Transplant') updateField = 'Act_Transplant';
+                    else updateField = 'Act_Harvest';
+
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        batchId: task.batchId,
+                        [updateField]: today
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showToast('Task marked complete!', 'success');
+
+                        // Update local data
+                        const planting = allPlantings.find(p => p.Batch_ID === task.batchId);
+                        if (planting) {
+                            planting[updateField] = today;
+                        }
+                    } else {
+                        showToast('Completion may not have saved', 'warning');
+                    }
+                } else {
+                    // For general tasks
+                    const params = new URLSearchParams({
+                        action: 'updateTaskStatus',
+                        data: JSON.stringify({
+                            assignmentId: task.id || `TASK_${Date.now()}`,
+                            status: 'completed'
+                        })
+                    });
+
+                    await fetch(`${API_URL}?${params}`);
+                    showToast('Task marked complete!', 'success');
+                }
+
+                closeTaskActionModal();
+                loadMorningBrief();
+                updateStats();
+            } catch (error) {
+                console.error('Error completing task:', error);
+                showToast('Error completing task', 'error');
+            }
+        }
+
+        function taskDismiss() {
+            if (currentTaskIndex === null) return;
+
+            const task = currentTaskType === 'task'
+                ? window.morningBriefTasks[currentTaskIndex]
+                : window.morningBriefHarvests[currentTaskIndex];
+
+            // Remove from local array (will reappear on refresh if not actually handled)
+            if (currentTaskType === 'task') {
+                window.morningBriefTasks.splice(currentTaskIndex, 1);
+            } else {
+                window.morningBriefHarvests.splice(currentTaskIndex, 1);
+            }
+
+            // Re-render the brief section
+            const prioritiesContainer = document.getElementById('briefPriorities');
+            if (window.morningBriefTasks.length > 0) {
+                const topTasks = window.morningBriefTasks.slice(0, 5);
+                prioritiesContainer.innerHTML = topTasks.map((t, index) => `
+                    <div class="priority-item clickable ${t.urgency === 'MUST DO' || t.overdue ? 'overdue' : ''}"
+                         onclick="openTaskActionModal(${index})"
+                         data-task-index="${index}">
+                        <div>
+                            <div class="task-name">${t.task || t.name || t.crop || 'Task'}</div>
+                            <div class="task-meta">${t.crop || ''} ${t.category ? '- ' + t.category : ''} ${t.type || ''}</div>
+                            <div class="task-click-hint">Click to take action</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                            <div class="task-meta">${t.urgency || t.type || ''}</div>
+                            <i class="fas fa-chevron-right" style="color: #666; font-size: 0.8rem;"></i>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                prioritiesContainer.innerHTML = '<div style="color: #888; padding: 12px;">No tasks scheduled for today</div>';
+            }
+
+            showToast('Task dismissed from brief', 'info');
+            closeTaskActionModal();
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('taskActionModal');
+            if (e.target === modal) {
+                closeTaskActionModal();
+            }
+        });
 
         // ========================================
         // STATS

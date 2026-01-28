@@ -2388,10 +2388,31 @@
 
             <div class="filter-group">
                 <label>Date Range</label>
-                <select class="filter-control" id="dateRange" onchange="applyFilters()">
+                <select class="filter-control" id="dateRange" onchange="handleDateRangeChange()">
                     <option value="season">Full Season 2026</option>
                     <option value="month">This Month</option>
                     <option value="quarter">This Quarter</option>
+                    <option value="custom">Custom Range...</option>
+                </select>
+                <div id="customDateRange" style="display: none; margin-top: 10px;">
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary);">Start Date</label>
+                        <input type="date" class="filter-control" id="customStartDate" onchange="applyCustomDateRange()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-secondary);">End Date</label>
+                        <input type="date" class="filter-control" id="customEndDate" onchange="applyCustomDateRange()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Category</label>
+                <select class="filter-control" id="categoryFilter" onchange="updateCropFilter(); applyFilters()">
+                    <option value="">All Categories</option>
+                    <option value="Vegetable">Vegetables</option>
+                    <option value="Floral">Florals</option>
+                    <option value="Herb">Herbs</option>
                 </select>
             </div>
 
@@ -2974,6 +2995,7 @@
         let FIELD_CONFIG = {};
         let DEFAULT_FIELDS = [];
         let allFieldsData = []; // Full field data from API
+        let BED_LENGTHS = {}; // Map of bedId -> length (e.g., "F3L-01" -> 100)
 
         // Crop icons - expanded for actual farm crops
         const cropIcons = {
@@ -3044,9 +3066,11 @@
                 if (data.success && data.fields) {
                     allFieldsData = data.fields;
                     FIELD_CONFIG = data.fieldConfig || {};
+                    BED_LENGTHS = data.bedLengths || {};
                     DEFAULT_FIELDS = Object.keys(FIELD_CONFIG).sort();
 
                     console.log(`Loaded ${data.count} fields from API:`, DEFAULT_FIELDS);
+                    console.log(`Loaded bed lengths for ${Object.keys(BED_LENGTHS).length} beds`);
                 } else {
                     console.warn('Failed to load fields, using fallback');
                     useFallbackFields();
@@ -3067,6 +3091,7 @@
             };
             DEFAULT_FIELDS = Object.keys(FIELD_CONFIG).sort();
             allFieldsData = [];
+            BED_LENGTHS = {};
         }
 
         // Load crop profiles to get colors
@@ -3163,6 +3188,9 @@
                 const crop = p.Crop || p.crop || 'Unknown';
                 const variety = p.Variety || p.variety || '';
 
+                // Get category - from data or infer from crop name
+                const category = p.Category || p.category || p.Primary_Category || getCropCategory(crop);
+
                 // Estimate missing dates if possible instead of skipping
                 if (!fieldStartDate && !lastHarvest) {
                     // Both dates missing - skip this entry
@@ -3196,6 +3224,7 @@
                     id: p.Batch_ID || p.batch_id || p.ID || p.id || `planting-${index}`,
                     crop: crop,
                     variety: variety,
+                    category: category,
                     plantingMethod: plantingMethod,
 
                     // All dates stored for cascade updates
@@ -3234,6 +3263,28 @@
                     rowIndex: p.rowIndex || index + 2
                 };
             }).filter(p => p !== null);
+        }
+
+        // Infer crop category from crop name for crops that don't have explicit Category data
+        function getCropCategory(cropName) {
+            if (!cropName) return 'Vegetable';
+            const crop = cropName.toLowerCase();
+
+            // Known florals
+            const florals = ['zinnia', 'sunflower', 'dahlia', 'cosmos', 'snapdragon', 'celosia', 'rudbeckia',
+                            'lisianthus', 'stock', 'larkspur', 'sweet pea', 'ranunculus', 'delphinium',
+                            'aster', 'marigold', 'statice', 'strawflower', 'gomphrena', 'amaranth',
+                            'dianthus', 'nigella', 'scabiosa', 'verbena', 'calendula', 'bachelor button',
+                            'bells of ireland', 'eucalyptus', 'dusty miller', 'ammi', 'orlaya'];
+
+            // Known herbs
+            const herbs = ['basil', 'cilantro', 'dill', 'parsley', 'oregano', 'thyme', 'sage', 'rosemary',
+                          'mint', 'chives', 'tarragon', 'lavender', 'fennel herb', 'marjoram', 'lemon balm',
+                          'chamomile', 'stevia', 'sorrel'];
+
+            if (florals.some(f => crop.includes(f))) return 'Floral';
+            if (herbs.some(h => crop.includes(h))) return 'Herb';
+            return 'Vegetable';
         }
 
         // Parse dates in various formats: "5/15/2026 20:00:00", "2026-05-15", etc.
@@ -3347,11 +3398,14 @@
                 const bedCount = FIELD_CONFIG[field] || 12; // Default to 12 if not configured
                 for (let i = 1; i <= bedCount; i++) {
                     const bedNum = String(i).padStart(2, '0');
+                    const bedId = `${field}-${bedNum}`;
+                    const length = BED_LENGTHS[bedId] || BED_LENGTHS[`Field ${bedId}`] || null;
                     allBeds.push({
                         field: field,
                         bed: `Field ${field}-${bedNum}`,
                         bedNum: bedNum,
-                        group: `${field}|Field ${field}-${bedNum}`
+                        group: `${field}|Field ${field}-${bedNum}`,
+                        length: length
                     });
                 }
             });
@@ -3450,6 +3504,29 @@
             }
         }
 
+        // Update crop filter based on selected category
+        function updateCropFilter() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const cropFilter = document.getElementById('cropFilter');
+
+            // Filter plantings by category
+            let filteredPlants = plantings;
+            if (categoryFilter) {
+                filteredPlants = plantings.filter(p => p.category === categoryFilter);
+            }
+
+            // Get unique crops from filtered plantings
+            const cropSet = new Set(filteredPlants.map(p => p.crop));
+            cropFilter.innerHTML = '<option value="">All Crops</option>';
+            Array.from(cropSet).sort().forEach(crop => {
+                cropFilter.innerHTML += `<option value="${crop}">${crop}</option>`;
+            });
+
+            // Reset crop selection and update dependent filters
+            cropFilter.value = '';
+            updateVarietyFilter();
+        }
+
         // Demo Data - matches actual farm data structure
         function getDemoPlantings() {
             const demoData = [];
@@ -3506,8 +3583,10 @@
 
         // Apply Filters
         function applyFilters() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
             const cropFilter = document.getElementById('cropFilter').value;
             const fieldFilter = document.getElementById('fieldFilter').value;
+            const dateRangeSelect = document.getElementById('dateRange');
             const statusFilters = Array.from(document.querySelectorAll('.checkbox-filter input:checked'))
                                       .map(cb => cb.dataset.status);
 
@@ -3516,6 +3595,8 @@
             const selectedVarieties = Array.from(varietyCheckboxes).map(cb => cb.value);
 
             filteredPlantings = plantings.filter(p => {
+                // Category filter (Vegetable, Floral, Herb)
+                if (categoryFilter && p.category !== categoryFilter) return false;
                 if (cropFilter && p.crop !== cropFilter) return false;
                 if (fieldFilter && p.field !== fieldFilter) return false;
                 if (!statusFilters.includes(p.status)) return false;
@@ -3527,15 +3608,31 @@
                     if (!selectedVarieties.includes(varietyKey)) return false;
                 }
 
+                // Filter by date range - check if planting overlaps with timeline
+                if (dateRangeSelect && dateRangeSelect.value !== 'season') {
+                    const plantingStart = new Date(p.sowDate || p.startDate);
+                    const plantingEnd = new Date(p.harvestDate || p.endDate);
+
+                    // Check if planting period overlaps with timeline range
+                    if (plantingEnd < timelineStart || plantingStart > timelineEnd) {
+                        return false;
+                    }
+                }
+
                 return true;
             });
 
             // Update variety count display
             updateVarietyCount();
 
-            // Set fixed timeline for 2026 season (don't auto-calculate - prevents crashes with bad data)
-            timelineStart = new Date('2026-01-01');
-            timelineEnd = new Date('2026-12-31');
+            // Only set default timeline if NOT using custom date range
+            if (!dateRangeSelect || dateRangeSelect.value !== 'custom') {
+                // Set fixed timeline for 2026 season (don't auto-calculate - prevents crashes with bad data)
+                if (dateRangeSelect && dateRangeSelect.value === 'season') {
+                    timelineStart = new Date('2026-01-01');
+                    timelineEnd = new Date('2026-12-31');
+                }
+            }
 
             updateStats();
             renderGantt();
@@ -3665,6 +3762,86 @@
             document.getElementById('currentRange').textContent = `${startStr} - ${endStr}, 2026`;
         }
 
+        // Handle date range selector change
+        function handleDateRangeChange() {
+            const dateRange = document.getElementById('dateRange').value;
+            const customDateContainer = document.getElementById('customDateRange');
+
+            if (dateRange === 'custom') {
+                // Show custom date inputs
+                customDateContainer.style.display = 'block';
+
+                // Set default values if not already set
+                const startInput = document.getElementById('customStartDate');
+                const endInput = document.getElementById('customEndDate');
+
+                if (!startInput.value) {
+                    const today = new Date();
+                    startInput.value = today.toISOString().split('T')[0];
+                }
+                if (!endInput.value) {
+                    const endDate = new Date();
+                    endDate.setMonth(endDate.getMonth() + 3); // Default to 3 months ahead
+                    endInput.value = endDate.toISOString().split('T')[0];
+                }
+
+                applyCustomDateRange();
+            } else {
+                // Hide custom date inputs
+                customDateContainer.style.display = 'none';
+
+                // Apply preset date range
+                const now = new Date();
+                const currentYear = 2026; // Farm planning year
+
+                switch(dateRange) {
+                    case 'season':
+                        timelineStart = new Date(`${currentYear}-01-01`);
+                        timelineEnd = new Date(`${currentYear}-12-31`);
+                        break;
+                    case 'month':
+                        timelineStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                        timelineEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                        break;
+                    case 'quarter':
+                        const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+                        timelineStart = new Date(now.getFullYear(), quarterStart, 1);
+                        timelineEnd = new Date(now.getFullYear(), quarterStart + 3, 0);
+                        break;
+                }
+
+                updateSliderPosition();
+                renderGantt();
+                updateRangeDisplay();
+                applyFilters();
+            }
+        }
+
+        // Apply custom date range
+        function applyCustomDateRange() {
+            const startInput = document.getElementById('customStartDate');
+            const endInput = document.getElementById('customEndDate');
+
+            if (startInput.value && endInput.value) {
+                const startDate = new Date(startInput.value);
+                const endDate = new Date(endInput.value);
+
+                // Validate that start is before end
+                if (startDate > endDate) {
+                    alert('Start date must be before end date');
+                    return;
+                }
+
+                timelineStart = startDate;
+                timelineEnd = endDate;
+
+                updateSliderPosition();
+                renderGantt();
+                updateRangeDisplay();
+                applyFilters();
+            }
+        }
+
         // Render Gantt Chart
         function renderGantt() {
             const container = document.getElementById('ganttChart');
@@ -3697,6 +3874,11 @@
                     const [field, bed] = group.split('|');
                     // Handle both "Field F3L-01" and just "01" formats
                     const bedDisplay = bed.includes('Field') ? bed.replace('Field ', '') : `${field}-${bed}`;
+                    // Add bed length if available
+                    const bedLength = BED_LENGTHS[bedDisplay] || BED_LENGTHS[bed] || BED_LENGTHS[`Field ${bedDisplay}`];
+                    if (bedLength) {
+                        return `${bedDisplay} (${bedLength}ft)`;
+                    }
                     return bedDisplay;
                 };
                 getGroupMeta = (plantings) => plantings.length > 0 ? `${plantings.length} plantings` : 'Empty';

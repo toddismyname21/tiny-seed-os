@@ -268,6 +268,15 @@
             font-weight: 600;
         }
 
+        /* Floral category indicator */
+        .seeding-item.category-floral {
+            border-left: 4px solid #db2777;
+        }
+
+        .seeding-item.category-floral .seeding-badge {
+            background: #db2777;
+        }
+
         /* Selection Actions */
         .selection-actions {
             display: flex;
@@ -784,6 +793,16 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Category</label>
+                    <select class="form-control" id="categoryFilter" onchange="updateCropsByCategory()">
+                        <option value="">All</option>
+                        <option value="Vegetable">Vegetables</option>
+                        <option value="Floral">Florals</option>
+                        <option value="Herb">Herbs</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label>Crop Type</label>
                     <select class="form-control" id="cropFilter">
                         <option value="">All Crops</option>
@@ -944,6 +963,66 @@
         let seedLots = [];
         let selectedSeedLots = new Set();
 
+        // Determine crop category (Vegetable, Floral, or Herb)
+        function getCropCategory(cropName, existingCategory) {
+            // If category is already provided, normalize it
+            if (existingCategory) {
+                const cat = existingCategory.toLowerCase();
+                if (cat.includes('floral') || cat.includes('flower') || cat.includes('cut flower')) {
+                    return 'Floral';
+                }
+                if (cat.includes('herb')) {
+                    return 'Herb';
+                }
+                return 'Vegetable';
+            }
+
+            const cropLower = (cropName || '').toLowerCase();
+
+            // Known floral crops (common cut flowers and ornamentals)
+            const floralCrops = [
+                'zinnia', 'sunflower', 'dahlia', 'cosmos', 'marigold', 'snapdragon',
+                'celosia', 'amaranth', 'aster', 'bachelor button', 'calendula',
+                'carnation', 'chrysanthemum', 'delphinium', 'dianthus', 'dusty miller',
+                'eucalyptus', 'foxglove', 'gomphrena', 'larkspur', 'lisianthus',
+                'nigella', 'peony', 'ranunculus', 'rose', 'rudbeckia', 'salvia',
+                'scabiosa', 'statice', 'stock', 'strawflower', 'sweet pea',
+                'tulip', 'yarrow', 'lily', 'gladiolus', 'anemone', 'poppy',
+                'bells of ireland', 'orlaya', 'ammi', 'bupleurum',
+                'lace flower', 'queen anne', 'agrostemma', 'cornflower'
+            ];
+
+            // Known herbs
+            const herbCrops = [
+                'basil', 'cilantro', 'dill', 'parsley', 'oregano', 'thyme', 'sage', 'rosemary',
+                'mint', 'chives', 'tarragon', 'lavender', 'marjoram', 'lemon balm',
+                'chamomile', 'stevia', 'sorrel'
+            ];
+
+            // Check if crop name contains any floral keywords
+            for (const floral of floralCrops) {
+                if (cropLower.includes(floral)) {
+                    return 'Floral';
+                }
+            }
+
+            // Check if crop name contains any herb keywords
+            for (const herb of herbCrops) {
+                if (cropLower.includes(herb)) {
+                    return 'Herb';
+                }
+            }
+
+            // Default to vegetable
+            return 'Vegetable';
+        }
+
+        // Update crop filter based on selected category
+        function updateCropsByCategory() {
+            updateCropFilter();
+            applyFiltersAndRender();
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
@@ -985,7 +1064,8 @@
                         batchNumber: s.batchNumber || '',
                         seedLot: s.seedLotNum || s.seedLot || s.batchNumber || '',
                         nurseryDays: s.nurseryDays || 0,
-                        field: s.field || s.bedId || s.bed || ''
+                        field: s.field || s.bedId || s.bed || '',
+                        category: getCropCategory(s.crop || 'Unknown', s.category)
                     }));
                     showToast(`Loaded ${seedings.length} seedings`);
                 } else {
@@ -1004,7 +1084,15 @@
 
         function updateCropFilter() {
             const cropFilter = document.getElementById('cropFilter');
-            const uniqueCrops = [...new Set(seedings.map(s => s.crop))].sort();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+
+            // Filter seedings by category first, then get unique crops
+            let filteredSeedings = seedings;
+            if (categoryFilter) {
+                filteredSeedings = seedings.filter(s => s.category === categoryFilter);
+            }
+
+            const uniqueCrops = [...new Set(filteredSeedings.map(s => s.crop))].sort();
 
             cropFilter.innerHTML = '<option value="">All Crops</option>';
             uniqueCrops.forEach(crop => {
@@ -1013,11 +1101,21 @@
         }
 
         function applyFiltersAndRender() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
             const cropFilter = document.getElementById('cropFilter').value;
+
             let filtered = seedings;
-            if (cropFilter) {
-                filtered = seedings.filter(s => s.crop === cropFilter);
+
+            // Apply category filter first
+            if (categoryFilter) {
+                filtered = filtered.filter(s => s.category === categoryFilter);
             }
+
+            // Then apply crop filter
+            if (cropFilter) {
+                filtered = filtered.filter(s => s.crop === cropFilter);
+            }
+
             renderSeedingsList(filtered);
         }
 
@@ -1038,8 +1136,9 @@
             seedingData.forEach(seeding => {
                 const isSelected = selectedSeedings.has(seeding.id);
                 const traySizeDisplay = formatTraySize(seeding.cellsPerTray, seeding.paperpotSpacing);
+                const categoryClass = seeding.category === 'Florals' ? 'category-floral' : '';
                 html += `
-                    <div class="seeding-item ${isSelected ? 'selected' : ''}" onclick="toggleSeeding('${seeding.id}')">
+                    <div class="seeding-item ${isSelected ? 'selected' : ''} ${categoryClass}" onclick="toggleSeeding('${seeding.id}')">
                         <input type="checkbox" class="seeding-checkbox"
                                ${isSelected ? 'checked' : ''}
                                onclick="event.stopPropagation(); toggleSeeding('${seeding.id}')">
@@ -1068,10 +1167,15 @@
         }
 
         function selectAllSeedings() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
             const cropFilter = document.getElementById('cropFilter').value;
+
             let filtered = seedings;
+            if (categoryFilter) {
+                filtered = filtered.filter(s => s.category === categoryFilter);
+            }
             if (cropFilter) {
-                filtered = seedings.filter(s => s.crop === cropFilter);
+                filtered = filtered.filter(s => s.crop === cropFilter);
             }
             filtered.forEach(s => selectedSeedings.add(s.id));
             applyFiltersAndRender();
@@ -1489,6 +1593,14 @@
         }
 
         document.getElementById('cropFilter').addEventListener('change', applyFiltersAndRender);
+
+        // Category filter: reset crop filter and update crop list when category changes
+        document.getElementById('categoryFilter').addEventListener('change', function() {
+            // Reset crop filter when category changes
+            document.getElementById('cropFilter').value = '';
+            updateCropFilter();
+            applyFiltersAndRender();
+        });
 
         // ============ LABEL TYPE SWITCHING ============
 

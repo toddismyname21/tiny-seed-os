@@ -40,6 +40,424 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-28 - Backend_Claude (WEEKLY CYCLE SYSTEM - Sales Channel Integration)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Weekly Cycle System (~600 lines of new backend functions)
+- `web_app/sales.html` - Added Weekly Cycle tab and Farmers Market tab with full UI
+
+### Functions Added (Backend - MERGED TOTAL.js)
+- `getWeeklyCycleOverview()` - Get overview of week across all sales channels (CSA, Wholesale, Market)
+- `getAggregatedDemand()` - Aggregate demand from all channels for harvest planning
+- `getWeeklyHarvestPlan()` - Match demand to available supply, generate harvest plan
+- `getWeeklyPackSchedule()` - Generate pack schedule by delivery day
+- `getWeeklyDeliverySchedule()` - Generate delivery schedule with all stops
+- `getUnifiedSalesDashboard()` - Combined dashboard data for all channels
+- `getSalesChannelSummary()` - Summary of CSA/Wholesale/Market revenue and customers
+- `generateWeeklyHarvestFromDemand()` - Create pick list items from aggregated demand
+- Helper functions: `getCSAOrdersForWeek()`, `getWholesaleOrdersForWeek()`, `getMarketSessionsForWeek()`, `buildWeeklySchedule()`, etc.
+
+### API Endpoints Added
+- `getWeeklyCycleOverview` - Weekly cycle overview
+- `getWeeklyHarvestPlan` - Harvest plan generation
+- `getWeeklyPackSchedule` - Pack schedule
+- `getWeeklyDeliverySchedule` - Delivery schedule
+- `getAggregatedDemand` - Demand aggregation
+- `getSalesChannelSummary` - Channel summary
+- `generateWeeklyHarvestFromDemand` - Generate harvest from demand
+- `getUnifiedSalesDashboard` - Unified dashboard
+
+### Frontend Changes (sales.html)
+- Added "Weekly Cycle" tab in sidebar navigation
+- Added "Farmers Market" tab in sidebar navigation
+- Added Weekly Cycle tab content with:
+  - Week selector
+  - Channel summary cards (CSA, Wholesale, Market, Total Deliveries)
+  - Weekly schedule table (Harvest -> Pack -> Deliver cycle)
+  - Aggregated demand list
+  - Alerts/shortages panel
+- Added Farmers Market tab content with:
+  - Market stats cards
+  - Upcoming market sessions table
+  - Quick sale entry form
+- Added JavaScript functions: `loadWeeklyCycle()`, `loadAggregatedDemand()`, `renderWeeklySchedule()`, `loadFarmersMarket()`, `recordQuickMarketSale()`, etc.
+
+### Reason
+User requested Sales Dashboard be connected to CSA and Wholesale logic, with Farmers Market flowing through, and weekly cycles setup for: Harvest -> Pack -> Delivery workflow. This creates a unified view across all sales channels.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing Weekly Cycle system found)
+- [x] No duplicates created - new functionality integrating existing channel data
+
+---
+
+## 2026-01-28 - Desktop_Claude (CATEGORY FILTER: Vegetable/Floral/Herb)
+
+### Files Modified
+- `calendar.html` - Added Category filter dropdown (Vegetables/Florals/Herbs) to sidebar
+- `planning.html` - Added Category filter dropdown to filters bar
+- `labels.html` - Updated Category filter to include Herbs option with consistent naming
+
+### Functions Added
+- `getCropCategory()` in `calendar.html` - Infers crop category from crop name if not explicitly set
+- `updateCropFilter()` in `calendar.html` - Updates crop dropdown based on selected category
+- `getCropCategory()` in `planning.html` - Same functionality for planning page
+- `updateCropFilterByCategory()` in `planning.html` - Same functionality for planning page
+- `updateCropsByCategory()` in `labels.html` - Same functionality for labels page
+
+### Functions Modified
+- `normalizeData()` in `calendar.html` - Now extracts and includes category field from data
+- `applyFilters()` in `calendar.html` - Now filters by category before other filters
+- `filterPlantings()` in `planning.html` - Now filters by category before other filters
+- `getCropCategory()` in `labels.html` - Updated to detect herbs and use consistent category names
+
+### Reason
+User requested ability to filter by Vegetable or Floral throughout the OS. Added category filter to Calendar, Planning, and Labels pages. Categories are determined from:
+1. Explicit Category field in the data (if present)
+2. Inferred from crop name using known lists of florals and herbs
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - sowing-sheets.html already had similar functionality, used as reference
+- [x] No duplicates created - extended existing patterns
+
+---
+
+## 2026-01-28 - Backend_Claude (WEATHER-INTEGRATED SCHEDULING)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Weather API and scheduling integration
+- `web_app/schedule.html` - Connect weather API, remove demo data fallback
+
+### Functions Modified
+- `fetchOpenMeteoForecast()` - Added weather_code to API
+- `getWeatherForecastData()` - Returns conditions + compatibility aliases
+- `generateSmartSchedule()` - Uses weather to optimize shifts
+- Frontend: `loadEmployees()`, `loadWeather()`, `renderWeather()`
+
+### Functions Added
+- `getWeatherWorkRecommendation()` in schedule.html - Weather work impact
+
+### Duplicate Check
+- [x] Used existing weather APIs - no duplicates
+
+---
+
+## 2026-01-28 - Desktop_Claude (CUSTOM DATE RANGE SELECTORS v432)
+
+### Files Modified
+- `calendar.html` - Added custom date range option to date filter
+- `web_app/schedule.html` - Added custom date range option to smart schedule generator
+- `web_app/sales.html` - Added date preset dropdown with custom option to reports tab
+- `apps_script/FinancialDashboard.html` - Added custom date range option to team leaderboard
+
+### Functions Added
+- `handleDateRangeChange()` in `calendar.html` - Handles date range selector changes, shows/hides custom date inputs
+- `applyCustomDateRange()` in `calendar.html` - Applies custom start/end dates to timeline and filters
+- `toggleCustomScheduleRange()` in `schedule.html` - Toggles visibility of custom date inputs for smart scheduling
+- `applyReportDatePreset()` in `sales.html` - Applies date presets (today, yesterday, last 7/30 days, this month/quarter/year)
+- `toggleLeaderboardCustomRange()` in `FinancialDashboard.html` - Toggles custom date range for leaderboard
+
+### Functions Modified
+- `applyFilters()` in `calendar.html` - Now filters plantings by selected date range, respects custom date selections
+- `generateSmartSchedule()` in `schedule.html` - Now accepts custom date range parameters
+
+### UI Changes
+1. **Calendar Page**: Date Range dropdown now includes "Custom Range..." option that reveals start/end date inputs
+2. **Schedule Page**: Smart Schedule Generator modal now has "Custom Range..." option with date pickers
+3. **Sales Page**: Reports tab now has preset dropdown (Today, Yesterday, Last 7 Days, Last 30 Days, This Month, Last Month, This Quarter, This Year, Custom)
+4. **Financial Dashboard**: Team Leaderboard time selector now includes "Custom Range..." option
+
+### Reason
+User requested ability to pick specific start and end dates for date-filtered views rather than only having preset options like "This Month" or "This Week".
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing custom date range system
+- [x] Searched for similar functions - sales.html already had date inputs but no preset dropdown
+- [x] No duplicates created - Extended existing date selectors with new functionality
+
+---
+
+## 2026-01-28 - Backend_Claude (CHEF SIGNUP EMAIL BUTTON FIX)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Fixed chef invitation token verification flow
+
+### Issues Fixed
+1. **Duplicate verifyChefToken Functions** - Found 3 duplicate functions causing the last one to override others. The last function looked in wrong storage location.
+   - Renamed duplicate at line 30143 to `verifyChefToken_Duplicate_Legacy()`
+   - Renamed duplicate at line 78053 to `verifyChefToken_ChefComms_Legacy()`
+   - Kept primary function at line 16427 which correctly uses AUTH_TOKENS sheet
+
+2. **getActiveSpreadsheet() Failures** - Multiple functions used `getActiveSpreadsheet()` which fails in web app context. Fixed to use `openById(SPREADSHEET_ID)`:
+   - `generateChefMagicLink()`, `getWholesaleCustomer()`, `updateWholesaleCustomerStatus()`, `getWholesaleCustomers()`
+
+3. **Missing Email Parameter in Router** - Case handler at line 12557 only passed `token`. Fixed to pass both `token` and `email`.
+
+### Root Cause
+Chef signup email button linked to `chef-register.html` which calls `verifyChefToken` API. Tokens stored in `AUTH_TOKENS` sheet but the last `verifyChefToken` function looked in `WHOLESALE_CUSTOMERS.Magic_Token` column - wrong location. All token verifications failed.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - Found and fixed duplicates
+- [x] No new duplicates created - Renamed existing duplicates
+
+---
+
+## 2026-01-28 - Desktop_Claude (TASK ASSIGNMENT INTERFACE v431)
+
+### Files Created
+- `web_app/task-assignment.html` - Central task assignment interface for admins/managers to assign tasks to employees
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added `getTaskAssignments` case as alias to `getAllActiveAssignments`
+- `web_app/admin.html` - Added navigation link to task-assignment.html in User Management section
+- `web_app/chief-of-staff.html` - Added "Assign" quick action button linking to task-assignment.html
+
+### Functions Added/Modified
+- Added router case `getTaskAssignments` -> calls `getAllActiveAssignments()` in MERGED TOTAL.js
+
+### Features
+- Employee selector dropdown with all active employees
+- Due date and time picker
+- Priority selector (Critical, High, Medium, Low)
+- Category selection (harvest, planting, transplant, irrigation, etc.)
+- Location field
+- SMS notification toggle (sends text to assigned employee)
+- Task filtering by status (all, pending, assigned, completed, overdue)
+- Quick employee filter bar
+- Mobile-responsive with FAB button for new task
+
+### Reason
+User requested a general place to assign tasks. Created a dedicated task assignment interface that connects to the existing `assignTaskToEmployee` and `getAllActiveAssignments` backend functions.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - found existing `assignTaskToEmployee`, `getAllActiveAssignments`, `getEmployeeTasks`
+- [x] No duplicates created - used existing backend functions
+
+---
+
+## 2026-01-28 - Desktop_Claude (BED LENGTH DISPLAY IN CALENDAR v430)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Enhanced `getFields()` function to extract and return bed lengths from REF_Beds sheet
+- `calendar.html` - Added bed length display in field/bed view
+
+### Functions Modified
+- `getFields()` in `MERGED TOTAL.js` - Now extracts bed lengths from REF_Beds sheet and returns them in `bedLengths` object. Also stores by multiple key formats (full bed ID and short form) for flexible lookup.
+
+### Changes Made
+1. **Backend Enhancement**: Modified `getFields()` to read the 'Length' column from REF_Beds and include it in the API response as `bedLengths: { "F3L-01": 100, ... }`
+2. **Frontend Storage**: Added `BED_LENGTHS` variable to store bed lengths when loading fields
+3. **Display Update**: Modified `getGroupName` function in calendar view to show bed length in format "F3L-01 (100ft)" when available
+4. **Data Structure**: Added `length` property to `allBeds` array items for future use
+
+### Reason
+User requested to display bed lengths in field views. The REF_Beds sheet has a 'Length' column that was not being utilized in the UI. Now bed lengths are displayed next to bed names in the calendar view.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - Confirmed this functionality doesn't already exist
+- [x] Searched for similar functions - No existing bed length display function found
+- [x] No duplicates created
+
+---
+
+## 2026-01-28 - Desktop_Claude (SEED INVENTORY UI AND SCAN FIXES v429)
+
+### Files Modified
+- `seed_inventory_PRODUCTION.html` - Major updates to UI, scan functionality, and data mapping
+
+### Issues Fixed
+1. **Data Mapping Mismatch** - Frontend expected `crop`, `variety`, `vendor` etc. but backend returns `Crop`, `Variety`, `Supplier`. Added mapping layer in `loadInventory()` to translate backend column names to frontend properties.
+
+2. **QR Scanner Issues** - Fixed `lookupScannedSeed()` to properly handle backend response format (`result.seed` not `result.data`). Added URL parsing to extract seed ID when scanning tracking URLs.
+
+3. **Camera Error Handling** - Improved camera permission error messages for both QR scanner and packet scanner. Shows specific errors for NotAllowedError, NotFoundError, NotReadableError. Added manual seed ID entry fallback when camera unavailable.
+
+4. **Empty State Handling** - Added proper empty state UI with calls-to-action when inventory is empty or filters return no results.
+
+### Functions Added
+- `showLoadingState()` - Shows loading animation while fetching inventory
+- `showToast(message, type)` - Toast notification helper for user feedback
+- `manualLookup()` - Allows manual entry of seed lot ID when camera unavailable
+- `clearFilters()` - Resets all filter inputs and refreshes display
+
+### Functions Modified
+- `loadInventory()` - Added data mapping from backend column names to frontend properties
+- `lookupScannedSeed()` - Fixed to handle backend response format and URL parsing
+- `openQRScanner()` - Better error handling with manual entry fallback
+- `startPacketCamera()` - Better error handling with specific error messages
+- `renderInventory()` - Added empty state with helpful UI
+- `filterInventory()` - Extended search to include vendor and seedLotId
+- `showSeedDetail()` - Updated to use mapped data properties, added status badge
+- `useSeed()` - Made async, added API call with local fallback
+- `restock()` - Made async, added API call with local fallback
+- `addSeed()` - Made async, saves to backend API with local fallback
+
+### CSS Added
+- Animation keyframes: `pulse`, `slideUp`, `slideDown`, `spin`
+- `.scan-btn-group` - Improved button group styling
+- `.empty-state` classes - Styling for empty inventory state
+- Responsive breakpoints for mobile devices
+
+### Reason
+User reported scan buttons not working. Investigation revealed multiple issues: data mapping mismatch between frontend and backend, incorrect response handling for QR lookup, missing error handling for camera access, and poor empty state UX.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (using existing Toast from api-config.js but needed local version for consistency)
+- [x] No duplicates created
+
+---
+
+## 2026-01-28 - Desktop_Claude (FOOD SAFETY COMMAND CENTER ENHANCEMENTS v428)
+
+### Files Modified
+- `food-safety.html` - Added USDA organic approved sanitizer instructions to Cleaning Modal, added toggle function for collapsible instructions panel, expanded location options (Market Tables, Cutting Boards, Knives/Tools), expanded cleaning types (Pre-Market, Post-Market), changed sanitizer input to dropdown with organic-approved options
+- `web_app/food-safety.html` - Added mobile-friendly collapsible sanitizer instructions to Cleaning Modal, added toggle function, expanded area options, expanded method options with specific sanitizer types
+
+### Functions Added
+- `toggleSanitizerInstructions()` in `food-safety.html` - Toggles visibility of USDA organic sanitizer recipe instructions
+- `toggleMobileSanitizerInfo()` in `web_app/food-safety.html` - Mobile version of sanitizer instructions toggle
+
+### Features Added
+- **USDA Organic Approved Sanitizer Recipes:**
+  - Chlorine Bleach Solution (200 ppm): 1 tbsp per gallon or 1 tsp per 32oz spray bottle
+  - White Vinegar Solution (5% Acetic Acid): 1:1 ratio with water
+  - Hydrogen Peroxide (3%): Use undiluted
+  - Safety guidelines including never mixing bleach with vinegar/ammonia
+  - USDA NOP references (7 CFR 205.601 & 205.605)
+
+### Reason
+User requested addition of specific instructions for making table spray with USDA organic permissible cleaning solutions. Briefing and Report buttons in Food Safety Command Center were verified working (showDailyBriefing calls getDailyBriefing API, generateReport calls generateComplianceReport API).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing sanitizer recipe instructions found)
+- [x] No duplicates created
+
+---
+
+## 2026-01-28 - Desktop_Claude (CLICKABLE MORNING BRIEF TASKS)
+
+### Files Modified
+- `index.html` - Added clickable morning brief tasks with action modal
+
+### CSS Added (in index.html)
+- `.priority-item.clickable` / `.harvest-item.clickable` - Hover effects for clickable items
+- `.task-action-modal` styles - Modal for task actions
+- `.task-detail-header` - Header styling for task details
+- `.task-actions-grid` - Grid layout for action buttons
+- `.task-action-btn` variants - Do Now, Delegate, Reschedule, Complete, Dismiss buttons
+- `.delegate-panel` / `.reschedule-panel` - Sub-panels for delegation and rescheduling
+
+### HTML Added (in index.html)
+- Task Action Modal with:
+  - Task detail header (title, subtitle, urgency badge)
+  - Action buttons: Do It Now, Delegate, Reschedule, Mark Complete, Dismiss
+  - Delegate panel with employee selector and notes
+  - Reschedule panel with date picker and quick date buttons
+
+### Functions Added (in index.html)
+- `openTaskActionModal(index)` - Opens modal for task at given index
+- `openHarvestActionModal(index)` - Opens modal for harvest at given index
+- `closeTaskActionModal()` - Closes the modal
+- `loadEmployeesForDelegate()` - Fetches active employees for delegation
+- `taskDoNow()` - Marks task as in progress
+- `taskDelegate()` / `cancelDelegate()` / `confirmDelegate()` - Delegation workflow
+- `taskReschedule()` / `cancelReschedule()` / `confirmReschedule()` - Reschedule workflow
+- `setQuickDate(option)` - Sets quick date (tomorrow, next week, next month)
+- `taskMarkComplete()` - Marks task as complete
+- `taskDismiss()` - Removes task from morning brief locally
+
+### Functions Modified
+- `loadMorningBrief()` - Now stores tasks globally and renders clickable items with hints
+
+### Reason
+User requested that morning brief notes/tasks be clickable with task actions. Users can now click any task in the morning brief to:
+1. Do it now (mark in progress)
+2. Delegate to an employee (with SMS notification)
+3. Reschedule to a different date
+4. Mark complete
+5. Dismiss from brief
+
+### API Endpoints Used (existing)
+- `getAllActiveEmployees` - Get employees for delegation dropdown
+- `assignTaskToEmployee` - Delegate task to employee
+- `updateTaskStatus` - Update task status (in_progress, completed)
+- `updatePlanting` - Update planting dates for rescheduling/completing
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created - This extends existing morning brief, does not create new one
+
+---
+
+## 2026-01-28 - Desktop_Claude (GREENHOUSE LABELS CATEGORY FILTER)
+
+### Files Modified
+- `labels.html` - Added floral/vegetable category filter to Greenhouse Labels page
+
+### Functions Added
+- `getCropCategory()` in `labels.html` - Determines if a crop is Floral or Vegetable based on crop name or existing category
+
+### Functions Modified
+- `updateCropFilter()` in `labels.html` - Now filters crop dropdown by selected category
+- `applyFiltersAndRender()` in `labels.html` - Now applies category filter before crop filter
+- `selectAllSeedings()` in `labels.html` - Now respects category filter when selecting all
+- `renderSeedingsList()` in `labels.html` - Added category-floral CSS class for visual distinction
+
+### CSS Added
+- `.seeding-item.category-floral` - Pink left border indicator for floral items
+- `.seeding-item.category-floral .seeding-badge` - Pink badge for floral items
+
+### UI Changes
+- Added "Category" dropdown filter with options: All | Vegetables | Florals
+- Floral seedings now have a pink left border and pink badge for visual distinction
+- Crop dropdown auto-filters to show only crops matching the selected category
+
+### Reason
+User requested a floral/vegetable filter option on the Greenhouse Labels page to allow filtering labels by category.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-01-28 - Desktop_Claude (LOAN READINESS DASHBOARD FIXES v427)
+
+### Files Modified
+- `web_app/index.html` - Added Loan Readiness Center card to application hub
+- `web_app/loan-readiness.html` - Fixed upload functionality to use Google Drive backend, updated API URL, improved createApplication to use GET requests
+- `apps_script/MERGED TOTAL.js` - Added uploadLoanDocument function and API endpoint
+
+### Functions Added
+- `uploadLoanDocument()` in `MERGED TOTAL.js` - Uploads loan documents to Google Drive and saves metadata to LOAN_DOCUMENTS sheet
+- `fileToBase64()` in `loan-readiness.html` - Helper to convert File objects to base64 for upload
+
+### Functions Modified
+- `uploadDocument()` in `loan-readiness.html` - Now properly uploads to Google Drive via backend instead of localStorage only
+- `createApplication()` in `loan-readiness.html` - Uses GET request for Apps Script compatibility
+- `generatePackage()` in `loan-readiness.html` - Uses generateLenderLoanPackage endpoint
+
+### API Endpoints Added
+- `uploadLoanDocument` - New endpoint for uploading loan documents to Google Drive
+
+### Reason
+Loan Readiness dashboard was not linked from the main app hub and upload functionality was incomplete (only storing locally, not uploading to Google Drive). Fixed to properly integrate with backend for document storage and tracking.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (found uploadProductPhoto pattern to follow)
+- [x] No duplicates created - follows existing upload patterns
+
+---
+
 ## 2026-01-28 - Backend_Claude (CHIEF OF STAFF API FIXES v426)
 
 ### Files Modified

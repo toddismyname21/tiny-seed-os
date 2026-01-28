@@ -12555,7 +12555,8 @@ function doGet(e) {
 
       // ============ CHEF INVITATION SYSTEM ============
       case 'verifyChefToken':
-        return jsonResponse(verifyChefToken(e.parameter.token));
+        // FIXED 2026-01-28: Pass both token and email for proper verification
+        return jsonResponse(verifyChefToken(e.parameter.token, e.parameter.email));
       case 'sendChefMagicLink':
         return jsonResponse(sendChefMagicLink(e.parameter.customerId));
 
@@ -13608,6 +13609,8 @@ function doGet(e) {
         return jsonResponse(getLenderReadiness(e.parameter));
       case 'generateLenderLoanPackage':
         return jsonResponse(generateLenderLoanPackage(e.parameter));
+      case 'uploadLoanDocument':
+        return jsonResponse(uploadLoanDocument(e.parameter));
 
       // ============ ACCOUNTANT TASK MANAGEMENT ============
       case 'parseEmailsForTasks':
@@ -13961,6 +13964,7 @@ function doGet(e) {
       case 'getEmployeeAssignments':
         return jsonResponse(getEmployeeAssignments(e.parameter.employeeId, e.parameter.includeCompleted === 'true'));
       case 'getAllActiveAssignments':
+      case 'getTaskAssignments':  // Alias for task-assignment.html
         return jsonResponse(getAllActiveAssignments());
       case 'updateTaskStatus':
         return jsonResponse(updateTaskStatus(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
@@ -14038,6 +14042,25 @@ function doGet(e) {
         return jsonResponse(syncShopifyMarketSales(e.parameter));
       case 'getShopifyMarketReport':
         return jsonResponse(getShopifyMarketReport(e.parameter));
+
+      // ============ WEEKLY CYCLE SYSTEM - Sales Dashboard Integration ============
+      // Connects CSA, Wholesale, and Farmers Market into unified weekly cycle
+      case 'getWeeklyCycleOverview':
+        return jsonResponse(getWeeklyCycleOverview(e.parameter));
+      case 'getWeeklyHarvestPlan':
+        return jsonResponse(getWeeklyHarvestPlan(e.parameter));
+      case 'getWeeklyPackSchedule':
+        return jsonResponse(getWeeklyPackSchedule(e.parameter));
+      case 'getWeeklyDeliverySchedule':
+        return jsonResponse(getWeeklyDeliverySchedule(e.parameter));
+      case 'getAggregatedDemand':
+        return jsonResponse(getAggregatedDemand(e.parameter));
+      case 'getSalesChannelSummary':
+        return jsonResponse(getSalesChannelSummary(e.parameter));
+      case 'generateWeeklyHarvestFromDemand':
+        return jsonResponse(generateWeeklyHarvestFromDemand(e.parameter));
+      case 'getUnifiedSalesDashboard':
+        return jsonResponse(getUnifiedSalesDashboard(e.parameter));
 
       // ============ SMS INTEGRATION ============
       case 'initSMSSystem':
@@ -29876,12 +29899,13 @@ function inviteChef(data) {
 
 /**
  * Generate magic link for chef login
+ * FIXED 2026-01-28: Use openById for web app context
  */
 function generateChefMagicLink(email, customerId) {
   const token = Utilities.getUuid().replace(/-/g, '');
 
-  // Store token for verification
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  // Store token for verification - FIXED: Use openById instead of getActiveSpreadsheet
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let tokenSheet = ss.getSheetByName('AUTH_TOKENS');
   if (!tokenSheet) {
     tokenSheet = ss.insertSheet('AUTH_TOKENS');
@@ -30115,11 +30139,13 @@ function inviteMultipleChefs(chefList) {
 }
 
 /**
- * Verify chef magic link token
+ * DEPRECATED 2026-01-28: Renamed to avoid duplicate with verifyChefToken() at line ~16427
+ * This version used getActiveSpreadsheet() which fails in web app context
+ * The correct verifyChefToken is at line ~16427 which uses openById()
  */
-function verifyChefToken(token, email) {
+function verifyChefToken_Duplicate_Legacy(token, email) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);  // FIXED: Use openById
     const tokenSheet = ss.getSheetByName('AUTH_TOKENS');
     if (!tokenSheet) return { success: false, error: 'Token not found' };
 
@@ -30166,10 +30192,11 @@ function verifyChefToken(token, email) {
 
 /**
  * Get wholesale customer by ID
+ * FIXED 2026-01-28: Use openById for web app context
  */
 function getWholesaleCustomer(customerId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
     if (!sheet) return null;
 
@@ -30192,10 +30219,11 @@ function getWholesaleCustomer(customerId) {
 
 /**
  * Update wholesale customer status
+ * FIXED 2026-01-28: Use openById for web app context
  */
 function updateWholesaleCustomerStatus(customerId, status) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
     if (!sheet) return false;
 
@@ -30220,10 +30248,11 @@ function updateWholesaleCustomerStatus(customerId, status) {
 
 /**
  * Get all wholesale customers
+ * FIXED 2026-01-28: Use openById for web app context
  */
 function getWholesaleCustomers(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
     if (!sheet) return { success: true, customers: [] };
 
@@ -36204,6 +36233,1009 @@ function savePhotoToDriveSales(base64Data, filename) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// WEEKLY CYCLE SYSTEM - Unified Sales Channel Integration
+// Connects CSA, Wholesale, Farmers Market into weekly Harvest -> Pack -> Deliver cycles
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get overview of this week's cycle across all sales channels
+ */
+function getWeeklyCycleOverview(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const weekStart = params?.weekStart || getWeekStartDate();
+    const weekEnd = getWeekEndDate(weekStart);
+
+    // Get orders from all channels
+    const csaOrders = getCSAOrdersForWeek(ss, weekStart, weekEnd);
+    const wholesaleOrders = getWholesaleOrdersForWeek(ss, weekStart, weekEnd);
+    const marketSessions = getMarketSessionsForWeek(ss, weekStart, weekEnd);
+
+    // Calculate totals
+    const totalCSABoxes = csaOrders.reduce((sum, o) => sum + (o.boxCount || 1), 0);
+    const totalWholesaleOrders = wholesaleOrders.length;
+    const totalMarketDays = marketSessions.length;
+
+    // Build schedule
+    const schedule = buildWeeklySchedule(weekStart, csaOrders, wholesaleOrders, marketSessions);
+
+    return {
+      success: true,
+      weekStart: weekStart,
+      weekEnd: weekEnd,
+      summary: {
+        csaBoxes: totalCSABoxes,
+        wholesaleOrders: totalWholesaleOrders,
+        marketDays: totalMarketDays,
+        totalDeliveries: totalCSABoxes + totalWholesaleOrders,
+        harvestDaysNeeded: countHarvestDays(schedule),
+        packDaysNeeded: countPackDays(schedule)
+      },
+      channels: {
+        csa: { count: csaOrders.length, revenue: csaOrders.reduce((s, o) => s + (o.value || 0), 0) },
+        wholesale: { count: wholesaleOrders.length, revenue: wholesaleOrders.reduce((s, o) => s + (o.total || 0), 0) },
+        farmersMarket: { count: marketSessions.length, projectedRevenue: marketSessions.reduce((s, m) => s + (m.projectedRevenue || 0), 0) }
+      },
+      schedule: schedule
+    };
+  } catch (error) {
+    Logger.log('getWeeklyCycleOverview error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get aggregated demand from all channels for harvest planning
+ */
+function getAggregatedDemand(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const weekStart = params?.weekStart || getWeekStartDate();
+    const weekEnd = getWeekEndDate(weekStart);
+
+    // Demand by product from all channels
+    const demandByProduct = {};
+
+    // 1. CSA Box Contents (planned or based on share sizes)
+    const csaMembers = getActiveCSAMembers(ss);
+    csaMembers.forEach(member => {
+      const boxItems = getBoxItemsForShare(member.shareSize);
+      boxItems.forEach(item => {
+        if (!demandByProduct[item.cropName]) {
+          demandByProduct[item.cropName] = {
+            cropName: item.cropName,
+            totalQty: 0,
+            unit: item.unit,
+            byChannel: { csa: 0, wholesale: 0, market: 0 }
+          };
+        }
+        demandByProduct[item.cropName].totalQty += item.qty;
+        demandByProduct[item.cropName].byChannel.csa += item.qty;
+      });
+    });
+
+    // 2. Wholesale Standing Orders + One-time orders
+    const wholesaleOrders = getWholesaleOrdersForWeek(ss, weekStart, weekEnd);
+    wholesaleOrders.forEach(order => {
+      (order.items || []).forEach(item => {
+        if (!demandByProduct[item.productName]) {
+          demandByProduct[item.productName] = {
+            cropName: item.productName,
+            totalQty: 0,
+            unit: item.unit || 'each',
+            byChannel: { csa: 0, wholesale: 0, market: 0 }
+          };
+        }
+        demandByProduct[item.productName].totalQty += item.quantity;
+        demandByProduct[item.productName].byChannel.wholesale += item.quantity;
+      });
+    });
+
+    // 3. Farmers Market Predictions
+    const marketSessions = getMarketSessionsForWeek(ss, weekStart, weekEnd);
+    marketSessions.forEach(session => {
+      const predictions = session.harvestPlan || [];
+      predictions.forEach(item => {
+        if (!demandByProduct[item.productName]) {
+          demandByProduct[item.productName] = {
+            cropName: item.productName,
+            totalQty: 0,
+            unit: item.unit || 'each',
+            byChannel: { csa: 0, wholesale: 0, market: 0 }
+          };
+        }
+        demandByProduct[item.productName].totalQty += item.recommendedHarvest || 0;
+        demandByProduct[item.productName].byChannel.market += item.recommendedHarvest || 0;
+      });
+    });
+
+    // Sort by total demand
+    const sortedDemand = Object.values(demandByProduct).sort((a, b) => b.totalQty - a.totalQty);
+
+    return {
+      success: true,
+      weekStart: weekStart,
+      weekEnd: weekEnd,
+      totalProducts: sortedDemand.length,
+      demand: sortedDemand
+    };
+  } catch (error) {
+    Logger.log('getAggregatedDemand error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get weekly harvest plan based on aggregated demand
+ */
+function getWeeklyHarvestPlan(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const weekStart = params?.weekStart || getWeekStartDate();
+
+    // Get aggregated demand
+    const demandResult = getAggregatedDemand({ weekStart: weekStart });
+    if (!demandResult.success) {
+      return demandResult;
+    }
+
+    // Get available crops from fields
+    const harvestReady = typeof getHarvestReadyCrops === 'function' ? getHarvestReadyCrops() : [];
+
+    // Match demand to available supply
+    const harvestPlan = demandResult.demand.map(demandItem => {
+      const available = harvestReady.find(h =>
+        h.cropName?.toLowerCase() === demandItem.cropName?.toLowerCase()
+      );
+
+      return {
+        cropName: demandItem.cropName,
+        demandQty: demandItem.totalQty,
+        unit: demandItem.unit,
+        byChannel: demandItem.byChannel,
+        availableQty: available?.estimatedYield || 0,
+        fieldLocation: available?.bedId || 'TBD',
+        harvestWindow: available?.harvestWindow || 'Unknown',
+        status: (available?.estimatedYield || 0) >= demandItem.totalQty ? 'SUFFICIENT' : 'SHORTAGE',
+        shortage: Math.max(0, demandItem.totalQty - (available?.estimatedYield || 0))
+      };
+    });
+
+    // Calculate recommended harvest days
+    const harvestDays = calculateHarvestDaysFromPlan(harvestPlan, weekStart);
+
+    return {
+      success: true,
+      weekStart: weekStart,
+      harvestPlan: harvestPlan,
+      harvestDays: harvestDays,
+      shortageAlerts: harvestPlan.filter(h => h.status === 'SHORTAGE'),
+      summary: {
+        totalItems: harvestPlan.length,
+        sufficient: harvestPlan.filter(h => h.status === 'SUFFICIENT').length,
+        shortage: harvestPlan.filter(h => h.status === 'SHORTAGE').length
+      }
+    };
+  } catch (error) {
+    Logger.log('getWeeklyHarvestPlan error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get weekly pack schedule by delivery day
+ */
+function getWeeklyPackSchedule(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const weekStart = params?.weekStart || getWeekStartDate();
+    const weekEnd = getWeekEndDate(weekStart);
+
+    // Get all orders and group by delivery date
+    const csaOrders = getCSAOrdersForWeek(ss, weekStart, weekEnd);
+    const wholesaleOrders = getWholesaleOrdersForWeek(ss, weekStart, weekEnd);
+
+    // Group by pack date (day before delivery)
+    const packSchedule = {};
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // CSA packing
+    csaOrders.forEach(order => {
+      const deliveryDate = order.deliveryDate || order.day;
+      const packDate = getPackDateForDelivery(deliveryDate, weekStart);
+
+      if (!packSchedule[packDate]) {
+        packSchedule[packDate] = {
+          date: packDate,
+          dayOfWeek: days[new Date(packDate).getDay()],
+          csa: [],
+          wholesale: [],
+          market: [],
+          totalBoxes: 0,
+          totalOrders: 0
+        };
+      }
+
+      packSchedule[packDate].csa.push({
+        memberName: order.memberName,
+        shareSize: order.shareSize,
+        deliveryDay: order.day,
+        specialInstructions: order.notes
+      });
+      packSchedule[packDate].totalBoxes++;
+    });
+
+    // Wholesale packing
+    wholesaleOrders.forEach(order => {
+      const deliveryDate = order.deliveryDate;
+      const packDate = getPackDateForDelivery(deliveryDate, weekStart);
+
+      if (!packSchedule[packDate]) {
+        packSchedule[packDate] = {
+          date: packDate,
+          dayOfWeek: days[new Date(packDate).getDay()],
+          csa: [],
+          wholesale: [],
+          market: [],
+          totalBoxes: 0,
+          totalOrders: 0
+        };
+      }
+
+      packSchedule[packDate].wholesale.push({
+        customerName: order.customerName,
+        orderId: order.orderId,
+        items: order.items,
+        total: order.total
+      });
+      packSchedule[packDate].totalOrders++;
+    });
+
+    // Sort by date
+    const sortedSchedule = Object.values(packSchedule).sort((a, b) =>
+      new Date(a.date) - new Date(b.date)
+    );
+
+    return {
+      success: true,
+      weekStart: weekStart,
+      packSchedule: sortedSchedule,
+      summary: {
+        totalPackDays: sortedSchedule.length,
+        totalCSABoxes: sortedSchedule.reduce((s, d) => s + d.csa.length, 0),
+        totalWholesaleOrders: sortedSchedule.reduce((s, d) => s + d.wholesale.length, 0)
+      }
+    };
+  } catch (error) {
+    Logger.log('getWeeklyPackSchedule error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get weekly delivery schedule
+ */
+function getWeeklyDeliverySchedule(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const weekStart = params?.weekStart || getWeekStartDate();
+    const weekEnd = getWeekEndDate(weekStart);
+
+    // Get all deliveries
+    const csaOrders = getCSAOrdersForWeek(ss, weekStart, weekEnd);
+    const wholesaleOrders = getWholesaleOrdersForWeek(ss, weekStart, weekEnd);
+    const marketSessions = getMarketSessionsForWeek(ss, weekStart, weekEnd);
+
+    // Group by delivery date
+    const deliverySchedule = {};
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // CSA deliveries
+    csaOrders.forEach(order => {
+      const deliveryDate = getDeliveryDateForDay(order.day, weekStart);
+
+      if (!deliverySchedule[deliveryDate]) {
+        deliverySchedule[deliveryDate] = {
+          date: deliveryDate,
+          dayOfWeek: days[new Date(deliveryDate).getDay()],
+          csaStops: [],
+          wholesaleStops: [],
+          marketSessions: [],
+          totalStops: 0
+        };
+      }
+
+      deliverySchedule[deliveryDate].csaStops.push({
+        memberName: order.memberName,
+        address: order.address,
+        shareSize: order.shareSize,
+        instructions: order.deliveryInstructions
+      });
+      deliverySchedule[deliveryDate].totalStops++;
+    });
+
+    // Wholesale deliveries
+    wholesaleOrders.forEach(order => {
+      const deliveryDate = order.deliveryDate;
+
+      if (!deliverySchedule[deliveryDate]) {
+        deliverySchedule[deliveryDate] = {
+          date: deliveryDate,
+          dayOfWeek: days[new Date(deliveryDate).getDay()],
+          csaStops: [],
+          wholesaleStops: [],
+          marketSessions: [],
+          totalStops: 0
+        };
+      }
+
+      deliverySchedule[deliveryDate].wholesaleStops.push({
+        customerName: order.customerName,
+        businessName: order.businessName,
+        address: order.address,
+        orderTotal: order.total,
+        items: order.items?.length || 0
+      });
+      deliverySchedule[deliveryDate].totalStops++;
+    });
+
+    // Market sessions
+    marketSessions.forEach(session => {
+      const marketDate = session.date;
+
+      if (!deliverySchedule[marketDate]) {
+        deliverySchedule[marketDate] = {
+          date: marketDate,
+          dayOfWeek: days[new Date(marketDate).getDay()],
+          csaStops: [],
+          wholesaleStops: [],
+          marketSessions: [],
+          totalStops: 0
+        };
+      }
+
+      deliverySchedule[marketDate].marketSessions.push({
+        locationName: session.locationName,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        projectedRevenue: session.projectedRevenue
+      });
+    });
+
+    // Sort by date
+    const sortedSchedule = Object.values(deliverySchedule).sort((a, b) =>
+      new Date(a.date) - new Date(b.date)
+    );
+
+    return {
+      success: true,
+      weekStart: weekStart,
+      deliverySchedule: sortedSchedule,
+      summary: {
+        totalDeliveryDays: sortedSchedule.length,
+        totalCSAStops: sortedSchedule.reduce((s, d) => s + d.csaStops.length, 0),
+        totalWholesaleStops: sortedSchedule.reduce((s, d) => s + d.wholesaleStops.length, 0),
+        totalMarketDays: sortedSchedule.reduce((s, d) => s + d.marketSessions.length, 0)
+      }
+    };
+  } catch (error) {
+    Logger.log('getWeeklyDeliverySchedule error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get unified sales dashboard combining all channels
+ */
+function getUnifiedSalesDashboard(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const today = new Date();
+    const weekStart = params?.weekStart || getWeekStartDate();
+
+    // Get cycle overview
+    const cycleOverview = getWeeklyCycleOverview({ weekStart: weekStart });
+
+    // Today's tasks
+    const todayStr = formatDateStringSales(today);
+    const todaySchedule = cycleOverview.success ?
+      cycleOverview.schedule?.find(d => d.date === todayStr) : null;
+
+    // Get stats by channel
+    const csaStats = getCSADashboardStatsWeekly(ss);
+    const wholesaleStats = getWholesaleDashboardStatsWeekly(ss);
+
+    // Upcoming deadlines
+    const deadlines = [];
+
+    // Order deadlines (typically 48 hours before delivery)
+    if (cycleOverview.success) {
+      cycleOverview.schedule?.forEach(day => {
+        if (day.deliveries > 0) {
+          const orderDeadline = new Date(day.date);
+          orderDeadline.setDate(orderDeadline.getDate() - 2);
+          if (orderDeadline > today) {
+            deadlines.push({
+              type: 'order_cutoff',
+              date: formatDateStringSales(orderDeadline),
+              description: `Order cutoff for ${day.dayOfWeek} deliveries`,
+              deliveryDate: day.date
+            });
+          }
+        }
+      });
+    }
+
+    return {
+      success: true,
+      timestamp: today.toISOString(),
+      currentWeek: {
+        start: weekStart,
+        overview: cycleOverview.success ? cycleOverview.summary : null,
+        schedule: cycleOverview.success ? cycleOverview.schedule : []
+      },
+      todaysFocus: {
+        date: todayStr,
+        dayOfWeek: today.toLocaleDateString('en-US', { weekday: 'long' }),
+        tasks: todaySchedule || { harvest: false, pack: false, deliver: false },
+        csaBoxesToPack: todaySchedule?.csa?.packCount || 0,
+        wholesaleOrdersToPack: todaySchedule?.wholesale?.packCount || 0,
+        deliveriesToMake: todaySchedule?.deliveries || 0
+      },
+      channels: {
+        csa: {
+          activeMembers: csaStats.activeMembers,
+          thisWeekRevenue: csaStats.weeklyRevenue,
+          renewalsDue: csaStats.renewalsDue,
+          onVacationHold: csaStats.onHold
+        },
+        wholesale: {
+          activeCustomers: wholesaleStats.activeCustomers,
+          pendingOrders: wholesaleStats.pendingOrders,
+          thisWeekRevenue: wholesaleStats.weeklyRevenue,
+          outstandingInvoices: wholesaleStats.outstandingInvoices
+        },
+        farmersMarket: {
+          marketsThisWeek: cycleOverview.success ? cycleOverview.channels?.farmersMarket?.count : 0,
+          projectedRevenue: cycleOverview.success ? cycleOverview.channels?.farmersMarket?.projectedRevenue : 0
+        }
+      },
+      upcomingDeadlines: deadlines.slice(0, 5),
+      alerts: generateSalesAlertsWeekly(cycleOverview, csaStats, wholesaleStats)
+    };
+  } catch (error) {
+    Logger.log('getUnifiedSalesDashboard error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get summary of all sales channels
+ */
+function getSalesChannelSummary(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const period = params?.period || 'week'; // week, month, season
+    const weekStart = getWeekStartDate();
+
+    // Get data from each channel
+    const csaData = getCSADashboardStatsWeekly(ss);
+    const wholesaleData = getWholesaleDashboardStatsWeekly(ss);
+    const marketData = getMarketDashboardStatsWeekly(ss);
+
+    const totalRevenue = (csaData.weeklyRevenue || 0) +
+                         (wholesaleData.weeklyRevenue || 0) +
+                         (marketData.weeklyRevenue || 0);
+
+    return {
+      success: true,
+      period: period,
+      weekStart: weekStart,
+      channels: [
+        {
+          name: 'CSA',
+          icon: '🧺',
+          customers: csaData.activeMembers || 0,
+          revenue: csaData.weeklyRevenue || 0,
+          revenuePercent: totalRevenue > 0 ? Math.round((csaData.weeklyRevenue || 0) / totalRevenue * 100) : 0,
+          trend: csaData.trend || 'stable',
+          nextAction: csaData.renewalsDue > 0 ? `${csaData.renewalsDue} renewals due` : null
+        },
+        {
+          name: 'Wholesale',
+          icon: '🏪',
+          customers: wholesaleData.activeCustomers || 0,
+          revenue: wholesaleData.weeklyRevenue || 0,
+          revenuePercent: totalRevenue > 0 ? Math.round((wholesaleData.weeklyRevenue || 0) / totalRevenue * 100) : 0,
+          trend: wholesaleData.trend || 'stable',
+          nextAction: wholesaleData.pendingOrders > 0 ? `${wholesaleData.pendingOrders} pending orders` : null
+        },
+        {
+          name: 'Farmers Market',
+          icon: '🏕️',
+          customers: marketData.uniqueCustomers || 0,
+          revenue: marketData.weeklyRevenue || 0,
+          revenuePercent: totalRevenue > 0 ? Math.round((marketData.weeklyRevenue || 0) / totalRevenue * 100) : 0,
+          trend: marketData.trend || 'stable',
+          nextAction: marketData.nextMarket ? `Next: ${marketData.nextMarket}` : null
+        }
+      ],
+      totals: {
+        revenue: totalRevenue,
+        customers: (csaData.activeMembers || 0) + (wholesaleData.activeCustomers || 0),
+        transactions: (csaData.transactions || 0) + (wholesaleData.transactions || 0) + (marketData.transactions || 0)
+      }
+    };
+  } catch (error) {
+    Logger.log('getSalesChannelSummary error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate harvest plan from demand (creates tasks/pick list)
+ */
+function generateWeeklyHarvestFromDemand(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const weekStart = params?.weekStart || getWeekStartDate();
+
+    // Get harvest plan
+    const harvestPlan = getWeeklyHarvestPlan({ weekStart: weekStart });
+    if (!harvestPlan.success) {
+      return harvestPlan;
+    }
+
+    // Create pick list items for each harvest day
+    let pickPackSheet = ss.getSheetByName('SALES_PickPack');
+    if (!pickPackSheet) {
+      pickPackSheet = ss.insertSheet('SALES_PickPack');
+      pickPackSheet.appendRow([
+        'Pick_ID', 'Delivery_Date', 'Order_ID', 'Customer_Name', 'Customer_Type',
+        'Crop_ID', 'Product_Name', 'Quantity', 'Unit', 'Location',
+        'Status', 'Picked_By', 'Picked_At', 'Notes'
+      ]);
+    }
+
+    let itemsCreated = 0;
+
+    harvestPlan.harvestDays?.forEach(day => {
+      day.items?.forEach(item => {
+        const pickId = 'PCK-WK-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+        pickPackSheet.appendRow([
+          pickId,
+          day.date,
+          'WEEKLY-' + weekStart,
+          'All Channels',
+          'AGGREGATE',
+          item.cropId || '',
+          item.cropName,
+          item.demandQty,
+          item.unit,
+          item.fieldLocation,
+          'Pending',
+          '',
+          '',
+          `CSA: ${item.byChannel?.csa || 0}, Wholesale: ${item.byChannel?.wholesale || 0}, Market: ${item.byChannel?.market || 0}`
+        ]);
+        itemsCreated++;
+      });
+    });
+
+    return {
+      success: true,
+      message: `Created ${itemsCreated} pick list items for week of ${weekStart}`,
+      weekStart: weekStart,
+      itemsCreated: itemsCreated,
+      harvestDays: harvestPlan.harvestDays?.length || 0
+    };
+  } catch (error) {
+    Logger.log('generateWeeklyHarvestFromDemand error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WEEKLY CYCLE HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getWeekStartDate() {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
+  const monday = new Date(now);
+  monday.setDate(diff);
+  return formatDateStringSales(monday);
+}
+
+function getWeekEndDate(weekStart) {
+  const start = new Date(weekStart);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return formatDateStringSales(end);
+}
+
+function getCSAOrdersForWeek(ss, weekStart, weekEnd) {
+  try {
+    const sheet = ss.getSheetByName('CSA_Members') || ss.getSheetByName('CSA_MEMBERS');
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const nameCol = headers.findIndex(h => String(h).toLowerCase().includes('name'));
+    const dayCol = headers.findIndex(h => String(h).toLowerCase().includes('delivery') && String(h).toLowerCase().includes('day'));
+    const shareCol = headers.findIndex(h => String(h).toLowerCase().includes('share'));
+    const statusCol = headers.findIndex(h => String(h).toLowerCase().includes('status'));
+
+    const orders = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = statusCol >= 0 ? String(row[statusCol]).toLowerCase() : 'active';
+
+      if (status === 'active' || status === 'enrolled') {
+        orders.push({
+          memberName: nameCol >= 0 ? row[nameCol] : 'Unknown',
+          day: dayCol >= 0 ? row[dayCol] : 'Tuesday',
+          shareSize: shareCol >= 0 ? row[shareCol] : 'Medium',
+          value: getShareValue(shareCol >= 0 ? row[shareCol] : 'Medium'),
+          boxCount: 1
+        });
+      }
+    }
+
+    return orders;
+  } catch (error) {
+    Logger.log('getCSAOrdersForWeek error: ' + error.toString());
+    return [];
+  }
+}
+
+function getWholesaleOrdersForWeek(ss, weekStart, weekEnd) {
+  try {
+    const sheet = ss.getSheetByName('WHOLESALE_ORDERS');
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const orders = [];
+    const startDate = new Date(weekStart);
+    const endDate = new Date(weekEnd);
+
+    const dateCol = headers.findIndex(h => String(h).toLowerCase().includes('delivery') && String(h).toLowerCase().includes('date'));
+    const customerCol = headers.findIndex(h => String(h).toLowerCase().includes('customer'));
+    const totalCol = headers.findIndex(h => String(h).toLowerCase().includes('total'));
+    const statusCol = headers.findIndex(h => String(h).toLowerCase().includes('status'));
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const deliveryDate = dateCol >= 0 ? new Date(row[dateCol]) : null;
+      const status = statusCol >= 0 ? String(row[statusCol]).toLowerCase() : '';
+
+      if (deliveryDate && deliveryDate >= startDate && deliveryDate <= endDate &&
+          status !== 'cancelled' && status !== 'delivered') {
+        orders.push({
+          orderId: row[0] || `WO-${i}`,
+          customerName: customerCol >= 0 ? row[customerCol] : 'Unknown',
+          deliveryDate: formatDateStringSales(deliveryDate),
+          total: totalCol >= 0 ? parseFloat(row[totalCol]) || 0 : 0,
+          items: [] // Would need to fetch from order details
+        });
+      }
+    }
+
+    return orders;
+  } catch (error) {
+    Logger.log('getWholesaleOrdersForWeek error: ' + error.toString());
+    return [];
+  }
+}
+
+function getMarketSessionsForWeek(ss, weekStart, weekEnd) {
+  try {
+    const sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const sessions = [];
+    const startDate = new Date(weekStart);
+    const endDate = new Date(weekEnd);
+
+    const dateCol = headers.findIndex(h => String(h).toLowerCase().includes('date'));
+    const locationCol = headers.findIndex(h => String(h).toLowerCase().includes('location'));
+    const revenueCol = headers.findIndex(h => String(h).toLowerCase().includes('projected') || String(h).toLowerCase().includes('revenue'));
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const sessionDate = dateCol >= 0 ? new Date(row[dateCol]) : null;
+
+      if (sessionDate && sessionDate >= startDate && sessionDate <= endDate) {
+        sessions.push({
+          date: formatDateStringSales(sessionDate),
+          locationName: locationCol >= 0 ? row[locationCol] : 'Unknown Market',
+          projectedRevenue: revenueCol >= 0 ? parseFloat(row[revenueCol]) || 0 : 0
+        });
+      }
+    }
+
+    return sessions;
+  } catch (error) {
+    Logger.log('getMarketSessionsForWeek error: ' + error.toString());
+    return [];
+  }
+}
+
+function getActiveCSAMembers(ss) {
+  try {
+    const sheet = ss.getSheetByName('CSA_Members') || ss.getSheetByName('CSA_MEMBERS');
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const nameCol = headers.findIndex(h => String(h).toLowerCase().includes('name'));
+    const shareCol = headers.findIndex(h => String(h).toLowerCase().includes('share'));
+    const statusCol = headers.findIndex(h => String(h).toLowerCase().includes('status'));
+
+    const members = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = statusCol >= 0 ? String(row[statusCol]).toLowerCase() : 'active';
+
+      if (status === 'active' || status === 'enrolled') {
+        members.push({
+          name: nameCol >= 0 ? row[nameCol] : 'Unknown',
+          shareSize: shareCol >= 0 ? row[shareCol] : 'Medium'
+        });
+      }
+    }
+
+    return members;
+  } catch (error) {
+    return [];
+  }
+}
+
+function getBoxItemsForShare(shareSize) {
+  // Standard box contents by share size
+  const shareItems = {
+    'Small': [
+      { cropName: 'Mixed Greens', qty: 1, unit: 'bag' },
+      { cropName: 'Tomatoes', qty: 1, unit: 'lb' },
+      { cropName: 'Cucumbers', qty: 2, unit: 'each' },
+      { cropName: 'Herbs', qty: 1, unit: 'bunch' }
+    ],
+    'Medium': [
+      { cropName: 'Mixed Greens', qty: 2, unit: 'bag' },
+      { cropName: 'Tomatoes', qty: 2, unit: 'lb' },
+      { cropName: 'Cucumbers', qty: 3, unit: 'each' },
+      { cropName: 'Herbs', qty: 2, unit: 'bunch' },
+      { cropName: 'Peppers', qty: 3, unit: 'each' },
+      { cropName: 'Squash', qty: 2, unit: 'each' }
+    ],
+    'Large': [
+      { cropName: 'Mixed Greens', qty: 3, unit: 'bag' },
+      { cropName: 'Tomatoes', qty: 4, unit: 'lb' },
+      { cropName: 'Cucumbers', qty: 4, unit: 'each' },
+      { cropName: 'Herbs', qty: 3, unit: 'bunch' },
+      { cropName: 'Peppers', qty: 5, unit: 'each' },
+      { cropName: 'Squash', qty: 3, unit: 'each' },
+      { cropName: 'Carrots', qty: 2, unit: 'lb' },
+      { cropName: 'Onions', qty: 2, unit: 'lb' }
+    ],
+    'Family': [
+      { cropName: 'Mixed Greens', qty: 4, unit: 'bag' },
+      { cropName: 'Tomatoes', qty: 5, unit: 'lb' },
+      { cropName: 'Cucumbers', qty: 5, unit: 'each' },
+      { cropName: 'Herbs', qty: 4, unit: 'bunch' },
+      { cropName: 'Peppers', qty: 6, unit: 'each' },
+      { cropName: 'Squash', qty: 4, unit: 'each' },
+      { cropName: 'Carrots', qty: 3, unit: 'lb' },
+      { cropName: 'Onions', qty: 3, unit: 'lb' },
+      { cropName: 'Potatoes', qty: 3, unit: 'lb' }
+    ]
+  };
+
+  return shareItems[shareSize] || shareItems['Medium'];
+}
+
+function getShareValue(shareSize) {
+  const values = {
+    'Small': 25,
+    'Medium': 35,
+    'Large': 50,
+    'Family': 65
+  };
+  return values[shareSize] || 35;
+}
+
+function buildWeeklySchedule(weekStart, csaOrders, wholesaleOrders, marketSessions) {
+  const schedule = [];
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const start = new Date(weekStart);
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const dateStr = formatDateStringSales(date);
+    const dayName = days[date.getDay()];
+
+    // Count deliveries for this day
+    const csaForDay = csaOrders.filter(o => o.day === dayName).length;
+    const wholesaleForDay = wholesaleOrders.filter(o => o.deliveryDate === dateStr).length;
+    const marketsForDay = marketSessions.filter(m => m.date === dateStr);
+
+    // Determine if harvest/pack needed (day before delivery)
+    const needsHarvest = (csaForDay > 0 || wholesaleForDay > 0) && i > 0;
+    const needsPack = csaForDay > 0 || wholesaleForDay > 0;
+
+    schedule.push({
+      date: dateStr,
+      dayOfWeek: dayName,
+      harvest: needsHarvest,
+      pack: needsPack,
+      deliver: csaForDay > 0 || wholesaleForDay > 0,
+      market: marketsForDay.length > 0,
+      deliveries: csaForDay + wholesaleForDay,
+      csa: { deliveryCount: csaForDay, packCount: i > 0 ? csaForDay : 0 },
+      wholesale: { deliveryCount: wholesaleForDay, packCount: i > 0 ? wholesaleForDay : 0 },
+      marketSessions: marketsForDay.map(m => m.locationName)
+    });
+  }
+
+  return schedule;
+}
+
+function countHarvestDays(schedule) {
+  return schedule.filter(d => d.harvest).length;
+}
+
+function countPackDays(schedule) {
+  return schedule.filter(d => d.pack).length;
+}
+
+function calculateHarvestDaysFromPlan(harvestPlan, weekStart) {
+  // Group harvest items by recommended harvest date
+  // For simplicity, harvest 1-2 days before delivery
+  const harvestDays = [];
+  const start = new Date(weekStart);
+
+  // Assume harvest on Monday and Thursday for Tue/Fri deliveries
+  ['Monday', 'Thursday'].forEach((day, idx) => {
+    const harvestDate = new Date(start);
+    harvestDate.setDate(start.getDate() + (idx === 0 ? 0 : 3));
+
+    harvestDays.push({
+      date: formatDateStringSales(harvestDate),
+      dayOfWeek: day,
+      items: harvestPlan.filter((item, i) => i % 2 === idx) // Split items across days
+    });
+  });
+
+  return harvestDays;
+}
+
+function getPackDateForDelivery(deliveryDay, weekStart) {
+  // Pack day before delivery
+  const dayToNum = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+
+  const start = new Date(weekStart);
+  let deliveryNum = typeof deliveryDay === 'string' ? dayToNum[deliveryDay] : new Date(deliveryDay).getDay();
+  if (deliveryNum === undefined) deliveryNum = 2; // Default Tuesday
+
+  // Pack is day before (or same day for Monday delivery)
+  const packNum = deliveryNum === 1 ? 0 : deliveryNum - 1; // Sunday for Monday, otherwise day before
+
+  const packDate = new Date(start);
+  const daysUntilPack = packNum - start.getDay();
+  packDate.setDate(start.getDate() + (daysUntilPack >= 0 ? daysUntilPack : daysUntilPack + 7));
+
+  return formatDateStringSales(packDate);
+}
+
+function getDeliveryDateForDay(dayName, weekStart) {
+  const dayToNum = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+  const start = new Date(weekStart);
+  const dayNum = dayToNum[dayName] || 2; // Default to Tuesday
+
+  const deliveryDate = new Date(start);
+  const daysUntilDelivery = dayNum - start.getDay();
+  deliveryDate.setDate(start.getDate() + (daysUntilDelivery >= 0 ? daysUntilDelivery : daysUntilDelivery + 7));
+
+  return formatDateStringSales(deliveryDate);
+}
+
+function getCSADashboardStatsWeekly(ss) {
+  try {
+    const members = getActiveCSAMembers(ss);
+    return {
+      activeMembers: members.length,
+      weeklyRevenue: members.reduce((sum, m) => sum + getShareValue(m.shareSize), 0),
+      renewalsDue: 0, // Would need to check renewal dates
+      onHold: 0,
+      transactions: members.length,
+      trend: 'stable'
+    };
+  } catch (error) {
+    return { activeMembers: 0, weeklyRevenue: 0, renewalsDue: 0, onHold: 0, transactions: 0, trend: 'stable' };
+  }
+}
+
+function getWholesaleDashboardStatsWeekly(ss) {
+  try {
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    const activeCustomers = sheet ? Math.max(0, sheet.getLastRow() - 1) : 0;
+
+    return {
+      activeCustomers: activeCustomers,
+      pendingOrders: 0,
+      weeklyRevenue: 0, // Would sum from orders
+      outstandingInvoices: 0,
+      transactions: 0,
+      trend: 'stable'
+    };
+  } catch (error) {
+    return { activeCustomers: 0, pendingOrders: 0, weeklyRevenue: 0, outstandingInvoices: 0, transactions: 0, trend: 'stable' };
+  }
+}
+
+function getMarketDashboardStatsWeekly(ss) {
+  try {
+    return {
+      uniqueCustomers: 0,
+      weeklyRevenue: 0,
+      nextMarket: null,
+      transactions: 0,
+      trend: 'stable'
+    };
+  } catch (error) {
+    return { uniqueCustomers: 0, weeklyRevenue: 0, nextMarket: null, transactions: 0, trend: 'stable' };
+  }
+}
+
+function generateSalesAlertsWeekly(cycleOverview, csaStats, wholesaleStats) {
+  const alerts = [];
+
+  // Check for shortages
+  if (cycleOverview.success && cycleOverview.summary) {
+    if (cycleOverview.summary.harvestDaysNeeded > 3) {
+      alerts.push({
+        type: 'warning',
+        title: 'Heavy Harvest Week',
+        message: `${cycleOverview.summary.harvestDaysNeeded} harvest days needed this week`,
+        icon: '🌿'
+      });
+    }
+  }
+
+  // CSA alerts
+  if (csaStats.renewalsDue > 0) {
+    alerts.push({
+      type: 'info',
+      title: 'CSA Renewals Due',
+      message: `${csaStats.renewalsDue} members have renewals coming up`,
+      icon: '🧺'
+    });
+  }
+
+  // Wholesale alerts
+  if (wholesaleStats.pendingOrders > 5) {
+    alerts.push({
+      type: 'warning',
+      title: 'Pending Orders Backlog',
+      message: `${wholesaleStats.pendingOrders} wholesale orders pending confirmation`,
+      icon: '📦'
+    });
+  }
+
+  return alerts;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MENU EXTENSION - Add to onOpen()
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -39039,12 +40071,26 @@ function deleteSchedule(scheduleId) {
 
 /**
  * Generate smart schedule based on tasks and weather
+ * Uses weather data to optimize shift assignments
  */
 function generateSmartSchedule(params) {
   try {
     const weekStart = params.weekStart || new Date().toISOString().split('T')[0];
     const priority = params.priority || 'balanced';
     const useWeather = params.useWeather !== false;
+
+    // Get weather forecast if requested
+    let weatherForecast = [];
+    if (useWeather) {
+      try {
+        const weatherData = getWeatherForecastData({});
+        if (weatherData.success && weatherData.data) {
+          weatherForecast = weatherData.data;
+        }
+      } catch (e) {
+        Logger.log('Weather fetch failed, continuing without: ' + e.toString());
+      }
+    }
 
     // Get active employees
     const employeeResult = getAllActiveEmployees();
@@ -39077,22 +40123,44 @@ function generateSmartSchedule(params) {
         continue;
       }
 
-      // Assign employees to shifts based on role
+      // Get weather for this day
+      const dayWeather = weatherForecast[d] || null;
+      const rainChance = dayWeather ? (dayWeather.rain || dayWeather.precip_chance || 0) : 0;
+      const isRainyDay = rainChance > 60;
+      const isPossibleRain = rainChance > 40;
+      let weatherNote = isRainyDay ? 'Rain expected - indoor work prioritized' :
+                        isPossibleRain ? 'Possible rain - harvest early, avoid spraying' : '';
+
+      // Assign employees to shifts based on role AND weather
       employees.forEach((emp, idx) => {
-        // Simple rotation - can be enhanced
-        const shiftType = emp.role && emp.role.toLowerCase().includes('driver') ? 'delivery' :
-                         emp.role && emp.role.toLowerCase().includes('flower') ? 'greenhouse' :
-                         emp.role && emp.role.toLowerCase().includes('market') ? 'market' :
-                         'field';
+        const roleLC = (emp.role || '').toLowerCase();
+        let shiftType = 'field';
+        let notes = weatherNote;
+
+        if (roleLC.includes('driver')) {
+          shiftType = 'delivery';
+        } else if (roleLC.includes('flower')) {
+          shiftType = 'greenhouse';
+        } else if (roleLC.includes('market')) {
+          shiftType = 'market';
+        } else if (roleLC.includes('owner') || roleLC.includes('manager')) {
+          shiftType = isRainyDay ? 'packhouse' : 'field';
+          notes = isRainyDay ? 'Indoor planning/packhouse work recommended' : notes;
+        } else if (isRainyDay) {
+          shiftType = 'packhouse';
+          notes = 'Rain day - packhouse/maintenance work';
+        } else if (priority === 'harvest') {
+          notes = isPossibleRain ? 'Prioritize harvests before rain' : 'Focus on harvest';
+        }
 
         schedules.push({
-          id: 'SCH_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+          id: 'SCH_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + idx,
           employeeId: emp.id,
           date: dateStr,
           startTime: '07:00',
           endTime: '15:00',
           type: shiftType,
-          notes: 'Auto-generated shift'
+          notes: notes || 'Auto-generated shift'
         });
       });
     }
@@ -39110,7 +40178,8 @@ function generateSmartSchedule(params) {
     return {
       success: true,
       schedules: schedules,
-      message: `Generated ${schedules.length} shifts`
+      message: `Generated ${schedules.length} shifts`,
+      weatherUsed: useWeather && weatherForecast.length > 0
     };
   } catch (error) {
     return { success: false, error: error.toString() };
@@ -39870,17 +40939,22 @@ function getFields(params) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // FIXED 2026-01-23: Extract fields AND bed counts from REF_Beds for calendar
+    // ENHANCED 2026-01-28: Also extract bed lengths for display in calendar views
     // This provides fieldConfig needed by calendar.html
     const bedsSheet = ss.getSheetByName('REF_Beds');
     const fieldConfig = {};
+    const bedLengths = {}; // Map of bedId -> length (e.g., "F3L-01" -> 100)
     const fields = [];
 
     if (bedsSheet) {
       const bedData = bedsSheet.getDataRange().getValues();
       const bedHeaders = bedData[0];
       const parentFieldCol = bedHeaders.indexOf('Parent Field');
+      const bedIdCol = bedHeaders.indexOf('Bed ID');
+      const lengthCol = bedHeaders.indexOf('Length');
+      const indexCol = bedHeaders.indexOf('Index');
 
-      // Count beds per field
+      // Count beds per field and extract bed lengths
       for (let i = 1; i < bedData.length; i++) {
         const row = bedData[i];
         let fieldName = parentFieldCol >= 0 ? row[parentFieldCol] : row[1];
@@ -39892,6 +40966,25 @@ function getFields(params) {
 
         if (fieldId) {
           fieldConfig[fieldId] = (fieldConfig[fieldId] || 0) + 1;
+
+          // Extract bed length - store by bedId for easy lookup
+          const bedId = bedIdCol >= 0 ? row[bedIdCol] : null;
+          const bedIndex = indexCol >= 0 ? row[indexCol] : null;
+          const length = lengthCol >= 0 ? row[lengthCol] : null;
+
+          if (length && (bedId || bedIndex)) {
+            // Support lookup by full bed ID (e.g., "Field F3L-01") or short form (e.g., "F3L-01")
+            const bedNum = bedIndex ? String(bedIndex).padStart(2, '0') : '';
+            if (bedId) {
+              bedLengths[bedId] = length;
+              // Also store short form for calendar lookup
+              const shortId = `${fieldId}-${bedNum}`;
+              bedLengths[shortId] = length;
+            } else if (bedNum) {
+              bedLengths[`${fieldId}-${bedNum}`] = length;
+              bedLengths[`Field ${fieldId}-${bedNum}`] = length;
+            }
+          }
         }
       }
 
@@ -39911,6 +41004,7 @@ function getFields(params) {
         success: true,
         fields: fields,
         fieldConfig: fieldConfig,
+        bedLengths: bedLengths,
         count: fields.length
       };
     }
@@ -39933,7 +41027,7 @@ function getFields(params) {
       }
 
       if (fields.length > 0) {
-        return { success: true, fields: fields, fieldConfig: fieldConfig, count: fields.length };
+        return { success: true, fields: fields, fieldConfig: fieldConfig, bedLengths: {}, count: fields.length };
       }
     }
 
@@ -39950,10 +41044,11 @@ function getFields(params) {
         Field_ID: f, Field_Name: f, bedCount: defaultConfig[f]
       })),
       fieldConfig: defaultConfig,
+      bedLengths: {},
       count: Object.keys(defaultConfig).length
     };
   } catch (error) {
-    return { success: false, error: error.toString() };
+    return { success: false, error: error.toString(), bedLengths: {} };
   }
 }
 
@@ -67057,12 +68152,13 @@ const CROP_GDD_DATA = {
 
 /**
  * Get weather forecast from Open-Meteo API (FREE, no key required)
+ * Updated to include weather_code for conditions
  */
 function fetchOpenMeteoForecast() {
   try {
     const lat = FARM_CONFIG.LAT;
     const lon = FARM_CONFIG.LONG;
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,relative_humidity_2m_mean,windspeed_10m_max&hourly=temperature_2m,relative_humidity_2m,precipitation&timezone=America/New_York&forecast_days=16`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,relative_humidity_2m_mean,windspeed_10m_max,weather_code&hourly=temperature_2m,relative_humidity_2m,precipitation&timezone=America/New_York&forecast_days=16`;
 
     const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
     const data = JSON.parse(response.getContentText());
@@ -67413,6 +68509,7 @@ function getHarvestPredictions_farmIntel(params) {
 
 /**
  * Get weather forecast data
+ * Returns data compatible with scheduling page and other consumers
  */
 function getWeatherForecastData(params) {
   try {
@@ -67425,20 +68522,36 @@ function getWeatherForecastData(params) {
     const formattedDays = [];
 
     for (let i = 0; i < daily.time.length; i++) {
+      // Get weather condition from code if available
+      const weatherCode = daily.weather_code ? daily.weather_code[i] : null;
+      const condition = weatherCode !== null ? getWeatherCondition(weatherCode) :
+                       (daily.precipitation_probability_max[i] > 60 ? 'rain' :
+                        daily.precipitation_probability_max[i] > 30 ? 'partly cloudy' : 'clear');
+
+      const highF = Math.round((daily.temperature_2m_max[i] * 9/5) + 32);
+      const lowF = Math.round((daily.temperature_2m_min[i] * 9/5) + 32);
+
       formattedDays.push({
         date: daily.time[i],
-        temp_high_f: Math.round((daily.temperature_2m_max[i] * 9/5) + 32),
-        temp_low_f: Math.round((daily.temperature_2m_min[i] * 9/5) + 32),
+        temp_high_f: highF,
+        temp_low_f: lowF,
+        // Also include aliases for scheduling page compatibility
+        high: highF,
+        low: lowF,
+        temp: highF,
         precip_mm: daily.precipitation_sum[i],
         precip_chance: daily.precipitation_probability_max[i],
+        rain: daily.precipitation_probability_max[i], // Alias for scheduling page
         humidity: Math.round(daily.relative_humidity_2m_mean[i]),
-        wind_mph: Math.round(daily.windspeed_10m_max[i] * 0.621371)
+        wind_mph: Math.round(daily.windspeed_10m_max[i] * 0.621371),
+        condition: condition.toLowerCase()
       });
     }
 
     return {
       success: true,
       data: formattedDays,
+      forecast: formattedDays, // Alias for scheduling page
       farm_location: { lat: FARM_CONFIG.LAT, lon: FARM_CONFIG.LONG },
       timestamp: new Date().toISOString()
     };
@@ -77980,12 +79093,11 @@ function sendChefMagicLink(customerId) {
 }
 
 /**
- * Verify a magic link token
- *
- * @param {string} token - Magic token
- * @returns {Object} { valid, customerId, customer }
+ * DEPRECATED 2026-01-28: Renamed to avoid duplicate with verifyChefToken() at line ~16408
+ * This version looked in WHOLESALE_CUSTOMERS.Magic_Token but tokens are now stored in AUTH_TOKENS
+ * The correct verifyChefToken is at line ~16408 which checks AUTH_TOKENS sheet
  */
-function verifyChefToken(token) {
+function verifyChefToken_ChefComms_Legacy(token) {
   try {
     if (!token) {
       return { valid: false, error: 'No token provided' };
@@ -78462,6 +79574,84 @@ function saveLoanDocument(params) {
       success: true,
       message: 'Document saved successfully',
       documentId: docId
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Upload a loan document to Google Drive and save metadata
+ * @param {Object} params - { base64, fileName, category, documentType, expiration, mimeType }
+ */
+function uploadLoanDocument(params) {
+  try {
+    const folderName = 'TinySeed_Loan_Documents';
+    let folder;
+
+    // Get or create the loan documents folder
+    const folders = DriveApp.getFoldersByName(folderName);
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder(folderName);
+    }
+
+    // Handle base64 data - may have data URL prefix
+    let base64Content = params.base64 || '';
+    let mimeType = params.mimeType || 'application/pdf';
+
+    if (base64Content.includes(',')) {
+      // Extract mime type from data URL if present
+      const matches = base64Content.match(/data:([^;]+);base64,/);
+      if (matches) {
+        mimeType = matches[1];
+      }
+      base64Content = base64Content.split(',')[1];
+    }
+
+    // Generate a clean filename
+    const timestamp = new Date().toISOString().split('T')[0];
+    const cleanType = (params.documentType || 'document').replace(/[^a-zA-Z0-9_]/g, '_');
+    const originalName = params.fileName || 'document';
+    const extension = originalName.includes('.') ? originalName.split('.').pop() :
+                      mimeType.includes('pdf') ? 'pdf' :
+                      mimeType.includes('png') ? 'png' : 'jpg';
+    const fileName = `${cleanType}_${timestamp}.${extension}`;
+
+    // Decode and create blob
+    const decoded = Utilities.base64Decode(base64Content);
+    const blob = Utilities.newBlob(decoded, mimeType, fileName);
+
+    // Create file in folder
+    const file = folder.createFile(blob);
+
+    // Set sharing to anyone with link can view
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileId = file.getId();
+    const fileUrl = 'https://drive.google.com/file/d/' + fileId + '/view';
+
+    // Now save the document metadata to the sheet
+    const docResult = saveLoanDocument({
+      name: params.documentType || fileName,
+      category: params.category || 'other',
+      subcategory: params.documentType || '',
+      fileUrl: fileUrl,
+      fileId: fileId,
+      expiresAt: params.expiration || '',
+      status: 'Current',
+      lenders: params.lenders || '',
+      notes: 'Uploaded via Loan Readiness Dashboard'
+    });
+
+    return {
+      success: true,
+      message: 'Document uploaded successfully',
+      fileId: fileId,
+      fileUrl: fileUrl,
+      fileName: fileName,
+      documentId: docResult.documentId || null
     };
   } catch (error) {
     return { success: false, error: error.toString() };

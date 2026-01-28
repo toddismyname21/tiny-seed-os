@@ -1632,9 +1632,17 @@
                 </div>
 
                 <div class="nav-label">Operations</div>
+                <div class="nav-item" data-tab="weeklycycle">
+                    <span class="icon">🔄</span>
+                    <span>Weekly Cycle</span>
+                </div>
                 <div class="nav-item" data-tab="pickpack">
                     <span class="icon">📋</span>
                     <span>Pick & Pack</span>
+                </div>
+                <div class="nav-item" data-tab="farmersmarket">
+                    <span class="icon">🏕️</span>
+                    <span>Farmers Market</span>
                 </div>
                 <div class="nav-item" data-tab="campaigns">
                     <span class="icon">📱</span>
@@ -2117,6 +2125,239 @@
                     </div>
                 </div>
 
+                <!-- Weekly Cycle Tab -->
+                <div class="tab-content" id="tab-weeklycycle">
+                    <div class="tab-header">
+                        <h2 class="tab-title">Weekly Cycle</h2>
+                        <div class="tab-actions">
+                            <button class="btn btn-secondary" onclick="refreshWeeklyCycle()">
+                                <span>🔄</span> Refresh
+                            </button>
+                            <button class="btn btn-primary" onclick="generateHarvestFromDemand()">
+                                <span>⚡</span> Generate Harvest Plan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Week Selector -->
+                    <div class="filters-bar">
+                        <div class="filter-group">
+                            <label class="filter-label">Week of:</label>
+                            <input type="date" class="filter-input" id="cycleWeekStart" onchange="loadWeeklyCycle()">
+                        </div>
+                        <div class="filter-tabs">
+                            <div class="filter-tab active" data-cycle-view="overview">Overview</div>
+                            <div class="filter-tab" data-cycle-view="harvest">Harvest</div>
+                            <div class="filter-tab" data-cycle-view="pack">Pack</div>
+                            <div class="filter-tab" data-cycle-view="deliver">Deliver</div>
+                        </div>
+                    </div>
+
+                    <!-- Channel Summary Cards -->
+                    <div class="stats-grid" id="channelSummary">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-label">CSA Boxes</span>
+                                <div class="stat-icon purple">🧺</div>
+                            </div>
+                            <div class="stat-value" id="cycleCSABoxes">--</div>
+                            <div class="stat-change">This week's deliveries</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-label">Wholesale Orders</span>
+                                <div class="stat-icon blue">🏪</div>
+                            </div>
+                            <div class="stat-value" id="cycleWholesaleOrders">--</div>
+                            <div class="stat-change">Pending fulfillment</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-label">Market Days</span>
+                                <div class="stat-icon green">🏕️</div>
+                            </div>
+                            <div class="stat-value" id="cycleMarketDays">--</div>
+                            <div class="stat-change">Scheduled markets</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-label">Total Deliveries</span>
+                                <div class="stat-icon orange">🚚</div>
+                            </div>
+                            <div class="stat-value" id="cycleTotalDeliveries">--</div>
+                            <div class="stat-change">All channels combined</div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Schedule Grid -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <h3 class="card-title">Weekly Schedule: Harvest -> Pack -> Deliver</h3>
+                        </div>
+                        <div class="card-body" style="overflow-x: auto;">
+                            <table class="full-table" id="weeklyScheduleTable">
+                                <thead>
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>Date</th>
+                                        <th>🌿 Harvest</th>
+                                        <th>📦 Pack</th>
+                                        <th>🚚 Deliver</th>
+                                        <th>🏕️ Market</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="weeklyScheduleBody">
+                                    <tr>
+                                        <td colspan="7">
+                                            <div class="loading-spinner">
+                                                <div class="spinner"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Aggregated Demand by Product -->
+                    <div class="dashboard-grid" style="margin-top: 20px;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Aggregated Demand This Week</h3>
+                                <span class="card-action" onclick="viewFullDemand()">View All →</span>
+                            </div>
+                            <div class="card-body" id="aggregatedDemandList" style="max-height: 300px; overflow-y: auto;">
+                                <div class="loading-spinner">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Alerts & Shortages</h3>
+                            </div>
+                            <div class="card-body" id="cycleAlertsList">
+                                <div class="alert-item">
+                                    <div class="alert-icon info">ℹ️</div>
+                                    <div class="alert-content">
+                                        <div class="alert-title">Loading alerts...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Farmers Market Tab -->
+                <div class="tab-content" id="tab-farmersmarket">
+                    <div class="tab-header">
+                        <h2 class="tab-title">Farmers Market</h2>
+                        <div class="tab-actions">
+                            <button class="btn btn-secondary" onclick="viewMarketHistory()">
+                                <span>📊</span> History
+                            </button>
+                            <button class="btn btn-primary" onclick="openMarketSessionModal()">
+                                <span>+</span> New Market Day
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-label">This Week's Markets</span>
+                                <div class="stat-icon green">🏕️</div>
+                            </div>
+                            <div class="stat-value" id="marketsThisWeek">--</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-label">Projected Revenue</span>
+                                <div class="stat-icon blue">💰</div>
+                            </div>
+                            <div class="stat-value" id="marketProjectedRevenue">--</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-label">Last Market Sales</span>
+                                <div class="stat-icon purple">📈</div>
+                            </div>
+                            <div class="stat-value" id="lastMarketSales">--</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span class="stat-label">Season Total</span>
+                                <div class="stat-icon orange">🎯</div>
+                            </div>
+                            <div class="stat-value" id="marketSeasonTotal">--</div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <h3 class="card-title">Upcoming Market Sessions</h3>
+                        </div>
+                        <div class="card-body">
+                            <table class="full-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Market Location</th>
+                                        <th>Time</th>
+                                        <th>Projected Revenue</th>
+                                        <th>Harvest Plan</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="marketSessionsBody">
+                                    <tr>
+                                        <td colspan="7">
+                                            <div class="loading-spinner">
+                                                <div class="spinner"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <h3 class="card-title">Quick Market Sale Entry</h3>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                                Record sales during market day. These will flow into the Weekly Cycle for inventory tracking.
+                            </p>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label">Product</label>
+                                    <select class="form-select" id="marketProduct">
+                                        <option value="">Select product...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-input" id="marketQty" placeholder="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Price</label>
+                                    <input type="number" class="form-input" id="marketPrice" placeholder="$0.00" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <button class="btn btn-primary" onclick="recordQuickMarketSale()" style="margin-top: 24px;">
+                                        <span>💵</span> Record Sale
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Campaigns Tab -->
                 <div class="tab-content" id="tab-campaigns">
                     <div class="tab-header">
@@ -2178,6 +2419,17 @@
                         <h2 class="tab-title">Reports</h2>
                         <div class="date-range-picker">
                             <label class="filter-label">Date Range:</label>
+                            <select class="filter-input" id="reportRangePreset" onchange="applyReportDatePreset()" style="min-width: 150px;">
+                                <option value="custom">Custom Range</option>
+                                <option value="today">Today</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="last7">Last 7 Days</option>
+                                <option value="last30" selected>Last 30 Days</option>
+                                <option value="thisMonth">This Month</option>
+                                <option value="lastMonth">Last Month</option>
+                                <option value="thisQuarter">This Quarter</option>
+                                <option value="thisYear">This Year</option>
+                            </select>
                             <input type="date" class="filter-input" id="reportStartDate">
                             <span>to</span>
                             <input type="date" class="filter-input" id="reportEndDate">
@@ -2422,10 +2674,63 @@
             document.getElementById('pickDate').value = today;
 
             // Report dates - last 30 days
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            document.getElementById('reportStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
-            document.getElementById('reportEndDate').value = today;
+            applyReportDatePreset(); // Use preset function to set default
+        }
+
+        // Apply date range preset for reports
+        function applyReportDatePreset() {
+            const preset = document.getElementById('reportRangePreset').value;
+            const startInput = document.getElementById('reportStartDate');
+            const endInput = document.getElementById('reportEndDate');
+
+            const today = new Date();
+            let startDate = new Date();
+            let endDate = new Date();
+
+            switch(preset) {
+                case 'today':
+                    startDate = today;
+                    endDate = today;
+                    break;
+                case 'yesterday':
+                    startDate = new Date(today);
+                    startDate.setDate(startDate.getDate() - 1);
+                    endDate = new Date(startDate);
+                    break;
+                case 'last7':
+                    startDate = new Date(today);
+                    startDate.setDate(startDate.getDate() - 6);
+                    endDate = today;
+                    break;
+                case 'last30':
+                    startDate = new Date(today);
+                    startDate.setDate(startDate.getDate() - 29);
+                    endDate = today;
+                    break;
+                case 'thisMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = today;
+                    break;
+                case 'lastMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    break;
+                case 'thisQuarter':
+                    const quarter = Math.floor(today.getMonth() / 3);
+                    startDate = new Date(today.getFullYear(), quarter * 3, 1);
+                    endDate = today;
+                    break;
+                case 'thisYear':
+                    startDate = new Date(today.getFullYear(), 0, 1);
+                    endDate = today;
+                    break;
+                case 'custom':
+                    // Don't change dates, let user select manually
+                    return;
+            }
+
+            startInput.value = startDate.toISOString().split('T')[0];
+            endInput.value = endDate.toISOString().split('T')[0];
         }
 
         // ========================================
@@ -2451,7 +2756,9 @@
                 inventory: 'Inventory',
                 csa: 'CSA Members',
                 wholesale: 'Wholesale',
+                weeklycycle: 'Weekly Cycle',
                 pickpack: 'Pick & Pack',
+                farmersmarket: 'Farmers Market',
                 campaigns: 'Campaigns',
                 reports: 'Reports'
             };
@@ -2482,8 +2789,18 @@
                 case 'wholesale':
                     loadWholesale();
                     break;
+                case 'weeklycycle':
+                    // Set default week to current week
+                    if (!document.getElementById('cycleWeekStart').value) {
+                        document.getElementById('cycleWeekStart').value = getMonday(new Date());
+                    }
+                    loadWeeklyCycle();
+                    break;
                 case 'pickpack':
                     loadPickList();
+                    break;
+                case 'farmersmarket':
+                    loadFarmersMarket();
                     break;
                 case 'campaigns':
                     loadCampaigns();
@@ -3107,6 +3424,335 @@
                 console.error('Error saving order:', error);
                 showToast('Failed to create order. Please try again.', 'error');
             }
+        }
+
+        // ========================================
+        // WEEKLY CYCLE FUNCTIONS
+        // ========================================
+
+        async function loadWeeklyCycle() {
+            try {
+                const weekStart = document.getElementById('cycleWeekStart')?.value || getMonday(new Date());
+
+                // Get unified dashboard data
+                const result = await api.request('getUnifiedSalesDashboard', { weekStart: weekStart });
+
+                if (result.success) {
+                    // Update channel summary cards
+                    document.getElementById('cycleCSABoxes').textContent = result.channels?.csa?.activeMembers || 0;
+                    document.getElementById('cycleWholesaleOrders').textContent = result.channels?.wholesale?.pendingOrders || 0;
+                    document.getElementById('cycleMarketDays').textContent = result.channels?.farmersMarket?.marketsThisWeek || 0;
+                    document.getElementById('cycleTotalDeliveries').textContent = result.currentWeek?.overview?.totalDeliveries || 0;
+
+                    // Render weekly schedule
+                    renderWeeklySchedule(result.currentWeek?.schedule || []);
+
+                    // Render alerts
+                    renderCycleAlerts(result.alerts || []);
+
+                    // Load aggregated demand
+                    loadAggregatedDemand(weekStart);
+                } else {
+                    showToast(result.error || 'Failed to load weekly cycle', 'error');
+                    renderWeeklyScheduleEmpty();
+                }
+            } catch (error) {
+                console.error('Error loading weekly cycle:', error);
+                showToast('Failed to load weekly cycle data', 'error');
+                renderWeeklyScheduleEmpty();
+            }
+        }
+
+        function renderWeeklySchedule(schedule) {
+            const tbody = document.getElementById('weeklyScheduleBody');
+
+            if (!schedule || schedule.length === 0) {
+                renderWeeklyScheduleEmpty();
+                return;
+            }
+
+            tbody.innerHTML = schedule.map(day => {
+                const isToday = day.date === new Date().toISOString().split('T')[0];
+                const rowClass = isToday ? 'style="background: #f0fdf4;"' : '';
+
+                return `
+                    <tr ${rowClass}>
+                        <td><strong>${day.dayOfWeek}</strong>${isToday ? ' <span style="color: var(--success);">(Today)</span>' : ''}</td>
+                        <td>${formatDate(day.date)}</td>
+                        <td>
+                            ${day.harvest ? '<span class="status-badge confirmed">🌿 Harvest</span>' : '<span style="color: var(--text-muted);">-</span>'}
+                        </td>
+                        <td>
+                            ${day.pack ? `<span class="status-badge picking">📦 ${(day.csa?.packCount || 0) + (day.wholesale?.packCount || 0)} items</span>` : '<span style="color: var(--text-muted);">-</span>'}
+                        </td>
+                        <td>
+                            ${day.deliver ? `<span class="status-badge delivered">🚚 ${day.deliveries} stops</span>` : '<span style="color: var(--text-muted);">-</span>'}
+                        </td>
+                        <td>
+                            ${day.market ? `<span class="status-badge pending">🏕️ ${day.marketSessions?.join(', ') || 'Market'}</span>` : '<span style="color: var(--text-muted);">-</span>'}
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="action-btn" onclick="viewDayDetails('${day.date}')" title="View Details">👁</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderWeeklyScheduleEmpty() {
+            const tbody = document.getElementById('weeklyScheduleBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        No schedule data available. Select a week to view the cycle.
+                    </td>
+                </tr>
+            `;
+        }
+
+        async function loadAggregatedDemand(weekStart) {
+            try {
+                const result = await api.request('getAggregatedDemand', { weekStart: weekStart });
+
+                if (result.success && result.demand) {
+                    renderAggregatedDemand(result.demand);
+                } else {
+                    document.getElementById('aggregatedDemandList').innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            No demand data available
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading demand:', error);
+            }
+        }
+
+        function renderAggregatedDemand(demand) {
+            const container = document.getElementById('aggregatedDemandList');
+
+            if (!demand || demand.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        No demand data for this week
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = demand.slice(0, 10).map(item => `
+                <div class="alert-item" style="border-left: 3px solid var(--primary);">
+                    <div class="alert-content" style="flex: 1;">
+                        <div class="alert-title">${item.cropName}</div>
+                        <div class="alert-desc">
+                            Total: ${item.totalQty} ${item.unit} |
+                            CSA: ${item.byChannel?.csa || 0} |
+                            Wholesale: ${item.byChannel?.wholesale || 0} |
+                            Market: ${item.byChannel?.market || 0}
+                        </div>
+                    </div>
+                    <div style="font-weight: 600; color: var(--primary);">${item.totalQty} ${item.unit}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderCycleAlerts(alerts) {
+            const container = document.getElementById('cycleAlertsList');
+
+            if (!alerts || alerts.length === 0) {
+                container.innerHTML = `
+                    <div class="alert-item">
+                        <div class="alert-icon info">✓</div>
+                        <div class="alert-content">
+                            <div class="alert-title">All Clear</div>
+                            <div class="alert-desc">No alerts for this week</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = alerts.map(alert => `
+                <div class="alert-item">
+                    <div class="alert-icon ${alert.type}">${alert.icon || '⚠️'}</div>
+                    <div class="alert-content">
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-desc">${alert.message}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function refreshWeeklyCycle() {
+            loadWeeklyCycle();
+            showToast('Weekly cycle refreshed', 'success');
+        }
+
+        async function generateHarvestFromDemand() {
+            try {
+                const weekStart = document.getElementById('cycleWeekStart')?.value || getMonday(new Date());
+
+                showToast('Generating harvest plan...', 'info');
+
+                const result = await api.request('generateWeeklyHarvestFromDemand', { weekStart: weekStart });
+
+                if (result.success) {
+                    showToast(result.message || 'Harvest plan generated!', 'success');
+                    loadWeeklyCycle();
+                } else {
+                    showToast(result.error || 'Failed to generate harvest plan', 'error');
+                }
+            } catch (error) {
+                console.error('Error generating harvest:', error);
+                showToast('Failed to generate harvest plan', 'error');
+            }
+        }
+
+        function viewDayDetails(date) {
+            showToast(`Viewing details for ${date}`, 'info');
+            // Could open a modal with detailed view
+        }
+
+        function viewFullDemand() {
+            showToast('Opening full demand view...', 'info');
+            // Could open expanded demand view
+        }
+
+        function getMonday(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            d.setDate(diff);
+            return d.toISOString().split('T')[0];
+        }
+
+        // ========================================
+        // FARMERS MARKET FUNCTIONS
+        // ========================================
+
+        async function loadFarmersMarket() {
+            try {
+                // Load market sessions for this week
+                const weekStart = getMonday(new Date());
+
+                const result = await api.request('getWeeklyDeliverySchedule', { weekStart: weekStart });
+
+                if (result.success) {
+                    // Count market sessions
+                    const marketCount = result.deliverySchedule?.reduce((sum, d) => sum + (d.marketSessions?.length || 0), 0) || 0;
+                    document.getElementById('marketsThisWeek').textContent = marketCount;
+                    document.getElementById('marketProjectedRevenue').textContent = '$' + (result.summary?.projectedMarketRevenue || 0).toLocaleString();
+
+                    // Render market sessions
+                    renderMarketSessions(result.deliverySchedule?.filter(d => d.marketSessions?.length > 0) || []);
+                }
+
+                // Load inventory for quick sale dropdown
+                loadMarketInventory();
+            } catch (error) {
+                console.error('Error loading farmers market:', error);
+            }
+        }
+
+        function renderMarketSessions(sessions) {
+            const tbody = document.getElementById('marketSessionsBody');
+
+            if (!sessions || sessions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            No market sessions scheduled this week
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = sessions.flatMap(day =>
+                day.marketSessions.map(market => `
+                    <tr>
+                        <td>${formatDate(day.date)}</td>
+                        <td><strong>${market.locationName || 'Unknown Market'}</strong></td>
+                        <td>${market.startTime || '8:00 AM'} - ${market.endTime || '1:00 PM'}</td>
+                        <td>$${(market.projectedRevenue || 0).toLocaleString()}</td>
+                        <td><span class="status-badge ${market.harvestPlanReady ? 'confirmed' : 'pending'}">${market.harvestPlanReady ? 'Ready' : 'Pending'}</span></td>
+                        <td><span class="status-badge ${new Date(day.date) > new Date() ? 'pending' : 'confirmed'}">${new Date(day.date) > new Date() ? 'Upcoming' : 'Active'}</span></td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="action-btn" onclick="viewMarketSession('${day.date}')" title="View">👁</button>
+                                <button class="action-btn" onclick="generateMarketHarvest('${day.date}')" title="Generate Harvest">🌿</button>
+                            </div>
+                        </td>
+                    </tr>
+                `)
+            ).join('');
+        }
+
+        async function loadMarketInventory() {
+            try {
+                const result = await api.getInventory();
+                if (result.success && result.inventory) {
+                    const select = document.getElementById('marketProduct');
+                    select.innerHTML = '<option value="">Select product...</option>' +
+                        result.inventory.map(item =>
+                            `<option value="${item.Crop_ID || item.Product_ID}" data-price="${item.Retail_Price || 0}">${item.Crop_Name || item.Product_Name}</option>`
+                        ).join('');
+                }
+            } catch (error) {
+                console.error('Error loading market inventory:', error);
+            }
+        }
+
+        async function recordQuickMarketSale() {
+            const productSelect = document.getElementById('marketProduct');
+            const qty = document.getElementById('marketQty').value;
+            const price = document.getElementById('marketPrice').value;
+
+            if (!productSelect.value || !qty) {
+                showToast('Please select a product and quantity', 'error');
+                return;
+            }
+
+            try {
+                const result = await api.request('recordQuickSale', {
+                    productId: productSelect.value,
+                    productName: productSelect.options[productSelect.selectedIndex].text,
+                    quantity: parseFloat(qty),
+                    price: parseFloat(price) || 0,
+                    saleType: 'FARMERS_MARKET',
+                    timestamp: new Date().toISOString()
+                });
+
+                if (result.success) {
+                    showToast('Sale recorded!', 'success');
+                    document.getElementById('marketQty').value = '';
+                    document.getElementById('marketPrice').value = '';
+                    productSelect.value = '';
+                } else {
+                    showToast(result.error || 'Failed to record sale', 'error');
+                }
+            } catch (error) {
+                console.error('Error recording sale:', error);
+                showToast('Failed to record sale', 'error');
+            }
+        }
+
+        function viewMarketSession(date) {
+            showToast(`Viewing market session for ${date}`, 'info');
+        }
+
+        function generateMarketHarvest(date) {
+            showToast(`Generating harvest plan for ${date}`, 'info');
+        }
+
+        function viewMarketHistory() {
+            showToast('Opening market history...', 'info');
+        }
+
+        function openMarketSessionModal() {
+            showToast('Opening new market session form...', 'info');
         }
 
         // ========================================

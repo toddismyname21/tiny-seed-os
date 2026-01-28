@@ -24,10 +24,10 @@ const TINY_SEED_API = {
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
     // LAST UPDATED: 2026-01-28
-    // UPDATED BY: Claude - v426 Chief of Staff API fixes
+    // UPDATED BY: Claude - v444 Overnight mega upgrade
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycby0Yr6lhizJBcoRvhVbK-CU6ZV7mQHySUHdHn6PuihcbIvlYZp2EauQTxM0s6HF1MmO/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {

@@ -714,12 +714,25 @@
 
                 <div class="form-group">
                     <label>Schedule For</label>
-                    <select id="smartScheduleRange">
+                    <select id="smartScheduleRange" onchange="toggleCustomScheduleRange()">
                         <option value="today">Today Only</option>
                         <option value="tomorrow">Tomorrow</option>
                         <option value="week" selected>This Week</option>
                         <option value="next_week">Next Week</option>
+                        <option value="custom">Custom Range...</option>
                     </select>
+                    <div id="customScheduleRange" style="display: none; margin-top: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.85rem;">Start Date</label>
+                                <input type="date" class="form-input" id="customScheduleStart">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.85rem;">End Date</label>
+                                <input type="date" class="form-input" id="customScheduleEnd">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -852,22 +865,19 @@
             try {
                 const response = await fetch(`${API_URL}?action=getEmployees`);
                 const data = await response.json();
-                if (data.success && data.employees) {
+                if (data.success && data.employees && data.employees.length > 0) {
                     employees = data.employees.filter(e => e.active !== false);
+                    populateEmployeeSelect();
                 } else {
-                    // Fallback: Generate demo data
-                    employees = [
-                        { id: '1', name: 'Todd Wilson', role: 'Owner', active: true },
-                        { id: '2', name: 'Loren', role: 'Flower Manager', active: true },
-                        { id: '3', name: 'Mike', role: 'Field Crew', active: true },
-                        { id: '4', name: 'Sarah', role: 'Field Crew', active: true },
-                        { id: '5', name: 'Alex', role: 'Driver', active: true }
-                    ];
+                    // No demo data - show error instead
+                    employees = [];
+                    showToast('No employees found. Add employees in the Admin panel first.', 'warning');
+                    console.warn('No employees returned from API. Check USERS sheet has active employees.');
                 }
-                populateEmployeeSelect();
             } catch (err) {
                 console.error('Error loading employees:', err);
-                showToast('Could not load employees', 'error');
+                employees = [];
+                showToast('Could not load employees - check connection', 'error');
             }
         }
 
@@ -881,7 +891,7 @@
                 if (data.success && data.schedules) {
                     schedules = data.schedules;
                 } else {
-                    // Initialize empty if no schedules endpoint yet
+                    // Initialize empty if no schedules yet (this is OK)
                     schedules = [];
                 }
             } catch (err) {
@@ -894,9 +904,12 @@
             try {
                 const response = await fetch(`${API_URL}?action=getWeatherForecast`);
                 const data = await response.json();
-                if (data.success && data.forecast) {
-                    renderWeather(data.forecast);
+                // Backend returns both 'forecast' and 'data' for compatibility
+                const forecast = data.forecast || data.data;
+                if (data.success && forecast && forecast.length > 0) {
+                    renderWeather(forecast);
                 } else {
+                    console.warn('Weather API returned no forecast data');
                     renderWeatherFallback();
                 }
             } catch (err) {
@@ -984,17 +997,30 @@
             const days = getWeekDays();
 
             let html = '';
+            let weatherAlerts = [];
+
             days.forEach((day, i) => {
                 const dayForecast = forecast[i] || { temp: '--', icon: 'cloud', rain: 0 };
                 const todayClass = isToday(day) ? ' today' : '';
                 const icon = getWeatherIcon(dayForecast.condition || 'cloudy');
+                const recommendation = getWeatherWorkRecommendation(dayForecast);
+
+                // Collect alerts for days with work impacts
+                if (recommendation.note) {
+                    weatherAlerts.push({
+                        day: getDayName(day),
+                        note: recommendation.note
+                    });
+                }
+
+                const alertClass = !recommendation.ok ? ' style="border-color: var(--warning);"' : '';
 
                 html += `
-                    <div class="weather-day${todayClass}">
+                    <div class="weather-day${todayClass}"${alertClass} title="${recommendation.note || 'Good conditions for outdoor work'}">
                         <div class="weather-date">${getDayName(day)}</div>
                         <div class="weather-icon">${icon}</div>
                         <div class="weather-temp">${dayForecast.high || dayForecast.temp || '--'}°</div>
-                        ${dayForecast.rain > 0 ? `<div class="weather-rain"><i class="fas fa-droplet"></i> ${dayForecast.rain}%</div>` : ''}
+                        ${dayForecast.rain > 0 ? `<div class="weather-rain"><i class="fas fa-droplet"></i> ${Math.round(dayForecast.rain)}%</div>` : ''}
                     </div>
                 `;
             });
@@ -1002,11 +1028,19 @@
             bar.innerHTML = html;
 
             // Check for weather alerts
-            const rainyDays = forecast.filter(f => f.rain > 60);
+            const rainyDays = forecast.filter(f => (f.rain || f.precip_chance || 0) > 60);
             if (rainyDays.length > 0) {
                 document.getElementById('weatherAlert').style.display = 'flex';
                 document.getElementById('weatherAlertText').textContent = `${rainyDays.length} day(s) with rain >60%`;
+            } else if (weatherAlerts.length > 0) {
+                document.getElementById('weatherAlert').style.display = 'flex';
+                document.getElementById('weatherAlertText').textContent = weatherAlerts[0].note;
+            } else {
+                document.getElementById('weatherAlert').style.display = 'none';
             }
+
+            // Store forecast globally for smart scheduling
+            window.weatherForecast = forecast;
         }
 
         function renderWeatherFallback() {
@@ -1029,16 +1063,49 @@
 
         function getWeatherIcon(condition) {
             const icons = {
-                'sunny': '☀️', 'clear': '☀️',
+                'sunny': '☀️', 'clear': '☀️', 'mostly clear': '☀️',
                 'partly_cloudy': '⛅', 'partly cloudy': '⛅',
                 'cloudy': '☁️', 'overcast': '☁️',
-                'rain': '🌧️', 'showers': '🌧️',
-                'thunderstorm': '⛈️', 'storm': '⛈️',
-                'snow': '❄️', 'sleet': '🌨️',
-                'fog': '🌫️', 'mist': '🌫️',
-                'windy': '💨'
+                'rain': '🌧️', 'showers': '🌧️', 'light rain': '🌧️', 'heavy rain': '🌧️',
+                'light drizzle': '🌦️', 'drizzle': '🌦️', 'heavy drizzle': '🌦️',
+                'thunderstorm': '⛈️', 'storm': '⛈️', 'severe storm': '⛈️',
+                'snow': '❄️', 'sleet': '🌨️', 'light snow': '🌨️', 'heavy snow': '❄️',
+                'fog': '🌫️', 'mist': '🌫️', 'foggy': '🌫️',
+                'windy': '💨', 'hail': '🌨️'
             };
             return icons[condition.toLowerCase()] || '☁️';
+        }
+
+        // Weather-aware scheduling helper
+        function getWeatherWorkRecommendation(forecast) {
+            if (!forecast) return { ok: true, note: '' };
+
+            const rainChance = forecast.rain || forecast.precip_chance || 0;
+            const condition = (forecast.condition || '').toLowerCase();
+
+            // Check for conditions that affect outdoor work
+            if (rainChance > 70 || condition.includes('rain') || condition.includes('storm')) {
+                return {
+                    ok: false,
+                    note: 'High rain chance - avoid spraying/transplanting',
+                    shiftType: 'packhouse' // Recommend indoor work
+                };
+            }
+            if (rainChance > 50) {
+                return {
+                    ok: true,
+                    note: 'Possible rain - prioritize harvests before rain',
+                    shiftType: 'field'
+                };
+            }
+            if (condition.includes('fog')) {
+                return {
+                    ok: true,
+                    note: 'Morning fog - delay field start',
+                    shiftType: 'greenhouse'
+                };
+            }
+            return { ok: true, note: '', shiftType: 'field' };
         }
 
         function updateStats() {
@@ -1232,10 +1299,55 @@
             updateStats();
         }
 
+        // Toggle custom schedule date range visibility
+        function toggleCustomScheduleRange() {
+            const rangeSelect = document.getElementById('smartScheduleRange');
+            const customContainer = document.getElementById('customScheduleRange');
+
+            if (rangeSelect.value === 'custom') {
+                customContainer.style.display = 'block';
+
+                // Set default dates if not already set
+                const startInput = document.getElementById('customScheduleStart');
+                const endInput = document.getElementById('customScheduleEnd');
+
+                if (!startInput.value) {
+                    const today = new Date();
+                    startInput.value = today.toISOString().split('T')[0];
+                }
+                if (!endInput.value) {
+                    const nextWeek = new Date();
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    endInput.value = nextWeek.toISOString().split('T')[0];
+                }
+            } else {
+                customContainer.style.display = 'none';
+            }
+        }
+
         async function generateSmartSchedule() {
             const range = document.getElementById('smartScheduleRange').value;
             const priority = document.getElementById('smartPriority').value;
             const useWeather = document.getElementById('smartWeather').value;
+
+            // Get custom date range if selected
+            let customStartDate = null;
+            let customEndDate = null;
+
+            if (range === 'custom') {
+                customStartDate = document.getElementById('customScheduleStart').value;
+                customEndDate = document.getElementById('customScheduleEnd').value;
+
+                if (!customStartDate || !customEndDate) {
+                    showToast('Please select both start and end dates', 'error');
+                    return;
+                }
+
+                if (new Date(customStartDate) > new Date(customEndDate)) {
+                    showToast('Start date must be before end date', 'error');
+                    return;
+                }
+            }
 
             showToast('Generating smart schedule...', 'warning');
 
@@ -1248,7 +1360,9 @@
                         range,
                         priority,
                         useWeather: useWeather === 'yes',
-                        weekStart: formatDate(currentWeekStart)
+                        weekStart: formatDate(currentWeekStart),
+                        customStartDate,
+                        customEndDate
                     })
                 });
 

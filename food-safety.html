@@ -1511,12 +1511,79 @@
 
     <!-- Cleaning Modal -->
     <div class="modal-overlay" id="cleaningModal">
-        <div class="modal">
+        <div class="modal large">
             <div class="modal-header">
                 <h2><i class="fas fa-broom" style="color: var(--cleaning)"></i> Log Cleaning</h2>
                 <button class="modal-close" onclick="closeModal('cleaningModal')">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- USDA Organic Approved Sanitizer Instructions -->
+                <div style="background: var(--info-bg); border: 1px solid var(--info); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; cursor: pointer;" onclick="toggleSanitizerInstructions()">
+                        <i class="fas fa-flask" style="color: var(--info); font-size: 18px;"></i>
+                        <span style="font-weight: 700; color: var(--info);">USDA Organic Approved Sanitizer Recipes</span>
+                        <i class="fas fa-chevron-down" id="sanitizerChevron" style="color: var(--info); margin-left: auto; transition: transform 0.3s;"></i>
+                    </div>
+                    <div id="sanitizerInstructions" style="display: none;">
+                        <!-- Bleach Solution -->
+                        <div style="background: var(--bg-elevated); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                            <div style="font-weight: 700; color: var(--cyan); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-tint"></i> Chlorine Bleach Solution (200 ppm)
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                                <strong>Recipe:</strong> 1 tablespoon (0.5 oz) unscented household bleach per 1 gallon water<br>
+                                <strong>For Spray Bottle (32 oz):</strong> 1 teaspoon bleach + fill with water<br>
+                                <strong>Contact Time:</strong> 1-2 minutes, then air dry or rinse<br>
+                                <strong>USDA Status:</strong> <span style="color: var(--success);">Allowed for food contact surfaces in organic operations (per NOP 7 CFR 205.605)</span><br>
+                                <strong>Note:</strong> Use only unscented sodium hypochlorite bleach (5.25-6% concentration). Make fresh daily.
+                            </div>
+                        </div>
+                        <!-- Vinegar Solution -->
+                        <div style="background: var(--bg-elevated); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                            <div style="font-weight: 700; color: var(--success); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-leaf"></i> White Vinegar Solution (5% Acetic Acid)
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                                <strong>Recipe:</strong> 1 part white vinegar (5% acidity) to 1 part water<br>
+                                <strong>For Spray Bottle (32 oz):</strong> 16 oz vinegar + 16 oz water<br>
+                                <strong>Contact Time:</strong> 10 minutes for disinfection, then wipe<br>
+                                <strong>USDA Status:</strong> <span style="color: var(--success);">Fully organic approved - no restrictions</span><br>
+                                <strong>Best For:</strong> Light cleaning, deodorizing, removing mineral deposits. Less effective against bacteria than bleach.
+                            </div>
+                        </div>
+                        <!-- Hydrogen Peroxide -->
+                        <div style="background: var(--bg-elevated); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                            <div style="font-weight: 700; color: var(--warning); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-sun"></i> Hydrogen Peroxide Solution
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                                <strong>Recipe:</strong> Use 3% hydrogen peroxide undiluted OR dilute to 0.5% (1 part 3% H2O2 to 5 parts water)<br>
+                                <strong>For Spray Bottle (32 oz):</strong> Use straight 3% H2O2 from store<br>
+                                <strong>Contact Time:</strong> 1-5 minutes, then wipe or air dry<br>
+                                <strong>USDA Status:</strong> <span style="color: var(--success);">Allowed for organic production and handling (NOP 205.601 & 205.605)</span><br>
+                                <strong>Note:</strong> Store in dark bottle. Breaks down in light. Good alternative for those sensitive to bleach.
+                            </div>
+                        </div>
+                        <!-- Safety Guidelines -->
+                        <div style="background: var(--danger-bg); border-radius: 8px; padding: 14px;">
+                            <div style="font-weight: 700; color: var(--danger); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-exclamation-triangle"></i> Safety Guidelines
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                                <ul style="margin: 0; padding-left: 18px;">
+                                    <li><strong>NEVER mix bleach with vinegar</strong> - creates toxic chlorine gas</li>
+                                    <li><strong>NEVER mix bleach with ammonia</strong> - creates toxic chloramine gas</li>
+                                    <li>Wear gloves when handling concentrated solutions</li>
+                                    <li>Ensure good ventilation</li>
+                                    <li>Label all spray bottles clearly</li>
+                                    <li>Make fresh solutions daily for best efficacy</li>
+                                    <li>Rinse food contact surfaces with potable water after bleach application</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <form id="cleanForm">
                     <div class="form-row">
                         <div class="form-group">
@@ -1537,6 +1604,9 @@
                             <option value="Walk-in Cooler">Walk-in Cooler</option>
                             <option value="Delivery Van">Delivery Van</option>
                             <option value="Harvest Containers">Harvest Containers</option>
+                            <option value="Market Tables">Market Tables</option>
+                            <option value="Cutting Boards">Cutting Boards</option>
+                            <option value="Knives/Tools">Knives/Tools</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1546,12 +1616,20 @@
                             <option value="Post-Shift">Post-Shift</option>
                             <option value="Weekly Deep Clean">Weekly Deep Clean</option>
                             <option value="Post-Harvest">Post-Harvest</option>
+                            <option value="Pre-Market">Pre-Market Setup</option>
+                            <option value="Post-Market">Post-Market Breakdown</option>
                         </select>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Sanitizer</label>
-                            <input type="text" class="form-input" id="cleanSanitizer" value="Food-grade sanitizer" required>
+                            <label class="form-label">Sanitizer Used</label>
+                            <select class="form-select" id="cleanSanitizer" required>
+                                <option value="Bleach Solution (200 ppm)">Bleach Solution (200 ppm)</option>
+                                <option value="White Vinegar (50%)">White Vinegar (50%)</option>
+                                <option value="Hydrogen Peroxide (3%)">Hydrogen Peroxide (3%)</option>
+                                <option value="Hot Water Only">Hot Water Only</option>
+                                <option value="Commercial Organic Sanitizer">Commercial Organic Sanitizer</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Concentration (ppm)</label>
@@ -2187,6 +2265,18 @@
 
         function closeAllModals() {
             document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        }
+
+        function toggleSanitizerInstructions() {
+            const instructions = document.getElementById('sanitizerInstructions');
+            const chevron = document.getElementById('sanitizerChevron');
+            if (instructions.style.display === 'none') {
+                instructions.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                instructions.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
         }
 
         // ========================================
