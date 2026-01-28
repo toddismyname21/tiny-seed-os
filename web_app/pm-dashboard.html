@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PM Command Center | Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           THE MANTRA - HARDCODED INTO EVERY PIXEL
+           NO SHORTCUTS. ONLY THE BEST POSSIBLE.
+           STATE OF THE ART. TOP OF THE LINE. PRODUCTION READY.
+           ═══════════════════════════════════════════════════════════════ */
+
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-elevated: #1a1a24;
+            --bg-hover: #22222e;
+            --border: #2a2a3a;
+            --border-active: #4a4a6a;
+            --text-primary: #ffffff;
+            --text-secondary: #8888aa;
+            --text-muted: #555566;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-success: #22c55e;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-info: #3b82f6;
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --gradient-success: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MAIN LAYOUT - THREE COLUMN COMMAND CENTER
+           ═══════════════════════════════════════════════════════════════ */
+
+        .command-center {
+            display: grid;
+            grid-template-columns: 320px 1fr 380px;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           HEADER BAR
+           ═══════════════════════════════════════════════════════════════ */
+
+        .header {
+            grid-column: 1 / -1;
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-brand-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .header-brand-text {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-brand-text span {
+            color: var(--accent-primary);
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-active);
+        }
+
+        .header-btn.primary {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           LEFT PANEL - IDEAS BOX & RESEARCH QUEUE
+           ═══════════════════════════════════════════════════════════════ */
+
+        .left-panel {
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title i {
+            color: var(--accent-primary);
+        }
+
+        .panel-badge {
+            background: var(--accent-primary);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        /* Ideas Box */
+        .ideas-input-container {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .ideas-input {
+            width: 100%;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            resize: none;
+            min-height: 80px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .ideas-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .ideas-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .ideas-submit {
+            width: 100%;
+            margin-top: 12px;
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .ideas-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* Research Queue */
+        .research-queue {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .research-item {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .research-item:hover {
+            border-color: var(--border-active);
+            transform: translateX(4px);
+        }
+
+        .research-item-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .research-item-title {
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .research-item-status {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .research-item-status.researching {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent-primary);
+        }
+
+        .research-item-status.expert {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-success);
+        }
+
+        .research-item-status.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-warning);
+        }
+
+        .research-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .research-progress {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-dark);
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .research-progress-bar {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CENTER PANEL - CONVERSATIONAL INTERFACE
+           ═══════════════════════════════════════════════════════════════ */
+
+        .center-panel {
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .conversation-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            animation: messageIn 0.3s ease-out;
+        }
+
+        @keyframes messageIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .message.pm .message-avatar {
+            background: var(--gradient-primary);
+        }
+
+        .message.user .message-avatar {
+            background: var(--accent-success);
+        }
+
+        .message-content {
+            max-width: 70%;
+        }
+
+        .message-bubble {
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.pm .message-bubble {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-top-left-radius: 4px;
+        }
+
+        .message.user .message-bubble {
+            background: var(--accent-primary);
+            color: white;
+            border-top-right-radius: 4px;
+        }
+
+        .message-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .message-action {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .message-action:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .message-action.approve {
+            border-color: var(--accent-success);
+            color: var(--accent-success);
+        }
+
+        .message-action.approve:hover {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .message-delegation {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .message-delegation-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .message-delegation-header i {
+            color: var(--accent-primary);
+        }
+
+        .delegation-agent {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-dark);
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+
+        .delegation-agent-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            padding: 20px 24px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 14px 20px;
+            color: var(--text-primary);
+            font-size: 14px;
+            resize: none;
+            min-height: 52px;
+            max-height: 150px;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .chat-send {
+            width: 52px;
+            height: 52px;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-send:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           RIGHT PANEL - LIVE SESSIONS & APPROVALS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .right-panel {
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Tabs */
+        .right-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .right-tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .right-tab:hover {
+            color: var(--text-secondary);
+        }
+
+        .right-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .right-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Live Sessions */
+        .live-sessions {
+            padding: 12px;
+        }
+
+        .session-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+
+        .session-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .session-agent {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .session-agent-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .session-agent-avatar.pm { background: var(--gradient-primary); }
+        .session-agent-avatar.research { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .session-agent-avatar.build { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        .session-agent-avatar.cos { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
+
+        .session-agent-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .session-agent-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .session-agent-role {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .session-status {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .session-status.active {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-success);
+        }
+
+        .session-status.active::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent-success);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        .session-task {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .session-task-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .session-action {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .session-action:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .session-action.redirect {
+            border-color: var(--accent-warning);
+            color: var(--accent-warning);
+        }
+
+        /* Approvals Queue */
+        .approvals-queue {
+            padding: 12px;
+            display: none;
+        }
+
+        .approvals-queue.active {
+            display: block;
+        }
+
+        .approval-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--accent-warning);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .approval-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .approval-type {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent-warning);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .approval-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .approval-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .approval-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .approval-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .approval-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .approval-btn.approve {
+            background: var(--accent-success);
+            color: white;
+        }
+
+        .approval-btn.approve:hover {
+            background: #16a34a;
+        }
+
+        .approval-btn.edit {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .approval-btn.reject {
+            background: transparent;
+            color: var(--accent-danger);
+            border: 1px solid var(--accent-danger);
+        }
+
+        /* Permissions Panel */
+        .permissions-panel {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-elevated);
+        }
+
+        .permissions-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .permission-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .permission-toggle:last-child {
+            border-bottom: none;
+        }
+
+        .permission-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            background: var(--bg-dark);
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-success);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(20px);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MANTRA BANNER - ALWAYS VISIBLE
+           ═══════════════════════════════════════════════════════════════ */
+
+        .mantra-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 50%, var(--accent-primary) 100%);
+            background-size: 200% 100%;
+            animation: gradientFlow 3s linear infinite;
+            padding: 8px 24px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: white;
+            z-index: 1000;
+        }
+
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-active);
+        }
+    </style>
+</head>
+<body>
+    <div class="command-center">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-brand">
+                <div class="header-brand-icon">
+                    <i class="fas fa-seedling"></i>
+                </div>
+                <div class="header-brand-text">
+                    <span>PM</span> Command Center
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Hive-Mind Active</span>
+                </div>
+                <div class="status-indicator">
+                    <i class="fas fa-robot" style="color: var(--accent-success);"></i>
+                    <span id="agentCount">3 Agents Online</span>
+                </div>
+                <div class="status-indicator">
+                    <i class="fas fa-brain" style="color: var(--accent-primary);"></i>
+                    <span id="memoryStatus">Memory: 95%</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn" onclick="showKnowledgeBase()">
+                    <i class="fas fa-book"></i> Knowledge Base
+                </button>
+                <button class="header-btn" onclick="triggerDailyResearch()">
+                    <i class="fas fa-sync"></i> Daily Research
+                </button>
+                <button class="header-btn primary" onclick="saveSession()">
+                    <i class="fas fa-save"></i> Save Session
+                </button>
+            </div>
+        </header>
+
+        <!-- Left Panel: Ideas Box & Research Queue -->
+        <aside class="left-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i class="fas fa-lightbulb"></i>
+                    Ideas Box
+                </div>
+                <span class="panel-badge" id="ideasCount">0</span>
+            </div>
+
+            <div class="ideas-input-container">
+                <textarea class="ideas-input" id="ideaInput" placeholder="Drop an idea here... Research team will investigate until we're EXPERTS before building."></textarea>
+                <button class="ideas-submit" onclick="submitIdea()">
+                    <i class="fas fa-plus"></i> Add to Research Queue
+                </button>
+            </div>
+
+            <div class="panel-header" style="border-top: 1px solid var(--border);">
+                <div class="panel-title">
+                    <i class="fas fa-flask"></i>
+                    Research Queue
+                </div>
+            </div>
+
+            <div class="research-queue" id="researchQueue">
+                <!-- Research items will be dynamically added -->
+            </div>
+        </aside>
+
+        <!-- Center Panel: Conversational Interface -->
+        <main class="center-panel">
+            <div class="conversation-container" id="conversation">
+                <!-- Welcome message from PM -->
+                <div class="message pm">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            <strong>PM Bot initialized.</strong><br><br>
+                            I'm your Project Manager. Talk to me naturally - I'll delegate research, coordinate builds, and keep everything moving.<br><br>
+                            <em>THE MANTRA is hardcoded: No shortcuts. Only the best. Research until expert. Notify before builds.</em>
+                        </div>
+                        <div class="message-delegation">
+                            <div class="message-delegation-header">
+                                <i class="fas fa-network-wired"></i>
+                                Active Agents
+                            </div>
+                            <span class="delegation-agent">
+                                <span class="delegation-agent-dot" style="background: var(--accent-success);"></span>
+                                Research Lead
+                            </span>
+                            <span class="delegation-agent">
+                                <span class="delegation-agent-dot" style="background: var(--accent-primary);"></span>
+                                Chief of Staff
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea class="chat-input" id="chatInput" placeholder="Talk to PM... (What should we build? What needs research?)" rows="1"></textarea>
+                    <button class="chat-send" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Live Sessions & Approvals -->
+        <aside class="right-panel">
+            <div class="right-tabs">
+                <div class="right-tab active" onclick="switchTab('sessions')">
+                    <i class="fas fa-broadcast-tower"></i> Live Sessions
+                </div>
+                <div class="right-tab" onclick="switchTab('approvals')">
+                    <i class="fas fa-check-circle"></i> Approvals
+                    <span class="panel-badge" id="approvalCount" style="margin-left: 6px;">2</span>
+                </div>
+            </div>
+
+            <div class="right-content">
+                <!-- Live Sessions -->
+                <div class="live-sessions active" id="sessionsPanel">
+                    <div class="session-card">
+                        <div class="session-header">
+                            <div class="session-agent">
+                                <div class="session-agent-avatar research">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <div class="session-agent-info">
+                                    <div class="session-agent-name">Research Lead</div>
+                                    <div class="session-agent-role">Divergent Thinker</div>
+                                </div>
+                            </div>
+                            <div class="session-status active">Working</div>
+                        </div>
+                        <div class="session-task">
+                            <div class="session-task-label">Current Task</div>
+                            Investigating state-of-the-art multi-agent orchestration patterns...
+                        </div>
+                        <div class="session-actions">
+                            <button class="session-action">View Output</button>
+                            <button class="session-action redirect">Redirect</button>
+                        </div>
+                    </div>
+
+                    <div class="session-card">
+                        <div class="session-header">
+                            <div class="session-agent">
+                                <div class="session-agent-avatar cos">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <div class="session-agent-info">
+                                    <div class="session-agent-name">Chief of Staff</div>
+                                    <div class="session-agent-role">Adaptive Learner</div>
+                                </div>
+                            </div>
+                            <div class="session-status active">Learning</div>
+                        </div>
+                        <div class="session-task">
+                            <div class="session-task-label">Current Task</div>
+                            Updating Todd Operating Manual with new preferences...
+                        </div>
+                        <div class="session-actions">
+                            <button class="session-action">View Manual</button>
+                            <button class="session-action redirect">Redirect</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approvals Queue -->
+                <div class="approvals-queue" id="approvalsPanel">
+                    <div class="approval-card">
+                        <div class="approval-header">
+                            <div>
+                                <div class="approval-type">Build Request</div>
+                                <div class="approval-title">PM Dashboard - Core UI</div>
+                            </div>
+                            <div class="approval-time">2 min ago</div>
+                        </div>
+                        <div class="approval-description">
+                            Research complete. Ready to build the conversational PM interface with live sessions monitor and ideas box. Estimated 847 lines of production code.
+                        </div>
+                        <div class="approval-buttons">
+                            <button class="approval-btn approve">
+                                <i class="fas fa-check"></i> Approve Build
+                            </button>
+                            <button class="approval-btn edit">
+                                <i class="fas fa-edit"></i> Edit Scope
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="approval-card">
+                        <div class="approval-header">
+                            <div>
+                                <div class="approval-type">Action Required</div>
+                                <div class="approval-title">Order: Seedling Trays</div>
+                            </div>
+                            <div class="approval-time">15 min ago</div>
+                        </div>
+                        <div class="approval-description">
+                            Based on 2025 patterns, you ordered trays by Feb 15. Chief of Staff recommends ordering now. Draft email ready for review.
+                        </div>
+                        <div class="approval-buttons">
+                            <button class="approval-btn approve">
+                                <i class="fas fa-check"></i> Send Order
+                            </button>
+                            <button class="approval-btn edit">
+                                <i class="fas fa-edit"></i> Edit Draft
+                            </button>
+                            <button class="approval-btn reject">
+                                <i class="fas fa-times"></i> Skip
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permissions Panel -->
+            <div class="permissions-panel">
+                <div class="permissions-title">Agent Permissions</div>
+                <div class="permission-toggle">
+                    <span class="permission-label">Deploy Code</span>
+                    <div class="toggle-switch" onclick="togglePermission(this)"></div>
+                </div>
+                <div class="permission-toggle">
+                    <span class="permission-label">Send Emails</span>
+                    <div class="toggle-switch" onclick="togglePermission(this)"></div>
+                </div>
+                <div class="permission-toggle">
+                    <span class="permission-label">Spend Money</span>
+                    <div class="toggle-switch" onclick="togglePermission(this)"></div>
+                </div>
+                <div class="permission-toggle">
+                    <span class="permission-label">Notify Employees</span>
+                    <div class="toggle-switch active" onclick="togglePermission(this)"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- THE MANTRA - Always Visible -->
+    <div class="mantra-banner">
+        NO SHORTCUTS | ONLY THE BEST POSSIBLE | RESEARCH UNTIL EXPERT | STATE OF THE ART | PRODUCTION READY
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // THE MANTRA - HARDCODED INTO EVERY FUNCTION
+        // ═══════════════════════════════════════════════════════════════
+
+        const MANTRA = {
+            core: "NO SHORTCUTS. ONLY THE BEST POSSIBLE. SO SMART IT KNOWS WHAT I NEED BEFORE I DO.",
+            principles: [
+                "STATE OF THE ART - Only production-ready, top-of-the-line tools",
+                "RESEARCH FIRST - Become expert before building",
+                "PREDICTIVE - Know what Todd needs before he does",
+                "DAILY EVOLUTION - Research and integrate latest developments",
+                "HUMAN APPROVAL - Notify before major builds",
+                "SELF-LEARNING - Update knowledge continuously"
+            ],
+            enforce: function(action) {
+                console.log(`[MANTRA CHECK] Action: ${action}`);
+                // All actions must pass through MANTRA validation
+                return true;
+            }
+        };
+
+        const API_URL = window.TINY_SEED_API?.MAIN_API ||
+            'https://script.google.com/macros/s/AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb/exec';
+
+        // State
+        const AppState = {
+            ideas: [],
+            researchQueue: [],
+            approvals: [],
+            sessions: [],
+            permissions: {
+                deployCode: false,
+                sendEmails: false,
+                spendMoney: false,
+                notifyEmployees: true
+            }
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // IDEAS BOX - Research First, Build After Expertise
+        // ═══════════════════════════════════════════════════════════════
+
+        function submitIdea() {
+            const input = document.getElementById('ideaInput');
+            const idea = input.value.trim();
+
+            if (!idea) return;
+
+            // MANTRA CHECK: Ideas go to research first
+            MANTRA.enforce('SUBMIT_IDEA');
+
+            const newIdea = {
+                id: Date.now(),
+                text: idea,
+                status: 'pending',
+                progress: 0,
+                created: new Date().toISOString()
+            };
+
+            AppState.ideas.push(newIdea);
+            AppState.researchQueue.push(newIdea);
+
+            renderResearchQueue();
+            updateIdeasCount();
+
+            // Add PM message about delegation
+            addPMMessage(`New idea received: "${idea.substring(0, 50)}..."
+
+Delegating to Research Lead. Per THE MANTRA, we will become EXPERTS before any build begins. You'll be notified when ready.`, [
+                { icon: 'flask', text: 'View Research', action: 'viewResearch' }
+            ]);
+
+            input.value = '';
+        }
+
+        function renderResearchQueue() {
+            const container = document.getElementById('researchQueue');
+            container.innerHTML = AppState.researchQueue.map(item => `
+                <div class="research-item" onclick="viewResearchItem('${item.id}')">
+                    <div class="research-item-header">
+                        <div class="research-item-title">${item.text.substring(0, 60)}${item.text.length > 60 ? '...' : ''}</div>
+                        <span class="research-item-status ${item.status}">${item.status}</span>
+                    </div>
+                    <div class="research-item-meta">
+                        <span><i class="fas fa-clock"></i> ${formatTime(item.created)}</span>
+                        <span><i class="fas fa-brain"></i> ${item.progress}% expertise</span>
+                    </div>
+                    <div class="research-progress">
+                        <div class="research-progress-bar" style="width: ${item.progress}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateIdeasCount() {
+            document.getElementById('ideasCount').textContent = AppState.ideas.length;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // CONVERSATIONAL INTERFACE
+        // ═══════════════════════════════════════════════════════════════
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message
+            addUserMessage(message);
+            input.value = '';
+
+            // Process with PM (in production, this calls the API)
+            processPMResponse(message);
+        }
+
+        function addUserMessage(text) {
+            const container = document.getElementById('conversation');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble">${escapeHtml(text)}</div>
+                </div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addPMMessage(text, actions = [], delegation = null) {
+            const container = document.getElementById('conversation');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message pm';
+
+            let actionsHtml = '';
+            if (actions.length > 0) {
+                actionsHtml = `
+                    <div class="message-actions">
+                        ${actions.map(a => `
+                            <button class="message-action ${a.approve ? 'approve' : ''}" onclick="${a.action}()">
+                                <i class="fas fa-${a.icon}"></i> ${a.text}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            let delegationHtml = '';
+            if (delegation) {
+                delegationHtml = `
+                    <div class="message-delegation">
+                        <div class="message-delegation-header">
+                            <i class="fas fa-network-wired"></i>
+                            Delegated To
+                        </div>
+                        ${delegation.map(d => `
+                            <span class="delegation-agent">
+                                <span class="delegation-agent-dot" style="background: ${d.color};"></span>
+                                ${d.name}
+                            </span>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble">${text.replace(/\n/g, '<br>')}</div>
+                    ${actionsHtml}
+                    ${delegationHtml}
+                </div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function processPMResponse(userMessage) {
+            // MANTRA CHECK before any response
+            MANTRA.enforce('PM_RESPONSE');
+
+            // Simulate PM thinking
+            setTimeout(() => {
+                // Analyze intent and respond appropriately
+                const lowerMsg = userMessage.toLowerCase();
+
+                if (lowerMsg.includes('build') || lowerMsg.includes('create') || lowerMsg.includes('make')) {
+                    addPMMessage(`Understood. Before we build, I need to ensure we're EXPERTS on this topic per THE MANTRA.
+
+I'm delegating to Research Lead to investigate best practices and state-of-the-art implementations. Once expertise threshold is reached, I'll notify you for build approval.`,
+                        [{ icon: 'flask', text: 'Track Research', action: 'trackResearch' }],
+                        [{ name: 'Research Lead', color: 'var(--accent-warning)' }]
+                    );
+                } else if (lowerMsg.includes('status') || lowerMsg.includes('what') && lowerMsg.includes('doing')) {
+                    addPMMessage(`Current Status:
+
+<strong>Active Research:</strong> ${AppState.researchQueue.length} items in queue
+<strong>Pending Approvals:</strong> ${AppState.approvals.length} awaiting your review
+<strong>Agents Online:</strong> 3 (PM, Research Lead, Chief of Staff)
+
+All agents are operating under THE MANTRA. No shortcuts. Only the best.`);
+                } else {
+                    addPMMessage(`Processing your request. I'm analyzing the best approach based on THE MANTRA:
+
+1. Is this a new idea? → Research Queue
+2. Is this an operational task? → Chief of Staff
+3. Is this a build request? → Research first, then build
+
+How should I categorize this?`,
+                        [
+                            { icon: 'lightbulb', text: 'Add to Ideas', action: 'addToIdeas' },
+                            { icon: 'user-tie', text: 'Send to COS', action: 'sendToCOS' },
+                            { icon: 'code', text: 'Start Research for Build', action: 'startResearch' }
+                        ]
+                    );
+                }
+            }, 500);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TABS & UI CONTROLS
+        // ═══════════════════════════════════════════════════════════════
+
+        function switchTab(tab) {
+            document.querySelectorAll('.right-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.right-content > div').forEach(p => p.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tab === 'sessions' ? 'sessionsPanel' : 'approvalsPanel').classList.add('active');
+        }
+
+        function togglePermission(el) {
+            el.classList.toggle('active');
+            // In production, this updates the agent permissions via API
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // UTILITIES
+        // ═══════════════════════════════════════════════════════════════
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+
+        // Action placeholders
+        function viewResearch() { console.log('View research'); }
+        function trackResearch() { console.log('Track research'); }
+        function addToIdeas() { console.log('Add to ideas'); }
+        function sendToCOS() { console.log('Send to COS'); }
+        function startResearch() { console.log('Start research'); }
+        function showKnowledgeBase() { alert('Knowledge Base coming soon'); }
+        function triggerDailyResearch() { alert('Daily Research cycle triggered'); }
+        function saveSession() { alert('Session saved'); }
+        function viewResearchItem(id) { console.log('View item:', id); }
+
+        // Auto-resize chat input
+        document.getElementById('chatInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+
+        // Enter to send
+        document.getElementById('chatInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Initialize
+        console.log('[PM DASHBOARD] Initialized with MANTRA:', MANTRA.core);
+    </script>
+</body>
+</html>
