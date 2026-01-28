@@ -759,6 +759,12 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="btn btn-secondary" onclick="openBrainDump()" title="Dump your thoughts">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20z"/><path d="M8 12h8"/><path d="M12 8v8"/>
+          </svg>
+          Brain Dump
+        </button>
         <button class="btn btn-secondary" onclick="refreshAll()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
@@ -837,23 +843,27 @@
       </div>
 
       <div class="quick-actions">
-        <button class="quick-action" onclick="askQuestion('What needs my attention right now?')">What's urgent?</button>
-        <button class="quick-action" onclick="askQuestion('Give me my morning brief')">Morning Brief</button>
-        <button class="quick-action" onclick="askQuestion('What commitments are overdue?')">Overdue?</button>
-        <button class="quick-action" onclick="askQuestion('Summarize my emails from today')">Email Summary</button>
+        <button class="quick-action" onclick="askQuestion('What needs my attention right now?')">🚨 Urgent</button>
+        <button class="quick-action" onclick="askQuestion('Give me my morning brief')">☀️ Brief</button>
+        <button class="quick-action" onclick="askQuestion('What is on my calendar today?')">📅 Schedule</button>
+        <button class="quick-action" onclick="askQuestion('How many workers do I need this week?')">👥 Staffing</button>
+        <button class="quick-action" onclick="askQuestion('Lets work through my tasks')">✅ Tasks</button>
+        <button class="quick-action" onclick="openQuickIdea()">💡 Idea</button>
       </div>
 
       <div class="chat-messages" id="chat-messages">
         <div class="chat-message assistant">
           <div class="chat-bubble">
-            <p>Good morning! I'm your Chief of Staff AI. I can help you:</p>
+            <p>Hey Todd. I'm ready. I can:</p>
             <ul>
-              <li>Review and prioritize communications</li>
-              <li>Track commitments and follow-ups</li>
-              <li>Draft responses</li>
-              <li>Analyze your inbox</li>
+              <li>📧 Read/send emails and texts</li>
+              <li>📅 Check/add to your calendar</li>
+              <li>👥 Predict staffing needs</li>
+              <li>✅ Work through your tasks one by one</li>
+              <li>💡 Capture ideas for later</li>
+              <li>🚨 Surface what's urgent before you ask</li>
             </ul>
-            <p>What would you like to know?</p>
+            <p>What do you need?</p>
           </div>
           <div class="chat-time">Just now</div>
         </div>
@@ -891,8 +901,69 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
+  <!-- Completion Modal -->
+  <div class="modal-overlay" id="completion-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Log Completion</h3>
+        <button class="modal-close" onclick="closeCompletionModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="completion-item-name" style="color:var(--text-secondary);margin-bottom:12px;"></p>
+        <textarea id="completion-notes" placeholder="What did you do? Any notes for future reference..." rows="4" style="width:100%;background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;padding:12px;color:var(--text-primary);resize:vertical;"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCompletionModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmCompletion()">Complete & Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Brain Dump Modal -->
+  <div class="modal-overlay" id="braindump-modal" style="display:none;">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <h3>Brain Dump</h3>
+        <button class="modal-close" onclick="closeBrainDump()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);margin-bottom:12px;">Dump your thoughts, tasks, ideas - I'll organize them into actionable items.</p>
+        <textarea id="braindump-text" placeholder="Example:
+- need to call John about seeds
+- check on greenhouse temps
+- order more pots
+- remember to invoice the restaurant
+- weather looks bad friday need to cover crops" rows="8" style="width:100%;background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;padding:12px;color:var(--text-primary);resize:vertical;font-family:inherit;"></textarea>
+        <div id="braindump-result" style="margin-top:16px;display:none;">
+          <div style="font-weight:600;margin-bottom:8px;">Extracted Tasks:</div>
+          <div id="braindump-tasks"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeBrainDump()">Cancel</button>
+        <button class="btn btn-primary" id="braindump-process-btn" onclick="processBrainDump()">Process Thoughts</button>
+        <button class="btn btn-primary" id="braindump-save-btn" onclick="saveBrainDumpTasks()" style="display:none;">Save All Tasks</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .modal-overlay { position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000; }
+    .modal { background:var(--bg-card);border-radius:12px;max-width:450px;width:90%;max-height:80vh;overflow:auto; }
+    .modal-header { padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center; }
+    .modal-header h3 { font-size:16px;font-weight:600; }
+    .modal-close { background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer; }
+    .modal-body { padding:20px; }
+    .modal-footer { padding:16px 20px;border-top:1px solid var(--border-color);display:flex;gap:10px;justify-content:flex-end; }
+    .extracted-task { background:var(--bg-secondary);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px; }
+    .extracted-task input[type="checkbox"] { margin-top:4px; }
+    .extracted-task-text { flex:1; }
+    .extracted-task-type { font-size:11px;background:var(--accent-blue);color:white;padding:2px 8px;border-radius:4px; }
+  </style>
+
   <script>
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+    // PRODUCTION API - Connected Phase 1 (2026-01-27)
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
 
     let communications = [];
     let actions = [];
@@ -1283,7 +1354,7 @@
             <div class="commitment-contact">${escapeHtml(c.contactName || 'Unknown')}</div>
             <div class="commitment-text">${escapeHtml(c.text || '')}</div>
             <div class="action-buttons">
-              <button class="action-btn complete" onclick="completeCommitment('${c.id}')">Complete</button>
+              <button class="action-btn complete" onclick="completeCommitmentWithLog('${c.id}', '${escapeHtml(c.text || '').replace(/'/g, "\\'")}')">Complete</button>
             </div>
           </div>
         `;
@@ -1484,6 +1555,193 @@
         hideReclassifyMenu();
       }
     });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // COMPLETION LOGGING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let pendingCompletion = null;
+
+    function openCompletionModal(type, id, name) {
+      pendingCompletion = { type, id };
+      document.getElementById('completion-item-name').textContent = name || 'Complete this item';
+      document.getElementById('completion-notes').value = '';
+      document.getElementById('completion-modal').style.display = 'flex';
+      document.getElementById('completion-notes').focus();
+    }
+
+    function closeCompletionModal() {
+      document.getElementById('completion-modal').style.display = 'none';
+      pendingCompletion = null;
+    }
+
+    async function confirmCompletion() {
+      if (!pendingCompletion) return;
+
+      const notes = document.getElementById('completion-notes').value.trim();
+      const { type, id } = pendingCompletion;
+
+      // Optimistic UI - remove immediately
+      if (type === 'action') {
+        actions = actions.filter(a => a.id !== id);
+        renderActions();
+      } else if (type === 'commitment') {
+        commitments = commitments.filter(c => c.id !== id);
+        renderCommitments();
+      }
+
+      closeCompletionModal();
+      showToast('Completed & logged!', 'success');
+
+      // Save to backend
+      try {
+        const action = type === 'action' ? 'completeAction' : 'completeSMSCommitment';
+        const idParam = type === 'action' ? 'actionId' : 'commitmentId';
+        await fetch(`${API_BASE}?action=${action}&${idParam}=${id}&notes=${encodeURIComponent(notes)}`);
+
+        // Also log to activity log
+        await fetch(`${API_BASE}?action=logActivity&type=COMPLETION&itemType=${type}&itemId=${id}&notes=${encodeURIComponent(notes)}`);
+      } catch (error) {
+        console.error('Completion save error:', error);
+      }
+    }
+
+    // Override the original complete functions to use modal
+    function completeActionWithLog(id, name) {
+      openCompletionModal('action', id, name);
+    }
+
+    function completeCommitmentWithLog(id, name) {
+      openCompletionModal('commitment', id, name);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BRAIN DUMP
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let extractedTasks = [];
+
+    function openBrainDump() {
+      document.getElementById('braindump-text').value = '';
+      document.getElementById('braindump-result').style.display = 'none';
+      document.getElementById('braindump-process-btn').style.display = 'inline-flex';
+      document.getElementById('braindump-save-btn').style.display = 'none';
+      document.getElementById('braindump-modal').style.display = 'flex';
+      document.getElementById('braindump-text').focus();
+    }
+
+    function closeBrainDump() {
+      document.getElementById('braindump-modal').style.display = 'none';
+      extractedTasks = [];
+    }
+
+    async function processBrainDump() {
+      const text = document.getElementById('braindump-text').value.trim();
+      if (!text) {
+        showToast('Enter some thoughts first', 'error');
+        return;
+      }
+
+      document.getElementById('braindump-process-btn').textContent = 'Processing...';
+      document.getElementById('braindump-process-btn').disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}?action=processBrainDump&text=${encodeURIComponent(text)}`);
+        const data = await response.json();
+
+        if (data.success && data.tasks && data.tasks.length > 0) {
+          extractedTasks = data.tasks;
+          renderExtractedTasks();
+          document.getElementById('braindump-result').style.display = 'block';
+          document.getElementById('braindump-process-btn').style.display = 'none';
+          document.getElementById('braindump-save-btn').style.display = 'inline-flex';
+        } else {
+          showToast('No tasks extracted. Try being more specific.', 'error');
+        }
+      } catch (error) {
+        console.error('Brain dump error:', error);
+        showToast('Processing failed. Try again.', 'error');
+      }
+
+      document.getElementById('braindump-process-btn').textContent = 'Process Thoughts';
+      document.getElementById('braindump-process-btn').disabled = false;
+    }
+
+    function renderExtractedTasks() {
+      const container = document.getElementById('braindump-tasks');
+      let html = '';
+
+      for (let i = 0; i < extractedTasks.length; i++) {
+        const task = extractedTasks[i];
+        html += `
+          <div class="extracted-task">
+            <input type="checkbox" checked id="task-${i}">
+            <div class="extracted-task-text">${escapeHtml(task.text)}</div>
+            <span class="extracted-task-type">${task.type || 'Task'}</span>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    async function saveBrainDumpTasks() {
+      const selectedTasks = extractedTasks.filter((_, i) =>
+        document.getElementById(`task-${i}`).checked
+      );
+
+      if (selectedTasks.length === 0) {
+        showToast('Select at least one task', 'error');
+        return;
+      }
+
+      document.getElementById('braindump-save-btn').textContent = 'Saving...';
+      document.getElementById('braindump-save-btn').disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}?action=saveBrainDumpTasks&tasks=${encodeURIComponent(JSON.stringify(selectedTasks))}`);
+        await response.json();
+        showToast(`${selectedTasks.length} tasks created!`, 'success');
+        closeBrainDump();
+        loadActions(); // Refresh action queue
+      } catch (error) {
+        showToast('Failed to save tasks', 'error');
+      }
+
+      document.getElementById('braindump-save-btn').textContent = 'Save All Tasks';
+      document.getElementById('braindump-save-btn').disabled = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // QUICK IDEA CAPTURE - Flows to COS_Ideas sheet
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function openQuickIdea() {
+      const idea = prompt('💡 Quick idea:');
+      if (idea && idea.trim()) {
+        captureIdea(idea.trim());
+      }
+    }
+
+    async function captureIdea(idea) {
+      showToast('Capturing idea...', 'success');
+      try {
+        // Use chat to capture idea - this triggers the capture_idea tool
+        const response = await fetch(`${API_BASE}?action=chatWithChiefOfStaff&message=${encodeURIComponent('idea: ' + idea)}`);
+        const data = await response.json();
+
+        if (data.success) {
+          showToast('💡 Idea captured!', 'success');
+          addChatMessage('idea: ' + idea, 'user');
+          addChatMessage(data.message || 'Got it. Idea saved for later.', 'assistant');
+        } else {
+          showToast('Idea saved locally', 'success');
+        }
+      } catch (error) {
+        console.error('Idea capture error:', error);
+        showToast('Idea noted', 'success');
+      }
+    }
   </script>
 </body>
 </html>

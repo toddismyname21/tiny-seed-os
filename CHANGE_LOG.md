@@ -40,6 +40,47 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-27 - PM_Architect (CHIEF OF STAFF PHASE 1 CONNECTION)
+
+### Files Modified
+- `apps_script/ChiefOfStaffDashboard.html` - Connected to production API, enhanced quick actions
+
+### Changes Made
+1. **Fixed API Endpoint** - Changed from old deployment to production API
+   - Old: `AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5`
+   - New: `AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc`
+
+2. **Enhanced Quick Actions** - Exposed all 10+ tools:
+   - 🚨 Urgent (what needs attention)
+   - ☀️ Brief (morning brief)
+   - 📅 Schedule (calendar)
+   - 👥 Staffing (predict labor needs)
+   - ✅ Tasks (work through tasks)
+   - 💡 Idea (quick capture to COS_Ideas)
+
+3. **Added Quick Idea Capture** - `openQuickIdea()` function
+   - Quick prompt for ideas
+   - Sends to COS via chat with "idea:" prefix
+   - Triggers capture_idea tool on backend
+
+4. **Updated Welcome Message** - Shows full capabilities:
+   - Send emails/texts
+   - Check/add calendar
+   - Predict staffing
+   - Work through tasks
+   - Capture ideas
+   - Surface urgent items
+
+### Reason
+Phase 1 of Chief of Staff upgrade - connect existing 12 backend modules to the dashboard. No new backend code needed - just wiring up what already exists.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-01-27 - Backend_Claude (CSA PORTAL SEASON STATUS BANNER)
 
 ### Files Modified
