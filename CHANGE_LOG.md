@@ -40,6 +40,32 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-28 - Backend_Claude (CHIEF OF STAFF API FIXES v426)
+
+### Files Modified
+- `web_app/chief-of-staff.html` - Fixed loadCommunications() to use correct API response
+- `apps_script/MERGED TOTAL.js` - Added missing API endpoints
+
+### Functions Added
+- `reclassifySMS()` in `MERGED TOTAL.js` - Allows users to reclassify SMS message priority (learning from corrections)
+
+### API Endpoints Added
+- `getActionQueue` - Was missing case statement, now wired up
+- `reclassifySMS` - New endpoint for SMS reclassification
+
+### Bug Fixes
+- Fixed `loadCommunications()` - Was referencing `emailRes` and `smsRes` that didn't exist after refactoring to `commsRes`
+
+### Reason
+Chief of Staff dashboard was showing connection errors and not loading communications. The API endpoints weren't properly wired and the frontend code had a bug from an incomplete refactor.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-01-27 - PM_Architect (CHIEF OF STAFF PHASE 2 AUTONOMOUS)
 
 ### Files Modified
