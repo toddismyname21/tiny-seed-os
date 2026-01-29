@@ -40,6 +40,120 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-29 - Backend_Claude (Employee Scheduling & HR Tracking System - v428)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - Added 8 new API endpoint handlers for Time Off & HR tracking
+  - Added complete Time Off & HR Tracking Module (~450 lines)
+- `web_app/schedule.html`:
+  - Complete rewrite with comprehensive HR tracking features
+
+### Functions Added
+- `initTimeOffRequestsSheet()` - Creates TIME_OFF_REQUESTS sheet
+- `initEmployeeHRStatsSheet()` - Creates EMPLOYEE_HR_STATS sheet
+- `getTimeOffRequests(status, employeeId)` - Fetch time-off requests with optional filters
+- `createTimeOffRequest(params)` - Submit new time-off request with blackout/conflict detection
+- `approveTimeOffRequest(requestId, approverEmail)` - Approve request and update balances
+- `denyTimeOffRequest(requestId, reason, approverEmail)` - Deny request with reason
+- `updateEmployeeTimeOffUsage(employeeId, type, startDate, endDate)` - Helper to update balances
+- `getEmployeeHRStats(employeeId)` - Get comprehensive HR stats for one employee
+- `getAllEmployeeHRStats()` - Get HR stats for all active employees
+- `recordTardinessIncident(employeeId, notes)` - Record tardiness with warning system
+- `getHRAlerts()` - Get prioritized list of HR alerts
+
+### New Sheets Created
+- `TIME_OFF_REQUESTS` - Tracks all time-off requests with status
+- `EMPLOYEE_HR_STATS` - Tracks sick time, vacation, tardiness, milestones
+
+### Frontend Features Added
+- Employee sidebar with hours tracking and quick stats
+- Time-off requests panel with Approve/Deny functionality
+- Blackout period detection (Apr 15 - Jun 30) with warnings
+- Conflict detection for overlapping time-off requests
+- Milestone incentives tracker (200/400/600/800 hour tiers)
+- Sick time accrual tracking (1 hr per 40 hrs after orientation)
+- Vacation balance display (max 5 days)
+- HR alerts panel (tardiness, orientation, approaching milestones)
+- 4-tab interface: Schedule, Milestones, Balances, All Time Off
+
+### Reason
+User requested comprehensive employee scheduling and HR tracking system to:
+1. Track employee hours and milestone bonuses
+2. Manage time-off requests with approval workflow
+3. Track sick time accrual and vacation balances
+4. Monitor HR alerts (tardiness, orientation, approaching bonuses)
+5. Enforce blackout period during peak farming season
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing HR tracking system)
+- [x] No duplicates created
+
+---
+
+## 2026-01-29 - Backend_Claude (Employee Edit + Approval Email with Username - v427)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - Updated approval email to show both **Username** and **PIN** side-by-side
+  - Added `updateEmployeeAdmin()` function for editing active employees
+  - Added API route for `updateEmployeeAdmin` action
+- `web_app/employee-management.html`:
+  - Added full **Edit Employee Modal** with fields for:
+    - Role, Status, Hourly Rate, Badge PIN
+    - Phone, Email
+    - Access Permissions (Tractor/Garage/Inventory/Costing modes)
+    - Emergency Contact info
+  - Implemented `editEmployee()`, `saveEmployeeEdits()`, `deactivateCurrentEmployee()` functions
+
+### Functions Added
+- `updateEmployeeAdmin(data)` in `MERGED TOTAL.js` - Updates both USERS and EMPLOYEES sheets with role, status, pay, PIN, modes, contact info
+
+### Reason
+User requested:
+1. Approval email should include both username AND PIN (was only showing PIN)
+2. Need ability to edit active employees (was showing "coming soon")
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-01-29 - Backend_Claude (Employee Approval PIN + Mode Toggles Fix - v426)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Fixed `approveEmployee()` function:
+  - Now uses provided `badgePin` instead of generating random PIN
+  - Sets both `PIN` and `Pin` columns (case sensitivity issue)
+  - Added mode toggle support: `Tractor_Mode`, `Garage_Mode`, `Inventory_Mode`, `Costing_Mode`
+  - Added hourly rate setting
+- `apps_script/EmployeeOnboarding.js` - Updated `approveEmployeeComplete()`:
+  - Sets both PIN column names
+  - Added mode toggle support
+- `web_app/employee-management.html` - Updated approval form:
+  - Added Access Permissions section with 4 checkboxes for mode toggles
+  - Updated `approveEmployee()` JS function to send mode values to API
+
+### Functions Modified
+- `approveEmployee()` in `MERGED TOTAL.js` - Now accepts badgePin, tractorMode, garageMode, inventoryMode, costingMode parameters
+- `approveEmployeeComplete()` in `EmployeeOnboarding.js` - Same mode toggle support
+
+### Reason
+User reported that:
+1. PIN entered during approval wasn't being saved to spreadsheet (was generating random instead)
+2. Columns J-M (Tractor_Mode, Garage_Mode, Inventory_Mode, Costing_Mode) weren't being filled
+3. There were two PIN columns (`PIN` and `Pin`) causing confusion
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Updated existing functions rather than creating new ones
+- [x] No duplicates created
+
+---
+
 ## 2026-01-29 - PM_Architect (Employee Onboarding System - Task #25)
 
 ### Files Created

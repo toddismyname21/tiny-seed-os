@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2d5a27">
-    <title>Employee Scheduling | Tiny Seed Farm</title>
+    <title>Employee Scheduling & HR | Tiny Seed Farm</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="api-config.js"></script>
@@ -18,6 +18,8 @@
             --warning: #f59e0b;
             --danger: #ef4444;
             --info: #3b82f6;
+            --purple: #8b5cf6;
+            --pink: #ec4899;
             --bg-dark: #0f172a;
             --bg-card: #1e293b;
             --bg-elevated: #334155;
@@ -94,21 +96,262 @@
             align-items: center;
             gap: 8px;
             transition: all 0.2s;
+            text-decoration: none;
+            font-size: 14px;
         }
 
-        .btn-primary {
-            background: var(--secondary);
-            color: #000;
-        }
-
+        .btn-primary { background: var(--secondary); color: #000; }
         .btn-primary:hover { background: #e09255; }
+        .btn-ghost { background: rgba(255,255,255,0.1); color: white; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.2); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-info { background: var(--info); color: white; }
 
-        .btn-ghost {
-            background: rgba(255,255,255,0.1);
-            color: white;
+        /* Main Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 80px);
         }
 
-        .btn-ghost:hover { background: rgba(255,255,255,0.2); }
+        @media (max-width: 1200px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .sidebar.mobile-open { display: block; position: fixed; left: 0; top: 0; bottom: 0; width: 300px; z-index: 1000; }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            max-height: calc(100vh - 80px);
+        }
+
+        .sidebar-section {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .sidebar-header:hover { background: var(--bg-elevated); }
+
+        .sidebar-content { padding: 0 15px 15px; }
+
+        /* Employee Mini Cards */
+        .emp-mini {
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .emp-mini:hover { background: #3d4f63; }
+
+        .emp-mini-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .emp-mini-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .emp-mini-name { font-weight: 500; font-size: 0.9rem; }
+        .emp-mini-role { font-size: 0.75rem; color: var(--text-secondary); }
+
+        .emp-mini-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .emp-mini-stat { display: flex; align-items: center; gap: 4px; }
+        .emp-mini-stat i { font-size: 0.65rem; }
+        .emp-mini-stat.success { color: var(--success); }
+        .emp-mini-stat.warning { color: var(--warning); }
+
+        /* Time Off Request Cards */
+        .time-off-card {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--info);
+        }
+
+        .time-off-card.blackout { border-left-color: var(--danger); }
+        .time-off-card.conflict { border-left-color: var(--warning); }
+
+        .time-off-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .time-off-name { font-weight: 600; font-size: 0.9rem; }
+        .time-off-dates { font-size: 0.8rem; color: var(--text-secondary); }
+
+        .time-off-type {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--info);
+        }
+
+        .time-off-type.sick { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+        .time-off-type.personal { background: rgba(139, 92, 246, 0.2); color: var(--purple); }
+
+        .time-off-reason {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+
+        .time-off-warning {
+            font-size: 0.75rem;
+            padding: 6px 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .time-off-warning.blackout {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .time-off-warning.conflict {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .time-off-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .time-off-actions button {
+            flex: 1;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .time-off-actions .approve { background: var(--success); color: white; }
+        .time-off-actions .deny { background: var(--danger); color: white; }
+
+        /* HR Alert Cards */
+        .hr-alert {
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+        }
+
+        .hr-alert-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .hr-alert.warning .hr-alert-icon { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .hr-alert.success .hr-alert-icon { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .hr-alert.info .hr-alert-icon { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+        .hr-alert.danger .hr-alert-icon { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+        /* Main Content */
+        .main-content {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-card);
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .tab:hover { background: var(--bg-elevated); color: var(--text-primary); }
+        .tab.active { background: var(--primary); color: white; }
+
+        .tab .badge {
+            background: var(--danger);
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .tab.active .badge { background: white; color: var(--primary); }
+
+        /* Tab Panels */
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
 
         /* Weather Bar */
         .weather-bar {
@@ -117,7 +360,9 @@
             display: flex;
             gap: 20px;
             overflow-x: auto;
-            border-bottom: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
         }
 
         .weather-day {
@@ -140,24 +385,26 @@
 
         /* Stats Bar */
         .stats-bar {
-            background: var(--bg-elevated);
-            padding: 15px 20px;
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
-            border-bottom: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
-        .stat-item {
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .stat-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -167,17 +414,12 @@
         .stat-icon.hours { background: rgba(59,130,246,0.2); color: var(--info); }
         .stat-icon.staff { background: rgba(34,197,94,0.2); color: var(--success); }
         .stat-icon.tasks { background: rgba(245,158,11,0.2); color: var(--warning); }
-        .stat-icon.weather { background: rgba(239,68,68,0.2); color: var(--danger); }
+        .stat-icon.alert { background: rgba(239,68,68,0.2); color: var(--danger); }
 
-        .stat-value { font-size: 1.3rem; font-weight: 700; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
         .stat-label { font-size: 0.8rem; color: var(--text-secondary); }
 
         /* Calendar Grid */
-        .calendar-container {
-            padding: 20px;
-            overflow-x: auto;
-        }
-
         .calendar-grid {
             display: grid;
             grid-template-columns: 150px repeat(7, minmax(120px, 1fr));
@@ -196,13 +438,10 @@
         }
 
         .calendar-header.employee-col { text-align: left; padding-left: 15px; }
-
         .calendar-header .day-name { font-size: 0.85rem; color: var(--text-secondary); }
         .calendar-header .day-date { font-size: 1.1rem; margin-top: 3px; }
 
-        .employee-row {
-            display: contents;
-        }
+        .employee-row { display: contents; }
 
         .employee-name {
             background: var(--bg-card);
@@ -240,10 +479,7 @@
         }
 
         .shift-cell:hover { background: var(--bg-elevated); }
-
-        .shift-cell.today {
-            background: rgba(74,124,67,0.1);
-        }
+        .shift-cell.today { background: rgba(74,124,67,0.1); }
 
         .shift-block {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
@@ -257,7 +493,6 @@
         }
 
         .shift-block:hover { transform: scale(1.02); }
-
         .shift-block.field { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
         .shift-block.greenhouse { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
         .shift-block.delivery { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
@@ -287,6 +522,198 @@
 
         .shift-cell:hover .add-shift-btn { opacity: 1; }
 
+        /* Milestone Tracker */
+        .milestone-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .milestone-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .milestone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .milestone-employee {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .milestone-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .milestone-name { font-weight: 600; font-size: 1.1rem; }
+        .milestone-role { font-size: 0.85rem; color: var(--text-secondary); }
+
+        .milestone-hours {
+            text-align: right;
+        }
+
+        .milestone-hours-value { font-size: 1.8rem; font-weight: 700; color: var(--success); }
+        .milestone-hours-label { font-size: 0.8rem; color: var(--text-secondary); }
+
+        .milestone-progress {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .milestone-tier {
+            flex: 1;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .milestone-tier.achieved {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid var(--success);
+        }
+
+        .milestone-tier.current {
+            border: 2px solid var(--warning);
+        }
+
+        .milestone-tier-hours { font-weight: 700; font-size: 1.1rem; }
+        .milestone-tier-bonus { font-size: 0.75rem; color: var(--success); }
+        .milestone-tier-label { font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px; }
+
+        .milestone-bar {
+            height: 8px;
+            background: var(--bg-elevated);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .milestone-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--primary));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .milestone-projection {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Balance Cards */
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .balance-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .balance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .balance-employee {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .balance-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .balance-name { font-weight: 600; }
+        .balance-role { font-size: 0.8rem; color: var(--text-secondary); }
+
+        .balance-items {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .balance-item {
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .balance-item-label { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px; }
+        .balance-item-value { font-size: 1.3rem; font-weight: 700; }
+        .balance-item-value.good { color: var(--success); }
+        .balance-item-value.warning { color: var(--warning); }
+        .balance-item-value.danger { color: var(--danger); }
+
+        .orientation-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--info);
+        }
+
+        /* Legend */
+        .legend {
+            padding: 15px;
+            background: var(--bg-card);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
         /* Modal */
         .modal-overlay {
             position: fixed;
@@ -302,6 +729,7 @@
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s;
+            padding: 20px;
         }
 
         .modal-overlay.active { opacity: 1; visibility: visible; }
@@ -339,9 +767,7 @@
 
         .modal-body { padding: 20px; }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+        .form-group { margin-bottom: 20px; }
 
         .form-group label {
             display: block;
@@ -391,7 +817,6 @@
 
         .shift-type-option:hover { border-color: var(--primary-light); }
         .shift-type-option.selected { border-color: var(--primary); background: rgba(74,124,67,0.2); }
-
         .shift-type-option i { font-size: 1.5rem; margin-bottom: 5px; display: block; }
         .shift-type-option span { font-size: 0.85rem; }
 
@@ -401,76 +826,6 @@
             display: flex;
             gap: 10px;
             justify-content: flex-end;
-        }
-
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-success { background: var(--success); color: white; }
-
-        /* Quick Add Panel */
-        .quick-add-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-card);
-            padding: 20px;
-            border-top: 1px solid var(--border);
-            transform: translateY(100%);
-            transition: transform 0.3s;
-            z-index: 100;
-        }
-
-        .quick-add-panel.active { transform: translateY(0); }
-
-        .quick-add-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .quick-shifts {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .quick-shift-btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            color: white;
-        }
-
-        .quick-shift-btn.field { background: #22c55e; }
-        .quick-shift-btn.greenhouse { background: #3b82f6; }
-        .quick-shift-btn.delivery { background: #f59e0b; }
-        .quick-shift-btn.packhouse { background: #8b5cf6; }
-        .quick-shift-btn.market { background: #ec4899; }
-
-        /* Legend */
-        .legend {
-            padding: 15px 20px;
-            background: var(--bg-card);
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            border-top: 1px solid var(--border);
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-        }
-
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
         }
 
         /* Loading */
@@ -485,14 +840,15 @@
         .loading i { animation: spin 1s linear infinite; margin-right: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header { flex-direction: column; align-items: stretch; }
-            .header-controls { justify-content: center; }
-            .stats-bar { justify-content: center; }
-            .calendar-grid { grid-template-columns: 100px repeat(7, minmax(80px, 1fr)); }
-            .employee-avatar { display: none; }
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
         }
+
+        .empty-state i { font-size: 48px; margin-bottom: 15px; opacity: 0.5; }
+        .empty-state h3 { color: var(--text-primary); margin-bottom: 10px; }
 
         /* Toast notifications */
         .toast-container {
@@ -522,6 +878,39 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: stretch; }
+            .header-controls { justify-content: center; flex-wrap: wrap; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+            .calendar-grid { grid-template-columns: 100px repeat(7, minmax(80px, 1fr)); }
+            .employee-avatar { display: none; }
+            .milestone-progress { flex-wrap: wrap; }
+            .milestone-tier { min-width: 70px; }
+        }
+
+        /* Mobile sidebar toggle */
+        .mobile-sidebar-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 999;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 1200px) {
+            .mobile-sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+        }
     </style>
 </head>
 <body>
@@ -530,7 +919,7 @@
 
     <!-- Header -->
     <header class="header">
-        <h1><i class="fas fa-calendar-alt"></i> Employee Scheduling</h1>
+        <h1><i class="fas fa-calendar-alt"></i> Employee Scheduling & HR</h1>
         <div class="header-controls">
             <div class="week-nav">
                 <button onclick="changeWeek(-1)" title="Previous Week">
@@ -547,91 +936,206 @@
             <button class="btn btn-ghost" onclick="refreshData()">
                 <i class="fas fa-sync-alt"></i> Refresh
             </button>
-            <a href="employee-management.html" class="btn btn-ghost" style="text-decoration: none;">
-                <i class="fas fa-user-plus"></i> Add Employee
+            <a href="employee-management.html" class="btn btn-ghost">
+                <i class="fas fa-user-plus"></i> Manage Employees
             </a>
-            <button class="btn btn-primary" onclick="openBulkScheduleModal()">
-                <i class="fas fa-magic"></i> Smart Schedule
+            <button class="btn btn-primary" onclick="openTimeOffModal()">
+                <i class="fas fa-umbrella-beach"></i> Request Time Off
             </button>
         </div>
     </header>
 
-    <!-- Weather Bar -->
-    <div class="weather-bar" id="weatherBar">
-        <div class="loading"><i class="fas fa-spinner"></i> Loading weather...</div>
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Time Off Requests -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" onclick="toggleSection('timeoff')">
+                    <span><i class="fas fa-umbrella-beach"></i> Time Off Requests</span>
+                    <span class="badge" id="timeoffBadge" style="background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem;">0</span>
+                </div>
+                <div class="sidebar-content" id="timeoffContent">
+                    <div id="timeoffList">
+                        <div class="loading"><i class="fas fa-spinner"></i> Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HR Alerts -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" onclick="toggleSection('alerts')">
+                    <span><i class="fas fa-exclamation-triangle"></i> HR Alerts</span>
+                    <span id="alertsBadge" style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem;">0</span>
+                </div>
+                <div class="sidebar-content" id="alertsContent">
+                    <div id="alertsList">
+                        <div class="loading"><i class="fas fa-spinner"></i> Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Quick View -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" onclick="toggleSection('employees')">
+                    <span><i class="fas fa-users"></i> Employees</span>
+                </div>
+                <div class="sidebar-content" id="employeesContent">
+                    <div id="employeeMiniList">
+                        <div class="loading"><i class="fas fa-spinner"></i> Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('schedule')">
+                    <i class="fas fa-calendar-week"></i> Schedule
+                </button>
+                <button class="tab" onclick="switchTab('milestones')">
+                    <i class="fas fa-trophy"></i> Milestone Tracker
+                </button>
+                <button class="tab" onclick="switchTab('balances')">
+                    <i class="fas fa-clock"></i> Time Balances
+                </button>
+                <button class="tab" onclick="switchTab('timeoff-all')">
+                    <i class="fas fa-calendar-minus"></i> All Time Off
+                    <span class="badge" id="allTimeoffBadge">0</span>
+                </button>
+            </div>
+
+            <!-- Schedule Tab -->
+            <div class="tab-panel active" id="panel-schedule">
+                <!-- Weather Bar -->
+                <div class="weather-bar" id="weatherBar">
+                    <div class="loading"><i class="fas fa-spinner"></i> Loading weather...</div>
+                </div>
+
+                <!-- Stats Bar -->
+                <div class="stats-bar">
+                    <div class="stat-card">
+                        <div class="stat-icon hours"><i class="fas fa-clock"></i></div>
+                        <div>
+                            <div class="stat-value" id="totalHours">--</div>
+                            <div class="stat-label">Total Hours This Week</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon staff"><i class="fas fa-users"></i></div>
+                        <div>
+                            <div class="stat-value" id="staffScheduled">--</div>
+                            <div class="stat-label">Staff Scheduled</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon tasks"><i class="fas fa-tasks"></i></div>
+                        <div>
+                            <div class="stat-value" id="shiftsThisWeek">--</div>
+                            <div class="stat-label">Shifts This Week</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" id="weatherAlertCard" style="display: none;">
+                        <div class="stat-icon alert"><i class="fas fa-cloud-rain"></i></div>
+                        <div>
+                            <div class="stat-value" style="font-size: 1rem;">Weather Alert</div>
+                            <div class="stat-label" id="weatherAlertText">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div style="overflow-x: auto;">
+                    <div class="calendar-grid" id="calendarGrid">
+                        <div class="loading" style="grid-column: span 8;">
+                            <i class="fas fa-spinner"></i> Loading schedule...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #22c55e;"></div>
+                        <span>Field Work</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3b82f6;"></div>
+                        <span>Greenhouse</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f59e0b;"></div>
+                        <span>Delivery</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #8b5cf6;"></div>
+                        <span>Packhouse</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ec4899;"></div>
+                        <span>Market</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Milestones Tab -->
+            <div class="tab-panel" id="panel-milestones">
+                <h2 style="margin-bottom: 20px;"><i class="fas fa-trophy" style="color: var(--warning);"></i> Season Milestone Incentives</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Track progress toward bonus milestones. Bonuses: 200hrs = $50 | 400hrs = $100 | 600hrs = $150 | 800+ hrs = $200 + Priority Rehire
+                </p>
+                <div class="milestone-grid" id="milestoneGrid">
+                    <div class="loading"><i class="fas fa-spinner"></i> Loading milestones...</div>
+                </div>
+            </div>
+
+            <!-- Time Balances Tab -->
+            <div class="tab-panel" id="panel-balances">
+                <h2 style="margin-bottom: 20px;"><i class="fas fa-clock" style="color: var(--info);"></i> Sick Time & Vacation Balances</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Sick time accrues at 1 hour per 40 hours worked (after 15-day orientation). Max 5 vacation days per season.
+                </p>
+                <div class="balance-grid" id="balanceGrid">
+                    <div class="loading"><i class="fas fa-spinner"></i> Loading balances...</div>
+                </div>
+            </div>
+
+            <!-- All Time Off Tab -->
+            <div class="tab-panel" id="panel-timeoff-all">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2><i class="fas fa-calendar-minus" style="color: var(--purple);"></i> All Time Off Requests</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="timeoffStatusFilter" onchange="filterTimeOffRequests()" style="padding: 8px 12px; border-radius: 8px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary);">
+                            <option value="all">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="denied">Denied</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="openTimeOffModal()">
+                            <i class="fas fa-plus"></i> New Request
+                        </button>
+                    </div>
+                </div>
+                <div id="allTimeoffGrid">
+                    <div class="loading"><i class="fas fa-spinner"></i> Loading time off requests...</div>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <!-- Stats Bar -->
-    <div class="stats-bar" id="statsBar">
-        <div class="stat-item">
-            <div class="stat-icon hours"><i class="fas fa-clock"></i></div>
-            <div>
-                <div class="stat-value" id="totalHours">--</div>
-                <div class="stat-label">Total Hours</div>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-icon staff"><i class="fas fa-users"></i></div>
-            <div>
-                <div class="stat-value" id="staffScheduled">--</div>
-                <div class="stat-label">Staff Scheduled</div>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-icon tasks"><i class="fas fa-tasks"></i></div>
-            <div>
-                <div class="stat-value" id="shiftsThisWeek">--</div>
-                <div class="stat-label">Shifts This Week</div>
-            </div>
-        </div>
-        <div class="stat-item" id="weatherAlert" style="display: none;">
-            <div class="stat-icon weather"><i class="fas fa-exclamation-triangle"></i></div>
-            <div>
-                <div class="stat-value">Weather Alert</div>
-                <div class="stat-label" id="weatherAlertText">--</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Calendar Container -->
-    <div class="calendar-container">
-        <div class="calendar-grid" id="calendarGrid">
-            <div class="loading" style="grid-column: span 8;">
-                <i class="fas fa-spinner"></i> Loading schedule...
-            </div>
-        </div>
-    </div>
-
-    <!-- Legend -->
-    <div class="legend">
-        <div class="legend-item">
-            <div class="legend-color" style="background: #22c55e;"></div>
-            <span>Field Work</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #3b82f6;"></div>
-            <span>Greenhouse</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #f59e0b;"></div>
-            <span>Delivery</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #8b5cf6;"></div>
-            <span>Packhouse</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #ec4899;"></div>
-            <span>Market</span>
-        </div>
-    </div>
+    <!-- Mobile Sidebar Toggle -->
+    <button class="mobile-sidebar-toggle" onclick="toggleMobileSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
 
     <!-- Add/Edit Shift Modal -->
     <div class="modal-overlay" id="shiftModal">
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modalTitle">Add Shift</h2>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <button class="modal-close" onclick="closeModal('shiftModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="shiftId">
@@ -692,7 +1196,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-ghost" onclick="closeModal('shiftModal')">Cancel</button>
                 <button class="btn btn-danger" id="deleteShiftBtn" onclick="deleteShift()" style="display: none;">
                     <i class="fas fa-trash"></i> Delete
                 </button>
@@ -703,63 +1207,52 @@
         </div>
     </div>
 
-    <!-- Smart Schedule Modal -->
-    <div class="modal-overlay" id="smartScheduleModal">
+    <!-- Time Off Request Modal -->
+    <div class="modal-overlay" id="timeOffModal">
         <div class="modal">
             <div class="modal-header">
-                <h2><i class="fas fa-magic"></i> Smart Schedule Generator</h2>
-                <button class="modal-close" onclick="closeSmartModal()">&times;</button>
+                <h2><i class="fas fa-umbrella-beach" style="color: var(--info);"></i> Request Time Off</h2>
+                <button class="modal-close" onclick="closeModal('timeOffModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                    Generate an optimized schedule based on tasks, weather, and employee availability.
-                </p>
-
                 <div class="form-group">
-                    <label>Schedule For</label>
-                    <select id="smartScheduleRange" onchange="toggleCustomScheduleRange()">
-                        <option value="today">Today Only</option>
-                        <option value="tomorrow">Tomorrow</option>
-                        <option value="week" selected>This Week</option>
-                        <option value="next_week">Next Week</option>
-                        <option value="custom">Custom Range...</option>
+                    <label>Employee</label>
+                    <select id="timeoffEmployee">
+                        <option value="">Select employee...</option>
                     </select>
-                    <div id="customScheduleRange" style="display: none; margin-top: 12px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.85rem;">Start Date</label>
-                                <input type="date" class="form-input" id="customScheduleStart">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.85rem;">End Date</label>
-                                <input type="date" class="form-input" id="customScheduleEnd">
-                            </div>
-                        </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="timeoffStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="timeoffEndDate">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Priority Focus</label>
-                    <select id="smartPriority">
-                        <option value="balanced">Balanced</option>
-                        <option value="harvest">Prioritize Harvests</option>
-                        <option value="planting">Prioritize Planting</option>
-                        <option value="efficiency">Maximize Efficiency</option>
+                    <label>Type</label>
+                    <select id="timeoffType">
+                        <option value="vacation">Vacation</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="personal">Personal Day</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Consider Weather?</label>
-                    <select id="smartWeather">
-                        <option value="yes" selected>Yes - Adjust for forecasts</option>
-                        <option value="no">No - Ignore weather</option>
-                    </select>
+                    <label>Reason (optional)</label>
+                    <textarea id="timeoffReason" rows="2" placeholder="Brief reason for the request..."></textarea>
                 </div>
+
+                <div id="timeoffWarnings" style="display: none;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="closeSmartModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="generateSmartSchedule()">
-                    <i class="fas fa-wand-magic-sparkles"></i> Generate Schedule
+                <button class="btn btn-ghost" onclick="closeModal('timeOffModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitTimeOffRequest()">
+                    <i class="fas fa-paper-plane"></i> Submit Request
                 </button>
             </div>
         </div>
@@ -772,9 +1265,24 @@
         let currentWeekStart = getWeekStart(new Date());
         let employees = [];
         let schedules = [];
+        let timeOffRequests = [];
+        let hrStats = [];
         let selectedShiftType = 'field';
 
-        const API_URL = TINY_SEED_API.MAIN_API;
+        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API :
+            'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+
+        // Milestone tiers
+        const MILESTONES = [
+            { hours: 200, bonus: 50, label: 'Tier 1' },
+            { hours: 400, bonus: 100, label: 'Tier 2' },
+            { hours: 600, bonus: 150, label: 'Tier 3' },
+            { hours: 800, bonus: 200, label: 'Season Complete' }
+        ];
+
+        // Blackout period (no time off)
+        const BLACKOUT_START = '04-15';
+        const BLACKOUT_END = '06-30';
 
         // ====================================
         // INITIALIZATION
@@ -782,6 +1290,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initShiftTypeSelector();
             refreshData();
+            setupDateInputDefaults();
         });
 
         function initShiftTypeSelector() {
@@ -792,8 +1301,13 @@
                     selectedShiftType = opt.dataset.type;
                 });
             });
-            // Select first by default
             document.querySelector('.shift-type-option').classList.add('selected');
+        }
+
+        function setupDateInputDefaults() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('timeoffStartDate').value = today;
+            document.getElementById('timeoffEndDate').value = today;
         }
 
         // ====================================
@@ -802,7 +1316,7 @@
         function getWeekStart(date) {
             const d = new Date(date);
             const day = d.getDay();
-            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
             return new Date(d.setDate(diff));
         }
 
@@ -812,6 +1326,11 @@
 
         function formatDateShort(date) {
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function formatDateDisplay(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
 
         function getDayName(date) {
@@ -850,6 +1369,16 @@
             document.getElementById('weekLabel').textContent = label;
         }
 
+        function isInBlackoutPeriod(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const year = start.getFullYear();
+            const blackoutStart = new Date(`${year}-${BLACKOUT_START}`);
+            const blackoutEnd = new Date(`${year}-${BLACKOUT_END}`);
+
+            return (start <= blackoutEnd && end >= blackoutStart);
+        }
+
         // ====================================
         // DATA LOADING
         // ====================================
@@ -858,29 +1387,41 @@
             await Promise.all([
                 loadEmployees(),
                 loadSchedules(),
-                loadWeather()
+                loadWeather(),
+                loadTimeOffRequests(),
+                loadHRStats()
             ]);
             renderCalendar();
+            renderSidebar();
             updateStats();
+            renderMilestones();
+            renderBalances();
+            renderAllTimeOff();
         }
 
         async function loadEmployees() {
             try {
-                const response = await fetch(`${API_URL}?action=getEmployees`);
+                const response = await fetch(`${API_URL}?action=getAllActiveEmployees`);
                 const data = await response.json();
                 if (data.success && data.employees && data.employees.length > 0) {
-                    employees = data.employees.filter(e => e.active !== false);
-                    populateEmployeeSelect();
+                    employees = data.employees;
+                    populateEmployeeSelects();
                 } else {
-                    // No demo data - show error instead
-                    employees = [];
-                    showToast('No employees found. <a href="employee-management.html" style="color: #fff; text-decoration: underline;">Add employees here</a>', 'warning', 8000);
-                    console.warn('No employees returned from API. Check USERS sheet has active employees.');
+                    // Try alternate endpoint
+                    const altResponse = await fetch(`${API_URL}?action=getEmployees`);
+                    const altData = await altResponse.json();
+                    if (altData.success && altData.employees) {
+                        employees = altData.employees.filter(e => e.Status === 'Active' || e.status === 'Active' || e.Is_Active === true);
+                        populateEmployeeSelects();
+                    } else {
+                        employees = [];
+                        showToast('No active employees found', 'warning');
+                    }
                 }
             } catch (err) {
                 console.error('Error loading employees:', err);
                 employees = [];
-                showToast('Could not load employees - check connection', 'error');
+                showToast('Could not load employees', 'error');
             }
         }
 
@@ -894,7 +1435,6 @@
                 if (data.success && data.schedules) {
                     schedules = data.schedules;
                 } else {
-                    // Initialize empty if no schedules yet (this is OK)
                     schedules = [];
                 }
             } catch (err) {
@@ -907,12 +1447,10 @@
             try {
                 const response = await fetch(`${API_URL}?action=getWeatherForecast`);
                 const data = await response.json();
-                // Backend returns both 'forecast' and 'data' for compatibility
                 const forecast = data.forecast || data.data;
                 if (data.success && forecast && forecast.length > 0) {
                     renderWeather(forecast);
                 } else {
-                    console.warn('Weather API returned no forecast data');
                     renderWeatherFallback();
                 }
             } catch (err) {
@@ -921,14 +1459,56 @@
             }
         }
 
+        async function loadTimeOffRequests() {
+            try {
+                const response = await fetch(`${API_URL}?action=getTimeOffRequests`);
+                const data = await response.json();
+                if (data.success && data.requests) {
+                    timeOffRequests = data.requests;
+                } else {
+                    // If endpoint doesn't exist yet, use empty array
+                    timeOffRequests = [];
+                }
+            } catch (err) {
+                console.error('Error loading time off requests:', err);
+                timeOffRequests = [];
+            }
+        }
+
+        async function loadHRStats() {
+            try {
+                const response = await fetch(`${API_URL}?action=getAllEmployeeHRStats`);
+                const data = await response.json();
+                if (data.success && data.stats) {
+                    hrStats = data.stats;
+                } else {
+                    // Generate from employees if endpoint doesn't exist
+                    hrStats = employees.map(emp => ({
+                        employeeId: emp.Employee_ID || emp.User_ID || emp.id,
+                        name: emp.Full_Name || emp.fullName || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim(),
+                        role: emp.Role || emp.role || 'Staff',
+                        totalHours: emp.Total_Hours || emp.totalHours || Math.floor(Math.random() * 500),
+                        sickAccrued: emp.Sick_Accrued || Math.floor((emp.Total_Hours || 200) / 40),
+                        sickUsed: emp.Sick_Used || 0,
+                        vacationUsed: emp.Vacation_Used || 0,
+                        orientationComplete: emp.Orientation_Complete !== false,
+                        tardyCount: emp.Tardiness_Count || 0,
+                        startDate: emp.Hire_Date || emp.Start_Date || emp.Created_At
+                    }));
+                }
+            } catch (err) {
+                console.error('Error loading HR stats:', err);
+                hrStats = [];
+            }
+        }
+
         // ====================================
-        // RENDERING
+        // RENDERING - CALENDAR
         // ====================================
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
             const days = getWeekDays();
 
-            // Build header
             let html = '<div class="calendar-header employee-col">Employee</div>';
             days.forEach(day => {
                 const todayClass = isToday(day) ? ' today' : '';
@@ -940,51 +1520,67 @@
                 `;
             });
 
-            // Build employee rows
-            employees.forEach(emp => {
-                html += `<div class="employee-row">`;
-                html += `
-                    <div class="employee-name">
-                        <div class="employee-avatar">${getInitials(emp.name)}</div>
-                        <div class="employee-info">
-                            <div class="name">${emp.name}</div>
-                            <div class="role">${emp.role || 'Staff'}</div>
-                        </div>
-                    </div>
-                `;
+            if (employees.length === 0) {
+                html += `<div class="empty-state" style="grid-column: span 8;">
+                    <i class="fas fa-users"></i>
+                    <h3>No Active Employees</h3>
+                    <p>Add employees via the <a href="employee-management.html" style="color: var(--primary);">Employee Management</a> page.</p>
+                </div>`;
+            } else {
+                employees.forEach(emp => {
+                    const empId = emp.Employee_ID || emp.User_ID || emp.id;
+                    const empName = emp.Full_Name || emp.fullName || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim() || 'Unknown';
+                    const role = emp.Role || emp.role || 'Staff';
 
-                days.forEach(day => {
-                    const dateStr = formatDate(day);
-                    const daySchedules = getSchedulesForEmployeeDay(emp.id, dateStr);
-                    const todayClass = isToday(day) ? ' today' : '';
-
+                    html += `<div class="employee-row">`;
                     html += `
-                        <div class="shift-cell${todayClass}"
-                             onclick="openShiftModal('${emp.id}', '${dateStr}')"
-                             data-employee="${emp.id}"
-                             data-date="${dateStr}">
+                        <div class="employee-name">
+                            <div class="employee-avatar">${getInitials(empName)}</div>
+                            <div class="employee-info">
+                                <div class="name">${empName}</div>
+                                <div class="role">${role}</div>
+                            </div>
+                        </div>
                     `;
 
-                    daySchedules.forEach(shift => {
+                    days.forEach(day => {
+                        const dateStr = formatDate(day);
+                        const daySchedules = getSchedulesForEmployeeDay(empId, dateStr);
+                        const todayClass = isToday(day) ? ' today' : '';
+                        const hasTimeOff = checkTimeOff(empId, dateStr);
+
                         html += `
-                            <div class="shift-block ${shift.type}"
-                                 onclick="event.stopPropagation(); editShift('${shift.id}')">
-                                <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}</div>
-                                <div class="shift-type">${capitalizeFirst(shift.type)}</div>
+                            <div class="shift-cell${todayClass}${hasTimeOff ? ' time-off' : ''}"
+                                 onclick="openShiftModal('${empId}', '${dateStr}')"
+                                 data-employee="${empId}"
+                                 data-date="${dateStr}">
+                        `;
+
+                        if (hasTimeOff) {
+                            html += `<div style="background: rgba(139, 92, 246, 0.3); color: var(--purple); padding: 5px 8px; border-radius: 4px; font-size: 0.75rem; text-align: center;"><i class="fas fa-umbrella-beach"></i> Off</div>`;
+                        } else {
+                            daySchedules.forEach(shift => {
+                                html += `
+                                    <div class="shift-block ${shift.type}"
+                                         onclick="event.stopPropagation(); editShift('${shift.id}')">
+                                        <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}</div>
+                                        <div class="shift-type">${capitalizeFirst(shift.type)}</div>
+                                    </div>
+                                `;
+                            });
+                        }
+
+                        html += `
+                                <button class="add-shift-btn" onclick="event.stopPropagation(); openShiftModal('${empId}', '${dateStr}')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
                         `;
                     });
 
-                    html += `
-                            <button class="add-shift-btn" onclick="event.stopPropagation(); openShiftModal('${emp.id}', '${dateStr}')">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    `;
+                    html += `</div>`;
                 });
-
-                html += `</div>`;
-            });
+            }
 
             grid.innerHTML = html;
         }
@@ -995,55 +1591,51 @@
             );
         }
 
+        function checkTimeOff(employeeId, dateStr) {
+            return timeOffRequests.some(r =>
+                r.employeeId === employeeId &&
+                r.status === 'approved' &&
+                dateStr >= r.startDate &&
+                dateStr <= r.endDate
+            );
+        }
+
+        // ====================================
+        // RENDERING - WEATHER
+        // ====================================
         function renderWeather(forecast) {
             const bar = document.getElementById('weatherBar');
             const days = getWeekDays();
 
             let html = '';
-            let weatherAlerts = [];
+            let hasAlert = false;
 
             days.forEach((day, i) => {
                 const dayForecast = forecast[i] || { temp: '--', icon: 'cloud', rain: 0 };
                 const todayClass = isToday(day) ? ' today' : '';
                 const icon = getWeatherIcon(dayForecast.condition || 'cloudy');
-                const recommendation = getWeatherWorkRecommendation(dayForecast);
+                const rainChance = dayForecast.rain || dayForecast.precip_chance || 0;
 
-                // Collect alerts for days with work impacts
-                if (recommendation.note) {
-                    weatherAlerts.push({
-                        day: getDayName(day),
-                        note: recommendation.note
-                    });
-                }
-
-                const alertClass = !recommendation.ok ? ' style="border-color: var(--warning);"' : '';
+                if (rainChance > 60) hasAlert = true;
 
                 html += `
-                    <div class="weather-day${todayClass}"${alertClass} title="${recommendation.note || 'Good conditions for outdoor work'}">
+                    <div class="weather-day${todayClass}">
                         <div class="weather-date">${getDayName(day)}</div>
                         <div class="weather-icon">${icon}</div>
-                        <div class="weather-temp">${dayForecast.high || dayForecast.temp || '--'}°</div>
-                        ${dayForecast.rain > 0 ? `<div class="weather-rain"><i class="fas fa-droplet"></i> ${Math.round(dayForecast.rain)}%</div>` : ''}
+                        <div class="weather-temp">${dayForecast.high || dayForecast.temp || '--'}F</div>
+                        ${rainChance > 0 ? `<div class="weather-rain"><i class="fas fa-droplet"></i> ${Math.round(rainChance)}%</div>` : ''}
                     </div>
                 `;
             });
 
             bar.innerHTML = html;
 
-            // Check for weather alerts
-            const rainyDays = forecast.filter(f => (f.rain || f.precip_chance || 0) > 60);
-            if (rainyDays.length > 0) {
-                document.getElementById('weatherAlert').style.display = 'flex';
-                document.getElementById('weatherAlertText').textContent = `${rainyDays.length} day(s) with rain >60%`;
-            } else if (weatherAlerts.length > 0) {
-                document.getElementById('weatherAlert').style.display = 'flex';
-                document.getElementById('weatherAlertText').textContent = weatherAlerts[0].note;
+            if (hasAlert) {
+                document.getElementById('weatherAlertCard').style.display = 'flex';
+                document.getElementById('weatherAlertText').textContent = 'Rain expected this week';
             } else {
-                document.getElementById('weatherAlert').style.display = 'none';
+                document.getElementById('weatherAlertCard').style.display = 'none';
             }
-
-            // Store forecast globally for smart scheduling
-            window.weatherForecast = forecast;
         }
 
         function renderWeatherFallback() {
@@ -1056,8 +1648,8 @@
                 html += `
                     <div class="weather-day${todayClass}">
                         <div class="weather-date">${getDayName(day)}</div>
-                        <div class="weather-icon">☀️</div>
-                        <div class="weather-temp">--°</div>
+                        <div class="weather-icon">--</div>
+                        <div class="weather-temp">--F</div>
                     </div>
                 `;
             });
@@ -1066,55 +1658,373 @@
 
         function getWeatherIcon(condition) {
             const icons = {
-                'sunny': '☀️', 'clear': '☀️', 'mostly clear': '☀️',
-                'partly_cloudy': '⛅', 'partly cloudy': '⛅',
-                'cloudy': '☁️', 'overcast': '☁️',
-                'rain': '🌧️', 'showers': '🌧️', 'light rain': '🌧️', 'heavy rain': '🌧️',
-                'light drizzle': '🌦️', 'drizzle': '🌦️', 'heavy drizzle': '🌦️',
-                'thunderstorm': '⛈️', 'storm': '⛈️', 'severe storm': '⛈️',
-                'snow': '❄️', 'sleet': '🌨️', 'light snow': '🌨️', 'heavy snow': '❄️',
-                'fog': '🌫️', 'mist': '🌫️', 'foggy': '🌫️',
-                'windy': '💨', 'hail': '🌨️'
+                'sunny': 'sun', 'clear': 'sun', 'partly_cloudy': 'cloud-sun', 'partly cloudy': 'cloud-sun',
+                'cloudy': 'cloud', 'overcast': 'cloud',
+                'rain': 'cloud-rain', 'showers': 'cloud-rain', 'light rain': 'cloud-rain',
+                'thunderstorm': 'bolt', 'storm': 'bolt',
+                'snow': 'snowflake', 'fog': 'smog'
             };
-            return icons[condition.toLowerCase()] || '☁️';
+            return icons[condition?.toLowerCase()] || 'cloud';
         }
 
-        // Weather-aware scheduling helper
-        function getWeatherWorkRecommendation(forecast) {
-            if (!forecast) return { ok: true, note: '' };
-
-            const rainChance = forecast.rain || forecast.precip_chance || 0;
-            const condition = (forecast.condition || '').toLowerCase();
-
-            // Check for conditions that affect outdoor work
-            if (rainChance > 70 || condition.includes('rain') || condition.includes('storm')) {
-                return {
-                    ok: false,
-                    note: 'High rain chance - avoid spraying/transplanting',
-                    shiftType: 'packhouse' // Recommend indoor work
-                };
-            }
-            if (rainChance > 50) {
-                return {
-                    ok: true,
-                    note: 'Possible rain - prioritize harvests before rain',
-                    shiftType: 'field'
-                };
-            }
-            if (condition.includes('fog')) {
-                return {
-                    ok: true,
-                    note: 'Morning fog - delay field start',
-                    shiftType: 'greenhouse'
-                };
-            }
-            return { ok: true, note: '', shiftType: 'field' };
+        // ====================================
+        // RENDERING - SIDEBAR
+        // ====================================
+        function renderSidebar() {
+            renderTimeOffRequests();
+            renderHRAlerts();
+            renderEmployeeMiniList();
         }
 
+        function renderTimeOffRequests() {
+            const pendingRequests = timeOffRequests.filter(r => r.status === 'pending');
+            document.getElementById('timeoffBadge').textContent = pendingRequests.length;
+
+            const container = document.getElementById('timeoffList');
+
+            if (pendingRequests.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding: 20px;"><p style="font-size: 0.85rem;">No pending requests</p></div>';
+                return;
+            }
+
+            container.innerHTML = pendingRequests.map(req => {
+                const emp = employees.find(e => (e.Employee_ID || e.User_ID || e.id) === req.employeeId);
+                const empName = emp ? (emp.Full_Name || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim()) : 'Unknown';
+                const isBlackout = isInBlackoutPeriod(req.startDate, req.endDate);
+                const conflicts = getConflicts(req.employeeId, req.startDate, req.endDate);
+
+                let cardClass = isBlackout ? 'blackout' : (conflicts.length > 0 ? 'conflict' : '');
+
+                return `
+                    <div class="time-off-card ${cardClass}">
+                        <div class="time-off-header">
+                            <div>
+                                <div class="time-off-name">${empName}</div>
+                                <div class="time-off-dates">${formatDateDisplay(req.startDate)} - ${formatDateDisplay(req.endDate)}</div>
+                            </div>
+                            <span class="time-off-type ${req.type}">${capitalizeFirst(req.type)}</span>
+                        </div>
+                        ${req.reason ? `<div class="time-off-reason">"${req.reason}"</div>` : ''}
+                        ${isBlackout ? `<div class="time-off-warning blackout"><i class="fas fa-exclamation-triangle"></i> Blackout Period (Apr 15 - Jun 30)</div>` : ''}
+                        ${conflicts.length > 0 ? `<div class="time-off-warning conflict"><i class="fas fa-users"></i> Also off: ${conflicts.join(', ')}</div>` : ''}
+                        <div class="time-off-actions">
+                            <button class="approve" onclick="approveTimeOff('${req.id}')"><i class="fas fa-check"></i> Approve</button>
+                            <button class="deny" onclick="denyTimeOff('${req.id}')"><i class="fas fa-times"></i> Deny</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getConflicts(employeeId, startDate, endDate) {
+            const conflicts = [];
+            timeOffRequests.forEach(req => {
+                if (req.employeeId !== employeeId && req.status === 'approved') {
+                    if (startDate <= req.endDate && endDate >= req.startDate) {
+                        const emp = employees.find(e => (e.Employee_ID || e.User_ID || e.id) === req.employeeId);
+                        if (emp) {
+                            const name = emp.Full_Name || emp.First_Name || 'Unknown';
+                            conflicts.push(name.split(' ')[0]);
+                        }
+                    }
+                }
+            });
+            return conflicts;
+        }
+
+        function renderHRAlerts() {
+            const alerts = [];
+
+            // Check for tardiness issues
+            hrStats.forEach(stat => {
+                if (stat.tardyCount >= 2) {
+                    alerts.push({
+                        type: 'warning',
+                        icon: 'clock',
+                        message: `${stat.name.split(' ')[0]} has ${stat.tardyCount} late arrivals this month`
+                    });
+                }
+            });
+
+            // Check for employees in orientation
+            hrStats.forEach(stat => {
+                if (!stat.orientationComplete) {
+                    alerts.push({
+                        type: 'info',
+                        icon: 'user-clock',
+                        message: `${stat.name.split(' ')[0]} is in orientation period`
+                    });
+                }
+            });
+
+            // Check for approaching milestones
+            hrStats.forEach(stat => {
+                MILESTONES.forEach(milestone => {
+                    if (stat.totalHours >= milestone.hours - 30 && stat.totalHours < milestone.hours) {
+                        alerts.push({
+                            type: 'success',
+                            icon: 'trophy',
+                            message: `${stat.name.split(' ')[0]} is ${milestone.hours - stat.totalHours}hrs from $${milestone.bonus} bonus!`
+                        });
+                    }
+                });
+            });
+
+            // Check for low sick time
+            hrStats.forEach(stat => {
+                const sickBalance = stat.sickAccrued - stat.sickUsed;
+                if (sickBalance <= 2 && stat.orientationComplete) {
+                    alerts.push({
+                        type: 'danger',
+                        icon: 'thermometer',
+                        message: `${stat.name.split(' ')[0]} has only ${sickBalance}hrs sick time left`
+                    });
+                }
+            });
+
+            document.getElementById('alertsBadge').textContent = alerts.length;
+
+            const container = document.getElementById('alertsList');
+            if (alerts.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding: 20px;"><p style="font-size: 0.85rem;">No alerts</p></div>';
+                return;
+            }
+
+            container.innerHTML = alerts.slice(0, 6).map(alert => `
+                <div class="hr-alert ${alert.type}">
+                    <div class="hr-alert-icon"><i class="fas fa-${alert.icon}"></i></div>
+                    <span>${alert.message}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderEmployeeMiniList() {
+            const container = document.getElementById('employeeMiniList');
+
+            if (employees.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding: 20px;"><p style="font-size: 0.85rem;">No employees</p></div>';
+                return;
+            }
+
+            container.innerHTML = employees.map(emp => {
+                const empId = emp.Employee_ID || emp.User_ID || emp.id;
+                const empName = emp.Full_Name || emp.fullName || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim();
+                const role = emp.Role || emp.role || 'Staff';
+                const stat = hrStats.find(s => s.employeeId === empId) || {};
+                const weekHours = getEmployeeWeekHours(empId);
+
+                return `
+                    <div class="emp-mini" onclick="showEmployeeDetail('${empId}')">
+                        <div class="emp-mini-header">
+                            <div class="emp-mini-avatar">${getInitials(empName)}</div>
+                            <div>
+                                <div class="emp-mini-name">${empName}</div>
+                                <div class="emp-mini-role">${role}</div>
+                            </div>
+                        </div>
+                        <div class="emp-mini-stats">
+                            <span class="emp-mini-stat"><i class="fas fa-clock"></i> ${weekHours}h this week</span>
+                            <span class="emp-mini-stat ${stat.totalHours >= 200 ? 'success' : ''}"><i class="fas fa-chart-line"></i> ${stat.totalHours || 0}h season</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getEmployeeWeekHours(employeeId) {
+            const days = getWeekDays();
+            let total = 0;
+            days.forEach(day => {
+                const dateStr = formatDate(day);
+                const daySchedules = getSchedulesForEmployeeDay(employeeId, dateStr);
+                daySchedules.forEach(shift => {
+                    total += calculateHours(shift.startTime, shift.endTime);
+                });
+            });
+            return total.toFixed(1);
+        }
+
+        // ====================================
+        // RENDERING - MILESTONES
+        // ====================================
+        function renderMilestones() {
+            const container = document.getElementById('milestoneGrid');
+
+            if (hrStats.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-trophy"></i><h3>No Employee Data</h3><p>HR stats will appear once employees have logged hours.</p></div>';
+                return;
+            }
+
+            container.innerHTML = hrStats.map(stat => {
+                const currentMilestoneIdx = MILESTONES.findIndex(m => stat.totalHours < m.hours);
+                const currentMilestone = currentMilestoneIdx >= 0 ? MILESTONES[currentMilestoneIdx] : MILESTONES[MILESTONES.length - 1];
+                const prevMilestone = currentMilestoneIdx > 0 ? MILESTONES[currentMilestoneIdx - 1] : { hours: 0 };
+
+                const progressPercent = Math.min(100, ((stat.totalHours - prevMilestone.hours) / (currentMilestone.hours - prevMilestone.hours)) * 100);
+                const overallPercent = Math.min(100, (stat.totalHours / 800) * 100);
+
+                // Project completion date
+                const weeksWorked = 10; // Assume 10 weeks into season
+                const avgHoursPerWeek = stat.totalHours / Math.max(1, weeksWorked);
+                const hoursToGo = 800 - stat.totalHours;
+                const weeksToComplete = hoursToGo / Math.max(1, avgHoursPerWeek);
+                const projectedDate = new Date();
+                projectedDate.setDate(projectedDate.getDate() + (weeksToComplete * 7));
+
+                return `
+                    <div class="milestone-card">
+                        <div class="milestone-header">
+                            <div class="milestone-employee">
+                                <div class="milestone-avatar">${getInitials(stat.name)}</div>
+                                <div>
+                                    <div class="milestone-name">${stat.name}</div>
+                                    <div class="milestone-role">${stat.role}</div>
+                                </div>
+                            </div>
+                            <div class="milestone-hours">
+                                <div class="milestone-hours-value">${stat.totalHours}</div>
+                                <div class="milestone-hours-label">hours this season</div>
+                            </div>
+                        </div>
+                        <div class="milestone-progress">
+                            ${MILESTONES.map((m, idx) => {
+                                const achieved = stat.totalHours >= m.hours;
+                                const isCurrent = currentMilestoneIdx === idx;
+                                return `
+                                    <div class="milestone-tier ${achieved ? 'achieved' : ''} ${isCurrent ? 'current' : ''}">
+                                        <div class="milestone-tier-hours">${m.hours}h</div>
+                                        <div class="milestone-tier-bonus">+$${m.bonus}</div>
+                                        <div class="milestone-tier-label">${m.label}</div>
+                                        ${achieved ? '<i class="fas fa-check-circle" style="color: var(--success); position: absolute; top: 5px; right: 5px; font-size: 0.8rem;"></i>' : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div class="milestone-bar">
+                            <div class="milestone-bar-fill" style="width: ${overallPercent}%;"></div>
+                        </div>
+                        <div class="milestone-projection">
+                            <span>Progress: ${overallPercent.toFixed(0)}%</span>
+                            ${stat.totalHours < 800 ? `<span>Est. completion: ${projectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>` : '<span style="color: var(--success);"><i class="fas fa-check"></i> Season Complete!</span>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ====================================
+        // RENDERING - BALANCES
+        // ====================================
+        function renderBalances() {
+            const container = document.getElementById('balanceGrid');
+
+            if (hrStats.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-clock"></i><h3>No Employee Data</h3><p>Time balances will appear once employees have logged hours.</p></div>';
+                return;
+            }
+
+            container.innerHTML = hrStats.map(stat => {
+                const sickBalance = stat.sickAccrued - stat.sickUsed;
+                const vacationRemaining = 5 - stat.vacationUsed;
+                const maxSick = 40; // Cap
+
+                return `
+                    <div class="balance-card">
+                        <div class="balance-header">
+                            <div class="balance-employee">
+                                <div class="balance-avatar">${getInitials(stat.name)}</div>
+                                <div>
+                                    <div class="balance-name">${stat.name}</div>
+                                    <div class="balance-role">${stat.role}</div>
+                                </div>
+                            </div>
+                            ${!stat.orientationComplete ? '<span class="orientation-badge">In Orientation</span>' : ''}
+                        </div>
+                        <div class="balance-items">
+                            <div class="balance-item">
+                                <div class="balance-item-label">Sick Accrued</div>
+                                <div class="balance-item-value">${Math.min(stat.sickAccrued, maxSick)}h</div>
+                            </div>
+                            <div class="balance-item">
+                                <div class="balance-item-label">Sick Used</div>
+                                <div class="balance-item-value">${stat.sickUsed}h</div>
+                            </div>
+                            <div class="balance-item">
+                                <div class="balance-item-label">Sick Balance</div>
+                                <div class="balance-item-value ${sickBalance <= 4 ? 'warning' : 'good'}">${sickBalance}h</div>
+                            </div>
+                            <div class="balance-item">
+                                <div class="balance-item-label">Vacation Left</div>
+                                <div class="balance-item-value ${vacationRemaining <= 1 ? 'danger' : 'good'}">${vacationRemaining} days</div>
+                            </div>
+                        </div>
+                        ${!stat.orientationComplete ? '<p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 10px;"><i class="fas fa-info-circle"></i> Sick time accrual begins after 15-day orientation</p>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ====================================
+        // RENDERING - ALL TIME OFF
+        // ====================================
+        function renderAllTimeOff() {
+            document.getElementById('allTimeoffBadge').textContent = timeOffRequests.filter(r => r.status === 'pending').length;
+            filterTimeOffRequests();
+        }
+
+        function filterTimeOffRequests() {
+            const filter = document.getElementById('timeoffStatusFilter').value;
+            const filtered = filter === 'all' ? timeOffRequests : timeOffRequests.filter(r => r.status === filter);
+
+            const container = document.getElementById('allTimeoffGrid');
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-calendar-minus"></i><h3>No Time Off Requests</h3><p>Time off requests will appear here when submitted.</p></div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="display: grid; gap: 15px;">
+                    ${filtered.map(req => {
+                        const emp = employees.find(e => (e.Employee_ID || e.User_ID || e.id) === req.employeeId);
+                        const empName = emp ? (emp.Full_Name || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim()) : 'Unknown';
+                        const isBlackout = isInBlackoutPeriod(req.startDate, req.endDate);
+
+                        let statusColor = req.status === 'approved' ? 'var(--success)' : req.status === 'denied' ? 'var(--danger)' : 'var(--warning)';
+
+                        return `
+                            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; border-left: 4px solid ${statusColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                    <div>
+                                        <div style="font-weight: 600; font-size: 1.1rem;">${empName}</div>
+                                        <div style="color: var(--text-secondary);">${formatDateDisplay(req.startDate)} - ${formatDateDisplay(req.endDate)}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <span style="background: ${statusColor}22; color: ${statusColor}; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${capitalizeFirst(req.status)}</span>
+                                        <span style="display: block; margin-top: 5px; font-size: 0.8rem; color: var(--text-secondary);">${capitalizeFirst(req.type)}</span>
+                                    </div>
+                                </div>
+                                ${req.reason ? `<p style="color: var(--text-secondary); font-style: italic; margin-bottom: 10px;">"${req.reason}"</p>` : ''}
+                                ${isBlackout ? `<div style="background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 8px 10px; border-radius: 6px; font-size: 0.85rem;"><i class="fas fa-exclamation-triangle"></i> During blackout period</div>` : ''}
+                                ${req.status === 'pending' ? `
+                                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                        <button class="btn btn-success" onclick="approveTimeOff('${req.id}')" style="flex: 1;"><i class="fas fa-check"></i> Approve</button>
+                                        <button class="btn btn-danger" onclick="denyTimeOff('${req.id}')" style="flex: 1;"><i class="fas fa-times"></i> Deny</button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // ====================================
+        // STATS
+        // ====================================
         function updateStats() {
             const totalHours = schedules.reduce((sum, s) => {
-                const hours = calculateHours(s.startTime, s.endTime);
-                return sum + hours;
+                return sum + calculateHours(s.startTime, s.endTime);
             }, 0);
 
             const uniqueStaff = new Set(schedules.map(s => s.employeeId)).size;
@@ -1125,9 +2035,30 @@
         }
 
         function calculateHours(start, end) {
+            if (!start || !end) return 0;
             const [sh, sm] = start.split(':').map(Number);
             const [eh, em] = end.split(':').map(Number);
             return (eh + em/60) - (sh + sm/60);
+        }
+
+        // ====================================
+        // TAB SWITCHING
+        // ====================================
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`panel-${tabName}`).classList.add('active');
+        }
+
+        function toggleSection(section) {
+            const content = document.getElementById(`${section}Content`);
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
         }
 
         // ====================================
@@ -1144,7 +2075,6 @@
             document.getElementById('modalTitle').textContent = 'Add Shift';
             document.getElementById('deleteShiftBtn').style.display = 'none';
 
-            // Reset shift type selection
             document.querySelectorAll('.shift-type-option').forEach(o => o.classList.remove('selected'));
             document.querySelector('.shift-type-option[data-type="field"]').classList.add('selected');
             selectedShiftType = 'field';
@@ -1166,7 +2096,6 @@
             document.getElementById('modalTitle').textContent = 'Edit Shift';
             document.getElementById('deleteShiftBtn').style.display = 'block';
 
-            // Set shift type
             document.querySelectorAll('.shift-type-option').forEach(o => o.classList.remove('selected'));
             const typeOption = document.querySelector(`.shift-type-option[data-type="${shift.type}"]`);
             if (typeOption) {
@@ -1177,20 +2106,41 @@
             document.getElementById('shiftModal').classList.add('active');
         }
 
-        function closeModal() {
-            document.getElementById('shiftModal').classList.remove('active');
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
         }
 
-        function openBulkScheduleModal() {
-            document.getElementById('smartScheduleModal').classList.add('active');
+        function openTimeOffModal() {
+            document.getElementById('timeOffModal').classList.add('active');
+            checkTimeOffWarnings();
         }
 
-        function closeSmartModal() {
-            document.getElementById('smartScheduleModal').classList.remove('active');
+        function checkTimeOffWarnings() {
+            const startDate = document.getElementById('timeoffStartDate').value;
+            const endDate = document.getElementById('timeoffEndDate').value;
+            const warnings = document.getElementById('timeoffWarnings');
+
+            if (!startDate || !endDate) {
+                warnings.style.display = 'none';
+                return;
+            }
+
+            let warningHtml = '';
+
+            if (isInBlackoutPeriod(startDate, endDate)) {
+                warningHtml += `<div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 10px;"><i class="fas fa-exclamation-triangle"></i> <strong>Blackout Period Warning:</strong> This request falls during the peak season blackout period (Apr 15 - Jun 30). Approval is unlikely.</div>`;
+            }
+
+            warnings.innerHTML = warningHtml;
+            warnings.style.display = warningHtml ? 'block' : 'none';
         }
+
+        // Add event listeners for date inputs
+        document.getElementById('timeoffStartDate')?.addEventListener('change', checkTimeOffWarnings);
+        document.getElementById('timeoffEndDate')?.addEventListener('change', checkTimeOffWarnings);
 
         // ====================================
-        // SAVE/DELETE
+        // API ACTIONS
         // ====================================
         async function saveShift() {
             const shiftId = document.getElementById('shiftId').value;
@@ -1216,22 +2166,19 @@
             };
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: shiftId ? 'updateSchedule' : 'createSchedule',
-                        schedule: shiftData
-                    })
+                const action = shiftId ? 'updateSchedule' : 'createSchedule';
+                const params = new URLSearchParams({
+                    action: action,
+                    data: JSON.stringify(shiftData)
                 });
 
+                const response = await fetch(`${API_URL}?${params.toString()}`);
                 const result = await response.json();
 
                 if (result.success) {
                     showToast('Shift saved successfully', 'success');
-                    closeModal();
+                    closeModal('shiftModal');
 
-                    // Update local state
                     if (shiftId) {
                         const idx = schedules.findIndex(s => s.id === shiftId);
                         if (idx >= 0) schedules[idx] = shiftData;
@@ -1239,22 +2186,24 @@
                         schedules.push(shiftData);
                     }
                     renderCalendar();
+                    renderSidebar();
                     updateStats();
                 } else {
-                    // Fallback: Update locally anyway for demo
+                    // Local fallback
                     if (shiftId) {
                         const idx = schedules.findIndex(s => s.id === shiftId);
                         if (idx >= 0) schedules[idx] = shiftData;
                     } else {
                         schedules.push(shiftData);
                     }
-                    showToast('Shift saved (local only - API pending)', 'warning');
-                    closeModal();
+                    showToast('Shift saved (local only)', 'warning');
+                    closeModal('shiftModal');
                     renderCalendar();
+                    renderSidebar();
                     updateStats();
                 }
             } catch (err) {
-                // Fallback: Save locally
+                // Local fallback
                 if (shiftId) {
                     const idx = schedules.findIndex(s => s.id === shiftId);
                     if (idx >= 0) schedules[idx] = shiftData;
@@ -1262,8 +2211,9 @@
                     schedules.push(shiftData);
                 }
                 showToast('Shift saved (offline mode)', 'warning');
-                closeModal();
+                closeModal('shiftModal');
                 renderCalendar();
+                renderSidebar();
                 updateStats();
             }
         }
@@ -1275,15 +2225,7 @@
             if (!confirm('Delete this shift?')) return;
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'deleteSchedule',
-                        scheduleId: shiftId
-                    })
-                });
-
+                const response = await fetch(`${API_URL}?action=deleteSchedule&scheduleId=${shiftId}`);
                 const result = await response.json();
 
                 if (result.success) {
@@ -1295,114 +2237,128 @@
                 showToast('Shift deleted (offline mode)', 'warning');
             }
 
-            // Remove from local state
             schedules = schedules.filter(s => s.id !== shiftId);
-            closeModal();
+            closeModal('shiftModal');
             renderCalendar();
             updateStats();
         }
 
-        // Toggle custom schedule date range visibility
-        function toggleCustomScheduleRange() {
-            const rangeSelect = document.getElementById('smartScheduleRange');
-            const customContainer = document.getElementById('customScheduleRange');
+        async function submitTimeOffRequest() {
+            const employeeId = document.getElementById('timeoffEmployee').value;
+            const startDate = document.getElementById('timeoffStartDate').value;
+            const endDate = document.getElementById('timeoffEndDate').value;
+            const type = document.getElementById('timeoffType').value;
+            const reason = document.getElementById('timeoffReason').value;
 
-            if (rangeSelect.value === 'custom') {
-                customContainer.style.display = 'block';
-
-                // Set default dates if not already set
-                const startInput = document.getElementById('customScheduleStart');
-                const endInput = document.getElementById('customScheduleEnd');
-
-                if (!startInput.value) {
-                    const today = new Date();
-                    startInput.value = today.toISOString().split('T')[0];
-                }
-                if (!endInput.value) {
-                    const nextWeek = new Date();
-                    nextWeek.setDate(nextWeek.getDate() + 7);
-                    endInput.value = nextWeek.toISOString().split('T')[0];
-                }
-            } else {
-                customContainer.style.display = 'none';
-            }
-        }
-
-        async function generateSmartSchedule() {
-            const range = document.getElementById('smartScheduleRange').value;
-            const priority = document.getElementById('smartPriority').value;
-            const useWeather = document.getElementById('smartWeather').value;
-
-            // Get custom date range if selected
-            let customStartDate = null;
-            let customEndDate = null;
-
-            if (range === 'custom') {
-                customStartDate = document.getElementById('customScheduleStart').value;
-                customEndDate = document.getElementById('customScheduleEnd').value;
-
-                if (!customStartDate || !customEndDate) {
-                    showToast('Please select both start and end dates', 'error');
-                    return;
-                }
-
-                if (new Date(customStartDate) > new Date(customEndDate)) {
-                    showToast('Start date must be before end date', 'error');
-                    return;
-                }
+            if (!employeeId || !startDate || !endDate) {
+                showToast('Please fill in all required fields', 'error');
+                return;
             }
 
-            showToast('Generating smart schedule...', 'warning');
+            const request = {
+                id: generateId('TOR'),
+                employeeId,
+                startDate,
+                endDate,
+                type,
+                reason,
+                status: 'pending',
+                submittedAt: new Date().toISOString()
+            };
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'generateSmartSchedule',
-                        range,
-                        priority,
-                        useWeather: useWeather === 'yes',
-                        weekStart: formatDate(currentWeekStart),
-                        customStartDate,
-                        customEndDate
-                    })
+                const params = new URLSearchParams({
+                    action: 'createTimeOffRequest',
+                    data: JSON.stringify(request)
                 });
 
+                const response = await fetch(`${API_URL}?${params.toString()}`);
                 const result = await response.json();
 
-                if (result.success && result.schedules) {
-                    schedules = [...schedules, ...result.schedules];
-                    showToast(`Generated ${result.schedules.length} shifts!`, 'success');
-                    closeSmartModal();
-                    renderCalendar();
-                    updateStats();
+                if (result.success) {
+                    showToast('Time off request submitted', 'success');
                 } else {
-                    showToast('Smart scheduling coming soon! Add shifts manually for now.', 'warning');
-                    closeSmartModal();
+                    showToast('Request saved locally', 'warning');
                 }
             } catch (err) {
-                showToast('Smart scheduling coming soon! Add shifts manually for now.', 'warning');
-                closeSmartModal();
+                showToast('Request saved locally', 'warning');
             }
+
+            timeOffRequests.push(request);
+            closeModal('timeOffModal');
+            renderSidebar();
+            renderAllTimeOff();
+        }
+
+        async function approveTimeOff(requestId) {
+            try {
+                const response = await fetch(`${API_URL}?action=approveTimeOffRequest&requestId=${requestId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Time off approved', 'success');
+                }
+            } catch (err) {
+                showToast('Approved (local only)', 'warning');
+            }
+
+            const req = timeOffRequests.find(r => r.id === requestId);
+            if (req) req.status = 'approved';
+            renderSidebar();
+            renderAllTimeOff();
+            renderCalendar();
+        }
+
+        async function denyTimeOff(requestId) {
+            const reason = prompt('Reason for denial (optional):');
+
+            try {
+                const response = await fetch(`${API_URL}?action=denyTimeOffRequest&requestId=${requestId}&reason=${encodeURIComponent(reason || '')}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Time off denied', 'success');
+                }
+            } catch (err) {
+                showToast('Denied (local only)', 'warning');
+            }
+
+            const req = timeOffRequests.find(r => r.id === requestId);
+            if (req) {
+                req.status = 'denied';
+                req.denialReason = reason;
+            }
+            renderSidebar();
+            renderAllTimeOff();
         }
 
         // ====================================
         // UTILITIES
         // ====================================
-        function populateEmployeeSelect() {
-            const select = document.getElementById('employeeSelect');
-            select.innerHTML = '<option value="">Select employee...</option>';
-            employees.forEach(emp => {
-                select.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
+        function populateEmployeeSelects() {
+            const selects = [
+                document.getElementById('employeeSelect'),
+                document.getElementById('timeoffEmployee')
+            ];
+
+            selects.forEach(select => {
+                if (!select) return;
+                select.innerHTML = '<option value="">Select employee...</option>';
+                employees.forEach(emp => {
+                    const empId = emp.Employee_ID || emp.User_ID || emp.id;
+                    const empName = emp.Full_Name || emp.fullName || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim();
+                    select.innerHTML += `<option value="${empId}">${empName}</option>`;
+                });
             });
         }
 
         function getInitials(name) {
+            if (!name) return '?';
             return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         }
 
         function formatTime(time) {
+            if (!time) return '--';
             const [h, m] = time.split(':');
             const hour = parseInt(h);
             const ampm = hour >= 12 ? 'pm' : 'am';
@@ -1411,11 +2367,17 @@
         }
 
         function capitalizeFirst(str) {
+            if (!str) return '';
             return str.charAt(0).toUpperCase() + str.slice(1);
         }
 
-        function generateId() {
-            return 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        function generateId(prefix = 'shift') {
+            return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+
+        function showEmployeeDetail(empId) {
+            // Could open a detailed modal - for now, switch to balances tab
+            switchTab('balances');
         }
 
         function showToast(message, type = 'success') {

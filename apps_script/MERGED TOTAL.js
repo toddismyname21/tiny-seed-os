@@ -270,6 +270,154 @@ function notifyOwnerViaTelegram(message) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// META/INSTAGRAM WEBHOOK HANDLER
+// Handles webhooks from Instagram, Facebook, and Threads
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Handle incoming Meta webhooks (Instagram, Facebook Page, Threads)
+ * @param {object} data - The webhook payload from Meta
+ */
+function handleMetaWebhook(data) {
+  try {
+    Logger.log('Meta webhook received: ' + JSON.stringify(data).substring(0, 500));
+
+    const ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    let logSheet = ss.getSheetByName('META_WebhookLog');
+
+    // Create log sheet if it doesn't exist
+    if (!logSheet) {
+      logSheet = ss.insertSheet('META_WebhookLog');
+      logSheet.getRange(1, 1, 1, 6).setValues([['Timestamp', 'Platform', 'Event Type', 'From', 'Content', 'Raw Data']]);
+      logSheet.setFrozenRows(1);
+    }
+
+    const timestamp = new Date().toISOString();
+    const platform = data.object; // 'instagram' or 'page'
+
+    // Process each entry in the webhook
+    if (data.entry && Array.isArray(data.entry)) {
+      data.entry.forEach(entry => {
+        // Handle Instagram events
+        if (platform === 'instagram') {
+          // Comments
+          if (entry.changes) {
+            entry.changes.forEach(change => {
+              const eventType = change.field;
+              const eventData = change.value;
+
+              logSheet.appendRow([
+                timestamp,
+                'Instagram',
+                eventType,
+                eventData.from?.username || eventData.from?.id || 'Unknown',
+                eventData.text || eventData.message || JSON.stringify(eventData).substring(0, 200),
+                JSON.stringify(change).substring(0, 1000)
+              ]);
+
+              // Notify owner of important events
+              if (eventType === 'comments' || eventType === 'mentions') {
+                notifyOwnerViaTelegram(`📸 Instagram ${eventType}: ${eventData.text || 'New activity'}`);
+              }
+            });
+          }
+
+          // Direct Messages
+          if (entry.messaging) {
+            entry.messaging.forEach(msg => {
+              logSheet.appendRow([
+                timestamp,
+                'Instagram DM',
+                'message',
+                msg.sender?.id || 'Unknown',
+                msg.message?.text || '[Media/Attachment]',
+                JSON.stringify(msg).substring(0, 1000)
+              ]);
+
+              notifyOwnerViaTelegram(`📩 Instagram DM received: ${msg.message?.text || '[Media]'}`);
+            });
+          }
+        }
+
+        // Handle Facebook Page events
+        if (platform === 'page') {
+          if (entry.changes) {
+            entry.changes.forEach(change => {
+              const eventType = change.field;
+              const eventData = change.value;
+
+              logSheet.appendRow([
+                timestamp,
+                'Facebook',
+                eventType,
+                eventData.from?.name || eventData.sender_id || 'Unknown',
+                eventData.message || eventData.item || JSON.stringify(eventData).substring(0, 200),
+                JSON.stringify(change).substring(0, 1000)
+              ]);
+
+              // Notify owner of messages
+              if (eventType === 'messages' || eventType === 'feed') {
+                notifyOwnerViaTelegram(`📘 Facebook ${eventType}: ${eventData.message || 'New activity'}`);
+              }
+            });
+          }
+
+          // Messenger messages
+          if (entry.messaging) {
+            entry.messaging.forEach(msg => {
+              logSheet.appendRow([
+                timestamp,
+                'Messenger',
+                'message',
+                msg.sender?.id || 'Unknown',
+                msg.message?.text || '[Media/Attachment]',
+                JSON.stringify(msg).substring(0, 1000)
+              ]);
+
+              notifyOwnerViaTelegram(`💬 Messenger: ${msg.message?.text || '[Media]'}`);
+            });
+          }
+        }
+      });
+    }
+
+    return { success: true, message: 'Webhook processed' };
+  } catch (error) {
+    Logger.log('handleMetaWebhook error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get Meta webhook logs
+ */
+function getMetaWebhookLogs(limit = 50) {
+  const ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+  const logSheet = ss.getSheetByName('META_WebhookLog');
+
+  if (!logSheet) {
+    return { success: true, logs: [], message: 'No webhook logs yet' };
+  }
+
+  const data = logSheet.getDataRange().getValues();
+  const headers = data[0];
+  const logs = [];
+
+  // Get last N rows (most recent)
+  const startRow = Math.max(1, data.length - limit);
+  for (let i = data.length - 1; i >= startRow; i--) {
+    const row = data[i];
+    const log = {};
+    headers.forEach((header, idx) => {
+      log[header.toLowerCase().replace(/\s+/g, '_')] = row[idx];
+    });
+    logs.push(log);
+  }
+
+  return { success: true, logs: logs, total: data.length - 1 };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CHIEF OF STAFF - INTELLIGENT CONVERSATIONAL AI
 // State-of-the-art proactive assistant with full system context
 // ═══════════════════════════════════════════════════════════════════════════
@@ -12037,6 +12185,21 @@ function doGet(e) {
     }
   }
 
+  // ============ META WEBHOOK VERIFICATION ============
+  // Meta sends GET request with hub.mode, hub.verify_token, hub.challenge
+  if (e && e.parameter && e.parameter['hub.mode'] === 'subscribe') {
+    const VERIFY_TOKEN = 'TinySeedFarm2026MetaVerify';
+
+    if (e.parameter['hub.verify_token'] === VERIFY_TOKEN) {
+      // Return the challenge to verify the webhook
+      Logger.log('Meta webhook verified successfully');
+      return ContentService.createTextOutput(e.parameter['hub.challenge']);
+    } else {
+      Logger.log('Meta webhook verification failed - token mismatch');
+      return ContentService.createTextOutput('Verification failed').setMimeType(ContentService.MimeType.TEXT);
+    }
+  }
+
   // Safety check for parameters
   if (!e || !e.parameter || !e.parameter.action) {
     return ContentService
@@ -14017,6 +14180,24 @@ function doGet(e) {
       case 'generateSmartSchedule':
         return jsonResponse(generateSmartSchedule(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
 
+      // ============ TIME OFF & HR TRACKING MODULE ============
+      case 'getTimeOffRequests':
+        return jsonResponse(getTimeOffRequests(e.parameter.status, e.parameter.employeeId));
+      case 'createTimeOffRequest':
+        return jsonResponse(createTimeOffRequest(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+      case 'approveTimeOffRequest':
+        return jsonResponse(approveTimeOffRequest(e.parameter.requestId, e.parameter.approverEmail));
+      case 'denyTimeOffRequest':
+        return jsonResponse(denyTimeOffRequest(e.parameter.requestId, e.parameter.reason, e.parameter.approverEmail));
+      case 'getEmployeeHRStats':
+        return jsonResponse(getEmployeeHRStats(e.parameter.employeeId));
+      case 'getAllEmployeeHRStats':
+        return jsonResponse(getAllEmployeeHRStats());
+      case 'recordTardinessIncident':
+        return jsonResponse(recordTardinessIncident(e.parameter.employeeId, e.parameter.notes));
+      case 'getHRAlerts':
+        return jsonResponse(getHRAlerts());
+
       // ============ FARMERS MARKET MODULE ============
       case 'initMarketModule':
         return jsonResponse(initMarketModule());
@@ -14286,6 +14467,14 @@ function doPost(e) {
     // Telegram sends updates with 'update_id' and 'message' fields
     if (data.update_id && data.message) {
       const result = handleTelegramWebhook(data);
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ============ META/INSTAGRAM WEBHOOK - REAL-TIME ============
+    // Meta sends webhooks with 'object' field (instagram, page, etc.)
+    if (data.object && (data.object === 'instagram' || data.object === 'page')) {
+      const result = handleMetaWebhook(data);
       return ContentService.createTextOutput(JSON.stringify(result))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -41282,6 +41471,573 @@ function formatDateString(date) {
 
 // ============================================================================
 // END EMPLOYEE SCHEDULING MODULE
+// ============================================================================
+
+// ============================================================================
+// TIME OFF & HR TRACKING MODULE
+// ============================================================================
+
+/**
+ * Initialize TIME_OFF_REQUESTS sheet if it doesn't exist
+ */
+function initTimeOffRequestsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('TIME_OFF_REQUESTS');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('TIME_OFF_REQUESTS');
+    sheet.getRange(1, 1, 1, 12).setValues([[
+      'requestId', 'employeeId', 'employeeName', 'type', 'startDate', 'endDate',
+      'reason', 'status', 'approverEmail', 'denialReason', 'createdAt', 'updatedAt'
+    ]]);
+    sheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#4a5568');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize EMPLOYEE_HR_STATS sheet if it doesn't exist
+ */
+function initEmployeeHRStatsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('EMPLOYEE_HR_STATS');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('EMPLOYEE_HR_STATS');
+    sheet.getRange(1, 1, 1, 14).setValues([[
+      'employeeId', 'employeeName', 'startDate', 'totalHoursWorked', 'hoursThisWeek',
+      'sickTimeAccrued', 'sickTimeUsed', 'vacationDaysUsed', 'tardinessCount',
+      'lastTardinessDate', 'milestonesEarned', 'bonusesPaid', 'orientationComplete', 'updatedAt'
+    ]]);
+    sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#4a5568');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+/**
+ * Get time off requests - optionally filter by status or employee
+ * @param {string} status - Optional filter: 'pending', 'approved', 'denied'
+ * @param {string} employeeId - Optional filter by employee
+ */
+function getTimeOffRequests(status, employeeId) {
+  try {
+    const sheet = initTimeOffRequestsSheet();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return { success: true, requests: [] };
+    }
+
+    const headers = data[0];
+    const requests = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const request = {};
+      headers.forEach((h, idx) => request[h] = row[idx]);
+
+      // Apply filters
+      if (status && request.status !== status) continue;
+      if (employeeId && request.employeeId !== employeeId) continue;
+
+      requests.push(request);
+    }
+
+    // Sort by createdAt descending (newest first)
+    requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return { success: true, requests: requests };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a new time off request
+ * @param {Object} params - Request parameters
+ */
+function createTimeOffRequest(params) {
+  try {
+    const { employeeId, employeeName, type, startDate, endDate, reason } = params;
+
+    if (!employeeId || !type || !startDate || !endDate) {
+      return { success: false, error: 'Missing required fields: employeeId, type, startDate, endDate' };
+    }
+
+    const sheet = initTimeOffRequestsSheet();
+    const requestId = 'TOR_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    const now = new Date().toISOString();
+
+    // Check for blackout period (Apr 15 - Jun 30)
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const year = start.getFullYear();
+    const blackoutStart = new Date(year, 3, 15); // April 15
+    const blackoutEnd = new Date(year, 5, 30);   // June 30
+
+    let isInBlackout = false;
+    if ((start >= blackoutStart && start <= blackoutEnd) ||
+        (end >= blackoutStart && end <= blackoutEnd) ||
+        (start <= blackoutStart && end >= blackoutEnd)) {
+      isInBlackout = true;
+    }
+
+    // Check for conflicts with other approved requests
+    const existingRequests = getTimeOffRequests('approved');
+    const conflicts = [];
+    if (existingRequests.success) {
+      existingRequests.requests.forEach(req => {
+        const reqStart = new Date(req.startDate);
+        const reqEnd = new Date(req.endDate);
+        if (req.employeeId !== employeeId) {
+          if ((start <= reqEnd && end >= reqStart)) {
+            conflicts.push(req.employeeName || req.employeeId);
+          }
+        }
+      });
+    }
+
+    sheet.appendRow([
+      requestId, employeeId, employeeName || '', type, startDate, endDate,
+      reason || '', 'pending', '', '', now, now
+    ]);
+
+    return {
+      success: true,
+      requestId: requestId,
+      isInBlackout: isInBlackout,
+      conflicts: conflicts,
+      message: isInBlackout ?
+        'Request submitted but is during blackout period (Apr 15 - Jun 30). Manager approval required.' :
+        'Time off request submitted successfully'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Approve a time off request
+ * @param {string} requestId - The request ID to approve
+ * @param {string} approverEmail - Email of the approver
+ */
+function approveTimeOffRequest(requestId, approverEmail) {
+  try {
+    if (!requestId) {
+      return { success: false, error: 'Request ID required' };
+    }
+
+    const sheet = initTimeOffRequestsSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const requestIdCol = headers.indexOf('requestId');
+    const statusCol = headers.indexOf('status');
+    const approverCol = headers.indexOf('approverEmail');
+    const updatedCol = headers.indexOf('updatedAt');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][requestIdCol] === requestId) {
+        sheet.getRange(i + 1, statusCol + 1).setValue('approved');
+        sheet.getRange(i + 1, approverCol + 1).setValue(approverEmail || '');
+        sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+
+        // Get request details for updating HR stats
+        const request = {};
+        headers.forEach((h, idx) => request[h] = data[i][idx]);
+
+        // Update employee HR stats - deduct vacation or sick time
+        updateEmployeeTimeOffUsage(request.employeeId, request.type, request.startDate, request.endDate);
+
+        return { success: true, message: 'Time off request approved' };
+      }
+    }
+
+    return { success: false, error: 'Request not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Deny a time off request
+ * @param {string} requestId - The request ID to deny
+ * @param {string} reason - Reason for denial
+ * @param {string} approverEmail - Email of the person denying
+ */
+function denyTimeOffRequest(requestId, reason, approverEmail) {
+  try {
+    if (!requestId) {
+      return { success: false, error: 'Request ID required' };
+    }
+
+    const sheet = initTimeOffRequestsSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const requestIdCol = headers.indexOf('requestId');
+    const statusCol = headers.indexOf('status');
+    const approverCol = headers.indexOf('approverEmail');
+    const denialCol = headers.indexOf('denialReason');
+    const updatedCol = headers.indexOf('updatedAt');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][requestIdCol] === requestId) {
+        sheet.getRange(i + 1, statusCol + 1).setValue('denied');
+        sheet.getRange(i + 1, approverCol + 1).setValue(approverEmail || '');
+        sheet.getRange(i + 1, denialCol + 1).setValue(reason || '');
+        sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+        return { success: true, message: 'Time off request denied' };
+      }
+    }
+
+    return { success: false, error: 'Request not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update employee time off usage when request is approved
+ */
+function updateEmployeeTimeOffUsage(employeeId, type, startDate, endDate) {
+  try {
+    const sheet = initEmployeeHRStatsSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const empIdCol = headers.indexOf('employeeId');
+    const sickUsedCol = headers.indexOf('sickTimeUsed');
+    const vacUsedCol = headers.indexOf('vacationDaysUsed');
+    const updatedCol = headers.indexOf('updatedAt');
+
+    // Calculate days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][empIdCol] === employeeId) {
+        if (type === 'sick') {
+          const currentSick = data[i][sickUsedCol] || 0;
+          sheet.getRange(i + 1, sickUsedCol + 1).setValue(currentSick + (days * 8)); // Assuming 8 hour days
+        } else if (type === 'vacation') {
+          const currentVac = data[i][vacUsedCol] || 0;
+          sheet.getRange(i + 1, vacUsedCol + 1).setValue(currentVac + days);
+        }
+        sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+        return;
+      }
+    }
+  } catch (error) {
+    Logger.log('Error updating time off usage: ' + error.toString());
+  }
+}
+
+/**
+ * Get HR stats for a specific employee
+ * @param {string} employeeId - The employee ID
+ */
+function getEmployeeHRStats(employeeId) {
+  try {
+    if (!employeeId) {
+      return { success: false, error: 'Employee ID required' };
+    }
+
+    // First, try to get from HR stats sheet
+    const hrSheet = initEmployeeHRStatsSheet();
+    const hrData = hrSheet.getDataRange().getValues();
+    const hrHeaders = hrData[0];
+    const empIdCol = hrHeaders.indexOf('employeeId');
+
+    let hrStats = null;
+    for (let i = 1; i < hrData.length; i++) {
+      if (hrData[i][empIdCol] === employeeId) {
+        hrStats = {};
+        hrHeaders.forEach((h, idx) => hrStats[h] = hrData[i][idx]);
+        break;
+      }
+    }
+
+    // Get employee info from USERS sheet
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const usersSheet = ss.getSheetByName('USERS');
+    let employeeInfo = null;
+
+    if (usersSheet) {
+      const usersData = usersSheet.getDataRange().getValues();
+      const usersHeaders = usersData[0];
+      const userIdCol = usersHeaders.indexOf('userId') !== -1 ? usersHeaders.indexOf('userId') : usersHeaders.indexOf('id');
+
+      for (let i = 1; i < usersData.length; i++) {
+        if (usersData[i][userIdCol] === employeeId) {
+          employeeInfo = {};
+          usersHeaders.forEach((h, idx) => employeeInfo[h] = usersData[i][idx]);
+          break;
+        }
+      }
+    }
+
+    // Calculate hours from TIME_ENTRIES if available
+    const timeSheet = ss.getSheetByName('TIME_ENTRIES');
+    let totalHours = 0;
+    let hoursThisWeek = 0;
+
+    if (timeSheet) {
+      const timeData = timeSheet.getDataRange().getValues();
+      const timeHeaders = timeData[0];
+      const timeEmpCol = timeHeaders.indexOf('employeeId');
+      const hoursCol = timeHeaders.indexOf('hours');
+      const dateCol = timeHeaders.indexOf('date');
+
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+
+      for (let i = 1; i < timeData.length; i++) {
+        if (timeData[i][timeEmpCol] === employeeId) {
+          const hours = parseFloat(timeData[i][hoursCol]) || 0;
+          totalHours += hours;
+
+          const entryDate = new Date(timeData[i][dateCol]);
+          if (entryDate >= weekStart) {
+            hoursThisWeek += hours;
+          }
+        }
+      }
+    }
+
+    // Calculate sick time accrual (1 hour per 40 hours worked, after 15 day orientation)
+    const startDate = employeeInfo ? new Date(employeeInfo.startDate || employeeInfo.hireDate || new Date()) : new Date();
+    const daysSinceStart = Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24));
+    const orientationComplete = daysSinceStart >= 15;
+    const hoursAfterOrientation = orientationComplete ? Math.max(0, totalHours - 120) : 0; // Assuming ~8hrs/day for 15 days
+    const sickTimeAccrued = Math.floor(hoursAfterOrientation / 40);
+    const sickTimeUsed = hrStats ? (hrStats.sickTimeUsed || 0) : 0;
+    const sickTimeBalance = sickTimeAccrued - sickTimeUsed;
+
+    // Calculate vacation (max 5 days)
+    const vacationDaysUsed = hrStats ? (hrStats.vacationDaysUsed || 0) : 0;
+    const vacationDaysRemaining = Math.max(0, 5 - vacationDaysUsed);
+
+    // Calculate milestone progress
+    const milestones = [
+      { hours: 200, bonus: 50, label: 'Tier 1' },
+      { hours: 400, bonus: 100, label: 'Tier 2' },
+      { hours: 600, bonus: 150, label: 'Tier 3' },
+      { hours: 800, bonus: 200, label: 'Season Complete' }
+    ];
+
+    const currentMilestone = milestones.reduce((acc, m) => {
+      if (totalHours >= m.hours) return m;
+      return acc;
+    }, null);
+
+    const nextMilestone = milestones.find(m => totalHours < m.hours);
+    const hoursToNextMilestone = nextMilestone ? nextMilestone.hours - totalHours : 0;
+
+    // Tardiness
+    const tardinessCount = hrStats ? (hrStats.tardinessCount || 0) : 0;
+
+    return {
+      success: true,
+      stats: {
+        employeeId: employeeId,
+        employeeName: employeeInfo ? (employeeInfo.name || employeeInfo.fullName || '') : '',
+        startDate: startDate.toISOString().split('T')[0],
+        totalHoursWorked: Math.round(totalHours * 10) / 10,
+        hoursThisWeek: Math.round(hoursThisWeek * 10) / 10,
+        sickTimeAccrued: sickTimeAccrued,
+        sickTimeUsed: sickTimeUsed,
+        sickTimeBalance: sickTimeBalance,
+        vacationDaysUsed: vacationDaysUsed,
+        vacationDaysRemaining: vacationDaysRemaining,
+        tardinessCount: tardinessCount,
+        orientationComplete: orientationComplete,
+        daysSinceStart: daysSinceStart,
+        currentMilestone: currentMilestone,
+        nextMilestone: nextMilestone,
+        hoursToNextMilestone: hoursToNextMilestone,
+        milestoneProgress: nextMilestone ? Math.round((totalHours / nextMilestone.hours) * 100) : 100
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get HR stats for all active employees
+ */
+function getAllEmployeeHRStats() {
+  try {
+    // Get all active employees
+    const employeesResult = getAllActiveEmployees();
+    if (!employeesResult.success) {
+      return { success: false, error: 'Could not fetch employees' };
+    }
+
+    const stats = [];
+    employeesResult.employees.forEach(emp => {
+      const empStats = getEmployeeHRStats(emp.id);
+      if (empStats.success) {
+        stats.push(empStats.stats);
+      }
+    });
+
+    return { success: true, stats: stats };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Record a tardiness incident for an employee
+ * @param {string} employeeId - The employee ID
+ * @param {string} notes - Optional notes about the incident
+ */
+function recordTardinessIncident(employeeId, notes) {
+  try {
+    if (!employeeId) {
+      return { success: false, error: 'Employee ID required' };
+    }
+
+    const sheet = initEmployeeHRStatsSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const empIdCol = headers.indexOf('employeeId');
+    const tardinessCol = headers.indexOf('tardinessCount');
+    const lastTardinessCol = headers.indexOf('lastTardinessDate');
+    const updatedCol = headers.indexOf('updatedAt');
+
+    const now = new Date().toISOString();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][empIdCol] === employeeId) {
+        const currentCount = data[i][tardinessCol] || 0;
+        sheet.getRange(i + 1, tardinessCol + 1).setValue(currentCount + 1);
+        sheet.getRange(i + 1, lastTardinessCol + 1).setValue(now);
+        sheet.getRange(i + 1, updatedCol + 1).setValue(now);
+
+        return {
+          success: true,
+          newCount: currentCount + 1,
+          warning: currentCount + 1 >= 2 ? 'Employee has 2+ tardiness incidents' : null
+        };
+      }
+    }
+
+    // Employee not in HR stats yet - add them
+    const employeesResult = getAllActiveEmployees();
+    let employeeName = '';
+    if (employeesResult.success) {
+      const emp = employeesResult.employees.find(e => e.id === employeeId);
+      if (emp) employeeName = emp.name || emp.fullName || '';
+    }
+
+    sheet.appendRow([
+      employeeId, employeeName, '', 0, 0, 0, 0, 0, 1, now, '', 0, false, now
+    ]);
+
+    return { success: true, newCount: 1, message: 'Tardiness incident recorded' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get HR alerts - employees needing attention
+ */
+function getHRAlerts() {
+  try {
+    const alerts = [];
+
+    // Get all employee HR stats
+    const statsResult = getAllEmployeeHRStats();
+    if (!statsResult.success) {
+      return { success: false, error: 'Could not fetch HR stats' };
+    }
+
+    statsResult.stats.forEach(stat => {
+      // Tardiness warnings (2+ incidents)
+      if (stat.tardinessCount >= 2) {
+        alerts.push({
+          type: 'tardiness',
+          severity: stat.tardinessCount >= 3 ? 'high' : 'medium',
+          employeeId: stat.employeeId,
+          employeeName: stat.employeeName,
+          message: `${stat.tardinessCount} tardiness incidents`,
+          action: 'Review attendance record'
+        });
+      }
+
+      // Employees in orientation (first 15 days)
+      if (!stat.orientationComplete) {
+        alerts.push({
+          type: 'orientation',
+          severity: 'info',
+          employeeId: stat.employeeId,
+          employeeName: stat.employeeName,
+          message: `In orientation (Day ${stat.daysSinceStart} of 15)`,
+          action: 'Monitor progress'
+        });
+      }
+
+      // Approaching milestone (within 20 hours)
+      if (stat.nextMilestone && stat.hoursToNextMilestone <= 20) {
+        alerts.push({
+          type: 'milestone',
+          severity: 'positive',
+          employeeId: stat.employeeId,
+          employeeName: stat.employeeName,
+          message: `${stat.hoursToNextMilestone.toFixed(1)} hours to ${stat.nextMilestone.label} ($${stat.nextMilestone.bonus} bonus)`,
+          action: 'Prepare bonus'
+        });
+      }
+
+      // Low sick time balance
+      if (stat.sickTimeBalance <= 2 && stat.orientationComplete) {
+        alerts.push({
+          type: 'sickTime',
+          severity: 'low',
+          employeeId: stat.employeeId,
+          employeeName: stat.employeeName,
+          message: `Low sick time balance: ${stat.sickTimeBalance} hours`,
+          action: 'No action needed'
+        });
+      }
+    });
+
+    // Get pending time off requests
+    const requestsResult = getTimeOffRequests('pending');
+    if (requestsResult.success && requestsResult.requests.length > 0) {
+      requestsResult.requests.forEach(req => {
+        alerts.push({
+          type: 'timeOff',
+          severity: 'medium',
+          employeeId: req.employeeId,
+          employeeName: req.employeeName,
+          message: `Pending ${req.type} request: ${req.startDate} to ${req.endDate}`,
+          action: 'Review and respond',
+          requestId: req.requestId
+        });
+      });
+    }
+
+    // Sort by severity
+    const severityOrder = { high: 1, medium: 2, positive: 3, low: 4, info: 5 };
+    alerts.sort((a, b) => (severityOrder[a.severity] || 99) - (severityOrder[b.severity] || 99));
+
+    return { success: true, alerts: alerts };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================================================
+// END TIME OFF & HR TRACKING MODULE
 // ============================================================================
 
 /**
