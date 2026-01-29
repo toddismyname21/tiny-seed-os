@@ -27,7 +27,7 @@ const TINY_SEED_API = {
     // UPDATED BY: Claude - v444 Overnight mega upgrade
     // ═══════════════════════════════════════════════════════════════════════════
 
-    MAIN_API: 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec',
+    MAIN_API: 'https://script.google.com/macros/s/AKfycbwbY3Y4fMZD7XG_yUC8J__Elq5MotOB4tGDbgBNGxW0yavEV1IjNPEDIca4FI1wBVPA/exec',
 
     // Farm location for geofencing (update with your actual farm coordinates)
     FARM_LOCATION: {
