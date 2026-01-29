@@ -345,9 +345,24 @@ function approveEmployeeComplete(data) {
     setUserCol('Status', 'Active');
     setUserCol('Is_Active', true);
     setUserCol('Role', data.role || 'Field Worker');
+
+    // Set PIN - check both "PIN" and "Pin" column names
     if (data.badgePin) {
-      setUserCol('PIN', data.badgePin);
+      const pinColUpper = usersHeaders.indexOf('PIN');
+      const pinColLower = usersHeaders.indexOf('Pin');
+      if (pinColUpper !== -1) {
+        usersSheet.getRange(userRow, pinColUpper + 1).setValue(data.badgePin);
+      }
+      if (pinColLower !== -1) {
+        usersSheet.getRange(userRow, pinColLower + 1).setValue(data.badgePin);
+      }
     }
+
+    // Set mode access toggles (defaults to FALSE if not specified)
+    setUserCol('Tractor_Mode', data.tractorMode === true || data.tractorMode === 'true');
+    setUserCol('Garage_Mode', data.garageMode === true || data.garageMode === 'true');
+    setUserCol('Inventory_Mode', data.inventoryMode === true || data.inventoryMode === 'true');
+    setUserCol('Costing_Mode', data.costingMode === true || data.costingMode === 'true');
 
     // ============================================
     // UPDATE EMPLOYEES SHEET

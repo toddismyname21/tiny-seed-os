@@ -1026,8 +1026,29 @@
                                 <input type="number" id="rate-${userId}" placeholder="15.00" step="0.25">
                             </div>
                             <div class="form-group">
-                                <label>Badge PIN</label>
-                                <input type="text" id="pin-${userId}" placeholder="4 digits" maxlength="4" pattern="[0-9]{4}">
+                                <label>Badge PIN (4 digits)</label>
+                                <input type="text" id="pin-${userId}" placeholder="1234" maxlength="4" pattern="[0-9]{4}">
+                            </div>
+                        </div>
+                        <div style="margin-top: 16px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                            <h5 style="font-size: 12px; color: var(--info); text-transform: uppercase; margin-bottom: 10px;"><i class="fas fa-lock"></i> Access Permissions</h5>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                                    <input type="checkbox" id="tractor-${userId}" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <span>Tractor Mode</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                                    <input type="checkbox" id="garage-${userId}" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <span>Garage Mode</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                                    <input type="checkbox" id="inventory-${userId}" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <span>Inventory Mode</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                                    <input type="checkbox" id="costing-${userId}" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <span>Costing Mode</span>
+                                </label>
                             </div>
                         </div>
                         <div style="margin-top: 12px; display: flex; gap: 12px;">
@@ -1078,6 +1099,12 @@
             const hourlyRate = rateInput.value || '';
             const badgePin = pinInput.value || '0000';
 
+            // Get mode permissions
+            const tractorMode = document.getElementById(`tractor-${userId}`)?.checked || false;
+            const garageMode = document.getElementById(`garage-${userId}`)?.checked || false;
+            const inventoryMode = document.getElementById(`inventory-${userId}`)?.checked || false;
+            const costingMode = document.getElementById(`costing-${userId}`)?.checked || false;
+
             try {
                 // Use GET request to avoid CORS issues
                 const params = new URLSearchParams({
@@ -1085,7 +1112,11 @@
                     userId: userId,
                     role: role,
                     hourlyRate: hourlyRate,
-                    badgePin: badgePin
+                    badgePin: badgePin,
+                    tractorMode: tractorMode,
+                    garageMode: garageMode,
+                    inventoryMode: inventoryMode,
+                    costingMode: costingMode
                 });
 
                 const response = await fetch(`${API_URL}?${params.toString()}`);

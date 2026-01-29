@@ -16369,9 +16369,23 @@ function approveEmployee(data) {
     setCol('Status', 'Active');
     setCol('Is_Active', true);
 
-    // Generate a PIN for the employee
-    const pin = String(Math.floor(1000 + Math.random() * 9000)); // 4-digit PIN
+    // Use provided PIN or generate a random 4-digit PIN
+    const pin = data.badgePin && data.badgePin.length === 4 ? data.badgePin : String(Math.floor(1000 + Math.random() * 9000));
+
+    // Set both PIN and Pin columns (handle case sensitivity)
     setCol('PIN', pin);
+    setCol('Pin', pin);
+
+    // Set mode access permissions (columns J-M)
+    setCol('Tractor_Mode', data.tractorMode === 'true' || data.tractorMode === true);
+    setCol('Garage_Mode', data.garageMode === 'true' || data.garageMode === true);
+    setCol('Inventory_Mode', data.inventoryMode === 'true' || data.inventoryMode === true);
+    setCol('Costing_Mode', data.costingMode === 'true' || data.costingMode === true);
+
+    // Set hourly rate if provided
+    if (data.hourlyRate) {
+      setCol('Hourly_Rate', parseFloat(data.hourlyRate));
+    }
 
     // Send welcome email with their PIN
     try {
