@@ -41150,12 +41150,14 @@ function getAllActiveEmployees() {
       for (let i = 1; i < data.length; i++) {
         const row = {};
         headers.forEach((h, j) => row[h] = data[i][j]);
-        if (row.Is_Active !== false && row.Is_Active !== 'FALSE') {
+        if (row.Is_Active !== false && row.Is_Active !== 'FALSE' && row.User_ID) {
           employees.push({
             id: row.User_ID || row.Employee_ID,
-            name: row.Name || row.First_Name + ' ' + (row.Last_Name || ''),
-            role: row.Role,
-            phone: row.Phone
+            name: row.Full_Name || row.Name || (row.First_Name ? row.First_Name + ' ' + (row.Last_Name || '') : '') || 'Unknown',
+            role: row.Role || 'Employee',
+            phone: row.Phone,
+            email: row.Email,
+            status: row.Status
           });
         }
       }
