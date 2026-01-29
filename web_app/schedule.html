@@ -1732,6 +1732,12 @@
             return conflicts;
         }
 
+        // Helper to safely get first name
+        function getFirstName(stat) {
+            const name = stat.name || stat.employeeName || 'Employee';
+            return name.split(' ')[0];
+        }
+
         function renderHRAlerts() {
             const alerts = [];
 
@@ -1741,7 +1747,7 @@
                     alerts.push({
                         type: 'warning',
                         icon: 'clock',
-                        message: `${stat.name.split(' ')[0]} has ${stat.tardyCount} late arrivals this month`
+                        message: `${getFirstName(stat)} has ${stat.tardyCount} late arrivals this month`
                     });
                 }
             });
@@ -1752,7 +1758,7 @@
                     alerts.push({
                         type: 'info',
                         icon: 'user-clock',
-                        message: `${stat.name.split(' ')[0]} is in orientation period`
+                        message: `${getFirstName(stat)} is in orientation period`
                     });
                 }
             });
@@ -1764,7 +1770,7 @@
                         alerts.push({
                             type: 'success',
                             icon: 'trophy',
-                            message: `${stat.name.split(' ')[0]} is ${milestone.hours - stat.totalHours}hrs from $${milestone.bonus} bonus!`
+                            message: `${getFirstName(stat)} is ${milestone.hours - stat.totalHours}hrs from $${milestone.bonus} bonus!`
                         });
                     }
                 });
@@ -1777,7 +1783,7 @@
                     alerts.push({
                         type: 'danger',
                         icon: 'thermometer',
-                        message: `${stat.name.split(' ')[0]} has only ${sickBalance}hrs sick time left`
+                        message: `${getFirstName(stat)} has only ${sickBalance}hrs sick time left`
                     });
                 }
             });
