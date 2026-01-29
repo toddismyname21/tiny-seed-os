@@ -12991,6 +12991,8 @@ function doGet(e) {
         return jsonResponse(getAllEmployees());
       case 'getEmployeeDetails':
         return jsonResponse(getEmployeeDetails(e.parameter.employeeId || e.parameter.userId));
+      case 'updateEmployeeAdmin':
+        return jsonResponse(updateEmployeeAdmin(e.parameter));
 
       // ============ CHEF REGISTRATION FLOW (GET) - Added 2026-01-24 ============
       case 'verifyChefToken':
@@ -16358,11 +16360,13 @@ function approveEmployee(data) {
       }
     }
 
-    // Get employee name for response
+    // Get employee info for response and email
     const fullNameCol = headers.indexOf('Full_Name');
     const employeeName = sheetData[rowIndex - 1][fullNameCol] || 'Employee';
     const emailCol = headers.indexOf('Email');
     const employeeEmail = sheetData[rowIndex - 1][emailCol] || '';
+    const usernameCol = headers.indexOf('Username');
+    const username = sheetData[rowIndex - 1][usernameCol] || '';
 
     // Update employee
     setCol('Role', data.role);
@@ -16399,12 +16403,20 @@ function approveEmployee(data) {
             <p style="font-size: 16px;">Hi ${employeeName},</p>
             <p>Great news! Your account has been approved and you're now part of the Tiny Seed Farm team as a <strong>${data.role}</strong>.</p>
 
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-              <p style="margin: 0 0 10px 0; color: #166534; font-weight: 600;">Your Login PIN</p>
-              <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 0; color: #15803d;">${pin}</p>
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+              <div style="display: flex; justify-content: space-around; text-align: center;">
+                <div>
+                  <p style="margin: 0 0 8px 0; color: #166534; font-weight: 600; font-size: 14px;">Username</p>
+                  <p style="font-size: 20px; font-weight: bold; margin: 0; color: #15803d;">${username || employeeEmail}</p>
+                </div>
+                <div style="border-left: 1px solid #bbf7d0; padding-left: 20px;">
+                  <p style="margin: 0 0 8px 0; color: #166534; font-weight: 600; font-size: 14px;">PIN</p>
+                  <p style="font-size: 28px; font-weight: bold; letter-spacing: 6px; margin: 0; color: #15803d;">${pin}</p>
+                </div>
+              </div>
             </div>
 
-            <p>Use this PIN to log into the employee app:</p>
+            <p>Use these credentials to log into the employee app:</p>
             <div style="text-align: center; margin: 25px 0;">
               <a href="https://toddismyname21.github.io/tiny-seed-os/employee.html"
                  style="background: #22c55e; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
@@ -16470,6 +16482,135 @@ function rejectEmployee(data) {
     return { success: false, error: 'Employee not found' };
   } catch (error) {
     Logger.log('rejectEmployee error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update employee information (admin function)
+ * Updates both USERS and EMPLOYEES sheets
+ *
+ * @param {Object} data - All fields to update
+ * @returns {Object} { success, message }
+ */
+function updateEmployeeAdmin(data) {
+  try {
+    if (!data.userId && !data.employeeId) {
+      return { success: false, error: 'User ID or Employee ID required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const usersSheet = ss.getSheetByName(USERS_SHEET_NAME);
+
+    if (!usersSheet) {
+      return { success: false, error: 'Users sheet not found' };
+    }
+
+    const usersData = usersSheet.getDataRange().getValues();
+    const usersHeaders = usersData[0];
+    const userIdCol = usersHeaders.indexOf('User_ID');
+
+    // Find user row
+    let userRow = -1;
+    for (let i = 1; i < usersData.length; i++) {
+      if (usersData[i][userIdCol] === data.userId) {
+        userRow = i + 1;
+        break;
+      }
+    }
+
+    if (userRow === -1) {
+      return { success: false, error: 'Employee not found in USERS' };
+    }
+
+    // Helper to set column value in USERS
+    function setUserCol(colName, value) {
+      const idx = usersHeaders.indexOf(colName);
+      if (idx !== -1) {
+        usersSheet.getRange(userRow, idx + 1).setValue(value);
+      }
+    }
+
+    // Update fields if provided
+    if (data.role) setUserCol('Role', data.role);
+    if (data.status) {
+      setUserCol('Status', data.status);
+      setUserCol('Is_Active', data.status === 'Active');
+    }
+    if (data.isActive === 'false') {
+      setUserCol('Is_Active', false);
+      setUserCol('Status', 'Inactive');
+    }
+    if (data.hourlyRate) setUserCol('Hourly_Rate', parseFloat(data.hourlyRate));
+    if (data.badgePin) {
+      setUserCol('PIN', data.badgePin);
+      setUserCol('Pin', data.badgePin);
+    }
+    if (data.phone) setUserCol('Phone', data.phone);
+    if (data.email) setUserCol('Email', data.email);
+
+    // Update mode permissions
+    if (data.tractorMode !== undefined) {
+      setUserCol('Tractor_Mode', data.tractorMode === 'true' || data.tractorMode === true);
+    }
+    if (data.garageMode !== undefined) {
+      setUserCol('Garage_Mode', data.garageMode === 'true' || data.garageMode === true);
+    }
+    if (data.inventoryMode !== undefined) {
+      setUserCol('Inventory_Mode', data.inventoryMode === 'true' || data.inventoryMode === true);
+    }
+    if (data.costingMode !== undefined) {
+      setUserCol('Costing_Mode', data.costingMode === 'true' || data.costingMode === true);
+    }
+
+    // Update emergency contact
+    if (data.emergencyName) setUserCol('Emergency_Contact_Name', data.emergencyName);
+    if (data.emergencyPhone) setUserCol('Emergency_Contact_Phone', data.emergencyPhone);
+    if (data.emergencyRelation) setUserCol('Emergency_Contact_Relation', data.emergencyRelation);
+
+    // Also update EMPLOYEES sheet if it exists
+    const empSheet = ss.getSheetByName('EMPLOYEES');
+    if (empSheet) {
+      const empData = empSheet.getDataRange().getValues();
+      const empHeaders = empData[0];
+      const empUserIdCol = empHeaders.indexOf('User_ID');
+
+      let empRow = -1;
+      for (let i = 1; i < empData.length; i++) {
+        if (empData[i][empUserIdCol] === data.userId) {
+          empRow = i + 1;
+          break;
+        }
+      }
+
+      if (empRow !== -1) {
+        function setEmpCol(colName, value) {
+          const idx = empHeaders.indexOf(colName);
+          if (idx !== -1) {
+            empSheet.getRange(empRow, idx + 1).setValue(value);
+          }
+        }
+
+        if (data.role) setEmpCol('Role', data.role);
+        if (data.status) {
+          setEmpCol('Status', data.status);
+          setEmpCol('Is_Active', data.status === 'Active');
+        }
+        if (data.hourlyRate) setEmpCol('Hourly_Rate', parseFloat(data.hourlyRate));
+        if (data.badgePin) setEmpCol('Badge_PIN', data.badgePin);
+        if (data.phone) setEmpCol('Phone', data.phone);
+        if (data.email) setEmpCol('Email', data.email);
+        if (data.emergencyName) setEmpCol('Emergency_1_Name', data.emergencyName);
+        if (data.emergencyPhone) setEmpCol('Emergency_1_Phone', data.emergencyPhone);
+        if (data.emergencyRelation) setEmpCol('Emergency_1_Relation', data.emergencyRelation);
+        setEmpCol('Updated_At', new Date().toISOString());
+      }
+    }
+
+    return { success: true, message: 'Employee updated successfully' };
+
+  } catch (error) {
+    Logger.log('updateEmployeeAdmin error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }

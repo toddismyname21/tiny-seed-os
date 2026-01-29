@@ -807,6 +807,121 @@
         </div>
     </div>
 
+    <!-- Edit Employee Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-edit" style="color: var(--info);"></i> Edit Employee</h3>
+                <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editEmployeeId">
+                <input type="hidden" id="editUserId">
+
+                <!-- Basic Info -->
+                <div style="margin-bottom: 20px;">
+                    <h4 style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px;">Basic Information</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="editRole">
+                                <option value="Field Worker">Field Worker</option>
+                                <option value="Packhouse">Packhouse</option>
+                                <option value="Driver">Driver</option>
+                                <option value="Market Staff">Market Staff</option>
+                                <option value="Field Lead">Field Lead</option>
+                                <option value="Manager">Manager</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="editStatus">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="On Leave">On Leave</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Hourly Rate ($)</label>
+                            <input type="number" id="editHourlyRate" step="0.25" placeholder="15.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Badge PIN</label>
+                            <input type="text" id="editBadgePin" maxlength="4" placeholder="4 digits">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div style="margin-bottom: 20px;">
+                    <h4 style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px;">Contact</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="editPhone" placeholder="(412) 555-0123">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="editEmail" placeholder="email@example.com">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Access Permissions -->
+                <div style="margin-bottom: 20px; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                    <h4 style="font-size: 12px; color: var(--info); text-transform: uppercase; margin-bottom: 12px;"><i class="fas fa-lock"></i> Access Permissions</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="checkbox" id="editTractorMode" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <span>Tractor Mode</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="checkbox" id="editGarageMode" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <span>Garage Mode</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="checkbox" id="editInventoryMode" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <span>Inventory Mode</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="checkbox" id="editCostingMode" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <span>Costing Mode</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Emergency Contact -->
+                <div style="margin-bottom: 20px;">
+                    <h4 style="font-size: 12px; color: var(--danger); text-transform: uppercase; margin-bottom: 12px;"><i class="fas fa-first-aid"></i> Emergency Contact</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" id="editEmergencyName" placeholder="Contact name">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="editEmergencyPhone" placeholder="(412) 555-0123">
+                        </div>
+                        <div class="form-group">
+                            <label>Relationship</label>
+                            <input type="text" id="editEmergencyRelation" placeholder="Spouse, Parent, etc.">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="deactivateCurrentEmployee()" style="margin-right: auto;">
+                    <i class="fas fa-user-slash"></i> Deactivate
+                </button>
+                <button class="btn btn-ghost" onclick="closeModal('editModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEmployeeEdits()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div id="toast" class="toast"></div>
 
@@ -1228,7 +1343,114 @@
         }
 
         function editEmployee(empId) {
-            showToast('Edit feature coming soon!', 'success');
+            const emp = employees.find(e => e.Employee_ID === empId || e.User_ID === empId || e.userId === empId);
+            if (!emp) {
+                showToast('Employee not found', 'error');
+                return;
+            }
+
+            // Store IDs
+            document.getElementById('editEmployeeId').value = emp.Employee_ID || '';
+            document.getElementById('editUserId').value = emp.User_ID || emp.userId || '';
+
+            // Populate form fields
+            document.getElementById('editRole').value = emp.Role || 'Field Worker';
+            document.getElementById('editStatus').value = emp.Status || 'Active';
+            document.getElementById('editHourlyRate').value = emp.Hourly_Rate || '';
+            document.getElementById('editBadgePin').value = emp.Badge_PIN || emp.PIN || emp.Pin || '';
+            document.getElementById('editPhone').value = emp.Phone || '';
+            document.getElementById('editEmail').value = emp.Email || '';
+
+            // Access permissions
+            document.getElementById('editTractorMode').checked = emp.Tractor_Mode === true || emp.Tractor_Mode === 'TRUE';
+            document.getElementById('editGarageMode').checked = emp.Garage_Mode === true || emp.Garage_Mode === 'TRUE';
+            document.getElementById('editInventoryMode').checked = emp.Inventory_Mode === true || emp.Inventory_Mode === 'TRUE';
+            document.getElementById('editCostingMode').checked = emp.Costing_Mode === true || emp.Costing_Mode === 'TRUE';
+
+            // Emergency contact
+            document.getElementById('editEmergencyName').value = emp.Emergency_1_Name || emp.Emergency_Contact_Name || '';
+            document.getElementById('editEmergencyPhone').value = emp.Emergency_1_Phone || emp.Emergency_Contact_Phone || '';
+            document.getElementById('editEmergencyRelation').value = emp.Emergency_1_Relation || emp.Emergency_Contact_Relation || '';
+
+            openModal('editModal');
+        }
+
+        async function saveEmployeeEdits() {
+            const userId = document.getElementById('editUserId').value;
+            const employeeId = document.getElementById('editEmployeeId').value;
+
+            if (!userId && !employeeId) {
+                showToast('No employee selected', 'error');
+                return;
+            }
+
+            const params = new URLSearchParams({
+                action: 'updateEmployeeAdmin',
+                userId: userId,
+                employeeId: employeeId,
+                role: document.getElementById('editRole').value,
+                status: document.getElementById('editStatus').value,
+                hourlyRate: document.getElementById('editHourlyRate').value || '',
+                badgePin: document.getElementById('editBadgePin').value || '',
+                phone: document.getElementById('editPhone').value || '',
+                email: document.getElementById('editEmail').value || '',
+                tractorMode: document.getElementById('editTractorMode').checked,
+                garageMode: document.getElementById('editGarageMode').checked,
+                inventoryMode: document.getElementById('editInventoryMode').checked,
+                costingMode: document.getElementById('editCostingMode').checked,
+                emergencyName: document.getElementById('editEmergencyName').value || '',
+                emergencyPhone: document.getElementById('editEmergencyPhone').value || '',
+                emergencyRelation: document.getElementById('editEmergencyRelation').value || ''
+            });
+
+            try {
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Employee updated successfully!', 'success');
+                    closeModal('editModal');
+                    loadEmployees();
+                } else {
+                    showToast(result.error || 'Failed to update', 'error');
+                }
+            } catch (error) {
+                console.error('Update error:', error);
+                showToast('Network error - please try again', 'error');
+            }
+        }
+
+        async function deactivateCurrentEmployee() {
+            const userId = document.getElementById('editUserId').value;
+            const employeeId = document.getElementById('editEmployeeId').value;
+
+            if (!confirm('Are you sure you want to deactivate this employee? They will no longer be able to log in.')) {
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'updateEmployeeAdmin',
+                    userId: userId,
+                    employeeId: employeeId,
+                    status: 'Inactive',
+                    isActive: 'false'
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Employee deactivated', 'success');
+                    closeModal('editModal');
+                    loadEmployees();
+                } else {
+                    showToast(result.error || 'Failed to deactivate', 'error');
+                }
+            } catch (error) {
+                console.error('Deactivate error:', error);
+                showToast('Network error', 'error');
+            }
         }
 
         // Modal functions
