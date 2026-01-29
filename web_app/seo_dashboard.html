@@ -773,6 +773,15 @@
             </div>
         </div>
         <div class="nav-actions">
+            <a href="social-intelligence.html" class="btn btn-secondary">
+                <i class="fas fa-brain"></i> Social Intel
+            </a>
+            <a href="marketing-command-center.html" class="btn btn-secondary">
+                <i class="fas fa-bullhorn"></i> Marketing
+            </a>
+            <a href="index.html" class="btn btn-secondary">
+                <i class="fas fa-home"></i> Hub
+            </a>
             <button class="btn btn-secondary" onclick="refreshDashboard()">
                 <i class="fas fa-sync-alt"></i> Refresh
             </button>
@@ -1110,7 +1119,24 @@
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                showToast('Error loading dashboard data');
+                showToast('Error loading dashboard data: ' + error.message);
+                // Show error state in all sections instead of infinite spinners
+                document.getElementById('rankings-tbody').innerHTML = `
+                    <tr><td colspan="5" style="text-align: center; color: var(--danger); padding: 2rem;">
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load rankings. Check API connection.
+                    </td></tr>`;
+                document.getElementById('reviews-container').innerHTML = `
+                    <p style="text-align: center; color: var(--danger); padding: 1rem;">
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load reviews. Check API connection.
+                    </p>`;
+                document.getElementById('citations-container').innerHTML = `
+                    <p style="text-align: center; color: var(--danger); padding: 1rem;">
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load citations. Check API connection.
+                    </p>`;
+                document.getElementById('actions-container').innerHTML = `
+                    <p style="text-align: center; color: var(--danger); padding: 1rem;">
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load actions. Check API connection.
+                    </p>`;
             }
         }
 

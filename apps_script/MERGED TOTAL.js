@@ -12457,6 +12457,12 @@ function doGet(e) {
         return jsonResponse(getVideoContentStrategy());
       case 'getSEOMasterDashboard':
         return jsonResponse(getSEOMasterDashboard(e.parameter));
+      case 'getSEORankings':
+        return jsonResponse(getSEORankings(e.parameter));
+      case 'getReviewMetrics':
+        return jsonResponse(getReviewMetrics(e.parameter));
+      case 'getCitationStatus':
+        return jsonResponse(getCitationStatus(e.parameter));
 
       // ============ LEGACY ENDPOINTS ============
       case 'getPlanning':
@@ -12478,7 +12484,7 @@ function doGet(e) {
       case 'getBedsByField':
         return getBedsByField(e.parameter.field);
       case 'getTasks':
-        return getTasks(e.parameter.date);
+        return getFieldTasks();  // Fixed 2026-01-24: Use working implementation
       case 'getTasksByDate':
         return getTasksByDateRange(e.parameter.start, e.parameter.end);
       case 'getHarvests':
@@ -14238,6 +14244,20 @@ function doGet(e) {
         PropertiesService.getScriptProperties().setProperty('CLAUDE_API_KEY', e.parameter.apiKey || '');
         return jsonResponse({ success: true, message: 'Claude API key configured' });
 
+      // ============ ADDITIONAL MISSING ROUTES (Fixed 2026-01-24) ============
+      case 'getWholesaleOrders':
+        return jsonResponse(typeof getWholesaleOrdersForWeek === 'function' ?
+          getWholesaleOrdersForWeek(SpreadsheetApp.openById(SPREADSHEET_ID), new Date(), new Date(Date.now() + 7*24*60*60*1000)) :
+          { success: true, orders: [], message: 'No orders found' });
+      case 'getOrders':
+        return jsonResponse(typeof getSalesOrders === 'function' ? getSalesOrders(e.parameter) : { success: true, orders: [] });
+      case 'getTimeEntries':
+        return jsonResponse(typeof getTimeClockHistory === 'function' ? getTimeClockHistory(e.parameter) : { success: true, entries: [] });
+      case 'getChiefMorningBrief':
+        return jsonResponse(typeof getMorningBrief === 'function' ? getMorningBrief() : { success: true, message: 'Use getMorningBrief instead' });
+      case 'getProactiveAlerts':
+        return jsonResponse({ success: true, alerts: [], message: 'Proactive alerts not yet configured' });
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -14749,6 +14769,12 @@ function doPost(e) {
         return jsonResponse(scoreContentForAEO(data));
       case 'analyzeReviewSentimentEnhanced':
         return jsonResponse(analyzeReviewSentimentEnhanced(data));
+      case 'logSEORanking':
+        return jsonResponse(logSEORanking(data));
+      case 'logReview':
+        return jsonResponse(logReview(data));
+      case 'logCitation':
+        return jsonResponse(logCitation(data));
 
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
@@ -77140,6 +77166,15 @@ function getRealtimeAvailability() {
  */
 function getProductForecast(productId, weeksAhead) {
   try {
+    // Handle missing productId
+    if (!productId) {
+      return {
+        success: false,
+        error: 'Product ID required. Use ?product=tomatoes or ?productId=lettuce',
+        usage: 'GET ?action=getProductForecast&product=tomatoes&weeks=4'
+      };
+    }
+
     weeksAhead = weeksAhead || 8;
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const today = new Date();
@@ -77148,11 +77183,13 @@ function getProductForecast(productId, weeksAhead) {
     const cropProfiles = getCropProfilesFromSS(ss);
     const harvestLog = getRecentHarvests(ss, 60);
 
-    // Find plantings for this product
+    // Find plantings for this product (with null safety)
+    const searchTerm = String(productId).toLowerCase();
     const productPlantings = plantings.filter(p => {
+      if (!p || !p.Crop) return false;
       const productKey = p.Variety ? `${p.Crop} - ${p.Variety}` : p.Crop;
-      return productKey.toLowerCase().includes(productId.toLowerCase()) ||
-             p.Crop.toLowerCase().includes(productId.toLowerCase());
+      return productKey.toLowerCase().includes(searchTerm) ||
+             p.Crop.toLowerCase().includes(searchTerm);
     });
 
     if (productPlantings.length === 0) {

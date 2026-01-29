@@ -1893,6 +1893,80 @@
                 </div>
             </div>
 
+            <!-- Track Existing Investment Accounts via Plaid -->
+            <div class="card" style="margin-bottom: 1.5rem;" id="plaid-investments-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-university" style="color: var(--info);"></i> Track Existing Investment Accounts</h3>
+                    <span id="plaid-investment-status" class="badge" style="background: var(--text-secondary);">No Accounts Linked</span>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+                        <div>
+                            <h4 style="margin-bottom: 0.5rem;">Link Fidelity, Schwab, Vanguard & More</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                                Track all your investment accounts in one place. View holdings, performance, and total portfolio value.
+                            </p>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <span style="padding: 0.25rem 0.5rem; background: rgba(67, 97, 238, 0.2); border-radius: 4px; font-size: 0.75rem; color: var(--info);">Read-Only Access</span>
+                                <span style="padding: 0.25rem 0.5rem; background: rgba(42, 157, 143, 0.2); border-radius: 4px; font-size: 0.75rem; color: var(--success);">11,000+ Institutions</span>
+                                <span style="padding: 0.25rem 0.5rem; background: rgba(155, 89, 182, 0.2); border-radius: 4px; font-size: 0.75rem; color: #9b59b6;">Bank-Level Security</span>
+                            </div>
+                        </div>
+                        <div style="text-align: center;">
+                            <button class="btn btn-success" onclick="connectInvestmentsWithPlaid()" id="connectPlaidInvestmentsBtn">
+                                <i class="fas fa-link"></i> Connect Investment Account
+                            </button>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                                Powered by <a href="https://plaid.com" target="_blank" style="color: var(--primary-light);">Plaid</a> - Secure Connection
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Connected Accounts Display -->
+                    <div id="plaid-investment-accounts" style="margin-top: 1.5rem; display: none;">
+                        <hr style="border-color: var(--border); margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 1rem;"><i class="fas fa-wallet"></i> Connected Investment Accounts</h4>
+                        <div id="investment-accounts-list" style="display: grid; gap: 1rem;">
+                            <!-- Accounts populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Holdings Display -->
+                    <div id="plaid-holdings-section" style="margin-top: 1.5rem; display: none;">
+                        <hr style="border-color: var(--border); margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4><i class="fas fa-chart-pie"></i> Your Holdings</h4>
+                            <button class="btn btn-secondary btn-sm" onclick="refreshPlaidInvestments()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                        <div id="investment-holdings-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                            <!-- Holdings populated by JavaScript -->
+                        </div>
+                        <div id="investment-summary" style="margin-top: 1rem; padding: 1rem; background: rgba(42, 157, 143, 0.1); border-radius: 8px; border: 1px solid var(--success);">
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;">
+                                <div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Total Value</div>
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);" id="plaid-total-value">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cost Basis</div>
+                                    <div style="font-size: 1.25rem; font-weight: 700;" id="plaid-cost-basis">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Total Gain/Loss</div>
+                                    <div style="font-size: 1.25rem; font-weight: 700;" id="plaid-gain-loss">$0.00</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Return %</div>
+                                    <div style="font-size: 1.25rem; font-weight: 700;" id="plaid-return-pct">0.00%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 75/25 Strategy Display -->
             <div class="card" style="margin-bottom: 1.5rem;">
                 <div class="card-header">
@@ -6200,6 +6274,220 @@
                 btn.disabled = false;
             }
         }
+
+        // =============================================
+        // PLAID INVESTMENT ACCOUNT CONNECTION
+        // =============================================
+        async function connectInvestmentsWithPlaid() {
+            const btn = document.getElementById('connectPlaidInvestmentsBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+            btn.disabled = true;
+
+            try {
+                // Get link token from our Apps Script backend
+                // Note: PLAID_CONFIG.PRODUCTS now includes 'investments'
+                const response = await fetchFromSheet('createPlaidLinkToken');
+
+                if (!response || !response.success) {
+                    throw new Error(response?.error || 'Failed to create link token');
+                }
+
+                // Initialize Plaid Link
+                const plaidInvestmentHandler = Plaid.create({
+                    token: response.linkToken,
+                    onSuccess: async (publicToken, metadata) => {
+                        console.log('Plaid Investment Link Success!', metadata);
+                        await handlePlaidInvestmentSuccess(publicToken, metadata);
+                    },
+                    onExit: (err, metadata) => {
+                        console.log('Plaid Investment Link Exit', err, metadata);
+                        btn.innerHTML = '<i class="fas fa-link"></i> Connect Investment Account';
+                        btn.disabled = false;
+                        if (err) {
+                            showNotification('Investment connection cancelled', 'warning');
+                        }
+                    },
+                    onEvent: (eventName, metadata) => {
+                        console.log('Plaid Investment Event:', eventName, metadata);
+                        if (eventName === 'ERROR') {
+                            console.error('PLAID INVESTMENT ERROR:', JSON.stringify(metadata, null, 2));
+                            showNotification('Plaid Error: ' + (metadata.error_message || metadata.error_code || 'Unknown error'), 'error');
+                        }
+                    }
+                });
+
+                // Open Plaid Link
+                plaidInvestmentHandler.open();
+
+            } catch (error) {
+                console.error('Plaid Investment Error:', error);
+                showNotification('Failed to connect: ' + error.message, 'error');
+                btn.innerHTML = '<i class="fas fa-link"></i> Connect Investment Account';
+                btn.disabled = false;
+            }
+        }
+
+        async function handlePlaidInvestmentSuccess(publicToken, metadata) {
+            const btn = document.getElementById('connectPlaidInvestmentsBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing investments...';
+
+            try {
+                // Exchange public token
+                const params = new URLSearchParams({
+                    action: 'exchangePlaidPublicToken',
+                    publicToken: publicToken,
+                    institutionId: metadata.institution.institution_id,
+                    institutionName: metadata.institution.name,
+                    accounts: JSON.stringify(metadata.accounts)
+                });
+
+                const response = await fetch(`${API_CONFIG.apiUrl}?${params.toString()}`);
+                const exchangeResult = await response.json();
+
+                if (!exchangeResult || !exchangeResult.success) {
+                    throw new Error(exchangeResult?.error || 'Failed to exchange token');
+                }
+
+                showNotification(`Connected to ${metadata.institution.name}! Loading holdings...`, 'success');
+
+                // Load investment holdings
+                await loadPlaidInvestments();
+
+                btn.innerHTML = '<i class="fas fa-link"></i> Connect Another Account';
+                btn.disabled = false;
+
+            } catch (error) {
+                console.error('Investment Token Exchange Error:', error);
+                showNotification('Failed to save connection: ' + error.message, 'error');
+                btn.innerHTML = '<i class="fas fa-link"></i> Connect Investment Account';
+                btn.disabled = false;
+            }
+        }
+
+        async function loadPlaidInvestments() {
+            try {
+                const response = await fetchFromSheet('getPlaidInvestmentHoldings');
+
+                if (response && response.success) {
+                    displayPlaidInvestments(response);
+                } else {
+                    console.log('No investment holdings found or error:', response?.error);
+                }
+            } catch (error) {
+                console.error('Failed to load investment holdings:', error);
+            }
+        }
+
+        async function refreshPlaidInvestments() {
+            const btn = document.querySelector('#plaid-holdings-section .btn-secondary');
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+                btn.disabled = true;
+            }
+
+            await loadPlaidInvestments();
+
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-sync"></i> Refresh';
+                btn.disabled = false;
+            }
+        }
+
+        function displayPlaidInvestments(data) {
+            const accountsSection = document.getElementById('plaid-investment-accounts');
+            const holdingsSection = document.getElementById('plaid-holdings-section');
+            const accountsList = document.getElementById('investment-accounts-list');
+            const holdingsGrid = document.getElementById('investment-holdings-grid');
+            const statusBadge = document.getElementById('plaid-investment-status');
+
+            // Show sections
+            if (data.accounts && data.accounts.length > 0) {
+                accountsSection.style.display = 'block';
+                statusBadge.textContent = `${data.accounts.length} Account${data.accounts.length > 1 ? 's' : ''} Linked`;
+                statusBadge.style.background = 'var(--success)';
+
+                // Display accounts
+                accountsList.innerHTML = data.accounts.map(acc => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <div>
+                            <div style="font-weight: 600;">${acc.name}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">${acc.institution} - ${acc.subtype || acc.type}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 700; color: var(--success);">$${(acc.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Show holdings
+            if (data.holdings && data.holdings.length > 0) {
+                holdingsSection.style.display = 'block';
+
+                // Display holdings
+                holdingsGrid.innerHTML = data.holdings.map(h => {
+                    const gainLossClass = h.gain_loss >= 0 ? 'var(--success)' : 'var(--danger)';
+                    const gainLossSign = h.gain_loss >= 0 ? '+' : '';
+                    return `
+                        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 1.1rem;">${h.ticker}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${h.name?.substring(0, 30)}${h.name?.length > 30 ? '...' : ''}</div>
+                                </div>
+                                <span style="padding: 0.25rem 0.5rem; background: rgba(67, 97, 238, 0.2); border-radius: 4px; font-size: 0.7rem; color: var(--info);">${h.type}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem;">
+                                <div>
+                                    <div style="color: var(--text-secondary);">Shares</div>
+                                    <div style="font-weight: 600;">${h.quantity?.toFixed(4) || 0}</div>
+                                </div>
+                                <div>
+                                    <div style="color: var(--text-secondary);">Price</div>
+                                    <div style="font-weight: 600;">$${(h.current_price || 0).toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="color: var(--text-secondary);">Value</div>
+                                    <div style="font-weight: 600; color: var(--success);">$${(h.current_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                </div>
+                                <div>
+                                    <div style="color: var(--text-secondary);">Gain/Loss</div>
+                                    <div style="font-weight: 600; color: ${gainLossClass};">${gainLossSign}$${Math.abs(h.gain_loss || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Update summary
+            if (data.summary) {
+                document.getElementById('plaid-total-value').textContent = `$${(data.summary.total_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                document.getElementById('plaid-cost-basis').textContent = `$${(data.summary.total_cost_basis || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+                const gainLoss = data.summary.total_gain_loss || 0;
+                const gainLossEl = document.getElementById('plaid-gain-loss');
+                gainLossEl.textContent = `${gainLoss >= 0 ? '+' : ''}$${Math.abs(gainLoss).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                gainLossEl.style.color = gainLoss >= 0 ? 'var(--success)' : 'var(--danger)';
+
+                const returnPct = data.summary.gain_loss_percent || 0;
+                const returnEl = document.getElementById('plaid-return-pct');
+                returnEl.textContent = `${returnPct >= 0 ? '+' : ''}${returnPct}%`;
+                returnEl.style.color = returnPct >= 0 ? 'var(--success)' : 'var(--danger)';
+
+                // Update investment total stat card
+                const investmentTotal = document.getElementById('investment-total');
+                if (investmentTotal) {
+                    investmentTotal.textContent = `$${(data.summary.total_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                }
+            }
+        }
+
+        // Load investments on page load if accounts exist
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Try to load existing investment holdings
+            setTimeout(() => loadPlaidInvestments(), 2000); // Delay to let other data load first
+        });
 
         async function loadConnectedAccounts() {
             try {
