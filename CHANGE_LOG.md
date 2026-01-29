@@ -40,6 +40,158 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-29 - Field_Operations_Claude (Intelligent Field Planner AI - Task #11)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added complete Intelligent Field Planner module (~600 lines)
+- `claude_sessions/field_operations/OUTBOX.md` - Documented AI algorithm implementation
+
+### Functions Added
+- `COMPANION_PLANTING_RULES` constant - 30+ crops with beneficial/harmful relationships
+- `CROP_FAMILY_GROUPS` constant - 10 crop families for rotation tracking
+- `getCropFamily(cropName)` - Identifies crop family (Nightshade, Brassica, etc.)
+- `checkCompanionRelationship(crop1, crop2)` - Returns beneficial/harmful/neutral
+- `getBedPlantingHistory(bedId, years)` - Gets 3-year rotation history per bed
+- `getBedsWithStatus()` - Gets all beds with current occupancy and history
+- `calculatePlacementScore(planting, bed, weights)` - Core scoring algorithm
+- `getOptimalBedAssignments(params)` - Main AI function for batch assignment
+- `applyOptimalAssignments(params)` - Apply AI recommendations to PLANNING_2026
+- `getFieldPlanSuggestions(params)` - Get individual suggestions with reasoning
+- `approveSuggestion(params)` - Accept single suggestion
+- `rejectSuggestion(params)` - Reject suggestion (for learning)
+- `approveAllSuggestions(params)` - Batch approve
+- `analyzeUnassignedPlantings(params)` - Analyze what needs placement
+- `generateFieldPlanReport(params)` - Comprehensive report
+- `assignPlantingsToField(params)` - Assign multiple plantings to field
+- `getAvailableFields(params)` - Get field capacity info
+- `analyzeFieldPlan(params)` - Full field plan analysis
+
+### Reason
+Owner directive: "INTELLIGENT planting algorithm that can select all unassigned plantings and automatically assign them in the BEST possible way with REASONING."
+
+The AI now considers:
+- Crop rotation (3-year same-family avoidance)
+- Companion planting (beneficial/harmful neighbors)
+- Bed capacity (available feet vs. needed)
+- Field type match (veg vs. flower beds)
+- Nitrogen-fixer predecessor bonus
+
+Each recommendation includes confidence score (0-100) and detailed reasoning.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - Found stub functions existed but were NOT implemented
+- [x] Searched for similar functions - None found with actual algorithm
+- [x] No duplicates created - Implemented missing stub functions
+
+---
+
+## 2026-01-29 - Social_Media_Claude (Marketing Dashboard Integration Audit)
+
+### Files Created
+- `claude_sessions/social_media/MARKETING_DASHBOARD_INTEGRATION.md` - Complete integration plan for connecting Marketing Dashboard to real social accounts
+
+### Files Modified
+- `claude_sessions/social_media/OUTBOX.md` - Added audit findings and action items for Todd
+
+### Functions Added
+- None
+
+### Reason
+Per INBOX task: "Connect Marketing Dashboard to Real Social Accounts"
+
+**Key Discovery:** The Marketing Dashboard is 90% complete! Ayrshare API is fully integrated with API key already stored. All backend endpoints are built and deployed. Frontend features (Field Mode, scheduling, AI captions, voice notes) are complete.
+
+**Only Action Needed:** Todd needs to log into Ayrshare (https://app.ayrshare.com) and connect his Instagram Business account and Facebook Page. Estimated time: 30 minutes.
+
+### Findings Summary
+| Component | Status |
+|-----------|--------|
+| Ayrshare API Key | ✅ Stored in Apps Script |
+| Backend Endpoints | ✅ All built and deployed |
+| Frontend Features | ✅ Complete |
+| Instagram Account | ❌ Needs linking in Ayrshare |
+| Facebook Page | ❌ Needs linking in Ayrshare |
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar documentation
+- [x] No duplicates created
+
+---
+
+## 2026-01-28 - Desktop_Claude (TASK-002: CONNECT 12 COS BACKEND MODULES TO FRONTEND)
+
+### Files Modified
+- `web_app/chief-of-staff.html` - Added 7 new tab sections and JavaScript to wire all 12 disconnected Chief of Staff backend modules to the frontend dashboard
+
+### Functions Added (Frontend JavaScript in chief-of-staff.html)
+- `loadProactiveAlerts()` - Fetches active alerts from getActiveAlerts endpoint
+- `renderProactiveAlerts()` - Renders alert cards in the Proactive Intel tab
+- `dismissProactiveAlert(alertId)` - Calls dismissAlert endpoint
+- `runProactiveScan()` - Calls runProactiveScan endpoint
+- `loadProactiveSuggestions()` - Calls getProactiveSuggestions endpoint
+- `loadTodaySchedule()` - Calls getTodaySchedule endpoint (Calendar AI)
+- `findMeetingSlots()` - Calls findMeetingSlots endpoint
+- `protectFocusTime()` - Calls protectFocusTime endpoint
+- `optimizeSchedule()` - Calls optimizeSchedule endpoint
+- `loadPredictiveReport()` - Calls getPredictiveReport, forecastWorkload, predictCustomerChurn
+- `loadMemoryPatterns()` - Calls getActivePatterns endpoint (Memory System)
+- `lookupContactMemory()` - Calls recallContact endpoint
+- `loadAutonomySettings()` - Calls getAutonomyStatus endpoint
+- `renderAutonomySettings(data)` - Renders autonomy level selector UI
+- `setAutonomyLevelUI(action, level)` - Calls setAutonomyLevel endpoint
+- `loadPendingApprovals()` - Calls getPendingApprovals endpoint
+- `approveItem(actionId)` / `rejectItem(actionId)` - Calls approve/reject endpoints
+- `loadStyleProfile()` - Calls getStyleProfile endpoint (Style Mimicry)
+- `analyzeOwnerStyle()` - Calls analyzeOwnerStyle endpoint
+- `toggleVoiceListening()` / `startVoiceListening()` / `stopVoiceListening()` - Web Speech API
+- `processVoiceCommand(transcript)` - Calls voiceCommand endpoint
+- `loadFileStats()` - Calls getFileStats endpoint (File Organization)
+- `searchFilesNL()` - Calls searchFilesNL endpoint
+- `loadIntegrationStatus()` - Calls getIntegrationStatus endpoint
+- `loadAgents()` - Calls getAvailableAgents endpoint (Multi-Agent)
+- `loadAgentMetrics()` - Calls getAgentMetrics endpoint
+- `loadAuditLog()` - Calls getChiefOfStaffAuditLog endpoint
+
+### Functions Modified
+- `switchTab(tab)` in chief-of-staff.html - Added lazy-loading for new tab data
+
+### Reason
+TASK-002: Connect 12 COS backend modules to frontend. Added 7 new tabs (Proactive Intel, Calendar AI, Predictive, Memory, Autonomy, Style and Voice, System) to the Chief of Staff dashboard. No backend changes. No demo data. All errors show real messages.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-01-28 - Desktop_Claude (MARKETING SYSTEM - PRODUCTION READY)
+
+### Files Modified
+- `web_app/seo_dashboard.html` - Added navigation links to Social Intelligence, Marketing Command Center, and Hub; improved error handling to show error states instead of infinite spinners on API failure
+- `web_app/social-intelligence.html` - Added navigation link to SEO Dashboard alongside existing Marketing and Hub links
+- `web_app/marketing-command-center.html` - Added navigation links to Social Intelligence and SEO Dashboard
+- `web_app/auth-guard.js` - Added `social-intelligence.html` (Manager) and `seo_dashboard.html` (Admin) to PAGE_PERMISSIONS map
+- `web_app/index.html` - Added app cards for Social Intelligence Engine and SEO Domination Dashboard in the hub
+- `index.html` (root) - Added Social Intelligence and SEO Dashboard links to the Sales & Marketing navigation section
+
+### Functions Added
+- None (navigation and error handling improvements only)
+
+### Functions Modified
+- None
+
+### Reason
+TASK-003: Making the 3 marketing pages (social-intelligence, marketing-command-center, seo_dashboard) production-ready. All 3 already had proper auth-guard.js and api-config.js integration. Main issues were: missing cross-navigation between marketing pages, missing links from dashboards/hub, and SEO dashboard had no visible navigation back to hub. Also improved SEO dashboard error handling to show error states instead of infinite loading spinners. No demo data fallbacks were found or added -- all pages show errors or empty states on API failure.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-01-28 - Desktop_Claude (CHIEF OF STAFF UI OVERHAUL)
 
 ### Files Modified
@@ -721,6 +873,51 @@ Chief of Staff dashboard was showing connection errors and not loading communica
 - [x] Checked SYSTEM_MANIFEST.md
 - [x] Searched for similar functions
 - [x] No duplicates created
+
+---
+
+## 2026-01-28 - Builder_Claude (MULTI-AGENT COMMUNICATION HUB - TASK #143)
+
+### Files Modified
+- `tinypm/web_server.py` - Added unified intercom API endpoints for multi-agent communication
+- `tinypm/web_dashboard.html` - Added dynamic agent selector, broadcast modal, and intercom integration
+
+### Functions Added (Python - web_server.py)
+- `api_get_intercom()` - GET /api/intercom - Returns full intercom state for all agents
+- `api_get_user_intercom()` - GET /api/intercom/user - Returns user-to-agent messages
+- `api_intercom_send()` - POST /api/intercom/send - User sends message to specific agent
+- `api_intercom_broadcast()` - POST /api/intercom/broadcast - User broadcasts to ALL agents
+- `_load_intercom()` / `_save_intercom()` - Load/save unified intercom state
+
+### Functions Added (JavaScript - web_dashboard.html)
+- `loadDynamicAgents()` - Loads agents from /api/agents and adds buttons dynamically
+- `openBroadcastModal()` / `closeBroadcastModal()` - Broadcast modal controls
+- `sendBroadcast()` - Sends broadcast message to all agents via intercom
+- `sendToIntercom()` - Sends message to specific agent via intercom
+
+### API Endpoints Added
+- `GET /api/intercom` - Full intercom state (all channels)
+- `GET /api/intercom/user` - User-specific messages
+- `POST /api/intercom/send` - Send message to specific agent
+- `POST /api/intercom/broadcast` - Broadcast to ALL agents
+
+### UI Enhancements
+- Dynamic agent buttons in chat panel (auto-loads from registry)
+- Broadcast button (ALL) for messaging all agents at once
+- Broadcast modal with agent list preview
+- Purple styling for spawned agents to distinguish from core agents
+
+### Reason
+User requested ability to communicate with ALL spawned bots, not just PM/Builder/Overseer. Implemented unified intercom system that:
+1. Routes user messages to any agent via the intercom
+2. Supports broadcasting to all agents simultaneously
+3. Dynamically loads spawned agents into the UI
+4. Maintains compatibility with existing PM/Builder chat systems
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing multi-agent intercom system
+- [x] Searched for similar functions - Existing agent chat was per-agent, not unified
+- [x] No duplicates created - Extended existing intercom pattern
 
 ---
 

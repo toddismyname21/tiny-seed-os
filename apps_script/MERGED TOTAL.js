@@ -17507,6 +17507,894 @@ function getPlanningData() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// INTELLIGENT FIELD PLANNER - AI BED ASSIGNMENT ALGORITHM
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Companion Planting Rules Database
+ * Relationships: beneficial, neutral, harmful
+ * Based on scientific research and traditional farming knowledge
+ */
+const COMPANION_PLANTING_RULES = {
+  // Nightshades (Tomatoes, Peppers, Eggplant, Potatoes)
+  'Tomato': {
+    beneficial: ['Basil', 'Carrot', 'Parsley', 'Marigold', 'Lettuce', 'Onion', 'Garlic', 'Chives', 'Asparagus', 'Celery'],
+    harmful: ['Brassica', 'Cabbage', 'Broccoli', 'Cauliflower', 'Kale', 'Fennel', 'Corn', 'Dill', 'Potato', 'Walnut']
+  },
+  'Pepper': {
+    beneficial: ['Basil', 'Tomato', 'Carrot', 'Onion', 'Parsley', 'Marigold', 'Spinach'],
+    harmful: ['Fennel', 'Kohlrabi', 'Brassica', 'Bean']
+  },
+  'Eggplant': {
+    beneficial: ['Bean', 'Pepper', 'Spinach', 'Thyme', 'Marigold'],
+    harmful: ['Fennel']
+  },
+
+  // Brassicas (Cabbage family)
+  'Cabbage': {
+    beneficial: ['Onion', 'Garlic', 'Celery', 'Beet', 'Chamomile', 'Dill', 'Sage', 'Thyme', 'Rosemary'],
+    harmful: ['Strawberry', 'Tomato', 'Pepper', 'Grape', 'Rue']
+  },
+  'Broccoli': {
+    beneficial: ['Onion', 'Garlic', 'Celery', 'Beet', 'Dill', 'Sage', 'Rosemary', 'Chamomile'],
+    harmful: ['Strawberry', 'Tomato', 'Pepper', 'Mustard']
+  },
+  'Kale': {
+    beneficial: ['Beet', 'Celery', 'Cucumber', 'Onion', 'Garlic', 'Dill', 'Sage'],
+    harmful: ['Strawberry', 'Tomato', 'Bean']
+  },
+  'Cauliflower': {
+    beneficial: ['Celery', 'Beet', 'Onion', 'Garlic', 'Spinach'],
+    harmful: ['Strawberry', 'Tomato', 'Pepper']
+  },
+
+  // Alliums (Onion family)
+  'Onion': {
+    beneficial: ['Carrot', 'Beet', 'Lettuce', 'Tomato', 'Cabbage', 'Broccoli', 'Pepper', 'Strawberry', 'Chamomile'],
+    harmful: ['Bean', 'Pea', 'Asparagus', 'Sage']
+  },
+  'Garlic': {
+    beneficial: ['Tomato', 'Pepper', 'Cabbage', 'Broccoli', 'Carrot', 'Beet', 'Strawberry', 'Rose'],
+    harmful: ['Bean', 'Pea', 'Asparagus']
+  },
+  'Leek': {
+    beneficial: ['Carrot', 'Celery', 'Onion', 'Strawberry'],
+    harmful: ['Bean', 'Pea']
+  },
+
+  // Legumes (Nitrogen fixers)
+  'Bean': {
+    beneficial: ['Corn', 'Squash', 'Cucumber', 'Carrot', 'Cabbage', 'Beet', 'Radish', 'Potato', 'Marigold', 'Celery'],
+    harmful: ['Onion', 'Garlic', 'Chives', 'Leek', 'Fennel', 'Sunflower', 'Pepper']
+  },
+  'Pea': {
+    beneficial: ['Carrot', 'Corn', 'Cucumber', 'Turnip', 'Radish', 'Bean', 'Spinach', 'Lettuce'],
+    harmful: ['Onion', 'Garlic', 'Chives', 'Leek', 'Potato']
+  },
+
+  // Cucurbits (Squash family)
+  'Cucumber': {
+    beneficial: ['Bean', 'Pea', 'Corn', 'Lettuce', 'Radish', 'Sunflower', 'Marigold', 'Dill'],
+    harmful: ['Potato', 'Sage', 'Mint', 'Melon']
+  },
+  'Squash': {
+    beneficial: ['Corn', 'Bean', 'Radish', 'Marigold', 'Sunflower', 'Nasturtium'],
+    harmful: ['Potato']
+  },
+  'Zucchini': {
+    beneficial: ['Corn', 'Bean', 'Radish', 'Marigold', 'Nasturtium', 'Pea'],
+    harmful: ['Potato', 'Pumpkin']
+  },
+  'Pumpkin': {
+    beneficial: ['Corn', 'Bean', 'Marigold', 'Sunflower', 'Oregano'],
+    harmful: ['Potato']
+  },
+  'Melon': {
+    beneficial: ['Corn', 'Sunflower', 'Marigold', 'Lettuce'],
+    harmful: ['Potato', 'Cucumber']
+  },
+
+  // Leafy Greens
+  'Lettuce': {
+    beneficial: ['Carrot', 'Radish', 'Strawberry', 'Chives', 'Onion', 'Garlic', 'Beet', 'Bean', 'Pea'],
+    harmful: ['Celery']
+  },
+  'Spinach': {
+    beneficial: ['Strawberry', 'Pea', 'Bean', 'Cabbage', 'Celery', 'Cauliflower', 'Eggplant', 'Onion'],
+    harmful: []
+  },
+  'Swiss Chard': {
+    beneficial: ['Bean', 'Cabbage', 'Onion', 'Lettuce'],
+    harmful: ['Corn', 'Cucumber', 'Melon']
+  },
+
+  // Root Vegetables
+  'Carrot': {
+    beneficial: ['Onion', 'Leek', 'Lettuce', 'Tomato', 'Bean', 'Pea', 'Rosemary', 'Sage', 'Chives'],
+    harmful: ['Dill', 'Parsnip', 'Celery']
+  },
+  'Beet': {
+    beneficial: ['Onion', 'Garlic', 'Lettuce', 'Cabbage', 'Broccoli', 'Bean', 'Kohlrabi'],
+    harmful: ['Pole Bean', 'Mustard', 'Charlock']
+  },
+  'Radish': {
+    beneficial: ['Lettuce', 'Pea', 'Bean', 'Cucumber', 'Squash', 'Spinach', 'Carrot', 'Parsnip'],
+    harmful: ['Hyssop', 'Grape']
+  },
+  'Potato': {
+    beneficial: ['Bean', 'Corn', 'Cabbage', 'Horseradish', 'Marigold', 'Basil', 'Parsley'],
+    harmful: ['Tomato', 'Pepper', 'Eggplant', 'Cucumber', 'Squash', 'Pumpkin', 'Sunflower', 'Raspberry']
+  },
+  'Sweet Potato': {
+    beneficial: ['Bean', 'Corn', 'Dill', 'Thyme'],
+    harmful: ['Squash', 'Tomato']
+  },
+  'Turnip': {
+    beneficial: ['Pea', 'Bean', 'Onion', 'Mint'],
+    harmful: ['Potato', 'Mustard']
+  },
+
+  // Herbs
+  'Basil': {
+    beneficial: ['Tomato', 'Pepper', 'Oregano', 'Marigold'],
+    harmful: ['Rue', 'Sage', 'Common Rue']
+  },
+  'Cilantro': {
+    beneficial: ['Spinach', 'Tomato', 'Bean', 'Pea', 'Pepper'],
+    harmful: ['Fennel', 'Dill']
+  },
+  'Dill': {
+    beneficial: ['Cabbage', 'Cucumber', 'Lettuce', 'Onion', 'Broccoli'],
+    harmful: ['Carrot', 'Tomato', 'Cilantro']
+  },
+  'Parsley': {
+    beneficial: ['Tomato', 'Asparagus', 'Carrot', 'Chives', 'Rose'],
+    harmful: ['Mint', 'Lettuce']
+  },
+
+  // Flowers
+  'Marigold': {
+    beneficial: ['Tomato', 'Pepper', 'Squash', 'Cucumber', 'Bean', 'Potato'],
+    harmful: ['Cabbage', 'Bean']
+  },
+  'Sunflower': {
+    beneficial: ['Cucumber', 'Squash', 'Corn', 'Melon'],
+    harmful: ['Potato', 'Bean']
+  },
+  'Nasturtium': {
+    beneficial: ['Cucumber', 'Squash', 'Cabbage', 'Radish', 'Tomato'],
+    harmful: []
+  },
+  'Zinnia': {
+    beneficial: ['Tomato', 'Pepper', 'Squash', 'Cucumber'],
+    harmful: []
+  }
+};
+
+/**
+ * Crop Family Groupings for Rotation
+ * Crops in same family should not be planted in same bed for 3+ years
+ */
+const CROP_FAMILY_GROUPS = {
+  'Nightshade': ['Tomato', 'Pepper', 'Eggplant', 'Potato', 'Tomatillo', 'Ground Cherry'],
+  'Brassica': ['Cabbage', 'Broccoli', 'Cauliflower', 'Kale', 'Collard', 'Brussels Sprout', 'Kohlrabi', 'Turnip', 'Radish', 'Arugula', 'Mustard', 'Bok Choy', 'Napa Cabbage'],
+  'Allium': ['Onion', 'Garlic', 'Leek', 'Scallion', 'Shallot', 'Chives'],
+  'Cucurbit': ['Cucumber', 'Squash', 'Zucchini', 'Pumpkin', 'Melon', 'Watermelon', 'Gourd'],
+  'Legume': ['Bean', 'Pea', 'Lentil', 'Peanut', 'Soybean', 'Clover', 'Vetch', 'Cover Crop'],
+  'Carrot': ['Carrot', 'Parsnip', 'Celery', 'Parsley', 'Dill', 'Fennel', 'Cilantro'],
+  'Beet': ['Beet', 'Swiss Chard', 'Spinach'],
+  'Lettuce': ['Lettuce', 'Endive', 'Radicchio', 'Chicory'],
+  'Corn': ['Corn', 'Sweet Corn', 'Popcorn'],
+  'Potato': ['Potato', 'Sweet Potato']
+};
+
+/**
+ * Get the crop family for a given crop name
+ */
+function getCropFamily(cropName) {
+  const normalizedCrop = cropName.trim();
+  for (const [family, crops] of Object.entries(CROP_FAMILY_GROUPS)) {
+    for (const crop of crops) {
+      if (normalizedCrop.toLowerCase().includes(crop.toLowerCase()) ||
+          crop.toLowerCase().includes(normalizedCrop.toLowerCase())) {
+        return family;
+      }
+    }
+  }
+  return 'Other';
+}
+
+/**
+ * Check companion planting relationship between two crops
+ * Returns: 'beneficial', 'harmful', or 'neutral'
+ */
+function checkCompanionRelationship(crop1, crop2) {
+  const normalize = (name) => name.split(' ')[0]; // Get first word (e.g., "Tomato" from "Tomato Cherokee Purple")
+
+  const c1 = normalize(crop1);
+  const c2 = normalize(crop2);
+
+  // Check both directions
+  const rules1 = COMPANION_PLANTING_RULES[c1];
+  const rules2 = COMPANION_PLANTING_RULES[c2];
+
+  if (rules1) {
+    if (rules1.beneficial && rules1.beneficial.some(b => c2.includes(b) || b.includes(c2))) return 'beneficial';
+    if (rules1.harmful && rules1.harmful.some(h => c2.includes(h) || h.includes(c2))) return 'harmful';
+  }
+
+  if (rules2) {
+    if (rules2.beneficial && rules2.beneficial.some(b => c1.includes(b) || b.includes(c1))) return 'beneficial';
+    if (rules2.harmful && rules2.harmful.some(h => c1.includes(h) || h.includes(c1))) return 'harmful';
+  }
+
+  return 'neutral';
+}
+
+/**
+ * Get planting history for a bed (what was planted in previous years)
+ */
+function getBedPlantingHistory(bedId, years = 3) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const history = [];
+
+    // Check current year
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+    if (planSheet) {
+      const data = planSheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (row[5] && String(row[5]).includes(bedId)) {
+          history.push({
+            year: 2026,
+            crop: row[2],
+            variety: row[3],
+            family: getCropFamily(row[2])
+          });
+        }
+      }
+    }
+
+    // Check previous years if sheets exist
+    for (let yearOffset = 1; yearOffset <= years; yearOffset++) {
+      const yearSheet = ss.getSheetByName(`PLANNING_${2026 - yearOffset}`);
+      if (yearSheet) {
+        const data = yearSheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          if (row[5] && String(row[5]).includes(bedId)) {
+            history.push({
+              year: 2026 - yearOffset,
+              crop: row[2],
+              variety: row[3],
+              family: getCropFamily(row[2])
+            });
+          }
+        }
+      }
+    }
+
+    return history;
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * Get all beds with their current status
+ */
+function getBedsWithStatus() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const bedsSheet = ss.getSheetByName('REF_Beds');
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!bedsSheet) return [];
+
+    const bedData = bedsSheet.getDataRange().getValues();
+    const headers = bedData[0];
+    const beds = [];
+
+    // Get current plantings for occupancy check
+    const currentPlantings = [];
+    if (planSheet) {
+      const planData = planSheet.getDataRange().getValues();
+      for (let i = 1; i < planData.length; i++) {
+        if (planData[i][5] && String(planData[i][5]).trim()) {
+          currentPlantings.push({
+            bedId: planData[i][5],
+            crop: planData[i][2],
+            variety: planData[i][3],
+            feet: planData[i][6] || 0,
+            firstHarvest: planData[i][15],
+            lastHarvest: planData[i][16]
+          });
+        }
+      }
+    }
+
+    for (let i = 1; i < bedData.length; i++) {
+      const row = bedData[i];
+      const bedId = row[0];
+      const field = row[1] || '';
+      const length = row[3] || 100;
+
+      // Find current occupants
+      const occupants = currentPlantings.filter(p => String(p.bedId) === String(bedId));
+      const usedFeet = occupants.reduce((sum, o) => sum + (o.feet || 0), 0);
+      const availableFeet = Math.max(0, length - usedFeet);
+
+      beds.push({
+        bedId: bedId,
+        field: field,
+        length: length,
+        type: row[4] || 'Veg',
+        availableFeet: availableFeet,
+        occupants: occupants,
+        history: getBedPlantingHistory(bedId)
+      });
+    }
+
+    return beds;
+  } catch (error) {
+    Logger.log('Error getting beds: ' + error);
+    return [];
+  }
+}
+
+/**
+ * Calculate placement score for a planting in a specific bed
+ * Returns score (0-100) and detailed reasoning
+ */
+function calculatePlacementScore(planting, bed, weights) {
+  const reasons = [];
+  let score = 50; // Base score
+
+  const rotationWeight = (weights.rotationWeight || 70) / 100;
+  const companionWeight = 0.6; // 60% weight for companion planting
+  const capacityWeight = 0.8; // 80% weight for capacity fit
+  const fieldTimeWeight = (weights.fieldTimeWeight || 80) / 100;
+
+  // 1. ROTATION CHECK (Most Important)
+  const cropFamily = getCropFamily(planting.Crop);
+  const history = bed.history || [];
+  const recentFamilies = history.filter(h => h.year >= 2024).map(h => h.family);
+
+  if (recentFamilies.includes(cropFamily)) {
+    // Same family planted recently - big penalty
+    score -= 30 * rotationWeight;
+    reasons.push({ type: 'warning', text: `⚠️ ${cropFamily} family planted here in last 3 years` });
+  } else if (history.length > 0) {
+    // Good rotation
+    score += 15 * rotationWeight;
+    reasons.push({ type: 'success', text: `✓ Good rotation - no ${cropFamily} recently` });
+  }
+
+  // 2. COMPANION PLANTING CHECK
+  if (bed.occupants && bed.occupants.length > 0) {
+    let beneficialCount = 0;
+    let harmfulCount = 0;
+
+    for (const occupant of bed.occupants) {
+      const relationship = checkCompanionRelationship(planting.Crop, occupant.crop);
+      if (relationship === 'beneficial') {
+        beneficialCount++;
+        reasons.push({ type: 'success', text: `✓ Great companion: ${occupant.crop}` });
+      } else if (relationship === 'harmful') {
+        harmfulCount++;
+        reasons.push({ type: 'error', text: `✗ Poor companion: ${occupant.crop}` });
+      }
+    }
+
+    score += (beneficialCount * 10 - harmfulCount * 20) * companionWeight;
+  } else {
+    // Empty bed - neutral
+    reasons.push({ type: 'info', text: 'Bed currently empty' });
+  }
+
+  // 3. CAPACITY CHECK
+  const neededFeet = planting.Bed_Feet || planting.bedFeet || 50;
+  if (bed.availableFeet >= neededFeet) {
+    score += 20 * capacityWeight;
+    reasons.push({ type: 'success', text: `✓ Space available: ${bed.availableFeet}ft / ${neededFeet}ft needed` });
+  } else if (bed.availableFeet > 0) {
+    score -= 10 * capacityWeight;
+    reasons.push({ type: 'warning', text: `⚠️ Partial fit: ${bed.availableFeet}ft available, ${neededFeet}ft needed` });
+  } else {
+    score -= 40 * capacityWeight;
+    reasons.push({ type: 'error', text: `✗ No space: bed fully occupied` });
+  }
+
+  // 4. FIELD TYPE MATCH
+  const bedType = (bed.type || 'Veg').toLowerCase();
+  const cropType = (planting.Type || 'veg').toLowerCase();
+  if (bedType.includes('floral') && !cropType.includes('flower')) {
+    score -= 10;
+    reasons.push({ type: 'warning', text: '⚠️ Bed is designated for flowers' });
+  } else if (bedType.includes('veg') && cropType.includes('flower')) {
+    score -= 5;
+    reasons.push({ type: 'info', text: 'Bed is designated for vegetables' });
+  }
+
+  // 5. BONUS: Nitrogen-fixing predecessor
+  const lastCrop = history.length > 0 ? history[0].crop : null;
+  if (lastCrop && getCropFamily(lastCrop) === 'Legume') {
+    score += 10;
+    reasons.push({ type: 'success', text: `✓ Follows nitrogen-fixer (${lastCrop})` });
+  }
+
+  // Clamp score to 0-100
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  return {
+    score,
+    reasons,
+    confidence: score >= 80 ? 'high' : (score >= 60 ? 'medium' : 'low')
+  };
+}
+
+/**
+ * MAIN FUNCTION: Get optimal bed assignments for all unassigned plantings
+ */
+function getOptimalBedAssignments(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!planSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const weights = {
+      rotationWeight: parseInt(params.rotationWeight) || 70,
+      fieldTimeWeight: parseInt(params.fieldTimeWeight) || 80,
+      proximityWeight: parseInt(params.proximityWeight) || 50,
+      sizeWeight: parseInt(params.sizeWeight) || 60
+    };
+
+    // Get all plantings
+    const planData = planSheet.getDataRange().getValues();
+    const unassigned = [];
+
+    for (let i = 1; i < planData.length; i++) {
+      const row = planData[i];
+      const bedId = row[5];
+      const crop = row[2];
+
+      // Check if unassigned
+      if (crop && (!bedId || bedId === '' || bedId === 'Unassigned' || bedId === 'TBD')) {
+        unassigned.push({
+          rowIndex: i + 1,
+          Batch_ID: row[1],
+          Crop: crop,
+          Variety: row[3],
+          Method: row[4],
+          Bed_Feet: row[6] || 50,
+          Plan_Transplant: row[13],
+          First_Harvest: row[15],
+          Last_Harvest: row[16]
+        });
+      }
+    }
+
+    if (unassigned.length === 0) {
+      return { success: true, assignments: [], message: 'No unassigned plantings found' };
+    }
+
+    // Get all beds
+    const beds = getBedsWithStatus();
+    if (beds.length === 0) {
+      return { success: false, error: 'No beds found in REF_Beds' };
+    }
+
+    // Calculate scores for each planting-bed combination
+    const assignments = [];
+    const usedBeds = new Set(); // Track beds we've already assigned to avoid conflicts
+
+    for (const planting of unassigned) {
+      let bestBed = null;
+      let bestScore = -1;
+      let bestReasons = [];
+
+      for (const bed of beds) {
+        // Skip if bed already used in this optimization round
+        if (usedBeds.has(bed.bedId) && bed.availableFeet < planting.Bed_Feet) continue;
+
+        const result = calculatePlacementScore(planting, bed, weights);
+
+        if (result.score > bestScore) {
+          bestScore = result.score;
+          bestBed = bed;
+          bestReasons = result.reasons;
+        }
+      }
+
+      if (bestBed && bestScore >= 40) { // Minimum threshold
+        const reasonText = bestReasons.map(r => r.text).join(' | ');
+
+        assignments.push({
+          batchId: planting.Batch_ID,
+          crop: planting.Crop,
+          variety: planting.Variety,
+          fromBed: 'Unassigned',
+          toBed: bestBed.bedId,
+          toField: bestBed.field,
+          score: bestScore,
+          confidence: bestScore >= 80 ? 'high' : (bestScore >= 60 ? 'medium' : 'low'),
+          reason: reasonText,
+          reasons: bestReasons,
+          rowIndex: planting.rowIndex
+        });
+
+        // Reduce available feet in this bed
+        bestBed.availableFeet -= planting.Bed_Feet;
+        if (bestBed.availableFeet <= 0) {
+          usedBeds.add(bestBed.bedId);
+        }
+      }
+    }
+
+    // Sort by score (highest first)
+    assignments.sort((a, b) => b.score - a.score);
+
+    // Calculate average score
+    const avgScore = assignments.length > 0
+      ? Math.round(assignments.reduce((sum, a) => sum + a.score, 0) / assignments.length)
+      : 0;
+
+    return {
+      success: true,
+      assignments: assignments,
+      averageScore: avgScore,
+      totalUnassigned: unassigned.length,
+      totalAssigned: assignments.length,
+      message: `Found ${assignments.length} optimal placements for ${unassigned.length} unassigned plantings`
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Apply AI-recommended bed assignments to PLANNING_2026
+ */
+function applyOptimalAssignments(params) {
+  try {
+    const assignments = params.assignments ? JSON.parse(params.assignments) : [];
+
+    if (!assignments || assignments.length === 0) {
+      return { success: false, error: 'No assignments provided' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!sheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    let appliedCount = 0;
+
+    for (const assignment of assignments) {
+      if (assignment.rowIndex && assignment.toBed) {
+        // Column F (index 6, 1-based) is Target_Bed_ID
+        sheet.getRange(assignment.rowIndex, 6).setValue(assignment.toBed);
+        appliedCount++;
+      }
+    }
+
+    return {
+      success: true,
+      applied: appliedCount,
+      message: `Successfully applied ${appliedCount} bed assignments`
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get AI suggestions for field planning (individual suggestions)
+ */
+function getFieldPlanSuggestions(params) {
+  try {
+    const result = getOptimalBedAssignments(params);
+
+    if (!result.success) {
+      return result;
+    }
+
+    // Transform assignments to suggestions format
+    const suggestions = result.assignments.map(a => ({
+      id: `${a.batchId}-${a.toBed}`,
+      batchId: a.batchId,
+      crop: a.crop,
+      variety: a.variety,
+      targetField: a.toField,
+      targetBed: a.toBed,
+      score: a.score,
+      confidence: a.confidence,
+      reason: a.reason,
+      reasons: a.reasons,
+      rowIndex: a.rowIndex
+    }));
+
+    return {
+      success: true,
+      suggestions: suggestions,
+      averageScore: result.averageScore,
+      totalUnassigned: result.totalUnassigned
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Approve a single suggestion
+ */
+function approveSuggestion(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!sheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const rowIndex = parseInt(params.rowIndex);
+    const targetBed = params.targetBed;
+
+    if (!rowIndex || !targetBed) {
+      return { success: false, error: 'Missing rowIndex or targetBed' };
+    }
+
+    sheet.getRange(rowIndex, 6).setValue(targetBed);
+
+    return {
+      success: true,
+      message: `Assigned to ${targetBed}`
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Reject a suggestion (just returns success, no action needed)
+ */
+function rejectSuggestion(params) {
+  return { success: true, message: 'Suggestion rejected' };
+}
+
+/**
+ * Approve all suggestions at once
+ */
+function approveAllSuggestions(params) {
+  return applyOptimalAssignments(params);
+}
+
+/**
+ * Analyze unassigned plantings
+ */
+function analyzeUnassignedPlantings(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!sheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const unassigned = [];
+    const byFieldTime = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const bedId = row[5];
+      const crop = row[2];
+
+      if (crop && (!bedId || bedId === '' || bedId === 'Unassigned' || bedId === 'TBD')) {
+        const planting = {
+          batchId: row[1],
+          crop: crop,
+          variety: row[3],
+          method: row[4],
+          bedFeet: row[6] || 50,
+          planTransplant: row[13],
+          firstHarvest: row[15],
+          lastHarvest: row[16],
+          family: getCropFamily(crop)
+        };
+
+        unassigned.push(planting);
+
+        // Group by field time (month of first harvest)
+        const harvestDate = row[15];
+        const group = harvestDate ? new Date(harvestDate).toLocaleDateString('en-US', { month: 'short' }) : 'Unknown';
+        if (!byFieldTime[group]) {
+          byFieldTime[group] = { count: 0, totalFeet: 0, plantings: [] };
+        }
+        byFieldTime[group].count++;
+        byFieldTime[group].totalFeet += planting.bedFeet;
+        byFieldTime[group].plantings.push(planting);
+      }
+    }
+
+    return {
+      success: true,
+      totalUnassigned: unassigned.length,
+      totalBedFeet: unassigned.reduce((sum, p) => sum + p.bedFeet, 0),
+      byFieldTime: byFieldTime,
+      plantings: unassigned
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate field plan report
+ */
+function generateFieldPlanReport(params) {
+  try {
+    const analysis = analyzeUnassignedPlantings(params);
+    const assignments = getOptimalBedAssignments(params);
+
+    return {
+      success: true,
+      analysis: analysis,
+      recommendations: assignments,
+      generatedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Assign multiple plantings to a specific field
+ */
+function assignPlantingsToField(params) {
+  try {
+    const fieldId = params.fieldId;
+    const plantingIds = params.plantingIds ? JSON.parse(params.plantingIds) : [];
+
+    if (!fieldId || plantingIds.length === 0) {
+      return { success: false, error: 'Missing fieldId or plantingIds' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PLANNING_2026');
+    const bedsSheet = ss.getSheetByName('REF_Beds');
+
+    if (!sheet || !bedsSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    // Get beds in this field
+    const bedData = bedsSheet.getDataRange().getValues();
+    const fieldBeds = [];
+    for (let i = 1; i < bedData.length; i++) {
+      if (bedData[i][1] === fieldId) {
+        fieldBeds.push(bedData[i][0]);
+      }
+    }
+
+    if (fieldBeds.length === 0) {
+      return { success: false, error: `No beds found in field ${fieldId}` };
+    }
+
+    // Assign plantings to available beds
+    const planData = sheet.getDataRange().getValues();
+    let assigned = 0;
+    let bedIndex = 0;
+
+    for (const plantingId of plantingIds) {
+      for (let i = 1; i < planData.length; i++) {
+        if (planData[i][1] === plantingId) {
+          sheet.getRange(i + 1, 6).setValue(fieldBeds[bedIndex % fieldBeds.length]);
+          assigned++;
+          bedIndex++;
+          break;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      assigned: assigned,
+      message: `Assigned ${assigned} plantings to ${fieldId}`
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get available fields with capacity info
+ */
+function getAvailableFields(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const fieldsSheet = ss.getSheetByName('REF_Fields');
+    const bedsSheet = ss.getSheetByName('REF_Beds');
+
+    if (!fieldsSheet) {
+      return { success: false, error: 'REF_Fields sheet not found' };
+    }
+
+    const fieldData = fieldsSheet.getDataRange().getValues();
+    const bedData = bedsSheet ? bedsSheet.getDataRange().getValues() : [];
+
+    const fields = [];
+    for (let i = 1; i < fieldData.length; i++) {
+      const row = fieldData[i];
+      const fieldId = row[0];
+
+      // Count beds in this field
+      let bedCount = 0;
+      let totalLength = 0;
+      for (let j = 1; j < bedData.length; j++) {
+        if (bedData[j][1] === fieldId) {
+          bedCount++;
+          totalLength += bedData[j][3] || 0;
+        }
+      }
+
+      fields.push({
+        fieldId: fieldId,
+        fieldName: row[1],
+        acreage: row[2],
+        bedCount: bedCount,
+        totalBedFeet: totalLength,
+        type: row[8] || 'Veg'
+      });
+    }
+
+    return { success: true, fields: fields };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Analyze field plan - comprehensive analysis
+ */
+function analyzeFieldPlan(params) {
+  try {
+    const unassigned = analyzeUnassignedPlantings(params);
+    const fields = getAvailableFields(params);
+    const suggestions = getFieldPlanSuggestions(params);
+
+    return {
+      success: true,
+      unassignedAnalysis: unassigned,
+      availableFields: fields.fields || [],
+      suggestions: suggestions.suggestions || [],
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// END INTELLIGENT FIELD PLANNER
+// ═══════════════════════════════════════════════════════════════════════════
+
 // ============================================
 // POPULATE TRAY SIZES FROM CROP PROFILES
 // ============================================
