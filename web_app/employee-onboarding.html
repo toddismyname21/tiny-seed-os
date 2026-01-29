@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#22c55e">
+    <title>Employee Onboarding - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            color: #15803d;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #4b5563;
+            font-size: 14px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .progress-step.active {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .progress-step.completed {
+            color: #22c55e;
+        }
+
+        .step-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .progress-step.active .step-dot {
+            background: #22c55e;
+            color: white;
+        }
+
+        .progress-step.completed .step-dot {
+            background: #22c55e;
+            color: white;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #1f2937;
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            color: #22c55e;
+        }
+
+        /* Form Elements */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 500px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #ef4444;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #f9fafb;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+            background: white;
+        }
+
+        .form-group input:disabled {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        /* Checkbox Groups */
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checkbox-item:hover {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #22c55e;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 20px;
+        }
+
+        .info-box p {
+            color: #15803d;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .info-box.warning {
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+
+        .info-box.warning p {
+            color: #92400e;
+        }
+
+        /* Buttons */
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #9ca3af;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status-message.error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            display: block;
+        }
+
+        .status-message.success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            display: block;
+        }
+
+        /* Section screens */
+        .section-screen {
+            display: none;
+        }
+
+        .section-screen.active {
+            display: block;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #22c55e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Success Screen */
+        .success-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .success-screen h2 {
+            color: #15803d;
+            margin-bottom: 12px;
+        }
+
+        .success-screen p {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        /* Error Screen */
+        .error-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .error-screen h2 {
+            color: #dc2626;
+            margin-bottom: 12px;
+        }
+
+        /* Section Divider */
+        .section-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 24px 0;
+        }
+
+        /* Upload Styling */
+        .file-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 10px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-upload:hover {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+
+        .file-upload i {
+            font-size: 32px;
+            color: #9ca3af;
+            margin-bottom: 8px;
+        }
+
+        .file-upload p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Photo preview */
+        .photo-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            overflow: hidden;
+            border: 3px solid #e5e7eb;
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-preview i {
+            font-size: 48px;
+            color: #d1d5db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">&#127793;</div>
+            <h1>Tiny Seed Farm</h1>
+            <p>Employee Onboarding</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="progress-steps">
+                <div class="progress-step active" data-step="1">
+                    <div class="step-dot">1</div>
+                    <span>Basic Info</span>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="step-dot">2</div>
+                    <span>Contact</span>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="step-dot">3</div>
+                    <span>Emergency</span>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="step-dot">4</div>
+                    <span>Farm Info</span>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="step-dot">5</div>
+                    <span>Review</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingSection" class="section-screen loading-screen">
+            <div class="spinner"></div>
+            <p>Verifying your invitation...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorSection" class="section-screen card error-screen">
+            <div class="error-icon"><i class="fas fa-times-circle" style="color: #ef4444;"></i></div>
+            <h2>Link Invalid or Expired</h2>
+            <p id="errorMessage">This invitation link is no longer valid. Please contact your manager for a new invitation.</p>
+        </div>
+
+        <!-- STEP 1: Basic Information -->
+        <div id="step1" class="section-screen active">
+            <div class="info-box">
+                <p><i class="fas fa-hand-wave"></i> Welcome to Tiny Seed Farm! Please complete this onboarding form. Your information will be kept secure and only used for employment purposes.</p>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-user"></i> Basic Information</h2>
+
+                <div class="photo-preview" id="photoPreview">
+                    <i class="fas fa-user"></i>
+                </div>
+                <input type="file" id="photoInput" accept="image/*" style="display: none;">
+                <button type="button" class="btn btn-secondary" style="width: auto; margin: 0 auto 20px; display: block;" onclick="document.getElementById('photoInput').click()">
+                    <i class="fas fa-camera"></i> Add Photo (Optional)
+                </button>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>First Name <span class="required">*</span></label>
+                        <input type="text" id="firstName" required placeholder="First name">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name <span class="required">*</span></label>
+                        <input type="text" id="lastName" required placeholder="Last name">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Preferred Name/Nickname</label>
+                    <input type="text" id="preferredName" placeholder="What should we call you?">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date of Birth <span class="required">*</span></label>
+                        <input type="date" id="dateOfBirth" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Language</label>
+                        <select id="language">
+                            <option value="English">English</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                        Continue <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: Contact Information -->
+        <div id="step2" class="section-screen">
+            <div class="card">
+                <h2><i class="fas fa-phone"></i> Contact Information</h2>
+
+                <div class="form-group">
+                    <label>Email <span class="required">*</span></label>
+                    <input type="email" id="email" disabled>
+                    <p class="hint">Email from your invitation (cannot be changed)</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone Number <span class="required">*</span></label>
+                    <input type="tel" id="phone" required placeholder="(555) 123-4567">
+                </div>
+
+                <div class="section-divider"></div>
+
+                <h3 style="font-size: 16px; margin-bottom: 16px; color: #374151;"><i class="fas fa-home"></i> Mailing Address</h3>
+
+                <div class="form-group">
+                    <label>Street Address <span class="required">*</span></label>
+                    <input type="text" id="address" required placeholder="123 Main St">
+                </div>
+
+                <div class="form-group">
+                    <label>Apartment/Unit (if applicable)</label>
+                    <input type="text" id="address2" placeholder="Apt 4B">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>City <span class="required">*</span></label>
+                        <input type="text" id="city" required placeholder="Pittsburgh">
+                    </div>
+                    <div class="form-group">
+                        <label>State <span class="required">*</span></label>
+                        <select id="state" required>
+                            <option value="">Select...</option>
+                            <option value="PA" selected>Pennsylvania</option>
+                            <option value="OH">Ohio</option>
+                            <option value="WV">West Virginia</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="max-width: 200px;">
+                    <label>ZIP Code <span class="required">*</span></label>
+                    <input type="text" id="zipCode" required placeholder="15044" pattern="[0-9]{5}">
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(1)">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                        Continue <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Emergency Contact -->
+        <div id="step3" class="section-screen">
+            <div class="info-box warning">
+                <p><i class="fas fa-exclamation-triangle"></i> Emergency contact information is important for your safety. Please provide someone who can be reached if there's an emergency while you're working.</p>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-first-aid"></i> Emergency Contact</h2>
+
+                <div class="form-group">
+                    <label>Contact Name <span class="required">*</span></label>
+                    <input type="text" id="emergencyName" required placeholder="Full name">
+                </div>
+
+                <div class="form-group">
+                    <label>Relationship <span class="required">*</span></label>
+                    <select id="emergencyRelation" required>
+                        <option value="">Select relationship...</option>
+                        <option value="Spouse">Spouse</option>
+                        <option value="Parent">Parent</option>
+                        <option value="Sibling">Sibling</option>
+                        <option value="Partner">Partner</option>
+                        <option value="Child">Child (Adult)</option>
+                        <option value="Friend">Friend</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Contact Phone <span class="required">*</span></label>
+                    <input type="tel" id="emergencyPhone" required placeholder="(555) 123-4567">
+                </div>
+
+                <div class="form-group">
+                    <label>Contact Email</label>
+                    <input type="email" id="emergencyEmail" placeholder="email@example.com">
+                </div>
+
+                <div class="section-divider"></div>
+
+                <h3 style="font-size: 16px; margin-bottom: 16px; color: #374151;"><i class="fas fa-plus-circle"></i> Secondary Emergency Contact (Optional)</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="emergency2Name" placeholder="Full name">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="emergency2Phone" placeholder="(555) 123-4567">
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(2)">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="nextStep(4)">
+                        Continue <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Farm-Specific Information -->
+        <div id="step4" class="section-screen">
+            <div class="card">
+                <h2><i class="fas fa-tractor"></i> Farm Information</h2>
+
+                <div class="form-group">
+                    <label>T-Shirt Size</label>
+                    <select id="shirtSize">
+                        <option value="">Select size...</option>
+                        <option value="XS">XS</option>
+                        <option value="S">Small</option>
+                        <option value="M">Medium</option>
+                        <option value="L">Large</option>
+                        <option value="XL">XL</option>
+                        <option value="2XL">2XL</option>
+                        <option value="3XL">3XL</option>
+                    </select>
+                    <p class="hint">For farm uniforms/team shirts</p>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <h3 style="font-size: 16px; margin-bottom: 16px; color: #374151;"><i class="fas fa-certificate"></i> Certifications & Experience</h3>
+
+                <div class="form-group">
+                    <label>Do you have any of the following? (Check all that apply)</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="certTractor" name="certifications">
+                            <label for="certTractor">Tractor Operation Experience</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="certForklift" name="certifications">
+                            <label for="certForklift">Forklift Certification</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="certDrivers" name="certifications">
+                            <label for="certDrivers">Valid Driver's License</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="certCDL" name="certifications">
+                            <label for="certCDL">CDL License</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="certFirstAid" name="certifications">
+                            <label for="certFirstAid">First Aid/CPR</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="certFoodSafety" name="certifications">
+                            <label for="certFoodSafety">Food Safety Certification</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Previous Farm Experience</label>
+                    <select id="farmExperience">
+                        <option value="None">No previous farm experience</option>
+                        <option value="<1 year">Less than 1 year</option>
+                        <option value="1-2 years">1-2 years</option>
+                        <option value="3-5 years">3-5 years</option>
+                        <option value="5+ years">5+ years</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Any relevant skills or experience?</label>
+                    <textarea id="skills" placeholder="E.g., plant identification, irrigation systems, farmers market sales, commercial kitchen experience..."></textarea>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <h3 style="font-size: 16px; margin-bottom: 16px; color: #374151;"><i class="fas fa-calendar-alt"></i> Availability</h3>
+
+                <div class="form-group">
+                    <label>Earliest Start Date</label>
+                    <input type="date" id="startDate">
+                </div>
+
+                <div class="form-group">
+                    <label>Any scheduling restrictions or considerations?</label>
+                    <textarea id="availability" placeholder="E.g., can't work Sundays, available mornings only, have another part-time job..."></textarea>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <h3 style="font-size: 16px; margin-bottom: 16px; color: #374151;"><i class="fas fa-car"></i> Transportation</h3>
+
+                <div class="form-group">
+                    <label>How will you get to the farm?</label>
+                    <select id="transportation">
+                        <option value="Own vehicle">Own vehicle</option>
+                        <option value="Carpool">Carpool with another employee</option>
+                        <option value="Public transit">Public transit + walk</option>
+                        <option value="Bicycle">Bicycle</option>
+                        <option value="Need assistance">Need transportation assistance</option>
+                    </select>
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(3)">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="nextStep(5)">
+                        Review <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: Review & Submit -->
+        <div id="step5" class="section-screen">
+            <div class="info-box">
+                <p><i class="fas fa-check-circle"></i> Almost done! Please review your information below. Once submitted, your manager will be notified to complete your setup.</p>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-clipboard-check"></i> Review Your Information</h2>
+
+                <div id="reviewContent">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <div class="section-divider"></div>
+
+                <div class="form-group">
+                    <div class="checkbox-item" style="background: #f0fdf4;">
+                        <input type="checkbox" id="confirmAccuracy" required>
+                        <label for="confirmAccuracy">I confirm that all information provided is accurate and complete. <span class="required">*</span></label>
+                    </div>
+                </div>
+
+                <div id="formError" class="status-message"></div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(4)">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn btn-primary" id="submitBtn" onclick="submitOnboarding()">
+                        <i class="fas fa-paper-plane"></i> Submit Onboarding
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success State -->
+        <div id="successSection" class="section-screen card success-screen">
+            <div class="success-icon"><i class="fas fa-check-circle" style="color: #22c55e;"></i></div>
+            <h2>Onboarding Complete!</h2>
+            <p>Your information has been submitted successfully.</p>
+            <br>
+            <p><strong>What happens next?</strong></p>
+            <ul style="text-align: left; margin: 16px auto; max-width: 300px; color: #4b5563;">
+                <li>Your manager will review your submission</li>
+                <li>You'll receive your login credentials by email</li>
+                <li>You can then access the Employee App to clock in/out</li>
+            </ul>
+            <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+                Questions? Contact <a href="mailto:todd@tinyseedfarmpgh.com" style="color: #22c55e;">todd@tinyseedfarmpgh.com</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API :
+            'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+
+        let employeeData = null;
+        let token = null;
+        let currentStep = 1;
+        const totalSteps = 5;
+
+        // Get token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        token = urlParams.get('token');
+
+        // Photo handling
+        document.getElementById('photoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('photoPreview');
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Photo">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Show/hide sections
+        function showSection(sectionId) {
+            document.querySelectorAll('.section-screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+
+            // Hide progress bar on loading/error/success
+            const hideProgress = ['loadingSection', 'errorSection', 'successSection'].includes(sectionId);
+            document.getElementById('progressContainer').style.display = hideProgress ? 'none' : 'block';
+        }
+
+        // Step navigation
+        function nextStep(step) {
+            // Validate current step
+            if (!validateStep(currentStep)) {
+                return;
+            }
+
+            currentStep = step;
+            showSection('step' + step);
+            updateProgress();
+
+            // If moving to review, populate it
+            if (step === 5) {
+                populateReview();
+            }
+
+            window.scrollTo(0, 0);
+        }
+
+        function prevStep(step) {
+            currentStep = step;
+            showSection('step' + step);
+            updateProgress();
+            window.scrollTo(0, 0);
+        }
+
+        function updateProgress() {
+            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            document.querySelectorAll('.progress-step').forEach(s => {
+                const stepNum = parseInt(s.dataset.step);
+                s.classList.remove('active', 'completed');
+                if (stepNum < currentStep) {
+                    s.classList.add('completed');
+                } else if (stepNum === currentStep) {
+                    s.classList.add('active');
+                }
+            });
+        }
+
+        function validateStep(step) {
+            let valid = true;
+            let firstInvalid = null;
+
+            const stepEl = document.getElementById('step' + step);
+            const required = stepEl.querySelectorAll('[required]');
+
+            required.forEach(input => {
+                if (!input.value.trim()) {
+                    valid = false;
+                    input.style.borderColor = '#ef4444';
+                    if (!firstInvalid) firstInvalid = input;
+                } else {
+                    input.style.borderColor = '#e5e7eb';
+                }
+            });
+
+            if (!valid && firstInvalid) {
+                firstInvalid.focus();
+                firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            return valid;
+        }
+
+        function populateReview() {
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const preferredName = document.getElementById('preferredName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+            const city = document.getElementById('city').value;
+            const state = document.getElementById('state').value;
+            const zipCode = document.getElementById('zipCode').value;
+            const emergencyName = document.getElementById('emergencyName').value;
+            const emergencyPhone = document.getElementById('emergencyPhone').value;
+
+            // Get certifications
+            const certs = [];
+            if (document.getElementById('certTractor').checked) certs.push('Tractor');
+            if (document.getElementById('certForklift').checked) certs.push('Forklift');
+            if (document.getElementById('certDrivers').checked) certs.push('Driver\'s License');
+            if (document.getElementById('certCDL').checked) certs.push('CDL');
+            if (document.getElementById('certFirstAid').checked) certs.push('First Aid/CPR');
+            if (document.getElementById('certFoodSafety').checked) certs.push('Food Safety');
+
+            document.getElementById('reviewContent').innerHTML = `
+                <div style="display: grid; gap: 16px;">
+                    <div style="padding: 16px; background: #f9fafb; border-radius: 10px;">
+                        <h4 style="color: #6b7280; font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Personal</h4>
+                        <p style="font-weight: 600; font-size: 18px;">${firstName} ${lastName}</p>
+                        ${preferredName ? `<p style="color: #6b7280;">Goes by: ${preferredName}</p>` : ''}
+                    </div>
+                    <div style="padding: 16px; background: #f9fafb; border-radius: 10px;">
+                        <h4 style="color: #6b7280; font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Contact</h4>
+                        <p><i class="fas fa-envelope" style="color: #22c55e; width: 20px;"></i> ${email}</p>
+                        <p><i class="fas fa-phone" style="color: #22c55e; width: 20px;"></i> ${phone}</p>
+                        <p><i class="fas fa-home" style="color: #22c55e; width: 20px;"></i> ${address}, ${city}, ${state} ${zipCode}</p>
+                    </div>
+                    <div style="padding: 16px; background: #fef2f2; border-radius: 10px;">
+                        <h4 style="color: #dc2626; font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Emergency Contact</h4>
+                        <p style="font-weight: 600;">${emergencyName}</p>
+                        <p><i class="fas fa-phone" style="color: #dc2626; width: 20px;"></i> ${emergencyPhone}</p>
+                    </div>
+                    ${certs.length > 0 ? `
+                    <div style="padding: 16px; background: #f0fdf4; border-radius: 10px;">
+                        <h4 style="color: #15803d; font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Certifications</h4>
+                        <p>${certs.join(' • ')}</p>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Initialize page
+        async function init() {
+            if (!token) {
+                showSection('errorSection');
+                document.getElementById('errorMessage').textContent = 'No invitation token found. Please use the link from your invitation email.';
+                return;
+            }
+
+            showSection('loadingSection');
+
+            try {
+                // Verify the token
+                const response = await fetch(`${API_URL}?action=verifyEmployeeToken&token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (data.success && data.employee) {
+                    employeeData = data.employee;
+
+                    // Check if already completed
+                    if (data.employee.status === 'Active') {
+                        showSection('errorSection');
+                        document.getElementById('errorMessage').innerHTML =
+                            'Your account is already active! <a href="../employee.html">Go to Employee App</a>';
+                        return;
+                    }
+
+                    // Pre-fill available data
+                    if (data.employee.fullName) {
+                        const nameParts = data.employee.fullName.split(' ');
+                        document.getElementById('firstName').value = nameParts[0] || '';
+                        document.getElementById('lastName').value = nameParts.slice(1).join(' ') || '';
+                    }
+                    document.getElementById('email').value = data.employee.email || '';
+                    document.getElementById('phone').value = data.employee.phone || '';
+
+                    showSection('step1');
+                    updateProgress();
+                } else {
+                    showSection('errorSection');
+                    document.getElementById('errorMessage').textContent = data.error || 'Invalid or expired invitation link.';
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                showSection('errorSection');
+                document.getElementById('errorMessage').textContent = 'Unable to verify invitation. Please try again later.';
+            }
+        }
+
+        // Submit onboarding
+        async function submitOnboarding() {
+            if (!document.getElementById('confirmAccuracy').checked) {
+                alert('Please confirm that your information is accurate.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            const formError = document.getElementById('formError');
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            formError.style.display = 'none';
+
+            // Collect all form data
+            const formData = {
+                token: token,
+                firstName: document.getElementById('firstName').value.trim(),
+                lastName: document.getElementById('lastName').value.trim(),
+                preferredName: document.getElementById('preferredName').value.trim(),
+                dateOfBirth: document.getElementById('dateOfBirth').value,
+                language: document.getElementById('language').value,
+                phone: document.getElementById('phone').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                address2: document.getElementById('address2').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                state: document.getElementById('state').value,
+                zipCode: document.getElementById('zipCode').value.trim(),
+                emergencyName: document.getElementById('emergencyName').value.trim(),
+                emergencyRelation: document.getElementById('emergencyRelation').value,
+                emergencyPhone: document.getElementById('emergencyPhone').value.trim(),
+                emergencyEmail: document.getElementById('emergencyEmail').value.trim(),
+                emergency2Name: document.getElementById('emergency2Name').value.trim(),
+                emergency2Phone: document.getElementById('emergency2Phone').value.trim(),
+                shirtSize: document.getElementById('shirtSize').value,
+                certTractor: document.getElementById('certTractor').checked,
+                certForklift: document.getElementById('certForklift').checked,
+                certDrivers: document.getElementById('certDrivers').checked,
+                certCDL: document.getElementById('certCDL').checked,
+                certFirstAid: document.getElementById('certFirstAid').checked,
+                certFoodSafety: document.getElementById('certFoodSafety').checked,
+                farmExperience: document.getElementById('farmExperience').value,
+                skills: document.getElementById('skills').value.trim(),
+                startDate: document.getElementById('startDate').value,
+                availability: document.getElementById('availability').value.trim(),
+                transportation: document.getElementById('transportation').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}?action=completeEmployeeOnboarding`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSection('successSection');
+                } else {
+                    formError.textContent = data.error || 'Submission failed. Please try again.';
+                    formError.className = 'status-message error';
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Onboarding';
+                }
+            } catch (error) {
+                console.error('Submit error:', error);
+                formError.textContent = 'Network error. Please check your connection and try again.';
+                formError.className = 'status-message error';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Onboarding';
+            }
+        }
+
+        // Start verification on page load
+        init();
+    </script>
+</body>
+</html>

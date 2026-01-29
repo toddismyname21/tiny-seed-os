@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#15803d">
+    <title>Employee Management - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #15803d, #166534);
+            color: white;
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .btn-white {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .btn-white:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-primary {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #16a34a;
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background: #fecaca;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-card.pending {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .stat-card.active {
+            border-left: 4px solid #22c55e;
+        }
+
+        .stat-card.inactive {
+            border-left: 4px solid #94a3b8;
+        }
+
+        .stat-card.total {
+            border-left: 4px solid #3b82f6;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: white;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab:hover {
+            background: #f1f5f9;
+        }
+
+        .tab.active {
+            background: #22c55e;
+            color: white;
+        }
+
+        .tab .badge {
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .tab.active .badge {
+            background: white;
+            color: #22c55e;
+        }
+
+        /* Employee Cards */
+        .employee-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .employee-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .employee-card-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .employee-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .employee-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .employee-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .employee-role {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.invited {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-badge.inactive {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .employee-card-body {
+            padding: 16px 20px;
+        }
+
+        .employee-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-item .label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .detail-item .value {
+            font-size: 14px;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .detail-item .value a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .emergency-banner {
+            background: #fef2f2;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 16px;
+        }
+
+        .emergency-banner h4 {
+            font-size: 12px;
+            color: #dc2626;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .certifications-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .cert-tag {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .employee-card-actions {
+            padding: 16px 20px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Approval Form */
+        .approval-form {
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .approval-form h4 {
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #22c55e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            display: none;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            color: #1e293b;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-body .form-group {
+            margin-bottom: 16px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            display: none;
+        }
+
+        .toast.success {
+            background: #22c55e;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        .toast.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        /* Search Bar */
+        .search-bar {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .search-bar input {
+            flex: 1;
+            border: none;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-bar i {
+            color: #9ca3af;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .header-actions {
+                justify-content: space-between;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab {
+                flex: none;
+                width: calc(50% - 2px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-users"></i> Employee Management</h1>
+            <div class="header-actions">
+                <button class="btn btn-white" onclick="loadEmployees()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button class="btn btn-primary" onclick="openInviteModal()">
+                    <i class="fas fa-user-plus"></i> Invite Employee
+                </button>
+                <a href="../index.html" class="btn btn-white">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card pending">
+                <h3>Pending Approval</h3>
+                <div class="value" id="pendingCount">-</div>
+            </div>
+            <div class="stat-card active">
+                <h3>Active Employees</h3>
+                <div class="value" id="activeCount">-</div>
+            </div>
+            <div class="stat-card inactive">
+                <h3>Inactive</h3>
+                <div class="value" id="inactiveCount">-</div>
+            </div>
+            <div class="stat-card total">
+                <h3>Total</h3>
+                <div class="value" id="totalCount">-</div>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search employees by name, email, role..." oninput="filterEmployees()">
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-filter="pending" onclick="setFilter('pending')">
+                <i class="fas fa-clock"></i> Pending
+                <span class="badge" id="pendingBadge">0</span>
+            </button>
+            <button class="tab" data-filter="active" onclick="setFilter('active')">
+                <i class="fas fa-check-circle"></i> Active
+            </button>
+            <button class="tab" data-filter="invited" onclick="setFilter('invited')">
+                <i class="fas fa-envelope"></i> Invited
+            </button>
+            <button class="tab" data-filter="all" onclick="setFilter('all')">
+                <i class="fas fa-users"></i> All
+            </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingSection" class="loading">
+            <div class="spinner"></div>
+            <p>Loading employees...</p>
+        </div>
+
+        <!-- Employee List -->
+        <div id="employeeList" class="employee-grid" style="display: none;">
+            <!-- Populated by JavaScript -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-user-slash"></i>
+            <h3>No employees found</h3>
+            <p id="emptyMessage">No employees match your current filter.</p>
+        </div>
+    </div>
+
+    <!-- Invite Modal -->
+    <div id="inviteModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Invite New Employee</h3>
+                <button class="modal-close" onclick="closeModal('inviteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="inviteName" placeholder="John Smith">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="inviteEmail" placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="invitePhone" placeholder="(412) 555-0123">
+                </div>
+                <p style="font-size: 13px; color: #64748b; margin-top: 16px;">
+                    <i class="fas fa-info-circle"></i> They'll receive an email with a link to complete their onboarding form.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: #f1f5f9; color: #475569;" onclick="closeModal('inviteModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="sendInvite()">
+                    <i class="fas fa-paper-plane"></i> Send Invite
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Employee Modal -->
+    <div id="viewModal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="viewModalTitle">Employee Details</h3>
+                <button class="modal-close" onclick="closeModal('viewModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="viewModalContent">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="api-config.js"></script>
+    <script>
+        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API :
+            'https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec';
+
+        let employees = [];
+        let currentFilter = 'pending';
+
+        const ROLES = [
+            'Field Worker',
+            'Packhouse',
+            'Driver',
+            'Market Staff',
+            'Field Lead',
+            'Manager',
+            'Admin'
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadEmployees);
+
+        async function loadEmployees() {
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('employeeList').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+
+            try {
+                // Try new endpoint first, fall back to old
+                let response = await fetch(`${API_URL}?action=getAllEmployees`);
+                let data = await response.json();
+
+                if (data.success && data.employees && data.employees.length > 0) {
+                    employees = data.employees;
+                } else {
+                    // Fall back to getPendingEmployees + active from USERS
+                    response = await fetch(`${API_URL}?action=getPendingEmployees`);
+                    data = await response.json();
+                    employees = data.employees || [];
+                }
+
+                updateStats();
+                renderEmployees();
+            } catch (error) {
+                console.error('Load error:', error);
+                showToast('Failed to load employees', 'error');
+            } finally {
+                document.getElementById('loadingSection').style.display = 'none';
+            }
+        }
+
+        function updateStats() {
+            const pending = employees.filter(e => e.Status === 'Pending Approval' || e.status === 'Pending Approval');
+            const active = employees.filter(e => e.Status === 'Active' || e.status === 'Active' || e.Is_Active === true);
+            const inactive = employees.filter(e => e.Status === 'Inactive' || e.status === 'Inactive');
+            const invited = employees.filter(e => e.Status === 'Invited' || e.status === 'Invited');
+
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('activeCount').textContent = active.length;
+            document.getElementById('inactiveCount').textContent = inactive.length;
+            document.getElementById('totalCount').textContent = employees.length;
+            document.getElementById('pendingBadge').textContent = pending.length;
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[data-filter="${filter}"]`).classList.add('active');
+            renderEmployees();
+        }
+
+        function filterEmployees() {
+            renderEmployees();
+        }
+
+        function renderEmployees() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = employees.filter(emp => {
+                // Status filter
+                const status = (emp.Status || emp.status || '').toLowerCase();
+                if (currentFilter !== 'all') {
+                    if (currentFilter === 'pending' && !status.includes('pending')) return false;
+                    if (currentFilter === 'active' && status !== 'active') return false;
+                    if (currentFilter === 'invited' && status !== 'invited') return false;
+                }
+
+                // Search filter
+                if (searchTerm) {
+                    const name = `${emp.First_Name || ''} ${emp.Last_Name || ''} ${emp.Full_Name || emp.fullName || ''}`.toLowerCase();
+                    const email = (emp.Email || emp.email || '').toLowerCase();
+                    const role = (emp.Role || emp.role || '').toLowerCase();
+                    if (!name.includes(searchTerm) && !email.includes(searchTerm) && !role.includes(searchTerm)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            const listEl = document.getElementById('employeeList');
+            const emptyEl = document.getElementById('emptyState');
+
+            if (filtered.length === 0) {
+                listEl.style.display = 'none';
+                emptyEl.style.display = 'block';
+                document.getElementById('emptyMessage').textContent =
+                    currentFilter === 'pending' ? 'No employees pending approval.' :
+                    currentFilter === 'active' ? 'No active employees.' :
+                    currentFilter === 'invited' ? 'No pending invitations.' :
+                    'No employees found.';
+                return;
+            }
+
+            emptyEl.style.display = 'none';
+            listEl.style.display = 'grid';
+            listEl.innerHTML = filtered.map(emp => renderEmployeeCard(emp)).join('');
+        }
+
+        function renderEmployeeCard(emp) {
+            const firstName = emp.First_Name || (emp.Full_Name || emp.fullName || '').split(' ')[0] || 'Unknown';
+            const lastName = emp.Last_Name || (emp.Full_Name || emp.fullName || '').split(' ').slice(1).join(' ') || '';
+            const fullName = `${firstName} ${lastName}`.trim();
+            const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || '?';
+            const email = emp.Email || emp.email || '';
+            const phone = emp.Phone || emp.phone || '';
+            const role = emp.Role || emp.role || 'Unassigned';
+            const status = emp.Status || emp.status || 'Unknown';
+            const statusClass = status.toLowerCase().includes('active') ? 'active' :
+                               status.toLowerCase().includes('pending') ? 'pending' :
+                               status.toLowerCase().includes('invited') ? 'invited' : 'inactive';
+
+            const empId = emp.Employee_ID || emp.User_ID || emp.userId || '';
+            const userId = emp.User_ID || emp.userId || '';
+
+            // Get certifications
+            const certs = [];
+            if (emp.Cert_Tractor === 'Yes') certs.push('Tractor');
+            if (emp.Cert_Forklift === 'Yes') certs.push('Forklift');
+            if (emp.Cert_Drivers === 'Yes') certs.push("Driver's License");
+            if (emp.Cert_CDL === 'Yes') certs.push('CDL');
+            if (emp.Cert_FirstAid === 'Yes') certs.push('First Aid');
+            if (emp.Cert_FoodSafety === 'Yes') certs.push('Food Safety');
+
+            const isPending = status.toLowerCase().includes('pending');
+            const isInvited = status.toLowerCase().includes('invited');
+
+            return `
+                <div class="employee-card" id="card-${empId || userId}">
+                    <div class="employee-card-header">
+                        <div class="employee-info">
+                            <div class="employee-avatar">${initials}</div>
+                            <div>
+                                <div class="employee-name">${fullName}</div>
+                                <div class="employee-role">${role !== 'Unassigned' ? role : (emp.Farm_Experience ? `${emp.Farm_Experience} experience` : 'New employee')}</div>
+                            </div>
+                        </div>
+                        <span class="status-badge ${statusClass}">${status}</span>
+                    </div>
+
+                    <div class="employee-card-body">
+                        <div class="employee-details-grid">
+                            <div class="detail-item">
+                                <span class="label">Email</span>
+                                <span class="value"><a href="mailto:${email}">${email || '-'}</a></span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Phone</span>
+                                <span class="value"><a href="tel:${phone}">${phone || '-'}</a></span>
+                            </div>
+                            ${emp.Start_Date ? `
+                            <div class="detail-item">
+                                <span class="label">Start Date</span>
+                                <span class="value">${emp.Start_Date}</span>
+                            </div>
+                            ` : ''}
+                            ${emp.Transportation ? `
+                            <div class="detail-item">
+                                <span class="label">Transportation</span>
+                                <span class="value">${emp.Transportation}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+
+                        ${emp.Emergency_1_Name || emp.Emergency_Contact_Name || emp.emergencyName ? `
+                        <div class="emergency-banner">
+                            <h4><i class="fas fa-first-aid"></i> Emergency Contact</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px;">
+                                <div><strong>${emp.Emergency_1_Name || emp.Emergency_Contact_Name || emp.emergencyName}</strong> (${emp.Emergency_1_Relation || emp.Emergency_Contact_Relation || emp.emergencyRelation || 'Contact'})</div>
+                                <div><a href="tel:${emp.Emergency_1_Phone || emp.Emergency_Contact_Phone || emp.emergencyPhone}">${emp.Emergency_1_Phone || emp.Emergency_Contact_Phone || emp.emergencyPhone || '-'}</a></div>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        ${certs.length > 0 ? `
+                        <div class="certifications-list">
+                            ${certs.map(c => `<span class="cert-tag"><i class="fas fa-certificate"></i> ${c}</span>`).join('')}
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    ${isPending ? `
+                    <div class="approval-form">
+                        <h4>Approve Employee</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="role-${userId}">
+                                    <option value="">Select role...</option>
+                                    ${ROLES.map(r => `<option value="${r}">${r}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Hourly Rate</label>
+                                <input type="number" id="rate-${userId}" placeholder="15.00" step="0.25">
+                            </div>
+                            <div class="form-group">
+                                <label>Badge PIN</label>
+                                <input type="text" id="pin-${userId}" placeholder="4 digits" maxlength="4" pattern="[0-9]{4}">
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; display: flex; gap: 12px;">
+                            <button class="btn btn-primary" onclick="approveEmployee('${userId}')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="btn btn-danger" onclick="rejectEmployee('${userId}')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </div>
+                    </div>
+                    ` : isInvited ? `
+                    <div class="employee-card-actions">
+                        <button class="btn" style="background: #dbeafe; color: #1e40af;" onclick="resendInvite('${userId}')">
+                            <i class="fas fa-paper-plane"></i> Resend Invite
+                        </button>
+                        <button class="btn btn-danger" onclick="rejectEmployee('${userId}')">
+                            <i class="fas fa-times"></i> Cancel Invite
+                        </button>
+                    </div>
+                    ` : `
+                    <div class="employee-card-actions">
+                        <button class="btn" style="background: #f1f5f9; color: #475569;" onclick="viewEmployee('${empId || userId}')">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        <button class="btn" style="background: #dbeafe; color: #1e40af;" onclick="editEmployee('${empId || userId}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
+                    `}
+                </div>
+            `;
+        }
+
+        async function approveEmployee(userId) {
+            const roleSelect = document.getElementById(`role-${userId}`);
+            const rateInput = document.getElementById(`rate-${userId}`);
+            const pinInput = document.getElementById(`pin-${userId}`);
+
+            const role = roleSelect.value;
+            if (!role) {
+                showToast('Please select a role', 'error');
+                roleSelect.focus();
+                return;
+            }
+
+            const data = {
+                userId: userId,
+                role: role,
+                hourlyRate: rateInput.value || null,
+                badgePin: pinInput.value || '0000'
+            };
+
+            try {
+                const response = await fetch(`${API_URL}?action=approveEmployeeComplete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`${result.employeeName || 'Employee'} approved as ${role}!`, 'success');
+                    loadEmployees();
+                } else {
+                    // Fall back to old endpoint
+                    const fallbackResponse = await fetch(`${API_URL}?action=approveEmployee&userId=${userId}&role=${encodeURIComponent(role)}`);
+                    const fallbackResult = await fallbackResponse.json();
+
+                    if (fallbackResult.success) {
+                        showToast(`Employee approved as ${role}!`, 'success');
+                        loadEmployees();
+                    } else {
+                        showToast(fallbackResult.error || 'Failed to approve', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Approve error:', error);
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function rejectEmployee(userId) {
+            if (!confirm('Are you sure you want to reject/remove this employee?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?action=rejectEmployee&userId=${userId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Employee removed', 'success');
+                    loadEmployees();
+                } else {
+                    showToast(data.error || 'Failed to reject', 'error');
+                }
+            } catch (error) {
+                console.error('Reject error:', error);
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function resendInvite(userId) {
+            try {
+                const response = await fetch(`${API_URL}?action=sendEmployeeMagicLink`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Invitation resent!', 'success');
+                } else {
+                    showToast(data.error || 'Failed to resend', 'error');
+                }
+            } catch (error) {
+                console.error('Resend error:', error);
+                showToast('Network error', 'error');
+            }
+        }
+
+        function viewEmployee(empId) {
+            const emp = employees.find(e => e.Employee_ID === empId || e.User_ID === empId || e.userId === empId);
+            if (!emp) return;
+
+            const firstName = emp.First_Name || (emp.Full_Name || '').split(' ')[0] || '';
+            const lastName = emp.Last_Name || (emp.Full_Name || '').split(' ').slice(1).join(' ') || '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'Employee';
+
+            document.getElementById('viewModalTitle').textContent = fullName;
+            document.getElementById('viewModalContent').innerHTML = `
+                <div style="display: grid; gap: 16px;">
+                    <div style="padding: 16px; background: #f9fafb; border-radius: 10px;">
+                        <h4 style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 12px;">Personal Information</h4>
+                        <p><strong>Full Name:</strong> ${fullName}</p>
+                        <p><strong>Preferred Name:</strong> ${emp.Preferred_Name || '-'}</p>
+                        <p><strong>Date of Birth:</strong> ${emp.Date_Of_Birth || '-'}</p>
+                        <p><strong>Language:</strong> ${emp.Language_Pref || 'English'}</p>
+                        <p><strong>T-Shirt Size:</strong> ${emp.Shirt_Size || '-'}</p>
+                    </div>
+                    <div style="padding: 16px; background: #f9fafb; border-radius: 10px;">
+                        <h4 style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 12px;">Contact</h4>
+                        <p><strong>Email:</strong> ${emp.Email || '-'}</p>
+                        <p><strong>Phone:</strong> ${emp.Phone || '-'}</p>
+                        <p><strong>Address:</strong> ${emp.Address || '-'} ${emp.Address_2 || ''}</p>
+                        <p><strong>City/State/Zip:</strong> ${emp.City || ''}, ${emp.State || ''} ${emp.Zip_Code || ''}</p>
+                    </div>
+                    <div style="padding: 16px; background: #fef2f2; border-radius: 10px;">
+                        <h4 style="font-size: 12px; color: #dc2626; text-transform: uppercase; margin-bottom: 12px;">Emergency Contacts</h4>
+                        <p><strong>Primary:</strong> ${emp.Emergency_1_Name || '-'} (${emp.Emergency_1_Relation || '-'})</p>
+                        <p><strong>Phone:</strong> ${emp.Emergency_1_Phone || '-'}</p>
+                        ${emp.Emergency_2_Name ? `
+                        <p style="margin-top: 8px;"><strong>Secondary:</strong> ${emp.Emergency_2_Name}</p>
+                        <p><strong>Phone:</strong> ${emp.Emergency_2_Phone || '-'}</p>
+                        ` : ''}
+                    </div>
+                    <div style="padding: 16px; background: #f0fdf4; border-radius: 10px;">
+                        <h4 style="font-size: 12px; color: #15803d; text-transform: uppercase; margin-bottom: 12px;">Employment</h4>
+                        <p><strong>Role:</strong> ${emp.Role || '-'}</p>
+                        <p><strong>Status:</strong> ${emp.Status || '-'}</p>
+                        <p><strong>Hire Date:</strong> ${emp.Hire_Date || '-'}</p>
+                        <p><strong>Badge PIN:</strong> ${emp.Badge_PIN || '-'}</p>
+                        <p><strong>Hourly Rate:</strong> ${emp.Hourly_Rate ? '$' + emp.Hourly_Rate : '-'}</p>
+                    </div>
+                    ${emp.Skills ? `
+                    <div style="padding: 16px; background: #f9fafb; border-radius: 10px;">
+                        <h4 style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 12px;">Skills & Notes</h4>
+                        <p>${emp.Skills}</p>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            openModal('viewModal');
+        }
+
+        function editEmployee(empId) {
+            showToast('Edit feature coming soon!', 'success');
+        }
+
+        // Modal functions
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function openInviteModal() {
+            document.getElementById('inviteName').value = '';
+            document.getElementById('inviteEmail').value = '';
+            document.getElementById('invitePhone').value = '';
+            openModal('inviteModal');
+        }
+
+        async function sendInvite() {
+            const name = document.getElementById('inviteName').value.trim();
+            const email = document.getElementById('inviteEmail').value.trim();
+            const phone = document.getElementById('invitePhone').value.trim();
+
+            if (!name || !email) {
+                showToast('Name and email are required', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?action=inviteEmployee`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fullName: name,
+                        email: email,
+                        phone: phone
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Invitation sent to ${name}!`, 'success');
+                    closeModal('inviteModal');
+                    loadEmployees();
+                } else {
+                    showToast(data.error || 'Failed to send invite', 'error');
+                }
+            } catch (error) {
+                console.error('Invite error:', error);
+                showToast('Network error', 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

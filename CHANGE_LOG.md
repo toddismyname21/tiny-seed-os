@@ -40,6 +40,42 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-29 - PM_Architect (Employee Onboarding System - Task #25)
+
+### Files Created
+- `web_app/employee-onboarding.html` - Comprehensive 5-step employee onboarding form
+- `web_app/employee-management.html` - Admin dashboard for managing all employees
+- `apps_script/EmployeeOnboarding.js` - Backend module for employee onboarding
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added new API endpoints for onboarding system:
+  - GET: `getAllEmployees`, `getEmployeeDetails`
+  - POST: `completeEmployeeOnboarding`, `approveEmployeeComplete`, `updateEmployee`, `deactivateEmployee`
+  - Updated `EMPLOYEE_APP_URL` to point to new onboarding form
+- `web_app/index.html` - Added Employee Management app card to dashboard
+
+### Functions Added
+- `completeEmployeeOnboarding()` - Handles comprehensive onboarding, syncs USERS + EMPLOYEES sheets
+- `getAllEmployees()` - Returns all employees with full details
+- `approveEmployeeComplete()` - Approves employee with role, wage, PIN
+- `getEmployeeDetails()` - Get single employee details
+- `updateEmployee()` - Update employee information
+- `deactivateEmployee()` - Soft delete employee
+
+### Reason
+User needed a proper employee onboarding system that:
+1. Collects comprehensive HR info (DOB, address, emergency contacts, certifications)
+2. Syncs both USERS (auth) and EMPLOYEES (HR) sheets
+3. Provides admin dashboard to manage employees
+4. Sends notification emails on new onboarding
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (enhanced existing invite system)
+- [x] No duplicates created - integrated with existing inviteEmployee flow
+
+---
+
 ## 2026-01-29 - Field_Operations_Claude (Intelligent Field Planner AI - Task #11)
 
 ### Files Modified

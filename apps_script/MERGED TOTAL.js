@@ -12986,6 +12986,12 @@ function doGet(e) {
       case 'rejectEmployee':
         return jsonResponse(rejectEmployee(e.parameter));
 
+      // ============ EMPLOYEE ONBOARDING SYSTEM (GET) - Added 2026-01-29 ============
+      case 'getAllEmployees':
+        return jsonResponse(getAllEmployees());
+      case 'getEmployeeDetails':
+        return jsonResponse(getEmployeeDetails(e.parameter.employeeId || e.parameter.userId));
+
       // ============ CHEF REGISTRATION FLOW (GET) - Added 2026-01-24 ============
       case 'verifyChefToken':
         return jsonResponse(verifyChefToken(e.parameter.token, e.parameter.email));
@@ -14606,6 +14612,16 @@ function doPost(e) {
       case 'bulkInviteEmployees':
         return jsonResponse(bulkInviteEmployees(data.employees || data));
 
+      // ============ EMPLOYEE ONBOARDING SYSTEM (POST) - Added 2026-01-29 ============
+      case 'completeEmployeeOnboarding':
+        return jsonResponse(completeEmployeeOnboarding(data));
+      case 'approveEmployeeComplete':
+        return jsonResponse(approveEmployeeComplete(data));
+      case 'updateEmployee':
+        return jsonResponse(updateEmployee(data));
+      case 'deactivateEmployee':
+        return jsonResponse(deactivateEmployee(data.employeeId, data.reason));
+
       // ============ CHEF INVITATION SYSTEM (POST) ============
       // NOTE: inviteChef case removed (duplicate - already handled at line ~14070)
       case 'sendChefMagicLink':
@@ -15815,7 +15831,7 @@ function resetUserPin(data) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // FIXED 2026-01-24: Point to registration page for new employees
-const EMPLOYEE_APP_URL = 'https://toddismyname21.github.io/tiny-seed-os/web_app/employee-register.html';
+const EMPLOYEE_APP_URL = 'https://toddismyname21.github.io/tiny-seed-os/web_app/employee-onboarding.html';
 
 /**
  * Generate a secure magic token for passwordless authentication
