@@ -547,6 +547,9 @@
             <button class="btn btn-ghost" onclick="refreshData()">
                 <i class="fas fa-sync-alt"></i> Refresh
             </button>
+            <a href="employee-management.html" class="btn btn-ghost" style="text-decoration: none;">
+                <i class="fas fa-user-plus"></i> Add Employee
+            </a>
             <button class="btn btn-primary" onclick="openBulkScheduleModal()">
                 <i class="fas fa-magic"></i> Smart Schedule
             </button>
@@ -871,7 +874,7 @@
                 } else {
                     // No demo data - show error instead
                     employees = [];
-                    showToast('No employees found. Add employees in the Admin panel first.', 'warning');
+                    showToast('No employees found. <a href="employee-management.html" style="color: #fff; text-decoration: underline;">Add employees here</a>', 'warning', 8000);
                     console.warn('No employees returned from API. Check USERS sheet has active employees.');
                 }
             } catch (err) {
