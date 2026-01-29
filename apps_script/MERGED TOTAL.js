@@ -41147,17 +41147,37 @@ function getAllActiveEmployees() {
       const data = usersSheet.getDataRange().getValues();
       const headers = data[0];
 
+      // Trim whitespace from headers and normalize
+      const cleanHeaders = headers.map(h => String(h).trim());
+
       for (let i = 1; i < data.length; i++) {
         const row = {};
-        headers.forEach((h, j) => row[h] = data[i][j]);
-        if (row.Is_Active !== false && row.Is_Active !== 'FALSE' && row.User_ID) {
+        cleanHeaders.forEach((h, j) => row[h] = data[i][j]);
+
+        // Check for active employees with a User_ID
+        const isActive = row.Is_Active === true || row.Is_Active === 'TRUE' || row.Is_Active === 'true';
+        const hasUserId = row.User_ID && String(row.User_ID).trim() !== '';
+
+        if (isActive && hasUserId) {
+          // Get name - try multiple possible column names
+          let employeeName = 'Unknown';
+          if (row.Full_Name && String(row.Full_Name).trim()) {
+            employeeName = String(row.Full_Name).trim();
+          } else if (row['Full Name'] && String(row['Full Name']).trim()) {
+            employeeName = String(row['Full Name']).trim();
+          } else if (row.Name && String(row.Name).trim()) {
+            employeeName = String(row.Name).trim();
+          } else if (row.Username && String(row.Username).trim()) {
+            employeeName = String(row.Username).trim();
+          }
+
           employees.push({
             id: row.User_ID || row.Employee_ID,
-            name: row.Full_Name || row.Name || (row.First_Name ? row.First_Name + ' ' + (row.Last_Name || '') : '') || 'Unknown',
+            name: employeeName,
             role: row.Role || 'Employee',
             phone: row.Phone,
             email: row.Email,
-            status: row.Status
+            status: row.Status || 'Active'
           });
         }
       }
