@@ -3,12 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#15803d">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
     <title>Employee Management - Tiny Seed Farm</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #22c55e;
+            --primary-dark: #16a34a;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #273548;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -17,19 +31,18 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f8fafc;
+            background: var(--bg-dark);
             min-height: 100vh;
-            color: #1e293b;
+            color: var(--text-primary);
         }
 
         .header {
-            background: linear-gradient(135deg, #15803d, #166534);
-            color: white;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
             padding: 16px 20px;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .header-content {
@@ -47,6 +60,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            color: var(--text-primary);
+        }
+
+        .header h1 i {
+            color: var(--primary);
         }
 
         .header-actions {
@@ -69,31 +87,34 @@
             text-decoration: none;
         }
 
-        .btn-white {
-            background: rgba(255,255,255,0.2);
-            color: white;
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
         }
 
-        .btn-white:hover {
-            background: rgba(255,255,255,0.3);
+        .btn-ghost:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
         }
 
         .btn-primary {
-            background: #22c55e;
+            background: var(--primary);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #16a34a;
+            background: var(--primary-dark);
         }
 
         .btn-danger {
-            background: #fee2e2;
-            color: #dc2626;
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .btn-danger:hover {
-            background: #fecaca;
+            background: rgba(239, 68, 68, 0.3);
         }
 
         .container {
@@ -102,59 +123,87 @@
             padding: 20px;
         }
 
+        /* Quick Links */
+        .quick-links {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .quick-link {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .quick-link:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+        }
+
+        .quick-link i {
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .quick-link span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
         /* Stats Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
 
         .stat-card {
-            background: white;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .stat-card h3 {
             font-size: 12px;
             text-transform: uppercase;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-bottom: 8px;
+            letter-spacing: 0.5px;
         }
 
         .stat-card .value {
             font-size: 32px;
             font-weight: 700;
-            color: #1e293b;
+            color: var(--text-primary);
         }
 
-        .stat-card.pending {
-            border-left: 4px solid #f59e0b;
-        }
-
-        .stat-card.active {
-            border-left: 4px solid #22c55e;
-        }
-
-        .stat-card.inactive {
-            border-left: 4px solid #94a3b8;
-        }
-
-        .stat-card.total {
-            border-left: 4px solid #3b82f6;
-        }
+        .stat-card.pending { border-left: 4px solid var(--warning); }
+        .stat-card.active { border-left: 4px solid var(--primary); }
+        .stat-card.inactive { border-left: 4px solid var(--text-secondary); }
+        .stat-card.total { border-left: 4px solid var(--info); }
 
         /* Tabs */
         .tabs {
             display: flex;
             gap: 4px;
-            background: white;
+            background: var(--bg-card);
             padding: 4px;
             border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
         }
 
         .tab {
@@ -165,7 +214,7 @@
             border-radius: 8px;
             font-size: 14px;
             font-weight: 500;
-            color: #64748b;
+            color: var(--text-secondary);
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
@@ -175,16 +224,17 @@
         }
 
         .tab:hover {
-            background: #f1f5f9;
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
         }
 
         .tab.active {
-            background: #22c55e;
+            background: var(--primary);
             color: white;
         }
 
         .tab .badge {
-            background: #ef4444;
+            background: var(--danger);
             color: white;
             font-size: 11px;
             padding: 2px 6px;
@@ -194,7 +244,36 @@
 
         .tab.active .badge {
             background: white;
-            color: #22c55e;
+            color: var(--primary);
+        }
+
+        /* Search Bar */
+        .search-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            border: none;
+            font-size: 14px;
+            outline: none;
+            background: transparent;
+            color: var(--text-primary);
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-bar i {
+            color: var(--text-secondary);
         }
 
         /* Employee Cards */
@@ -204,9 +283,9 @@
         }
 
         .employee-card {
-            background: white;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             overflow: hidden;
         }
 
@@ -215,7 +294,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid var(--border);
         }
 
         .employee-info {
@@ -228,7 +307,7 @@
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #22c55e, #16a34a);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -240,12 +319,12 @@
         .employee-name {
             font-size: 18px;
             font-weight: 600;
-            color: #1e293b;
+            color: var(--text-primary);
         }
 
         .employee-role {
             font-size: 13px;
-            color: #64748b;
+            color: var(--text-secondary);
         }
 
         .status-badge {
@@ -256,23 +335,23 @@
         }
 
         .status-badge.active {
-            background: #dcfce7;
-            color: #166534;
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--primary);
         }
 
         .status-badge.pending {
-            background: #fef3c7;
-            color: #92400e;
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
         }
 
         .status-badge.invited {
-            background: #dbeafe;
-            color: #1e40af;
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--info);
         }
 
         .status-badge.inactive {
-            background: #f1f5f9;
-            color: #64748b;
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-secondary);
         }
 
         .employee-card-body {
@@ -293,23 +372,29 @@
 
         .detail-item .label {
             font-size: 12px;
-            color: #64748b;
+            color: var(--text-secondary);
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .detail-item .value {
             font-size: 14px;
-            color: #1e293b;
+            color: var(--text-primary);
             font-weight: 500;
         }
 
         .detail-item .value a {
-            color: #2563eb;
+            color: var(--primary);
             text-decoration: none;
         }
 
+        .detail-item .value a:hover {
+            text-decoration: underline;
+        }
+
         .emergency-banner {
-            background: #fef2f2;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
             border-radius: 8px;
             padding: 12px 16px;
             margin-top: 16px;
@@ -317,7 +402,7 @@
 
         .emergency-banner h4 {
             font-size: 12px;
-            color: #dc2626;
+            color: var(--danger);
             text-transform: uppercase;
             margin-bottom: 8px;
             display: flex;
@@ -329,13 +414,13 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 8px;
+            margin-top: 12px;
         }
 
         .cert-tag {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            color: #15803d;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--primary);
             padding: 4px 10px;
             border-radius: 6px;
             font-size: 12px;
@@ -344,7 +429,7 @@
 
         .employee-card-actions {
             padding: 16px 20px;
-            border-top: 1px solid #f1f5f9;
+            border-top: 1px solid var(--border);
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
@@ -352,14 +437,14 @@
 
         /* Approval Form */
         .approval-form {
-            background: #f8fafc;
+            background: rgba(245, 158, 11, 0.05);
             padding: 16px 20px;
-            border-top: 1px solid #f1f5f9;
+            border-top: 1px solid var(--border);
         }
 
         .approval-form h4 {
             font-size: 14px;
-            color: #374151;
+            color: var(--warning);
             margin-bottom: 12px;
         }
 
@@ -372,13 +457,13 @@
 
         .form-group {
             flex: 1;
-            min-width: 150px;
+            min-width: 140px;
         }
 
         .form-group label {
             display: block;
             font-size: 12px;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-bottom: 6px;
         }
 
@@ -386,34 +471,35 @@
         .form-group select {
             width: 100%;
             padding: 10px 12px;
-            border: 2px solid #e2e8f0;
+            border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 14px;
-            background: white;
+            background: var(--bg-dark);
+            color: var(--text-primary);
         }
 
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #22c55e;
+            border-color: var(--primary);
         }
 
         /* Empty State */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #64748b;
+            color: var(--text-secondary);
         }
 
         .empty-state i {
             font-size: 48px;
-            color: #cbd5e1;
+            color: var(--border);
             margin-bottom: 16px;
         }
 
         .empty-state h3 {
             font-size: 18px;
-            color: #475569;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
 
@@ -426,8 +512,8 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid #e2e8f0;
-            border-top-color: #22c55e;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 16px;
@@ -444,7 +530,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -458,7 +544,8 @@
         }
 
         .modal {
-            background: white;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             max-width: 500px;
             width: 100%;
@@ -468,7 +555,7 @@
 
         .modal-header {
             padding: 20px;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -476,15 +563,19 @@
 
         .modal-header h3 {
             font-size: 18px;
-            color: #1e293b;
+            color: var(--text-primary);
         }
 
         .modal-close {
             background: none;
             border: none;
             font-size: 24px;
-            color: #64748b;
+            color: var(--text-secondary);
             cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
         }
 
         .modal-body {
@@ -497,7 +588,7 @@
 
         .modal-footer {
             padding: 16px 20px;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--border);
             display: flex;
             gap: 12px;
             justify-content: flex-end;
@@ -519,11 +610,11 @@
         }
 
         .toast.success {
-            background: #22c55e;
+            background: var(--primary);
         }
 
         .toast.error {
-            background: #ef4444;
+            background: var(--danger);
         }
 
         .toast.show {
@@ -534,29 +625,6 @@
         @keyframes slideUp {
             from { transform: translate(-50%, 100%); opacity: 0; }
             to { transform: translate(-50%, 0); opacity: 1; }
-        }
-
-        /* Search Bar */
-        .search-bar {
-            background: white;
-            padding: 12px 16px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .search-bar input {
-            flex: 1;
-            border: none;
-            font-size: 14px;
-            outline: none;
-        }
-
-        .search-bar i {
-            color: #9ca3af;
         }
 
         @media (max-width: 768px) {
@@ -581,6 +649,14 @@
                 flex: none;
                 width: calc(50% - 2px);
             }
+
+            .quick-links {
+                flex-direction: column;
+            }
+
+            .quick-link {
+                min-width: 100%;
+            }
         }
     </style>
 </head>
@@ -589,13 +665,13 @@
         <div class="header-content">
             <h1><i class="fas fa-users"></i> Employee Management</h1>
             <div class="header-actions">
-                <button class="btn btn-white" onclick="loadEmployees()">
+                <button class="btn btn-ghost" onclick="loadEmployees()">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
                 <button class="btn btn-primary" onclick="openInviteModal()">
                     <i class="fas fa-user-plus"></i> Invite Employee
                 </button>
-                <a href="../index.html" class="btn btn-white">
+                <a href="index.html" class="btn btn-ghost">
                     <i class="fas fa-arrow-left"></i> Dashboard
                 </a>
             </div>
@@ -603,6 +679,26 @@
     </div>
 
     <div class="container">
+        <!-- Quick Links to Related Features -->
+        <div class="quick-links">
+            <a href="schedule.html" class="quick-link">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Scheduling</span>
+            </a>
+            <a href="../employee.html" class="quick-link">
+                <i class="fas fa-clock"></i>
+                <span>Time Clock</span>
+            </a>
+            <a href="payroll.html" class="quick-link">
+                <i class="fas fa-money-check-alt"></i>
+                <span>Payroll</span>
+            </a>
+            <a href="time-off.html" class="quick-link">
+                <i class="fas fa-umbrella-beach"></i>
+                <span>Time Off Requests</span>
+            </a>
+        </div>
+
         <!-- Stats -->
         <div class="stats-grid">
             <div class="stat-card pending">
@@ -649,7 +745,7 @@
         <!-- Loading -->
         <div id="loadingSection" class="loading">
             <div class="spinner"></div>
-            <p>Loading employees...</p>
+            <p style="color: var(--text-secondary);">Loading employees...</p>
         </div>
 
         <!-- Employee List -->
@@ -669,7 +765,7 @@
     <div id="inviteModal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h3><i class="fas fa-user-plus"></i> Invite New Employee</h3>
+                <h3><i class="fas fa-user-plus" style="color: var(--primary);"></i> Invite New Employee</h3>
                 <button class="modal-close" onclick="closeModal('inviteModal')">&times;</button>
             </div>
             <div class="modal-body">
@@ -685,12 +781,12 @@
                     <label>Phone</label>
                     <input type="tel" id="invitePhone" placeholder="(412) 555-0123">
                 </div>
-                <p style="font-size: 13px; color: #64748b; margin-top: 16px;">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-top: 16px;">
                     <i class="fas fa-info-circle"></i> They'll receive an email with a link to complete their onboarding form.
                 </p>
             </div>
             <div class="modal-footer">
-                <button class="btn" style="background: #f1f5f9; color: #475569;" onclick="closeModal('inviteModal')">Cancel</button>
+                <button class="btn btn-ghost" onclick="closeModal('inviteModal')">Cancel</button>
                 <button class="btn btn-primary" onclick="sendInvite()">
                     <i class="fas fa-paper-plane"></i> Send Invite
                 </button>
@@ -748,7 +844,7 @@
                 if (data.success && data.employees && data.employees.length > 0) {
                     employees = data.employees;
                 } else {
-                    // Fall back to getPendingEmployees + active from USERS
+                    // Fall back to getPendingEmployees
                     response = await fetch(`${API_URL}?action=getPendingEmployees`);
                     data = await response.json();
                     employees = data.employees || [];
@@ -900,9 +996,9 @@
                         ${emp.Emergency_1_Name || emp.Emergency_Contact_Name || emp.emergencyName ? `
                         <div class="emergency-banner">
                             <h4><i class="fas fa-first-aid"></i> Emergency Contact</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; color: var(--text-primary);">
                                 <div><strong>${emp.Emergency_1_Name || emp.Emergency_Contact_Name || emp.emergencyName}</strong> (${emp.Emergency_1_Relation || emp.Emergency_Contact_Relation || emp.emergencyRelation || 'Contact'})</div>
-                                <div><a href="tel:${emp.Emergency_1_Phone || emp.Emergency_Contact_Phone || emp.emergencyPhone}">${emp.Emergency_1_Phone || emp.Emergency_Contact_Phone || emp.emergencyPhone || '-'}</a></div>
+                                <div><a href="tel:${emp.Emergency_1_Phone || emp.Emergency_Contact_Phone || emp.emergencyPhone}" style="color: var(--danger);">${emp.Emergency_1_Phone || emp.Emergency_Contact_Phone || emp.emergencyPhone || '-'}</a></div>
                             </div>
                         </div>
                         ` : ''}
@@ -916,7 +1012,7 @@
 
                     ${isPending ? `
                     <div class="approval-form">
-                        <h4>Approve Employee</h4>
+                        <h4><i class="fas fa-user-check"></i> Approve Employee</h4>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Role</label>
@@ -945,7 +1041,7 @@
                     </div>
                     ` : isInvited ? `
                     <div class="employee-card-actions">
-                        <button class="btn" style="background: #dbeafe; color: #1e40af;" onclick="resendInvite('${userId}')">
+                        <button class="btn" style="background: rgba(59, 130, 246, 0.2); color: var(--info); border: 1px solid rgba(59, 130, 246, 0.3);" onclick="resendInvite('${userId}')">
                             <i class="fas fa-paper-plane"></i> Resend Invite
                         </button>
                         <button class="btn btn-danger" onclick="rejectEmployee('${userId}')">
@@ -954,10 +1050,10 @@
                     </div>
                     ` : `
                     <div class="employee-card-actions">
-                        <button class="btn" style="background: #f1f5f9; color: #475569;" onclick="viewEmployee('${empId || userId}')">
+                        <button class="btn btn-ghost" onclick="viewEmployee('${empId || userId}')">
                             <i class="fas fa-eye"></i> View Details
                         </button>
-                        <button class="btn" style="background: #dbeafe; color: #1e40af;" onclick="editEmployee('${empId || userId}')">
+                        <button class="btn" style="background: rgba(59, 130, 246, 0.2); color: var(--info); border: 1px solid rgba(59, 130, 246, 0.3);" onclick="editEmployee('${empId || userId}')">
                             <i class="fas fa-edit"></i> Edit
                         </button>
                     </div>
@@ -966,6 +1062,7 @@
             `;
         }
 
+        // FIXED: Use GET instead of POST to avoid CORS issues with Apps Script
         async function approveEmployee(userId) {
             const roleSelect = document.getElementById(`role-${userId}`);
             const rateInput = document.getElementById(`rate-${userId}`);
@@ -978,40 +1075,31 @@
                 return;
             }
 
-            const data = {
-                userId: userId,
-                role: role,
-                hourlyRate: rateInput.value || null,
-                badgePin: pinInput.value || '0000'
-            };
+            const hourlyRate = rateInput.value || '';
+            const badgePin = pinInput.value || '0000';
 
             try {
-                const response = await fetch(`${API_URL}?action=approveEmployeeComplete`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                // Use GET request to avoid CORS issues
+                const params = new URLSearchParams({
+                    action: 'approveEmployee',
+                    userId: userId,
+                    role: role,
+                    hourlyRate: hourlyRate,
+                    badgePin: badgePin
                 });
 
+                const response = await fetch(`${API_URL}?${params.toString()}`);
                 const result = await response.json();
 
                 if (result.success) {
                     showToast(`${result.employeeName || 'Employee'} approved as ${role}!`, 'success');
                     loadEmployees();
                 } else {
-                    // Fall back to old endpoint
-                    const fallbackResponse = await fetch(`${API_URL}?action=approveEmployee&userId=${userId}&role=${encodeURIComponent(role)}`);
-                    const fallbackResult = await fallbackResponse.json();
-
-                    if (fallbackResult.success) {
-                        showToast(`Employee approved as ${role}!`, 'success');
-                        loadEmployees();
-                    } else {
-                        showToast(fallbackResult.error || 'Failed to approve', 'error');
-                    }
+                    showToast(result.error || 'Failed to approve', 'error');
                 }
             } catch (error) {
                 console.error('Approve error:', error);
-                showToast('Network error', 'error');
+                showToast('Network error - please try again', 'error');
             }
         }
 
@@ -1038,12 +1126,8 @@
 
         async function resendInvite(userId) {
             try {
-                const response = await fetch(`${API_URL}?action=sendEmployeeMagicLink`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: userId })
-                });
-
+                // Use GET to avoid CORS
+                const response = await fetch(`${API_URL}?action=sendEmployeeMagicLink&userId=${userId}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -1068,23 +1152,23 @@
             document.getElementById('viewModalTitle').textContent = fullName;
             document.getElementById('viewModalContent').innerHTML = `
                 <div style="display: grid; gap: 16px;">
-                    <div style="padding: 16px; background: #f9fafb; border-radius: 10px;">
-                        <h4 style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 12px;">Personal Information</h4>
+                    <div style="padding: 16px; background: var(--bg-dark); border-radius: 10px; border: 1px solid var(--border);">
+                        <h4 style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px;">Personal Information</h4>
                         <p><strong>Full Name:</strong> ${fullName}</p>
                         <p><strong>Preferred Name:</strong> ${emp.Preferred_Name || '-'}</p>
                         <p><strong>Date of Birth:</strong> ${emp.Date_Of_Birth || '-'}</p>
                         <p><strong>Language:</strong> ${emp.Language_Pref || 'English'}</p>
                         <p><strong>T-Shirt Size:</strong> ${emp.Shirt_Size || '-'}</p>
                     </div>
-                    <div style="padding: 16px; background: #f9fafb; border-radius: 10px;">
-                        <h4 style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 12px;">Contact</h4>
+                    <div style="padding: 16px; background: var(--bg-dark); border-radius: 10px; border: 1px solid var(--border);">
+                        <h4 style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px;">Contact</h4>
                         <p><strong>Email:</strong> ${emp.Email || '-'}</p>
                         <p><strong>Phone:</strong> ${emp.Phone || '-'}</p>
                         <p><strong>Address:</strong> ${emp.Address || '-'} ${emp.Address_2 || ''}</p>
                         <p><strong>City/State/Zip:</strong> ${emp.City || ''}, ${emp.State || ''} ${emp.Zip_Code || ''}</p>
                     </div>
-                    <div style="padding: 16px; background: #fef2f2; border-radius: 10px;">
-                        <h4 style="font-size: 12px; color: #dc2626; text-transform: uppercase; margin-bottom: 12px;">Emergency Contacts</h4>
+                    <div style="padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                        <h4 style="font-size: 12px; color: var(--danger); text-transform: uppercase; margin-bottom: 12px;">Emergency Contacts</h4>
                         <p><strong>Primary:</strong> ${emp.Emergency_1_Name || '-'} (${emp.Emergency_1_Relation || '-'})</p>
                         <p><strong>Phone:</strong> ${emp.Emergency_1_Phone || '-'}</p>
                         ${emp.Emergency_2_Name ? `
@@ -1092,8 +1176,8 @@
                         <p><strong>Phone:</strong> ${emp.Emergency_2_Phone || '-'}</p>
                         ` : ''}
                     </div>
-                    <div style="padding: 16px; background: #f0fdf4; border-radius: 10px;">
-                        <h4 style="font-size: 12px; color: #15803d; text-transform: uppercase; margin-bottom: 12px;">Employment</h4>
+                    <div style="padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.2);">
+                        <h4 style="font-size: 12px; color: var(--primary); text-transform: uppercase; margin-bottom: 12px;">Employment</h4>
                         <p><strong>Role:</strong> ${emp.Role || '-'}</p>
                         <p><strong>Status:</strong> ${emp.Status || '-'}</p>
                         <p><strong>Hire Date:</strong> ${emp.Hire_Date || '-'}</p>
@@ -1101,8 +1185,8 @@
                         <p><strong>Hourly Rate:</strong> ${emp.Hourly_Rate ? '$' + emp.Hourly_Rate : '-'}</p>
                     </div>
                     ${emp.Skills ? `
-                    <div style="padding: 16px; background: #f9fafb; border-radius: 10px;">
-                        <h4 style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 12px;">Skills & Notes</h4>
+                    <div style="padding: 16px; background: var(--bg-dark); border-radius: 10px; border: 1px solid var(--border);">
+                        <h4 style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px;">Skills & Notes</h4>
                         <p>${emp.Skills}</p>
                     </div>
                     ` : ''}
@@ -1143,16 +1227,15 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}?action=inviteEmployee`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fullName: name,
-                        email: email,
-                        phone: phone
-                    })
+                // Use GET to avoid CORS
+                const params = new URLSearchParams({
+                    action: 'inviteEmployee',
+                    fullName: name,
+                    email: email,
+                    phone: phone || ''
                 });
 
+                const response = await fetch(`${API_URL}?${params.toString()}`);
                 const data = await response.json();
 
                 if (data.success) {
