@@ -72,7 +72,7 @@ const {
 } = require('./shopify-discount');
 
 // API Configuration - CURRENT DEPLOYMENT (Updated 2026-01-22)
-const API_BASE = 'https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec';
+const API_BASE = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
 // Available tools for Claude
 const TOOLS = {
