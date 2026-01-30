@@ -40,6 +40,42 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-29 - Social_Media_Claude (Instagram Direct API Integration - v462)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - Updated Meta Graph API version from v21.0 to v24.0 (3 locations)
+  - Added `setupInstagramCredentials_ONETIME()` - stores all 3 Instagram account credentials
+  - Added `testInstagramPost()` - test function for Instagram posting
+  - Added `getInstagramConfigStatus()` - check configuration status
+
+### Functions Added
+- `setupInstagramCredentials_ONETIME()` in `MERGED TOTAL.js` - One-time setup for all 3 Instagram accounts with Page Access Tokens, Instagram Business IDs, and Facebook Page IDs
+- `testInstagramPost()` in `MERGED TOTAL.js` - Test Instagram posting functionality
+- `getInstagramConfigStatus()` in `MERGED TOTAL.js` - Display configured account status
+
+### Reason
+Migrating from Ayrshare ($1,200/year) to direct Meta Graph API integration (free). All credentials collected from Meta Graph API Explorer during session.
+
+### Accounts Configured
+| Account | Instagram Handle | Instagram Business ID |
+|---------|------------------|----------------------|
+| Tiny Seed Farm | @tinyseedfarm | 17841403850522 |
+| Tiny Seed Fleurs | @tinyseedfleurs | 17841435193515793 |
+| Tiny Seed Fungi | @tinyseedfungi | 17841464175325954 |
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - found existing `postToInstagram()` and `configureInstagramAccount()` - reused them
+- [x] No duplicates created
+
+### Next Steps
+- Run `setupInstagramCredentials_ONETIME()` in Apps Script editor to store credentials
+- Update Marketing Command Center to use direct API instead of Ayrshare
+- Convert to long-lived tokens (current tokens expire in ~60 days)
+
+---
+
 ## 2026-01-29 - Backend_Claude (Employee Scheduling & HR Tracking System - v428)
 
 ### Files Modified
@@ -1186,7 +1222,7 @@ The portal was showing "Week of January 19" for ALL shares including Summer CSA 
 
 ### Webhook Details
 - **Topic:** orders/create
-- **URL:** https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=shopifyWebhook&topic=orders/create
+- **URL:** https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=shopifyWebhook&topic=orders/create
 - **Status:** ACTIVE
 
 ### What This Enables
@@ -1736,7 +1772,7 @@ Member_ID → calculateMemberHealthScoreSmart() →
 ### What Still Needs Owner Action
 
 1. **Shopify Webhook Setup**: Owner needs to register webhook in Shopify admin:
-   - URL: `https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=shopifyWebhook`
+   - URL: `https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=shopifyWebhook`
    - Topic: `orders/create`
    - This enables auto-import of new CSA orders
 

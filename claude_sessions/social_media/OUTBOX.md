@@ -1,293 +1,131 @@
 # STATUS: Social Media Claude
 
-**Last Updated:** 2026-01-29 @ DIRECT API INTEGRATION RESEARCH COMPLETE
+**Last Updated:** 2026-01-29 @ API SETUP COMPLETE ✅
 **Report To:** PM_Architect
 
 ---
 
-## 🚀 DIRECT API INTEGRATION PLAN COMPLETE
+## CURRENT SESSION: Meta API Setup - COMPLETE
 
-### Session Summary (2026-01-29)
+### All Credentials Retrieved ✅
 
-**Task:** Connect Marketing Dashboard to Real Social Accounts
-**Approach:** DIRECT API INTEGRATION (NO THIRD-PARTY SERVICES)
+#### App Credentials
+| Platform | Item | Value |
+|----------|------|-------|
+| **Meta (FB/IG)** | App ID | `1453282209770271` |
+| **Meta (FB/IG)** | App Secret | `923bd5e066093def628e01836769e4a5` |
+| **Threads** | App ID | `1080497484205906` |
+| **Threads** | App Secret | `4e45ad6e506f214158017586a75caac6` |
 
----
+#### Tiny Seed Farm
+| Item | Value |
+|------|-------|
+| Facebook Page ID | `1760385317513019` |
+| Instagram Business ID | `17841403850522` |
+| Instagram Handle | @tinyseedfarm |
+| Page Access Token | `EAAUpwKHfKx8BQi92G2mojrsPm5iokMIYYcWCYl0oaqY8FX1iCvjjtDgWC0SZB1Td1W5ZC8tmx0eRH7DnXsHo6tkZBE2UgiRC53ZAZCJZATOLiJQZBsq0dKSKLAKD0zZAJYJzRP73iHJvEjoGxf3ZAniNpwynrhv4nIkQUsNjy978K8mzCd29AhXEzJkamfzepmunPFIJziEPEFPhYGXoJDJsreuMqQXtE7OG9l6KM0Wl7CbDn7XVuZAISHCmEZD` |
 
-### ⚠️ CORRECTION: We Are NOT Using Ayrshare
+#### Tiny Seed Fleurs
+| Item | Value |
+|------|-------|
+| Facebook Page ID | `975076245687644` |
+| Instagram Business ID | `17841435193515793` |
+| Instagram Handle | @tinyseedfleurs |
+| Page Access Token | `EAAUpwKHfKx8BQtcLLKvR2VsctslWZBz9DvGmBCWvyiE9nfpSvi2qyvyrBNO7PZAAF2Xr7OhlCxaKc45KKHf3opskTwLZBG9rb0ybUuJWGYbbTRrrMBe8T7YmB0gyTQBwu7W4xrWpj2o2ZCs9yFhCV7vzcL9az8ba9sa5sPZC8snQOCtGSQAkB8kRlrLc5prfZCoNgo8ZCQtkj4VxT2EDKm8ZCbcIyG0TfidrpAaKz8j8fdAdciGMxR1YE4QZD` |
 
-Per owner directive: **NO third-party apps.** We are connecting DIRECTLY to all platforms.
+#### Tiny Seed Fungi
+| Item | Value |
+|------|-------|
+| Facebook Page ID | `1025602933961290` |
+| Instagram Business ID | `17841464175325954` |
+| Instagram Handle | @tinyseedfungi |
+| Page Access Token | `EAAUpwKHfKx8BQkhyBRRjrnPDcKsNwKKvwwhttIawkvNycUWsZBUpIw6Fp7psdMfjPPoJ0g0d2a3ZA0ZAq964PpEsw4wAFI8QbtGoX6ReDZAG10c3cUhblzWGIL5YFWuCgXsMpm6aN5mpcpr32OVk3zjJeFkCdvQkZBKQzqy23LjsBwULUIuXkZALxSxowMAyYPOGg5sGLYzux1cIgVZCuJEHqej4IKfZCyvP3RNfH3cycG9wH6zabX5iookZD` |
 
-**Cost Savings:** $1,200/year (Ayrshare) → $0/year (Direct APIs)
-
----
-
-### Research Complete: SOCIAL_MEDIA_API_RESEARCH.md
-
-Created comprehensive direct integration plan covering ALL 7 platforms:
-
-| Platform | Account | API | Code Status |
-|----------|---------|-----|-------------|
-| Instagram | @tinyseedfarm | Meta Graph API | ✅ CODE EXISTS |
-| Facebook | Tiny Seed Farm | Meta Graph API | ✅ CODE EXISTS |
-| Threads | @tinyseedfarm | Meta Threads API | 🔧 NEW CODE NEEDED |
-| TikTok | @TinySeedEnergy | Content Posting API | 🔧 NEW CODE NEEDED |
-| YouTube | @TinySeedFarm | Data API v3 | 🔧 NEW CODE NEEDED |
-| Pinterest | tinyseedfarm | API v5 | 🔧 NEW CODE NEEDED |
-| SMS | +14128662259 | Twilio | ✅ ALREADY WORKING |
-
-**Full details:** `claude_sessions/social_media/SOCIAL_MEDIA_API_RESEARCH.md`
-
----
-
-### CREDENTIAL CHECKLIST FOR TODD
-
-#### Meta (Instagram + Facebook) - PRIORITY
-- [ ] Create Meta Developer Account at https://developers.facebook.com
-- [ ] Create Meta Business App
-- [ ] Get Facebook App ID and App Secret
-- [ ] Get Instagram User ID (@tinyseedfarm)
-- [ ] Get Facebook Page ID (Tiny Seed Farm)
-- [ ] Generate Long-Lived Access Token
-- [ ] Verify @tinyseedfarm is Business/Creator account
-- [ ] Verify Instagram is connected to Facebook Page
-
-#### TikTok
-- [ ] Create TikTok Developer Account at https://developers.tiktok.com
-- [ ] Create TikTok App
-- [ ] Get Client Key and Client Secret
-- [ ] Submit for Content Posting API audit (required for public posts)
-- [ ] Connect @TinySeedEnergy via OAuth
-
-#### Twitter/X
-- [ ] Apply for X Developer Account at https://developer.x.com
-- [ ] Create X App/Project
-- [ ] Generate API Key, API Secret, Access Token, Access Token Secret
+### App Configuration
+| Setting | Value |
+|---------|-------|
+| App Name | Tiny Seed Farm OS FINAL |
+| Contact Email | todd@tinyseedfarmpgh.com |
+| Privacy Policy | https://app.tinyseedfarm.com/web_app/privacy-policy.html |
+| Data Deletion URL | https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=metaDataDeletion |
 
 ---
 
-### Implementation Phases
+## PROGRESS UPDATE: 2026-01-29
 
-| Phase | Focus | Status |
-|-------|-------|--------|
-| 1 | Meta (Instagram + Facebook) | 🔧 READY - waiting for credentials |
-| 2 | TikTok | 🔧 READY - waiting for credentials + audit |
-| 3 | Twitter/X | 🔧 READY - waiting for credentials |
-| 4 | Dashboard Update | 📋 PLANNED - remove Ayrshare, add direct APIs |
+### Backend Deployed ✅
 
----
+1. **API Version Updated** - Changed from v21.0 to v24.0 (current)
+2. **Setup Function Created** - `setupInstagramCredentials_ONETIME()` added to MERGED TOTAL.js
+3. **Test Function Created** - `testInstagramPost()` added for verification
+4. **Deployed** - v462 deployed to production
+5. **GitHub Updated** - Pushed to main branch
 
-### Existing Research Used
+### ACTION REQUIRED: Run Setup Function
 
-| Document | Content |
-|----------|---------|
-| `MARKETING_INTELLIGENCE_SYSTEM.md` | Instagram Graph API code already written |
-| `AUTONOMOUS_SOCIAL_BRAIN.md` | AI social system architecture |
-| `SOCIAL_CREDENTIALS.md` | Account usernames and info |
+To activate Instagram posting, owner must:
+1. Open Apps Script: https://script.google.com
+2. Open Tiny Seed project
+3. Select function: `setupInstagramCredentials_ONETIME`
+4. Click ▶️ Run
+5. Authorize if prompted
 
----
-
-## REGISTRATION CONFIRMED - 2026-01-24
-
-**Role:** Social Media Claude
-**Status:** REGISTERED AND ACTIVE
-
-### My Domain:
-- Social media posting (Ayrshare integration - **FULLY BUILT!**)
-- Neighbor landing page (web_app/neighbor.html)
-- Direct mail campaigns (READY TO LAUNCH)
-- Marketing Command Center (web_app/marketing-command-center.html)
-- Social Intelligence Dashboard (web_app/social-intelligence.html)
-- SEO Dashboard (web_app/seo_dashboard.html)
-
-### Files I Own:
-| File | Status |
-|------|--------|
-| `web_app/neighbor.html` | ✅ Fixed API |
-| `web_app/social-intelligence.html` | ✅ Fixed API |
-| `web_app/marketing-command-center.html` | ✅ Fixed API |
-| `web_app/seo_dashboard.html` | ✅ Fixed API |
+This stores all credentials in Script Properties securely.
 
 ---
 
-## PREVIOUS: API AUDIT COMPLETE + 4 FILES FIXED (2026-01-23)
+## NEXT STEPS
+
+1. **~~Store Credentials in Apps Script Properties~~** ✅ FUNCTION CREATED
+   - Run `setupInstagramCredentials_ONETIME()` in Apps Script editor
+
+2. **Test Instagram Posting**
+   - Run `testInstagramPost()` in Apps Script editor
+   - Or POST to API with action: `postToInstagram`
+
+3. **Update Marketing Command Center**
+   - Replace Ayrshare integration with direct Meta Graph API
+   - Fix account names (@tinyseedfleurs, @tinyseedfungi)
+   - Remove Ayrshare dependencies
+
+4. **Convert to Long-Lived Tokens**
+   - Current tokens expire in ~60 days
+   - Exchange for long-lived tokens
+   - Set up automatic refresh trigger
 
 ---
 
-## SESSION SUMMARY (2026-01-23) - PHASE 1 AUDIT
+## API Integration Status
 
-### Per FULL_TEAM_DEPLOYMENT.md Directive:
-Audited all social media related files for:
-1. API configuration (must use `api-config.js`)
-2. Hardcoded URLs (fix any found)
-3. Broken functionality
-
-### CRITICAL ISSUES FOUND AND FIXED:
-
-#### 1. `web_app/social-intelligence.html` - **WRONG API URL** ❌→✅
-- **Issue:** Had hardcoded OLD deployment ID
-- **Old:** `AKfycbwXXgBRlSpv5ygo4joqHLsWh6AKhxRLJ_C6gzCdxOFphE6cX-NdE9f7u16JmNr57mN0`
-- **Fix:** Added `api-config.js` import, replaced with `TINY_SEED_API.MAIN_API`
-
-#### 2. `web_app/neighbor.html` - **WRONG API URL** ❌→✅
-- **Issue:** Had hardcoded DIFFERENT deployment ID
-- **Old:** `AKfycbyMDydZxlRWRNw3BTSU_tXMgw3R6tYK0zN6CdlG8RjFlFCk9_NKMuHrOACTVlmUvMdE`
-- **Fix:** Added `api-config.js` import, replaced with `TINY_SEED_API.MAIN_API`
-
-#### 3. `web_app/marketing-command-center.html` - **Hardcoded (correct ID)** ⚠️→✅
-- **Issue:** Had hardcoded URL (correct ID but not using centralized config)
-- **Fix:** Added `api-config.js` import, replaced with `TINY_SEED_API.MAIN_API`
-
-#### 4. `web_app/seo_dashboard.html` - **Undefined variable** ❌→✅
-- **Issue:** Used `API_BASE_URL` which doesn't exist in api-config.js
-- **Fix:** Changed to `TINY_SEED_API.MAIN_API`
-
-### FILES AUDITED (Status):
-
-| File | API Config | Status |
-|------|------------|--------|
-| `social-intelligence.html` | FIXED | ✅ Uses api-config.js |
-| `marketing-command-center.html` | FIXED | ✅ Uses api-config.js |
-| `seo_dashboard.html` | FIXED | ✅ Uses api-config.js |
-| `neighbor.html` | FIXED | ✅ Uses api-config.js |
+| Platform | API | Status |
+|----------|-----|--------|
+| Instagram | Meta Graph API | ✅ **READY** - All credentials collected |
+| Facebook | Meta Graph API | ✅ **READY** - All credentials collected |
+| Threads | Meta Threads API | ⏳ Pending |
+| TikTok | Content Posting API | ⏳ Pending |
+| YouTube | Data API v3 | ⏳ Pending |
+| Pinterest | API v5 | ⏳ Pending |
+| SMS | Twilio | ✅ Working |
 
 ---
 
-## PREVIOUS SESSION (2026-01-22) - CAMPAIGN READY TO LAUNCH + SHOPIFY TOOLS BUILT
+## HOW TO POST TO INSTAGRAM (Reference)
 
----
-
-## SESSION SUMMARY (2026-01-22)
-
-### Owner Directive Received:
-Changed promo structure from 25% off to tiered "FREE WEEK" discounts:
-- $30 off Veggie CSA ($600+)
-- $15 off Veggie CSA ($300+)
-- $20 off Floral CSA
-- No discounts on add-ons
-- Ayrshare SCRAPPED - use in-house Social Intelligence Dashboard
-
-### Work Completed This Session:
-
-#### 1. Landing Page Updated (`web_app/neighbor.html`)
-- Updated offer cards with new $30/$15/$20 structure
-- Changed promo code from `NEIGHBOR25` to `NEIGHBOR`
-- Added tiered discount explanation in success state
-- Messaging: "A FREE week of your subscription!"
-
-#### 2. Campaign Documentation Updated
-- `DIRECT_MAIL_CAMPAIGN_PLAN.md` - New offer section with tiered table
-- `POSTCARD_DESIGN.md` - Updated wireframe with new amounts
-- `CAMPAIGN_LAUNCH_GUIDE.md` - **NEW** Complete launch checklist
-
-#### 3. Shopify Discount Tools Built (MCP Server)
-Created automated discount code creation:
-
-**New Files:**
-- `mcp-server/shopify-discount.js` - Shopify Price Rules API module
-- `mcp-server/create-neighbor-discounts.js` - Standalone creation script
-
-**New MCP Tools:**
-- `shopify_create_neighbor_discounts` - Creates all campaign codes
-- `shopify_list_discounts` - Lists existing discounts
-- `shopify_get_products` - Gets products for targeting
-- `shopify_delete_discount` - Removes discounts
-
-**Codes to be Created:**
-| Code | Discount | Minimum | Target |
-|------|----------|---------|--------|
-| NEIGHBOR-VEG-FULL | $30 off | $600+ | Full veggie shares |
-| NEIGHBOR-VEG-HALF | $15 off | $300+ | Half veggie shares |
-| NEIGHBOR-FLORAL | $20 off | None | All floral CSA |
-| NEIGHBOR | $15 off | None | All CSA (base) |
-
-#### 4. Social Media Dashboard Confirmed
-- Location: `web_app/social-intelligence.html`
-- Status: BUILT & INTEGRATED in admin panel
-- Ayrshare: ABANDONED per owner directive
-
----
-
-## COMPLETE DELIVERABLE LIST
-
-| Deliverable | Status | Location |
-|-------------|--------|----------|
-| USPS Research | COMPLETE | `DIRECT_MAIL_RESEARCH.md` |
-| Targeting Algorithm | COMPLETE | `ADDRESS_TARGETING_ALGORITHM.md` |
-| Landing Page Spec | COMPLETE | `NEIGHBOR_LANDING_PAGE_SPEC.md` |
-| Campaign Plan | UPDATED | `DIRECT_MAIL_CAMPAIGN_PLAN.md` |
-| Postcard Design | UPDATED | `POSTCARD_DESIGN.md` |
-| Landing Page HTML | UPDATED | `web_app/neighbor.html` |
-| Campaign Launch Guide | **NEW** | `CAMPAIGN_LAUNCH_GUIDE.md` |
-| Shopify Discount Module | **NEW** | `mcp-server/shopify-discount.js` |
-| Discount Creation Script | **NEW** | `mcp-server/create-neighbor-discounts.js` |
-| Social Dashboard | VERIFIED | `web_app/social-intelligence.html` |
-| Marketing Automation Suite | COMPLETE | Admin panel integrated |
-
----
-
-## OWNER ACTION REQUIRED
-
-### To Create Shopify Discounts:
-```bash
-cd ~/Documents/TIny_Seed_OS/mcp-server
-node create-neighbor-discounts.js --dry-run  # Preview
-node create-neighbor-discounts.js            # Create
+### Step 1: Create Media Container
+```
+POST https://graph.facebook.com/v24.0/{instagram-business-account-id}/media
+?image_url={public-image-url}
+&caption={your-caption}
+&access_token={page-access-token}
 ```
 
-### To Launch Campaign:
-1. Run discount creation script above
-2. Design postcard in Canva (specs in `POSTCARD_DESIGN.md`)
-3. Order 1,000 postcards from VistaPrint (~$180)
-4. Use USPS EDDM tool for Squirrel Hill routes
-5. Drop at post office (~$247 postage)
-
-**Total Budget:** ~$427
-**Expected ROI:** 23x ($10,000+ revenue)
+### Step 2: Publish Media
+```
+POST https://graph.facebook.com/v24.0/{instagram-business-account-id}/media_publish
+?creation_id={container-id-from-step-1}
+&access_token={page-access-token}
+```
 
 ---
 
-## BLOCKERS
-
-None. System is production-ready.
-
----
-
-## FOR PM_ARCHITECT
-
-### What Was Built This Session:
-1. Updated all campaign docs with new $30/$15/$20 promo structure
-2. Built Shopify discount creation tools (MCP + standalone script)
-3. Confirmed in-house Social Intelligence Dashboard is the platform
-4. Created comprehensive Campaign Launch Guide
-
-### Technical Additions:
-- `shopify-discount.js` - 350 lines, full Price Rules API integration
-- `create-neighbor-discounts.js` - CLI tool for discount creation
-- Updated `tiny-seed-mcp.js` with 4 new discount tools
-
-### Integration Points:
-- MCP server: New tools for discount management
-- Landing page: Updated with correct promo structure
-- Admin panel: Social dashboard already integrated
-
-### Testing Needed:
-- [ ] Run `node create-neighbor-discounts.js --dry-run` to verify product matching
-- [ ] Create discounts and verify in Shopify admin
-- [ ] Test discount codes on checkout
-
----
-
-## READY FOR HANDOFF
-
-Direct Mail Campaign system is **100% COMPLETE**.
-
-Owner can launch campaign by:
-1. Running discount creation script
-2. Following checklist in `CAMPAIGN_LAUNCH_GUIDE.md`
-
-**Social Media Claude signing off.**
-
----
-
-*Report generated: 2026-01-22*
+*Report updated: 2026-01-29*
