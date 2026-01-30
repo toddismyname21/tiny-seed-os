@@ -24960,7 +24960,6567 @@
       "uptime_seconds": 71315,
       "timestamp": "2026-01-29T19:45:57.771571",
       "read": false
+    },
+    {
+      "id": 2497,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 34970,
+      "timestamp": "2026-01-29T19:46:11.952652",
+      "read": false
+    },
+    {
+      "id": 2498,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75437,
+      "timestamp": "2026-01-29T19:46:14.834243",
+      "read": false
+    },
+    {
+      "id": 2499,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:46:36.827058",
+      "read": false
+    },
+    {
+      "id": 2500,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73215,
+      "timestamp": "2026-01-29T19:46:39.060681",
+      "read": false
+    },
+    {
+      "id": 2501,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 29936,
+      "timestamp": "2026-01-29T19:46:48.643124",
+      "read": false
+    },
+    {
+      "id": 2502,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75464,
+      "timestamp": "2026-01-29T19:46:54.685770",
+      "read": false
+    },
+    {
+      "id": 2503,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71376,
+      "timestamp": "2026-01-29T19:46:58.375244",
+      "read": false
+    },
+    {
+      "id": 2504,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35031,
+      "timestamp": "2026-01-29T19:47:12.864709",
+      "read": false
+    },
+    {
+      "id": 2505,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75498,
+      "timestamp": "2026-01-29T19:47:15.556672",
+      "read": false
+    },
+    {
+      "id": 2506,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:47:36.936034",
+      "read": false
+    },
+    {
+      "id": 2507,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73275,
+      "timestamp": "2026-01-29T19:47:39.847592",
+      "read": false
+    },
+    {
+      "id": 2508,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 29997,
+      "timestamp": "2026-01-29T19:47:49.349652",
+      "read": false
+    },
+    {
+      "id": 2509,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75525,
+      "timestamp": "2026-01-29T19:47:55.353364",
+      "read": false
+    },
+    {
+      "id": 2510,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71436,
+      "timestamp": "2026-01-29T19:47:59.030720",
+      "read": false
+    },
+    {
+      "id": 2511,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35092,
+      "timestamp": "2026-01-29T19:48:13.528433",
+      "read": false
+    },
+    {
+      "id": 2512,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75559,
+      "timestamp": "2026-01-29T19:48:16.307131",
+      "read": false
+    },
+    {
+      "id": 2513,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:48:37.042589",
+      "read": false
+    },
+    {
+      "id": 2514,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73336,
+      "timestamp": "2026-01-29T19:48:40.602490",
+      "read": false
+    },
+    {
+      "id": 2515,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30058,
+      "timestamp": "2026-01-29T19:48:50.093144",
+      "read": false
+    },
+    {
+      "id": 2516,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75586,
+      "timestamp": "2026-01-29T19:48:56.037903",
+      "read": false
+    },
+    {
+      "id": 2517,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71497,
+      "timestamp": "2026-01-29T19:48:59.648750",
+      "read": false
+    },
+    {
+      "id": 2518,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35153,
+      "timestamp": "2026-01-29T19:49:14.207378",
+      "read": false
+    },
+    {
+      "id": 2519,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75619,
+      "timestamp": "2026-01-29T19:49:16.989016",
+      "read": false
+    },
+    {
+      "id": 2520,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:49:37.154119",
+      "read": false
+    },
+    {
+      "id": 2521,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73397,
+      "timestamp": "2026-01-29T19:49:41.322994",
+      "read": false
+    },
+    {
+      "id": 2522,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37343,
+      "timestamp": "2026-01-29T19:49:50.864137",
+      "read": false
+    },
+    {
+      "id": 2523,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75646,
+      "timestamp": "2026-01-29T19:49:56.748132",
+      "read": false
+    },
+    {
+      "id": 2524,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71558,
+      "timestamp": "2026-01-29T19:50:00.243606",
+      "read": false
+    },
+    {
+      "id": 2525,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35213,
+      "timestamp": "2026-01-29T19:50:14.949571",
+      "read": false
+    },
+    {
+      "id": 2526,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75680,
+      "timestamp": "2026-01-29T19:50:17.766608",
+      "read": false
+    },
+    {
+      "id": 2527,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:50:37.275387",
+      "read": false
+    },
+    {
+      "id": 2528,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73457,
+      "timestamp": "2026-01-29T19:50:42.038463",
+      "read": false
+    },
+    {
+      "id": 2529,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37404,
+      "timestamp": "2026-01-29T19:50:51.605939",
+      "read": false
+    },
+    {
+      "id": 2530,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75707,
+      "timestamp": "2026-01-29T19:50:57.442260",
+      "read": false
+    },
+    {
+      "id": 2531,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71618,
+      "timestamp": "2026-01-29T19:51:00.941529",
+      "read": false
+    },
+    {
+      "id": 2532,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35274,
+      "timestamp": "2026-01-29T19:51:15.662505",
+      "read": false
+    },
+    {
+      "id": 2533,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75741,
+      "timestamp": "2026-01-29T19:51:18.533215",
+      "read": false
+    },
+    {
+      "id": 2534,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:51:37.369377",
+      "read": false
+    },
+    {
+      "id": 2535,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73518,
+      "timestamp": "2026-01-29T19:51:42.803989",
+      "read": false
+    },
+    {
+      "id": 2536,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37465,
+      "timestamp": "2026-01-29T19:51:52.354103",
+      "read": false
+    },
+    {
+      "id": 2537,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75768,
+      "timestamp": "2026-01-29T19:51:58.161064",
+      "read": false
+    },
+    {
+      "id": 2538,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71679,
+      "timestamp": "2026-01-29T19:52:01.588652",
+      "read": false
+    },
+    {
+      "id": 2539,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35335,
+      "timestamp": "2026-01-29T19:52:16.416643",
+      "read": false
+    },
+    {
+      "id": 2540,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75802,
+      "timestamp": "2026-01-29T19:52:19.310093",
+      "read": false
+    },
+    {
+      "id": 2541,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:52:37.486521",
+      "read": false
+    },
+    {
+      "id": 2542,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73579,
+      "timestamp": "2026-01-29T19:52:43.603664",
+      "read": false
+    },
+    {
+      "id": 2543,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30301,
+      "timestamp": "2026-01-29T19:52:53.082037",
+      "read": false
+    },
+    {
+      "id": 2544,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75828,
+      "timestamp": "2026-01-29T19:52:58.907412",
+      "read": false
+    },
+    {
+      "id": 2545,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71740,
+      "timestamp": "2026-01-29T19:53:02.246622",
+      "read": false
+    },
+    {
+      "id": 2546,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35396,
+      "timestamp": "2026-01-29T19:53:17.139202",
+      "read": false
+    },
+    {
+      "id": 2547,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75863,
+      "timestamp": "2026-01-29T19:53:20.050306",
+      "read": false
+    },
+    {
+      "id": 2548,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:53:37.597862",
+      "read": false
+    },
+    {
+      "id": 2549,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73640,
+      "timestamp": "2026-01-29T19:53:44.302691",
+      "read": false
+    },
+    {
+      "id": 2550,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30361,
+      "timestamp": "2026-01-29T19:53:53.874392",
+      "read": false
+    },
+    {
+      "id": 2551,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75889,
+      "timestamp": "2026-01-29T19:53:59.601477",
+      "read": false
+    },
+    {
+      "id": 2552,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71800,
+      "timestamp": "2026-01-29T19:54:02.876939",
+      "read": false
+    },
+    {
+      "id": 2553,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35456,
+      "timestamp": "2026-01-29T19:54:17.785068",
+      "read": false
+    },
+    {
+      "id": 2554,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75923,
+      "timestamp": "2026-01-29T19:54:20.752561",
+      "read": false
+    },
+    {
+      "id": 2555,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:54:37.715346",
+      "read": false
+    },
+    {
+      "id": 2556,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73701,
+      "timestamp": "2026-01-29T19:54:45.049656",
+      "read": false
+    },
+    {
+      "id": 2557,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30422,
+      "timestamp": "2026-01-29T19:54:54.619548",
+      "read": false
+    },
+    {
+      "id": 2558,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75950,
+      "timestamp": "2026-01-29T19:55:00.253058",
+      "read": false
+    },
+    {
+      "id": 2559,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71861,
+      "timestamp": "2026-01-29T19:55:03.494442",
+      "read": false
+    },
+    {
+      "id": 2560,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35517,
+      "timestamp": "2026-01-29T19:55:18.437964",
+      "read": false
+    },
+    {
+      "id": 2561,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75984,
+      "timestamp": "2026-01-29T19:55:21.457200",
+      "read": false
+    },
+    {
+      "id": 2562,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:55:37.815729",
+      "read": false
+    },
+    {
+      "id": 2563,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73761,
+      "timestamp": "2026-01-29T19:55:45.784357",
+      "read": false
+    },
+    {
+      "id": 2564,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37708,
+      "timestamp": "2026-01-29T19:55:55.378554",
+      "read": false
+    },
+    {
+      "id": 2565,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76010,
+      "timestamp": "2026-01-29T19:56:00.969655",
+      "read": false
+    },
+    {
+      "id": 2566,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71922,
+      "timestamp": "2026-01-29T19:56:04.105408",
+      "read": false
+    },
+    {
+      "id": 2567,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35578,
+      "timestamp": "2026-01-29T19:56:19.189583",
+      "read": false
+    },
+    {
+      "id": 2568,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76045,
+      "timestamp": "2026-01-29T19:56:22.228872",
+      "read": false
+    },
+    {
+      "id": 2569,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:56:37.938263",
+      "read": false
+    },
+    {
+      "id": 2570,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73822,
+      "timestamp": "2026-01-29T19:56:46.541240",
+      "read": false
+    },
+    {
+      "id": 2571,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37769,
+      "timestamp": "2026-01-29T19:56:56.176679",
+      "read": false
+    },
+    {
+      "id": 2572,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76071,
+      "timestamp": "2026-01-29T19:57:01.718178",
+      "read": false
+    },
+    {
+      "id": 2573,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 71982,
+      "timestamp": "2026-01-29T19:57:04.769597",
+      "read": false
+    },
+    {
+      "id": 2574,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35638,
+      "timestamp": "2026-01-29T19:57:19.944418",
+      "read": false
+    },
+    {
+      "id": 2575,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76105,
+      "timestamp": "2026-01-29T19:57:22.985555",
+      "read": false
+    },
+    {
+      "id": 2576,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:57:38.050312",
+      "read": false
+    },
+    {
+      "id": 2577,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73883,
+      "timestamp": "2026-01-29T19:57:47.347059",
+      "read": false
+    },
+    {
+      "id": 2578,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30604,
+      "timestamp": "2026-01-29T19:57:56.919123",
+      "read": false
+    },
+    {
+      "id": 2579,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76132,
+      "timestamp": "2026-01-29T19:58:02.545539",
+      "read": false
+    },
+    {
+      "id": 2580,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72043,
+      "timestamp": "2026-01-29T19:58:05.545413",
+      "read": false
+    },
+    {
+      "id": 2581,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35699,
+      "timestamp": "2026-01-29T19:58:20.822227",
+      "read": false
+    },
+    {
+      "id": 2582,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76166,
+      "timestamp": "2026-01-29T19:58:23.872623",
+      "read": false
+    },
+    {
+      "id": 2583,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:58:38.174212",
+      "read": false
+    },
+    {
+      "id": 2584,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73944,
+      "timestamp": "2026-01-29T19:58:48.131673",
+      "read": false
+    },
+    {
+      "id": 2585,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30665,
+      "timestamp": "2026-01-29T19:58:57.708529",
+      "read": false
+    },
+    {
+      "id": 2586,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76193,
+      "timestamp": "2026-01-29T19:59:03.352910",
+      "read": false
+    },
+    {
+      "id": 2587,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72104,
+      "timestamp": "2026-01-29T19:59:06.358762",
+      "read": false
+    },
+    {
+      "id": 2588,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35760,
+      "timestamp": "2026-01-29T19:59:21.608861",
+      "read": false
+    },
+    {
+      "id": 2589,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76227,
+      "timestamp": "2026-01-29T19:59:24.641723",
+      "read": false
+    },
+    {
+      "id": 2590,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T19:59:38.305603",
+      "read": false
+    },
+    {
+      "id": 2591,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74004,
+      "timestamp": "2026-01-29T19:59:48.944902",
+      "read": false
+    },
+    {
+      "id": 2592,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30726,
+      "timestamp": "2026-01-29T19:59:58.492266",
+      "read": false
+    },
+    {
+      "id": 2593,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76254,
+      "timestamp": "2026-01-29T20:00:04.180196",
+      "read": false
+    },
+    {
+      "id": 2594,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72165,
+      "timestamp": "2026-01-29T20:00:07.195600",
+      "read": false
+    },
+    {
+      "id": 2595,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35821,
+      "timestamp": "2026-01-29T20:00:22.449537",
+      "read": false
+    },
+    {
+      "id": 2596,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76288,
+      "timestamp": "2026-01-29T20:00:25.498535",
+      "read": false
+    },
+    {
+      "id": 2597,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:00:38.450443",
+      "read": false
+    },
+    {
+      "id": 2598,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74065,
+      "timestamp": "2026-01-29T20:00:49.758400",
+      "read": false
+    },
+    {
+      "id": 2599,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30787,
+      "timestamp": "2026-01-29T20:00:59.235071",
+      "read": false
+    },
+    {
+      "id": 2600,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76314,
+      "timestamp": "2026-01-29T20:01:04.920855",
+      "read": false
+    },
+    {
+      "id": 2601,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72225,
+      "timestamp": "2026-01-29T20:01:07.918755",
+      "read": false
+    },
+    {
+      "id": 2602,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35882,
+      "timestamp": "2026-01-29T20:01:23.196010",
+      "read": false
+    },
+    {
+      "id": 2603,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76349,
+      "timestamp": "2026-01-29T20:01:26.230644",
+      "read": false
+    },
+    {
+      "id": 2604,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:01:38.572040",
+      "read": false
+    },
+    {
+      "id": 2605,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74126,
+      "timestamp": "2026-01-29T20:01:50.472547",
+      "read": false
+    },
+    {
+      "id": 2606,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30847,
+      "timestamp": "2026-01-29T20:01:59.940054",
+      "read": false
+    },
+    {
+      "id": 2607,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76375,
+      "timestamp": "2026-01-29T20:02:05.578626",
+      "read": false
+    },
+    {
+      "id": 2608,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72286,
+      "timestamp": "2026-01-29T20:02:08.514646",
+      "read": false
+    },
+    {
+      "id": 2609,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35942,
+      "timestamp": "2026-01-29T20:02:23.893667",
+      "read": false
+    },
+    {
+      "id": 2610,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76409,
+      "timestamp": "2026-01-29T20:02:26.925107",
+      "read": false
+    },
+    {
+      "id": 2611,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:02:38.680974",
+      "read": false
+    },
+    {
+      "id": 2612,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74187,
+      "timestamp": "2026-01-29T20:02:51.155079",
+      "read": false
+    },
+    {
+      "id": 2613,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 30908,
+      "timestamp": "2026-01-29T20:03:00.669943",
+      "read": false
+    },
+    {
+      "id": 2614,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76436,
+      "timestamp": "2026-01-29T20:03:06.227907",
+      "read": false
+    },
+    {
+      "id": 2615,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72347,
+      "timestamp": "2026-01-29T20:03:09.138768",
+      "read": false
+    },
+    {
+      "id": 2616,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36003,
+      "timestamp": "2026-01-29T20:03:24.564845",
+      "read": false
+    },
+    {
+      "id": 2617,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76470,
+      "timestamp": "2026-01-29T20:03:27.590093",
+      "read": false
+    },
+    {
+      "id": 2618,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:03:38.789828",
+      "read": false
+    },
+    {
+      "id": 2619,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74247,
+      "timestamp": "2026-01-29T20:03:51.827321",
+      "read": false
+    },
+    {
+      "id": 2620,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38194,
+      "timestamp": "2026-01-29T20:04:01.372637",
+      "read": false
+    },
+    {
+      "id": 2621,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76496,
+      "timestamp": "2026-01-29T20:04:06.920460",
+      "read": false
+    },
+    {
+      "id": 2622,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72407,
+      "timestamp": "2026-01-29T20:04:09.739558",
+      "read": false
+    },
+    {
+      "id": 2623,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36064,
+      "timestamp": "2026-01-29T20:04:25.287007",
+      "read": false
+    },
+    {
+      "id": 2624,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76531,
+      "timestamp": "2026-01-29T20:04:28.273706",
+      "read": false
+    },
+    {
+      "id": 2625,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:04:38.918868",
+      "read": false
+    },
+    {
+      "id": 2626,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74308,
+      "timestamp": "2026-01-29T20:04:52.570663",
+      "read": false
+    },
+    {
+      "id": 2627,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31030,
+      "timestamp": "2026-01-29T20:05:02.054875",
+      "read": false
+    },
+    {
+      "id": 2628,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76557,
+      "timestamp": "2026-01-29T20:05:07.626938",
+      "read": false
+    },
+    {
+      "id": 2629,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72468,
+      "timestamp": "2026-01-29T20:05:10.417336",
+      "read": false
+    },
+    {
+      "id": 2630,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36124,
+      "timestamp": "2026-01-29T20:05:25.964402",
+      "read": false
+    },
+    {
+      "id": 2631,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76591,
+      "timestamp": "2026-01-29T20:05:28.920356",
+      "read": false
+    },
+    {
+      "id": 2632,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:05:39.025663",
+      "read": false
+    },
+    {
+      "id": 2633,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74369,
+      "timestamp": "2026-01-29T20:05:53.240829",
+      "read": false
+    },
+    {
+      "id": 2634,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38315,
+      "timestamp": "2026-01-29T20:06:02.734752",
+      "read": false
+    },
+    {
+      "id": 2635,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76618,
+      "timestamp": "2026-01-29T20:06:08.266466",
+      "read": false
+    },
+    {
+      "id": 2636,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72529,
+      "timestamp": "2026-01-29T20:06:11.044358",
+      "read": false
+    },
+    {
+      "id": 2637,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36185,
+      "timestamp": "2026-01-29T20:06:26.596392",
+      "read": false
+    },
+    {
+      "id": 2638,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76652,
+      "timestamp": "2026-01-29T20:06:29.589317",
+      "read": false
+    },
+    {
+      "id": 2639,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:06:39.152723",
+      "read": false
+    },
+    {
+      "id": 2640,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74429,
+      "timestamp": "2026-01-29T20:06:53.917116",
+      "read": false
+    },
+    {
+      "id": 2641,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38376,
+      "timestamp": "2026-01-29T20:07:03.468252",
+      "read": false
+    },
+    {
+      "id": 2642,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76678,
+      "timestamp": "2026-01-29T20:07:08.958154",
+      "read": false
+    },
+    {
+      "id": 2643,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72589,
+      "timestamp": "2026-01-29T20:07:11.713323",
+      "read": false
+    },
+    {
+      "id": 2644,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36246,
+      "timestamp": "2026-01-29T20:07:27.335857",
+      "read": false
+    },
+    {
+      "id": 2645,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76713,
+      "timestamp": "2026-01-29T20:07:30.443518",
+      "read": false
+    },
+    {
+      "id": 2646,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:07:39.306812",
+      "read": false
+    },
+    {
+      "id": 2647,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74490,
+      "timestamp": "2026-01-29T20:07:54.707672",
+      "read": false
+    },
+    {
+      "id": 2648,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38437,
+      "timestamp": "2026-01-29T20:08:04.198853",
+      "read": false
+    },
+    {
+      "id": 2649,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76739,
+      "timestamp": "2026-01-29T20:08:09.778539",
+      "read": false
+    },
+    {
+      "id": 2650,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72650,
+      "timestamp": "2026-01-29T20:08:12.350672",
+      "read": false
+    },
+    {
+      "id": 2651,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36307,
+      "timestamp": "2026-01-29T20:08:28.042919",
+      "read": false
+    },
+    {
+      "id": 2652,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76774,
+      "timestamp": "2026-01-29T20:08:31.162670",
+      "read": false
+    },
+    {
+      "id": 2653,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:08:39.443458",
+      "read": false
+    },
+    {
+      "id": 2654,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74551,
+      "timestamp": "2026-01-29T20:08:55.385209",
+      "read": false
+    },
+    {
+      "id": 2655,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31272,
+      "timestamp": "2026-01-29T20:09:04.956359",
+      "read": false
+    },
+    {
+      "id": 2656,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76800,
+      "timestamp": "2026-01-29T20:09:10.498522",
+      "read": false
+    },
+    {
+      "id": 2657,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72710,
+      "timestamp": "2026-01-29T20:09:12.993073",
+      "read": false
+    },
+    {
+      "id": 2658,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36367,
+      "timestamp": "2026-01-29T20:09:28.761226",
+      "read": false
+    },
+    {
+      "id": 2659,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76834,
+      "timestamp": "2026-01-29T20:09:31.824623",
+      "read": false
+    },
+    {
+      "id": 2660,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:09:39.562616",
+      "read": false
+    },
+    {
+      "id": 2661,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74612,
+      "timestamp": "2026-01-29T20:09:56.167666",
+      "read": false
+    },
+    {
+      "id": 2662,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38558,
+      "timestamp": "2026-01-29T20:10:05.725059",
+      "read": false
+    },
+    {
+      "id": 2663,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76861,
+      "timestamp": "2026-01-29T20:10:11.348840",
+      "read": false
+    },
+    {
+      "id": 2664,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72771,
+      "timestamp": "2026-01-29T20:10:13.677193",
+      "read": false
+    },
+    {
+      "id": 2665,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36428,
+      "timestamp": "2026-01-29T20:10:29.582497",
+      "read": false
+    },
+    {
+      "id": 2666,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76895,
+      "timestamp": "2026-01-29T20:10:32.613001",
+      "read": false
+    },
+    {
+      "id": 2667,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:10:39.668700",
+      "read": false
+    },
+    {
+      "id": 2668,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74672,
+      "timestamp": "2026-01-29T20:10:56.877965",
+      "read": false
+    },
+    {
+      "id": 2669,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31394,
+      "timestamp": "2026-01-29T20:11:06.431592",
+      "read": false
+    },
+    {
+      "id": 2670,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76922,
+      "timestamp": "2026-01-29T20:11:12.039539",
+      "read": false
+    },
+    {
+      "id": 2671,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72832,
+      "timestamp": "2026-01-29T20:11:14.288750",
+      "read": false
+    },
+    {
+      "id": 2672,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36489,
+      "timestamp": "2026-01-29T20:11:30.308431",
+      "read": false
+    },
+    {
+      "id": 2673,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76956,
+      "timestamp": "2026-01-29T20:11:33.340986",
+      "read": false
+    },
+    {
+      "id": 2674,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:11:39.790563",
+      "read": false
+    },
+    {
+      "id": 2675,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74733,
+      "timestamp": "2026-01-29T20:11:57.642463",
+      "read": false
+    },
+    {
+      "id": 2676,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31455,
+      "timestamp": "2026-01-29T20:12:07.140157",
+      "read": false
+    },
+    {
+      "id": 2677,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76982,
+      "timestamp": "2026-01-29T20:12:12.797292",
+      "read": false
+    },
+    {
+      "id": 2678,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72892,
+      "timestamp": "2026-01-29T20:12:14.924089",
+      "read": false
+    },
+    {
+      "id": 2679,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36549,
+      "timestamp": "2026-01-29T20:12:30.988469",
+      "read": false
+    },
+    {
+      "id": 2680,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77016,
+      "timestamp": "2026-01-29T20:12:34.016215",
+      "read": false
+    },
+    {
+      "id": 2681,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:12:39.897729",
+      "read": false
+    },
+    {
+      "id": 2682,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74794,
+      "timestamp": "2026-01-29T20:12:58.341346",
+      "read": false
+    },
+    {
+      "id": 2683,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31515,
+      "timestamp": "2026-01-29T20:13:07.840609",
+      "read": false
+    },
+    {
+      "id": 2684,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77043,
+      "timestamp": "2026-01-29T20:13:13.496460",
+      "read": false
+    },
+    {
+      "id": 2685,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 72953,
+      "timestamp": "2026-01-29T20:13:15.558588",
+      "read": false
+    },
+    {
+      "id": 2686,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36610,
+      "timestamp": "2026-01-29T20:13:31.681420",
+      "read": false
+    },
+    {
+      "id": 2687,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77077,
+      "timestamp": "2026-01-29T20:13:34.713486",
+      "read": false
+    },
+    {
+      "id": 2688,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:13:40.013644",
+      "read": false
+    },
+    {
+      "id": 2689,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74855,
+      "timestamp": "2026-01-29T20:13:59.059686",
+      "read": false
+    },
+    {
+      "id": 2690,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38801,
+      "timestamp": "2026-01-29T20:14:08.562271",
+      "read": false
+    },
+    {
+      "id": 2691,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77104,
+      "timestamp": "2026-01-29T20:14:14.246673",
+      "read": false
+    },
+    {
+      "id": 2692,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73014,
+      "timestamp": "2026-01-29T20:14:16.183103",
+      "read": false
+    },
+    {
+      "id": 2693,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36671,
+      "timestamp": "2026-01-29T20:14:32.426808",
+      "read": false
+    },
+    {
+      "id": 2694,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77138,
+      "timestamp": "2026-01-29T20:14:35.461501",
+      "read": false
+    },
+    {
+      "id": 2695,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:14:40.131525",
+      "read": false
+    },
+    {
+      "id": 2696,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74915,
+      "timestamp": "2026-01-29T20:14:59.777103",
+      "read": false
+    },
+    {
+      "id": 2697,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38862,
+      "timestamp": "2026-01-29T20:15:09.252828",
+      "read": false
+    },
+    {
+      "id": 2698,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77164,
+      "timestamp": "2026-01-29T20:15:14.973365",
+      "read": false
+    },
+    {
+      "id": 2699,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73074,
+      "timestamp": "2026-01-29T20:15:16.852472",
+      "read": false
+    },
+    {
+      "id": 2700,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36732,
+      "timestamp": "2026-01-29T20:15:33.239088",
+      "read": false
+    },
+    {
+      "id": 2701,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77199,
+      "timestamp": "2026-01-29T20:15:36.284639",
+      "read": false
+    },
+    {
+      "id": 2702,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:15:40.285133",
+      "read": false
+    },
+    {
+      "id": 2703,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74976,
+      "timestamp": "2026-01-29T20:16:00.596320",
+      "read": false
+    },
+    {
+      "id": 2704,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31697,
+      "timestamp": "2026-01-29T20:16:09.981872",
+      "read": false
+    },
+    {
+      "id": 2705,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77225,
+      "timestamp": "2026-01-29T20:16:15.800517",
+      "read": false
+    },
+    {
+      "id": 2706,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73135,
+      "timestamp": "2026-01-29T20:16:17.537236",
+      "read": false
+    },
+    {
+      "id": 2707,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36792,
+      "timestamp": "2026-01-29T20:16:34.027199",
+      "read": false
+    },
+    {
+      "id": 2708,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77260,
+      "timestamp": "2026-01-29T20:16:37.064440",
+      "read": false
+    },
+    {
+      "id": 2709,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:16:40.424751",
+      "read": false
+    },
+    {
+      "id": 2710,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75037,
+      "timestamp": "2026-01-29T20:17:01.345189",
+      "read": false
+    },
+    {
+      "id": 2711,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38983,
+      "timestamp": "2026-01-29T20:17:10.716738",
+      "read": false
+    },
+    {
+      "id": 2712,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77286,
+      "timestamp": "2026-01-29T20:17:16.540993",
+      "read": false
+    },
+    {
+      "id": 2713,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73196,
+      "timestamp": "2026-01-29T20:17:18.218313",
+      "read": false
+    },
+    {
+      "id": 2714,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36853,
+      "timestamp": "2026-01-29T20:17:34.787424",
+      "read": false
+    },
+    {
+      "id": 2715,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77320,
+      "timestamp": "2026-01-29T20:17:37.822111",
+      "read": false
+    },
+    {
+      "id": 2716,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:17:40.597201",
+      "read": false
+    },
+    {
+      "id": 2717,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75098,
+      "timestamp": "2026-01-29T20:18:02.117739",
+      "read": false
+    },
+    {
+      "id": 2718,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31819,
+      "timestamp": "2026-01-29T20:18:11.458613",
+      "read": false
+    },
+    {
+      "id": 2719,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77347,
+      "timestamp": "2026-01-29T20:18:17.274584",
+      "read": false
+    },
+    {
+      "id": 2720,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73256,
+      "timestamp": "2026-01-29T20:18:18.894361",
+      "read": false
+    },
+    {
+      "id": 2721,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36914,
+      "timestamp": "2026-01-29T20:18:35.561354",
+      "read": false
+    },
+    {
+      "id": 2722,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77381,
+      "timestamp": "2026-01-29T20:18:38.588961",
+      "read": false
+    },
+    {
+      "id": 2723,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:18:40.755762",
+      "read": false
+    },
+    {
+      "id": 2724,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75158,
+      "timestamp": "2026-01-29T20:19:02.888219",
+      "read": false
+    },
+    {
+      "id": 2725,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31880,
+      "timestamp": "2026-01-29T20:19:12.206428",
+      "read": false
+    },
+    {
+      "id": 2726,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77408,
+      "timestamp": "2026-01-29T20:19:18.055365",
+      "read": false
+    },
+    {
+      "id": 2727,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73317,
+      "timestamp": "2026-01-29T20:19:19.609873",
+      "read": false
+    },
+    {
+      "id": 2728,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 36975,
+      "timestamp": "2026-01-29T20:19:36.383702",
+      "read": false
+    },
+    {
+      "id": 2729,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77442,
+      "timestamp": "2026-01-29T20:19:39.411988",
+      "read": false
+    },
+    {
+      "id": 2730,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:19:40.894828",
+      "read": false
+    },
+    {
+      "id": 2731,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75219,
+      "timestamp": "2026-01-29T20:20:03.697617",
+      "read": false
+    },
+    {
+      "id": 2732,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 31940,
+      "timestamp": "2026-01-29T20:20:12.903858",
+      "read": false
+    },
+    {
+      "id": 2733,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77468,
+      "timestamp": "2026-01-29T20:20:18.886159",
+      "read": false
+    },
+    {
+      "id": 2734,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73378,
+      "timestamp": "2026-01-29T20:20:20.332871",
+      "read": false
+    },
+    {
+      "id": 2735,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37036,
+      "timestamp": "2026-01-29T20:20:37.114330",
+      "read": false
+    },
+    {
+      "id": 2736,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77503,
+      "timestamp": "2026-01-29T20:20:40.151585",
+      "read": false
+    },
+    {
+      "id": 2737,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:20:41.045583",
+      "read": false
+    },
+    {
+      "id": 2738,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75280,
+      "timestamp": "2026-01-29T20:21:04.468032",
+      "read": false
+    },
+    {
+      "id": 2739,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32001,
+      "timestamp": "2026-01-29T20:21:13.601904",
+      "read": false
+    },
+    {
+      "id": 2740,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77529,
+      "timestamp": "2026-01-29T20:21:19.658713",
+      "read": false
+    },
+    {
+      "id": 2741,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73439,
+      "timestamp": "2026-01-29T20:21:21.029808",
+      "read": false
+    },
+    {
+      "id": 2742,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37096,
+      "timestamp": "2026-01-29T20:21:37.862708",
+      "read": false
+    },
+    {
+      "id": 2743,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77563,
+      "timestamp": "2026-01-29T20:21:40.886439",
+      "read": false
+    },
+    {
+      "id": 2744,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:21:41.212106",
+      "read": false
+    },
+    {
+      "id": 2745,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75341,
+      "timestamp": "2026-01-29T20:22:05.241017",
+      "read": false
+    },
+    {
+      "id": 2746,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32062,
+      "timestamp": "2026-01-29T20:22:14.382419",
+      "read": false
+    },
+    {
+      "id": 2747,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77590,
+      "timestamp": "2026-01-29T20:22:20.451133",
+      "read": false
+    },
+    {
+      "id": 2748,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73499,
+      "timestamp": "2026-01-29T20:22:21.710860",
+      "read": false
+    },
+    {
+      "id": 2749,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37157,
+      "timestamp": "2026-01-29T20:22:38.708356",
+      "read": false
+    },
+    {
+      "id": 2750,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:22:41.378349",
+      "read": false
+    },
+    {
+      "id": 2751,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77624,
+      "timestamp": "2026-01-29T20:22:41.746586",
+      "read": false
+    },
+    {
+      "id": 2752,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75402,
+      "timestamp": "2026-01-29T20:23:06.072077",
+      "read": false
+    },
+    {
+      "id": 2753,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32123,
+      "timestamp": "2026-01-29T20:23:15.199376",
+      "read": false
+    },
+    {
+      "id": 2754,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77651,
+      "timestamp": "2026-01-29T20:23:21.264459",
+      "read": false
+    },
+    {
+      "id": 2755,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73560,
+      "timestamp": "2026-01-29T20:23:22.397417",
+      "read": false
+    },
+    {
+      "id": 2756,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37218,
+      "timestamp": "2026-01-29T20:23:39.491732",
+      "read": false
+    },
+    {
+      "id": 2757,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:23:41.523460",
+      "read": false
+    },
+    {
+      "id": 2758,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77685,
+      "timestamp": "2026-01-29T20:23:42.546749",
+      "read": false
+    },
+    {
+      "id": 2759,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75462,
+      "timestamp": "2026-01-29T20:24:06.936439",
+      "read": false
+    },
+    {
+      "id": 2760,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39409,
+      "timestamp": "2026-01-29T20:24:16.075562",
+      "read": false
+    },
+    {
+      "id": 2761,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77712,
+      "timestamp": "2026-01-29T20:24:22.154234",
+      "read": false
+    },
+    {
+      "id": 2762,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73621,
+      "timestamp": "2026-01-29T20:24:23.076963",
+      "read": false
+    },
+    {
+      "id": 2763,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37279,
+      "timestamp": "2026-01-29T20:24:40.378174",
+      "read": false
+    },
+    {
+      "id": 2764,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:24:41.671358",
+      "read": false
+    },
+    {
+      "id": 2765,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77746,
+      "timestamp": "2026-01-29T20:24:43.412514",
+      "read": false
+    },
+    {
+      "id": 2766,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75523,
+      "timestamp": "2026-01-29T20:25:07.682600",
+      "read": false
+    },
+    {
+      "id": 2767,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39469,
+      "timestamp": "2026-01-29T20:25:16.793451",
+      "read": false
+    },
+    {
+      "id": 2768,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77772,
+      "timestamp": "2026-01-29T20:25:22.865115",
+      "read": false
+    },
+    {
+      "id": 2769,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73681,
+      "timestamp": "2026-01-29T20:25:23.710108",
+      "read": false
+    },
+    {
+      "id": 2770,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37340,
+      "timestamp": "2026-01-29T20:25:41.114062",
+      "read": false
+    },
+    {
+      "id": 2771,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:25:41.796700",
+      "read": false
+    },
+    {
+      "id": 2772,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77807,
+      "timestamp": "2026-01-29T20:25:44.160404",
+      "read": false
+    },
+    {
+      "id": 2773,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75584,
+      "timestamp": "2026-01-29T20:26:08.452516",
+      "read": false
+    },
+    {
+      "id": 2774,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32305,
+      "timestamp": "2026-01-29T20:26:17.560782",
+      "read": false
+    },
+    {
+      "id": 2775,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77833,
+      "timestamp": "2026-01-29T20:26:23.683346",
+      "read": false
+    },
+    {
+      "id": 2776,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73742,
+      "timestamp": "2026-01-29T20:26:24.410195",
+      "read": false
+    },
+    {
+      "id": 2777,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37400,
+      "timestamp": "2026-01-29T20:26:41.904588",
+      "read": false
+    },
+    {
+      "id": 2778,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:26:41.934937",
+      "read": false
+    },
+    {
+      "id": 2779,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77867,
+      "timestamp": "2026-01-29T20:26:44.944826",
+      "read": false
+    },
+    {
+      "id": 2780,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75645,
+      "timestamp": "2026-01-29T20:27:09.302683",
+      "read": false
+    },
+    {
+      "id": 2781,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39591,
+      "timestamp": "2026-01-29T20:27:18.420121",
+      "read": false
+    },
+    {
+      "id": 2782,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77894,
+      "timestamp": "2026-01-29T20:27:24.498982",
+      "read": false
+    },
+    {
+      "id": 2783,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73803,
+      "timestamp": "2026-01-29T20:27:25.121099",
+      "read": false
+    },
+    {
+      "id": 2784,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:27:42.079342",
+      "read": false
+    },
+    {
+      "id": 2785,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37461,
+      "timestamp": "2026-01-29T20:27:42.785242",
+      "read": false
+    },
+    {
+      "id": 2786,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77928,
+      "timestamp": "2026-01-29T20:27:45.842607",
+      "read": false
+    },
+    {
+      "id": 2787,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75706,
+      "timestamp": "2026-01-29T20:28:10.146324",
+      "read": false
+    },
+    {
+      "id": 2788,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39652,
+      "timestamp": "2026-01-29T20:28:19.250665",
+      "read": false
+    },
+    {
+      "id": 2789,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77955,
+      "timestamp": "2026-01-29T20:28:25.314859",
+      "read": false
+    },
+    {
+      "id": 2790,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73863,
+      "timestamp": "2026-01-29T20:28:25.818062",
+      "read": false
+    },
+    {
+      "id": 2791,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:28:42.247180",
+      "read": false
+    },
+    {
+      "id": 2792,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37522,
+      "timestamp": "2026-01-29T20:28:43.563534",
+      "read": false
+    },
+    {
+      "id": 2793,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77989,
+      "timestamp": "2026-01-29T20:28:46.635675",
+      "read": false
+    },
+    {
+      "id": 2794,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75766,
+      "timestamp": "2026-01-29T20:29:10.910990",
+      "read": false
+    },
+    {
+      "id": 2795,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39713,
+      "timestamp": "2026-01-29T20:29:20.054535",
+      "read": false
+    },
+    {
+      "id": 2796,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32488,
+      "timestamp": "2026-01-29T20:29:20.106940",
+      "read": false
+    },
+    {
+      "id": 2797,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78016,
+      "timestamp": "2026-01-29T20:29:26.146837",
+      "read": false
+    },
+    {
+      "id": 2798,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73924,
+      "timestamp": "2026-01-29T20:29:26.513889",
+      "read": false
+    },
+    {
+      "id": 2799,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:29:42.387123",
+      "read": false
+    },
+    {
+      "id": 2800,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37583,
+      "timestamp": "2026-01-29T20:29:44.341099",
+      "read": false
+    },
+    {
+      "id": 2801,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78050,
+      "timestamp": "2026-01-29T20:29:47.357949",
+      "read": false
+    },
+    {
+      "id": 2802,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75827,
+      "timestamp": "2026-01-29T20:30:11.712039",
+      "read": false
+    },
+    {
+      "id": 2803,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32548,
+      "timestamp": "2026-01-29T20:30:20.874343",
+      "read": false
+    },
+    {
+      "id": 2804,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78076,
+      "timestamp": "2026-01-29T20:30:26.944509",
+      "read": false
+    },
+    {
+      "id": 2805,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 73985,
+      "timestamp": "2026-01-29T20:30:27.221398",
+      "read": false
+    },
+    {
+      "id": 2806,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:30:42.532305",
+      "read": false
+    },
+    {
+      "id": 2807,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37644,
+      "timestamp": "2026-01-29T20:30:45.199943",
+      "read": false
+    },
+    {
+      "id": 2808,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78111,
+      "timestamp": "2026-01-29T20:30:48.228327",
+      "read": false
+    },
+    {
+      "id": 2809,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75888,
+      "timestamp": "2026-01-29T20:31:12.595236",
+      "read": false
+    },
+    {
+      "id": 2810,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39834,
+      "timestamp": "2026-01-29T20:31:21.717592",
+      "read": false
+    },
+    {
+      "id": 2811,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78137,
+      "timestamp": "2026-01-29T20:31:27.795545",
+      "read": false
+    },
+    {
+      "id": 2812,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74045,
+      "timestamp": "2026-01-29T20:31:27.849464",
+      "read": false
+    },
+    {
+      "id": 2813,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:31:42.697130",
+      "read": false
+    },
+    {
+      "id": 2814,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37704,
+      "timestamp": "2026-01-29T20:31:46.004947",
+      "read": false
+    },
+    {
+      "id": 2815,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78172,
+      "timestamp": "2026-01-29T20:31:49.043866",
+      "read": false
+    },
+    {
+      "id": 2816,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75949,
+      "timestamp": "2026-01-29T20:32:13.337747",
+      "read": false
+    },
+    {
+      "id": 2817,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32670,
+      "timestamp": "2026-01-29T20:32:22.497894",
+      "read": false
+    },
+    {
+      "id": 2818,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74106,
+      "timestamp": "2026-01-29T20:32:28.588058",
+      "read": false
+    },
+    {
+      "id": 2819,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:32:42.849673",
+      "read": false
+    },
+    {
+      "id": 2820,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37765,
+      "timestamp": "2026-01-29T20:32:46.836563",
+      "read": false
+    },
+    {
+      "id": 2821,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78232,
+      "timestamp": "2026-01-29T20:32:49.898975",
+      "read": false
+    },
+    {
+      "id": 2822,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76010,
+      "timestamp": "2026-01-29T20:33:14.170162",
+      "read": false
+    },
+    {
+      "id": 2823,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32731,
+      "timestamp": "2026-01-29T20:33:23.265284",
+      "read": false
+    },
+    {
+      "id": 2824,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39956,
+      "timestamp": "2026-01-29T20:33:23.306524",
+      "read": false
+    },
+    {
+      "id": 2825,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74167,
+      "timestamp": "2026-01-29T20:33:29.309566",
+      "read": false
+    },
+    {
+      "id": 2826,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78259,
+      "timestamp": "2026-01-29T20:33:29.389828",
+      "read": false
+    },
+    {
+      "id": 2827,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:33:43.013969",
+      "read": false
+    },
+    {
+      "id": 2828,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37826,
+      "timestamp": "2026-01-29T20:33:47.545489",
+      "read": false
+    },
+    {
+      "id": 2829,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78293,
+      "timestamp": "2026-01-29T20:33:50.669060",
+      "read": false
+    },
+    {
+      "id": 2830,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76070,
+      "timestamp": "2026-01-29T20:34:14.935475",
+      "read": false
+    },
+    {
+      "id": 2831,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32791,
+      "timestamp": "2026-01-29T20:34:23.980955",
+      "read": false
+    },
+    {
+      "id": 2832,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40017,
+      "timestamp": "2026-01-29T20:34:24.067944",
+      "read": false
+    },
+    {
+      "id": 2833,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74227,
+      "timestamp": "2026-01-29T20:34:29.992330",
+      "read": false
+    },
+    {
+      "id": 2834,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78320,
+      "timestamp": "2026-01-29T20:34:30.067558",
+      "read": false
+    },
+    {
+      "id": 2835,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:34:43.172266",
+      "read": false
+    },
+    {
+      "id": 2836,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37887,
+      "timestamp": "2026-01-29T20:34:48.262762",
+      "read": false
+    },
+    {
+      "id": 2837,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78354,
+      "timestamp": "2026-01-29T20:34:51.380821",
+      "read": false
+    },
+    {
+      "id": 2838,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76131,
+      "timestamp": "2026-01-29T20:35:15.642312",
+      "read": false
+    },
+    {
+      "id": 2839,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32852,
+      "timestamp": "2026-01-29T20:35:24.676612",
+      "read": false
+    },
+    {
+      "id": 2840,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40077,
+      "timestamp": "2026-01-29T20:35:24.812290",
+      "read": false
+    },
+    {
+      "id": 2841,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74288,
+      "timestamp": "2026-01-29T20:35:30.718609",
+      "read": false
+    },
+    {
+      "id": 2842,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78380,
+      "timestamp": "2026-01-29T20:35:30.794284",
+      "read": false
+    },
+    {
+      "id": 2843,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:35:43.326812",
+      "read": false
+    },
+    {
+      "id": 2844,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 37947,
+      "timestamp": "2026-01-29T20:35:48.989181",
+      "read": false
+    },
+    {
+      "id": 2845,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78415,
+      "timestamp": "2026-01-29T20:35:52.119612",
+      "read": false
+    },
+    {
+      "id": 2846,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76192,
+      "timestamp": "2026-01-29T20:36:16.390492",
+      "read": false
+    },
+    {
+      "id": 2847,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32913,
+      "timestamp": "2026-01-29T20:36:25.465327",
+      "read": false
+    },
+    {
+      "id": 2848,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40138,
+      "timestamp": "2026-01-29T20:36:25.507821",
+      "read": false
+    },
+    {
+      "id": 2849,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74349,
+      "timestamp": "2026-01-29T20:36:31.528571",
+      "read": false
+    },
+    {
+      "id": 2850,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:36:43.484548",
+      "read": false
+    },
+    {
+      "id": 2851,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38008,
+      "timestamp": "2026-01-29T20:36:49.763685",
+      "read": false
+    },
+    {
+      "id": 2852,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78475,
+      "timestamp": "2026-01-29T20:36:52.821480",
+      "read": false
+    },
+    {
+      "id": 2853,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76253,
+      "timestamp": "2026-01-29T20:37:17.090501",
+      "read": false
+    },
+    {
+      "id": 2854,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 32974,
+      "timestamp": "2026-01-29T20:37:26.187954",
+      "read": false
+    },
+    {
+      "id": 2855,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74410,
+      "timestamp": "2026-01-29T20:37:32.241779",
+      "read": false
+    },
+    {
+      "id": 2856,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:37:43.659592",
+      "read": false
+    },
+    {
+      "id": 2857,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38069,
+      "timestamp": "2026-01-29T20:37:50.469241",
+      "read": false
+    },
+    {
+      "id": 2858,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78536,
+      "timestamp": "2026-01-29T20:37:53.579563",
+      "read": false
+    },
+    {
+      "id": 2859,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76313,
+      "timestamp": "2026-01-29T20:38:17.824090",
+      "read": false
+    },
+    {
+      "id": 2860,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33034,
+      "timestamp": "2026-01-29T20:38:26.901181",
+      "read": false
+    },
+    {
+      "id": 2861,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74470,
+      "timestamp": "2026-01-29T20:38:32.923162",
+      "read": false
+    },
+    {
+      "id": 2862,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:38:43.809736",
+      "read": false
+    },
+    {
+      "id": 2863,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38130,
+      "timestamp": "2026-01-29T20:38:51.211946",
+      "read": false
+    },
+    {
+      "id": 2864,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78597,
+      "timestamp": "2026-01-29T20:38:54.299040",
+      "read": false
+    },
+    {
+      "id": 2865,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76374,
+      "timestamp": "2026-01-29T20:39:18.560538",
+      "read": false
+    },
+    {
+      "id": 2866,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33095,
+      "timestamp": "2026-01-29T20:39:27.695048",
+      "read": false
+    },
+    {
+      "id": 2867,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74531,
+      "timestamp": "2026-01-29T20:39:33.765441",
+      "read": false
+    },
+    {
+      "id": 2868,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:39:43.969167",
+      "read": false
+    },
+    {
+      "id": 2869,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38190,
+      "timestamp": "2026-01-29T20:39:51.998230",
+      "read": false
+    },
+    {
+      "id": 2870,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78658,
+      "timestamp": "2026-01-29T20:39:55.041623",
+      "read": false
+    },
+    {
+      "id": 2871,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76435,
+      "timestamp": "2026-01-29T20:40:19.343696",
+      "read": false
+    },
+    {
+      "id": 2872,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33156,
+      "timestamp": "2026-01-29T20:40:28.458700",
+      "read": false
+    },
+    {
+      "id": 2873,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40381,
+      "timestamp": "2026-01-29T20:40:28.487813",
+      "read": false
+    },
+    {
+      "id": 2874,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74592,
+      "timestamp": "2026-01-29T20:40:34.510806",
+      "read": false
+    },
+    {
+      "id": 2875,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78684,
+      "timestamp": "2026-01-29T20:40:34.592669",
+      "read": false
+    },
+    {
+      "id": 2876,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:40:44.147276",
+      "read": false
+    },
+    {
+      "id": 2877,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38251,
+      "timestamp": "2026-01-29T20:40:52.756334",
+      "read": false
+    },
+    {
+      "id": 2878,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78718,
+      "timestamp": "2026-01-29T20:40:55.832399",
+      "read": false
+    },
+    {
+      "id": 2879,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76496,
+      "timestamp": "2026-01-29T20:41:20.119946",
+      "read": false
+    },
+    {
+      "id": 2880,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33217,
+      "timestamp": "2026-01-29T20:41:29.185153",
+      "read": false
+    },
+    {
+      "id": 2881,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40442,
+      "timestamp": "2026-01-29T20:41:29.245622",
+      "read": false
+    },
+    {
+      "id": 2882,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74653,
+      "timestamp": "2026-01-29T20:41:35.235989",
+      "read": false
+    },
+    {
+      "id": 2883,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78745,
+      "timestamp": "2026-01-29T20:41:35.312063",
+      "read": false
+    },
+    {
+      "id": 2884,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:41:44.296108",
+      "read": false
+    },
+    {
+      "id": 2885,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38312,
+      "timestamp": "2026-01-29T20:41:53.517667",
+      "read": false
+    },
+    {
+      "id": 2886,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78779,
+      "timestamp": "2026-01-29T20:41:56.542929",
+      "read": false
+    },
+    {
+      "id": 2887,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76556,
+      "timestamp": "2026-01-29T20:42:20.837171",
+      "read": false
+    },
+    {
+      "id": 2888,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33277,
+      "timestamp": "2026-01-29T20:42:29.903165",
+      "read": false
+    },
+    {
+      "id": 2889,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40502,
+      "timestamp": "2026-01-29T20:42:29.931034",
+      "read": false
+    },
+    {
+      "id": 2890,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74713,
+      "timestamp": "2026-01-29T20:42:35.961210",
+      "read": false
+    },
+    {
+      "id": 2891,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78806,
+      "timestamp": "2026-01-29T20:42:36.042246",
+      "read": false
+    },
+    {
+      "id": 2892,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:42:44.472707",
+      "read": false
+    },
+    {
+      "id": 2893,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38373,
+      "timestamp": "2026-01-29T20:42:54.237629",
+      "read": false
+    },
+    {
+      "id": 2894,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78840,
+      "timestamp": "2026-01-29T20:42:57.260579",
+      "read": false
+    },
+    {
+      "id": 2895,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76617,
+      "timestamp": "2026-01-29T20:43:21.623233",
+      "read": false
+    },
+    {
+      "id": 2896,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40563,
+      "timestamp": "2026-01-29T20:43:30.706268",
+      "read": false
+    },
+    {
+      "id": 2897,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33338,
+      "timestamp": "2026-01-29T20:43:30.728868",
+      "read": false
+    },
+    {
+      "id": 2898,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74774,
+      "timestamp": "2026-01-29T20:43:36.692845",
+      "read": false
+    },
+    {
+      "id": 2899,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78866,
+      "timestamp": "2026-01-29T20:43:36.772513",
+      "read": false
+    },
+    {
+      "id": 2900,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:43:44.655139",
+      "read": false
+    },
+    {
+      "id": 2901,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38433,
+      "timestamp": "2026-01-29T20:43:55.007422",
+      "read": false
+    },
+    {
+      "id": 2902,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78901,
+      "timestamp": "2026-01-29T20:43:58.039701",
+      "read": false
+    },
+    {
+      "id": 2903,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76678,
+      "timestamp": "2026-01-29T20:44:22.411824",
+      "read": false
+    },
+    {
+      "id": 2904,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40624,
+      "timestamp": "2026-01-29T20:44:31.423861",
+      "read": false
+    },
+    {
+      "id": 2905,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33399,
+      "timestamp": "2026-01-29T20:44:31.487708",
+      "read": false
+    },
+    {
+      "id": 2906,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74835,
+      "timestamp": "2026-01-29T20:44:37.448868",
+      "read": false
+    },
+    {
+      "id": 2907,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78927,
+      "timestamp": "2026-01-29T20:44:37.556686",
+      "read": false
+    },
+    {
+      "id": 2908,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:44:44.830062",
+      "read": false
+    },
+    {
+      "id": 2909,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38494,
+      "timestamp": "2026-01-29T20:44:55.772135",
+      "read": false
+    },
+    {
+      "id": 2910,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78961,
+      "timestamp": "2026-01-29T20:44:58.782260",
+      "read": false
+    },
+    {
+      "id": 2911,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76739,
+      "timestamp": "2026-01-29T20:45:23.181404",
+      "read": false
+    },
+    {
+      "id": 2912,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40685,
+      "timestamp": "2026-01-29T20:45:32.134739",
+      "read": false
+    },
+    {
+      "id": 2913,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33460,
+      "timestamp": "2026-01-29T20:45:32.281429",
+      "read": false
+    },
+    {
+      "id": 2914,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74896,
+      "timestamp": "2026-01-29T20:45:38.196915",
+      "read": false
+    },
+    {
+      "id": 2915,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78988,
+      "timestamp": "2026-01-29T20:45:38.340062",
+      "read": false
+    },
+    {
+      "id": 2916,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:45:44.967006",
+      "read": false
+    },
+    {
+      "id": 2917,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38555,
+      "timestamp": "2026-01-29T20:45:56.549042",
+      "read": false
+    },
+    {
+      "id": 2918,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79022,
+      "timestamp": "2026-01-29T20:45:59.571249",
+      "read": false
+    },
+    {
+      "id": 2919,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76799,
+      "timestamp": "2026-01-29T20:46:23.861252",
+      "read": false
+    },
+    {
+      "id": 2920,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40745,
+      "timestamp": "2026-01-29T20:46:32.869824",
+      "read": false
+    },
+    {
+      "id": 2921,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33520,
+      "timestamp": "2026-01-29T20:46:32.994526",
+      "read": false
+    },
+    {
+      "id": 2922,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 74956,
+      "timestamp": "2026-01-29T20:46:38.917287",
+      "read": false
+    },
+    {
+      "id": 2923,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79049,
+      "timestamp": "2026-01-29T20:46:39.039174",
+      "read": false
+    },
+    {
+      "id": 2924,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:46:45.136023",
+      "read": false
+    },
+    {
+      "id": 2925,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38616,
+      "timestamp": "2026-01-29T20:46:57.241330",
+      "read": false
+    },
+    {
+      "id": 2926,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79083,
+      "timestamp": "2026-01-29T20:47:00.256317",
+      "read": false
+    },
+    {
+      "id": 2927,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76860,
+      "timestamp": "2026-01-29T20:47:24.569895",
+      "read": false
+    },
+    {
+      "id": 2928,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40806,
+      "timestamp": "2026-01-29T20:47:33.620155",
+      "read": false
+    },
+    {
+      "id": 2929,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33581,
+      "timestamp": "2026-01-29T20:47:33.732203",
+      "read": false
+    },
+    {
+      "id": 2930,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75017,
+      "timestamp": "2026-01-29T20:47:39.632074",
+      "read": false
+    },
+    {
+      "id": 2931,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79109,
+      "timestamp": "2026-01-29T20:47:39.738863",
+      "read": false
+    },
+    {
+      "id": 2932,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:47:45.314863",
+      "read": false
+    },
+    {
+      "id": 2933,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38676,
+      "timestamp": "2026-01-29T20:47:57.969500",
+      "read": false
+    },
+    {
+      "id": 2934,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79143,
+      "timestamp": "2026-01-29T20:48:01.013787",
+      "read": false
+    },
+    {
+      "id": 2935,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76921,
+      "timestamp": "2026-01-29T20:48:25.307712",
+      "read": false
+    },
+    {
+      "id": 2936,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40867,
+      "timestamp": "2026-01-29T20:48:34.430611",
+      "read": false
+    },
+    {
+      "id": 2937,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75078,
+      "timestamp": "2026-01-29T20:48:40.335288",
+      "read": false
+    },
+    {
+      "id": 2938,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79170,
+      "timestamp": "2026-01-29T20:48:40.487425",
+      "read": false
+    },
+    {
+      "id": 2939,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:48:45.452094",
+      "read": false
+    },
+    {
+      "id": 2940,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38737,
+      "timestamp": "2026-01-29T20:48:58.724177",
+      "read": false
+    },
+    {
+      "id": 2941,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79204,
+      "timestamp": "2026-01-29T20:49:01.759973",
+      "read": false
+    },
+    {
+      "id": 2942,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76981,
+      "timestamp": "2026-01-29T20:49:26.031267",
+      "read": false
+    },
+    {
+      "id": 2943,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40928,
+      "timestamp": "2026-01-29T20:49:35.222426",
+      "read": false
+    },
+    {
+      "id": 2944,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75139,
+      "timestamp": "2026-01-29T20:49:41.027340",
+      "read": false
+    },
+    {
+      "id": 2945,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79231,
+      "timestamp": "2026-01-29T20:49:41.307982",
+      "read": false
+    },
+    {
+      "id": 2946,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:49:45.615421",
+      "read": false
+    },
+    {
+      "id": 2947,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38798,
+      "timestamp": "2026-01-29T20:49:59.531227",
+      "read": false
+    },
+    {
+      "id": 2948,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79265,
+      "timestamp": "2026-01-29T20:50:02.562748",
+      "read": false
+    },
+    {
+      "id": 2949,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77042,
+      "timestamp": "2026-01-29T20:50:26.863696",
+      "read": false
+    },
+    {
+      "id": 2950,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40988,
+      "timestamp": "2026-01-29T20:50:36.001331",
+      "read": false
+    },
+    {
+      "id": 2951,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75199,
+      "timestamp": "2026-01-29T20:50:41.689404",
+      "read": false
+    },
+    {
+      "id": 2952,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79292,
+      "timestamp": "2026-01-29T20:50:42.092214",
+      "read": false
+    },
+    {
+      "id": 2953,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:50:45.761354",
+      "read": false
+    },
+    {
+      "id": 2954,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38859,
+      "timestamp": "2026-01-29T20:51:00.334323",
+      "read": false
+    },
+    {
+      "id": 2955,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79326,
+      "timestamp": "2026-01-29T20:51:03.395598",
+      "read": false
+    },
+    {
+      "id": 2956,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77103,
+      "timestamp": "2026-01-29T20:51:27.716839",
+      "read": false
+    },
+    {
+      "id": 2957,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41049,
+      "timestamp": "2026-01-29T20:51:36.839767",
+      "read": false
+    },
+    {
+      "id": 2958,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75260,
+      "timestamp": "2026-01-29T20:51:42.394500",
+      "read": false
+    },
+    {
+      "id": 2959,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79352,
+      "timestamp": "2026-01-29T20:51:42.930988",
+      "read": false
+    },
+    {
+      "id": 2960,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:51:45.920330",
+      "read": false
+    },
+    {
+      "id": 2961,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38920,
+      "timestamp": "2026-01-29T20:52:01.151310",
+      "read": false
+    },
+    {
+      "id": 2962,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79387,
+      "timestamp": "2026-01-29T20:52:04.191958",
+      "read": false
+    },
+    {
+      "id": 2963,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77164,
+      "timestamp": "2026-01-29T20:52:28.587627",
+      "read": false
+    },
+    {
+      "id": 2964,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41110,
+      "timestamp": "2026-01-29T20:52:37.742755",
+      "read": false
+    },
+    {
+      "id": 2965,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75321,
+      "timestamp": "2026-01-29T20:52:43.132706",
+      "read": false
+    },
+    {
+      "id": 2966,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79413,
+      "timestamp": "2026-01-29T20:52:43.819140",
+      "read": false
+    },
+    {
+      "id": 2967,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:52:46.120949",
+      "read": false
+    },
+    {
+      "id": 2968,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 38981,
+      "timestamp": "2026-01-29T20:53:02.034960",
+      "read": false
+    },
+    {
+      "id": 2969,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79448,
+      "timestamp": "2026-01-29T20:53:05.106265",
+      "read": false
+    },
+    {
+      "id": 2970,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77225,
+      "timestamp": "2026-01-29T20:53:29.424573",
+      "read": false
+    },
+    {
+      "id": 2971,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 33946,
+      "timestamp": "2026-01-29T20:53:38.510845",
+      "read": false
+    },
+    {
+      "id": 2972,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75381,
+      "timestamp": "2026-01-29T20:53:43.850868",
+      "read": false
+    },
+    {
+      "id": 2973,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79474,
+      "timestamp": "2026-01-29T20:53:44.578131",
+      "read": false
+    },
+    {
+      "id": 2974,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:53:46.284101",
+      "read": false
+    },
+    {
+      "id": 2975,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39041,
+      "timestamp": "2026-01-29T20:54:02.807302",
+      "read": false
+    },
+    {
+      "id": 2976,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79508,
+      "timestamp": "2026-01-29T20:54:05.828055",
+      "read": false
+    },
+    {
+      "id": 2977,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77286,
+      "timestamp": "2026-01-29T20:54:30.303717",
+      "read": false
+    },
+    {
+      "id": 2978,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41232,
+      "timestamp": "2026-01-29T20:54:39.416349",
+      "read": false
+    },
+    {
+      "id": 2979,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75442,
+      "timestamp": "2026-01-29T20:54:44.553617",
+      "read": false
+    },
+    {
+      "id": 2980,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79535,
+      "timestamp": "2026-01-29T20:54:45.484966",
+      "read": false
+    },
+    {
+      "id": 2981,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:54:46.440899",
+      "read": false
+    },
+    {
+      "id": 2982,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39102,
+      "timestamp": "2026-01-29T20:55:03.697567",
+      "read": false
+    },
+    {
+      "id": 2983,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79569,
+      "timestamp": "2026-01-29T20:55:06.736924",
+      "read": false
+    },
+    {
+      "id": 2984,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77347,
+      "timestamp": "2026-01-29T20:55:31.145137",
+      "read": false
+    },
+    {
+      "id": 2985,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 34068,
+      "timestamp": "2026-01-29T20:55:40.252129",
+      "read": false
+    },
+    {
+      "id": 2986,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75503,
+      "timestamp": "2026-01-29T20:55:45.261189",
+      "read": false
+    },
+    {
+      "id": 2987,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79596,
+      "timestamp": "2026-01-29T20:55:46.320385",
+      "read": false
+    },
+    {
+      "id": 2988,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:55:46.595594",
+      "read": false
+    },
+    {
+      "id": 2989,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39163,
+      "timestamp": "2026-01-29T20:56:04.585894",
+      "read": false
+    },
+    {
+      "id": 2990,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79630,
+      "timestamp": "2026-01-29T20:56:07.634422",
+      "read": false
+    },
+    {
+      "id": 2991,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77407,
+      "timestamp": "2026-01-29T20:56:31.948035",
+      "read": false
+    },
+    {
+      "id": 2992,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41354,
+      "timestamp": "2026-01-29T20:56:41.049770",
+      "read": false
+    },
+    {
+      "id": 2993,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75563,
+      "timestamp": "2026-01-29T20:56:45.994521",
+      "read": false
+    },
+    {
+      "id": 2994,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:56:46.786756",
+      "read": false
+    },
+    {
+      "id": 2995,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79657,
+      "timestamp": "2026-01-29T20:56:47.138837",
+      "read": false
+    },
+    {
+      "id": 2996,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39224,
+      "timestamp": "2026-01-29T20:57:05.384319",
+      "read": false
+    },
+    {
+      "id": 2997,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79691,
+      "timestamp": "2026-01-29T20:57:08.425964",
+      "read": false
+    },
+    {
+      "id": 2998,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77468,
+      "timestamp": "2026-01-29T20:57:32.778002",
+      "read": false
+    },
+    {
+      "id": 2999,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 34189,
+      "timestamp": "2026-01-29T20:57:41.908510",
+      "read": false
+    },
+    {
+      "id": 3000,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75624,
+      "timestamp": "2026-01-29T20:57:46.672065",
+      "read": false
+    },
+    {
+      "id": 3001,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:57:46.914556",
+      "read": false
+    },
+    {
+      "id": 3002,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79717,
+      "timestamp": "2026-01-29T20:57:47.971084",
+      "read": false
+    },
+    {
+      "id": 3003,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39285,
+      "timestamp": "2026-01-29T20:58:06.163283",
+      "read": false
+    },
+    {
+      "id": 3004,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79752,
+      "timestamp": "2026-01-29T20:58:09.202880",
+      "read": false
+    },
+    {
+      "id": 3005,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77529,
+      "timestamp": "2026-01-29T20:58:33.589389",
+      "read": false
+    },
+    {
+      "id": 3006,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41475,
+      "timestamp": "2026-01-29T20:58:42.700627",
+      "read": false
+    },
+    {
+      "id": 3007,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:58:47.085232",
+      "read": false
+    },
+    {
+      "id": 3008,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75685,
+      "timestamp": "2026-01-29T20:58:47.372924",
+      "read": false
+    },
+    {
+      "id": 3009,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79778,
+      "timestamp": "2026-01-29T20:58:48.773787",
+      "read": false
+    },
+    {
+      "id": 3010,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39345,
+      "timestamp": "2026-01-29T20:59:07.035516",
+      "read": false
+    },
+    {
+      "id": 3011,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79813,
+      "timestamp": "2026-01-29T20:59:10.066256",
+      "read": false
+    },
+    {
+      "id": 3012,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77590,
+      "timestamp": "2026-01-29T20:59:34.414198",
+      "read": false
+    },
+    {
+      "id": 3013,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 34311,
+      "timestamp": "2026-01-29T20:59:43.567858",
+      "read": false
+    },
+    {
+      "id": 3014,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T20:59:47.229629",
+      "read": false
+    },
+    {
+      "id": 3015,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75746,
+      "timestamp": "2026-01-29T20:59:48.048528",
+      "read": false
+    },
+    {
+      "id": 3016,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79839,
+      "timestamp": "2026-01-29T20:59:49.648325",
+      "read": false
+    },
+    {
+      "id": 3017,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39406,
+      "timestamp": "2026-01-29T21:00:07.915400",
+      "read": false
+    },
+    {
+      "id": 3018,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79873,
+      "timestamp": "2026-01-29T21:00:10.956385",
+      "read": false
+    },
+    {
+      "id": 3019,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77651,
+      "timestamp": "2026-01-29T21:00:35.250880",
+      "read": false
+    },
+    {
+      "id": 3020,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41597,
+      "timestamp": "2026-01-29T21:00:44.382974",
+      "read": false
+    },
+    {
+      "id": 3021,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 34372,
+      "timestamp": "2026-01-29T21:00:44.426802",
+      "read": false
+    },
+    {
+      "id": 3022,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:00:47.401958",
+      "read": false
+    },
+    {
+      "id": 3023,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75806,
+      "timestamp": "2026-01-29T21:00:48.733708",
+      "read": false
+    },
+    {
+      "id": 3024,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79900,
+      "timestamp": "2026-01-29T21:00:50.462434",
+      "read": false
+    },
+    {
+      "id": 3025,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39467,
+      "timestamp": "2026-01-29T21:01:08.711597",
+      "read": false
+    },
+    {
+      "id": 3026,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79934,
+      "timestamp": "2026-01-29T21:01:11.744082",
+      "read": false
+    },
+    {
+      "id": 3027,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77712,
+      "timestamp": "2026-01-29T21:01:36.093700",
+      "read": false
+    },
+    {
+      "id": 3028,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41658,
+      "timestamp": "2026-01-29T21:01:45.212947",
+      "read": false
+    },
+    {
+      "id": 3029,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:01:47.594597",
+      "read": false
+    },
+    {
+      "id": 3030,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75867,
+      "timestamp": "2026-01-29T21:01:49.415808",
+      "read": false
+    },
+    {
+      "id": 3031,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79961,
+      "timestamp": "2026-01-29T21:01:51.292006",
+      "read": false
+    },
+    {
+      "id": 3032,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39528,
+      "timestamp": "2026-01-29T21:02:09.527112",
+      "read": false
+    },
+    {
+      "id": 3033,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 79995,
+      "timestamp": "2026-01-29T21:02:12.508066",
+      "read": false
+    },
+    {
+      "id": 3034,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77772,
+      "timestamp": "2026-01-29T21:02:36.890683",
+      "read": false
+    },
+    {
+      "id": 3035,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41718,
+      "timestamp": "2026-01-29T21:02:46.013555",
+      "read": false
+    },
+    {
+      "id": 3036,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:02:47.773803",
+      "read": false
+    },
+    {
+      "id": 3037,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75928,
+      "timestamp": "2026-01-29T21:02:50.155159",
+      "read": false
+    },
+    {
+      "id": 3038,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80022,
+      "timestamp": "2026-01-29T21:02:52.095385",
+      "read": false
+    },
+    {
+      "id": 3039,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39589,
+      "timestamp": "2026-01-29T21:03:10.358698",
+      "read": false
+    },
+    {
+      "id": 3040,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80056,
+      "timestamp": "2026-01-29T21:03:13.391232",
+      "read": false
+    },
+    {
+      "id": 3041,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77833,
+      "timestamp": "2026-01-29T21:03:37.774690",
+      "read": false
+    },
+    {
+      "id": 3042,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 34554,
+      "timestamp": "2026-01-29T21:03:46.902274",
+      "read": false
+    },
+    {
+      "id": 3043,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:03:47.955622",
+      "read": false
+    },
+    {
+      "id": 3044,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 75988,
+      "timestamp": "2026-01-29T21:03:50.842657",
+      "read": false
+    },
+    {
+      "id": 3045,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80082,
+      "timestamp": "2026-01-29T21:03:52.969060",
+      "read": false
+    },
+    {
+      "id": 3046,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39650,
+      "timestamp": "2026-01-29T21:04:11.251568",
+      "read": false
+    },
+    {
+      "id": 3047,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80117,
+      "timestamp": "2026-01-29T21:04:14.306725",
+      "read": false
+    },
+    {
+      "id": 3048,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77894,
+      "timestamp": "2026-01-29T21:04:38.658439",
+      "read": false
+    },
+    {
+      "id": 3049,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 34615,
+      "timestamp": "2026-01-29T21:04:47.784604",
+      "read": false
+    },
+    {
+      "id": 3050,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:04:48.127334",
+      "read": false
+    },
+    {
+      "id": 3051,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76049,
+      "timestamp": "2026-01-29T21:04:51.519454",
+      "read": false
+    },
+    {
+      "id": 3052,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80143,
+      "timestamp": "2026-01-29T21:04:53.858773",
+      "read": false
+    },
+    {
+      "id": 3053,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39711,
+      "timestamp": "2026-01-29T21:05:12.094482",
+      "read": false
+    },
+    {
+      "id": 3054,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80178,
+      "timestamp": "2026-01-29T21:05:15.140715",
+      "read": false
+    },
+    {
+      "id": 3055,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 77955,
+      "timestamp": "2026-01-29T21:05:39.420363",
+      "read": false
+    },
+    {
+      "id": 3056,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:05:48.290499",
+      "read": false
+    },
+    {
+      "id": 3057,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41901,
+      "timestamp": "2026-01-29T21:05:48.696176",
+      "read": false
+    },
+    {
+      "id": 3058,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76110,
+      "timestamp": "2026-01-29T21:05:52.188845",
+      "read": false
+    },
+    {
+      "id": 3059,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80204,
+      "timestamp": "2026-01-29T21:05:54.765429",
+      "read": false
+    },
+    {
+      "id": 3060,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39771,
+      "timestamp": "2026-01-29T21:06:13.028714",
+      "read": false
+    },
+    {
+      "id": 3061,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80239,
+      "timestamp": "2026-01-29T21:06:16.052879",
+      "read": false
+    },
+    {
+      "id": 3062,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78016,
+      "timestamp": "2026-01-29T21:06:40.340903",
+      "read": false
+    },
+    {
+      "id": 3063,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:06:48.463971",
+      "read": false
+    },
+    {
+      "id": 3064,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 41962,
+      "timestamp": "2026-01-29T21:06:49.503124",
+      "read": false
+    },
+    {
+      "id": 3065,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76170,
+      "timestamp": "2026-01-29T21:06:52.851173",
+      "read": false
+    },
+    {
+      "id": 3066,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80265,
+      "timestamp": "2026-01-29T21:06:55.595216",
+      "read": false
+    },
+    {
+      "id": 3067,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39832,
+      "timestamp": "2026-01-29T21:07:13.824857",
+      "read": false
+    },
+    {
+      "id": 3068,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80299,
+      "timestamp": "2026-01-29T21:07:16.863475",
+      "read": false
+    },
+    {
+      "id": 3069,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78077,
+      "timestamp": "2026-01-29T21:07:41.189804",
+      "read": false
+    },
+    {
+      "id": 3070,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:07:48.627922",
+      "read": false
+    },
+    {
+      "id": 3071,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 42023,
+      "timestamp": "2026-01-29T21:07:50.298983",
+      "read": false
+    },
+    {
+      "id": 3072,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76231,
+      "timestamp": "2026-01-29T21:07:53.467982",
+      "read": false
+    },
+    {
+      "id": 3073,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80326,
+      "timestamp": "2026-01-29T21:07:56.373481",
+      "read": false
+    },
+    {
+      "id": 3074,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39893,
+      "timestamp": "2026-01-29T21:08:14.674049",
+      "read": false
+    },
+    {
+      "id": 3075,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80360,
+      "timestamp": "2026-01-29T21:08:17.734645",
+      "read": false
+    },
+    {
+      "id": 3076,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78138,
+      "timestamp": "2026-01-29T21:08:42.064384",
+      "read": false
+    },
+    {
+      "id": 3077,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:08:48.805883",
+      "read": false
+    },
+    {
+      "id": 3078,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 42084,
+      "timestamp": "2026-01-29T21:08:51.214474",
+      "read": false
+    },
+    {
+      "id": 3079,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76292,
+      "timestamp": "2026-01-29T21:08:54.259633",
+      "read": false
+    },
+    {
+      "id": 3080,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80387,
+      "timestamp": "2026-01-29T21:08:57.295136",
+      "read": false
+    },
+    {
+      "id": 3081,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 39954,
+      "timestamp": "2026-01-29T21:09:15.547212",
+      "read": false
+    },
+    {
+      "id": 3082,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80421,
+      "timestamp": "2026-01-29T21:09:18.612022",
+      "read": false
+    },
+    {
+      "id": 3083,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78198,
+      "timestamp": "2026-01-29T21:09:42.933125",
+      "read": false
+    },
+    {
+      "id": 3084,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:09:48.953097",
+      "read": false
+    },
+    {
+      "id": 3085,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 34920,
+      "timestamp": "2026-01-29T21:09:52.044890",
+      "read": false
+    },
+    {
+      "id": 3086,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76353,
+      "timestamp": "2026-01-29T21:09:55.067070",
+      "read": false
+    },
+    {
+      "id": 3087,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80448,
+      "timestamp": "2026-01-29T21:09:58.133121",
+      "read": false
+    },
+    {
+      "id": 3088,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40015,
+      "timestamp": "2026-01-29T21:10:16.391767",
+      "read": false
+    },
+    {
+      "id": 3089,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80482,
+      "timestamp": "2026-01-29T21:10:19.438290",
+      "read": false
+    },
+    {
+      "id": 3090,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78259,
+      "timestamp": "2026-01-29T21:10:43.719091",
+      "read": false
+    },
+    {
+      "id": 3091,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:10:49.096611",
+      "read": false
+    },
+    {
+      "id": 3092,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 42205,
+      "timestamp": "2026-01-29T21:10:52.885077",
+      "read": false
+    },
+    {
+      "id": 3093,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76413,
+      "timestamp": "2026-01-29T21:10:55.760441",
+      "read": false
+    },
+    {
+      "id": 3094,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80508,
+      "timestamp": "2026-01-29T21:10:58.962417",
+      "read": false
+    },
+    {
+      "id": 3095,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40076,
+      "timestamp": "2026-01-29T21:11:17.206096",
+      "read": false
+    },
+    {
+      "id": 3096,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80543,
+      "timestamp": "2026-01-29T21:11:20.259547",
+      "read": false
+    },
+    {
+      "id": 3097,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78320,
+      "timestamp": "2026-01-29T21:11:44.524328",
+      "read": false
+    },
+    {
+      "id": 3098,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:11:49.285073",
+      "read": false
+    },
+    {
+      "id": 3099,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35041,
+      "timestamp": "2026-01-29T21:11:53.782933",
+      "read": false
+    },
+    {
+      "id": 3100,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76474,
+      "timestamp": "2026-01-29T21:11:56.654886",
+      "read": false
+    },
+    {
+      "id": 3101,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80569,
+      "timestamp": "2026-01-29T21:11:59.930568",
+      "read": false
+    },
+    {
+      "id": 3102,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40137,
+      "timestamp": "2026-01-29T21:12:18.186533",
+      "read": false
+    },
+    {
+      "id": 3103,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80604,
+      "timestamp": "2026-01-29T21:12:21.632199",
+      "read": false
+    },
+    {
+      "id": 3104,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78381,
+      "timestamp": "2026-01-29T21:12:45.637610",
+      "read": false
+    },
+    {
+      "id": 3105,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:12:49.501635",
+      "read": false
+    },
+    {
+      "id": 3106,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 42328,
+      "timestamp": "2026-01-29T21:12:55.039421",
+      "read": false
+    },
+    {
+      "id": 3107,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76535,
+      "timestamp": "2026-01-29T21:12:57.768454",
+      "read": false
+    },
+    {
+      "id": 3108,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80631,
+      "timestamp": "2026-01-29T21:13:01.140427",
+      "read": false
+    },
+    {
+      "id": 3109,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40198,
+      "timestamp": "2026-01-29T21:13:19.162038",
+      "read": false
+    },
+    {
+      "id": 3110,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80665,
+      "timestamp": "2026-01-29T21:13:22.514539",
+      "read": false
+    },
+    {
+      "id": 3111,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78442,
+      "timestamp": "2026-01-29T21:13:46.462300",
+      "read": false
+    },
+    {
+      "id": 3112,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:13:49.681545",
+      "read": false
+    },
+    {
+      "id": 3113,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 42388,
+      "timestamp": "2026-01-29T21:13:55.860774",
+      "read": false
+    },
+    {
+      "id": 3114,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76596,
+      "timestamp": "2026-01-29T21:13:58.436359",
+      "read": false
+    },
+    {
+      "id": 3115,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80691,
+      "timestamp": "2026-01-29T21:14:01.928841",
+      "read": false
+    },
+    {
+      "id": 3116,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40258,
+      "timestamp": "2026-01-29T21:14:19.963871",
+      "read": false
+    },
+    {
+      "id": 3117,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80726,
+      "timestamp": "2026-01-29T21:14:23.369457",
+      "read": false
+    },
+    {
+      "id": 3118,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78503,
+      "timestamp": "2026-01-29T21:14:47.276444",
+      "read": false
+    },
+    {
+      "id": 3119,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:14:49.804466",
+      "read": false
+    },
+    {
+      "id": 3120,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35224,
+      "timestamp": "2026-01-29T21:14:56.685063",
+      "read": false
+    },
+    {
+      "id": 3121,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76657,
+      "timestamp": "2026-01-29T21:14:59.163196",
+      "read": false
+    },
+    {
+      "id": 3122,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80752,
+      "timestamp": "2026-01-29T21:15:02.770265",
+      "read": false
+    },
+    {
+      "id": 3123,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40319,
+      "timestamp": "2026-01-29T21:15:20.771987",
+      "read": false
+    },
+    {
+      "id": 3124,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80787,
+      "timestamp": "2026-01-29T21:15:24.213411",
+      "read": false
+    },
+    {
+      "id": 3125,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78564,
+      "timestamp": "2026-01-29T21:15:48.052113",
+      "read": false
+    },
+    {
+      "id": 3126,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:15:49.939058",
+      "read": false
+    },
+    {
+      "id": 3127,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 42510,
+      "timestamp": "2026-01-29T21:15:57.574936",
+      "read": false
+    },
+    {
+      "id": 3128,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76717,
+      "timestamp": "2026-01-29T21:15:59.862421",
+      "read": false
+    },
+    {
+      "id": 3129,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80813,
+      "timestamp": "2026-01-29T21:16:03.667072",
+      "read": false
+    },
+    {
+      "id": 3130,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40380,
+      "timestamp": "2026-01-29T21:16:21.607846",
+      "read": false
+    },
+    {
+      "id": 3131,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80847,
+      "timestamp": "2026-01-29T21:16:24.934414",
+      "read": false
+    },
+    {
+      "id": 3132,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78624,
+      "timestamp": "2026-01-29T21:16:48.939072",
+      "read": false
+    },
+    {
+      "id": 3133,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:16:50.085455",
+      "read": false
+    },
+    {
+      "id": 3134,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 42571,
+      "timestamp": "2026-01-29T21:16:58.302970",
+      "read": false
+    },
+    {
+      "id": 3135,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76778,
+      "timestamp": "2026-01-29T21:17:00.615734",
+      "read": false
+    },
+    {
+      "id": 3136,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80874,
+      "timestamp": "2026-01-29T21:17:04.387996",
+      "read": false
+    },
+    {
+      "id": 3137,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40441,
+      "timestamp": "2026-01-29T21:17:22.400914",
+      "read": false
+    },
+    {
+      "id": 3138,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80908,
+      "timestamp": "2026-01-29T21:17:25.692216",
+      "read": false
+    },
+    {
+      "id": 3139,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78685,
+      "timestamp": "2026-01-29T21:17:49.693568",
+      "read": false
+    },
+    {
+      "id": 3140,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:17:50.210639",
+      "read": false
+    },
+    {
+      "id": 3141,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35407,
+      "timestamp": "2026-01-29T21:17:59.064151",
+      "read": false
+    },
+    {
+      "id": 3142,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76839,
+      "timestamp": "2026-01-29T21:18:01.236352",
+      "read": false
+    },
+    {
+      "id": 3143,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80935,
+      "timestamp": "2026-01-29T21:18:05.136011",
+      "read": false
+    },
+    {
+      "id": 3144,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40502,
+      "timestamp": "2026-01-29T21:18:23.089151",
+      "read": false
+    },
+    {
+      "id": 3145,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80969,
+      "timestamp": "2026-01-29T21:18:26.391356",
+      "read": false
+    },
+    {
+      "id": 3146,
+      "type": "heartbeat",
+      "message": "Autonomous Builder active",
+      "status": "active",
+      "current_task": null,
+      "tasks_completed": 3,
+      "timestamp": "2026-01-29T21:18:50.330042",
+      "read": false
+    },
+    {
+      "id": 3147,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 78746,
+      "timestamp": "2026-01-29T21:18:50.380089",
+      "read": false
+    },
+    {
+      "id": 3148,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 35467,
+      "timestamp": "2026-01-29T21:18:59.811188",
+      "read": false
+    },
+    {
+      "id": 3149,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 76899,
+      "timestamp": "2026-01-29T21:19:01.859063",
+      "read": false
+    },
+    {
+      "id": 3150,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 80995,
+      "timestamp": "2026-01-29T21:19:05.867122",
+      "read": false
+    },
+    {
+      "id": 3151,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 40562,
+      "timestamp": "2026-01-29T21:19:23.827713",
+      "read": false
+    },
+    {
+      "id": 3152,
+      "type": "heartbeat",
+      "message": "Builder active",
+      "status": "active",
+      "current_task": null,
+      "uptime_seconds": 81030,
+      "timestamp": "2026-01-29T21:19:27.086900",
+      "read": false
     }
   ],
-  "next_id": 2497
+  "next_id": 3153
 }

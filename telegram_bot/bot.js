@@ -18,7 +18,7 @@ const { writeToInbox, SESSION_MAP } = require('./claude-trigger');
 const CONFIG = {
   botToken: process.env.TELEGRAM_BOT_TOKEN,
   ownerChatId: process.env.OWNER_CHAT_ID,
-  apiUrl: process.env.API_URL || 'https://script.google.com/macros/s/AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb/exec',
+  apiUrl: process.env.API_URL || 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec',
   pollInterval: 10000 // Check for PM responses every 10 seconds
 };
 
