@@ -2124,42 +2124,68 @@
       }
     }
 
-    async function showEmailDetail(threadId) {
+    // INSTANT email detail - NO API call on click
+    function showEmailDetail(threadId) {
       const modal = document.getElementById('email-detail-modal');
+      const msg = communications.find(c => c.id === threadId);
 
-      // INSTANT: Show what we already have from the list
-      const cachedMsg = communications.find(c => c.id === threadId);
-      if (cachedMsg) {
-        document.getElementById('email-detail-subject').textContent = cachedMsg.subject || 'No Subject';
-        document.getElementById('email-detail-from').textContent = `From: ${cachedMsg.from || 'Unknown'}`;
-        document.getElementById('email-detail-date').textContent = cachedMsg.receivedAt ? new Date(cachedMsg.receivedAt).toLocaleString() : '';
-        document.getElementById('email-detail-body').innerHTML = `
-          <div style="color:var(--text-muted);margin-bottom:12px;">${escapeHtml(cachedMsg.summary || '')}</div>
-          <div style="color:var(--accent-amber);font-size:14px;">⏳ Loading full email...</div>
-        `;
-      } else {
-        document.getElementById('email-detail-subject').textContent = 'Loading...';
-        document.getElementById('email-detail-from').textContent = '';
-        document.getElementById('email-detail-date').textContent = '';
-        document.getElementById('email-detail-body').textContent = 'Loading email content...';
+      if (!msg) {
+        showToast('Email not found', 'error');
+        return;
       }
+
+      // INSTANT - show cached data immediately, no waiting
+      document.getElementById('email-detail-subject').textContent = msg.subject || 'No Subject';
+      document.getElementById('email-detail-from').textContent = `From: ${msg.from || 'Unknown'}`;
+      document.getElementById('email-detail-date').textContent = msg.receivedAt ? new Date(msg.receivedAt).toLocaleString() : '';
+
+      // Show summary + option to load full body
+      document.getElementById('email-detail-body').innerHTML = `
+        <div style="font-size:15px;line-height:1.7;color:var(--text-primary);margin-bottom:20px;">
+          ${escapeHtml(msg.summary || 'No preview available')}
+        </div>
+        <div style="padding:16px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border-color);">
+          <div style="font-size:14px;color:var(--text-muted);margin-bottom:12px;">
+            💡 <strong>Quick Actions:</strong>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button onclick="askAboutEmail('${escapeAttr(msg.id)}')" class="btn btn-primary" style="font-size:13px;padding:8px 14px;">
+              🤖 Ask Chief of Staff
+            </button>
+            <button onclick="loadFullEmailBody('${escapeAttr(msg.id)}')" class="btn btn-secondary" style="font-size:13px;padding:8px 14px;">
+              📄 Load Full Email
+            </button>
+          </div>
+        </div>
+      `;
+
       modal.style.display = 'flex';
+    }
+
+    // Ask Chief of Staff about this email
+    function askAboutEmail(threadId) {
+      const msg = communications.find(c => c.id === threadId);
+      if (!msg) return;
+      closeEmailDetail();
+      askQuestion(`Read the email from ${msg.from} with subject "${msg.subject}" and give me a summary. What action should I take?`);
+    }
+
+    // Only load full email body if explicitly requested
+    async function loadFullEmailBody(threadId) {
+      const bodyEl = document.getElementById('email-detail-body');
+      bodyEl.innerHTML = '<div style="color:var(--accent-amber);padding:20px;text-align:center;">⏳ Loading full email content...</div>';
 
       try {
         const res = await fetch(`${API_BASE}?action=getEmailDetail&threadId=${encodeURIComponent(threadId)}`);
         const data = await res.json();
 
         if (data.success && data.data) {
-          const email = data.data;
-          document.getElementById('email-detail-subject').textContent = email.subject || 'No Subject';
-          document.getElementById('email-detail-from').textContent = `From: ${email.from}`;
-          document.getElementById('email-detail-date').textContent = new Date(email.date).toLocaleString();
-          document.getElementById('email-detail-body').textContent = email.body || 'No content';
+          bodyEl.innerHTML = `<div style="font-size:15px;line-height:1.7;white-space:pre-wrap;">${escapeHtml(data.data.body || 'No content')}</div>`;
         } else {
-          document.getElementById('email-detail-body').textContent = 'Failed to load email: ' + (data.error || 'Unknown error');
+          bodyEl.innerHTML = `<div style="color:var(--accent-red);">Failed to load: ${escapeHtml(data.error || 'Unknown error')}</div>`;
         }
       } catch (error) {
-        document.getElementById('email-detail-body').textContent = 'Error loading email: ' + error.message;
+        bodyEl.innerHTML = `<div style="color:var(--accent-red);">Error: ${escapeHtml(error.message)}</div>`;
       }
     }
 
