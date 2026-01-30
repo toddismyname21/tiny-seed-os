@@ -1114,6 +1114,69 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
         },
         required: ["customer_identifier"]
       }
+    },
+    {
+      name: "add_planting",
+      description: "Add plantings to the farm schedule with automatic greenhouse sow dates calculated. Creates REAL entries in the planning system. Use when Todd wants to schedule a planting, add succession plantings, or plan crops.",
+      input_schema: {
+        type: "object",
+        properties: {
+          crop: {
+            type: "string",
+            description: "The crop name (e.g., 'Tomatoes', 'Cherokee Purple Tomatoes', 'Lettuce')"
+          },
+          transplant_dates: {
+            type: "array",
+            items: { type: "string" },
+            description: "Array of field transplant dates in YYYY-MM-DD format (e.g., ['2026-04-15', '2026-04-22'])"
+          },
+          variety: {
+            type: "string",
+            description: "Optional variety name"
+          },
+          plants_needed: {
+            type: "number",
+            description: "Number of plants needed (default 100)"
+          },
+          auto_greenhouse: {
+            type: "boolean",
+            description: "Automatically create greenhouse sowing entries (default true). The sow date is calculated from the crop's transplant timing."
+          },
+          bed_id: {
+            type: "string",
+            description: "Optional target bed ID"
+          }
+        },
+        required: ["crop", "transplant_dates"]
+      }
+    },
+    {
+      name: "get_greenhouse_tasks",
+      description: "Get greenhouse sowing tasks for today or a specific date. Use when Todd asks what needs to be sown in the greenhouse.",
+      input_schema: {
+        type: "object",
+        properties: {
+          date: {
+            type: "string",
+            description: "Date in YYYY-MM-DD format (defaults to today)"
+          }
+        },
+        required: []
+      }
+    },
+    {
+      name: "get_transplant_tasks",
+      description: "Get field transplant tasks for today or a specific date. Use when Todd asks what needs to be transplanted to the field.",
+      input_schema: {
+        type: "object",
+        properties: {
+          date: {
+            type: "string",
+            description: "Date in YYYY-MM-DD format (defaults to today)"
+          }
+        },
+        required: []
+      }
     }
   ];
 
@@ -1719,6 +1782,73 @@ function executeChiefOfStaffTool(toolName, input) {
           return { success: false, error: customerResult.error || 'Customer not found' };
         } catch (e) {
           return { success: false, error: 'Could not retrieve customer details: ' + e.message };
+        }
+
+      case 'add_planting':
+        try {
+          const plantingResult = addPlantingsFromAI({
+            crop: input.crop,
+            variety: input.variety,
+            dates: input.transplant_dates,
+            plantsNeeded: input.plants_needed || 100,
+            autoSowing: input.auto_greenhouse !== false,
+            bedId: input.bed_id || 'Unassigned'
+          });
+          if (plantingResult.success) {
+            let msg = `🌱 ${plantingResult.summary}\n\n`;
+            if (plantingResult.details && plantingResult.details.length > 0) {
+              msg += `Created entries:\n`;
+              plantingResult.details.forEach(d => {
+                msg += `• Field: ${d.fieldDate}`;
+                if (d.sowDate) msg += ` (Greenhouse sow: ${d.sowDate})`;
+                msg += `\n`;
+              });
+            }
+            return { success: true, message: msg, plantings: plantingResult.details };
+          }
+          return { success: false, error: plantingResult.error || 'Failed to create plantings' };
+        } catch (e) {
+          return { success: false, error: 'Could not add plantings: ' + e.message };
+        }
+
+      case 'get_greenhouse_tasks':
+        try {
+          const ghResult = getGreenhouseSowingTasks({ date: input.date });
+          if (ghResult.success || ghResult.tasks) {
+            const tasks = ghResult.tasks || [];
+            if (tasks.length === 0) {
+              return { success: true, message: `🌱 No greenhouse sowing tasks for ${input.date || 'today'}` };
+            }
+            let msg = `🌱 Greenhouse Sowing Tasks (${tasks.length}):\n\n`;
+            tasks.forEach(t => {
+              msg += `• ${t.crop}${t.variety ? ' - ' + t.variety : ''}\n`;
+              msg += `  Plants: ${t.plantsNeeded || 'N/A'} | Transplant: ${t.transplantDate || 'N/A'}\n`;
+            });
+            return { success: true, message: msg, tasks: tasks };
+          }
+          return { success: false, error: ghResult.error || 'Could not retrieve tasks' };
+        } catch (e) {
+          return { success: false, error: 'Could not get greenhouse tasks: ' + e.message };
+        }
+
+      case 'get_transplant_tasks':
+        try {
+          const tpResult = getTransplantTasks ? getTransplantTasks({ date: input.date }) : { tasks: [] };
+          if (tpResult.success || tpResult.tasks) {
+            const tasks = tpResult.tasks || [];
+            if (tasks.length === 0) {
+              return { success: true, message: `🚜 No transplant tasks for ${input.date || 'today'}` };
+            }
+            let msg = `🚜 Field Transplant Tasks (${tasks.length}):\n\n`;
+            tasks.forEach(t => {
+              msg += `• ${t.crop}${t.variety ? ' - ' + t.variety : ''}\n`;
+              msg += `  Plants: ${t.plantsNeeded || 'N/A'} | Bed: ${t.bedId || 'Unassigned'}\n`;
+            });
+            return { success: true, message: msg, tasks: tasks };
+          }
+          return { success: false, error: tpResult.error || 'Could not retrieve tasks' };
+        } catch (e) {
+          return { success: false, error: 'Could not get transplant tasks: ' + e.message };
         }
 
       default:
