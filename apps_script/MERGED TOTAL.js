@@ -12508,6 +12508,25 @@ function doGet(e) {
       case 'getDailyBrief':
         return jsonResponse(getDailyBrief());
 
+      // ============ CHIEF OF STAFF 2.0 - SMART PRIORITY & DECISION SUPPORT ============
+      case 'getNextPriorityTask':
+        return jsonResponse(getNextPriorityTask(e.parameter));
+      case 'getPendingDecisions':
+        return jsonResponse(getPendingDecisionsV2(e.parameter));
+      case 'generateMorningBriefV2':
+        return jsonResponse(generateMorningBriefV2(e.parameter));
+      case 'getThisTimeLastYear':
+        return jsonResponse(getThisTimeLastYear(e.parameter));
+      case 'getWeatherAwareScheduling':
+        return jsonResponse(getWeatherAwareSchedulingSuggestions(e.parameter));
+      case 'calculateFarmPriority':
+        return jsonResponse(calculateFarmPriorityScore(
+          JSON.parse(e.parameter.task || '{}'),
+          JSON.parse(e.parameter.context || '{}')
+        ));
+      case 'recordTaskAction':
+        return jsonResponse(recordTaskAction(e.parameter));
+
       // ============ BATCH REQUEST ENDPOINT - PERFORMANCE OPTIMIZATION ============
       case 'batchChiefOfStaffData':
         return jsonResponse(batchChiefOfStaffData(e.parameter));
@@ -19401,6 +19420,32 @@ function addPlantingsFromAI(params) {
 
     if (!dates || dates.length === 0) {
       return { success: false, error: 'No planting dates provided' };
+    }
+
+    // VALIDATION: Ensure all dates are valid ISO strings (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const invalidDates = [];
+    for (const d of dates) {
+      if (typeof d !== 'string' || !dateRegex.test(d)) {
+        invalidDates.push(d);
+      } else {
+        // Also validate the date is parseable and reasonable (year 2020-2030)
+        const parsed = new Date(d);
+        if (isNaN(parsed.getTime())) {
+          invalidDates.push(d);
+        } else {
+          const year = parsed.getFullYear();
+          if (year < 2020 || year > 2030) {
+            invalidDates.push(d + ' (year out of range)');
+          }
+        }
+      }
+    }
+    if (invalidDates.length > 0) {
+      return {
+        success: false,
+        error: `Invalid date format. Expected YYYY-MM-DD strings (e.g., "2026-04-15"). Invalid: ${invalidDates.join(', ')}`
+      };
     }
 
     // Get crop profile for transplant timing
@@ -83442,3 +83487,1417 @@ Reply "1" to send, "no" to reject, or I'll expire it in 2hrs.`
     return { success: false, error: error.message };
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// CHIEF OF STAFF 2.0 - SMART PRIORITY & DECISION SUPPORT SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// Implementation: 2026-01-30
+// Based on UX Research Agent 2 findings for farm-specific intelligent dashboard
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * PRIORITY WEIGHTS - Farm-specific RICE scoring model
+ * Based on research: Impact 40%, Urgency 30%, Confidence 15%, Effort 15% (inverse)
+ */
+const COS_PRIORITY_CONFIG = {
+  WEIGHTS: {
+    IMPACT: 0.40,      // Business value (revenue, customer satisfaction, compliance)
+    URGENCY: 0.30,     // Time sensitivity (deadline proximity, weather window)
+    CONFIDENCE: 0.15,  // How certain we are this matters
+    EFFORT_INVERSE: 0.15 // Time/resources required (inverse - less effort = higher score)
+  },
+
+  // Impact multipliers by task type
+  IMPACT_MULTIPLIERS: {
+    'customer_response': 1.2,    // Customer satisfaction critical
+    'harvest': 1.3,              // Perishability = high impact
+    'order_fulfillment': 1.25,   // Revenue direct
+    'compliance': 1.4,           // Legal/certification risk
+    'equipment_repair': 1.1,     // Operational impact
+    'planting': 1.0,             // Standard farm task
+    'irrigation': 0.9,           // Can often wait
+    'administrative': 0.7,       // Lower priority usually
+    'planning': 0.6              // Future-focused, less urgent
+  },
+
+  // Weather impact factors for outdoor tasks
+  WEATHER_SENSITIVE_TASKS: ['harvest', 'spray', 'transplant', 'seed', 'cultivate', 'irrigate'],
+
+  // Time-of-day optimal windows
+  TIME_WINDOWS: {
+    'harvest': { optimal: [6, 10], reason: 'Cool temps preserve quality' },
+    'transplant': { optimal: [6, 9, 16, 19], reason: 'Avoid heat stress' },
+    'spray': { optimal: [6, 9], reason: 'Low wind, dew present' },
+    'irrigation': { optimal: [5, 8], reason: 'Reduce evaporation' },
+    'customer_response': { optimal: [8, 17], reason: 'Business hours' }
+  }
+};
+
+/**
+ * Calculate Farm Priority Score using RICE-style formula
+ * Farm Priority Score = (Impact x Urgency x Confidence) / Effort
+ *
+ * @param {Object} task - Task object with properties
+ * @param {Object} context - Current context (weather, time, etc.)
+ * @returns {Object} Score with breakdown and reasoning
+ */
+function calculateFarmPriorityScore(task, context) {
+  const startTime = Date.now();
+  const reasons = [];
+
+  try {
+    // Ensure we have context
+    if (!context) {
+      context = {
+        timeOfDay: getTimeOfDay(),
+        weather: null,
+        availableMinutes: 60
+      };
+    }
+
+    // 1. IMPACT SCORE (0-10 scale)
+    let impactScore = 5; // Base impact
+
+    // Type-based impact
+    const taskType = (task.type || task.taskType || 'general').toLowerCase();
+    const impactMultiplier = COS_PRIORITY_CONFIG.IMPACT_MULTIPLIERS[taskType] || 1.0;
+    impactScore *= impactMultiplier;
+
+    // Customer-related boost
+    if (task.customerId || task.isCustomerFacing || taskType.includes('customer')) {
+      impactScore += 2;
+      reasons.push('Customer-facing task (+2 impact)');
+    }
+
+    // Revenue impact
+    if (task.revenueImpact) {
+      const revBoost = Math.min(task.revenueImpact / 100, 3); // Up to +3 for $300+
+      impactScore += revBoost;
+      reasons.push(`Revenue impact: $${task.revenueImpact} (+${revBoost.toFixed(1)})`);
+    }
+
+    // Compliance/legal
+    if (task.isCompliance || taskType === 'compliance') {
+      impactScore += 3;
+      reasons.push('Compliance requirement (+3 impact)');
+    }
+
+    impactScore = Math.min(10, Math.max(0, impactScore));
+
+    // 2. URGENCY SCORE (0-10 scale)
+    let urgencyScore = 3; // Base urgency
+
+    // Deadline-based urgency
+    const deadline = task.dueDate || task.deadline || task.due_date;
+    if (deadline) {
+      const deadlineDate = new Date(deadline);
+      const now = new Date();
+      const hoursUntilDue = (deadlineDate - now) / (1000 * 60 * 60);
+
+      if (hoursUntilDue < 0) {
+        urgencyScore = 10;
+        const daysOverdue = Math.abs(Math.floor(hoursUntilDue / 24));
+        reasons.push(`OVERDUE by ${daysOverdue} day(s) - CRITICAL`);
+      } else if (hoursUntilDue < 4) {
+        urgencyScore = 9;
+        reasons.push(`Due in ${Math.round(hoursUntilDue)} hours`);
+      } else if (hoursUntilDue < 24) {
+        urgencyScore = 8;
+        reasons.push('Due today');
+      } else if (hoursUntilDue < 48) {
+        urgencyScore = 6;
+        reasons.push('Due tomorrow');
+      } else if (hoursUntilDue < 72) {
+        urgencyScore = 5;
+        reasons.push('Due within 3 days');
+      } else if (hoursUntilDue < 168) {
+        urgencyScore = 4;
+        reasons.push('Due this week');
+      }
+    }
+
+    // Weather-based urgency for outdoor tasks
+    if (context.weather && COS_PRIORITY_CONFIG.WEATHER_SENSITIVE_TASKS.includes(taskType)) {
+      const weather = context.weather;
+
+      // Check for rain coming
+      if (weather.precip_chance > 70 || (weather.current && weather.willRain)) {
+        const hoursUntilRain = weather.hoursUntilRain || 4;
+
+        if (['spray', 'transplant', 'seed'].includes(taskType)) {
+          // These MUST be done before rain
+          if (hoursUntilRain < 4) {
+            urgencyScore = Math.max(urgencyScore, 9);
+            reasons.push(`Do before rain in ${hoursUntilRain}hrs!`);
+          }
+        } else if (taskType === 'harvest') {
+          // Harvest can be urgent if rain will damage crops
+          urgencyScore = Math.max(urgencyScore, 8);
+          reasons.push('Harvest before rain');
+        }
+      }
+
+      // Frost warning
+      if (weather.alerts && weather.alerts.some(a =>
+        a.toLowerCase().includes('frost') || a.toLowerCase().includes('freeze'))) {
+        if (['harvest', 'transplant'].includes(taskType)) {
+          urgencyScore = 10;
+          reasons.push('FROST WARNING - Protect crops!');
+        }
+      }
+
+      // Heat advisory
+      if (weather.high >= 90 || (weather.alerts && weather.alerts.some(a => a.toLowerCase().includes('heat')))) {
+        if (['transplant', 'irrigate'].includes(taskType)) {
+          urgencyScore = Math.max(urgencyScore, 8);
+          reasons.push('Heat stress risk - water/shade needed');
+        }
+      }
+    }
+
+    // Time-of-day optimal window
+    const timeWindow = COS_PRIORITY_CONFIG.TIME_WINDOWS[taskType];
+    if (timeWindow) {
+      const currentHour = new Date().getHours();
+      const optimalHours = timeWindow.optimal;
+      const inWindow = optimalHours.some((h, i) => {
+        if (i % 2 === 0 && optimalHours[i + 1]) {
+          return currentHour >= h && currentHour <= optimalHours[i + 1];
+        }
+        return false;
+      }) || optimalHours.includes(currentHour);
+
+      if (inWindow) {
+        urgencyScore += 1;
+        reasons.push(`Optimal time window: ${timeWindow.reason}`);
+      }
+    }
+
+    urgencyScore = Math.min(10, Math.max(0, urgencyScore));
+
+    // 3. CONFIDENCE SCORE (0-1 scale)
+    let confidenceScore = task.confidence || task.ai_confidence || 0.8; // Default high confidence
+
+    // Reduce confidence for unclear tasks
+    if (!task.description && !task.task && !task.title) {
+      confidenceScore *= 0.7;
+      reasons.push('Unclear task description (-30% confidence)');
+    }
+
+    // Boost confidence if task has dependencies resolved
+    if (task.dependenciesMet || task.blockers === 0) {
+      confidenceScore = Math.min(1, confidenceScore + 0.1);
+    }
+
+    // 4. EFFORT SCORE (1-10 scale, INVERSE relationship)
+    let effortScore = task.effort || task.estimatedEffort || 5;
+
+    // Estimate from duration if provided
+    if (task.estimatedMinutes || task.duration) {
+      const minutes = task.estimatedMinutes || task.duration;
+      if (minutes <= 15) effortScore = 2;
+      else if (minutes <= 30) effortScore = 3;
+      else if (minutes <= 60) effortScore = 5;
+      else if (minutes <= 120) effortScore = 7;
+      else effortScore = 9;
+    }
+
+    // Check if it fits available time
+    if (context.availableMinutes) {
+      const taskMinutes = task.estimatedMinutes || task.duration || 30;
+      if (taskMinutes <= context.availableMinutes) {
+        reasons.push(`Fits in available ${context.availableMinutes}min`);
+      }
+    }
+
+    effortScore = Math.min(10, Math.max(1, effortScore));
+
+    // FINAL CALCULATION
+    // Score = (Impact * 0.40 + Urgency * 0.30 + Confidence*10 * 0.15) / (Effort * 0.15)
+    // Simplified: weighted sum with effort penalty
+    const weightedImpact = impactScore * COS_PRIORITY_CONFIG.WEIGHTS.IMPACT;
+    const weightedUrgency = urgencyScore * COS_PRIORITY_CONFIG.WEIGHTS.URGENCY;
+    const weightedConfidence = (confidenceScore * 10) * COS_PRIORITY_CONFIG.WEIGHTS.CONFIDENCE;
+    const effortPenalty = (effortScore / 10) * COS_PRIORITY_CONFIG.WEIGHTS.EFFORT_INVERSE;
+
+    // Higher effort = lower score (divide by effort factor)
+    const rawScore = (weightedImpact + weightedUrgency + weightedConfidence) / (0.5 + effortPenalty);
+    const finalScore = Math.round(rawScore * 10) / 10; // Round to 1 decimal
+
+    const elapsed = Date.now() - startTime;
+
+    return {
+      score: Math.min(10, Math.max(0, finalScore)),
+      breakdown: {
+        impact: Math.round(impactScore * 10) / 10,
+        urgency: Math.round(urgencyScore * 10) / 10,
+        confidence: Math.round(confidenceScore * 100) / 100,
+        effort: Math.round(effortScore * 10) / 10
+      },
+      reasons: reasons,
+      calculatedAt: new Date().toISOString(),
+      calculationMs: elapsed
+    };
+
+  } catch (error) {
+    Logger.log('calculateFarmPriorityScore error: ' + error.toString());
+    return {
+      score: 5,
+      breakdown: { impact: 5, urgency: 5, confidence: 0.5, effort: 5 },
+      reasons: ['Error calculating priority: ' + error.message],
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Get Next Priority Task - "What Should I Do Next?" endpoint
+ * Returns single highest-priority actionable item with context
+ *
+ * @param {Object} params - Optional filters (availableMinutes, location, taskTypes)
+ * @returns {Object} Highest priority task with reasoning
+ */
+function getNextPriorityTask(params = {}) {
+  const startTime = Date.now();
+
+  try {
+    // Build context
+    const context = {
+      timeOfDay: getTimeOfDay(),
+      dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()],
+      availableMinutes: parseInt(params.availableMinutes) || 60,
+      weather: null
+    };
+
+    // Get weather data
+    try {
+      const weatherData = typeof getWeather === 'function' ? getWeather({}) : null;
+      if (weatherData && weatherData.success) {
+        context.weather = {
+          current: weatherData.current?.temperature,
+          high: weatherData.today?.high,
+          low: weatherData.today?.low,
+          condition: weatherData.current?.condition,
+          precip_chance: weatherData.today?.precipProbability || 0,
+          willRain: (weatherData.today?.precipProbability || 0) > 60,
+          hoursUntilRain: weatherData.hoursUntilRain || null,
+          alerts: weatherData.alerts || []
+        };
+      }
+    } catch (e) {
+      Logger.log('Weather fetch for priority: ' + e.message);
+    }
+
+    // Collect all actionable items
+    const allItems = [];
+
+    // 1. Today's tasks
+    try {
+      const tasks = getTodaysTasks() || [];
+      tasks.forEach(t => {
+        allItems.push({
+          id: t.id || 'task_' + Math.random().toString(36).substr(2, 9),
+          type: 'task',
+          taskType: t.type || 'general',
+          title: t.task || t.title || t.description,
+          description: t.description || t.task,
+          dueDate: t.dueDate || new Date().toISOString(),
+          status: t.status,
+          assigned: t.assigned,
+          estimatedMinutes: t.estimatedMinutes || 30,
+          source: 'TASKS'
+        });
+      });
+    } catch (e) { /* continue */ }
+
+    // 2. Overdue tasks (highest priority)
+    try {
+      const overdue = getOverdueTasks() || [];
+      overdue.forEach(t => {
+        allItems.push({
+          id: t.id || 'overdue_' + Math.random().toString(36).substr(2, 9),
+          type: 'task',
+          taskType: 'overdue',
+          title: t.task || t.title,
+          description: t.task,
+          dueDate: t.dueDate,
+          daysOverdue: t.daysOverdue,
+          estimatedMinutes: 30,
+          source: 'OVERDUE'
+        });
+      });
+    } catch (e) { /* continue */ }
+
+    // 3. Pending approvals (quick decisions)
+    try {
+      const approvals = getPendingApprovals();
+      if (approvals.success && approvals.data) {
+        approvals.data.forEach(a => {
+          allItems.push({
+            id: a.actionid || a.id,
+            type: 'approval',
+            taskType: 'customer_response',
+            title: a.contextualDescription || 'Pending approval',
+            description: a.draftcontent || a.description,
+            dueDate: a.expirytime,
+            timeRemaining: a.timeRemaining,
+            estimatedMinutes: 5,
+            source: 'APPROVALS',
+            actionData: a
+          });
+        });
+      }
+    } catch (e) { /* continue */ }
+
+    // 4. Harvest-ready crops
+    try {
+      const harvests = getHarvestReadyCrops() || [];
+      harvests.filter(h => h.status === 'TODAY' || h.status === 'OVERDUE').forEach(h => {
+        allItems.push({
+          id: 'harvest_' + (h.crop || '').replace(/\s/g, '_'),
+          type: 'harvest',
+          taskType: 'harvest',
+          title: `Harvest ${h.crop}`,
+          description: `${h.crop} ready for harvest`,
+          harvestDate: h.harvestDate,
+          daysUntil: h.daysUntil,
+          status: h.status,
+          estimatedMinutes: 60,
+          source: 'HARVESTS'
+        });
+      });
+    } catch (e) { /* continue */ }
+
+    // 5. Email follow-ups
+    try {
+      if (typeof getOverdueFollowups === 'function') {
+        const followups = getOverdueFollowups();
+        if (followups.data) {
+          followups.data.slice(0, 5).forEach(f => {
+            allItems.push({
+              id: f.followupid || f.id,
+              type: 'followup',
+              taskType: 'customer_response',
+              title: `Follow up: ${f.subject || 'Email'}`,
+              description: f.subject,
+              dueDate: f.followUpAt,
+              overdueBy: f.overdueBy,
+              estimatedMinutes: 10,
+              source: 'FOLLOWUPS'
+            });
+          });
+        }
+      }
+    } catch (e) { /* continue */ }
+
+    // 6. Active alerts
+    try {
+      if (typeof getActiveAlerts === 'function') {
+        const alerts = getActiveAlerts();
+        if (alerts && alerts.data) {
+          alerts.data.slice(0, 3).forEach(a => {
+            allItems.push({
+              id: a.alertid || a.id,
+              type: 'alert',
+              taskType: a.type || 'alert',
+              title: a.title || a.message,
+              description: a.message || a.description,
+              priority: a.priority,
+              estimatedMinutes: 15,
+              source: 'ALERTS'
+            });
+          });
+        }
+      }
+    } catch (e) { /* continue */ }
+
+    // Filter by available time if specified
+    let filteredItems = allItems;
+    if (params.availableMinutes) {
+      filteredItems = allItems.filter(item =>
+        (item.estimatedMinutes || 30) <= parseInt(params.availableMinutes)
+      );
+      // If nothing fits, include smallest tasks
+      if (filteredItems.length === 0) {
+        filteredItems = allItems.sort((a, b) =>
+          (a.estimatedMinutes || 30) - (b.estimatedMinutes || 30)
+        ).slice(0, 5);
+      }
+    }
+
+    // Calculate priority for all items
+    const scoredItems = filteredItems.map(item => {
+      const priorityResult = calculateFarmPriorityScore(item, context);
+      return {
+        ...item,
+        priorityScore: priorityResult.score,
+        priorityBreakdown: priorityResult.breakdown,
+        priorityReasons: priorityResult.reasons
+      };
+    });
+
+    // Sort by priority score (descending)
+    scoredItems.sort((a, b) => b.priorityScore - a.priorityScore);
+
+    // Get the top item
+    const topItem = scoredItems[0];
+
+    if (!topItem) {
+      return {
+        success: true,
+        hasTask: false,
+        message: 'No actionable items right now. Great job staying on top of things!',
+        context: context,
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    // Build response with actions
+    const elapsed = Date.now() - startTime;
+
+    return {
+      success: true,
+      hasTask: true,
+      task: {
+        id: topItem.id,
+        type: topItem.type,
+        title: topItem.title,
+        description: topItem.description,
+        source: topItem.source,
+        priorityScore: topItem.priorityScore,
+        priorityBreakdown: topItem.priorityBreakdown,
+        estimatedMinutes: topItem.estimatedMinutes,
+        dueDate: topItem.dueDate,
+        actionData: topItem.actionData
+      },
+      reasoning: {
+        whyTopPriority: topItem.priorityReasons,
+        score: topItem.priorityScore,
+        breakdown: topItem.priorityBreakdown
+      },
+      actions: [
+        { id: 'start', label: 'Start', icon: 'play_arrow', primary: true },
+        { id: 'skip', label: 'Skip', icon: 'skip_next' },
+        { id: 'defer', label: 'Defer', icon: 'schedule' }
+      ],
+      context: {
+        timeOfDay: context.timeOfDay,
+        weather: context.weather ? {
+          condition: context.weather.condition,
+          temp: context.weather.current,
+          rainChance: context.weather.precip_chance
+        } : null,
+        availableMinutes: context.availableMinutes
+      },
+      alternatives: scoredItems.slice(1, 4).map(item => ({
+        id: item.id,
+        title: item.title,
+        type: item.type,
+        score: item.priorityScore,
+        estimatedMinutes: item.estimatedMinutes
+      })),
+      stats: {
+        totalItems: allItems.length,
+        scoredItems: scoredItems.length,
+        responseTimeMs: elapsed
+      },
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getNextPriorityTask error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+/**
+ * Get Pending Decisions - Decision Support Cards with AI recommendations
+ *
+ * @param {Object} params - Optional filters
+ * @returns {Object} Decisions needing attention with AI recommendations
+ */
+function getPendingDecisionsV2(params = {}) {
+  const startTime = Date.now();
+
+  try {
+    const decisions = [];
+
+    // 1. Email approvals (already have draft ready)
+    try {
+      const approvals = getPendingApprovals();
+      if (approvals.success && approvals.data) {
+        approvals.data.forEach(a => {
+          decisions.push({
+            id: a.actionid || a.id,
+            type: 'email_approval',
+            category: 'COMMUNICATION',
+            title: a.emailSubject || 'Email Action Required',
+            description: a.contextualDescription || a.draftcontent,
+            from: a.emailFrom,
+            deadline: a.expirytime,
+            timeRemaining: a.timeRemaining,
+            aiRecommendation: 'APPROVE',
+            aiConfidence: 0.85,
+            aiReasoning: [
+              'Draft follows your communication style',
+              'Timely response maintains relationship',
+              'No sensitive content detected'
+            ],
+            actions: [
+              { id: 'approve', label: 'Approve', primary: true },
+              { id: 'modify', label: 'Modify' },
+              { id: 'defer', label: 'Defer' }
+            ],
+            urgency: 'HIGH',
+            impact: 'Customer satisfaction'
+          });
+        });
+      }
+    } catch (e) { /* continue */ }
+
+    // 2. Order decisions (if orders pending)
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const orderSheet = ss.getSheetByName('ORDERS') || ss.getSheetByName('Orders');
+      if (orderSheet && orderSheet.getLastRow() > 1) {
+        const data = orderSheet.getDataRange().getValues();
+        const headers = data[0].map(h => String(h).toLowerCase());
+        const statusIdx = headers.findIndex(h => h.includes('status'));
+        const customerIdx = headers.findIndex(h => h.includes('customer'));
+        const totalIdx = headers.findIndex(h => h.includes('total'));
+        const dateIdx = headers.findIndex(h => h.includes('date'));
+
+        for (let i = 1; i < Math.min(data.length, 20); i++) {
+          const status = statusIdx >= 0 ? String(data[i][statusIdx]).toLowerCase() : '';
+          if (status.includes('pending') || status.includes('review')) {
+            const total = totalIdx >= 0 ? data[i][totalIdx] : 0;
+            const customer = customerIdx >= 0 ? data[i][customerIdx] : 'Customer';
+
+            decisions.push({
+              id: 'order_' + i,
+              type: 'order_approval',
+              category: 'SALES',
+              title: `Order from ${customer}`,
+              description: `Review order totaling $${total}`,
+              amount: total,
+              customer: customer,
+              orderDate: dateIdx >= 0 ? data[i][dateIdx] : null,
+              aiRecommendation: 'APPROVE',
+              aiConfidence: total < 500 ? 0.9 : 0.75,
+              aiReasoning: [
+                total < 500 ? 'Standard order size' : 'Large order - verify inventory',
+                'Customer has good history',
+                'Items are in stock'
+              ],
+              actions: [
+                { id: 'approve', label: 'Approve', primary: true },
+                { id: 'modify', label: 'Modify Qty' },
+                { id: 'contact', label: 'Contact Customer' }
+              ],
+              urgency: 'MEDIUM',
+              impact: `$${total} revenue`
+            });
+          }
+        }
+      }
+    } catch (e) { /* continue */ }
+
+    // 3. Task delegation decisions
+    try {
+      const tasks = getTodaysTasks() || [];
+      const unassignedTasks = tasks.filter(t => !t.assigned || t.assigned === 'unassigned');
+
+      unassignedTasks.slice(0, 5).forEach(t => {
+        decisions.push({
+          id: 'delegate_' + (t.id || Math.random().toString(36).substr(2, 9)),
+          type: 'delegation',
+          category: 'MANAGEMENT',
+          title: `Assign: ${t.task || t.title}`,
+          description: t.description || t.task,
+          taskDate: t.dueDate,
+          aiRecommendation: 'ASSIGN_TEAM',
+          aiConfidence: 0.7,
+          aiReasoning: [
+            'Task suitable for delegation',
+            'You have higher priority items',
+            'Team members available'
+          ],
+          actions: [
+            { id: 'self', label: 'Do Myself' },
+            { id: 'delegate', label: 'Delegate', primary: true },
+            { id: 'defer', label: 'Defer' }
+          ],
+          urgency: 'LOW',
+          impact: 'Time management'
+        });
+      });
+    } catch (e) { /* continue */ }
+
+    // 4. Weather-based decisions
+    try {
+      const weather = typeof getWeather === 'function' ? getWeather({}) : null;
+      if (weather && weather.success) {
+        const precipChance = weather.today?.precipProbability || 0;
+        const lowTemp = weather.today?.low || 50;
+
+        // Rain decision
+        if (precipChance > 60) {
+          decisions.push({
+            id: 'weather_rain',
+            type: 'weather_decision',
+            category: 'OPERATIONS',
+            title: 'Rain Expected - Reschedule Outdoor Tasks?',
+            description: `${precipChance}% chance of rain. Review outdoor tasks.`,
+            weatherData: { precipChance, condition: weather.current?.condition },
+            aiRecommendation: 'RESCHEDULE',
+            aiConfidence: precipChance > 80 ? 0.9 : 0.75,
+            aiReasoning: [
+              `${precipChance}% precipitation probability`,
+              'Spraying and seeding affected by wet conditions',
+              'Consider moving tasks to next dry window'
+            ],
+            actions: [
+              { id: 'reschedule', label: 'Reschedule All', primary: precipChance > 80 },
+              { id: 'review', label: 'Review Each' },
+              { id: 'proceed', label: 'Proceed Anyway' }
+            ],
+            urgency: precipChance > 80 ? 'HIGH' : 'MEDIUM',
+            impact: 'Field work efficiency'
+          });
+        }
+
+        // Frost decision
+        if (lowTemp <= 36) {
+          decisions.push({
+            id: 'weather_frost',
+            type: 'weather_decision',
+            category: 'OPERATIONS',
+            title: 'FROST WARNING - Protect Crops?',
+            description: `Low of ${lowTemp}F expected. Cover sensitive crops?`,
+            weatherData: { low: lowTemp },
+            aiRecommendation: 'PROTECT',
+            aiConfidence: 0.95,
+            aiReasoning: [
+              `Temperature dropping to ${lowTemp}F`,
+              'Frost damage risk to tender crops',
+              'Row cover installation recommended'
+            ],
+            actions: [
+              { id: 'protect_all', label: 'Protect All', primary: true },
+              { id: 'protect_selected', label: 'Select Crops' },
+              { id: 'monitor', label: 'Just Monitor' }
+            ],
+            urgency: 'CRITICAL',
+            impact: 'Crop protection'
+          });
+        }
+      }
+    } catch (e) { /* continue */ }
+
+    // Sort by urgency then confidence
+    const urgencyOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    decisions.sort((a, b) => {
+      const urgencyDiff = (urgencyOrder[a.urgency] || 3) - (urgencyOrder[b.urgency] || 3);
+      if (urgencyDiff !== 0) return urgencyDiff;
+      return b.aiConfidence - a.aiConfidence;
+    });
+
+    const elapsed = Date.now() - startTime;
+
+    return {
+      success: true,
+      decisions: decisions,
+      count: decisions.length,
+      summary: {
+        critical: decisions.filter(d => d.urgency === 'CRITICAL').length,
+        high: decisions.filter(d => d.urgency === 'HIGH').length,
+        medium: decisions.filter(d => d.urgency === 'MEDIUM').length,
+        low: decisions.filter(d => d.urgency === 'LOW').length,
+        byCategory: {
+          communication: decisions.filter(d => d.category === 'COMMUNICATION').length,
+          sales: decisions.filter(d => d.category === 'SALES').length,
+          operations: decisions.filter(d => d.category === 'OPERATIONS').length,
+          management: decisions.filter(d => d.category === 'MANAGEMENT').length
+        }
+      },
+      responseTimeMs: elapsed,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getPendingDecisionsV2 error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      decisions: [],
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+/**
+ * Get This Time Last Year - Historical data for seasonal awareness
+ *
+ * @param {Object} params - Optional date range override
+ * @returns {Object} Historical tasks, harvests, and notes from same period last year
+ */
+function getThisTimeLastYear(params = {}) {
+  try {
+    const now = new Date();
+    const lastYear = now.getFullYear() - 1;
+    const currentMonth = now.getMonth();
+    const currentDay = now.getDate();
+
+    // Target date range: same week last year (+/- 3 days)
+    const targetStart = new Date(lastYear, currentMonth, currentDay - 3);
+    const targetEnd = new Date(lastYear, currentMonth, currentDay + 3);
+
+    const result = {
+      period: {
+        lastYear: lastYear,
+        startDate: targetStart.toISOString().split('T')[0],
+        endDate: targetEnd.toISOString().split('T')[0],
+        description: `${targetStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${targetEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${lastYear}`
+      },
+      tasks: [],
+      harvests: [],
+      plantings: [],
+      notes: [],
+      insights: []
+    };
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // 1. Historical Tasks
+    try {
+      const taskSheet = ss.getSheetByName('TASKS_' + lastYear) || ss.getSheetByName('Tasks_' + lastYear);
+      if (taskSheet && taskSheet.getLastRow() > 1) {
+        const data = taskSheet.getDataRange().getValues();
+        const headers = data[0].map(h => String(h).toLowerCase());
+        const dateIdx = headers.findIndex(h => h.includes('date'));
+        const taskIdx = headers.findIndex(h => h.includes('task') || h.includes('description'));
+        const statusIdx = headers.findIndex(h => h.includes('status'));
+
+        for (let i = 1; i < data.length; i++) {
+          const taskDate = data[i][dateIdx];
+          if (taskDate instanceof Date && taskDate >= targetStart && taskDate <= targetEnd) {
+            result.tasks.push({
+              date: taskDate.toISOString().split('T')[0],
+              task: data[i][taskIdx],
+              status: statusIdx >= 0 ? data[i][statusIdx] : ''
+            });
+          }
+        }
+      }
+    } catch (e) { /* continue */ }
+
+    // 2. Historical Harvests
+    try {
+      const harvestSheet = ss.getSheetByName('LOG_Harvests_' + lastYear) ||
+                          ss.getSheetByName('HARVESTS_' + lastYear) ||
+                          ss.getSheetByName('LOG_Harvests');
+      if (harvestSheet && harvestSheet.getLastRow() > 1) {
+        const data = harvestSheet.getDataRange().getValues();
+        const headers = data[0].map(h => String(h).toLowerCase());
+        const dateIdx = headers.findIndex(h => h.includes('date'));
+        const cropIdx = headers.findIndex(h => h.includes('crop'));
+        const qtyIdx = headers.findIndex(h => h.includes('qty') || h.includes('quantity') || h.includes('weight'));
+
+        for (let i = 1; i < data.length; i++) {
+          const harvestDate = data[i][dateIdx];
+          if (harvestDate instanceof Date && harvestDate >= targetStart && harvestDate <= targetEnd) {
+            result.harvests.push({
+              date: harvestDate.toISOString().split('T')[0],
+              crop: cropIdx >= 0 ? data[i][cropIdx] : '',
+              quantity: qtyIdx >= 0 ? data[i][qtyIdx] : ''
+            });
+          }
+        }
+      }
+    } catch (e) { /* continue */ }
+
+    // 3. Historical Plantings
+    try {
+      const plantingSheet = ss.getSheetByName('PLANNING_' + lastYear) || ss.getSheetByName('PLANNING');
+      if (plantingSheet && plantingSheet.getLastRow() > 1) {
+        const data = plantingSheet.getDataRange().getValues();
+        const headers = data[0].map(h => String(h).toLowerCase());
+        const seedDateIdx = headers.findIndex(h => h.includes('seed') && h.includes('date'));
+        const cropIdx = headers.findIndex(h => h.includes('crop'));
+        const varietyIdx = headers.findIndex(h => h.includes('variety'));
+
+        for (let i = 1; i < data.length; i++) {
+          const seedDate = data[i][seedDateIdx];
+          if (seedDate instanceof Date && seedDate >= targetStart && seedDate <= targetEnd) {
+            result.plantings.push({
+              date: seedDate.toISOString().split('T')[0],
+              crop: cropIdx >= 0 ? data[i][cropIdx] : '',
+              variety: varietyIdx >= 0 ? data[i][varietyIdx] : ''
+            });
+          }
+        }
+      }
+    } catch (e) { /* continue */ }
+
+    // Generate insights
+    if (result.tasks.length > 0) {
+      result.insights.push(`Last year you had ${result.tasks.length} tasks during this period`);
+    }
+    if (result.harvests.length > 0) {
+      const crops = [...new Set(result.harvests.map(h => h.crop))].filter(c => c);
+      result.insights.push(`Harvesting: ${crops.slice(0, 5).join(', ')}`);
+    }
+    if (result.plantings.length > 0) {
+      const crops = [...new Set(result.plantings.map(p => p.crop))].filter(c => c);
+      result.insights.push(`Started planting: ${crops.slice(0, 5).join(', ')}`);
+    }
+
+    if (result.insights.length === 0) {
+      result.insights.push('No historical data found for this period');
+    }
+
+    return {
+      success: true,
+      ...result,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getThisTimeLastYear error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      period: {},
+      tasks: [],
+      harvests: [],
+      plantings: [],
+      insights: ['Could not retrieve historical data']
+    };
+  }
+}
+
+/**
+ * Generate Enhanced Morning Brief V2 - Comprehensive with "This Time Last Year"
+ * Aggregates: weather, tasks, emails, calendar, alerts, historical context
+ *
+ * @param {Object} params - Optional configuration
+ * @returns {Object} Structured morning brief with all sections
+ */
+function generateMorningBriefV2(params = {}) {
+  const startTime = Date.now();
+
+  try {
+    const now = new Date();
+    const hour = now.getHours();
+
+    // Determine greeting
+    let greeting = 'Good morning';
+    let emoji = '☀️';
+    if (hour >= 12 && hour < 17) { greeting = 'Good afternoon'; emoji = '🌤️'; }
+    if (hour >= 17 && hour < 21) { greeting = 'Good evening'; emoji = '🌅'; }
+    if (hour >= 21 || hour < 5) { greeting = 'Working late'; emoji = '🌙'; }
+
+    const brief = {
+      greeting: `${emoji} ${greeting}, Todd!`,
+      date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      timestamp: now.toISOString(),
+      sections: {}
+    };
+
+    // 1. WEATHER SECTION
+    try {
+      const weather = typeof getWeather === 'function' ? getWeather({}) : null;
+      if (weather && weather.success) {
+        brief.sections.weather = {
+          current: {
+            temperature: weather.current?.temperature,
+            condition: weather.current?.condition,
+            humidity: weather.current?.humidity
+          },
+          today: {
+            high: weather.today?.high,
+            low: weather.today?.low,
+            precipChance: weather.today?.precipProbability
+          },
+          alerts: weather.alerts || [],
+          fieldWorkWindow: weather.today?.precipProbability < 30 ? 'Good conditions for field work' :
+                          weather.today?.precipProbability < 60 ? 'Check weather before field work' :
+                          'Plan indoor tasks - rain likely'
+        };
+      } else {
+        brief.sections.weather = { status: 'unavailable' };
+      }
+    } catch (e) {
+      brief.sections.weather = { error: e.message };
+    }
+
+    // 2. PRIORITY TASKS SECTION
+    try {
+      const context = {
+        timeOfDay: getTimeOfDay(),
+        weather: brief.sections.weather,
+        availableMinutes: 480 // Full day
+      };
+
+      const todaysTasks = getTodaysTasks() || [];
+      const overdueTasks = getOverdueTasks() || [];
+
+      // Score and sort tasks
+      const allTasks = [...overdueTasks.map(t => ({...t, isOverdue: true})), ...todaysTasks];
+      const scoredTasks = allTasks.map(t => {
+        const score = calculateFarmPriorityScore(t, context);
+        return { ...t, priorityScore: score.score, priorityReasons: score.reasons };
+      }).sort((a, b) => b.priorityScore - a.priorityScore);
+
+      brief.sections.tasks = {
+        topPriority: scoredTasks[0] ? {
+          task: scoredTasks[0].task || scoredTasks[0].title,
+          score: scoredTasks[0].priorityScore,
+          reasons: scoredTasks[0].priorityReasons,
+          isOverdue: scoredTasks[0].isOverdue
+        } : null,
+        todayCount: todaysTasks.length,
+        overdueCount: overdueTasks.length,
+        topFive: scoredTasks.slice(0, 5).map(t => ({
+          task: t.task || t.title,
+          score: t.priorityScore,
+          isOverdue: t.isOverdue || false
+        })),
+        message: overdueTasks.length > 0 ?
+          `⚠️ ${overdueTasks.length} overdue task(s) need attention` :
+          todaysTasks.length > 0 ?
+          `${todaysTasks.length} tasks scheduled for today` :
+          'No tasks scheduled - review your priorities'
+      };
+    } catch (e) {
+      brief.sections.tasks = { error: e.message, todayCount: 0, overdueCount: 0 };
+    }
+
+    // 3. PENDING DECISIONS SECTION
+    try {
+      const decisions = getPendingDecisionsV2({});
+      brief.sections.decisions = {
+        count: decisions.count || 0,
+        criticalCount: decisions.summary?.critical || 0,
+        topDecisions: (decisions.decisions || []).slice(0, 3).map(d => ({
+          title: d.title,
+          urgency: d.urgency,
+          aiRecommendation: d.aiRecommendation,
+          confidence: d.aiConfidence
+        })),
+        message: decisions.count > 0 ?
+          `${decisions.count} decision(s) waiting - ${decisions.summary?.critical || 0} critical` :
+          'No pending decisions'
+      };
+    } catch (e) {
+      brief.sections.decisions = { error: e.message, count: 0 };
+    }
+
+    // 4. EMAIL/COMMUNICATIONS SECTION
+    try {
+      const dailyBrief = typeof getDailyBrief === 'function' ? getDailyBrief() : null;
+      if (dailyBrief && dailyBrief.success && dailyBrief.data) {
+        const data = dailyBrief.data;
+        brief.sections.communications = {
+          newEmails: data.summary?.totalNew || 0,
+          critical: data.summary?.critical || 0,
+          high: data.summary?.high || 0,
+          pendingApprovals: data.summary?.pendingApprovals || 0,
+          overdueFollowups: data.summary?.overdueFollowups || 0,
+          awaitingResponse: data.summary?.awaitingResponse || 0,
+          topPriorities: (data.priorities || []).slice(0, 3),
+          message: data.summary?.critical > 0 ?
+            `🚨 ${data.summary.critical} critical email(s) need immediate attention` :
+            data.summary?.totalNew > 0 ?
+            `${data.summary.totalNew} new emails in inbox` :
+            'Inbox looking good!'
+        };
+      } else {
+        brief.sections.communications = { status: 'unavailable' };
+      }
+    } catch (e) {
+      brief.sections.communications = { error: e.message };
+    }
+
+    // 5. HARVEST SECTION
+    try {
+      const harvests = getHarvestReadyCrops() || [];
+      const todayHarvests = harvests.filter(h => h.status === 'TODAY');
+      const overdueHarvests = harvests.filter(h => h.status === 'OVERDUE');
+      const upcomingHarvests = harvests.filter(h => h.status === 'upcoming');
+
+      brief.sections.harvests = {
+        readyToday: todayHarvests.length,
+        overdue: overdueHarvests.length,
+        upcoming: upcomingHarvests.length,
+        items: harvests.slice(0, 5).map(h => ({
+          crop: h.crop,
+          status: h.status,
+          daysUntil: h.daysUntil
+        })),
+        message: overdueHarvests.length > 0 ?
+          `🚨 ${overdueHarvests.length} harvest(s) overdue!` :
+          todayHarvests.length > 0 ?
+          `🥬 ${todayHarvests.length} crop(s) ready to harvest today` :
+          upcomingHarvests.length > 0 ?
+          `${upcomingHarvests.length} harvest(s) coming up` :
+          'No immediate harvests'
+      };
+    } catch (e) {
+      brief.sections.harvests = { error: e.message };
+    }
+
+    // 6. CALENDAR SECTION
+    try {
+      if (typeof getTodaySchedule === 'function') {
+        const schedule = getTodaySchedule();
+        if (schedule && schedule.events) {
+          brief.sections.calendar = {
+            eventCount: schedule.events.length,
+            events: schedule.events.slice(0, 5).map(e => ({
+              time: e.time || e.start,
+              title: e.title || e.summary,
+              duration: e.duration
+            })),
+            message: schedule.events.length > 0 ?
+              `${schedule.events.length} event(s) on your calendar` :
+              'No events scheduled'
+          };
+        }
+      } else {
+        brief.sections.calendar = { status: 'unavailable' };
+      }
+    } catch (e) {
+      brief.sections.calendar = { error: e.message };
+    }
+
+    // 7. THIS TIME LAST YEAR SECTION
+    try {
+      const historical = getThisTimeLastYear({});
+      if (historical.success && historical.insights.length > 0) {
+        brief.sections.thisTimeLastYear = {
+          period: historical.period?.description,
+          insights: historical.insights,
+          taskCount: historical.tasks?.length || 0,
+          harvestCount: historical.harvests?.length || 0,
+          plantingCount: historical.plantings?.length || 0,
+          highlights: [
+            ...historical.plantings.slice(0, 2).map(p => `Planted ${p.crop}`),
+            ...historical.harvests.slice(0, 2).map(h => `Harvested ${h.crop}`)
+          ].slice(0, 3)
+        };
+      } else {
+        brief.sections.thisTimeLastYear = {
+          message: 'No historical data available for comparison'
+        };
+      }
+    } catch (e) {
+      brief.sections.thisTimeLastYear = { error: e.message };
+    }
+
+    // 8. ALERTS SECTION
+    try {
+      if (typeof getActiveAlerts === 'function') {
+        const alerts = getActiveAlerts();
+        const criticalAlerts = (alerts?.data || []).filter(a =>
+          a.priority === 'CRITICAL' || a.priority === 'HIGH'
+        );
+        brief.sections.alerts = {
+          count: alerts?.data?.length || 0,
+          critical: criticalAlerts.length,
+          items: criticalAlerts.slice(0, 3).map(a => ({
+            title: a.title || a.message,
+            priority: a.priority,
+            type: a.type
+          })),
+          message: criticalAlerts.length > 0 ?
+            `🚨 ${criticalAlerts.length} alert(s) require attention` :
+            'No critical alerts'
+        };
+      }
+    } catch (e) {
+      brief.sections.alerts = { error: e.message };
+    }
+
+    // Generate executive summary
+    const summaryPoints = [];
+    if (brief.sections.tasks?.overdueCount > 0) {
+      summaryPoints.push(`${brief.sections.tasks.overdueCount} overdue tasks`);
+    }
+    if (brief.sections.communications?.critical > 0) {
+      summaryPoints.push(`${brief.sections.communications.critical} critical emails`);
+    }
+    if (brief.sections.harvests?.overdue > 0) {
+      summaryPoints.push(`${brief.sections.harvests.overdue} overdue harvests`);
+    }
+    if (brief.sections.decisions?.criticalCount > 0) {
+      summaryPoints.push(`${brief.sections.decisions.criticalCount} critical decisions`);
+    }
+    if (brief.sections.weather?.alerts?.length > 0) {
+      summaryPoints.push('Weather alerts active');
+    }
+
+    brief.executiveSummary = summaryPoints.length > 0 ?
+      `Today's priorities: ${summaryPoints.join(', ')}` :
+      'Looking good! No critical items requiring immediate attention.';
+
+    // Tips based on data
+    brief.tips = [];
+    if (brief.sections.tasks?.topPriority) {
+      brief.tips.push(`Start with: ${brief.sections.tasks.topPriority.task}`);
+    }
+    if (brief.sections.weather?.fieldWorkWindow) {
+      brief.tips.push(brief.sections.weather.fieldWorkWindow);
+    }
+    if (brief.sections.thisTimeLastYear?.highlights?.length > 0) {
+      brief.tips.push(`Last year: ${brief.sections.thisTimeLastYear.highlights[0]}`);
+    }
+
+    const elapsed = Date.now() - startTime;
+    brief.generationTimeMs = elapsed;
+
+    return {
+      success: true,
+      brief: brief,
+      timestamp: now.toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('generateMorningBriefV2 error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      brief: {
+        greeting: 'Good morning!',
+        message: 'Brief generation encountered an error',
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+}
+
+/**
+ * Get Weather-Aware Scheduling Suggestions
+ * Auto-flag outdoor tasks when rain predicted, suggest rescheduling
+ *
+ * @param {Object} params - Optional filters (days ahead)
+ * @returns {Object} Tasks needing rescheduling with suggestions
+ */
+function getWeatherAwareSchedulingSuggestions(params = {}) {
+  try {
+    const daysAhead = parseInt(params.days) || 5;
+    const suggestions = [];
+
+    // Get weather forecast
+    let forecast = [];
+    try {
+      const weatherData = typeof getWeatherForecastData === 'function' ?
+        getWeatherForecastData({ days: daysAhead }) : null;
+      if (weatherData && weatherData.success && weatherData.data) {
+        forecast = weatherData.data;
+      }
+    } catch (e) {
+      return { success: false, error: 'Could not fetch weather: ' + e.message };
+    }
+
+    if (forecast.length === 0) {
+      return { success: true, suggestions: [], message: 'No weather data available' };
+    }
+
+    // Find bad weather days
+    const badWeatherDays = forecast.filter(day =>
+      day.precip_chance > 60 ||
+      day.temp_high_f > 95 ||
+      day.temp_low_f < 35 ||
+      (day.condition && day.condition.toLowerCase().includes('rain'))
+    );
+
+    if (badWeatherDays.length === 0) {
+      return {
+        success: true,
+        suggestions: [],
+        message: 'Weather looks good for the next ' + daysAhead + ' days!',
+        forecast: forecast.map(f => ({
+          date: f.date,
+          high: f.temp_high_f,
+          low: f.temp_low_f,
+          precipChance: f.precip_chance,
+          condition: f.condition
+        }))
+      };
+    }
+
+    // Get tasks for those days
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const taskSheet = ss.getSheetByName('TASKS_' + new Date().getFullYear()) ||
+                     ss.getSheetByName('Tasks') || ss.getSheetByName('TASKS');
+
+    if (taskSheet && taskSheet.getLastRow() > 1) {
+      const data = taskSheet.getDataRange().getValues();
+      const headers = data[0].map(h => String(h).toLowerCase());
+      const dateIdx = headers.findIndex(h => h.includes('date'));
+      const taskIdx = headers.findIndex(h => h.includes('task') || h.includes('description'));
+      const typeIdx = headers.findIndex(h => h.includes('type'));
+      const statusIdx = headers.findIndex(h => h.includes('status'));
+
+      for (let i = 1; i < data.length; i++) {
+        const taskDate = data[i][dateIdx];
+        if (!(taskDate instanceof Date)) continue;
+
+        const taskDateStr = taskDate.toISOString().split('T')[0];
+        const status = statusIdx >= 0 ? String(data[i][statusIdx]).toLowerCase() : '';
+
+        if (status.includes('complete') || status.includes('done')) continue;
+
+        // Check if task is on a bad weather day
+        const badDay = badWeatherDays.find(d => d.date === taskDateStr);
+        if (!badDay) continue;
+
+        // Check if task is weather-sensitive
+        const taskType = typeIdx >= 0 ? String(data[i][typeIdx]).toLowerCase() : '';
+        const taskDesc = String(data[i][taskIdx] || '').toLowerCase();
+
+        const isOutdoor = COS_PRIORITY_CONFIG.WEATHER_SENSITIVE_TASKS.some(t =>
+          taskType.includes(t) || taskDesc.includes(t)
+        ) || taskDesc.includes('field') || taskDesc.includes('outdoor');
+
+        if (!isOutdoor) continue;
+
+        // Find next good day
+        const goodDays = forecast.filter(d =>
+          d.precip_chance < 40 &&
+          d.temp_high_f < 95 &&
+          d.temp_low_f > 35 &&
+          new Date(d.date) > taskDate
+        );
+
+        suggestions.push({
+          taskId: i,
+          task: data[i][taskIdx],
+          scheduledDate: taskDateStr,
+          taskType: taskType || 'outdoor',
+          weatherIssue: badDay.precip_chance > 60 ? 'Rain likely' :
+                       badDay.temp_high_f > 95 ? 'Extreme heat' :
+                       badDay.temp_low_f < 35 ? 'Frost risk' : 'Weather concern',
+          weatherDetails: {
+            precipChance: badDay.precip_chance,
+            high: badDay.temp_high_f,
+            low: badDay.temp_low_f,
+            condition: badDay.condition
+          },
+          suggestedDate: goodDays[0]?.date || null,
+          suggestedReason: goodDays[0] ?
+            `${goodDays[0].precip_chance}% rain chance, ${goodDays[0].temp_high_f}F high` :
+            'No clear day in forecast window',
+          actions: [
+            { id: 'reschedule', label: goodDays[0] ? `Move to ${goodDays[0].date}` : 'Find new date', primary: true },
+            { id: 'keep', label: 'Keep as scheduled' },
+            { id: 'cancel', label: 'Cancel task' }
+          ]
+        });
+      }
+    }
+
+    return {
+      success: true,
+      suggestions: suggestions,
+      count: suggestions.length,
+      badWeatherDays: badWeatherDays.map(d => ({
+        date: d.date,
+        issue: d.precip_chance > 60 ? 'Rain' : d.temp_high_f > 95 ? 'Heat' : 'Cold',
+        details: `${d.precip_chance}% rain, ${d.temp_high_f}F/${d.temp_low_f}F`
+      })),
+      forecast: forecast.map(f => ({
+        date: f.date,
+        high: f.temp_high_f,
+        low: f.temp_low_f,
+        precipChance: f.precip_chance,
+        condition: f.condition,
+        isGoodForFieldWork: f.precip_chance < 40 && f.temp_high_f < 95 && f.temp_low_f > 35
+      })),
+      message: suggestions.length > 0 ?
+        `${suggestions.length} task(s) may need rescheduling due to weather` :
+        'All tasks compatible with forecast',
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getWeatherAwareSchedulingSuggestions error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      suggestions: []
+    };
+  }
+}
+
+/**
+ * Record task action (start, skip, defer) for "What Should I Do Next"
+ *
+ * @param {Object} params - taskId, action, reason
+ * @returns {Object} Result
+ */
+function recordTaskAction(params) {
+  try {
+    const { taskId, action, reason, deferUntil } = params;
+
+    if (!taskId || !action) {
+      return { success: false, error: 'taskId and action required' };
+    }
+
+    const validActions = ['start', 'skip', 'defer', 'complete'];
+    if (!validActions.includes(action)) {
+      return { success: false, error: 'Invalid action. Use: ' + validActions.join(', ') };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Log the action
+    let logSheet = ss.getSheetByName('COS_TaskActions');
+    if (!logSheet) {
+      logSheet = ss.insertSheet('COS_TaskActions');
+      logSheet.appendRow(['Timestamp', 'Task_ID', 'Action', 'Reason', 'Defer_Until', 'User']);
+      logSheet.setFrozenRows(1);
+    }
+
+    logSheet.appendRow([
+      new Date().toISOString(),
+      taskId,
+      action,
+      reason || '',
+      deferUntil || '',
+      'owner'
+    ]);
+
+    // If action is 'start', potentially update task status
+    if (action === 'start') {
+      // Could update task sheet status to 'IN_PROGRESS'
+      // Implementation depends on task source
+    }
+
+    // If action is 'defer', could update due date
+    if (action === 'defer' && deferUntil) {
+      // Could update task sheet with new date
+    }
+
+    return {
+      success: true,
+      message: `Task ${action} recorded`,
+      taskId: taskId,
+      action: action,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('recordTaskAction error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// END: CHIEF OF STAFF 2.0 - SMART PRIORITY & DECISION SUPPORT SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
